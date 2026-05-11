@@ -59,6 +59,10 @@ guanwang/
 │  │     └─ login-log/     # 登录相关
 │  ├─ services/            # 接口请求与业务服务
 │  ├─ static/              # 不参与构建处理的静态资源
+│  ├─ styles/              # 全局样式、设计变量、SCSS mixin
+│  │  ├─ global.scss       # 全局基础样式
+│  │  ├─ variables.scss    # 项目设计变量
+│  │  └─ mixins.scss       # 公共 SCSS mixin
 │  ├─ stores/              # 状态管理
 │  ├─ types/               # TypeScript 类型声明
 │  ├─ utils/               # 通用工具方法
@@ -66,7 +70,7 @@ guanwang/
 │  ├─ main.ts              # 应用入口
 │  ├─ manifest.json        # uni-app 应用配置
 │  ├─ pages.json           # 页面路由配置
-│  └─ uni.scss             # 全局 SCSS 变量与样式
+│  └─ uni.scss             # uni-app 内置样式变量
 ├─ index.html
 ├─ package.json
 ├─ package-lock.json
@@ -118,14 +122,25 @@ guanwang/
 - 有多个子页面的模块，采用 `模块名/子页面名/子页面名.vue`，例如 `leak/leak/leak.vue`、`leak/layout/layout.vue`。
 - 系统设置类页面统一收敛在 `src/pages/system` 下。
 - 每个页面私有组件放在当前页面目录下的 `components` 中。
+- 页面私有样式可以放在当前页面同目录，例如 `pages/login/login.scss`，并通过 `<style scoped src="./login.scss" lang="scss"></style>` 引入。
 - 跨页面复用组件放在 `src/components` 中。
 - 修改、新增、删除页面后，需要同步维护 `src/pages.json`。
+
+## 样式组织
+
+- `src/styles/global.scss`：全局基础样式，例如页面背景、默认字体、盒模型规则。
+- `src/styles/variables.scss`：项目级设计变量，例如主色、文字色、背景色、字体族。
+- `src/styles/mixins.scss`：跨页面可复用的 SCSS mixin。
+- `src/uni.scss`：保留 uni-app 约定的内置变量，不建议放大量业务样式。
+- 页面自己的样式优先和页面放在一起，例如登录页使用 `src/pages/login/login.scss`。
+- `vite.config.ts` 已配置 `scss.additionalData`，页面 SCSS 中可以直接使用 `variables.scss` 和 `mixins.scss` 中导出的变量、mixin。
 
 ## 开发规范
 
 - 接口请求统一放到 `src/services`，避免直接散落在页面中。
 - 通用类型放到 `src/types`，通用工具方法放到 `src/utils`。
-- 页面样式优先放在当前 `.vue` 文件内，跨页面公共样式再抽到公共样式文件。
+- `.vue` 文件优先保留模板和逻辑，样式较多时拆到同目录 `.scss` 文件。
+- 跨页面复用样式、变量和 mixin 放到 `src/styles`，不要散落在页面文件中。
 - 页面命名、目录命名和菜单名称尽量保持语义一致。
 - 提交前建议执行 `npm run type-check` 和 `npm run build:h5`。
 
