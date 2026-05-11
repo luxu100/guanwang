@@ -1,7 +1,7 @@
 {
   "name": "guanwang",
   "version": "1.0.0",
-  "description": "基于 uni-app、Vue3、TypeScript 的官网前端项目。",
+  "description": "基于 uni-app、Vue3、TypeScript 的管网前端项目。",
   "private": true,
   "scripts": {
     "dev:h5": "uni",

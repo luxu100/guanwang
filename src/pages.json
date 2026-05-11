@@ -1,16 +1,131 @@
 {
   "pages": [
     {
+      "path": "pages/login/login",
+      "style": {
+        "navigationBarTitleText": "登录",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/index/index",
       "style": {
-        "navigationBarTitleText": "官网首页",
+        "navigationBarTitleText": "管网首页",
         "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/leak/leak/leak",
+      "style": {
+        "navigationBarTitleText": "渗漏检测"
+      }
+    },
+    {
+      "path": "pages/leak/layout/layout",
+      "style": {
+        "navigationBarTitleText": "布点图"
+      }
+    },
+    {
+      "path": "pages/data-analysis/data-analysis",
+      "style": {
+        "navigationBarTitleText": "数据分析"
+      }
+    },
+    {
+      "path": "pages/device/device",
+      "style": {
+        "navigationBarTitleText": "设备管理"
+      }
+    },
+    {
+      "path": "pages/statistics/analysis/analysis",
+      "style": {
+        "navigationBarTitleText": "统计分析"
+      }
+    },
+    {
+      "path": "pages/statistics/report/report",
+      "style": {
+        "navigationBarTitleText": "统计报表"
+      }
+    },
+    {
+      "path": "pages/work-order/work-order",
+      "style": {
+        "navigationBarTitleText": "渗漏工单"
+      }
+    },
+    {
+      "path": "pages/alarm/alarm",
+      "style": {
+        "navigationBarTitleText": "实时报警"
+      }
+    },
+    {
+      "path": "pages/command/command",
+      "style": {
+        "navigationBarTitleText": "指令管理"
+      }
+    },
+    {
+      "path": "pages/system/user/user",
+      "style": {
+        "navigationBarTitleText": "用户配置"
+      }
+    },
+    {
+      "path": "pages/system/auth/auth",
+      "style": {
+        "navigationBarTitleText": "权限管理"
+      }
+    },
+    {
+      "path": "pages/system/menu/menu",
+      "style": {
+        "navigationBarTitleText": "菜单管理"
+      }
+    },
+    {
+      "path": "pages/system/sys-alarm/sys-alarm",
+      "style": {
+        "navigationBarTitleText": "通用报警"
+      }
+    },
+    {
+      "path": "pages/system/dict/dict",
+      "style": {
+        "navigationBarTitleText": "数据字典"
+      }
+    },
+    {
+      "path": "pages/system/sensor/sensor",
+      "style": {
+        "navigationBarTitleText": "传感器类型"
+      }
+    },
+    {
+      "path": "pages/system/station/station",
+      "style": {
+        "navigationBarTitleText": "站点管理"
+      }
+    },
+    {
+      "path": "pages/system/remote/remote",
+      "style": {
+        "navigationBarTitleText": "远传设备"
+      }
+    },
+    {
+      "path": "pages/system/login-log/login-log",
+      "style": {
+        "navigationBarTitleText": "登录相关"
       }
     }
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "官网",
+    "navigationBarTitleText": "管网",
     "navigationBarBackgroundColor": "#FFFFFF",
     "backgroundColor": "#F7F9FC"
   }
