@@ -2,7 +2,10 @@
   <view class="login-page">
     <view class="left-panel">
       <view class="brand-row">
-        <view class="logo-slot"></view>
+        <view class="logo-mark">
+          <view class="logo-wave logo-wave--one"></view>
+          <view class="logo-wave logo-wave--two"></view>
+        </view>
         <view class="brand-copy">
           <text class="brand-title">城市管网渗漏预警平台</text>
           <view class="brand-subtitle">
@@ -13,13 +16,15 @@
         </view>
       </view>
 
-      <view class="image-slot">
-        <view class="image-slot-mark">
-          <view class="mark-line mark-line-one"></view>
-          <view class="mark-line mark-line-two"></view>
-          <view class="mark-dot mark-dot-one"></view>
-          <view class="mark-dot mark-dot-two"></view>
-          <view class="mark-dot mark-dot-three"></view>
+      <view class="visual-wrap">
+        <image
+          class="pipeline-visual"
+          src="/static/login-pipeline.jpg"
+          mode="aspectFit"
+        />
+        <view class="visual-caption">
+          <text class="caption-title">全域监测</text>
+          <text class="caption-text">站点、阀井、传感器数据实时汇聚</text>
         </view>
       </view>
     </view>
@@ -28,7 +33,7 @@
       <view class="login-form">
         <view class="login-header">
           <text class="login-title">欢迎登录</text>
-          <text class="login-subtitle">welcom</text>
+          <text class="login-subtitle">Welcome</text>
         </view>
 
         <view class="field-group">

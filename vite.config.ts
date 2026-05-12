@@ -5,7 +5,7 @@ import { fileURLToPath, URL } from "node:url";
 export default defineConfig({
   plugins: [uni()],
   server: {
-    host: "127.0.0.1",
+    host: "0.0.0.0",
   },
   css: {
     preprocessorOptions: {
