@@ -1,10 +1,15 @@
-﻿<template>
-  <view class="page-container">
-    <text>用户配置</text>
-  </view>
+<template>
+  <AppShell>
+    <view class="content-page"></view>
+  </AppShell>
 </template>
 
+<script setup lang="ts">
+import AppShell from "@/components/AppShell.vue";
+</script>
 
 <style scoped lang="scss">
-.page-container { padding: 20px; }
+.content-page {
+  min-height: calc(100vh - 70px);
+}
 </style>

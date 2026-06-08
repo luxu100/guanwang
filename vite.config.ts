@@ -6,6 +6,12 @@ export default defineConfig({
   plugins: [uni()],
   server: {
     host: "0.0.0.0",
+    proxy: {
+      "/api": {
+        target: "http://47.118.24.91:28082",
+        changeOrigin: true,
+      },
+    },
   },
   css: {
     preprocessorOptions: {
