@@ -344,59 +344,57 @@ function handleLogout() {
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  min-width: 112px;
+  min-width: 102px;
   height: 38px;
-  padding: 0 20px 0 18px;
-  overflow: hidden;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.1)),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(12, 106, 205, 0.08));
-  border: 1px solid rgba(255, 255, 255, 0.38);
-  border-radius: 10px;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.36),
-    inset 0 -1px 0 rgba(2, 82, 170, 0.1),
-    0 7px 16px rgba(4, 72, 144, 0.1);
+  padding: 0 20px 0 2px;
 }
 
 .user-chip::before {
   position: absolute;
-  top: 8px;
-  bottom: 8px;
-  left: 9px;
-  width: 3px;
+  right: 22px;
+  bottom: 5px;
+  left: 2px;
+  height: 10px;
   content: "";
-  background: linear-gradient(180deg, #ffffff, rgba(255, 255, 255, 0.32));
+  background:
+    radial-gradient(ellipse at center, rgba(255, 255, 255, 0.26), transparent 68%);
   border-radius: 999px;
+  filter: blur(1px);
   pointer-events: none;
 }
 
 .user-chip::after {
   position: absolute;
-  top: 1px;
-  right: 10px;
-  left: 18px;
-  height: 1px;
+  top: 50%;
+  right: 3px;
+  width: 8px;
+  height: 8px;
   content: "";
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.54), transparent);
-  pointer-events: none;
+  background: linear-gradient(180deg, #a8ffcb, #3ff283);
+  border: 2px solid rgba(255, 255, 255, 0.86);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 3px rgba(63, 242, 131, 0.12),
+    0 0 12px rgba(83, 255, 154, 0.42);
+  transform: translateY(-50%);
 }
 
 .user-name {
   position: relative;
   z-index: 1;
-  max-width: 112px;
+  max-width: 116px;
   overflow: hidden;
   color: #ffffff;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 800;
   line-height: 1;
   letter-spacing: 0;
   text-overflow: ellipsis;
   white-space: nowrap;
+  transform: translateY(-0.5px);
   text-shadow:
-    0 1px 4px rgba(1, 70, 136, 0.32),
-    0 0 12px rgba(255, 255, 255, 0.16);
+    0 1px 3px rgba(1, 70, 136, 0.34),
+    0 0 10px rgba(255, 255, 255, 0.16);
 }
 
 .logout-button {
@@ -735,8 +733,11 @@ function handleLogout() {
   .user-chip {
     min-width: 0;
     height: 34px;
-    padding: 0 12px 0 15px;
-    border-radius: 9px;
+    padding: 0 16px 0 0;
+  }
+
+  .user-chip::before {
+    right: 18px;
   }
 
   .warning-entry {
