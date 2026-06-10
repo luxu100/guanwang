@@ -6,11 +6,12 @@
   --login-logo-top: 16.8vh;
 
   position: relative;
-  width: 100vw;
+  width: 100%;
   min-width: 980px;
   height: 100vh;
   min-height: 640px;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   background: url("@/assets/images/background.webp") center center / cover no-repeat;
 }
 
@@ -201,6 +202,7 @@
 
 .field-input {
   flex: 1;
+  min-width: 0;
   height: 100%;
   color: #3f4d5f;
   font-size: 15px;
@@ -472,7 +474,7 @@
   }
 
   .field-row {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 10px;
   }
 

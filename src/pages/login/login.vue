@@ -149,7 +149,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import logoImage from "@/assets/images/logo.webp";
 import { login, register } from "@/services/user";
 import type { LoginResult } from "@/services/user";
@@ -180,6 +180,15 @@ const registerForm = reactive({
   realName: "",
   phone: "",
   email: "",
+});
+
+onMounted(() => {
+  const token = uni.getStorageSync(TOKEN_KEY);
+  if (token) {
+    uni.reLaunch({
+      url: "/pages/index/index",
+    });
+  }
 });
 
 const modeTitle = computed(() => {
@@ -261,6 +270,11 @@ function validateRegisterForm() {
 
   if (registerForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registerForm.email)) {
     showNotice("error", "请输入正确的邮箱");
+    return false;
+  }
+
+  if (registerForm.phone && !/^1[3-9]\d{9}$/.test(registerForm.phone)) {
+    showNotice("error", "请输入正确的手机号");
     return false;
   }
 

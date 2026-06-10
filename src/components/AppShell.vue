@@ -23,12 +23,13 @@
       </view>
 
       <view class="top-actions">
-        <view class="warning-entry" title="预警信息" @click="goPage('/pages/alarm/alarm')">
-          <text class="warning-entry__icon"></text>
+        <view class="warning-entry" aria-label="预警信息" @click="goPage('/pages/alarm/alarm')">
+          <view class="warning-entry__icon-wrap">
+            <text class="warning-entry__icon"></text>
+          </view>
           <text v-if="warningCount > 0" class="warning-entry__badge">{{ warningCountText }}</text>
         </view>
         <view class="user-chip">
-          <view class="user-avatar"></view>
           <text class="user-name">{{ userName }}</text>
         </view>
         <button class="logout-button" hover-class="logout-button--hover" @click="handleLogout">
@@ -46,7 +47,6 @@
             class="side-menu__item"
             :class="{ 'side-menu__item--active': currentPath === item.path }"
             :data-label="item.label"
-            :title="item.label"
             @click="goPage(item.path)"
           >
             <text class="side-menu__icon" :class="`side-menu__icon--${item.icon}`"></text>
@@ -119,7 +119,7 @@ const filteredMenuItems = computed(() => {
 
 const userName = computed(() => {
   const userInfo = uni.getStorageSync("userInfo");
-  return userInfo?.username || userInfo?.realName || "admin";
+  return userInfo?.realName || userInfo?.username || "admin";
 });
 
 const warningCountText = computed(() => (warningCount.value > 99 ? "99+" : String(warningCount.value)));
@@ -159,7 +159,9 @@ function handleLogout() {
 
 <style scoped lang="scss">
 .app-shell {
+  width: 100%;
   min-height: 100vh;
+  overflow-x: hidden;
   background: #edf5ff;
 }
 
@@ -170,6 +172,9 @@ function handleLogout() {
   display: flex;
   align-items: center;
   gap: 16px;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
   height: 72px;
   padding: 0 28px;
   color: #ffffff;
@@ -198,7 +203,7 @@ function handleLogout() {
 .site-title {
   display: flex;
   flex-direction: column;
-  flex: 0 1 300px;
+  flex: 0 0 300px;
   min-width: 0;
 }
 
@@ -228,7 +233,8 @@ function handleLogout() {
   position: relative;
   display: flex;
   align-items: center;
-  flex: 1 1 300px;
+  flex: 1 1 424px;
+  min-width: 260px;
   max-width: 424px;
   height: 40px;
   margin: 0 10px 0 4px;
@@ -277,8 +283,8 @@ function handleLogout() {
 .top-actions {
   display: flex;
   align-items: center;
-  flex: none;
-  gap: 14px;
+  flex: 0 0 auto;
+  gap: 18px;
   margin-left: auto;
 }
 
@@ -287,110 +293,117 @@ function handleLogout() {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: none;
+  flex: 0 0 38px;
   width: 38px;
-  height: 38px;
+  height: 40px;
+  padding: 0;
+  overflow: visible;
+  color: #ffffff;
   cursor: pointer;
 }
 
-.warning-entry__icon {
+.warning-entry__icon-wrap {
   position: relative;
-  width: 23px;
-  height: 24px;
-  background: linear-gradient(180deg, #ffe45a 0%, #ffc928 100%);
-  border: 2px solid #ffd94a;
-  border-radius: 10px 10px 6px 6px;
-  box-shadow:
-    0 4px 10px rgba(224, 117, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
 }
 
-.warning-entry__icon::before {
-  position: absolute;
-  top: -5px;
-  left: 7px;
-  width: 7px;
-  height: 5px;
-  content: "";
-  background: #ffe45a;
-  border-radius: 8px 8px 0 0;
-}
-
-.warning-entry__icon::after {
-  position: absolute;
-  right: 6px;
-  bottom: -5px;
-  left: 6px;
-  height: 3px;
-  content: "";
-  background: #f5b51d;
-  border-radius: 999px;
+.warning-entry__icon {
+  display: block;
+  width: 30px;
+  height: 30px;
+  background: url("data:image/svg+xml,%3Csvg width='30' height='30' viewBox='0 0 30 30' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M15 3.2c-1.4 0-2.6.9-2.95 2.18-4.02 1.2-6.58 4.78-6.58 9.48v3.5c0 .64-.22 1.26-.62 1.76L3.7 21.6c-.7.88-.08 2.18 1.05 2.18h20.5c1.13 0 1.75-1.3 1.05-2.18l-1.15-1.48c-.4-.5-.62-1.12-.62-1.76v-3.5c0-4.7-2.56-8.28-6.58-9.48A3.07 3.07 0 0 0 15 3.2Z' fill='%23FFD337'/%3E%3Cpath d='M7.35 18.02v-3.16c0-4.55 2.94-7.75 7.65-7.75s7.65 3.2 7.65 7.75v3.16c0 1.05.28 2.06.8 2.94H6.55c.52-.88.8-1.9.8-2.94Z' fill='url(%23paint0_linear_540_291)'/%3E%3Cpath d='M10.25 23.78h9.5A4.86 4.86 0 0 1 15 27a4.86 4.86 0 0 1-4.75-3.22Z' fill='%23F7AE19'/%3E%3Cpath d='M11.55 8.5c-1.96 1.15-3.08 3.3-3.08 6.12v3.25c0 .35-.05.7-.15 1.04' stroke='%23FFF18B' stroke-width='1.45' stroke-linecap='round'/%3E%3Cpath d='M13.65 5.38h2.7c.58 0 1.05.47 1.05 1.05v.4h-4.8v-.4c0-.58.47-1.05 1.05-1.05Z' fill='%23FFE469'/%3E%3Cdefs%3E%3ClinearGradient id='paint0_linear_540_291' x1='15' y1='7.11' x2='15' y2='20.96' gradientUnits='userSpaceOnUse'%3E%3Cstop stop-color='%23FFE65F'/%3E%3Cstop offset='.55' stop-color='%23FFC82E'/%3E%3Cstop offset='1' stop-color='%23F7A919'/%3E%3C/linearGradient%3E%3C/defs%3E%3C/svg%3E") center / contain no-repeat;
+  filter: drop-shadow(0 3px 5px rgba(128, 78, 0, 0.18));
 }
 
 .warning-entry__badge {
   position: absolute;
   top: 1px;
-  right: 0;
-  min-width: 16px;
-  height: 16px;
+  right: 1px;
+  min-width: 15px;
+  height: 15px;
   padding: 0 4px;
   color: #ffffff;
   font-size: 10px;
   font-weight: 700;
-  line-height: 16px;
+  line-height: 15px;
   text-align: center;
-  background: #f02d2d;
-  border: 1px solid #ffffff;
+  background: #f1322d;
+  border: 2px solid #ffffff;
   border-radius: 999px;
-  box-shadow: 0 2px 6px rgba(204, 18, 18, 0.24);
+  box-shadow: 0 2px 5px rgba(180, 12, 12, 0.24);
 }
 
 .user-chip {
+  position: relative;
   display: flex;
   align-items: center;
-  min-width: 118px;
-  height: 40px;
-  padding: 0 15px 0 5px;
-  background: rgba(255, 255, 255, 0.18);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 999px;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: 112px;
+  height: 38px;
+  padding: 0 20px 0 18px;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.1)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(12, 106, 205, 0.08));
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  border-radius: 10px;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    0 5px 12px rgba(4, 72, 144, 0.08);
+    inset 0 1px 0 rgba(255, 255, 255, 0.36),
+    inset 0 -1px 0 rgba(2, 82, 170, 0.1),
+    0 7px 16px rgba(4, 72, 144, 0.1);
 }
 
-.user-avatar {
-  position: relative;
-  width: 32px;
-  height: 32px;
-  margin-right: 10px;
-  background:
-    radial-gradient(circle at 50% 36%, rgba(255, 255, 255, 0.9) 0 16%, transparent 17%),
-    radial-gradient(circle at 50% 82%, rgba(255, 255, 255, 0.86) 0 25%, transparent 26%),
-    linear-gradient(135deg, #e9f5ff, #75b8ff);
-  border: 2px solid rgba(255, 255, 255, 0.86);
-  border-radius: 50%;
-  box-shadow:
-    inset 0 1px 4px rgba(255, 255, 255, 0.52),
-    0 2px 8px rgba(20, 101, 184, 0.16);
+.user-chip::before {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 9px;
+  width: 3px;
+  content: "";
+  background: linear-gradient(180deg, #ffffff, rgba(255, 255, 255, 0.32));
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.user-chip::after {
+  position: absolute;
+  top: 1px;
+  right: 10px;
+  left: 18px;
+  height: 1px;
+  content: "";
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.54), transparent);
+  pointer-events: none;
 }
 
 .user-name {
-  max-width: 118px;
+  position: relative;
+  z-index: 1;
+  max-width: 112px;
   overflow: hidden;
   color: #ffffff;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 800;
   line-height: 1;
+  letter-spacing: 0;
   text-overflow: ellipsis;
   white-space: nowrap;
-  text-shadow: 0 1px 3px rgba(1, 70, 136, 0.2);
+  text-shadow:
+    0 1px 4px rgba(1, 70, 136, 0.32),
+    0 0 12px rgba(255, 255, 255, 0.16);
 }
 
 .logout-button {
-  width: auto;
+  flex: 0 0 96px;
+  width: 96px;
   height: 38px;
-  padding: 0 18px;
+  padding: 0;
   color: #0d82ee;
   font-size: 14px;
   line-height: 38px;
@@ -556,170 +569,50 @@ function handleLogout() {
   width: 22px;
   height: 22px;
   margin-right: 14px;
+  background: currentColor;
   color: inherit;
+  mask: var(--side-icon-url) center / contain no-repeat;
+  -webkit-mask: var(--side-icon-url) center / contain no-repeat;
 }
 
-.side-menu__icon::before,
-.side-menu__icon::after {
-  position: absolute;
-  content: "";
-  box-sizing: border-box;
+.side-menu__icon--star {
+  --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 3.2l2.65 5.36 5.92.86-4.28 4.17 1.01 5.89L12 16.7l-5.3 2.78 1.01-5.89-4.28-4.17 5.92-.86L12 3.2Z'/%3E%3C/svg%3E");
 }
 
-.side-menu__icon--star::before {
-  inset: 2px;
-  background: currentColor;
-  clip-path: polygon(50% 0, 62% 34%, 98% 36%, 69% 57%, 79% 92%, 50% 72%, 21% 92%, 31% 57%, 2% 36%, 38% 34%);
+.side-menu__icon--monitor {
+  --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 3.4S6.4 9.2 6.4 13.1a5.6 5.6 0 0 0 11.2 0C17.6 9.2 12 3.4 12 3.4Z'/%3E%3Cpath d='M8.9 14.4h2.1l1.1-2.7 1.5 4.6 1-1.9h1.7'/%3E%3C/svg%3E");
 }
 
-.side-menu__icon--monitor::before {
-  inset: 2px 1px 6px;
-  border: 2px solid currentColor;
-  border-radius: 4px;
+.side-menu__icon--chart {
+  --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4.8 19.2h14.4' stroke-width='2'/%3E%3Cpath d='M6.7 16.8v-4.1M11.6 16.8V8.1M16.5 16.8v-6' stroke-width='2.6'/%3E%3Cpath d='M7.2 8.5l3.2 2.3 5.9-5' stroke-width='2'/%3E%3C/svg%3E");
 }
 
-.side-menu__icon--monitor::after {
-  right: 5px;
-  bottom: 1px;
-  left: 5px;
-  height: 5px;
-  border-top: 2px solid currentColor;
-  border-bottom: 2px solid currentColor;
+.side-menu__icon--device {
+  --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='4.6' y='4.4' width='5.6' height='15.2' rx='1.2'/%3E%3Crect x='13.8' y='4.4' width='5.6' height='15.2' rx='1.2'/%3E%3Cpath d='M7.4 8h.1M16.6 8h.1M7.4 16h.1M16.6 16h.1' stroke-width='2.4'/%3E%3C/svg%3E");
 }
 
-.side-menu__icon--chart::before {
-  right: 2px;
-  bottom: 2px;
-  left: 2px;
-  height: 16px;
-  border-bottom: 2px solid currentColor;
-  border-left: 2px solid currentColor;
+.side-menu__icon--trend {
+  --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='4' y='5' width='16' height='14' rx='1.5'/%3E%3Cpath d='M7.2 15.5l3-3 2.2 2.1 4.4-5.1M15.1 9.5h1.9v1.9'/%3E%3C/svg%3E");
 }
 
-.side-menu__icon--chart::after {
-  right: 2px;
-  bottom: 5px;
-  width: 15px;
-  height: 10px;
-  border-top: 2px solid currentColor;
-  border-right: 2px solid currentColor;
-  transform: skew(-24deg);
+.side-menu__icon--report {
+  --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6.2 3.8h8.3l3.3 3.4v13H6.2V3.8Z'/%3E%3Cpath d='M14.5 3.8v3.4h3.3M9 16v-3M12 16V9.8M15 16v-4.4'/%3E%3C/svg%3E");
 }
 
-.side-menu__icon--device::before {
-  inset: 2px 5px;
-  border: 2px solid currentColor;
-  border-radius: 3px;
+.side-menu__icon--order {
+  --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='5' y='4' width='13' height='16' rx='1.8'/%3E%3Cpath d='M8.2 8.2h6.8M8.2 11.8h5.8M8.2 15.4h3.4M15.2 16.8l1.2 1.2 2.4-2.6'/%3E%3C/svg%3E");
 }
 
-.side-menu__icon--device::after {
-  right: 8px;
-  bottom: 5px;
-  left: 8px;
-  height: 2px;
-  background: currentColor;
-  box-shadow: 0 -6px 0 currentColor;
+.side-menu__icon--alarm {
+  --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M8.5 18.7h7M10 18.6h4l.55-2.4h-5.1l.55 2.4Z'/%3E%3Cpath d='M7.2 16.2h9.6l-1-5.2A3.87 3.87 0 0 0 12 7.9 3.87 3.87 0 0 0 8.2 11l-1 5.2Z'/%3E%3Cpath d='M12 4.2v1.6M5.7 6.8l1.2 1.2M18.3 6.8 17.1 8M4.2 12.1H6M18 12.1h1.8'/%3E%3C/svg%3E");
 }
 
-.side-menu__icon--trend::before {
-  inset: 2px;
-  border: 2px solid currentColor;
-  border-top-color: transparent;
-  border-radius: 50%;
+.side-menu__icon--command {
+  --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 4.8h8.5L19 9.3v9.9H6V4.8Z'/%3E%3Cpath d='M14.4 4.8v4.6H19M8.7 12.6h5.8M8.7 16h4.2M16.5 13.5l2.2 2.1-2.2 2.1'/%3E%3C/svg%3E");
 }
 
-.side-menu__icon--trend::after {
-  top: 3px;
-  right: 1px;
-  width: 7px;
-  height: 7px;
-  border-top: 2px solid currentColor;
-  border-right: 2px solid currentColor;
-  transform: rotate(20deg);
-}
-
-.side-menu__icon--report::before {
-  inset: 1px 4px;
-  border: 2px solid currentColor;
-  border-radius: 3px;
-}
-
-.side-menu__icon--report::after {
-  top: 7px;
-  right: 8px;
-  left: 8px;
-  height: 2px;
-  background: currentColor;
-  box-shadow: 0 5px 0 currentColor;
-}
-
-.side-menu__icon--order::before {
-  inset: 2px 4px;
-  border: 2px solid currentColor;
-  border-radius: 3px;
-}
-
-.side-menu__icon--order::after {
-  top: 6px;
-  left: 8px;
-  width: 8px;
-  height: 2px;
-  background: currentColor;
-  box-shadow:
-    0 5px 0 currentColor,
-    0 10px 0 currentColor;
-}
-
-.side-menu__icon--alarm::before {
-  inset: 2px 4px 3px;
-  border: 2px solid currentColor;
-  border-radius: 10px 10px 4px 4px;
-}
-
-.side-menu__icon--alarm::after {
-  right: 8px;
-  bottom: 0;
-  left: 8px;
-  height: 2px;
-  background: currentColor;
-}
-
-.side-menu__icon--command::before {
-  top: 4px;
-  left: 1px;
-  width: 12px;
-  height: 12px;
-  border-top: 2px solid currentColor;
-  border-right: 2px solid currentColor;
-  transform: rotate(45deg);
-}
-
-.side-menu__icon--command::after {
-  top: 10px;
-  right: 2px;
-  width: 11px;
-  height: 2px;
-  background: currentColor;
-}
-
-.side-menu__icon--setting::before {
-  inset: 2px;
-  border: 2px solid currentColor;
-  border-radius: 50%;
-}
-
-.side-menu__icon--setting::after {
-  top: 8px;
-  left: 8px;
-  width: 6px;
-  height: 6px;
-  background: currentColor;
-  border-radius: 50%;
-  box-shadow:
-    0 -9px 0 -1px currentColor,
-    0 9px 0 -1px currentColor,
-    -9px 0 0 -1px currentColor,
-    9px 0 0 -1px currentColor;
+.side-menu__icon--setting {
+  --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='black' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M13.2 3.2h-2.4l-.48 2.18a7.05 7.05 0 0 0-1.44.6L6.98 4.78 5.28 6.48l1.2 1.9c-.26.46-.46.94-.61 1.45l-2.17.47v2.4l2.17.47c.15.51.36 1 .62 1.45l-1.2 1.9 1.69 1.7 1.9-1.2c.46.26.94.46 1.45.61l.47 2.17h2.4l.47-2.17c.51-.15 1-.36 1.45-.62l1.9 1.2 1.7-1.69-1.2-1.9c.26-.46.46-.94.61-1.45l2.17-.47v-2.4l-2.17-.47a7.05 7.05 0 0 0-.6-1.44l1.2-1.9-1.7-1.7-1.9 1.2a7.05 7.05 0 0 0-1.44-.6L13.2 3.2ZM12 8.15a3.85 3.85 0 1 0 0 7.7 3.85 3.85 0 0 0 0-7.7Z'/%3E%3Ccircle cx='12' cy='12' r='2.05'/%3E%3C/svg%3E");
 }
 
 .side-menu__label {
@@ -842,23 +735,24 @@ function handleLogout() {
   .user-chip {
     min-width: 0;
     height: 34px;
-    padding: 0 8px 0 3px;
+    padding: 0 12px 0 15px;
+    border-radius: 9px;
   }
 
   .warning-entry {
+    flex-basis: 34px;
     width: 34px;
     height: 34px;
   }
 
-  .warning-entry__icon {
-    width: 20px;
-    height: 21px;
-    border-radius: 9px 9px 5px 5px;
+  .warning-entry__icon-wrap {
+    width: 32px;
+    height: 32px;
   }
 
   .warning-entry__badge {
     top: 0;
-    right: -1px;
+    right: 0;
     min-width: 15px;
     height: 15px;
     padding: 0 3px;
@@ -866,14 +760,8 @@ function handleLogout() {
     line-height: 15px;
   }
 
-  .user-avatar {
-    width: 28px;
-    height: 28px;
-    margin-right: 6px;
-  }
-
   .user-name {
-    max-width: 58px;
+    max-width: 64px;
     font-size: 13px;
   }
 

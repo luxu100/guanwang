@@ -1,7 +1,16 @@
 @use "./variables.scss" as *;
 
+html,
+body {
+  min-height: 100%;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+}
+
 page {
   min-height: 100%;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
   background: $color-page-bg;
   color: $color-text-main;
   font-family: $font-family-base;
