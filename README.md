@@ -236,3 +236,16 @@ git commit -m "docs: 更新项目说明文档"
 - `style`：样式调整
 - `refactor`：代码重构
 - `chore`：工程配置或依赖调整
+
+## notice
+1、优先使用 Flex 或 Grid 实现布局，避免依赖 position: absolute 控制主结构。
+2、仅在以下场景允许使用 position: absolute/fixed：
+3、需要脱离文档流的悬浮元素（如弹窗、Tooltip、回到顶部按钮）
+4、动画中需精确控制坐标的位置过渡
+5、一维布局（水平/垂直排列）用 Flex，二维布局（网格/重叠区域）用 Grid。
+6、所有布局必须通过 min-width/max-width 保证不同分辨率的可用性，合理使用绝对单位：
+    允许 px 用于：
+        1px 边框/分隔线、图标尺寸等需像素级精确的场景。
+    禁止 px 用于：
+        主容器宽度/高度（应改用 %, vw, clamp()）。
+        文字字号（应改用 rem, em）。

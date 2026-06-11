@@ -10,6 +10,7 @@ import AppShell from "@/components/AppShell.vue";
 
 <style scoped lang="scss">
 .content-page {
-  min-height: calc(100vh - 72px);
+  min-height: calc(100vh - 70px);
 }
 </style>
+

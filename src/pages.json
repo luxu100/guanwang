@@ -57,13 +57,6 @@
       }
     },
     {
-      "path": "pages/device/device",
-      "style": {
-        "navigationBarTitleText": "设备管理",
-        "navigationStyle": "custom"
-      }
-    },
-    {
       "path": "pages/device/info/info",
       "style": {
         "navigationBarTitleText": "设备信息",
@@ -92,13 +85,6 @@
       }
     },
     {
-      "path": "pages/suspected-report/suspected-report",
-      "style": {
-        "navigationBarTitleText": "疑漏点上报",
-        "navigationStyle": "custom"
-      }
-    },
-    {
       "path": "pages/report/generate/generate",
       "style": {
         "navigationBarTitleText": "报表生成",
@@ -116,13 +102,6 @@
       "path": "pages/report/command/command",
       "style": {
         "navigationBarTitleText": "指令管理",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/work-order/work-order",
-      "style": {
-        "navigationBarTitleText": "工单管理",
         "navigationStyle": "custom"
       }
     },
@@ -148,13 +127,6 @@
       }
     },
     {
-      "path": "pages/alarm/alarm",
-      "style": {
-        "navigationBarTitleText": "实时报警",
-        "navigationStyle": "custom"
-      }
-    },
-    {
       "path": "pages/alarm/strategy/strategy",
       "style": {
         "navigationBarTitleText": "报警策略",
@@ -172,13 +144,6 @@
       "path": "pages/alarm/analysis/analysis",
       "style": {
         "navigationBarTitleText": "报警分析",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/command/command",
-      "style": {
-        "navigationBarTitleText": "指令管理",
         "navigationStyle": "custom"
       }
     },
@@ -246,9 +211,23 @@
       }
     },
     {
-      "path": "pages/data-receive/data-receive",
+      "path": "pages/system/auth/auth",
       "style": {
-        "navigationBarTitleText": "数据接收和解析",
+        "navigationBarTitleText": "权限管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/system/menu/menu",
+      "style": {
+        "navigationBarTitleText": "菜单管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/system/dict/dict",
+      "style": {
+        "navigationBarTitleText": "数据字典",
         "navigationStyle": "custom"
       }
     }

@@ -92,8 +92,8 @@ function initMap() {
   const center = new window.TMap.LatLng(31.2304, 121.4737);
   mapInstance = new window.TMap.Map(mapContainer.value, {
     center,
-    zoom: 13,
-    pitch: 35,
+    zoom: 15,
+    pitch: 45,
     rotation: 0,
   });
 

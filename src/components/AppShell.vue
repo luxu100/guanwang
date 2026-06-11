@@ -123,16 +123,8 @@ const MENU_COLLAPSED_KEY = "sideMenuCollapsed";
 
 const menuItems: MenuItem[] = [
   { label: "我的收藏", path: "/pages/index/index", icon: "star", keywords: ["首页", "收藏"] },
-  {
-    label: "渗漏监测",
-    path: "/pages/leak/leak/leak",
-    icon: "monitor",
-    keywords: ["渗漏", "监测"],
-    children: [
-      { label: "渗漏监测", path: "/pages/leak/leak/leak", icon: "monitor", keywords: ["漏损", "监测"] },
-      { label: "布点图", path: "/pages/leak/layout/layout", icon: "monitor", keywords: ["布点", "地图"] },
-    ],
-  },
+  { label: "渗漏监测", path: "/pages/leak-monitor/leak-monitor", icon: "monitor", keywords: ["渗漏", "监测"] },
+  { label: "站点管理", path: "/pages/station/station", icon: "station", keywords: ["站点", "管理"] },
   {
     label: "设备管理",
     path: "/pages/device/info/info",
@@ -764,22 +756,21 @@ onUnmounted(() => {
 .side-menu__collapse {
   position: absolute;
   top: calc(18px + (52px * 12 + 8px * 11) / 2);
-  right: -13px;
+  right: 8px;
   z-index: 5;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 58px;
+  width: 24px;
+  height: 44px;
   margin: 0;
   padding: 0;
   background: linear-gradient(180deg, #ffffff 0%, #f2f8ff 100%);
   border: 0;
   border: 1px solid rgba(178, 220, 255, 0.88);
-  border-left: 0;
-  border-radius: 0 16px 16px 0;
+  border-radius: 16px;
   box-shadow:
-    7px 0 18px rgba(28, 93, 151, 0.1),
+    0 7px 18px rgba(28, 93, 151, 0.1),
     inset 1px 0 0 rgba(255, 255, 255, 0.94);
   transform: translateY(-50%);
 }
@@ -810,7 +801,7 @@ onUnmounted(() => {
 }
 
 .side-menu--collapsed .side-menu__collapse {
-  right: -13px;
+  right: 8px;
 }
 
 .side-menu__scroll {
@@ -829,8 +820,8 @@ onUnmounted(() => {
   position: relative;
   display: flex;
   align-items: center;
-  width: calc(100% - 12px);
-  height: 52px;
+  width: calc(100% - 14px);
+  height: 48px;
   margin: 0 12px 8px 0;
   padding: 0 24px;
   color: #334155;
@@ -1228,7 +1219,7 @@ onUnmounted(() => {
 
   .side-menu__collapse {
     top: calc(18px + (52px * 12 + 8px * 11) / 2);
-    right: -13px;
+    right: 7px;
   }
 
   .side-menu__item {
