@@ -157,6 +157,29 @@ import { TOKEN_KEY, TOKEN_PREFIX_KEY } from "@/utils/request";
 import type { RequestError } from "@/utils/request";
 
 type Mode = "login" | "register";
+type NoticeType = "success" | "error";
+
+interface LoginForm {
+  username: string;
+  password: string;
+}
+
+interface RegisterForm extends LoginForm {
+  confirmPassword: string;
+  realName: string;
+  phone: string;
+  email: string;
+}
+
+interface ApiMessageResponse {
+  msg?: string;
+  data?: unknown;
+}
+
+const PASSWORD_MIN_LENGTH = 6;
+const PASSWORD_MAX_LENGTH = 20;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_PATTERN = /^1[3-9]\d{9}$/;
 
 const modeOptions: Array<{ label: string; value: Mode }> = [
   { label: "登录", value: "login" },
@@ -166,14 +189,14 @@ const modeOptions: Array<{ label: string; value: Mode }> = [
 const activeMode = ref<Mode>("login");
 const submitting = ref(false);
 const passwordVisible = ref(false);
-const notice = ref<{ type: "success" | "error"; text: string } | null>(null);
+const notice = ref<{ type: NoticeType; text: string } | null>(null);
 
-const loginForm = reactive({
+const loginForm = reactive<LoginForm>({
   username: "",
   password: "",
 });
 
-const registerForm = reactive({
+const registerForm = reactive<RegisterForm>({
   username: "",
   password: "",
   confirmPassword: "",
@@ -230,12 +253,12 @@ function showToast(title: string, icon: "none" | "success" = "none") {
   });
 }
 
-function showNotice(type: "success" | "error", text: string) {
+function showNotice(type: NoticeType, text: string) {
   notice.value = { type, text };
 }
 
 function isPasswordValid(password: string) {
-  return password.length >= 6 && password.length <= 20;
+  return password.length >= PASSWORD_MIN_LENGTH && password.length <= PASSWORD_MAX_LENGTH;
 }
 
 function validateLoginForm() {
@@ -259,7 +282,7 @@ function validateRegisterForm() {
   }
 
   if (!isPasswordValid(registerForm.password)) {
-    showNotice("error", "密码长度需为 6-20 位");
+    showNotice("error", `密码长度需为 ${PASSWORD_MIN_LENGTH}-${PASSWORD_MAX_LENGTH} 位`);
     return false;
   }
 
@@ -268,12 +291,12 @@ function validateRegisterForm() {
     return false;
   }
 
-  if (registerForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registerForm.email)) {
+  if (registerForm.email && !EMAIL_PATTERN.test(registerForm.email)) {
     showNotice("error", "请输入正确的邮箱");
     return false;
   }
 
-  if (registerForm.phone && !/^1[3-9]\d{9}$/.test(registerForm.phone)) {
+  if (registerForm.phone && !PHONE_PATTERN.test(registerForm.phone)) {
     showNotice("error", "请输入正确的手机号");
     return false;
   }
@@ -302,7 +325,7 @@ function isSuccessResponse(code?: number) {
   return code === 0 || code === 200;
 }
 
-function getResponseMessage(response: { msg?: string; data?: unknown } | undefined, fallback: string) {
+function getResponseMessage(response: ApiMessageResponse | undefined, fallback: string) {
   const data = response?.data;
 
   if (typeof data === "string" && data.trim()) {
@@ -328,11 +351,11 @@ function getResponseMessage(response: { msg?: string; data?: unknown } | undefin
 
 function handleSubmit() {
   if (activeMode.value === "login") {
-    handleLogin();
+    void handleLogin();
     return;
   }
 
-  handleRegister();
+  void handleRegister();
 }
 
 async function handleLogin() {

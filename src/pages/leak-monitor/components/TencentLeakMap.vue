@@ -17,15 +17,54 @@ import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 const TENCENT_MAP_KEY = "JCDBZ-Z2HLI-V26GX-UL7VO-LJFO2-TIFMZ";
 const TENCENT_MAP_SCRIPT_ID = "tencent-map-gl-sdk";
 const TENCENT_MAP_SCRIPT_URL = `https://map.qq.com/api/gljs?v=1.exp&key=${TENCENT_MAP_KEY}`;
+const MAP_RESIZE_DELAY = 300;
+
+interface TencentLatLng {
+  new (lat: number, lng: number): unknown;
+}
+
+interface TencentMapInstance {
+  destroy?: () => void;
+  resize?: () => void;
+}
+
+interface TencentMapConstructor {
+  new (
+    container: HTMLElement,
+    options: {
+      center: unknown;
+      zoom: number;
+      pitch: number;
+      rotation: number;
+    },
+  ): TencentMapInstance;
+}
+
+interface TencentMultiMarkerConstructor {
+  new (options: {
+    map: TencentMapInstance;
+    geometries: Array<{
+      id: string;
+      position: unknown;
+    }>;
+  }): unknown;
+}
+
+interface TencentMapApi {
+  LatLng: TencentLatLng;
+  Map: TencentMapConstructor;
+  MultiMarker: TencentMultiMarkerConstructor;
+}
 
 const mapContainer = ref<HTMLElement | null>(null);
 const mapError = ref("");
-let mapInstance: any = null;
+let mapInstance: TencentMapInstance | null = null;
 let sdkLoadingPromise: Promise<void> | null = null;
+let resizeTimer: ReturnType<typeof window.setTimeout> | null = null;
 
 declare global {
   interface Window {
-    TMap?: any;
+    TMap?: TencentMapApi;
   }
 }
 
@@ -42,9 +81,12 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  if (mapInstance?.destroy) {
-    mapInstance.destroy();
+  if (resizeTimer) {
+    window.clearTimeout(resizeTimer);
+    resizeTimer = null;
   }
+
+  mapInstance?.destroy?.();
   mapInstance = null;
 });
 
@@ -68,10 +110,10 @@ function loadTencentMap() {
       if (window.TMap) {
         resolve();
       } else {
-        reject();
+        reject(new Error("Tencent map SDK is unavailable after script loaded"));
       }
     };
-    script.onerror = () => reject();
+    script.onerror = () => reject(new Error("Tencent map SDK script failed to load"));
 
     if (!existingScript) {
       document.body.appendChild(script);
@@ -90,15 +132,16 @@ function initMap() {
   }
 
   const center = new window.TMap.LatLng(31.2304, 121.4737);
-  mapInstance = new window.TMap.Map(mapContainer.value, {
+  const map = new window.TMap.Map(mapContainer.value, {
     center,
     zoom: 15,
     pitch: 45,
     rotation: 0,
   });
+  mapInstance = map;
 
   new window.TMap.MultiMarker({
-    map: mapInstance,
+    map,
     geometries: [
       {
         id: "leak-monitor-center",
@@ -107,9 +150,10 @@ function initMap() {
     ],
   });
 
-  window.setTimeout(() => {
+  resizeTimer = window.setTimeout(() => {
+    resizeTimer = null;
     mapInstance?.resize?.();
-  }, 300);
+  }, MAP_RESIZE_DELAY);
 }
 </script>
 

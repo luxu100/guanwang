@@ -4,6 +4,14 @@
   --login-logo-width: clamp(480px, 32vw, 570px);
   --login-logo-left: clamp(80px, 10vw, 180px);
   --login-logo-top: 16.8vh;
+  --login-primary: #1869e3;
+  --login-primary-start: #2b7bf4;
+  --login-primary-end: #155bd4;
+  --login-text-main: #3f4d5f;
+  --login-text-muted: #9da5af;
+  --login-field-bg: #f3f7ff;
+  --login-field-border: #e8ecf6;
+  --login-white: #ffffff;
 
   position: relative;
   width: 100%;
@@ -49,7 +57,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  color: #ffffff;
+  color: var(--login-white);
 }
 
 .login-title {
@@ -96,8 +104,8 @@
 }
 
 .mode-tab--active {
-  color: #1869e3;
-  background: #ffffff;
+  color: var(--login-primary);
+  background: var(--login-white);
   box-shadow: 0 6px 14px rgba(6, 72, 172, 0.16);
 }
 
@@ -119,8 +127,8 @@
   width: 100%;
   height: var(--login-input-height);
   padding: 0 24px;
-  background: #f3f7ff;
-  border: 1px solid #e8ecf6;
+  background: var(--login-field-bg);
+  border: 1px solid var(--login-field-border);
   border-radius: 6px;
   transition:
     background-color 0.2s ease,
@@ -139,7 +147,7 @@
 }
 
 .field:focus-within {
-  background: #ffffff;
+  background: var(--login-white);
   border-color: rgba(255, 255, 255, 0.9);
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.24);
 }
@@ -150,7 +158,7 @@
   width: 20px;
   height: 20px;
   margin-right: 14px;
-  color: #9da5af;
+  color: var(--login-text-muted);
 }
 
 .field-icon--user::before {
@@ -204,7 +212,7 @@
   flex: 1;
   min-width: 0;
   height: 100%;
-  color: #3f4d5f;
+  color: var(--login-text-main);
   font-size: 15px;
   line-height: var(--login-input-height);
 }
@@ -228,7 +236,7 @@
 
 .password-toggle:hover,
 .password-toggle--visible {
-  color: #1869e3;
+  color: var(--login-primary);
   background: rgba(24, 105, 227, 0.08);
 }
 
@@ -274,7 +282,7 @@
   justify-content: flex-end;
   width: calc(100% - 2px);
   margin: 16px 0 28px 1px;
-  color: #ffffff;
+  color: var(--login-white);
   font-size: 15px;
 }
 
@@ -292,10 +300,10 @@
   width: 100%;
   height: var(--login-input-height);
   line-height: var(--login-input-height);
-  color: #ffffff;
+  color: var(--login-white);
   font-size: 19px;
   font-weight: 600;
-  background: linear-gradient(135deg, #2b7bf4 0%, #155bd4 100%);
+  background: linear-gradient(135deg, var(--login-primary-start) 0%, var(--login-primary-end) 100%);
   border: 0;
   border-radius: 6px;
   cursor: pointer;
