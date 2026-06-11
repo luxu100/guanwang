@@ -10,7 +10,7 @@
         <text class="site-title__sub">Urban Pipeline Leakage Early Warning Platform</text>
       </view>
 
-      <view class="site-search">
+      <view class="site-search" :class="{ 'site-search--focused': isSearchFocused, 'site-search--filled': searchKeyword }">
         <text class="site-search__icon"></text>
         <input
           v-model="searchKeyword"
@@ -18,8 +18,21 @@
           confirm-type="search"
           placeholder="站点搜索"
           placeholder-class="site-search__placeholder"
-          @confirm="handleSearch"
+          @focus="isSearchFocused = true"
+          @blur="isSearchFocused = false"
         />
+        <button
+          v-if="searchKeyword"
+          class="site-search__clear"
+          hover-class="site-search__clear--hover"
+          aria-label="清空搜索"
+          @click="clearSearch"
+        >
+          <text class="site-search__clear-icon"></text>
+        </button>
+        <button class="site-search__submit" hover-class="site-search__submit--hover" aria-label="搜索">
+          <text class="site-search__submit-icon"></text>
+        </button>
       </view>
 
       <view class="top-actions">
@@ -103,22 +116,45 @@
 
       <view class="shell-main">
         <view class="page-tabs" v-if="openedTabs.length">
-          <view
-            v-for="tab in openedTabs"
-            :key="tab.path"
-            class="page-tab"
-            :class="{ 'page-tab--active': currentPath === tab.path }"
-            @click="activateTab(tab.path)"
-          >
-            <text class="page-tab__icon" :class="`page-tab__icon--${tab.icon}`"></text>
-            <text class="page-tab__label">{{ tab.label }}</text>
-            <button class="page-tab__close" hover-class="page-tab__close--hover" @click.stop="closeTab(tab.path)">
-              <text class="page-tab__close-icon"></text>
-            </button>
+          <view ref="pageTabsListRef" class="page-tabs__list">
+            <view
+              v-for="tab in openedTabs"
+              :key="tab.path"
+              :data-tab-path="tab.path"
+              class="page-tab"
+              :class="{ 'page-tab--active': currentPath === tab.path }"
+              @click="activateTab(tab.path)"
+            >
+              <text class="page-tab__icon" :class="`page-tab__icon--${tab.icon}`"></text>
+              <text class="page-tab__label">{{ tab.label }}</text>
+              <button class="page-tab__close" hover-class="page-tab__close--hover" @click.stop="closeTab(tab.path)">
+                <text class="page-tab__close-icon"></text>
+              </button>
+            </view>
           </view>
+
+          <button
+            class="page-tabs__fullscreen"
+            hover-class="page-tabs__fullscreen--hover"
+            :aria-label="isContentFullscreen ? '退出全屏' : '进入全屏'"
+            @click="toggleFullscreen"
+          >
+            <text class="fullscreen-icon" :class="{ 'fullscreen-icon--active': isContentFullscreen }">
+              <text class="fullscreen-icon__corner fullscreen-icon__corner--tl"></text>
+              <text class="fullscreen-icon__corner fullscreen-icon__corner--tr"></text>
+              <text class="fullscreen-icon__corner fullscreen-icon__corner--br"></text>
+              <text class="fullscreen-icon__corner fullscreen-icon__corner--bl"></text>
+            </text>
+          </button>
         </view>
 
-        <view class="shell-content">
+        <view
+          ref="shellContentRef"
+          class="shell-content"
+          :class="{ 'shell-content--maximized': isFallbackFullscreen }"
+          data-fullscreen-target="shell-content"
+        >
+          <view v-if="isFallbackFullscreen" class="fullscreen-exit-tip">ESC</view>
           <TencentLeakMap v-if="currentPath === '/pages/leak-monitor/leak-monitor'" />
           <slot v-else></slot>
         </view>
@@ -128,7 +164,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import logoImage from "@/assets/images/logo.webp";
 import TencentLeakMap from "@/pages/leak-monitor/components/TencentLeakMap.vue";
 
@@ -248,6 +284,7 @@ const menuItems: MenuItem[] = [
 ];
 
 const searchKeyword = ref("");
+const isSearchFocused = ref(false);
 const isMenuCollapsed = ref(getInitialMenuCollapsed());
 const expandedMenuPaths = ref<string[]>([]);
 const collapsedSubmenuPath = ref("");
@@ -260,25 +297,15 @@ const routePath = computed(() => {
 });
 const currentPath = ref(getInitialPath());
 const openedTabs = ref<PageTab[]>([]);
+const isFullscreen = ref(false);
+const isFallbackFullscreen = ref(false);
+const pageTabsListRef = ref<HTMLElement | { $el?: HTMLElement } | null>(null);
+const shellContentRef = ref<HTMLElement | { $el?: HTMLElement } | null>(null);
+
+const isContentFullscreen = computed(() => isFullscreen.value || isFallbackFullscreen.value);
 
 const filteredMenuItems = computed(() => {
-  const keyword = searchKeyword.value.trim().toLowerCase();
-  if (!keyword) {
-    return menuItems;
-  }
-
-  return menuItems
-    .map((item) => {
-      const children = item.children?.filter((child) => isMenuTextMatched(child, keyword)) || [];
-      if (isMenuTextMatched(item, keyword)) {
-        return item;
-      }
-      if (children.length > 0) {
-        return { ...item, children };
-      }
-      return null;
-    })
-    .filter((item): item is MenuItem => Boolean(item));
+  return menuItems;
 });
 
 const userName = computed(() => {
@@ -294,16 +321,8 @@ function toggleMenu() {
   uni.setStorageSync(MENU_COLLAPSED_KEY, isMenuCollapsed.value);
 }
 
-function handleSearch() {
-  const firstPath = getFirstMenuPath(filteredMenuItems.value);
-  if (firstPath) {
-    goPage(firstPath);
-  }
-}
-
-function isMenuTextMatched(item: MenuItem, keyword: string) {
-  const values = [item.label, item.path, ...(item.keywords || [])];
-  return values.some((value) => value.toLowerCase().includes(keyword));
+function clearSearch() {
+  searchKeyword.value = "";
 }
 
 function isMenuItemActive(item: MenuItem) {
@@ -315,15 +334,11 @@ function isMenuItemExpanded(item: MenuItem) {
     return false;
   }
 
-  return Boolean(searchKeyword.value.trim()) || expandedMenuPaths.value.includes(item.path);
+  return expandedMenuPaths.value.includes(item.path);
 }
 
 function getMenuTargetPath(item: MenuItem) {
   return item.children?.[0]?.path || item.path;
-}
-
-function getFirstMenuPath(items: MenuItem[]) {
-  return items[0] ? getMenuTargetPath(items[0]) : "";
 }
 
 function goMenuItem(item: MenuItem) {
@@ -351,11 +366,13 @@ function goMenuItem(item: MenuItem) {
 function goPage(path: string, options: { keepCollapsedSubmenu?: boolean } = {}) {
   if (currentPath.value === path) {
     ensureTab(path);
+    scrollActiveTabIntoView(path);
     return;
   }
 
   currentPath.value = path;
   ensureTab(path);
+  scrollActiveTabIntoView(path);
   if (!options.keepCollapsedSubmenu) {
     collapsedSubmenuPath.value = "";
   }
@@ -395,6 +412,128 @@ function closeTab(path: string) {
 
   const nextTab = openedTabs.value[index] || openedTabs.value[index - 1];
   goPage(nextTab?.path || "/pages/leak-monitor/leak-monitor");
+}
+
+async function toggleFullscreen() {
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  if (isFallbackFullscreen.value) {
+    closeFallbackFullscreen();
+    return;
+  }
+
+  const target = getFullscreenTarget();
+  if (!target) {
+    return;
+  }
+
+  const fullscreenElement =
+    document.fullscreenElement ||
+    (document as Document & { webkitFullscreenElement?: Element | null }).webkitFullscreenElement;
+
+  try {
+    if (fullscreenElement === target) {
+      await exitFullscreen();
+    } else if (fullscreenElement) {
+      await exitFullscreen();
+      const entered = await enterFullscreen(target);
+      if (!entered) {
+        openFallbackFullscreen();
+      }
+    } else {
+      const entered = await enterFullscreen(target);
+      if (!entered) {
+        openFallbackFullscreen();
+      }
+    }
+  } catch (error) {
+    console.error("toggle fullscreen failed", error);
+    openFallbackFullscreen();
+  }
+}
+
+function getFullscreenTarget() {
+  return getElementFromRef(shellContentRef.value) || document.querySelector<HTMLElement>('[data-fullscreen-target="shell-content"]');
+}
+
+function getElementFromRef(refValue: HTMLElement | { $el?: HTMLElement } | null) {
+  if (refValue instanceof HTMLElement) {
+    return refValue;
+  }
+
+  if (refValue?.$el instanceof HTMLElement) {
+    return refValue.$el;
+  }
+
+  return null;
+}
+
+async function enterFullscreen(element: HTMLElement) {
+  const fullscreenElement = element as HTMLElement & {
+    webkitRequestFullscreen?: () => Promise<void> | void;
+  };
+
+  if (fullscreenElement.requestFullscreen) {
+    await fullscreenElement.requestFullscreen();
+    return true;
+  }
+
+  if (fullscreenElement.webkitRequestFullscreen) {
+    await fullscreenElement.webkitRequestFullscreen();
+    return true;
+  }
+
+  return false;
+}
+
+function exitFullscreen() {
+  const fullscreenDocument = document as Document & {
+    webkitExitFullscreen?: () => Promise<void> | void;
+  };
+
+  if (document.exitFullscreen) {
+    return document.exitFullscreen();
+  }
+
+  return fullscreenDocument.webkitExitFullscreen?.();
+}
+
+function syncFullscreenState() {
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  const fullscreenElement =
+    document.fullscreenElement ||
+    (document as Document & { webkitFullscreenElement?: Element | null }).webkitFullscreenElement;
+  const target = getFullscreenTarget();
+
+  isFullscreen.value = Boolean(target && fullscreenElement === target);
+  window.setTimeout(() => {
+    window.dispatchEvent(new Event("resize"));
+  }, 60);
+}
+
+function openFallbackFullscreen() {
+  isFallbackFullscreen.value = true;
+  window.setTimeout(() => {
+    window.dispatchEvent(new Event("resize"));
+  }, 60);
+}
+
+function closeFallbackFullscreen() {
+  isFallbackFullscreen.value = false;
+  window.setTimeout(() => {
+    window.dispatchEvent(new Event("resize"));
+  }, 60);
+}
+
+function handleFullscreenKeydown(event: KeyboardEvent) {
+  if (event.key === "Escape" && isFallbackFullscreen.value) {
+    closeFallbackFullscreen();
+  }
 }
 
 function showCollapsedSubmenu(item: MenuItem) {
@@ -510,6 +649,27 @@ function ensureTab(path: string) {
   openedTabs.value.push({ icon: getMenuIconByPath(path), label, path });
 }
 
+function scrollActiveTabIntoView(path = currentPath.value) {
+  // #ifdef H5
+  void nextTick(() => {
+    const listElement = getElementFromRef(pageTabsListRef.value);
+    if (!listElement) {
+      return;
+    }
+
+    const activeTab = Array.from(listElement.querySelectorAll<HTMLElement>(".page-tab")).find(
+      (tabElement) => tabElement.dataset.tabPath === path,
+    );
+
+    activeTab?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "center",
+    });
+  });
+  // #endif
+}
+
 function syncExpandedMenuByPath(path: string) {
   if (isMenuCollapsed.value) {
     return;
@@ -524,6 +684,7 @@ function syncPathFromBrowser() {
   if (path) {
     currentPath.value = path;
     ensureTab(path);
+    scrollActiveTabIntoView(path);
     syncExpandedMenuByPath(path);
     updateDocumentTitle(path);
   }
@@ -532,13 +693,21 @@ function syncPathFromBrowser() {
 // #ifdef H5
 onMounted(() => {
   ensureTab(currentPath.value);
+  scrollActiveTabIntoView(currentPath.value);
   window.addEventListener("popstate", syncPathFromBrowser);
   window.addEventListener("hashchange", syncPathFromBrowser);
+  document.addEventListener("fullscreenchange", syncFullscreenState);
+  document.addEventListener("webkitfullscreenchange", syncFullscreenState);
+  window.addEventListener("keydown", handleFullscreenKeydown);
+  syncFullscreenState();
 });
 
 onUnmounted(() => {
   window.removeEventListener("popstate", syncPathFromBrowser);
   window.removeEventListener("hashchange", syncPathFromBrowser);
+  document.removeEventListener("fullscreenchange", syncFullscreenState);
+  document.removeEventListener("webkitfullscreenchange", syncFullscreenState);
+  window.removeEventListener("keydown", handleFullscreenKeydown);
 });
 // #endif
 </script>
@@ -633,23 +802,45 @@ onUnmounted(() => {
   align-items: center;
   flex: 1 1 424px;
   min-width: 260px;
-  max-width: 424px;
-  height: 40px;
+  max-width: 460px;
+  height: 42px;
   margin: 0 10px 0 4px;
-  background: rgba(255, 255, 255, 0.18);
-  border: 1px solid rgba(255, 255, 255, 0.32);
-  border-radius: 20px;
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.36);
+  border-radius: 999px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 8px 18px rgba(5, 84, 164, 0.08);
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.site-search--focused {
+  background: rgba(255, 255, 255, 0.28);
+  border-color: rgba(255, 255, 255, 0.68);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    0 0 0 3px rgba(255, 255, 255, 0.14),
+    0 10px 22px rgba(4, 73, 150, 0.14);
+}
+
+.site-search--filled {
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .site-search__icon {
   position: relative;
   flex: none;
-  width: 18px;
-  height: 18px;
+  width: 17px;
+  height: 17px;
   margin-left: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.92);
+  color: rgba(255, 255, 255, 0.94);
+  border: 2px solid currentColor;
   border-radius: 50%;
+  opacity: 0.96;
 }
 
 .site-search__icon::after {
@@ -659,7 +850,7 @@ onUnmounted(() => {
   width: 8px;
   height: 2px;
   content: "";
-  background: rgba(255, 255, 255, 0.92);
+  background: currentColor;
   border-radius: 999px;
   transform: translate(5px, 4px) rotate(45deg);
 }
@@ -667,15 +858,107 @@ onUnmounted(() => {
 .site-search__input {
   flex: 1;
   min-width: 0;
-  height: 38px;
-  padding: 0 16px 0 12px;
+  height: 40px;
+  padding: 0 10px 0 13px;
   color: #ffffff;
   font-size: 14px;
-  line-height: 38px;
+  font-weight: 500;
+  line-height: 40px;
 }
 
 .site-search__placeholder {
   color: rgba(255, 255, 255, 0.72);
+}
+
+.site-search__clear,
+.site-search__submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.site-search__clear::after,
+.site-search__submit::after {
+  border: 0;
+}
+
+.site-search__clear {
+  width: 24px;
+  height: 24px;
+  color: rgba(255, 255, 255, 0.86);
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 50%;
+}
+
+.site-search__clear--hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.site-search__clear-icon {
+  position: relative;
+  width: 12px;
+  height: 12px;
+}
+
+.site-search__clear-icon::before,
+.site-search__clear-icon::after {
+  position: absolute;
+  top: 5px;
+  left: 2px;
+  width: 8px;
+  height: 1.4px;
+  content: "";
+  background: currentColor;
+  border-radius: 999px;
+}
+
+.site-search__clear-icon::before {
+  transform: rotate(45deg);
+}
+
+.site-search__clear-icon::after {
+  transform: rotate(-45deg);
+}
+
+.site-search__submit {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  margin: 0 6px 0 8px;
+  color: #0d82ee;
+  background: #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 6px 14px rgba(5, 74, 143, 0.14);
+}
+
+.site-search__submit--hover {
+  color: #0674d8;
+  background: #f3f9ff;
+}
+
+.site-search__submit-icon {
+  position: relative;
+  width: 13px;
+  height: 13px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+
+.site-search__submit-icon::after {
+  position: absolute;
+  right: -5px;
+  bottom: -3px;
+  width: 7px;
+  height: 2px;
+  content: "";
+  background: currentColor;
+  border-radius: 999px;
+  transform: rotate(45deg);
 }
 
 .top-actions {
@@ -1259,22 +1542,135 @@ onUnmounted(() => {
 .page-tabs {
   display: flex;
   align-items: center;
+  gap: 14px;
+  box-sizing: border-box;
   height: var(--shell-tabs-height);
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding: 0 22px;
+  padding: 0 14px 0 22px;
+  overflow: hidden;
   background: #ffffff;
   border-bottom: 1px solid #edf3f8;
 }
 
-.page-tabs::-webkit-scrollbar {
+.page-tabs__list {
+  display: flex;
+  align-items: center;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-padding: 0 18px;
+  scroll-behavior: smooth;
+  white-space: nowrap;
+}
+
+.page-tabs__list::-webkit-scrollbar {
   display: none;
+}
+
+.page-tabs__fullscreen {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  margin: 0;
+  padding: 0;
+  color: #53687f;
+  background: #f6fbff;
+  border: 1px solid #dcebf8;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(20, 91, 160, 0.06);
+}
+
+.page-tabs__fullscreen::after {
+  border: 0;
+}
+
+.page-tabs__fullscreen--hover {
+  color: #0d82ee;
+  background: #edf7ff;
+  border-color: #c8e3fb;
+}
+
+.fullscreen-icon {
+  position: relative;
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+.fullscreen-icon__corner {
+  position: absolute;
+  box-sizing: border-box;
+  width: 6px;
+  height: 6px;
+  border: solid currentColor;
+  transition:
+    inset 0.18s ease,
+    transform 0.18s ease;
+}
+
+.fullscreen-icon__corner--tl {
+  top: 0;
+  left: 0;
+  border-width: 2px 0 0 2px;
+  border-radius: 2px 0 0;
+}
+
+.fullscreen-icon__corner--tr {
+  top: 0;
+  right: 0;
+  border-width: 2px 2px 0 0;
+  border-radius: 0 2px 0 0;
+}
+
+.fullscreen-icon__corner--br {
+  right: 0;
+  bottom: 0;
+  border-width: 0 2px 2px 0;
+  border-radius: 0 0 2px;
+}
+
+.fullscreen-icon__corner--bl {
+  bottom: 0;
+  left: 0;
+  border-width: 0 0 2px 2px;
+  border-radius: 0 0 0 2px;
+}
+
+.fullscreen-icon--active .fullscreen-icon__corner--tl {
+  top: 1px;
+  left: 1px;
+  border-width: 0 2px 2px 0;
+}
+
+.fullscreen-icon--active .fullscreen-icon__corner--tr {
+  top: 1px;
+  right: 1px;
+  border-width: 0 0 2px 2px;
+}
+
+.fullscreen-icon--active .fullscreen-icon__corner--br {
+  right: 1px;
+  bottom: 1px;
+  border-width: 2px 0 0 2px;
+}
+
+.fullscreen-icon--active .fullscreen-icon__corner--bl {
+  bottom: 1px;
+  left: 1px;
+  border-width: 2px 2px 0 0;
 }
 
 .page-tab {
   display: flex;
   align-items: center;
   flex: 0 0 auto;
+  flex-shrink: 0;
   gap: 8px;
   min-width: 0;
   max-width: 168px;
@@ -1383,6 +1779,7 @@ onUnmounted(() => {
     var(--shell-viewport-height) - var(--shell-header-height) - var(--shell-tabs-height) - var(--shell-content-gap) * 2
   );
 
+  position: relative;
   box-sizing: border-box;
   margin: var(--shell-content-gap);
   min-height: var(--shell-content-min-height);
@@ -1390,6 +1787,51 @@ onUnmounted(() => {
   background: #ffffff;
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(38, 90, 146, 0.06);
+}
+
+.shell-content:fullscreen,
+.shell-content:-webkit-full-screen,
+.shell-content--maximized {
+  --shell-content-min-height: 100vh;
+
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  width: 100vw;
+  height: 100vh;
+  min-height: 100vh;
+  margin: 0;
+  background: #edf5ff;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.shell-content:fullscreen :deep(.leak-map),
+.shell-content:fullscreen :deep(.leak-map__canvas),
+.shell-content:-webkit-full-screen :deep(.leak-map),
+.shell-content:-webkit-full-screen :deep(.leak-map__canvas),
+.shell-content--maximized :deep(.leak-map),
+.shell-content--maximized :deep(.leak-map__canvas) {
+  height: 100vh;
+  min-height: 100vh;
+}
+
+.fullscreen-exit-tip {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  z-index: 20;
+  padding: 8px 14px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  background: rgba(20, 34, 51, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  box-shadow: 0 10px 28px rgba(9, 31, 59, 0.16);
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 
 @media (max-width: 1080px) {
@@ -1523,8 +1965,28 @@ onUnmounted(() => {
 
   .site-search__input {
     height: 34px;
+    padding-left: 10px;
     font-size: 13px;
     line-height: 34px;
+  }
+
+  .site-search__icon {
+    width: 15px;
+    height: 15px;
+    margin-left: 13px;
+  }
+
+  .site-search__submit {
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    margin-right: 5px;
+    margin-left: 6px;
+  }
+
+  .site-search__clear {
+    width: 22px;
+    height: 22px;
   }
 
   .side-menu {
