@@ -159,9 +159,10 @@
           data-fullscreen-target="shell-content"
         >
           <view v-if="isFallbackFullscreen" class="fullscreen-exit-tip">ESC</view>
-          <!-- 渗漏监测地图是全屏地图场景，直接在外壳中渲染以复用页签和全屏能力。 -->
-          <TencentLeakMap v-if="currentPath === '/pages/leak-monitor/leak-monitor'" />
-          <slot v-else></slot>
+          <!-- AppShell 内部切换目录时真实页面不会立即卸载，内容必须跟随 currentPath 控制。 -->
+          <TencentLeakMap v-if="isLeakMonitorActive" />
+          <slot v-else-if="shouldRenderPageSlot"></slot>
+          <view v-else class="shell-placeholder"></view>
         </view>
       </view>
     </view>
@@ -188,6 +189,7 @@ interface PageTab {
 }
 
 const MENU_COLLAPSED_KEY = "sideMenuCollapsed";
+const LEAK_MONITOR_PATH = "/pages/leak-monitor/leak-monitor";
 
 /**
  * 后台侧边栏菜单配置。
@@ -314,6 +316,8 @@ const pageTabsListRef = ref<HTMLElement | { $el?: HTMLElement } | null>(null);
 const shellContentRef = ref<HTMLElement | { $el?: HTMLElement } | null>(null);
 
 const isContentFullscreen = computed(() => isFullscreen.value || isFallbackFullscreen.value);
+const isLeakMonitorActive = computed(() => currentPath.value === LEAK_MONITOR_PATH);
+const shouldRenderPageSlot = computed(() => currentPath.value === routePath.value && !isLeakMonitorActive.value);
 
 const filteredMenuItems = computed(() => {
   return menuItems;
@@ -1784,6 +1788,10 @@ onUnmounted(() => {
   background: #ffffff;
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(38, 90, 146, 0.06);
+}
+
+.shell-placeholder {
+  min-height: var(--shell-content-min-height);
 }
 
 .shell-content:fullscreen,
