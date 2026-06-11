@@ -65,7 +65,8 @@
       </view>
 
       <view class="shell-main">
-        <slot></slot>
+        <TencentLeakMap v-if="currentPath === '/pages/leak-monitor/leak-monitor'" />
+        <slot v-else></slot>
       </view>
     </view>
   </view>
@@ -74,6 +75,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import logoImage from "@/assets/images/logo.webp";
+import TencentLeakMap from "@/pages/leak-monitor/components/TencentLeakMap.vue";
 
 interface MenuItem {
   label: string;
