@@ -547,6 +547,7 @@ onUnmounted(() => {
 .app-shell {
   --shell-header-height: 72px;
   --shell-tabs-height: 42px;
+  --shell-content-gap: 12px;
   --shell-viewport-height: 100vh;
   --shell-content-min-height: calc(var(--shell-viewport-height) - var(--shell-header-height));
 
@@ -907,8 +908,8 @@ onUnmounted(() => {
 .collapse-icon {
   position: relative;
   z-index: 1;
-  width: 16px;
-  height: 14px;
+  width: 18px;
+  height: 16px;
   opacity: 1;
   transition:
     opacity 0.18s ease,
@@ -917,29 +918,31 @@ onUnmounted(() => {
 
 .collapse-icon::before {
   position: absolute;
-  top: 4px;
-  left: 1px;
-  width: 7px;
-  height: 7px;
+  top: 5px;
+  left: 0;
+  width: 6px;
+  height: 6px;
   content: "";
   border: solid currentColor;
   border-width: 0 0 2px 2px;
-  border-radius: 0 0 0 1px;
+  border-radius: 0 0 0 1.5px;
   box-shadow: none;
   transform: rotate(45deg);
+  transform-origin: center;
 }
 
 .collapse-icon::after {
   position: absolute;
   top: 3px;
-  right: 0;
-  width: 9px;
+  right: 1px;
+  width: 11px;
   height: 2px;
   content: "";
   background: currentColor;
   border-radius: 999px;
   box-shadow:
-    0 7px 0 currentColor;
+    0 5px 0 currentColor,
+    0 10px 0 currentColor;
 }
 
 .side-menu__collapse .collapse-icon {
@@ -1376,14 +1379,23 @@ onUnmounted(() => {
 }
 
 .shell-content {
-  --shell-content-min-height: calc(var(--shell-viewport-height) - var(--shell-header-height) - var(--shell-tabs-height));
+  --shell-content-min-height: calc(
+    var(--shell-viewport-height) - var(--shell-header-height) - var(--shell-tabs-height) - var(--shell-content-gap) * 2
+  );
 
+  box-sizing: border-box;
+  margin: var(--shell-content-gap);
   min-height: var(--shell-content-min-height);
+  overflow: hidden;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(38, 90, 146, 0.06);
 }
 
 @media (max-width: 1080px) {
   .app-shell {
     --shell-header-height: 118px;
+    --shell-content-gap: 10px;
   }
 
   .top-bar {
@@ -1431,6 +1443,10 @@ onUnmounted(() => {
 }
 
 @media (max-width: 720px) {
+  .app-shell {
+    --shell-content-gap: 8px;
+  }
+
   .top-bar {
     gap: 8px 10px;
     padding: 10px 12px;
