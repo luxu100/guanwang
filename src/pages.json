@@ -36,9 +36,58 @@
       }
     },
     {
+      "path": "pages/data-analysis/overview/overview",
+      "style": {
+        "navigationBarTitleText": "系统总览",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/data-analysis/audio/audio",
+      "style": {
+        "navigationBarTitleText": "音频数据",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/data-analysis/device-params/device-params",
+      "style": {
+        "navigationBarTitleText": "设备参数",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/data-analysis/leakage/leakage",
+      "style": {
+        "navigationBarTitleText": "渗漏数据",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/device/device",
       "style": {
         "navigationBarTitleText": "设备管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/device/info/info",
+      "style": {
+        "navigationBarTitleText": "设备信息",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/device/maintenance/maintenance",
+      "style": {
+        "navigationBarTitleText": "拆装维护",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/device/status/status",
+      "style": {
+        "navigationBarTitleText": "设备状态",
         "navigationStyle": "custom"
       }
     },
@@ -57,9 +106,51 @@
       }
     },
     {
+      "path": "pages/report/generate/generate",
+      "style": {
+        "navigationBarTitleText": "报表生成",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/report/operation/operation",
+      "style": {
+        "navigationBarTitleText": "报表操作",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/report/command/command",
+      "style": {
+        "navigationBarTitleText": "指令管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/work-order/work-order",
       "style": {
         "navigationBarTitleText": "渗漏工单",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/work-order/create/create",
+      "style": {
+        "navigationBarTitleText": "工单创建",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/work-order/processing/processing",
+      "style": {
+        "navigationBarTitleText": "工单处理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/work-order/statistics/statistics",
+      "style": {
+        "navigationBarTitleText": "工单查询与统计",
         "navigationStyle": "custom"
       }
     },
@@ -71,9 +162,86 @@
       }
     },
     {
+      "path": "pages/alarm/strategy/strategy",
+      "style": {
+        "navigationBarTitleText": "报警策略",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/alarm/processing/processing",
+      "style": {
+        "navigationBarTitleText": "报警处理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/alarm/analysis/analysis",
+      "style": {
+        "navigationBarTitleText": "报警分析",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/command/command",
       "style": {
         "navigationBarTitleText": "指令管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/leak-report/suspect-management/suspect-management",
+      "style": {
+        "navigationBarTitleText": "疑点管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/leak-report/suspect-processing/suspect-processing",
+      "style": {
+        "navigationBarTitleText": "疑点处理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/leak-report/leak-management/leak-management",
+      "style": {
+        "navigationBarTitleText": "漏点管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/leak-report/leak-analysis/leak-analysis",
+      "style": {
+        "navigationBarTitleText": "漏点分析",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/leak-report/history-overview/history-overview",
+      "style": {
+        "navigationBarTitleText": "历史总览",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/data-receive/access/access",
+      "style": {
+        "navigationBarTitleText": "数据接入",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/data-receive/parse/parse",
+      "style": {
+        "navigationBarTitleText": "数据解析",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/data-receive/record/record",
+      "style": {
+        "navigationBarTitleText": "数据记录",
         "navigationStyle": "custom"
       }
     },

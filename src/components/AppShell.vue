@@ -23,7 +23,7 @@
       </view>
 
       <view class="top-actions">
-        <view class="warning-entry" aria-label="预警信息" @click="goPage('/pages/alarm/alarm')">
+        <view class="warning-entry" aria-label="预警信息" @click="goPage('/pages/alarm/processing/processing')">
           <view class="warning-entry__icon-wrap">
             <text class="warning-entry__icon"></text>
           </view>
@@ -41,16 +41,29 @@
     <view class="shell-body">
       <view class="side-menu" :class="{ 'side-menu--collapsed': isMenuCollapsed }">
         <view class="side-menu__scroll">
-          <view
-            v-for="item in filteredMenuItems"
-            :key="item.path"
-            class="side-menu__item"
-            :class="{ 'side-menu__item--active': currentPath === item.path }"
-            :data-label="item.label"
-            @click="goPage(item.path)"
-          >
-            <text class="side-menu__icon" :class="`side-menu__icon--${item.icon}`"></text>
-            <text class="side-menu__label">{{ item.label }}</text>
+          <view v-for="item in filteredMenuItems" :key="item.path" class="side-menu__group">
+            <view
+              class="side-menu__item"
+              :class="{ 'side-menu__item--active': isMenuItemActive(item) }"
+              :data-label="item.label"
+              @click="goMenuItem(item)"
+            >
+              <text class="side-menu__icon" :class="`side-menu__icon--${item.icon}`"></text>
+              <text class="side-menu__label">{{ item.label }}</text>
+            </view>
+
+            <view v-if="item.children?.length && isMenuItemExpanded(item)" class="side-menu__children">
+              <view
+                v-for="child in item.children"
+                :key="child.path"
+                class="side-menu__child"
+                :class="{ 'side-menu__child--active': currentPath === child.path }"
+                @click.stop="goPage(child.path)"
+              >
+                <text class="side-menu__child-dot"></text>
+                <text class="side-menu__child-label">{{ child.label }}</text>
+              </view>
+            </view>
           </view>
         </view>
 
@@ -80,23 +93,119 @@ interface MenuItem {
   path: string;
   icon: string;
   keywords?: string[];
+  children?: MenuItem[];
 }
 
 const menuItems: MenuItem[] = [
   { label: "我的收藏", path: "/pages/index/index", icon: "star", keywords: ["首页", "收藏"] },
-  { label: "渗漏监测", path: "/pages/leak/leak/leak", icon: "monitor", keywords: ["漏损", "监测"] },
-  { label: "数据分析", path: "/pages/data-analysis/data-analysis", icon: "chart", keywords: ["分析"] },
-  { label: "设备管理", path: "/pages/device/device", icon: "device", keywords: ["设备"] },
+  {
+    label: "渗漏监测",
+    path: "/pages/leak/leak/leak",
+    icon: "monitor",
+    keywords: ["渗漏", "监测"],
+    children: [
+      { label: "渗漏监测", path: "/pages/leak/leak/leak", icon: "monitor", keywords: ["漏损", "监测"] },
+      { label: "布点图", path: "/pages/leak/layout/layout", icon: "monitor", keywords: ["布点", "地图"] },
+    ],
+  },
+  {
+    label: "设备管理",
+    path: "/pages/device/info/info",
+    icon: "device",
+    keywords: ["设备"],
+    children: [
+      { label: "设备信息", path: "/pages/device/info/info", icon: "device", keywords: ["设备", "信息"] },
+      { label: "拆装维护", path: "/pages/device/maintenance/maintenance", icon: "device", keywords: ["拆装", "维护"] },
+      { label: "设备状态", path: "/pages/device/status/status", icon: "device", keywords: ["状态"] },
+    ],
+  },
+  {
+    label: "数据分析",
+    path: "/pages/data-analysis/overview/overview",
+    icon: "chart",
+    keywords: ["分析", "数据"],
+    children: [
+      { label: "系统总览", path: "/pages/data-analysis/overview/overview", icon: "chart", keywords: ["系统", "总览"] },
+      { label: "音频数据", path: "/pages/data-analysis/audio/audio", icon: "chart", keywords: ["音频"] },
+      { label: "设备参数", path: "/pages/data-analysis/device-params/device-params", icon: "chart", keywords: ["参数"] },
+      { label: "渗漏数据", path: "/pages/data-analysis/leakage/leakage", icon: "chart", keywords: ["渗漏"] },
+    ],
+  },
+  {
+    label: "疑漏点上报",
+    path: "/pages/leak-report/suspect-management/suspect-management",
+    icon: "report",
+    keywords: ["疑漏点", "上报", "疑点", "漏点"],
+    children: [
+      { label: "疑点管理", path: "/pages/leak-report/suspect-management/suspect-management", icon: "report", keywords: ["疑点"] },
+      { label: "疑点处理", path: "/pages/leak-report/suspect-processing/suspect-processing", icon: "report", keywords: ["处理"] },
+      { label: "漏点管理", path: "/pages/leak-report/leak-management/leak-management", icon: "report", keywords: ["漏点"] },
+      { label: "漏点分析", path: "/pages/leak-report/leak-analysis/leak-analysis", icon: "report", keywords: ["分析"] },
+      { label: "历史总览", path: "/pages/leak-report/history-overview/history-overview", icon: "report", keywords: ["历史"] },
+    ],
+  },
   { label: "统计分析", path: "/pages/statistics/statistics", icon: "trend", keywords: ["统计"] },
-  { label: "统计报表", path: "/pages/report/report", icon: "report", keywords: ["报表"] },
-  { label: "渗漏工单", path: "/pages/work-order/work-order", icon: "order", keywords: ["工单"] },
-  { label: "实时报警", path: "/pages/alarm/alarm", icon: "alarm", keywords: ["告警", "报警"] },
-  { label: "指令管理", path: "/pages/command/command", icon: "command", keywords: ["指令"] },
-  { label: "系统设置", path: "/pages/system/user/user", icon: "setting", keywords: ["设置", "用户"] },
+  {
+    label: "工单管理",
+    path: "/pages/work-order/create/create",
+    icon: "order",
+    keywords: ["工单"],
+    children: [
+      { label: "工单创建", path: "/pages/work-order/create/create", icon: "order", keywords: ["创建"] },
+      { label: "工单处理", path: "/pages/work-order/processing/processing", icon: "order", keywords: ["处理"] },
+      { label: "工单查询与统计", path: "/pages/work-order/statistics/statistics", icon: "order", keywords: ["查询", "统计"] },
+    ],
+  },
+  {
+    label: "实时报警",
+    path: "/pages/alarm/strategy/strategy",
+    icon: "alarm",
+    keywords: ["告警", "报警"],
+    children: [
+      { label: "报警策略", path: "/pages/alarm/strategy/strategy", icon: "alarm", keywords: ["策略"] },
+      { label: "报警处理", path: "/pages/alarm/processing/processing", icon: "alarm", keywords: ["处理"] },
+      { label: "报警分析", path: "/pages/alarm/analysis/analysis", icon: "alarm", keywords: ["分析"] },
+    ],
+  },
+  {
+    label: "统计报表",
+    path: "/pages/report/generate/generate",
+    icon: "report",
+    keywords: ["报表"],
+    children: [
+      { label: "报表生成", path: "/pages/report/generate/generate", icon: "report", keywords: ["生成"] },
+      { label: "报表操作", path: "/pages/report/operation/operation", icon: "report", keywords: ["操作"] },
+      { label: "指令管理", path: "/pages/report/command/command", icon: "command", keywords: ["指令"] },
+    ],
+  },
+  {
+    label: "系统设置",
+    path: "/pages/system/user/user",
+    icon: "setting",
+    keywords: ["设置", "用户"],
+    children: [
+      { label: "用户配置", path: "/pages/system/user/user", icon: "setting", keywords: ["用户"] },
+      { label: "权限管理", path: "/pages/system/auth/auth", icon: "setting", keywords: ["权限"] },
+      { label: "菜单管理", path: "/pages/system/menu/menu", icon: "setting", keywords: ["菜单"] },
+      { label: "数据字典", path: "/pages/system/dict/dict", icon: "setting", keywords: ["字典"] },
+    ],
+  },
+  {
+    label: "数据接收和解析",
+    path: "/pages/data-receive/access/access",
+    icon: "command",
+    keywords: ["数据接收", "解析", "接入"],
+    children: [
+      { label: "数据接入", path: "/pages/data-receive/access/access", icon: "command", keywords: ["接入"] },
+      { label: "数据解析", path: "/pages/data-receive/parse/parse", icon: "command", keywords: ["解析"] },
+      { label: "数据记录", path: "/pages/data-receive/record/record", icon: "command", keywords: ["记录"] },
+    ],
+  },
 ];
 
 const searchKeyword = ref("");
 const isMenuCollapsed = ref(false);
+const expandedMenuPaths = ref<string[]>([]);
 const warningCount = ref(4);
 
 const currentPath = computed(() => {
@@ -111,10 +220,18 @@ const filteredMenuItems = computed(() => {
     return menuItems;
   }
 
-  return menuItems.filter((item) => {
-    const values = [item.label, item.path, ...(item.keywords || [])];
-    return values.some((value) => value.toLowerCase().includes(keyword));
-  });
+  return menuItems
+    .map((item) => {
+      const children = item.children?.filter((child) => isMenuTextMatched(child, keyword)) || [];
+      if (isMenuTextMatched(item, keyword)) {
+        return item;
+      }
+      if (children.length > 0) {
+        return { ...item, children };
+      }
+      return null;
+    })
+    .filter((item): item is MenuItem => Boolean(item));
 });
 
 const userName = computed(() => {
@@ -129,10 +246,45 @@ function toggleMenu() {
 }
 
 function handleSearch() {
-  const [firstMatch] = filteredMenuItems.value;
-  if (firstMatch) {
-    goPage(firstMatch.path);
+  const firstPath = getFirstMenuPath(filteredMenuItems.value);
+  if (firstPath) {
+    goPage(firstPath);
   }
+}
+
+function isMenuTextMatched(item: MenuItem, keyword: string) {
+  const values = [item.label, item.path, ...(item.keywords || [])];
+  return values.some((value) => value.toLowerCase().includes(keyword));
+}
+
+function isMenuItemActive(item: MenuItem) {
+  return currentPath.value === item.path || Boolean(item.children?.some((child) => currentPath.value === child.path));
+}
+
+function isMenuItemExpanded(item: MenuItem) {
+  if (!item.children?.length || isMenuCollapsed.value) {
+    return false;
+  }
+
+  return Boolean(searchKeyword.value.trim()) || isMenuItemActive(item) || expandedMenuPaths.value.includes(item.path);
+}
+
+function getMenuTargetPath(item: MenuItem) {
+  return item.children?.[0]?.path || item.path;
+}
+
+function getFirstMenuPath(items: MenuItem[]) {
+  return items[0] ? getMenuTargetPath(items[0]) : "";
+}
+
+function goMenuItem(item: MenuItem) {
+  if (!item.children?.length) {
+    goPage(item.path);
+    return;
+  }
+
+  const isExpanded = expandedMenuPaths.value.includes(item.path);
+  expandedMenuPaths.value = isExpanded ? [] : [item.path];
 }
 
 function goPage(path: string) {
@@ -500,7 +652,13 @@ function handleLogout() {
 
 .side-menu__scroll {
   height: 100%;
-  overflow: visible;
+  padding-bottom: 18px;
+  overflow-x: visible;
+  overflow-y: auto;
+}
+
+.side-menu__group {
+  margin-bottom: 4px;
 }
 
 .side-menu__item {
@@ -518,6 +676,51 @@ function handleLogout() {
     color 0.18s ease,
     background-color 0.18s ease,
     padding 0.2s ease;
+}
+
+.side-menu__children {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: -2px 12px 8px 0;
+  padding: 2px 0 4px 54px;
+}
+
+.side-menu__child {
+  display: flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 16px 0 0;
+  color: #64748b;
+  border-radius: 0 17px 17px 0;
+  cursor: pointer;
+  transition:
+    color 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.side-menu__child--active {
+  color: #0d82ee;
+  font-weight: 700;
+  background: #f0f7ff;
+}
+
+.side-menu__child-dot {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  margin-right: 10px;
+  background: currentColor;
+  border-radius: 50%;
+  opacity: 0.78;
+}
+
+.side-menu__child-label {
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .side-menu__item::after {
@@ -629,6 +832,10 @@ function handleLogout() {
   width: 64px;
   margin-right: 6px;
   padding: 0;
+}
+
+.side-menu--collapsed .side-menu__children {
+  display: none;
 }
 
 .side-menu--collapsed .side-menu__item:hover::after {
@@ -800,6 +1007,10 @@ function handleLogout() {
   .side-menu__label {
     width: 0;
     opacity: 0;
+  }
+
+  .side-menu__children {
+    display: none;
   }
 }
 </style>
