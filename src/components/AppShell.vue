@@ -41,10 +41,19 @@
     <view class="shell-body">
       <view class="side-menu" :class="{ 'side-menu--collapsed': isMenuCollapsed }">
         <view class="side-menu__scroll">
-          <view v-for="item in filteredMenuItems" :key="item.path" class="side-menu__group">
+          <view
+            v-for="item in filteredMenuItems"
+            :key="item.path"
+            class="side-menu__group"
+            @mouseenter="showCollapsedSubmenu(item)"
+            @mouseleave="hideCollapsedSubmenu"
+          >
             <view
               class="side-menu__item"
-              :class="{ 'side-menu__item--active': isMenuItemActive(item) }"
+              :class="{
+                'side-menu__item--active': isMenuItemActive(item),
+                'side-menu__item--popover-open': isCollapsedSubmenuVisible(item),
+              }"
               :data-label="item.label"
               @click="goMenuItem(item)"
             >
@@ -62,6 +71,18 @@
               >
                 <text class="side-menu__child-dot"></text>
                 <text class="side-menu__child-label">{{ child.label }}</text>
+              </view>
+            </view>
+
+            <view v-if="item.children?.length && isCollapsedSubmenuVisible(item)" class="side-menu__popover">
+              <view
+                v-for="child in item.children"
+                :key="child.path"
+                class="side-menu__popover-item"
+                :class="{ 'side-menu__popover-item--active': currentPath === child.path }"
+                @click.stop="goChildPage(child.path)"
+              >
+                {{ child.label }}
               </view>
             </view>
           </view>
@@ -85,7 +106,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import logoImage from "@/assets/images/logo.webp";
 
 interface MenuItem {
@@ -95,6 +116,8 @@ interface MenuItem {
   keywords?: string[];
   children?: MenuItem[];
 }
+
+const MENU_COLLAPSED_KEY = "sideMenuCollapsed";
 
 const menuItems: MenuItem[] = [
   { label: "我的收藏", path: "/pages/index/index", icon: "star", keywords: ["首页", "收藏"] },
@@ -204,15 +227,17 @@ const menuItems: MenuItem[] = [
 ];
 
 const searchKeyword = ref("");
-const isMenuCollapsed = ref(false);
+const isMenuCollapsed = ref(getInitialMenuCollapsed());
 const expandedMenuPaths = ref<string[]>([]);
+const collapsedSubmenuPath = ref("");
 const warningCount = ref(4);
 
-const currentPath = computed(() => {
+const routePath = computed(() => {
   const pages = getCurrentPages();
   const route = pages[pages.length - 1]?.route || "pages/index/index";
   return `/${route}`;
 });
+const currentPath = ref(getInitialPath());
 
 const filteredMenuItems = computed(() => {
   const keyword = searchKeyword.value.trim().toLowerCase();
@@ -243,6 +268,8 @@ const warningCountText = computed(() => (warningCount.value > 99 ? "99+" : Strin
 
 function toggleMenu() {
   isMenuCollapsed.value = !isMenuCollapsed.value;
+  collapsedSubmenuPath.value = "";
+  uni.setStorageSync(MENU_COLLAPSED_KEY, isMenuCollapsed.value);
 }
 
 function handleSearch() {
@@ -279,22 +306,62 @@ function getFirstMenuPath(items: MenuItem[]) {
 
 function goMenuItem(item: MenuItem) {
   if (!item.children?.length) {
+    expandedMenuPaths.value = [];
+    collapsedSubmenuPath.value = "";
     goPage(item.path);
     return;
   }
 
-  const isExpanded = expandedMenuPaths.value.includes(item.path);
-  expandedMenuPaths.value = isExpanded ? [] : [item.path];
+  if (isMenuCollapsed.value) {
+    collapsedSubmenuPath.value = item.path;
+    return;
+  }
+
+  expandedMenuPaths.value = [item.path];
+  goPage(getMenuTargetPath(item));
 }
 
-function goPage(path: string) {
+function goPage(path: string, options: { keepCollapsedSubmenu?: boolean } = {}) {
   if (currentPath.value === path) {
     return;
   }
 
+  currentPath.value = path;
+  if (!options.keepCollapsedSubmenu) {
+    collapsedSubmenuPath.value = "";
+  }
+  syncExpandedMenuByPath(path);
+
+  // #ifdef H5
+  navigateInPlace(path);
+  updateDocumentTitle(path);
+  // #endif
+
+  // #ifndef H5
   uni.redirectTo({
     url: path,
+    animationType: "none",
+    animationDuration: 0,
   });
+  // #endif
+}
+
+function goChildPage(path: string) {
+  goPage(path, { keepCollapsedSubmenu: true });
+}
+
+function showCollapsedSubmenu(item: MenuItem) {
+  if (isMenuCollapsed.value && item.children?.length) {
+    collapsedSubmenuPath.value = item.path;
+  }
+}
+
+function hideCollapsedSubmenu() {
+  collapsedSubmenuPath.value = "";
+}
+
+function isCollapsedSubmenuVisible(item: MenuItem) {
+  return isMenuCollapsed.value && collapsedSubmenuPath.value === item.path;
 }
 
 function handleLogout() {
@@ -307,6 +374,100 @@ function handleLogout() {
     url: "/pages/login/login",
   });
 }
+
+function getInitialPath() {
+  // #ifdef H5
+  return getBrowserPath() || routePath.value;
+  // #endif
+
+  // #ifndef H5
+  return routePath.value;
+  // #endif
+}
+
+function getInitialMenuCollapsed() {
+  return uni.getStorageSync(MENU_COLLAPSED_KEY) === true;
+}
+
+function getHashPath() {
+  const hash = window.location.hash.replace(/^#/, "");
+  if (!hash) {
+    return "";
+  }
+
+  const path = hash.split("?")[0];
+  return path.startsWith("/") ? path : `/${path}`;
+}
+
+function getBrowserPath() {
+  const hashPath = getHashPath();
+  if (hashPath) {
+    return hashPath;
+  }
+
+  const path = window.location.pathname;
+  return path.startsWith("/pages/") ? path : "";
+}
+
+function navigateInPlace(path: string) {
+  if (window.location.pathname === path && !window.location.hash) {
+    return;
+  }
+
+  window.history.pushState({ path }, "", path);
+}
+
+function updateDocumentTitle(path: string) {
+  const title = getMenuLabelByPath(path);
+  if (title) {
+    document.title = title;
+  }
+}
+
+function getMenuLabelByPath(path: string) {
+  for (const item of menuItems) {
+    const child = item.children?.find((childItem) => childItem.path === path);
+    if (child) {
+      return child.label;
+    }
+
+    if (item.path === path) {
+      return item.label;
+    }
+  }
+
+  return "";
+}
+
+function syncExpandedMenuByPath(path: string) {
+  if (isMenuCollapsed.value) {
+    return;
+  }
+
+  const parent = menuItems.find((item) => item.children?.some((child) => child.path === path));
+  expandedMenuPaths.value = parent ? [parent.path] : [];
+}
+
+function syncPathFromBrowser() {
+  const path = getBrowserPath();
+  if (path) {
+    currentPath.value = path;
+    syncExpandedMenuByPath(path);
+    updateDocumentTitle(path);
+  }
+}
+
+// #ifdef H5
+onMounted(() => {
+  window.addEventListener("popstate", syncPathFromBrowser);
+  window.addEventListener("hashchange", syncPathFromBrowser);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("popstate", syncPathFromBrowser);
+  window.removeEventListener("hashchange", syncPathFromBrowser);
+});
+// #endif
 </script>
 
 <style scoped lang="scss">
@@ -600,7 +761,7 @@ function handleLogout() {
 
 .side-menu__collapse {
   position: absolute;
-  top: 318px;
+  top: calc(18px + (52px * 12 + 8px * 11) / 2);
   right: -13px;
   z-index: 5;
   display: flex;
@@ -658,6 +819,7 @@ function handleLogout() {
 }
 
 .side-menu__group {
+  position: relative;
   margin-bottom: 4px;
 }
 
@@ -676,6 +838,11 @@ function handleLogout() {
     color 0.18s ease,
     background-color 0.18s ease,
     padding 0.2s ease;
+}
+
+.side-menu__item:hover {
+  color: #0d82ee;
+  background: #f0f7ff;
 }
 
 .side-menu__children {
@@ -697,6 +864,11 @@ function handleLogout() {
   transition:
     color 0.18s ease,
     background-color 0.18s ease;
+}
+
+.side-menu__child:hover {
+  color: #0d82ee;
+  background: #f0f7ff;
 }
 
 .side-menu__child--active {
@@ -721,6 +893,43 @@ function handleLogout() {
   line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.side-menu__popover {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  z-index: 30;
+  width: 156px;
+  padding: 6px 0;
+  color: #334155;
+  background: #ffffff;
+  border: 1px solid rgba(178, 220, 255, 0.9);
+  border-radius: 4px;
+  box-shadow: 0 12px 26px rgba(28, 93, 151, 0.14);
+}
+
+.side-menu__popover-item {
+  position: relative;
+  height: 40px;
+  padding: 0 18px;
+  overflow: hidden;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 40px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    color 0.16s ease,
+    background-color 0.16s ease;
+}
+
+.side-menu__popover-item:hover,
+.side-menu__popover-item--active {
+  color: #0d82ee;
+  background: #e5f2ff;
 }
 
 .side-menu__item::after {
@@ -753,7 +962,14 @@ function handleLogout() {
   background: #e5f2ff;
 }
 
-.side-menu__item--active::before {
+.side-menu__item--popover-open {
+  color: #0d82ee;
+  font-weight: 700;
+  background: #e5f2ff;
+}
+
+.side-menu__item--active::before,
+.side-menu__item--popover-open::before {
   position: absolute;
   top: 9px;
   bottom: 9px;
@@ -792,6 +1008,10 @@ function handleLogout() {
   --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='4.6' y='4.4' width='5.6' height='15.2' rx='1.2'/%3E%3Crect x='13.8' y='4.4' width='5.6' height='15.2' rx='1.2'/%3E%3Cpath d='M7.4 8h.1M16.6 8h.1M7.4 16h.1M16.6 16h.1' stroke-width='2.4'/%3E%3C/svg%3E");
 }
 
+.side-menu__icon--station {
+  --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 21s6.2-5.5 6.2-11.2A6.2 6.2 0 1 0 5.8 9.8C5.8 15.5 12 21 12 21Z'/%3E%3Ccircle cx='12' cy='9.8' r='2.2'/%3E%3C/svg%3E");
+}
+
 .side-menu__icon--trend {
   --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='4' y='5' width='16' height='14' rx='1.5'/%3E%3Cpath d='M7.2 15.5l3-3 2.2 2.1 4.4-5.1M15.1 9.5h1.9v1.9'/%3E%3C/svg%3E");
 }
@@ -810,6 +1030,10 @@ function handleLogout() {
 
 .side-menu__icon--command {
   --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 4.8h8.5L19 9.3v9.9H6V4.8Z'/%3E%3Cpath d='M14.4 4.8v4.6H19M8.7 12.6h5.8M8.7 16h4.2M16.5 13.5l2.2 2.1-2.2 2.1'/%3E%3C/svg%3E");
+}
+
+.side-menu__icon--receive {
+  --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 5.5h14v13H5z'/%3E%3Cpath d='M8 9h8M8 12h5M12 15.5v-7M12 15.5l-2.5-2.5M12 15.5l2.5-2.5'/%3E%3C/svg%3E");
 }
 
 .side-menu__icon--setting {
@@ -838,8 +1062,20 @@ function handleLogout() {
   display: none;
 }
 
+.side-menu--collapsed .side-menu__group:has(.side-menu__popover) .side-menu__item::after {
+  display: none;
+}
+
+.side-menu--collapsed .side-menu__item--popover-open::after {
+  display: none !important;
+}
+
 .side-menu--collapsed .side-menu__item:hover::after {
   display: block;
+}
+
+.side-menu--collapsed .side-menu__scroll {
+  overflow: visible;
 }
 
 .side-menu--collapsed .side-menu__icon {
@@ -989,7 +1225,7 @@ function handleLogout() {
   }
 
   .side-menu__collapse {
-    top: 318px;
+    top: calc(18px + (52px * 12 + 8px * 11) / 2);
     right: -13px;
   }
 

@@ -32,39 +32,55 @@
 guanwang/
 ├─ src/
 │  ├─ assets/              # 需要经过 Vite 打包处理的静态资源
+│  │  └─ images/           # 图片资源
 │  ├─ components/          # 全局公共组件
-│  ├─ composables/         # Vue 组合式逻辑
 │  ├─ pages/               # 页面与业务模块
 │  │  ├─ login/            # 登录
 │  │  ├─ index/            # 首页
-│  │  ├─ leak/             # 渗漏检测模块
-│  │  │  ├─ leak/          # 渗漏检测
-│  │  │  └─ layout/        # 布点图
-│  │  ├─ data-analysis/    # 数据分析
 │  │  ├─ device/           # 设备管理
-│  │  ├─ statistics/       # 统计分析
-│  │  ├─ report/           # 统计报表
-│  │  ├─ work-order/       # 渗漏工单
+│  │  │  ├─ info/          # 设备信息
+│  │  │  ├─ maintenance/   # 拆装维护
+│  │  │  └─ status/        # 设备状态
+│  │  ├─ data-analysis/    # 数据分析
+│  │  │  ├─ overview/      # 系统总览
+│  │  │  ├─ audio/         # 音频数据
+│  │  │  ├─ device-params/ # 设备参数
+│  │  │  └─ leakage/       # 渗漏数据
+│  │  ├─ leak-report/      # 疑漏点上报
+│  │  │  ├─ suspect-management/  # 疑点管理
+│  │  │  ├─ suspect-processing/  # 疑点处理
+│  │  │  ├─ leak-management/     # 漏点管理
+│  │  │  ├─ leak-analysis/       # 漏点分析
+│  │  │  └─ history-overview/    # 历史总览
+│  │  ├─ work-order/       # 工单管理
+│  │  │  ├─ create/        # 工单创建
+│  │  │  ├─ processing/    # 工单处理
+│  │  │  └─ statistics/    # 工单查询与统计
 │  │  ├─ alarm/            # 实时报警
-│  │  ├─ command/          # 指令管理
-│  │  └─ system/           # 系统设置
-│  │     ├─ user/          # 用户配置
-│  │     ├─ auth/          # 权限管理
-│  │     ├─ menu/          # 菜单管理
-│  │     ├─ sys-alarm/     # 通用报警
-│  │     ├─ dict/          # 数据字典
-│  │     ├─ sensor/        # 传感器类型
-│  │     ├─ station/       # 站点管理
-│  │     ├─ remote/        # 远传设备
-│  │     └─ login-log/     # 登录相关
+│  │  │  ├─ strategy/      # 报警策略
+│  │  │  ├─ processing/    # 报警处理
+│  │  │  └─ analysis/      # 报警分析
+│  │  ├─ report/           # 统计报表
+│  │  │  ├─ generate/      # 报表生成
+│  │  │  ├─ operation/     # 报表操作
+│  │  │  └─ command/       # 指令管理
+│  │  ├─ system/           # 系统设置
+│  │  │  └─ user/          # 用户配置
+│  │  ├─ data-receive/     # 数据接收和解析
+│  │  │  ├─ access/        # 数据接入
+│  │  │  ├─ parse/         # 数据解析
+│  │  │  └─ record/        # 数据记录
+│  │  ├─ leak-monitor/     # 渗漏监测
+│  │  ├─ station/          # 站点管理
+│  │  ├─ statistics/       # 统计分析
+│  │  ├─ suspected-report/ # 疑漏点上报一级页
+│  │  └─ command/          # 指令管理
 │  ├─ services/            # 接口请求与业务服务
-│  ├─ static/              # 不参与构建处理的静态资源
+│  │  └─ user/             # 用户相关接口
 │  ├─ styles/              # 全局样式、设计变量、SCSS mixin
 │  │  ├─ global.scss       # 全局基础样式
 │  │  ├─ variables.scss    # 项目设计变量
 │  │  └─ mixins.scss       # 公共 SCSS mixin
-│  ├─ stores/              # 状态管理
-│  ├─ types/               # TypeScript 类型声明
 │  ├─ utils/               # 通用工具方法
 │  ├─ App.vue              # 应用根组件
 │  ├─ main.ts              # 应用入口

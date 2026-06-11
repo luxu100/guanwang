@@ -13,3 +13,4 @@ import AppShell from "@/components/AppShell.vue";
   min-height: calc(100vh - 70px);
 }
 </style>
+

@@ -151,8 +151,8 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import logoImage from "@/assets/images/logo.webp";
-import { login, register } from "@/services/user";
-import type { LoginResult } from "@/services/user";
+import { login, register } from "@/services/user/user";
+import type { LoginResult } from "@/services/user/user";
 import { TOKEN_KEY, TOKEN_PREFIX_KEY } from "@/utils/request";
 import type { RequestError } from "@/utils/request";
 
