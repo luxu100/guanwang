@@ -563,14 +563,14 @@ onUnmounted(() => {
 
 .site-search__icon::after {
   position: absolute;
-  right: -5px;
-  bottom: -4px;
+  right: 0;
+  bottom: 0;
   width: 8px;
   height: 2px;
   content: "";
   background: rgba(255, 255, 255, 0.92);
   border-radius: 999px;
-  transform: rotate(45deg);
+  transform: translate(5px, 4px) rotate(45deg);
 }
 
 .site-search__input {
@@ -842,8 +842,8 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin: -2px 12px 8px 0;
-  padding: 2px 0 4px 54px;
+  margin: 0 12px 8px 0;
+  padding: 0 0 4px 54px;
 }
 
 .side-menu__child {

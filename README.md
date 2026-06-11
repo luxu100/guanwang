@@ -31,62 +31,65 @@
 ```text
 guanwang/
 ├─ src/
-│  ├─ assets/              # 需要经过 Vite 打包处理的静态资源
-│  │  └─ images/           # 图片资源
-│  ├─ components/          # 全局公共组件
-│  ├─ pages/               # 页面与业务模块
-│  │  ├─ login/            # 登录
-│  │  ├─ index/            # 首页
-│  │  ├─ device/           # 设备管理
-│  │  │  ├─ info/          # 设备信息
-│  │  │  ├─ maintenance/   # 拆装维护
-│  │  │  └─ status/        # 设备状态
-│  │  ├─ data-analysis/    # 数据分析
-│  │  │  ├─ overview/      # 系统总览
-│  │  │  ├─ audio/         # 音频数据
-│  │  │  ├─ device-params/ # 设备参数
-│  │  │  └─ leakage/       # 渗漏数据
-│  │  ├─ leak-report/      # 疑漏点上报
-│  │  │  ├─ suspect-management/  # 疑点管理
-│  │  │  ├─ suspect-processing/  # 疑点处理
-│  │  │  ├─ leak-management/     # 漏点管理
-│  │  │  ├─ leak-analysis/       # 漏点分析
-│  │  │  └─ history-overview/    # 历史总览
-│  │  ├─ work-order/       # 工单管理
-│  │  │  ├─ create/        # 工单创建
-│  │  │  ├─ processing/    # 工单处理
-│  │  │  └─ statistics/    # 工单查询与统计
-│  │  ├─ alarm/            # 实时报警
-│  │  │  ├─ strategy/      # 报警策略
-│  │  │  ├─ processing/    # 报警处理
-│  │  │  └─ analysis/      # 报警分析
-│  │  ├─ report/           # 统计报表
-│  │  │  ├─ generate/      # 报表生成
-│  │  │  ├─ operation/     # 报表操作
-│  │  │  └─ command/       # 指令管理
-│  │  ├─ system/           # 系统设置
-│  │  │  └─ user/          # 用户配置
-│  │  ├─ data-receive/     # 数据接收和解析
-│  │  │  ├─ access/        # 数据接入
-│  │  │  ├─ parse/         # 数据解析
-│  │  │  └─ record/        # 数据记录
-│  │  ├─ leak-monitor/     # 渗漏监测
-│  │  ├─ station/          # 站点管理
-│  │  ├─ statistics/       # 统计分析
-│  │  ├─ suspected-report/ # 疑漏点上报一级页
-│  │  └─ command/          # 指令管理
-│  ├─ services/            # 接口请求与业务服务
-│  │  └─ user/             # 用户相关接口
-│  ├─ styles/              # 全局样式、设计变量、SCSS mixin
-│  │  ├─ global.scss       # 全局基础样式
-│  │  ├─ variables.scss    # 项目设计变量
-│  │  └─ mixins.scss       # 公共 SCSS mixin
-│  ├─ utils/               # 通用工具方法
-│  ├─ App.vue              # 应用根组件
-│  ├─ main.ts              # 应用入口
-│  ├─ manifest.json        # uni-app 应用配置
-│  ├─ pages.json           # 页面路由配置
-│  └─ uni.scss             # uni-app 内置样式变量
+│  ├─ assets/                       # 需要经过 Vite 打包处理的静态资源
+│  │  └─ images/                    # 图片资源
+│  ├─ components/                   # 全局公共组件
+│  │  └─ AppShell.vue               # 顶部栏、侧边栏和主内容容器
+│  ├─ pages/                        # 页面与业务模块
+│  │  ├─ login/                     # 登录
+│  │  ├─ index/                     # 首页/我的收藏
+│  │  ├─ leak-monitor/              # 渗漏监测
+│  │  │  └─ components/             # 渗漏监测私有组件
+│  │  ├─ station/                   # 站点管理
+│  │  ├─ device/                    # 设备管理
+│  │  │  ├─ info/                   # 设备信息
+│  │  │  ├─ maintenance/            # 拆装维护
+│  │  │  └─ status/                 # 设备状态
+│  │  ├─ data-analysis/             # 数据分析
+│  │  │  ├─ overview/               # 系统总览
+│  │  │  ├─ audio/                  # 音频数据
+│  │  │  ├─ device-params/          # 设备参数
+│  │  │  └─ leakage/                # 渗漏数据
+│  │  ├─ leak-report/               # 疑漏点上报
+│  │  │  ├─ suspect-management/     # 疑点管理
+│  │  │  ├─ suspect-processing/     # 疑点处理
+│  │  │  ├─ leak-management/        # 漏点管理
+│  │  │  ├─ leak-analysis/          # 漏点分析
+│  │  │  └─ history-overview/       # 历史总览
+│  │  ├─ statistics/                # 统计分析
+│  │  ├─ work-order/                # 工单管理
+│  │  │  ├─ create/                 # 工单创建
+│  │  │  ├─ processing/             # 工单处理
+│  │  │  └─ statistics/             # 工单查询与统计
+│  │  ├─ alarm/                     # 实时报警
+│  │  │  ├─ strategy/               # 报警策略
+│  │  │  ├─ processing/             # 报警处理
+│  │  │  └─ analysis/               # 报警分析
+│  │  ├─ report/                    # 统计报表
+│  │  │  ├─ generate/               # 报表生成
+│  │  │  ├─ operation/              # 报表操作
+│  │  │  └─ command/                # 指令管理
+│  │  ├─ system/                    # 系统设置
+│  │  │  ├─ user/                   # 用户配置
+│  │  │  ├─ auth/                   # 权限管理
+│  │  │  ├─ menu/                   # 菜单管理
+│  │  │  └─ dict/                   # 数据字典
+│  │  └─ data-receive/              # 数据接收和解析
+│  │     ├─ access/                 # 数据接入
+│  │     ├─ parse/                  # 数据解析
+│  │     └─ record/                 # 数据记录
+│  ├─ services/                     # 接口请求与业务服务
+│  │  └─ user/                      # 用户相关接口
+│  ├─ styles/                       # 全局样式、设计变量、SCSS mixin
+│  │  ├─ global.scss                # 全局基础样式
+│  │  ├─ variables.scss             # 项目设计变量
+│  │  └─ mixins.scss                # 公共 SCSS mixin
+│  ├─ utils/                        # 通用工具方法
+│  ├─ App.vue                       # 应用根组件
+│  ├─ main.ts                       # 应用入口
+│  ├─ manifest.json                 # uni-app 应用配置
+│  ├─ pages.json                    # 页面路由配置
+│  └─ uni.scss                      # uni-app 内置样式变量
 ├─ index.html
 ├─ package.json
 ├─ package-lock.json
@@ -107,15 +110,33 @@ guanwang/
 
 | 一级模块 | 子页面 | 页面路径 | 说明 |
 | --- | --- | --- | --- |
-| 渗漏检测 | 渗漏检测 | `pages/leak/leak/leak` | 渗漏检测业务页 |
-| 渗漏检测 | 布点图 | `pages/leak/layout/layout` | 管网布点图业务页 |
-| 数据分析 | 数据分析 | `pages/data-analysis/data-analysis` | 数据分析业务页 |
-| 设备管理 | 设备管理 | `pages/device/device` | 设备管理业务页 |
+| 渗漏监测 | 渗漏监测 | `pages/leak-monitor/leak-monitor` | 渗漏监测地图页 |
+| 站点管理 | 站点管理 | `pages/station/station` | 站点管理页面 |
+| 设备管理 | 设备信息 | `pages/device/info/info` | 设备基础信息页面 |
+| 设备管理 | 拆装维护 | `pages/device/maintenance/maintenance` | 设备拆装维护页面 |
+| 设备管理 | 设备状态 | `pages/device/status/status` | 设备状态页面 |
+| 数据分析 | 系统总览 | `pages/data-analysis/overview/overview` | 数据分析总览页面 |
+| 数据分析 | 音频数据 | `pages/data-analysis/audio/audio` | 音频数据页面 |
+| 数据分析 | 设备参数 | `pages/data-analysis/device-params/device-params` | 设备参数页面 |
+| 数据分析 | 渗漏数据 | `pages/data-analysis/leakage/leakage` | 渗漏数据页面 |
+| 疑漏点上报 | 疑点管理 | `pages/leak-report/suspect-management/suspect-management` | 疑点管理页面 |
+| 疑漏点上报 | 疑点处理 | `pages/leak-report/suspect-processing/suspect-processing` | 疑点处理页面 |
+| 疑漏点上报 | 漏点管理 | `pages/leak-report/leak-management/leak-management` | 漏点管理页面 |
+| 疑漏点上报 | 漏点分析 | `pages/leak-report/leak-analysis/leak-analysis` | 漏点分析页面 |
+| 疑漏点上报 | 历史总览 | `pages/leak-report/history-overview/history-overview` | 历史总览页面 |
 | 统计分析 | 统计分析 | `pages/statistics/statistics` | 统计分析业务页 |
-| 统计报表 | 统计报表 | `pages/report/report` | 统计报表业务页 |
-| 渗漏工单 | 渗漏工单 | `pages/work-order/work-order` | 工单处理业务页 |
-| 实时报警 | 实时报警 | `pages/alarm/alarm` | 实时报警业务页 |
-| 指令管理 | 指令管理 | `pages/command/command` | 指令下发与管理业务页 |
+| 工单管理 | 工单创建 | `pages/work-order/create/create` | 工单创建页面 |
+| 工单管理 | 工单处理 | `pages/work-order/processing/processing` | 工单处理页面 |
+| 工单管理 | 工单查询与统计 | `pages/work-order/statistics/statistics` | 工单查询与统计页面 |
+| 实时报警 | 报警策略 | `pages/alarm/strategy/strategy` | 报警策略页面 |
+| 实时报警 | 报警处理 | `pages/alarm/processing/processing` | 报警处理页面 |
+| 实时报警 | 报警分析 | `pages/alarm/analysis/analysis` | 报警分析页面 |
+| 统计报表 | 报表生成 | `pages/report/generate/generate` | 报表生成页面 |
+| 统计报表 | 报表操作 | `pages/report/operation/operation` | 报表操作页面 |
+| 统计报表 | 指令管理 | `pages/report/command/command` | 指令管理页面 |
+| 数据接收和解析 | 数据接入 | `pages/data-receive/access/access` | 数据接入页面 |
+| 数据接收和解析 | 数据解析 | `pages/data-receive/parse/parse` | 数据解析页面 |
+| 数据接收和解析 | 数据记录 | `pages/data-receive/record/record` | 数据记录页面 |
 
 ### 系统设置
 
@@ -124,23 +145,19 @@ guanwang/
 | 系统设置 | 用户配置 | `pages/system/user/user` | 用户配置页面 |
 | 系统设置 | 权限管理 | `pages/system/auth/auth` | 权限管理页面 |
 | 系统设置 | 菜单管理 | `pages/system/menu/menu` | 菜单管理页面 |
-| 系统设置 | 通用报警 | `pages/system/sys-alarm/sys-alarm` | 通用报警配置页面 |
 | 系统设置 | 数据字典 | `pages/system/dict/dict` | 数据字典页面 |
-| 系统设置 | 传感器类型 | `pages/system/sensor/sensor` | 传感器类型页面 |
-| 系统设置 | 站点管理 | `pages/system/station/station` | 站点管理页面 |
-| 系统设置 | 远传设备 | `pages/system/remote/remote` | 远传设备页面 |
-| 系统设置 | 登录相关 | `pages/system/login-log/login-log` | 登录日志或登录相关配置页面 |
 
 ## 页面目录约定
 
 - `src/pages` 下按业务菜单拆分一级模块。
-- 只有一个页面的模块，采用 `模块名/页面名.vue`，例如 `device/device.vue`。
-- 有多个子页面的模块，采用 `模块名/子页面名/子页面名.vue`，例如 `leak/leak/leak.vue`、`leak/layout/layout.vue`。
+- 只有一个页面的模块，采用 `模块名/模块名.vue`，例如 `station/station.vue`、`statistics/statistics.vue`。
+- 有多个子页面的模块，采用 `模块名/子页面名/子页面名.vue`，例如 `device/info/info.vue`、`report/generate/generate.vue`。
 - 系统设置类页面统一收敛在 `src/pages/system` 下。
 - 每个页面私有组件放在当前页面目录下的 `components` 中。
 - 页面私有样式可以放在当前页面同目录，例如 `pages/login/login.scss`，并通过 `<style scoped src="./login.scss" lang="scss"></style>` 引入。
 - 跨页面复用组件放在 `src/components` 中。
 - 修改、新增、删除页面后，需要同步维护 `src/pages.json`。
+- 侧边栏目录配置需要和 `src/pages.json`、页面文件三者保持一致，避免出现构建时找不到页面文件的问题。
 
 ## 样式组织
 
@@ -238,14 +255,13 @@ git commit -m "docs: 更新项目说明文档"
 - `chore`：工程配置或依赖调整
 
 ## notice
-1、优先使用 Flex 或 Grid 实现布局，避免依赖 position: absolute 控制主结构。
-2、仅在以下场景允许使用 position: absolute/fixed：
-3、需要脱离文档流的悬浮元素（如弹窗、Tooltip、回到顶部按钮）
-4、动画中需精确控制坐标的位置过渡
-5、一维布局（水平/垂直排列）用 Flex，二维布局（网格/重叠区域）用 Grid。
-6、所有布局必须通过 min-width/max-width 保证不同分辨率的可用性，合理使用绝对单位：
-    允许 px 用于：
-        1px 边框/分隔线、图标尺寸等需像素级精确的场景。
-    禁止 px 用于：
-        主容器宽度/高度（应改用 %, vw, clamp()）。
-        文字字号（应改用 rem, em）。
+1、页面主结构优先使用 Flex 或 Grid，不要依赖 `position: absolute` 拼主布局。
+2、一维布局（水平/垂直排列）优先使用 Flex；二维布局（网格、复杂区域划分）优先使用 Grid。
+3、只有确实需要脱离文档流时再使用 `position: absolute/fixed`，例如弹窗、Tooltip、徽标、装饰性伪元素、地图提示层、悬浮操作按钮等。
+4、需要精确坐标控制的动画、图标内部绘制、角标或选中标识可以使用绝对定位，但必须限制在组件内部，不要影响外层排版。
+5、避免使用负 `margin` 或负向 `top/right/bottom/left` 修正布局；如果只是微调图标或装饰元素，优先在局部使用 `transform`。
+6、主要容器需要通过 `min-width`、`max-width`、`min-height`、`max-height`、`clamp()` 等方式保证不同分辨率下可用。
+7、合理使用绝对单位：
+   - 允许 `px` 用于 1px 边框、分隔线、图标尺寸、按钮高度、表格行高等需要像素级精确或与设计稿强相关的场景。
+   - 主内容区域宽高优先使用 `%`、`vw`、`vh`、`fr`、`clamp()` 等响应式单位。
+   - 字号优先使用 `rem`、`em`；特殊业务页面如数据大屏、地图控件、表格工具栏可根据设计稿谨慎使用 `px`。
