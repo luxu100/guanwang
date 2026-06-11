@@ -30,6 +30,15 @@
             placeholder="请输入账号"
             placeholder-class="field-placeholder"
           />
+          <button
+            v-if="loginForm.username"
+            class="field-clear"
+            hover-class="field-clear--hover"
+            @click="clearLoginAccount"
+            aria-label="清除账号"
+          >
+            <view class="clear-icon"></view>
+          </button>
         </view>
 
         <view class="field">
@@ -215,7 +224,7 @@ onMounted(() => {
   const token = uni.getStorageSync(TOKEN_KEY);
   if (token) {
     uni.reLaunch({
-      url: "/pages/index/index",
+      url: "/pages/leak-monitor/leak-monitor",
     });
   }
 });
@@ -257,6 +266,11 @@ function showToast(title: string, icon: "none" | "success" = "none") {
     title,
     icon,
   });
+}
+
+function clearLoginAccount() {
+  loginForm.username = "";
+  loginForm.password = "";
 }
 
 function showNotice(type: NoticeType, text: string) {
@@ -401,8 +415,14 @@ async function handleLogin() {
 
     saveLoginData(response.data);
     showToast("登录成功", "success");
+    // 确保登录后侧边栏为展开状态
+    try {
+      uni.setStorageSync("sideMenuCollapsed", false);
+    } catch (e) {
+      // ignore
+    }
     uni.reLaunch({
-      url: "/pages/index/index",
+      url: "/pages/leak-monitor/leak-monitor",
     });
   } catch (error) {
     showNotice("error", (error as RequestError)?.msg || "登录失败，请稍后重试");

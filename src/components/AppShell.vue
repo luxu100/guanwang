@@ -585,11 +585,13 @@ function handleLogout() {
 
 function getInitialPath() {
   // #ifdef H5
-  return getBrowserPath() || routePath.value;
+  const browser = getBrowserPath();
+  const base = browser || routePath.value;
+  return base === "/pages/index/index" || !base ? LEAK_MONITOR_PATH : base;
   // #endif
 
   // #ifndef H5
-  return routePath.value;
+  return routePath.value === "/pages/index/index" || !routePath.value ? LEAK_MONITOR_PATH : routePath.value;
   // #endif
 }
 
