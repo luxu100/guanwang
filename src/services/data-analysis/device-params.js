@@ -1,3 +1,8 @@
+/**
+ * 设备参数分析接口封装，包含设备设置、设备日数据和状态上报查询。
+ *
+ * 页面层应优先调用这里导出的语义化函数，避免在 .vue 文件中直接拼接接口地址。
+ */
 import { createCrudService } from "@/services/shared/crud";
 
 const deviceSettingApi = createCrudService("/api/device-setting");

@@ -181,6 +181,12 @@ const PASSWORD_MAX_LENGTH = 20;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^1[3-9]\d{9}$/;
 
+/**
+ * 登录页同时承载登录和注册两个模式。
+ *
+ * 表单状态保留在页面内，不放全局状态；只有登录成功后的 token、用户信息和权限
+ * 会写入本地缓存，供 AppShell 和请求封装读取。
+ */
 const modeOptions: Array<{ label: string; value: Mode }> = [
   { label: "登录", value: "login" },
   { label: "注册", value: "register" },
@@ -304,6 +310,12 @@ function validateRegisterForm() {
   return true;
 }
 
+/**
+ * 保存后端返回的登录态。
+ *
+ * token/tokenPrefix 会被 request.js 自动读取并拼入 Authorization；
+ * userInfo、permissions、roles 供顶部用户信息和后续权限控制使用。
+ */
 function saveLoginData(data?: LoginResult) {
   const token = data?.token || "";
   const tokenPrefix = data?.tokenPrefix || "";
@@ -321,10 +333,20 @@ function saveLoginData(data?: LoginResult) {
   uni.setStorageSync("roles", data?.roles || []);
 }
 
+/**
+ * 后端当前存在 code=0 和 code=200 两种成功约定，页面先兼容两者。
+ * 如果后续后端统一响应规范，可以在这里收窄判断。
+ */
 function isSuccessResponse(code?: number) {
   return code === 0 || code === 200;
 }
 
+/**
+ * 从后端响应中提取更友好的错误提示。
+ *
+ * 一些参数错误会把字段级错误放在 data 对象中，所以这里会优先收集 data 中的
+ * 字符串消息，再回退到 msg 和默认文案。
+ */
 function getResponseMessage(response: ApiMessageResponse | undefined, fallback: string) {
   const data = response?.data;
 

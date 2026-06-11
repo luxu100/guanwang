@@ -1,5 +1,6 @@
 <template>
   <AppShell>
+    <!-- 站点管理页面：后续用于维护站点、分区、部门等管网基础资源。 -->
     <view class="content-page"></view>
   </AppShell>
 </template>

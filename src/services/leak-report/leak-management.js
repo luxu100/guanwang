@@ -1,3 +1,8 @@
+/**
+ * 漏点管理接口封装，围绕 leakage-record 资源提供 CRUD 能力。
+ *
+ * 页面层应优先调用这里导出的语义化函数，避免在 .vue 文件中直接拼接接口地址。
+ */
 import { createCrudService } from "@/services/shared/crud";
 
 const leakageRecordApi = createCrudService("/api/leakage-record");

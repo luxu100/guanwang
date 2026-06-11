@@ -19,6 +19,10 @@ const TENCENT_MAP_SCRIPT_ID = "tencent-map-gl-sdk";
 const TENCENT_MAP_SCRIPT_URL = `https://map.qq.com/api/gljs?v=1.exp&key=${TENCENT_MAP_KEY}`;
 const MAP_RESIZE_DELAY = 300;
 
+/**
+ * 腾讯地图 GL JS SDK 没有在项目里安装类型包，这里只声明当前组件用到的最小接口。
+ * 后续如果地图功能变复杂，应优先补充完整类型，而不是重新引入 any。
+ */
 interface TencentLatLng {
   new (lat: number, lng: number): unknown;
 }
@@ -90,6 +94,9 @@ onBeforeUnmount(() => {
   mapInstance = null;
 });
 
+/**
+ * 地图 SDK 通过 script 懒加载，避免登录页和非地图页面也加载地图资源。
+ */
 function loadTencentMap() {
   if (window.TMap) {
     return Promise.resolve();
@@ -123,6 +130,11 @@ function loadTencentMap() {
   return sdkLoadingPromise;
 }
 
+/**
+ * 初始化地图实例和中心标记。
+ *
+ * 当前坐标是上海中心点，后续接入真实站点/设备数据后应由接口返回或配置驱动。
+ */
 function initMap() {
   mapError.value = "";
 

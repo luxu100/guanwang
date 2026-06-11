@@ -1,3 +1,8 @@
+/**
+ * 渗漏监测接口封装，聚合地图所需设备、管网、漏点、音频和算法结果数据。
+ *
+ * 页面层应优先调用这里导出的语义化函数，避免在 .vue 文件中直接拼接接口地址。
+ */
 import { createCrudService } from "@/services/shared/crud";
 
 const deviceApi = createCrudService("/api/device");

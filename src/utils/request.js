@@ -2,6 +2,10 @@ const DEFAULT_BASE_URL = "http://47.118.24.91:28082";
 const TOKEN_KEY = "token";
 const TOKEN_PREFIX_KEY = "tokenPrefix";
 
+/**
+ * 将 uni.request 的平台错误转换成页面可直接展示的中文提示。
+ * 这里只处理网络层错误，业务层 code/msg 仍由页面或业务服务按场景判断。
+ */
 function getFriendlyErrorMessage(error) {
   const message = error?.errMsg || "";
 
@@ -16,6 +20,10 @@ function getFriendlyErrorMessage(error) {
   return message || "网络异常，请稍后重试";
 }
 
+/**
+ * 获取接口基础地址。
+ * 配置 VITE_API_BASE_URL 时优先使用环境变量，未配置时回退到项目默认后端地址。
+ */
 function getBaseUrl() {
   if (Object.prototype.hasOwnProperty.call(import.meta.env, "VITE_API_BASE_URL")) {
     return import.meta.env.VITE_API_BASE_URL;
@@ -24,6 +32,10 @@ function getBaseUrl() {
   return DEFAULT_BASE_URL;
 }
 
+/**
+ * 从本地缓存读取登录令牌并组装 Authorization 请求头。
+ * tokenPrefix 用于兼容 Bearer、Token 等不同后端认证前缀。
+ */
 function getAuthHeader() {
   const token = uni.getStorageSync(TOKEN_KEY);
   const tokenPrefix = uni.getStorageSync(TOKEN_PREFIX_KEY);
@@ -37,6 +49,10 @@ function getAuthHeader() {
   };
 }
 
+/**
+ * 标准化请求地址。
+ * service 可以传完整 URL，也可以传 /api/user/login 这类相对路径。
+ */
 function normalizeUrl(url) {
   if (/^https?:\/\//.test(url)) {
     return url;
@@ -48,6 +64,10 @@ function normalizeUrl(url) {
   return `${baseUrl}${path}`;
 }
 
+/**
+ * 项目统一请求函数。
+ * 成功时返回后端响应体；HTTP 非 2xx 或网络失败时 reject 统一错误对象。
+ */
 export default function request(options) {
   const { url, method = "GET", data, header = {}, timeout = 15000 } = options;
 

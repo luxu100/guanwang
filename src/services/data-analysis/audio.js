@@ -1,3 +1,8 @@
+/**
+ * 音频数据分析接口封装，包含采样音频和采样明细查询。
+ *
+ * 页面层应优先调用这里导出的语义化函数，避免在 .vue 文件中直接拼接接口地址。
+ */
 import { createCrudService } from "@/services/shared/crud";
 
 const samplingAudioApi = createCrudService("/api/sampling-audio");

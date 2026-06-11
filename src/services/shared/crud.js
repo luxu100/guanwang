@@ -1,9 +1,11 @@
 import request from "@/utils/request";
 
+/** 统一修正接口资源前缀，允许业务 service 传入 api/user 或 /api/user。 */
 function normalizeBaseUrl(baseUrl) {
   return baseUrl.startsWith("/") ? baseUrl : `/${baseUrl}`;
 }
 
+/** GET 请求封装，通常用于详情、列表、树结构等读取类接口。 */
 export function getRequest(url, data) {
   return request({
     url,
@@ -12,6 +14,7 @@ export function getRequest(url, data) {
   });
 }
 
+/** POST 请求封装，通常用于新增、分页查询、动作类接口。 */
 export function postRequest(url, data) {
   return request({
     url,
@@ -20,6 +23,7 @@ export function postRequest(url, data) {
   });
 }
 
+/** PUT 请求封装，通常用于更新已有资源。 */
 export function putRequest(url, data) {
   return request({
     url,
@@ -28,6 +32,7 @@ export function putRequest(url, data) {
   });
 }
 
+/** DELETE 请求封装，通常用于删除或批量删除资源。 */
 export function deleteRequest(url, data) {
   return request({
     url,
@@ -36,6 +41,18 @@ export function deleteRequest(url, data) {
   });
 }
 
+/**
+ * 根据后端当前约定生成标准 CRUD service。
+ *
+ * 约定路径：
+ * - 详情：GET    /resource/:id
+ * - 新增：POST   /resource/create
+ * - 更新：PUT    /resource/:id
+ * - 删除：DELETE /resource/:id
+ * - 分页：POST   /resource/page
+ * - 列表：GET    /resource/list
+ * - 批删：DELETE /resource/batch-delete
+ */
 export function createCrudService(baseUrl) {
   const url = normalizeBaseUrl(baseUrl);
 

@@ -1,3 +1,8 @@
+/**
+ * 菜单管理接口封装，基于 permission 资源维护菜单和权限树。
+ *
+ * 页面层应优先调用这里导出的语义化函数，避免在 .vue 文件中直接拼接接口地址。
+ */
 import { createCrudService, getRequest } from "@/services/shared/crud";
 
 const permissionApi = createCrudService("/api/permission");

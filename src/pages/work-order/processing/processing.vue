@@ -1,5 +1,6 @@
 <template>
   <AppShell>
+    <!-- 工单处理页面：后续用于工单分派、处理、催办和关闭。 -->
     <view class="content-page"></view>
   </AppShell>
 </template>

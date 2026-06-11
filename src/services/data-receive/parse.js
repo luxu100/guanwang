@@ -1,3 +1,8 @@
+/**
+ * 数据解析接口封装，包含协议字段、解析记录和字段批量保存。
+ *
+ * 页面层应优先调用这里导出的语义化函数，避免在 .vue 文件中直接拼接接口地址。
+ */
 import { createCrudService, getRequest, postRequest } from "@/services/shared/crud";
 
 const protocolFieldDefinitionApi = createCrudService("/api/protocol-field-definition");

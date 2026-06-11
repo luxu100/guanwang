@@ -1,3 +1,8 @@
+/**
+ * 数据字典接口封装，包含字典类型和字典项 CRUD 能力。
+ *
+ * 页面层应优先调用这里导出的语义化函数，避免在 .vue 文件中直接拼接接口地址。
+ */
 import { createCrudService } from "@/services/shared/crud";
 
 const dictTypeApi = createCrudService("/api/dict-type");

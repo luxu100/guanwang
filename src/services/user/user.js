@@ -1,3 +1,8 @@
+/**
+ * 用户接口封装，包含登录、注册、用户 CRUD、角色分配和密码更新。
+ *
+ * 页面层应优先调用这里导出的语义化函数，避免在 .vue 文件中直接拼接接口地址。
+ */
 import request from "@/utils/request";
 
 export function login(data) {

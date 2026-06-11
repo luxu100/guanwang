@@ -1,3 +1,8 @@
+/**
+ * 权限管理接口封装，包含角色、权限、权限树和角色授权能力。
+ *
+ * 页面层应优先调用这里导出的语义化函数，避免在 .vue 文件中直接拼接接口地址。
+ */
 import { createCrudService, getRequest, postRequest } from "@/services/shared/crud";
 
 const roleApi = createCrudService("/api/role");

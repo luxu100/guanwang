@@ -1,3 +1,8 @@
+/**
+ * 工单统计接口封装，包含工单分页、列表、统计和导出能力。
+ *
+ * 页面层应优先调用这里导出的语义化函数，避免在 .vue 文件中直接拼接接口地址。
+ */
 import { createCrudService, postRequest } from "@/services/shared/crud";
 
 const worksheetApi = createCrudService("/api/worksheet");

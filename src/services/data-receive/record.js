@@ -1,3 +1,8 @@
+/**
+ * 数据记录接口封装，包含采样记录、采样明细、日报、压力和 CSS 采样数据。
+ *
+ * 页面层应优先调用这里导出的语义化函数，避免在 .vue 文件中直接拼接接口地址。
+ */
 import { createCrudService } from "@/services/shared/crud";
 
 const samplingRecordApi = createCrudService("/api/sampling-record");

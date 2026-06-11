@@ -1,3 +1,8 @@
+/**
+ * 指令管理接口封装，包含指令字典、参数、下发记录、固件和升级动作。
+ *
+ * 页面层应优先调用这里导出的语义化函数，避免在 .vue 文件中直接拼接接口地址。
+ */
 import { createCrudService, postRequest } from "@/services/shared/crud";
 
 const commandDictApi = createCrudService("/api/command-dict");

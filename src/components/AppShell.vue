@@ -1,4 +1,8 @@
 <template>
+  <!--
+    后台页面通用外壳：顶部栏、侧边目录、页签和内容区统一在这里维护。
+    业务页面只需要把主体内容放进默认插槽即可。
+  -->
   <view class="app-shell">
     <view class="top-bar">
       <view class="brand">
@@ -114,6 +118,7 @@
       </view>
 
       <view class="shell-main">
+        <!-- 打开的页面标签用于模拟后台系统的多页签体验，当前路径始终和 active tab 保持同步。 -->
         <view class="page-tabs" v-if="openedTabs.length">
           <view ref="pageTabsListRef" class="page-tabs__list">
             <view
@@ -154,6 +159,7 @@
           data-fullscreen-target="shell-content"
         >
           <view v-if="isFallbackFullscreen" class="fullscreen-exit-tip">ESC</view>
+          <!-- 渗漏监测地图是全屏地图场景，直接在外壳中渲染以复用页签和全屏能力。 -->
           <TencentLeakMap v-if="currentPath === '/pages/leak-monitor/leak-monitor'" />
           <slot v-else></slot>
         </view>
@@ -183,6 +189,12 @@ interface PageTab {
 
 const MENU_COLLAPSED_KEY = "sideMenuCollapsed";
 
+/**
+ * 后台侧边栏菜单配置。
+ *
+ * path 必须和 src/pages.json 中注册的页面路径一致；icon 对应下方样式中
+ * side-menu__icon--xxx / page-tab__icon--xxx 的掩码图标。
+ */
 const menuItems: MenuItem[] = [
   { label: "我的收藏", path: "/pages/index/index", icon: "star", keywords: ["首页", "收藏"] },
   { label: "渗漏监测", path: "/pages/leak-monitor/leak-monitor", icon: "monitor", keywords: ["渗漏", "监测"] },
@@ -413,6 +425,12 @@ function closeTab(path: string) {
   goPage(nextTab?.path || "/pages/leak-monitor/leak-monitor");
 }
 
+/**
+ * 进入/退出内容区全屏。
+ *
+ * 优先使用浏览器 Fullscreen API；如果当前环境不支持或调用失败，则退化为
+ * shell-content--maximized 固定定位模拟全屏。
+ */
 async function toggleFullscreen() {
   if (typeof document === "undefined") {
     return;
@@ -550,6 +568,7 @@ function isCollapsedSubmenuVisible(item: MenuItem) {
 }
 
 function handleLogout() {
+  // 登录态和权限信息都保存在本地缓存，退出时必须全部清理，避免下次进入误判已登录。
   uni.removeStorageSync("token");
   uni.removeStorageSync("tokenPrefix");
   uni.removeStorageSync("userInfo");
@@ -648,6 +667,9 @@ function ensureTab(path: string) {
   openedTabs.value.push({ icon: getMenuIconByPath(path), label, path });
 }
 
+/**
+ * 当前页面对应的页签滚动到可视区域，解决打开多页签后 active tab 被遮挡的问题。
+ */
 function scrollActiveTabIntoView(path = currentPath.value) {
   // #ifdef H5
   void nextTick(() => {

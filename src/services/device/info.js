@@ -1,3 +1,8 @@
+/**
+ * 设备信息接口封装，包含设备、设备产品和设备协议绑定能力。
+ *
+ * 页面层应优先调用这里导出的语义化函数，避免在 .vue 文件中直接拼接接口地址。
+ */
 import { createCrudService, getRequest } from "@/services/shared/crud";
 
 const deviceApi = createCrudService("/api/device");

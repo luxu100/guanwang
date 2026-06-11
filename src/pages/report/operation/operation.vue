@@ -1,5 +1,6 @@
 <template>
   <AppShell>
+    <!-- 报表操作页面：后续用于查询、查看、导出和打印报表。 -->
     <view class="content-page"></view>
   </AppShell>
 </template>
