@@ -15,23 +15,16 @@
       }
     },
     {
-      "path": "pages/leak/leak/leak",
+      "path": "pages/leak-monitor/leak-monitor",
       "style": {
-        "navigationBarTitleText": "渗漏检测",
+        "navigationBarTitleText": "渗漏监测",
         "navigationStyle": "custom"
       }
     },
     {
-      "path": "pages/leak/layout/layout",
+      "path": "pages/station/station",
       "style": {
-        "navigationBarTitleText": "布点图",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/data-analysis/data-analysis",
-      "style": {
-        "navigationBarTitleText": "数据分析",
+        "navigationBarTitleText": "站点管理",
         "navigationStyle": "custom"
       }
     },
@@ -43,23 +36,23 @@
       }
     },
     {
-      "path": "pages/statistics/statistics",
+      "path": "pages/data-analysis/data-analysis",
       "style": {
-        "navigationBarTitleText": "统计分析",
+        "navigationBarTitleText": "数据分析",
         "navigationStyle": "custom"
       }
     },
     {
-      "path": "pages/report/report",
+      "path": "pages/suspected-report/suspected-report",
       "style": {
-        "navigationBarTitleText": "统计报表",
+        "navigationBarTitleText": "疑漏点上报",
         "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/work-order/work-order",
       "style": {
-        "navigationBarTitleText": "渗漏工单",
+        "navigationBarTitleText": "工单管理",
         "navigationStyle": "custom"
       }
     },
@@ -71,6 +64,13 @@
       }
     },
     {
+      "path": "pages/report/report",
+      "style": {
+        "navigationBarTitleText": "统计报表",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/command/command",
       "style": {
         "navigationBarTitleText": "指令管理",
@@ -78,65 +78,16 @@
       }
     },
     {
-      "path": "pages/system/user/user",
+      "path": "pages/system/system",
       "style": {
-        "navigationBarTitleText": "用户配置",
+        "navigationBarTitleText": "系统管理",
         "navigationStyle": "custom"
       }
     },
     {
-      "path": "pages/system/auth/auth",
+      "path": "pages/data-receive/data-receive",
       "style": {
-        "navigationBarTitleText": "权限管理",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/system/menu/menu",
-      "style": {
-        "navigationBarTitleText": "菜单管理",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/system/sys-alarm/sys-alarm",
-      "style": {
-        "navigationBarTitleText": "通用报警",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/system/dict/dict",
-      "style": {
-        "navigationBarTitleText": "数据字典",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/system/sensor/sensor",
-      "style": {
-        "navigationBarTitleText": "传感器类型",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/system/station/station",
-      "style": {
-        "navigationBarTitleText": "站点管理",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/system/remote/remote",
-      "style": {
-        "navigationBarTitleText": "远传设备",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/system/login-log/login-log",
-      "style": {
-        "navigationBarTitleText": "登录相关",
+        "navigationBarTitleText": "数据接收和解析",
         "navigationStyle": "custom"
       }
     }

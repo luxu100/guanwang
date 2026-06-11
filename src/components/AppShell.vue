@@ -84,15 +84,17 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { label: "我的收藏", path: "/pages/index/index", icon: "star", keywords: ["首页", "收藏"] },
-  { label: "渗漏监测", path: "/pages/leak/leak/leak", icon: "monitor", keywords: ["漏损", "监测"] },
-  { label: "数据分析", path: "/pages/data-analysis/data-analysis", icon: "chart", keywords: ["分析"] },
+  { label: "渗漏监测", path: "/pages/leak-monitor/leak-monitor", icon: "monitor", keywords: ["渗漏", "监测"] },
+  { label: "站点管理", path: "/pages/station/station", icon: "station", keywords: ["站点"] },
   { label: "设备管理", path: "/pages/device/device", icon: "device", keywords: ["设备"] },
-  { label: "统计分析", path: "/pages/statistics/statistics", icon: "trend", keywords: ["统计"] },
-  { label: "统计报表", path: "/pages/report/report", icon: "report", keywords: ["报表"] },
-  { label: "渗漏工单", path: "/pages/work-order/work-order", icon: "order", keywords: ["工单"] },
+  { label: "数据分析", path: "/pages/data-analysis/data-analysis", icon: "chart", keywords: ["数据", "分析"] },
+  { label: "疑漏点上报", path: "/pages/suspected-report/suspected-report", icon: "report", keywords: ["疑漏点", "上报"] },
+  { label: "工单管理", path: "/pages/work-order/work-order", icon: "order", keywords: ["工单"] },
   { label: "实时报警", path: "/pages/alarm/alarm", icon: "alarm", keywords: ["告警", "报警"] },
+  { label: "统计报表", path: "/pages/report/report", icon: "trend", keywords: ["统计", "报表"] },
   { label: "指令管理", path: "/pages/command/command", icon: "command", keywords: ["指令"] },
-  { label: "系统设置", path: "/pages/system/user/user", icon: "setting", keywords: ["设置", "用户"] },
+  { label: "系统管理", path: "/pages/system/system", icon: "setting", keywords: ["系统"] },
+  { label: "数据接收和解析", path: "/pages/data-receive/data-receive", icon: "receive", keywords: ["数据接收", "解析"] },
 ];
 
 const searchKeyword = ref("");
@@ -503,7 +505,7 @@ onUnmounted(() => {
 
 .side-menu__collapse {
   position: absolute;
-  top: 318px;
+  top: calc(18px + (52px * 12 + 8px * 11) / 2);
   right: -13px;
   z-index: 5;
   display: flex;
@@ -644,6 +646,10 @@ onUnmounted(() => {
   --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='4.6' y='4.4' width='5.6' height='15.2' rx='1.2'/%3E%3Crect x='13.8' y='4.4' width='5.6' height='15.2' rx='1.2'/%3E%3Cpath d='M7.4 8h.1M16.6 8h.1M7.4 16h.1M16.6 16h.1' stroke-width='2.4'/%3E%3C/svg%3E");
 }
 
+.side-menu__icon--station {
+  --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 21s6.2-5.5 6.2-11.2A6.2 6.2 0 1 0 5.8 9.8C5.8 15.5 12 21 12 21Z'/%3E%3Ccircle cx='12' cy='9.8' r='2.2'/%3E%3C/svg%3E");
+}
+
 .side-menu__icon--trend {
   --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='4' y='5' width='16' height='14' rx='1.5'/%3E%3Cpath d='M7.2 15.5l3-3 2.2 2.1 4.4-5.1M15.1 9.5h1.9v1.9'/%3E%3C/svg%3E");
 }
@@ -662,6 +668,10 @@ onUnmounted(() => {
 
 .side-menu__icon--command {
   --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 4.8h8.5L19 9.3v9.9H6V4.8Z'/%3E%3Cpath d='M14.4 4.8v4.6H19M8.7 12.6h5.8M8.7 16h4.2M16.5 13.5l2.2 2.1-2.2 2.1'/%3E%3C/svg%3E");
+}
+
+.side-menu__icon--receive {
+  --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 5.5h14v13H5z'/%3E%3Cpath d='M8 9h8M8 12h5M12 15.5v-7M12 15.5l-2.5-2.5M12 15.5l2.5-2.5'/%3E%3C/svg%3E");
 }
 
 .side-menu__icon--setting {
@@ -837,7 +847,7 @@ onUnmounted(() => {
   }
 
   .side-menu__collapse {
-    top: 318px;
+    top: calc(18px + (52px * 12 + 8px * 11) / 2);
     right: -13px;
   }
 
