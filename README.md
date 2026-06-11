@@ -168,6 +168,80 @@ guanwang/
 - 页面自己的样式优先和页面放在一起，例如登录页使用 `src/pages/login/login.scss`。
 - `vite.config.ts` 已配置 `scss.additionalData`，页面 SCSS 中可以直接使用 `variables.scss` 和 `mixins.scss` 中导出的变量、mixin。
 
+## 接口服务划分
+
+接口统一放在 `src/services` 下，按页面一级目录拆分；公共增删改查封装放在 `shared/crud.js`，业务页面只导出语义化函数名。
+
+```text
+src/services/
+├─ shared/
+│  └─ crud.js                         # 公共 get/post/put/delete 和 CRUD 封装
+├─ user/
+│  ├─ user.js                         # 登录、注册、用户基础接口
+│  └─ user.d.ts                       # 用户接口类型声明
+├─ leak-monitor/
+│  └─ leak-monitor.js                 # 渗漏监测地图、设备、管网、渗漏、音频、算法结果
+├─ station/
+│  └─ station.js                      # 站点、分区、部门
+├─ device/
+│  ├─ info.js                         # 设备信息、设备产品、设备协议绑定
+│  ├─ maintenance.js                  # 拆装维护、维护记录
+│  └─ status.js                       # 设备状态、状态上报、历史日数据
+├─ data-analysis/
+│  ├─ overview.js                     # 系统总览统计
+│  ├─ audio.js                        # 音频数据、采样明细
+│  ├─ device-params.js                # 设备参数、历史日数据、状态上报
+│  └─ leakage.js                      # 渗漏数据、算法分析结果
+├─ leak-report/
+│  ├─ suspect-management.js           # 疑点管理
+│  ├─ suspect-processing.js           # 疑点处理、分配、确认、排除、转工单
+│  ├─ leak-management.js              # 漏点管理
+│  ├─ leak-analysis.js                # 漏点趋势、分布、修复统计
+│  └─ history-overview.js             # 疑点和漏点历史总览
+├─ work-order/
+│  ├─ create.js                       # 工单创建
+│  ├─ processing.js                   # 工单处理、分派、催办、关闭
+│  └─ statistics.js                   # 工单查询、统计、导出
+├─ alarm/
+│  ├─ strategy.js                     # 报警策略
+│  ├─ processing.js                   # 报警处理、确认、误报、转工单
+│  └─ analysis.js                     # 报警分析、趋势、导出
+├─ statistics/
+│  └─ statistics.js                   # 统计分析汇总
+├─ report/
+│  ├─ generate.js                     # 报表模板、报表任务、报表生成
+│  ├─ operation.js                    # 报表查询、查看、导出、打印
+│  └─ command.js                      # 指令字典、指令参数、下发记录、固件升级
+├─ system/
+│  ├─ user.js                         # 系统用户配置，复用 user 服务
+│  ├─ auth.js                         # 角色、权限、权限树、角色授权
+│  ├─ menu.js                         # 菜单管理，基于权限菜单树
+│  └─ dict.js                         # 字典类型、字典项
+└─ data-receive/
+   ├─ access.js                       # 动态协议、设备协议绑定、数据接入
+   ├─ parse.js                        # 协议字段、解析记录、字段批量保存
+   └─ record.js                       # 采样记录、采样明细、日报、压力、CSS 采样数据
+```
+
+接口资源对应关系：
+
+| 页面模块 | service 文件 | 主要接口资源 |
+| --- | --- | --- |
+| 渗漏监测 | `leak-monitor/leak-monitor.js` | `/api/device`、`/api/tube-network`、`/api/leakage-record`、`/api/sampling-audio`、`/api/sampling-detail`、`/api/algorithm-result` |
+| 站点管理 | `station/station.js` | `/api/station`、`/api/tube-network`、`/api/dept` |
+| 设备管理 | `device/info.js`、`device/maintenance.js`、`device/status.js` | `/api/device`、`/api/device-product`、`/api/device-protocol-relation`、`/api/maintenance-record`、`/api/device-status-upload`、`/api/device-daily-data` |
+| 数据分析 | `data-analysis/*.js` | `/api/statistics/*`、`/api/sampling-audio`、`/api/device-setting`、`/api/leakage-record`、`/api/algorithm-result` |
+| 疑漏点上报 | `leak-report/*.js` | `/api/suspected-leak`、`/api/leakage-record`、`/api/algorithm-result` |
+| 工单管理 | `work-order/*.js` | `/api/worksheet` |
+| 实时报警 | `alarm/*.js` | `/api/alarm-strategy`、`/api/alarm-record` |
+| 统计分析 | `statistics/statistics.js` | `/api/statistics/*` |
+| 统计报表 | `report/generate.js`、`report/operation.js` | `/api/report-template`、`/api/report-task`、`/api/report` |
+| 指令管理 | `report/command.js` | `/api/command-dict`、`/api/command-param`、`/api/command-send-log`、`/api/firmware`、`/api/firmware-upgrade-log` |
+| 系统设置 | `system/*.js` | `/api/user`、`/api/role`、`/api/permission`、`/api/dict-type`、`/api/dict-item` |
+| 数据接收和解析 | `data-receive/*.js` | `/api/protocol-definition`、`/api/protocol-field-definition`、`/api/protocol-parse-record`、`/api/device-protocol-relation`、`/api/sampling-record`、`/api/sampling-detail` |
+
+目前 `jiekou` 资料中已明确的接口按真实路径封装；需求文档中已有但接口清单暂未提供的报警、报表、疑点、站点等能力，先按模块预留标准 REST 路径，后端路径确认后只需调整对应 service 文件中的 baseUrl。
+
 ## 开发规范
 
 - 接口请求统一放到 `src/services`，避免直接散落在页面中。

@@ -1,0 +1,79 @@
+import { createCrudService, postRequest } from "@/services/shared/crud";
+
+const commandDictApi = createCrudService("/api/command-dict");
+const commandParamApi = createCrudService("/api/command-param");
+const commandSendLogApi = createCrudService("/api/command-send-log");
+const firmwareApi = createCrudService("/api/firmware");
+const firmwareUpgradeLogApi = createCrudService("/api/firmware-upgrade-log");
+
+export const getCommandDictPage = commandDictApi.getPage;
+export const getCommandDictList = commandDictApi.getList;
+export const getCommandDictDetail = commandDictApi.getDetail;
+export const createCommandDict = commandDictApi.create;
+export const updateCommandDict = commandDictApi.update;
+export const deleteCommandDict = commandDictApi.delete;
+export const batchDeleteCommandDict = commandDictApi.batchDelete;
+
+export const getCommandParamPage = commandParamApi.getPage;
+export const getCommandParamList = commandParamApi.getList;
+export const getCommandParamDetail = commandParamApi.getDetail;
+export const createCommandParam = commandParamApi.create;
+export const updateCommandParam = commandParamApi.update;
+export const deleteCommandParam = commandParamApi.delete;
+export const batchDeleteCommandParam = commandParamApi.batchDelete;
+
+export const getCommandSendLogPage = commandSendLogApi.getPage;
+export const getCommandSendLogList = commandSendLogApi.getList;
+export const getCommandSendLogDetail = commandSendLogApi.getDetail;
+
+export const getFirmwarePage = firmwareApi.getPage;
+export const getFirmwareList = firmwareApi.getList;
+export const getFirmwareDetail = firmwareApi.getDetail;
+export const createFirmware = firmwareApi.create;
+export const updateFirmware = firmwareApi.update;
+export const deleteFirmware = firmwareApi.delete;
+export const batchDeleteFirmware = firmwareApi.batchDelete;
+
+export const getFirmwareUpgradeLogPage = firmwareUpgradeLogApi.getPage;
+export const getFirmwareUpgradeLogList = firmwareUpgradeLogApi.getList;
+export const getFirmwareUpgradeLogDetail = firmwareUpgradeLogApi.getDetail;
+
+export function sendDeviceCommand(data) {
+  return postRequest("/api/command/send", data);
+}
+
+export function upgradeDeviceFirmware(data) {
+  return postRequest("/api/firmware/upgrade", data);
+}
+
+export default {
+  getCommandDictPage,
+  getCommandDictList,
+  getCommandDictDetail,
+  createCommandDict,
+  updateCommandDict,
+  deleteCommandDict,
+  batchDeleteCommandDict,
+  getCommandParamPage,
+  getCommandParamList,
+  getCommandParamDetail,
+  createCommandParam,
+  updateCommandParam,
+  deleteCommandParam,
+  batchDeleteCommandParam,
+  getCommandSendLogPage,
+  getCommandSendLogList,
+  getCommandSendLogDetail,
+  getFirmwarePage,
+  getFirmwareList,
+  getFirmwareDetail,
+  createFirmware,
+  updateFirmware,
+  deleteFirmware,
+  batchDeleteFirmware,
+  getFirmwareUpgradeLogPage,
+  getFirmwareUpgradeLogList,
+  getFirmwareUpgradeLogDetail,
+  sendDeviceCommand,
+  upgradeDeviceFirmware,
+};
