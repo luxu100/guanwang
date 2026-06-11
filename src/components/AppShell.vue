@@ -40,6 +40,18 @@
 
     <view class="shell-body">
       <view class="side-menu" :class="{ 'side-menu--collapsed': isMenuCollapsed }">
+        <view class="side-menu__head">
+          <text class="side-menu__head-title">目录</text>
+          <button
+            class="side-menu__collapse"
+            hover-class="side-menu__collapse--hover"
+            :aria-label="isMenuCollapsed ? '展开目录' : '收起目录'"
+            @click="toggleMenu"
+          >
+            <text class="collapse-icon" :class="{ 'collapse-icon--collapsed': isMenuCollapsed }"></text>
+          </button>
+        </view>
+
         <view class="side-menu__scroll">
           <view
             v-for="item in filteredMenuItems"
@@ -87,20 +99,29 @@
             </view>
           </view>
         </view>
-
-        <button
-          class="side-menu__collapse"
-          hover-class="side-menu__collapse--hover"
-          :aria-label="isMenuCollapsed ? '展开目录' : '收起目录'"
-          @click="toggleMenu"
-        >
-          <text class="collapse-icon" :class="{ 'collapse-icon--collapsed': isMenuCollapsed }"></text>
-        </button>
       </view>
 
       <view class="shell-main">
-        <TencentLeakMap v-if="currentPath === '/pages/leak-monitor/leak-monitor'" />
-        <slot v-else></slot>
+        <view class="page-tabs" v-if="openedTabs.length">
+          <view
+            v-for="tab in openedTabs"
+            :key="tab.path"
+            class="page-tab"
+            :class="{ 'page-tab--active': currentPath === tab.path }"
+            @click="activateTab(tab.path)"
+          >
+            <text class="page-tab__icon" :class="`page-tab__icon--${tab.icon}`"></text>
+            <text class="page-tab__label">{{ tab.label }}</text>
+            <button class="page-tab__close" hover-class="page-tab__close--hover" @click.stop="closeTab(tab.path)">
+              <text class="page-tab__close-icon"></text>
+            </button>
+          </view>
+        </view>
+
+        <view class="shell-content">
+          <TencentLeakMap v-if="currentPath === '/pages/leak-monitor/leak-monitor'" />
+          <slot v-else></slot>
+        </view>
       </view>
     </view>
   </view>
@@ -117,6 +138,12 @@ interface MenuItem {
   icon: string;
   keywords?: string[];
   children?: MenuItem[];
+}
+
+interface PageTab {
+  icon: string;
+  label: string;
+  path: string;
 }
 
 const MENU_COLLAPSED_KEY = "sideMenuCollapsed";
@@ -232,6 +259,7 @@ const routePath = computed(() => {
   return `/${route}`;
 });
 const currentPath = ref(getInitialPath());
+const openedTabs = ref<PageTab[]>([]);
 
 const filteredMenuItems = computed(() => {
   const keyword = searchKeyword.value.trim().toLowerCase();
@@ -287,7 +315,7 @@ function isMenuItemExpanded(item: MenuItem) {
     return false;
   }
 
-  return Boolean(searchKeyword.value.trim()) || isMenuItemActive(item) || expandedMenuPaths.value.includes(item.path);
+  return Boolean(searchKeyword.value.trim()) || expandedMenuPaths.value.includes(item.path);
 }
 
 function getMenuTargetPath(item: MenuItem) {
@@ -311,20 +339,26 @@ function goMenuItem(item: MenuItem) {
     return;
   }
 
+  if (expandedMenuPaths.value.includes(item.path)) {
+    expandedMenuPaths.value = [];
+    return;
+  }
+
   expandedMenuPaths.value = [item.path];
   goPage(getMenuTargetPath(item));
 }
 
 function goPage(path: string, options: { keepCollapsedSubmenu?: boolean } = {}) {
   if (currentPath.value === path) {
+    ensureTab(path);
     return;
   }
 
   currentPath.value = path;
+  ensureTab(path);
   if (!options.keepCollapsedSubmenu) {
     collapsedSubmenuPath.value = "";
   }
-  syncExpandedMenuByPath(path);
 
   // #ifdef H5
   navigateInPlace(path);
@@ -342,6 +376,25 @@ function goPage(path: string, options: { keepCollapsedSubmenu?: boolean } = {}) 
 
 function goChildPage(path: string) {
   goPage(path, { keepCollapsedSubmenu: true });
+}
+
+function activateTab(path: string) {
+  goPage(path);
+}
+
+function closeTab(path: string) {
+  const index = openedTabs.value.findIndex((tab) => tab.path === path);
+  if (index < 0) {
+    return;
+  }
+
+  openedTabs.value.splice(index, 1);
+  if (currentPath.value !== path) {
+    return;
+  }
+
+  const nextTab = openedTabs.value[index] || openedTabs.value[index - 1];
+  goPage(nextTab?.path || "/pages/leak-monitor/leak-monitor");
 }
 
 function showCollapsedSubmenu(item: MenuItem) {
@@ -433,6 +486,30 @@ function getMenuLabelByPath(path: string) {
   return "";
 }
 
+function getMenuIconByPath(path: string) {
+  for (const item of menuItems) {
+    const child = item.children?.find((childItem) => childItem.path === path);
+    if (child) {
+      return child.icon || item.icon;
+    }
+
+    if (item.path === path) {
+      return item.icon;
+    }
+  }
+
+  return "report";
+}
+
+function ensureTab(path: string) {
+  const label = getMenuLabelByPath(path);
+  if (!label || openedTabs.value.some((tab) => tab.path === path)) {
+    return;
+  }
+
+  openedTabs.value.push({ icon: getMenuIconByPath(path), label, path });
+}
+
 function syncExpandedMenuByPath(path: string) {
   if (isMenuCollapsed.value) {
     return;
@@ -446,6 +523,7 @@ function syncPathFromBrowser() {
   const path = getBrowserPath();
   if (path) {
     currentPath.value = path;
+    ensureTab(path);
     syncExpandedMenuByPath(path);
     updateDocumentTitle(path);
   }
@@ -453,6 +531,7 @@ function syncPathFromBrowser() {
 
 // #ifdef H5
 onMounted(() => {
+  ensureTab(currentPath.value);
   window.addEventListener("popstate", syncPathFromBrowser);
   window.addEventListener("hashchange", syncPathFromBrowser);
 });
@@ -467,6 +546,7 @@ onUnmounted(() => {
 <style scoped lang="scss">
 .app-shell {
   --shell-header-height: 72px;
+  --shell-tabs-height: 42px;
   --shell-viewport-height: 100vh;
   --shell-content-min-height: calc(var(--shell-viewport-height) - var(--shell-header-height));
 
@@ -735,7 +815,7 @@ onUnmounted(() => {
 
 .logout-button--hover,
 .side-menu__collapse--hover {
-  opacity: 0.88;
+  opacity: 0.92;
 }
 
 .shell-body {
@@ -749,7 +829,7 @@ onUnmounted(() => {
   flex: 0 0 240px;
   width: 240px;
   height: var(--shell-content-min-height);
-  padding-top: 18px;
+  padding-top: 0;
   overflow: visible;
   background: #ffffff;
   box-shadow: 10px 0 24px rgba(28, 78, 130, 0.06);
@@ -763,62 +843,127 @@ onUnmounted(() => {
   width: 76px;
 }
 
-.side-menu__collapse {
+.side-menu__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--shell-tabs-height);
+  padding: 0 14px 0 20px;
+  background: #ffffff;
+  border-right: 1px solid #e2edf8;
+  border-bottom: 1px solid #e2edf8;
+}
+
+.side-menu__head-title {
+  position: relative;
+  padding-left: 10px;
+  color: #1e3a56;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.side-menu__head-title::before {
   position: absolute;
-  top: calc(18px + (52px * 12 + 8px * 11) / 2);
-  right: 8px;
-  z-index: 5;
+  top: 50%;
+  left: 0;
+  width: 3px;
+  height: 14px;
+  content: "";
+  background: #0d82ee;
+  border-radius: 999px;
+  transform: translateY(-50%);
+}
+
+.side-menu__collapse {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 44px;
+  flex: none;
+  width: 30px;
+  height: 30px;
   margin: 0;
   padding: 0;
-  background: linear-gradient(180deg, #ffffff 0%, #f2f8ff 100%);
+  color: #5b7289;
+  background: transparent;
   border: 0;
-  border: 1px solid rgba(178, 220, 255, 0.88);
-  border-radius: 16px;
-  box-shadow:
-    0 7px 18px rgba(28, 93, 151, 0.1),
-    inset 1px 0 0 rgba(255, 255, 255, 0.94);
-  transform: translateY(-50%);
+  border-radius: 8px;
+  box-shadow: none;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.side-menu__collapse:hover {
+  color: #0d82ee;
+  background: #eef7ff;
+}
+
+.side-menu__collapse:hover .collapse-icon {
+  opacity: 1;
 }
 
 .collapse-icon {
   position: relative;
-  width: 9px;
-  height: 16px;
-  transition: transform 0.18s ease;
+  z-index: 1;
+  width: 16px;
+  height: 14px;
+  opacity: 1;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
 }
 
 .collapse-icon::before {
   position: absolute;
-  top: 3px;
-  left: 0;
-  width: 10px;
-  height: 10px;
+  top: 4px;
+  left: 1px;
+  width: 7px;
+  height: 7px;
   content: "";
-  border: solid #0d82ee;
-  border-width: 0 2px 2px 0;
-  border-radius: 1px;
-  box-shadow: 2px 2px 6px rgba(13, 130, 238, 0.16);
-  transform: rotate(135deg);
+  border: solid currentColor;
+  border-width: 0 0 2px 2px;
+  border-radius: 0 0 0 1px;
+  box-shadow: none;
+  transform: rotate(45deg);
+}
+
+.collapse-icon::after {
+  position: absolute;
+  top: 3px;
+  right: 0;
+  width: 9px;
+  height: 2px;
+  content: "";
+  background: currentColor;
+  border-radius: 999px;
+  box-shadow:
+    0 7px 0 currentColor;
+}
+
+.side-menu__collapse .collapse-icon {
+  background: none;
 }
 
 .collapse-icon--collapsed {
   transform: rotate(180deg);
 }
 
-.side-menu--collapsed .side-menu__collapse {
-  right: 8px;
-}
-
 .side-menu__scroll {
-  height: 100%;
+  height: calc(100% - var(--shell-tabs-height));
   padding-bottom: 18px;
   overflow-x: visible;
   overflow-y: auto;
+}
+
+.side-menu--collapsed .side-menu__head {
+  justify-content: center;
+  padding: 0;
+}
+
+.side-menu--collapsed .side-menu__head-title {
+  display: none;
 }
 
 .side-menu__group {
@@ -995,51 +1140,63 @@ onUnmounted(() => {
   -webkit-mask: var(--side-icon-url) center / contain no-repeat;
 }
 
-.side-menu__icon--star {
+.side-menu__icon--star,
+.page-tab__icon--star {
   --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 3.2l2.65 5.36 5.92.86-4.28 4.17 1.01 5.89L12 16.7l-5.3 2.78 1.01-5.89-4.28-4.17 5.92-.86L12 3.2Z'/%3E%3C/svg%3E");
 }
 
-.side-menu__icon--monitor {
+.side-menu__icon--monitor,
+.page-tab__icon--monitor {
   --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 3.4S6.4 9.2 6.4 13.1a5.6 5.6 0 0 0 11.2 0C17.6 9.2 12 3.4 12 3.4Z'/%3E%3Cpath d='M8.9 14.4h2.1l1.1-2.7 1.5 4.6 1-1.9h1.7'/%3E%3C/svg%3E");
 }
 
-.side-menu__icon--chart {
+.side-menu__icon--chart,
+.page-tab__icon--chart {
   --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4.8 19.2h14.4' stroke-width='2'/%3E%3Cpath d='M6.7 16.8v-4.1M11.6 16.8V8.1M16.5 16.8v-6' stroke-width='2.6'/%3E%3Cpath d='M7.2 8.5l3.2 2.3 5.9-5' stroke-width='2'/%3E%3C/svg%3E");
 }
 
-.side-menu__icon--device {
+.side-menu__icon--device,
+.page-tab__icon--device {
   --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='4.6' y='4.4' width='5.6' height='15.2' rx='1.2'/%3E%3Crect x='13.8' y='4.4' width='5.6' height='15.2' rx='1.2'/%3E%3Cpath d='M7.4 8h.1M16.6 8h.1M7.4 16h.1M16.6 16h.1' stroke-width='2.4'/%3E%3C/svg%3E");
 }
 
-.side-menu__icon--station {
+.side-menu__icon--station,
+.page-tab__icon--station {
   --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 21s6.2-5.5 6.2-11.2A6.2 6.2 0 1 0 5.8 9.8C5.8 15.5 12 21 12 21Z'/%3E%3Ccircle cx='12' cy='9.8' r='2.2'/%3E%3C/svg%3E");
 }
 
-.side-menu__icon--trend {
+.side-menu__icon--trend,
+.page-tab__icon--trend {
   --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='4' y='5' width='16' height='14' rx='1.5'/%3E%3Cpath d='M7.2 15.5l3-3 2.2 2.1 4.4-5.1M15.1 9.5h1.9v1.9'/%3E%3C/svg%3E");
 }
 
-.side-menu__icon--report {
+.side-menu__icon--report,
+.page-tab__icon--report {
   --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6.2 3.8h8.3l3.3 3.4v13H6.2V3.8Z'/%3E%3Cpath d='M14.5 3.8v3.4h3.3M9 16v-3M12 16V9.8M15 16v-4.4'/%3E%3C/svg%3E");
 }
 
-.side-menu__icon--order {
+.side-menu__icon--order,
+.page-tab__icon--order {
   --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='5' y='4' width='13' height='16' rx='1.8'/%3E%3Cpath d='M8.2 8.2h6.8M8.2 11.8h5.8M8.2 15.4h3.4M15.2 16.8l1.2 1.2 2.4-2.6'/%3E%3C/svg%3E");
 }
 
-.side-menu__icon--alarm {
+.side-menu__icon--alarm,
+.page-tab__icon--alarm {
   --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M8.5 18.7h7M10 18.6h4l.55-2.4h-5.1l.55 2.4Z'/%3E%3Cpath d='M7.2 16.2h9.6l-1-5.2A3.87 3.87 0 0 0 12 7.9 3.87 3.87 0 0 0 8.2 11l-1 5.2Z'/%3E%3Cpath d='M12 4.2v1.6M5.7 6.8l1.2 1.2M18.3 6.8 17.1 8M4.2 12.1H6M18 12.1h1.8'/%3E%3C/svg%3E");
 }
 
-.side-menu__icon--command {
+.side-menu__icon--command,
+.page-tab__icon--command {
   --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 4.8h8.5L19 9.3v9.9H6V4.8Z'/%3E%3Cpath d='M14.4 4.8v4.6H19M8.7 12.6h5.8M8.7 16h4.2M16.5 13.5l2.2 2.1-2.2 2.1'/%3E%3C/svg%3E");
 }
 
-.side-menu__icon--receive {
+.side-menu__icon--receive,
+.page-tab__icon--receive {
   --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 5.5h14v13H5z'/%3E%3Cpath d='M8 9h8M8 12h5M12 15.5v-7M12 15.5l-2.5-2.5M12 15.5l2.5-2.5'/%3E%3C/svg%3E");
 }
 
-.side-menu__icon--setting {
+.side-menu__icon--setting,
+.page-tab__icon--setting {
   --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='black' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M13.2 3.2h-2.4l-.48 2.18a7.05 7.05 0 0 0-1.44.6L6.98 4.78 5.28 6.48l1.2 1.9c-.26.46-.46.94-.61 1.45l-2.17.47v2.4l2.17.47c.15.51.36 1 .62 1.45l-1.2 1.9 1.69 1.7 1.9-1.2c.46.26.94.46 1.45.61l.47 2.17h2.4l.47-2.17c.51-.15 1-.36 1.45-.62l1.9 1.2 1.7-1.69-1.2-1.9c.26-.46.46-.94.61-1.45l2.17-.47v-2.4l-2.17-.47a7.05 7.05 0 0 0-.6-1.44l1.2-1.9-1.7-1.7-1.9 1.2a7.05 7.05 0 0 0-1.44-.6L13.2 3.2ZM12 8.15a3.85 3.85 0 1 0 0 7.7 3.85 3.85 0 0 0 0-7.7Z'/%3E%3Ccircle cx='12' cy='12' r='2.05'/%3E%3C/svg%3E");
 }
 
@@ -1094,6 +1251,134 @@ onUnmounted(() => {
   flex: 1;
   min-width: 0;
   background: #edf5ff;
+}
+
+.page-tabs {
+  display: flex;
+  align-items: center;
+  height: var(--shell-tabs-height);
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0 22px;
+  background: #ffffff;
+  border-bottom: 1px solid #edf3f8;
+}
+
+.page-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.page-tab {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 8px;
+  min-width: 0;
+  max-width: 168px;
+  height: 100%;
+  padding: 0;
+  color: #66758a;
+  font-size: 15px;
+  font-weight: 400;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.page-tab + .page-tab {
+  margin-left: 30px;
+}
+
+.page-tab--active {
+  color: #0d82ee;
+  font-weight: 600;
+  background: transparent;
+  box-shadow: none;
+}
+
+.page-tab:hover {
+  color: #0d82ee;
+  background: transparent;
+}
+
+.page-tab--active:hover {
+  background: transparent;
+}
+
+.page-tab__icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  background: currentColor;
+  mask: var(--side-icon-url) center / contain no-repeat;
+  opacity: 0.92;
+  -webkit-mask: var(--side-icon-url) center / contain no-repeat;
+}
+
+.page-tab__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page-tab__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 0 -5px 0 -2px;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 5px;
+}
+
+.page-tab__close::after {
+  border: 0;
+}
+
+.page-tab__close--hover {
+  color: #0d82ee;
+  background: rgba(13, 130, 238, 0.08);
+}
+
+.page-tab__close-icon {
+  position: relative;
+  width: 12px;
+  height: 12px;
+}
+
+.page-tab__close-icon::before,
+.page-tab__close-icon::after {
+  position: absolute;
+  top: 5px;
+  left: 2.5px;
+  width: 7px;
+  height: 1.25px;
+  content: "";
+  background: currentColor;
+  border-radius: 999px;
+}
+
+.page-tab__close-icon::before {
+  transform: rotate(45deg);
+}
+
+.page-tab__close-icon::after {
+  transform: rotate(-45deg);
+}
+
+.shell-content {
+  --shell-content-min-height: calc(var(--shell-viewport-height) - var(--shell-header-height) - var(--shell-tabs-height));
+
+  min-height: var(--shell-content-min-height);
 }
 
 @media (max-width: 1080px) {
@@ -1229,11 +1514,6 @@ onUnmounted(() => {
   .side-menu {
     flex-basis: 70px;
     width: 70px;
-  }
-
-  .side-menu__collapse {
-    top: calc(18px + (52px * 12 + 8px * 11) / 2);
-    right: 7px;
   }
 
   .side-menu__item {
