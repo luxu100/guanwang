@@ -116,13 +116,13 @@ function initMap() {
 <style scoped lang="scss">
 .leak-map {
   position: relative;
-  min-height: calc(100vh - 72px);
+  min-height: var(--shell-content-min-height);
   background: #edf5ff;
 }
 
 .leak-map__canvas {
   width: 100%;
-  height: calc(100vh - 72px);
+  height: var(--shell-content-min-height);
   min-height: 520px;
 }
 

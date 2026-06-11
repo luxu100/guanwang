@@ -466,10 +466,20 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .app-shell {
+  --shell-header-height: 72px;
+  --shell-viewport-height: 100vh;
+  --shell-content-min-height: calc(var(--shell-viewport-height) - var(--shell-header-height));
+
   width: 100%;
-  min-height: 100vh;
+  min-height: var(--shell-viewport-height);
   overflow-x: hidden;
   background: #edf5ff;
+}
+
+@supports (height: 100dvh) {
+  .app-shell {
+    --shell-viewport-height: 100dvh;
+  }
 }
 
 .top-bar {
@@ -730,15 +740,15 @@ onUnmounted(() => {
 
 .shell-body {
   display: flex;
-  min-height: calc(100vh - 72px);
+  min-height: var(--shell-content-min-height);
 }
 
 .side-menu {
   position: sticky;
-  top: 72px;
+  top: var(--shell-header-height);
   flex: 0 0 240px;
   width: 240px;
-  height: calc(100vh - 72px);
+  height: var(--shell-content-min-height);
   padding-top: 18px;
   overflow: visible;
   background: #ffffff;
@@ -1087,6 +1097,10 @@ onUnmounted(() => {
 }
 
 @media (max-width: 1080px) {
+  .app-shell {
+    --shell-header-height: 118px;
+  }
+
   .top-bar {
     height: auto;
     min-height: 72px;
@@ -1122,12 +1136,12 @@ onUnmounted(() => {
   }
 
   .shell-body {
-    min-height: calc(100vh - 118px);
+    min-height: var(--shell-content-min-height);
   }
 
   .side-menu {
-    top: 118px;
-    height: calc(100vh - 118px);
+    top: var(--shell-header-height);
+    height: var(--shell-content-min-height);
   }
 }
 
