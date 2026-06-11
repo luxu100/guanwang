@@ -8,8 +8,7 @@ html {
 body {
   min-height: 100%;
   margin: 0;
-  overflow-y: scroll;
-  scrollbar-gutter: stable;
+  overflow-y: auto;
 }
 
 page {

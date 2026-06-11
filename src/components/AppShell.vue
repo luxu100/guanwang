@@ -11,7 +11,6 @@
       </view>
 
       <view class="site-search" :class="{ 'site-search--focused': isSearchFocused, 'site-search--filled': searchKeyword }">
-        <text class="site-search__icon"></text>
         <input
           v-model="searchKeyword"
           class="site-search__input"
@@ -800,9 +799,9 @@ onUnmounted(() => {
   position: relative;
   display: flex;
   align-items: center;
-  flex: 1 1 424px;
+  flex: 0 1 380px;
   min-width: 260px;
-  max-width: 460px;
+  max-width: 400px;
   height: 42px;
   margin: 0 10px 0 4px;
   overflow: hidden;
@@ -831,35 +830,11 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.25);
 }
 
-.site-search__icon {
-  position: relative;
-  flex: none;
-  width: 17px;
-  height: 17px;
-  margin-left: 16px;
-  color: rgba(255, 255, 255, 0.94);
-  border: 2px solid currentColor;
-  border-radius: 50%;
-  opacity: 0.96;
-}
-
-.site-search__icon::after {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  width: 8px;
-  height: 2px;
-  content: "";
-  background: currentColor;
-  border-radius: 999px;
-  transform: translate(5px, 4px) rotate(45deg);
-}
-
 .site-search__input {
   flex: 1;
   min-width: 0;
   height: 40px;
-  padding: 0 10px 0 13px;
+  padding: 0 10px 0 22px;
   color: #ffffff;
   font-size: 14px;
   font-weight: 500;
@@ -1869,9 +1844,9 @@ onUnmounted(() => {
 
   .site-search {
     order: 3;
-    flex-basis: 100%;
-    max-width: none;
-    margin: 0;
+    flex-basis: calc(100% - 64px);
+    max-width: 620px;
+    margin: 0 auto;
   }
 
   .shell-body {
@@ -1960,6 +1935,8 @@ onUnmounted(() => {
   }
 
   .site-search {
+    flex-basis: calc(100% - 44px);
+    max-width: 520px;
     height: 36px;
   }
 
@@ -1968,12 +1945,6 @@ onUnmounted(() => {
     padding-left: 10px;
     font-size: 13px;
     line-height: 34px;
-  }
-
-  .site-search__icon {
-    width: 15px;
-    height: 15px;
-    margin-left: 13px;
   }
 
   .site-search__submit {
