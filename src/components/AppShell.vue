@@ -72,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import logoImage from "@/assets/images/logo.webp";
 
 interface MenuItem {
@@ -99,11 +99,12 @@ const searchKeyword = ref("");
 const isMenuCollapsed = ref(false);
 const warningCount = ref(4);
 
-const currentPath = computed(() => {
+const routePath = computed(() => {
   const pages = getCurrentPages();
   const route = pages[pages.length - 1]?.route || "pages/index/index";
   return `/${route}`;
 });
+const currentPath = ref(getInitialPath());
 
 const filteredMenuItems = computed(() => {
   const keyword = searchKeyword.value.trim().toLowerCase();
@@ -140,9 +141,19 @@ function goPage(path: string) {
     return;
   }
 
+  currentPath.value = path;
+
+  // #ifdef H5
+  navigateInPlace(path);
+  // #endif
+
+  // #ifndef H5
   uni.redirectTo({
     url: path,
+    animationType: "none",
+    animationDuration: 0,
   });
+  // #endif
 }
 
 function handleLogout() {
@@ -155,6 +166,50 @@ function handleLogout() {
     url: "/pages/login/login",
   });
 }
+
+function getInitialPath() {
+  // #ifdef H5
+  return getHashPath() || routePath.value;
+  // #endif
+
+  // #ifndef H5
+  return routePath.value;
+  // #endif
+}
+
+function getHashPath() {
+  const hash = window.location.hash.replace(/^#/, "");
+  if (!hash) {
+    return "";
+  }
+
+  const path = hash.split("?")[0];
+  return path.startsWith("/") ? path : `/${path}`;
+}
+
+function navigateInPlace(path: string) {
+  const nextUrl = `${window.location.pathname}${window.location.search}#${path}`;
+  window.history.pushState({ path }, "", nextUrl);
+}
+
+function syncPathFromBrowser() {
+  const path = getHashPath();
+  if (path) {
+    currentPath.value = path;
+  }
+}
+
+// #ifdef H5
+onMounted(() => {
+  window.addEventListener("popstate", syncPathFromBrowser);
+  window.addEventListener("hashchange", syncPathFromBrowser);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("popstate", syncPathFromBrowser);
+  window.removeEventListener("hashchange", syncPathFromBrowser);
+});
+// #endif
 </script>
 
 <style scoped lang="scss">
