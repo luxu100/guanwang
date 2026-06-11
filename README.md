@@ -2,7 +2,18 @@
 
 基于 `uni-app`、`Vue 3`、`TypeScript` 和 `Vite 5` 的城市管网渗漏预警前端项目。项目主要面向 H5 端开发，同时保留多端小程序构建脚本。
 
-本文档用于项目交接和日常开发，包含项目定位、目录结构、运行方式、页面约定、接口封装、注释规范和常见维护流程。
+本文档用于项目交接和日常开发，包含项目定位、运行方式、目录结构、页面路由、接口封装、样式组织和维护规范。
+
+## 阅读导航
+
+| 想了解 | 查看章节 |
+| --- | --- |
+| 如何运行项目 | [快速开始](#快速开始)、[常用脚本](#常用脚本) |
+| 代码放在哪里 | [目录结构](#目录结构) |
+| 页面和路由关系 | [页面目录和路由清单](#页面目录和路由清单) |
+| 接口如何组织 | [请求封装](#请求封装)、[services 目录说明](#services-目录说明) |
+| 新增页面或接口 | [新增页面流程](#新增页面流程)、[新增接口流程](#新增接口流程) |
+| 提交前检查 | [提交前检查](#提交前检查) |
 
 ## 项目概览
 
@@ -24,43 +35,13 @@
 
 ## 快速开始
 
-安装依赖：
-
-```bash
-npm install
-```
-
-启动 H5 开发服务：
-
-```bash
-npm run dev:h5
-```
-
-默认访问地址通常是：
-
-```text
-http://localhost:5173/
-```
-
-如果端口被占用，Vite 会自动切换到下一个端口，例如 `5174`。
-
-类型检查：
-
-```bash
-npm run type-check
-```
-
-H5 构建：
-
-```bash
-npm run build:h5
-```
-
-完整检查：
-
-```bash
-npm run check
-```
+| 步骤 | 命令 | 说明 |
+| --- | --- | --- |
+| 安装依赖 | `npm install` | 根据 `package-lock.json` 安装依赖 |
+| 启动 H5 | `npm run dev:h5` | 默认访问 `http://localhost:5173/`，端口占用时会自动顺延 |
+| 类型检查 | `npm run type-check` | 检查 Vue 和 TypeScript 类型 |
+| H5 构建 | `npm run build:h5` | 生成 H5 构建产物 |
+| 完整检查 | `npm run check` | 先执行类型检查，再执行 H5 构建 |
 
 ## 常用脚本
 
@@ -77,81 +58,11 @@ npm run check
 
 ## 目录结构
 
+### 项目根目录
+
 ```text
 guanwang/
 ├─ src/
-│  ├─ assets/
-│  │  └─ images/                    # 参与构建的图片资源
-│  ├─ components/
-│  │  └─ AppShell.vue               # 后台通用外壳：顶部栏、侧边栏、页签、内容区
-│  ├─ pages/
-│  │  ├─ login/                     # 登录和注册入口
-│  │  │  ├─ login.vue               # 登录/注册页面逻辑
-│  │  │  └─ login.scss              # 登录/注册页面私有样式
-│  │  ├─ index/
-│  │  │  └─ index.vue               # 我的收藏/首页入口
-│  │  ├─ leak-monitor/
-│  │  │  ├─ leak-monitor.vue        # 渗漏监测页面，承载地图组件
-│  │  │  └─ components/
-│  │  │     └─ TencentLeakMap.vue   # 腾讯地图展示组件
-│  │  ├─ station/
-│  │  │  └─ station.vue             # 站点管理页面
-│  │  ├─ device/                    # 设备管理
-│  │  │  ├─ info/info.vue           # 设备信息页面
-│  │  │  ├─ maintenance/maintenance.vue
-│  │  │  │                           # 拆装维护页面
-│  │  │  └─ status/status.vue       # 设备状态页面
-│  │  ├─ data-analysis/             # 数据分析
-│  │  │  ├─ overview/overview.vue   # 系统总览页面
-│  │  │  ├─ audio/audio.vue         # 音频数据页面
-│  │  │  ├─ device-params/device-params.vue
-│  │  │  │                           # 设备参数页面
-│  │  │  └─ leakage/leakage.vue     # 渗漏数据页面
-│  │  ├─ leak-report/               # 疑漏点上报
-│  │  │  ├─ suspect-management/suspect-management.vue
-│  │  │  │                           # 疑点管理页面
-│  │  │  ├─ suspect-processing/suspect-processing.vue
-│  │  │  │                           # 疑点处理页面
-│  │  │  ├─ leak-management/leak-management.vue
-│  │  │  │                           # 漏点管理页面
-│  │  │  ├─ leak-analysis/leak-analysis.vue
-│  │  │  │                           # 漏点分析页面
-│  │  │  └─ history-overview/history-overview.vue
-│  │  │                              # 历史总览页面
-│  │  ├─ statistics/
-│  │  │  └─ statistics.vue          # 统计分析页面
-│  │  ├─ work-order/                # 工单管理
-│  │  │  ├─ create/create.vue       # 工单创建页面
-│  │  │  ├─ processing/processing.vue
-│  │  │  │                           # 工单处理页面
-│  │  │  └─ statistics/statistics.vue
-│  │  │                              # 工单查询与统计页面
-│  │  ├─ alarm/                     # 实时报警
-│  │  │  ├─ strategy/strategy.vue   # 报警策略页面
-│  │  │  ├─ processing/processing.vue
-│  │  │  │                           # 报警处理页面
-│  │  │  └─ analysis/analysis.vue   # 报警分析页面
-│  │  ├─ report/                    # 统计报表
-│  │  │  ├─ generate/generate.vue   # 报表生成页面
-│  │  │  ├─ operation/operation.vue # 报表操作页面
-│  │  │  └─ command/command.vue     # 指令管理页面
-│  │  ├─ system/                    # 系统设置
-│  │  │  ├─ user/user.vue           # 用户配置页面
-│  │  │  ├─ auth/auth.vue           # 权限管理页面
-│  │  │  ├─ menu/menu.vue           # 菜单管理页面
-│  │  │  └─ dict/dict.vue           # 数据字典页面
-│  │  └─ data-receive/              # 数据接收和解析
-│  │     ├─ access/access.vue       # 数据接入页面
-│  │     ├─ parse/parse.vue         # 数据解析页面
-│  │     └─ record/record.vue       # 数据记录页面
-│  ├─ services/                     # 接口请求与业务服务
-│  ├─ styles/                       # 全局样式、变量和 mixin
-│  ├─ utils/                        # 通用工具，例如请求封装
-│  ├─ App.vue                       # 应用根组件
-│  ├─ main.ts                       # 应用入口
-│  ├─ manifest.json                 # uni-app 应用配置
-│  ├─ pages.json                    # 页面路由配置
-│  └─ uni.scss                      # uni-app 内置样式变量
 ├─ index.html
 ├─ package.json
 ├─ package-lock.json
@@ -160,94 +71,146 @@ guanwang/
 └─ README.md
 ```
 
+### `src` 目录
+
+| 路径 | 说明 |
+| --- | --- |
+| `src/assets/images` | 项目图片资源 |
+| `src/components/AppShell.vue` | 登录后后台外壳，包含顶部栏、侧边栏、页签和内容区 |
+| `src/pages` | 页面目录，按业务模块分组 |
+| `src/services` | 接口请求和业务服务目录 |
+| `src/styles` | 全局样式、变量和 mixin |
+| `src/utils/request.js` | 请求封装 |
+| `src/App.vue` | 应用根组件 |
+| `src/main.ts` | 应用入口 |
+| `src/pages.json` | uni-app 页面路由配置 |
+| `src/manifest.json` | uni-app 应用配置 |
+| `src/uni.scss` | uni-app 内置样式变量 |
+
+### `src/pages` 目录
+
+| 目录 | 业务模块 | 主要文件 |
+| --- | --- | --- |
+| `login` | 登录和注册 | `login.vue`、`login.scss` |
+| `index` | 我的收藏 / 首页入口 | `index.vue` |
+| `leak-monitor` | 渗漏监测 | `leak-monitor.vue`、`components/TencentLeakMap.vue` |
+| `station` | 站点管理 | `station.vue` |
+| `device` | 设备管理 | `info`、`maintenance`、`status` |
+| `data-analysis` | 数据分析 | `overview`、`audio`、`device-params`、`leakage` |
+| `leak-report` | 疑漏点上报 | `suspect-management`、`suspect-processing`、`leak-management`、`leak-analysis`、`history-overview` |
+| `statistics` | 统计分析 | `statistics.vue` |
+| `work-order` | 工单管理 | `create`、`processing`、`statistics` |
+| `alarm` | 实时报警 | `strategy`、`processing`、`analysis` |
+| `report` | 统计报表 | `generate`、`operation`、`command` |
+| `system` | 系统设置 | `user`、`auth`、`menu`、`dict` |
+| `data-receive` | 数据接收和解析 | `access`、`parse`、`record` |
+
+### `src/services` 目录
+
+| 目录 | 业务模块 | 说明 |
+| --- | --- | --- |
+| `shared` | 公共服务 | REST 请求方法和 CRUD 工厂 |
+| `user` | 账号服务 | 登录、注册、用户信息 |
+| `leak-monitor` | 渗漏监测 | 地图、监测点、地图数据 |
+| `station` | 站点管理 | 站点、分区、部门等基础资源 |
+| `device` | 设备管理 | 设备信息、拆装维护、设备状态 |
+| `data-analysis` | 数据分析 | 系统总览、音频、设备参数、渗漏数据 |
+| `leak-report` | 疑漏点上报 | 疑点、漏点、分析、历史总览 |
+| `statistics` | 统计分析 | 平台统计指标 |
+| `work-order` | 工单管理 | 工单创建、处理、查询统计 |
+| `alarm` | 实时报警 | 报警策略、处理、分析 |
+| `report` | 统计报表 | 报表生成、操作、指令管理 |
+| `system` | 系统设置 | 用户、权限、菜单、字典 |
+| `data-receive` | 数据接收和解析 | 数据接入、解析、记录 |
+
 ## 页面目录和路由清单
 
-页面路由统一配置在 `src/pages.json`，后台菜单统一配置在 `src/components/AppShell.vue`。新增、移动或删除页面时，这两个文件需要同步维护。
+页面路由统一配置在 `src/pages.json`，后台菜单统一配置在 `src/components/AppShell.vue`。下列表格中的“文件”列均相对 `src/pages` 目录。新增、移动或删除页面时，需要同步维护页面文件、路由配置和后台菜单。
 
 ### 顶层页面
 
-| 菜单/页面 | 路由 | 页面文件 | 说明 |
+| 页面 | 路由 | 文件 | 职责 |
 | --- | --- | --- | --- |
-| 登录 | `/pages/login/login` | `src/pages/login/login.vue` | 登录、注册、表单校验、登录态写入和错误提示入口。样式在 `src/pages/login/login.scss`。 |
-| 我的收藏 | `/pages/index/index` | `src/pages/index/index.vue` | 后台首页入口，可承载常用页面、收藏菜单或快捷入口。 |
-| 渗漏监测 | `/pages/leak-monitor/leak-monitor` | `src/pages/leak-monitor/leak-monitor.vue` | 后台外壳中的地图监测页面，通过 `TencentLeakMap` 展示腾讯地图。 |
-| 站点管理 | `/pages/station/station` | `src/pages/station/station.vue` | 用于维护站点、分区、部门等管网基础资源。 |
-| 统计分析 | `/pages/statistics/statistics` | `src/pages/statistics/statistics.vue` | 用于承载平台级统计看板、指标汇总和趋势分析。 |
+| 登录 | `/pages/login/login` | `login/login.vue` | 登录、注册、表单校验、登录态写入和错误提示入口。样式在 `login/login.scss`。 |
+| 我的收藏 | `/pages/index/index` | `index/index.vue` | 后台首页入口，可承载常用页面、收藏菜单或快捷入口。 |
+| 渗漏监测 | `/pages/leak-monitor/leak-monitor` | `leak-monitor/leak-monitor.vue` | 后台外壳中的地图监测页面，通过 `TencentLeakMap` 展示腾讯地图。 |
+| 站点管理 | `/pages/station/station` | `station/station.vue` | 用于维护站点、分区、部门等管网基础资源。 |
+| 统计分析 | `/pages/statistics/statistics` | `statistics/statistics.vue` | 用于承载平台级统计看板、指标汇总和趋势分析。 |
 
 ### 渗漏监测子目录
 
 | 文件 | 类型 | 说明 |
 | --- | --- | --- |
-| `src/pages/leak-monitor/leak-monitor.vue` | 页面 | 渗漏监测路由页面，只负责接入后台外壳并放置地图业务组件。 |
-| `src/pages/leak-monitor/components/TencentLeakMap.vue` | 组件 | 腾讯地图 GL JS SDK 懒加载、地图初始化、中心标记和组件销毁清理。 |
+| `leak-monitor/leak-monitor.vue` | 页面 | 渗漏监测路由页面，只负责接入后台外壳并放置地图业务组件。 |
+| `leak-monitor/components/TencentLeakMap.vue` | 组件 | 腾讯地图 GL JS SDK 懒加载、地图初始化、中心标记和组件销毁清理。 |
 
-### 设备管理 `src/pages/device`
+### 设备管理 `device`
 
-| 菜单/页面 | 路由 | 页面文件 | 说明 |
+| 页面 | 路由 | 文件 | 职责 |
 | --- | --- | --- | --- |
-| 设备信息 | `/pages/device/info/info` | `src/pages/device/info/info.vue` | 用于维护设备档案、设备产品、设备协议和基础属性。 |
-| 拆装维护 | `/pages/device/maintenance/maintenance` | `src/pages/device/maintenance/maintenance.vue` | 用于记录设备安装、拆除、维修、保养等维护流程。 |
-| 设备状态 | `/pages/device/status/status` | `src/pages/device/status/status.vue` | 用于查看设备在线状态、运行状态、故障状态和状态历史。 |
+| 设备信息 | `/pages/device/info/info` | `device/info/info.vue` | 用于维护设备档案、设备产品、设备协议和基础属性。 |
+| 拆装维护 | `/pages/device/maintenance/maintenance` | `device/maintenance/maintenance.vue` | 用于记录设备安装、拆除、维修、保养等维护流程。 |
+| 设备状态 | `/pages/device/status/status` | `device/status/status.vue` | 用于查看设备在线状态、运行状态、故障状态和状态历史。 |
 
-### 数据分析 `src/pages/data-analysis`
+### 数据分析 `data-analysis`
 
-| 菜单/页面 | 路由 | 页面文件 | 说明 |
+| 页面 | 路由 | 文件 | 职责 |
 | --- | --- | --- | --- |
-| 系统总览 | `/pages/data-analysis/overview/overview` | `src/pages/data-analysis/overview/overview.vue` | 用于展示系统总体运行指标、站点概况、设备概况和数据概况。 |
-| 音频数据 | `/pages/data-analysis/audio/audio` | `src/pages/data-analysis/audio/audio.vue` | 用于查看、检索和分析设备采集的音频数据。 |
-| 设备参数 | `/pages/data-analysis/device-params/device-params` | `src/pages/data-analysis/device-params/device-params.vue` | 用于分析设备参数、采集频率、阈值和参数变化。 |
-| 渗漏数据 | `/pages/data-analysis/leakage/leakage` | `src/pages/data-analysis/leakage/leakage.vue` | 用于展示渗漏指标、疑似渗漏趋势和分析结果。 |
+| 系统总览 | `/pages/data-analysis/overview/overview` | `data-analysis/overview/overview.vue` | 用于展示系统总体运行指标、站点概况、设备概况和数据概况。 |
+| 音频数据 | `/pages/data-analysis/audio/audio` | `data-analysis/audio/audio.vue` | 用于查看、检索和分析设备采集的音频数据。 |
+| 设备参数 | `/pages/data-analysis/device-params/device-params` | `data-analysis/device-params/device-params.vue` | 用于分析设备参数、采集频率、阈值和参数变化。 |
+| 渗漏数据 | `/pages/data-analysis/leakage/leakage` | `data-analysis/leakage/leakage.vue` | 用于展示渗漏指标、疑似渗漏趋势和分析结果。 |
 
-### 疑漏点上报 `src/pages/leak-report`
+### 疑漏点上报 `leak-report`
 
-| 菜单/页面 | 路由 | 页面文件 | 说明 |
+| 页面 | 路由 | 文件 | 职责 |
 | --- | --- | --- | --- |
-| 疑点管理 | `/pages/leak-report/suspect-management/suspect-management` | `src/pages/leak-report/suspect-management/suspect-management.vue` | 用于管理系统识别或人工上报的疑似漏点。 |
-| 疑点处理 | `/pages/leak-report/suspect-processing/suspect-processing` | `src/pages/leak-report/suspect-processing/suspect-processing.vue` | 用于疑点核查、派发、确认和处理记录。 |
-| 漏点管理 | `/pages/leak-report/leak-management/leak-management` | `src/pages/leak-report/leak-management/leak-management.vue` | 用于已确认漏点的登记、定位、状态跟踪和闭环管理。 |
-| 漏点分析 | `/pages/leak-report/leak-analysis/leak-analysis` | `src/pages/leak-report/leak-analysis/leak-analysis.vue` | 用于漏点原因、区域、频次、趋势等分析。 |
-| 历史总览 | `/pages/leak-report/history-overview/history-overview` | `src/pages/leak-report/history-overview/history-overview.vue` | 用于查看疑点和漏点历史数据总览。 |
+| 疑点管理 | `/pages/leak-report/suspect-management/suspect-management` | `leak-report/suspect-management/suspect-management.vue` | 用于管理系统识别或人工上报的疑似漏点。 |
+| 疑点处理 | `/pages/leak-report/suspect-processing/suspect-processing` | `leak-report/suspect-processing/suspect-processing.vue` | 用于疑点核查、派发、确认和处理记录。 |
+| 漏点管理 | `/pages/leak-report/leak-management/leak-management` | `leak-report/leak-management/leak-management.vue` | 用于已确认漏点的登记、定位、状态跟踪和闭环管理。 |
+| 漏点分析 | `/pages/leak-report/leak-analysis/leak-analysis` | `leak-report/leak-analysis/leak-analysis.vue` | 用于漏点原因、区域、频次、趋势等分析。 |
+| 历史总览 | `/pages/leak-report/history-overview/history-overview` | `leak-report/history-overview/history-overview.vue` | 用于查看疑点和漏点历史数据总览。 |
 
-### 工单管理 `src/pages/work-order`
+### 工单管理 `work-order`
 
-| 菜单/页面 | 路由 | 页面文件 | 说明 |
+| 页面 | 路由 | 文件 | 职责 |
 | --- | --- | --- | --- |
-| 工单创建 | `/pages/work-order/create/create` | `src/pages/work-order/create/create.vue` | 用于创建巡检、维修、核查等工单。 |
-| 工单处理 | `/pages/work-order/processing/processing` | `src/pages/work-order/processing/processing.vue` | 用于接单、流转、处理、验收和关闭工单。 |
-| 工单查询与统计 | `/pages/work-order/statistics/statistics` | `src/pages/work-order/statistics/statistics.vue` | 用于查询工单列表、处理效率和统计指标。 |
+| 工单创建 | `/pages/work-order/create/create` | `work-order/create/create.vue` | 用于创建巡检、维修、核查等工单。 |
+| 工单处理 | `/pages/work-order/processing/processing` | `work-order/processing/processing.vue` | 用于接单、流转、处理、验收和关闭工单。 |
+| 工单查询与统计 | `/pages/work-order/statistics/statistics` | `work-order/statistics/statistics.vue` | 用于查询工单列表、处理效率和统计指标。 |
 
-### 实时报警 `src/pages/alarm`
+### 实时报警 `alarm`
 
-| 菜单/页面 | 路由 | 页面文件 | 说明 |
+| 页面 | 路由 | 文件 | 职责 |
 | --- | --- | --- | --- |
-| 报警策略 | `/pages/alarm/strategy/strategy` | `src/pages/alarm/strategy/strategy.vue` | 用于配置报警规则、阈值、触发条件和启停状态。 |
-| 报警处理 | `/pages/alarm/processing/processing` | `src/pages/alarm/processing/processing.vue` | 用于处理实时报警、确认报警和记录处置结果。 |
-| 报警分析 | `/pages/alarm/analysis/analysis` | `src/pages/alarm/analysis/analysis.vue` | 用于报警数量、类型、区域、趋势和处置效率分析。 |
+| 报警策略 | `/pages/alarm/strategy/strategy` | `alarm/strategy/strategy.vue` | 用于配置报警规则、阈值、触发条件和启停状态。 |
+| 报警处理 | `/pages/alarm/processing/processing` | `alarm/processing/processing.vue` | 用于处理实时报警、确认报警和记录处置结果。 |
+| 报警分析 | `/pages/alarm/analysis/analysis` | `alarm/analysis/analysis.vue` | 用于报警数量、类型、区域、趋势和处置效率分析。 |
 
-### 统计报表 `src/pages/report`
+### 统计报表 `report`
 
-| 菜单/页面 | 路由 | 页面文件 | 说明 |
+| 页面 | 路由 | 文件 | 职责 |
 | --- | --- | --- | --- |
-| 报表生成 | `/pages/report/generate/generate` | `src/pages/report/generate/generate.vue` | 用于按条件生成日报、周报、月报或专项报表。 |
-| 报表操作 | `/pages/report/operation/operation` | `src/pages/report/operation/operation.vue` | 用于报表查看、下载、导出、删除和重新生成。 |
-| 指令管理 | `/pages/report/command/command` | `src/pages/report/command/command.vue` | 用于管理设备指令、下发记录和执行结果。 |
+| 报表生成 | `/pages/report/generate/generate` | `report/generate/generate.vue` | 用于按条件生成日报、周报、月报或专项报表。 |
+| 报表操作 | `/pages/report/operation/operation` | `report/operation/operation.vue` | 用于报表查看、下载、导出、删除和重新生成。 |
+| 指令管理 | `/pages/report/command/command` | `report/command/command.vue` | 用于管理设备指令、下发记录和执行结果。 |
 
-### 系统设置 `src/pages/system`
+### 系统设置 `system`
 
-| 菜单/页面 | 路由 | 页面文件 | 说明 |
+| 页面 | 路由 | 文件 | 职责 |
 | --- | --- | --- | --- |
-| 用户配置 | `/pages/system/user/user` | `src/pages/system/user/user.vue` | 用于用户账号、组织关系、角色分配和账号状态维护。 |
-| 权限管理 | `/pages/system/auth/auth` | `src/pages/system/auth/auth.vue` | 用于角色、权限点、资源权限和授权关系维护。 |
-| 菜单管理 | `/pages/system/menu/menu` | `src/pages/system/menu/menu.vue` | 用于维护后台菜单、页面路由、排序和可见性。 |
-| 数据字典 | `/pages/system/dict/dict` | `src/pages/system/dict/dict.vue` | 用于维护枚举、状态、类型等字典数据。 |
+| 用户配置 | `/pages/system/user/user` | `system/user/user.vue` | 用于用户账号、组织关系、角色分配和账号状态维护。 |
+| 权限管理 | `/pages/system/auth/auth` | `system/auth/auth.vue` | 用于角色、权限点、资源权限和授权关系维护。 |
+| 菜单管理 | `/pages/system/menu/menu` | `system/menu/menu.vue` | 用于维护后台菜单、页面路由、排序和可见性。 |
+| 数据字典 | `/pages/system/dict/dict` | `system/dict/dict.vue` | 用于维护枚举、状态、类型等字典数据。 |
 
-### 数据接收和解析 `src/pages/data-receive`
+### 数据接收和解析 `data-receive`
 
-| 菜单/页面 | 路由 | 页面文件 | 说明 |
+| 页面 | 路由 | 文件 | 职责 |
 | --- | --- | --- | --- |
-| 数据接入 | `/pages/data-receive/access/access` | `src/pages/data-receive/access/access.vue` | 用于配置设备数据接入方式、接入状态和接入来源。 |
-| 数据解析 | `/pages/data-receive/parse/parse` | `src/pages/data-receive/parse/parse.vue` | 用于配置数据解析规则、协议解析和字段映射。 |
-| 数据记录 | `/pages/data-receive/record/record` | `src/pages/data-receive/record/record.vue` | 用于查看接收记录、解析记录、异常记录和原始数据。 |
+| 数据接入 | `/pages/data-receive/access/access` | `data-receive/access/access.vue` | 用于配置设备数据接入方式、接入状态和接入来源。 |
+| 数据解析 | `/pages/data-receive/parse/parse` | `data-receive/parse/parse.vue` | 用于配置数据解析规则、协议解析和字段映射。 |
+| 数据记录 | `/pages/data-receive/record/record` | `data-receive/record/record.vue` | 用于查看接收记录、解析记录、异常记录和原始数据。 |
 
 ### 页面开发约定
 
@@ -412,40 +375,20 @@ src/services/
 
 ### 页面和 service 对应关系
 
-| 页面目录 | 页面 | service 文件 |
+| 业务模块 | 页面目录 | service 文件 |
 | --- | --- | --- |
-| `pages/login` | 登录/注册 | `services/user/user.js` |
-| `pages/leak-monitor` | 渗漏监测 | `services/leak-monitor/leak-monitor.js` |
-| `pages/station` | 站点管理 | `services/station/station.js` |
-| `pages/device/info` | 设备信息 | `services/device/info.js` |
-| `pages/device/maintenance` | 拆装维护 | `services/device/maintenance.js` |
-| `pages/device/status` | 设备状态 | `services/device/status.js` |
-| `pages/data-analysis/overview` | 系统总览 | `services/data-analysis/overview.js` |
-| `pages/data-analysis/audio` | 音频数据 | `services/data-analysis/audio.js` |
-| `pages/data-analysis/device-params` | 设备参数 | `services/data-analysis/device-params.js` |
-| `pages/data-analysis/leakage` | 渗漏数据 | `services/data-analysis/leakage.js` |
-| `pages/leak-report/suspect-management` | 疑点管理 | `services/leak-report/suspect-management.js` |
-| `pages/leak-report/suspect-processing` | 疑点处理 | `services/leak-report/suspect-processing.js` |
-| `pages/leak-report/leak-management` | 漏点管理 | `services/leak-report/leak-management.js` |
-| `pages/leak-report/leak-analysis` | 漏点分析 | `services/leak-report/leak-analysis.js` |
-| `pages/leak-report/history-overview` | 历史总览 | `services/leak-report/history-overview.js` |
-| `pages/statistics` | 统计分析 | `services/statistics/statistics.js` |
-| `pages/work-order/create` | 工单创建 | `services/work-order/create.js` |
-| `pages/work-order/processing` | 工单处理 | `services/work-order/processing.js` |
-| `pages/work-order/statistics` | 工单查询与统计 | `services/work-order/statistics.js` |
-| `pages/alarm/strategy` | 报警策略 | `services/alarm/strategy.js` |
-| `pages/alarm/processing` | 报警处理 | `services/alarm/processing.js` |
-| `pages/alarm/analysis` | 报警分析 | `services/alarm/analysis.js` |
-| `pages/report/generate` | 报表生成 | `services/report/generate.js` |
-| `pages/report/operation` | 报表操作 | `services/report/operation.js` |
-| `pages/report/command` | 指令管理 | `services/report/command.js` |
-| `pages/system/user` | 用户配置 | `services/system/user.js` |
-| `pages/system/auth` | 权限管理 | `services/system/auth.js` |
-| `pages/system/menu` | 菜单管理 | `services/system/menu.js` |
-| `pages/system/dict` | 数据字典 | `services/system/dict.js` |
-| `pages/data-receive/access` | 数据接入 | `services/data-receive/access.js` |
-| `pages/data-receive/parse` | 数据解析 | `services/data-receive/parse.js` |
-| `pages/data-receive/record` | 数据记录 | `services/data-receive/record.js` |
+| 登录和注册 | `pages/login` | `services/user/user.js` |
+| 渗漏监测 | `pages/leak-monitor` | `services/leak-monitor/leak-monitor.js` |
+| 站点管理 | `pages/station` | `services/station/station.js` |
+| 设备管理 | `pages/device/*` | `services/device/info.js`<br>`services/device/maintenance.js`<br>`services/device/status.js` |
+| 数据分析 | `pages/data-analysis/*` | `services/data-analysis/overview.js`<br>`services/data-analysis/audio.js`<br>`services/data-analysis/device-params.js`<br>`services/data-analysis/leakage.js` |
+| 疑漏点上报 | `pages/leak-report/*` | `services/leak-report/suspect-management.js`<br>`services/leak-report/suspect-processing.js`<br>`services/leak-report/leak-management.js`<br>`services/leak-report/leak-analysis.js`<br>`services/leak-report/history-overview.js` |
+| 统计分析 | `pages/statistics` | `services/statistics/statistics.js` |
+| 工单管理 | `pages/work-order/*` | `services/work-order/create.js`<br>`services/work-order/processing.js`<br>`services/work-order/statistics.js` |
+| 实时报警 | `pages/alarm/*` | `services/alarm/strategy.js`<br>`services/alarm/processing.js`<br>`services/alarm/analysis.js` |
+| 统计报表 | `pages/report/*` | `services/report/generate.js`<br>`services/report/operation.js`<br>`services/report/command.js` |
+| 系统设置 | `pages/system/*` | `services/system/user.js`<br>`services/system/auth.js`<br>`services/system/menu.js`<br>`services/system/dict.js` |
+| 数据接收和解析 | `pages/data-receive/*` | `services/data-receive/access.js`<br>`services/data-receive/parse.js`<br>`services/data-receive/record.js` |
 
 ### 重要说明
 
