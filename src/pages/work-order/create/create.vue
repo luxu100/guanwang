@@ -29,8 +29,8 @@
                     </view>
                     <view class="form-field">
                       <text class="form-label form-label--required">工单类型</text>
-                      <picker :range="worksheetTypeOptions" range-key="label" @change="handleTypeChange">
-                        <view class="form-select form-select--dropdown">
+                      <picker :disabled="dictLoading || worksheetTypeOptions.length === 0" :range="worksheetTypeOptions" range-key="label" @change="handleTypeChange">
+                        <view class="form-select form-select--dropdown" :class="{ 'form-select--disabled': dictLoading || worksheetTypeOptions.length === 0 }">
                           <text>{{ currentTypeLabel }}</text>
                           <text class="select-arrow"></text>
                         </view>
@@ -38,8 +38,8 @@
                     </view>
                     <view class="form-field">
                       <text class="form-label form-label--required">紧急程度</text>
-                      <picker :range="urgencyOptions" range-key="label" @change="handleUrgencyChange">
-                        <view class="form-select form-select--dropdown">
+                      <picker :disabled="dictLoading || urgencyOptions.length === 0" :range="urgencyOptions" range-key="label" @change="handleUrgencyChange">
+                        <view class="form-select form-select--dropdown" :class="{ 'form-select--disabled': dictLoading || urgencyOptions.length === 0 }">
                           <text>{{ currentUrgencyLabel }}</text>
                           <text class="select-arrow"></text>
                         </view>
@@ -47,8 +47,8 @@
                     </view>
                     <view class="form-field">
                       <text class="form-label form-label--required">工单状态</text>
-                      <picker :range="worksheetStatusOptions" range-key="label" @change="handleStatusChange">
-                        <view class="form-select form-select--dropdown">
+                      <picker :disabled="dictLoading || worksheetStatusOptions.length === 0" :range="worksheetStatusOptions" range-key="label" @change="handleStatusChange">
+                        <view class="form-select form-select--dropdown" :class="{ 'form-select--disabled': dictLoading || worksheetStatusOptions.length === 0 }">
                           <text>{{ currentStatusLabel }}</text>
                           <text class="select-arrow"></text>
                         </view>
@@ -141,7 +141,7 @@
           <view class="dialog-actions">
             <button class="secondary-button" hover-class="secondary-button--hover" @click="closeCreateDialog">取消</button>
             <button class="secondary-button" hover-class="secondary-button--hover" @click="resetCreateForm">清空表单</button>
-            <button class="primary-button" :disabled="submitting" hover-class="primary-button--hover" @click="submitCreate">
+            <button class="primary-button" :disabled="submitting || dictLoading" hover-class="primary-button--hover" @click="submitCreate">
               {{ submitting ? "创建中..." : "确认创建" }}
             </button>
           </view>
@@ -152,16 +152,33 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import AppShell from "@/components/AppShell.vue";
 import WorksheetTableView from "@/pages/work-order/components/WorksheetTableView.vue";
 import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
 import { createWorksheet } from "@/services/work-order/create";
+import { getDictItemPage, getDictTypeList } from "@/services/system/dict";
 
 interface ApiResponseLike {
   code?: number;
   msg?: string;
   data?: unknown;
+  records?: unknown[];
+  rows?: unknown[];
+}
+
+interface SelectOption {
+  label: string;
+  value: number;
+}
+
+type DictKind = "worksheetType" | "urgencyLevel" | "worksheetStatus";
+
+type DictRecord = Record<string, unknown>;
+
+interface WorkOrderDictConfig {
+  codes: string[];
+  names: string[];
 }
 
 interface CreateForm {
@@ -184,46 +201,51 @@ interface CreateForm {
   leakageId: string;
 }
 
-const worksheetTypeOptions = [
-  { label: "巡检", value: 0 },
-  { label: "检漏", value: 1 },
-  { label: "拆装", value: 2 },
-  { label: "维护", value: 3 },
-];
-
-const worksheetStatusOptions = [
-  { label: "待处理", value: 0 },
-  { label: "处理中", value: 1 },
-  { label: "已完成", value: 2 },
-  { label: "已取消", value: 3 },
-];
-
-const urgencyOptions = [
-  { label: "一般", value: 0 },
-  { label: "紧急", value: 1 },
-];
+const workOrderDictConfigs: Record<DictKind, WorkOrderDictConfig> = {
+  worksheetType: {
+    codes: ["worksheet_type", "work_order_type", "worksheetType", "workOrderType", "worksheet.type", "workOrder.type"],
+    names: ["工单类型", "工单类别"],
+  },
+  urgencyLevel: {
+    codes: ["urgency_level", "worksheet_urgency", "work_order_urgency", "urgencyLevel", "worksheet.urgency", "workOrder.urgency"],
+    names: ["紧急程度", "紧急等级", "紧急级别"],
+  },
+  worksheetStatus: {
+    codes: ["worksheet_status", "work_order_status", "worksheetStatus", "workOrderStatus", "worksheet.status", "workOrder.status"],
+    names: ["工单状态"],
+  },
+};
 
 const tableViewRef = ref<InstanceType<typeof WorksheetTableView> | null>(null);
 const dialogVisible = ref(false);
 const submitting = ref(false);
+const dictLoading = ref(false);
+const dictLoadFailed = ref(false);
+const worksheetTypeOptions = ref<SelectOption[]>([]);
+const worksheetStatusOptions = ref<SelectOption[]>([]);
+const urgencyOptions = ref<SelectOption[]>([]);
 const createForm = reactive<CreateForm>(getDefaultCreateForm());
 
-const currentTypeLabel = computed(() => getOptionLabel(worksheetTypeOptions, createForm.worksheetType, "巡检"));
-const currentStatusLabel = computed(() => getOptionLabel(worksheetStatusOptions, createForm.worksheetStatus, "待处理"));
-const currentUrgencyLabel = computed(() => getOptionLabel(urgencyOptions, createForm.urgencyLevel, "一般"));
+const currentTypeLabel = computed(() => getOptionLabel(worksheetTypeOptions.value, createForm.worksheetType, getDictEmptyText("工单类型")));
+const currentStatusLabel = computed(() => getOptionLabel(worksheetStatusOptions.value, createForm.worksheetStatus, getDictEmptyText("工单状态")));
+const currentUrgencyLabel = computed(() => getOptionLabel(urgencyOptions.value, createForm.urgencyLevel, getDictEmptyText("紧急程度")));
+
+onMounted(() => {
+  void loadWorkOrderDictOptions();
+});
 
 function getDefaultCreateForm(): CreateForm {
   return {
     worksheetNumber: "",
-    worksheetType: 0,
+    worksheetType: getDefaultOptionValue(worksheetTypeOptions.value),
     riseAccount: "",
     executeAccount: "",
     deviceReference: "",
-    urgencyLevel: 0,
+    urgencyLevel: getDefaultOptionValue(urgencyOptions.value),
     riseTime: toDatetimeLocal(new Date()),
     finishTime: "",
     deadlineTime: "",
-    worksheetStatus: 0,
+    worksheetStatus: getDefaultOptionValue(worksheetStatusOptions.value),
     worksheetFeedback: "",
     worksheetInstruction: "",
     remark: "",
@@ -252,15 +274,15 @@ function resetCreateForm() {
 }
 
 function handleTypeChange(event: { detail: { value: number } }) {
-  createForm.worksheetType = worksheetTypeOptions[event.detail.value]?.value ?? 0;
+  createForm.worksheetType = worksheetTypeOptions.value[event.detail.value]?.value ?? getDefaultOptionValue(worksheetTypeOptions.value);
 }
 
 function handleStatusChange(event: { detail: { value: number } }) {
-  createForm.worksheetStatus = worksheetStatusOptions[event.detail.value]?.value ?? 0;
+  createForm.worksheetStatus = worksheetStatusOptions.value[event.detail.value]?.value ?? getDefaultOptionValue(worksheetStatusOptions.value);
 }
 
 function handleUrgencyChange(event: { detail: { value: number } }) {
-  createForm.urgencyLevel = urgencyOptions[event.detail.value]?.value ?? 0;
+  createForm.urgencyLevel = urgencyOptions.value[event.detail.value]?.value ?? getDefaultOptionValue(urgencyOptions.value);
 }
 
 async function submitCreate() {
@@ -288,6 +310,11 @@ async function submitCreate() {
 }
 
 function validateCreateForm() {
+  if (!hasRequiredDictOptions()) {
+    uni.showToast({ title: "工单字典未加载，请先维护后端数据字典", icon: "none" });
+    return false;
+  }
+
   if (!createForm.riseAccount.trim()) {
     uni.showToast({ title: "请输入发起人账号", icon: "none" });
     return false;
@@ -346,8 +373,184 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   };
 }
 
-function getOptionLabel(options: Array<{ label: string; value: number }>, value: number, fallback: string) {
+async function loadWorkOrderDictOptions() {
+  dictLoading.value = true;
+  dictLoadFailed.value = false;
+
+  try {
+    const typeResponse = await getDictTypeList() as ApiResponseLike;
+    assertSuccessResponse(typeResponse);
+    const dictTypes = parseRecords(typeResponse).filter(isEnabledRecord);
+
+    const [typeOptions, urgencyLevelOptions, statusOptions] = await Promise.all([
+      fetchOptionsByDictType(dictTypes, workOrderDictConfigs.worksheetType),
+      fetchOptionsByDictType(dictTypes, workOrderDictConfigs.urgencyLevel),
+      fetchOptionsByDictType(dictTypes, workOrderDictConfigs.worksheetStatus),
+    ]);
+
+    worksheetTypeOptions.value = typeOptions;
+    urgencyOptions.value = urgencyLevelOptions;
+    worksheetStatusOptions.value = statusOptions;
+    syncCreateFormOptionValues();
+
+    if (!hasRequiredDictOptions()) {
+      dictLoadFailed.value = true;
+      uni.showToast({ title: "工单字典未配置完整", icon: "none" });
+    }
+  } catch (error) {
+    dictLoadFailed.value = true;
+    worksheetTypeOptions.value = [];
+    urgencyOptions.value = [];
+    worksheetStatusOptions.value = [];
+    uni.showToast({ title: "工单字典加载失败", icon: "none" });
+    console.warn("工单字典选项加载失败", error);
+  } finally {
+    dictLoading.value = false;
+  }
+}
+
+async function fetchOptionsByDictType(dictTypes: DictRecord[], config: WorkOrderDictConfig) {
+  const dictType = findMatchedDictType(dictTypes, config);
+  if (!dictType) {
+    return [];
+  }
+
+  const dictTypeId = getRecordNumber(dictType, ["id"]);
+  if (dictTypeId === undefined) {
+    return [];
+  }
+
+  const response = await getDictItemPage({
+    pageNum: 1,
+    pageSize: 100,
+    dictTypeId,
+    sortOrder: "asc",
+    sortField: "sort",
+  }) as ApiResponseLike;
+  assertSuccessResponse(response);
+
+  const options = parseRecords(response)
+    .filter(isEnabledRecord)
+    .map(mapDictItemToOption)
+    .filter((item): item is SelectOption => Boolean(item))
+    .sort((left, right) => left.value - right.value);
+
+  return options;
+}
+
+function findMatchedDictType(dictTypes: DictRecord[], config: WorkOrderDictConfig) {
+  return dictTypes.find((item) => {
+    const dictCode = getRecordText(item, ["dictCode"]);
+    const dictName = getRecordText(item, ["dictName"]);
+    return config.codes.includes(dictCode) || config.names.some((name) => dictName.includes(name));
+  });
+}
+
+function mapDictItemToOption(item: DictRecord) {
+  const label = getRecordText(item, ["itemLabel", "label", "name"]);
+  const value = getRecordNumber(item, ["itemValue", "value"]);
+
+  if (!label || value === undefined) {
+    return null;
+  }
+
+  return {
+    label,
+    value,
+  };
+}
+
+function syncCreateFormOptionValues() {
+  createForm.worksheetType = normalizeSelectedValue(createForm.worksheetType, worksheetTypeOptions.value);
+  createForm.urgencyLevel = normalizeSelectedValue(createForm.urgencyLevel, urgencyOptions.value);
+  createForm.worksheetStatus = normalizeSelectedValue(createForm.worksheetStatus, worksheetStatusOptions.value);
+}
+
+function normalizeSelectedValue(value: number, options: SelectOption[]) {
+  return options.some((item) => item.value === value) ? value : getDefaultOptionValue(options);
+}
+
+function getDefaultOptionValue(options: SelectOption[]) {
+  return options[0]?.value ?? 0;
+}
+
+function hasRequiredDictOptions() {
+  return worksheetTypeOptions.value.length > 0 && urgencyOptions.value.length > 0 && worksheetStatusOptions.value.length > 0;
+}
+
+function getDictEmptyText(name: string) {
+  if (dictLoading.value) {
+    return "字典加载中...";
+  }
+
+  if (dictLoadFailed.value) {
+    return `${name}字典未配置`;
+  }
+
+  return `请选择${name}`;
+}
+
+function getOptionLabel(options: SelectOption[], value: number, fallback: string) {
   return options.find((item) => item.value === value)?.label || fallback;
+}
+
+function parseRecords(response: ApiResponseLike | unknown) {
+  const data = isObject(response) && "data" in response ? response.data : response;
+  const pageData = isObject(data) ? data : {};
+  const records = getFirstArray(pageData, ["records", "rows", "list", "items", "data"]);
+  const topLevelRecords = getFirstArray(response, ["records", "rows", "list", "items"]);
+  const finalRecords = records.length > 0 ? records : topLevelRecords;
+  return finalRecords.filter(isObject);
+}
+
+function getFirstArray(value: unknown, keys: string[]) {
+  if (!isObject(value)) {
+    return [];
+  }
+
+  for (const key of keys) {
+    const item = value[key];
+    if (Array.isArray(item)) {
+      return item;
+    }
+  }
+
+  return [];
+}
+
+function isEnabledRecord(item: DictRecord) {
+  const status = getRecordNumber(item, ["status"]);
+  return status === undefined || status === 1;
+}
+
+function getRecordText(item: DictRecord, keys: string[]) {
+  for (const key of keys) {
+    const value = item[key];
+    if (value !== undefined && value !== null && value !== "") {
+      return String(value).trim();
+    }
+  }
+
+  return "";
+}
+
+function getRecordNumber(item: DictRecord, keys: string[]) {
+  for (const key of keys) {
+    const value = item[key];
+    if (typeof value === "number") {
+      return value;
+    }
+
+    if (typeof value === "string" && value.trim() !== "" && !Number.isNaN(Number(value))) {
+      return Number(value);
+    }
+  }
+
+  return undefined;
+}
+
+function isObject(value: unknown): value is DictRecord {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
 function removeEmptyFields(data: Record<string, unknown>) {
@@ -719,6 +922,13 @@ function generateWorksheetNumber() {
 .form-select--dropdown {
   background: #f7fbff;
   box-shadow: inset 0 -1px 0 rgba(13, 130, 238, 0.03);
+}
+
+.form-select--disabled {
+  color: #94a3b8;
+  cursor: not-allowed;
+  background: #f1f5f9;
+  border-color: #dbe4ee;
 }
 
 .form-input:focus,

@@ -152,21 +152,21 @@
 
         <view v-if="!selectedWorksheet" class="detail-empty">请选择左侧工单查看详情</view>
         <view v-else class="detail-body">
-          <view v-if="activeTab === 'base'" class="detail-grid">
+          <view v-if="activeTab === 'base'" class="detail-grid detail-grid--base">
             <view v-for="item in baseDetailFields" :key="item.label" class="detail-item">
               <text class="detail-item__label">{{ item.label }}</text>
-              <text class="detail-item__value">{{ item.value }}</text>
+              <text class="detail-item__value" :class="getDetailValueClass(item.label)">{{ item.value }}</text>
             </view>
           </view>
 
-          <view v-if="activeTab === 'content'" class="detail-grid">
+          <view v-if="activeTab === 'content'" class="detail-grid detail-grid--content">
             <view v-for="item in contentDetailFields" :key="item.label" class="detail-item">
               <text class="detail-item__label">{{ item.label }}</text>
               <text class="detail-item__value">{{ item.value }}</text>
             </view>
           </view>
 
-          <view v-if="activeTab === 'time'" class="detail-grid">
+          <view v-if="activeTab === 'time'" class="detail-grid detail-grid--time">
             <view v-for="item in timeDetailFields" :key="item.label" class="detail-item">
               <text class="detail-item__label">{{ item.label }}</text>
               <text class="detail-item__value">{{ item.value }}</text>
@@ -483,13 +483,14 @@ function getPageApi() {
 
 function parsePageResponse(response: ApiResponseLike) {
   const data = response?.data ?? response;
-  const pageData = isObject(data) ? data : {};
-  const records = getFirstArray(pageData, ["records", "rows", "list", "items", "data"]);
+  const pageData = findPageContainer(data) || findPageContainer(response) || (isObject(data) ? data : {});
+  const records = getFirstArray(pageData, ["records", "rows", "list", "items"]);
   const topLevelRecords = getFirstArray(response, ["records", "rows", "list", "items"]);
   const finalRecords = records.length > 0 ? records : topLevelRecords;
-  const totalValue = getFirstNumber(pageData, ["total", "count", "totalCount"]) ?? getFirstNumber(response, ["total", "count"]);
-  const current = getFirstNumber(pageData, ["current", "pageNum"]);
-  const size = getFirstNumber(pageData, ["size", "pageSize"]);
+  const totalValue = getFirstNumber(pageData, ["total", "count", "totalCount", "totalRow", "totalRows", "totalElements"]) ??
+    getFirstNumber(response, ["total", "count", "totalCount", "totalRow", "totalRows", "totalElements"]);
+  const current = getFirstNumber(pageData, ["current", "pageNum", "page", "pageNo"]);
+  const size = getFirstNumber(pageData, ["size", "pageSize", "limit"]);
 
   if (current) {
     pagination.pageNum = current;
@@ -499,10 +500,34 @@ function parsePageResponse(response: ApiResponseLike) {
     pagination.pageSize = size;
   }
 
+  const minimumVisibleTotal = (pagination.pageNum - 1) * pagination.pageSize + finalRecords.length;
+  const resolvedTotal = totalValue === undefined ? finalRecords.length : Math.max(totalValue, minimumVisibleTotal);
+
   return {
     records: finalRecords.map((item) => (isObject(item) ? item : { value: item })),
-    total: totalValue ?? finalRecords.length,
+    total: resolvedTotal,
   };
+}
+
+function findPageContainer(value: unknown): WorksheetRecord | null {
+  if (!isObject(value)) {
+    return null;
+  }
+
+  const hasRecords = getFirstArray(value, ["records", "rows", "list", "items"]).length > 0;
+  const hasTotal = getFirstNumber(value, ["total", "count", "totalCount", "totalRow", "totalRows", "totalElements"]) !== undefined;
+  if (hasRecords || hasTotal) {
+    return value;
+  }
+
+  for (const key of ["data", "result", "page", "pageData"]) {
+    const matched = findPageContainer(value[key]);
+    if (matched) {
+      return matched;
+    }
+  }
+
+  return null;
 }
 
 function selectFirstRow() {
@@ -740,6 +765,18 @@ function getUrgencyClass(item: WorksheetRecord) {
   return level === 1 ? "urgency-pill--high" : "urgency-pill--normal";
 }
 
+function getDetailValueClass(label: string) {
+  if (label === "工单状态") {
+    return "detail-item__value--status";
+  }
+
+  if (label === "紧急程度") {
+    return "detail-item__value--level";
+  }
+
+  return "";
+}
+
 function getOptionLabel(options: SelectOption[], value: unknown, fallback: string) {
   const normalized = typeof value === "string" && value.trim() !== "" ? Number(value) : value;
   return options.find((item) => item.value === normalized)?.label || fallback;
@@ -858,7 +895,10 @@ function formatDateTime(value: string) {
     return value || "-";
   }
 
-  return value.replace("T", " ").replace(/\.\d{3}Z?$/, "");
+  return value
+    .replace("T", " ")
+    .replace(/\.\d+/, "")
+    .replace(/(?:Z|[+-]\d{2}:?\d{2})$/, "");
 }
 
 function padNumber(number: number) {
@@ -882,7 +922,7 @@ defineExpose({
   box-sizing: border-box;
   height: 100%;
   min-height: 0;
-  padding: 14px;
+  padding: 0 14px 14px;
   overflow: hidden;
   background: #eef4f8;
 }
@@ -1206,16 +1246,50 @@ defineExpose({
   flex: 1;
   height: auto;
   min-height: 0;
+  background: #ffffff;
+}
+
+.table-scroll :deep(.uni-scroll-view),
+.detail-body :deep(.uni-scroll-view) {
+  scrollbar-color: #9fb4c8 #edf3f8;
+  scrollbar-width: thin;
+}
+
+.table-scroll :deep(.uni-scroll-view::-webkit-scrollbar),
+.detail-body::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+.table-scroll :deep(.uni-scroll-view::-webkit-scrollbar-track),
+.detail-body::-webkit-scrollbar-track {
+  background: #edf3f8;
+  border-radius: 999px;
+}
+
+.table-scroll :deep(.uni-scroll-view::-webkit-scrollbar-thumb),
+.detail-body::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, #9fb4c8, #6f8ba8);
+  border: 2px solid #edf3f8;
+  border-radius: 999px;
+}
+
+.table-scroll :deep(.uni-scroll-view::-webkit-scrollbar-thumb:hover),
+.detail-body::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(90deg, #7f9ab4, #4d6f91);
 }
 
 .data-table {
-  min-width: 1640px;
+  width: 1830px;
+  min-width: 1830px;
+  background: #ffffff;
 }
 
 .data-row {
   display: grid;
   grid-template-columns: 58px 140px 116px 110px 110px 110px 138px 104px 168px 168px 168px 220px 220px;
   min-height: 38px;
+  width: 1830px;
   border-bottom: 1px solid #edf1f5;
   cursor: pointer;
 }
@@ -1239,15 +1313,21 @@ defineExpose({
 .data-cell {
   display: flex;
   align-items: center;
+  justify-content: center;
   min-width: 0;
   padding: 0 12px;
   overflow: hidden;
   color: #24384d;
   font-size: 14px;
   line-height: 1.35;
+  text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
   border-right: 1px solid #edf1f5;
+}
+
+.data-cell:last-child {
+  border-right: 0;
 }
 
 .data-cell--index {
@@ -1350,8 +1430,11 @@ defineExpose({
   flex: 1;
   height: auto;
   min-height: 0;
-  padding: 16px;
+  padding: 14px;
   overflow-y: auto;
+  background:
+    linear-gradient(180deg, rgba(244, 250, 255, 0.72), rgba(255, 255, 255, 0) 96px),
+    #ffffff;
 }
 
 .detail-empty {
@@ -1363,32 +1446,92 @@ defineExpose({
 }
 
 .detail-grid {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: 10px;
 }
 
+.detail-grid--base {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.detail-grid--content {
+  grid-template-columns: 1fr;
+}
+
+.detail-grid--time {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .detail-item {
+  min-width: 0;
   padding: 10px 12px;
-  background: #f7fbff;
-  border: 1px solid #e4eef7;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid #e3edf7;
   border-radius: 6px;
+  box-shadow: 0 6px 14px rgba(24, 55, 85, 0.05);
+}
+
+.detail-grid--base .detail-item {
+  background: #f8fbfe;
+}
+
+.detail-grid--content .detail-item {
+  padding: 12px;
+  background: #fbfdff;
+}
+
+.detail-grid--time .detail-item {
+  padding: 10px 12px;
+  background: #ffffff;
 }
 
 .detail-item__label {
   display: block;
-  color: #6a7d90;
+  color: #71859a;
   font-size: 12px;
   font-weight: 700;
 }
 
 .detail-item__value {
   display: block;
-  margin-top: 6px;
+  margin-top: 7px;
   color: #172033;
   font-size: 14px;
   line-height: 1.45;
   word-break: break-all;
+}
+
+.detail-grid--content .detail-item__value {
+  min-height: 34px;
+  padding: 9px 10px;
+  color: #24384d;
+  background: #f4f8fc;
+  border: 1px solid #e8f0f7;
+  border-radius: 4px;
+  white-space: pre-wrap;
+}
+
+.detail-item__value--status,
+.detail-item__value--level {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 24px;
+  padding: 0 9px;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 24px;
+  border-radius: 999px;
+}
+
+.detail-item__value--status {
+  color: #0d5ea6;
+  background: #eaf4ff;
+}
+
+.detail-item__value--level {
+  color: #15803d;
+  background: #eaf8ef;
 }
 
 .process-box,

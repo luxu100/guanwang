@@ -2,17 +2,26 @@
 
 /* H5 根节点背景和页面背景保持一致，避免滚动或窗口缩放时露出白边。 */
 html {
+  width: 100%;
   min-height: 100%;
+  margin: 0;
+  overflow-x: hidden;
   background: $color-page-bg;
-  scrollbar-gutter: stable;
 }
 
 /* body 只在内容超出时出现纵向滚动条，首页等未超出页面不会强制显示滚动条。 */
 body {
+  width: 100%;
   min-height: 100%;
   margin: 0;
+  overflow-x: hidden;
   overflow-y: auto;
-  scrollbar-gutter: stable;
+}
+
+#app {
+  width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
 }
 
 /* uni-app 的 page 节点是所有页面的真实外层容器，通用字体和文字色放这里继承。 */
