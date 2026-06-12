@@ -235,6 +235,7 @@ function getDefaultCreateForm(): CreateForm {
 }
 
 function openCreateDialog() {
+  Object.assign(createForm, getDefaultCreateForm());
   dialogVisible.value = true;
 }
 

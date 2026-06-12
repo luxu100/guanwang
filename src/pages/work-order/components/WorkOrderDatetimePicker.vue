@@ -1,36 +1,72 @@
 <template>
   <view class="datetime-picker">
     <view class="datetime-picker__control" :class="{ 'datetime-picker__control--empty': !displayValue }" @click="openPanel">
+      <text class="datetime-picker__icon" aria-hidden="true"></text>
       <text class="datetime-picker__value">{{ displayValue || placeholder }}</text>
-      <text class="datetime-picker__icon"></text>
     </view>
 
     <view v-if="panelVisible" class="datetime-panel-mask" @click="closePanel">
       <view class="datetime-panel" @click.stop>
-        <view class="datetime-panel__head">
-          <text class="datetime-panel__title">{{ title }}</text>
-          <text class="datetime-panel__close" @click="closePanel">×</text>
+        <view class="datetime-panel__tabs">
+          <button class="datetime-panel__tab" :class="{ 'datetime-panel__tab--active': activeTab === 'date' }" @click="activeTab = 'date'">日期</button>
+          <button class="datetime-panel__tab" :class="{ 'datetime-panel__tab--active': activeTab === 'time' }" @click="activeTab = 'time'">时间</button>
         </view>
 
-        <view class="datetime-panel__preview">{{ previewText }}</view>
+        <view v-if="activeTab === 'date'" class="calendar-panel">
+          <view class="calendar-panel__month">
+            <button class="calendar-panel__arrow" hover-class="calendar-panel__arrow--hover" @click="changeMonth(-1)">‹</button>
+            <text class="calendar-panel__title">{{ draft.year }}年{{ padNumber(draft.month) }}月</text>
+            <button class="calendar-panel__arrow" hover-class="calendar-panel__arrow--hover" @click="changeMonth(1)">›</button>
+          </view>
 
-        <view class="datetime-panel__grid">
-          <view v-for="item in fieldConfigs" :key="item.key" class="datetime-stepper">
-            <text class="datetime-stepper__label">{{ item.label }}</text>
-            <view class="datetime-stepper__body">
-              <button class="datetime-stepper__button" hover-class="datetime-stepper__button--hover" @click="adjustField(item.key, -1)">-</button>
-              <text class="datetime-stepper__value">{{ item.value }}</text>
-              <button class="datetime-stepper__button" hover-class="datetime-stepper__button--hover" @click="adjustField(item.key, 1)">+</button>
+          <view class="calendar-panel__week">
+            <text v-for="item in weekLabels" :key="item">{{ item }}</text>
+          </view>
+
+          <view class="calendar-panel__days">
+            <button
+              v-for="item in calendarDays"
+              :key="item.key"
+              class="calendar-panel__day"
+              :class="{
+                'calendar-panel__day--muted': !item.currentMonth,
+                'calendar-panel__day--selected': item.selected,
+                'calendar-panel__day--today': item.today,
+              }"
+              hover-class="calendar-panel__day--hover"
+              @click="selectDate(item)"
+            >
+              <text>{{ item.day }}</text>
+            </button>
+          </view>
+        </view>
+
+        <view v-else class="time-panel">
+          <text class="time-panel__title">选择时间</text>
+          <view class="time-panel__columns">
+            <view class="time-wheel">
+              <button class="time-wheel__item time-wheel__item--muted" @click="adjustTime('hour', -1)">{{ padNumber(wrap(draft.hour - 1, 0, 23)) }}</button>
+              <view class="time-wheel__item time-wheel__item--active">{{ padNumber(draft.hour) }}</view>
+              <button class="time-wheel__item time-wheel__item--muted" @click="adjustTime('hour', 1)">{{ padNumber(wrap(draft.hour + 1, 0, 23)) }}</button>
+            </view>
+            <text class="time-panel__colon">:</text>
+            <view class="time-wheel">
+              <button class="time-wheel__item time-wheel__item--muted" @click="adjustTime('minute', -1)">{{ padNumber(wrap(draft.minute - 1, 0, 59)) }}</button>
+              <view class="time-wheel__item time-wheel__item--active">{{ padNumber(draft.minute) }}</view>
+              <button class="time-wheel__item time-wheel__item--muted" @click="adjustTime('minute', 1)">{{ padNumber(wrap(draft.minute + 1, 0, 59)) }}</button>
+            </view>
+            <text class="time-panel__colon">:</text>
+            <view class="time-wheel">
+              <button class="time-wheel__item time-wheel__item--muted" @click="adjustTime('second', -1)">{{ padNumber(wrap(draft.second - 1, 0, 59)) }}</button>
+              <view class="time-wheel__item time-wheel__item--active">{{ padNumber(draft.second) }}</view>
+              <button class="time-wheel__item time-wheel__item--muted" @click="adjustTime('second', 1)">{{ padNumber(wrap(draft.second + 1, 0, 59)) }}</button>
             </view>
           </view>
         </view>
 
-        <view class="datetime-panel__quick">
-          <button class="datetime-panel__quick-button" hover-class="datetime-panel__quick-button--hover" @click="setNow">当前时间</button>
-          <button v-if="clearable" class="datetime-panel__quick-button" hover-class="datetime-panel__quick-button--hover" @click="clearValue">清空</button>
-        </view>
-
         <view class="datetime-panel__actions">
+          <button v-if="clearable" class="datetime-panel__button datetime-panel__button--link" hover-class="datetime-panel__button--hover" @click="clearValue">清除</button>
+          <view class="datetime-panel__spacer"></view>
           <button class="datetime-panel__button" hover-class="datetime-panel__button--hover" @click="closePanel">取消</button>
           <button class="datetime-panel__button datetime-panel__button--primary" hover-class="datetime-panel__button--primary-hover" @click="confirmValue">确定</button>
         </view>
@@ -42,7 +78,17 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from "vue";
 
-type FieldKey = "year" | "month" | "day" | "hour" | "minute" | "second";
+type TimeKey = "hour" | "minute" | "second";
+
+interface CalendarDay {
+  key: string;
+  year: number;
+  month: number;
+  day: number;
+  currentMonth: boolean;
+  selected: boolean;
+  today: boolean;
+}
 
 const props = withDefaults(defineProps<{
   modelValue?: string;
@@ -62,7 +108,9 @@ const emit = defineEmits<{
   (event: "update:modelValue", value: string): void;
 }>();
 
+const weekLabels = ["日", "一", "二", "三", "四", "五", "六"];
 const panelVisible = ref(false);
+const activeTab = ref<"date" | "time">("date");
 const draft = reactive({
   year: 2026,
   month: 1,
@@ -73,18 +121,11 @@ const draft = reactive({
 });
 
 const displayValue = computed(() => formatDatetimeForDisplay(props.modelValue));
-const previewText = computed(() => formatDraft());
-const fieldConfigs = computed(() => [
-  { key: "year" as const, label: "年", value: String(draft.year) },
-  { key: "month" as const, label: "月", value: padNumber(draft.month) },
-  { key: "day" as const, label: "日", value: padNumber(draft.day) },
-  { key: "hour" as const, label: "时", value: padNumber(draft.hour) },
-  { key: "minute" as const, label: "分", value: padNumber(draft.minute) },
-  { key: "second" as const, label: "秒", value: padNumber(draft.second) },
-]);
+const calendarDays = computed(() => buildCalendarDays());
 
 function openPanel() {
   setDraftFromValue(props.modelValue || toDatetimeValue(new Date()));
+  activeTab.value = "date";
   panelVisible.value = true;
 }
 
@@ -92,26 +133,23 @@ function closePanel() {
   panelVisible.value = false;
 }
 
-function adjustField(field: FieldKey, step: number) {
-  if (field === "year") {
-    draft.year = clamp(draft.year + step, new Date().getFullYear() - 2, new Date().getFullYear() + 7);
-  } else if (field === "month") {
-    draft.month = wrap(draft.month + step, 1, 12);
-  } else if (field === "day") {
-    draft.day = wrap(draft.day + step, 1, getMaxDay());
-  } else if (field === "hour") {
-    draft.hour = wrap(draft.hour + step, 0, 23);
-  } else if (field === "minute") {
-    draft.minute = wrap(draft.minute + step, 0, 59);
-  } else {
-    draft.second = wrap(draft.second + step, 0, 59);
-  }
-
+function changeMonth(step: number) {
+  const nextDate = new Date(draft.year, draft.month - 1 + step, 1);
+  draft.year = nextDate.getFullYear();
+  draft.month = nextDate.getMonth() + 1;
   draft.day = Math.min(draft.day, getMaxDay());
 }
 
-function setNow() {
-  setDraftFromValue(toDatetimeValue(new Date()));
+function selectDate(item: CalendarDay) {
+  draft.year = item.year;
+  draft.month = item.month;
+  draft.day = item.day;
+  activeTab.value = "time";
+}
+
+function adjustTime(field: TimeKey, step: number) {
+  const max = field === "hour" ? 23 : 59;
+  draft[field] = wrap(draft[field] + step, 0, max);
 }
 
 function clearValue() {
@@ -133,6 +171,33 @@ function confirmValue() {
   closePanel();
 }
 
+function buildCalendarDays() {
+  const today = new Date();
+  const firstDate = new Date(draft.year, draft.month - 1, 1);
+  const startDate = new Date(draft.year, draft.month - 1, 1 - firstDate.getDay());
+  const days: CalendarDay[] = [];
+
+  for (let index = 0; index < 42; index += 1) {
+    const itemDate = new Date(startDate);
+    itemDate.setDate(startDate.getDate() + index);
+    const year = itemDate.getFullYear();
+    const month = itemDate.getMonth() + 1;
+    const day = itemDate.getDate();
+
+    days.push({
+      key: `${year}-${month}-${day}`,
+      year,
+      month,
+      day,
+      currentMonth: month === draft.month,
+      selected: year === draft.year && month === draft.month && day === draft.day,
+      today: year === today.getFullYear() && month === today.getMonth() + 1 && day === today.getDate(),
+    });
+  }
+
+  return days;
+}
+
 function setDraftFromValue(value: string) {
   const normalizedValue = normalizeDatetime(value) || toDatetimeValue(new Date());
   const [datePart = "", timePart = ""] = normalizedValue.split("T");
@@ -152,17 +217,13 @@ function getMaxDay() {
   return new Date(draft.year, draft.month, 0).getDate();
 }
 
-function formatDraft() {
-  return `${draft.year}-${padNumber(draft.month)}-${padNumber(draft.day)} ${padNumber(draft.hour)}:${padNumber(draft.minute)}:${padNumber(draft.second)}`;
-}
-
 function formatDatetimeForDisplay(value: string) {
   const normalizedValue = normalizeDatetime(value);
   return normalizedValue ? normalizedValue.replace("T", " ") : "";
 }
 
-function normalizeDatetime(value: string) {
-  const trimmedValue = value.trim();
+function normalizeDatetime(value: string | undefined) {
+  const trimmedValue = value?.trim() || "";
   if (!trimmedValue) {
     return "";
   }
@@ -175,7 +236,7 @@ function toDatetimeValue(value: Date) {
   return `${value.getFullYear()}-${padNumber(value.getMonth() + 1)}-${padNumber(value.getDate())}T${padNumber(value.getHours())}:${padNumber(value.getMinutes())}:${padNumber(value.getSeconds())}`;
 }
 
-function getTimestamp(value: string) {
+function getTimestamp(value: string | undefined) {
   const normalizedValue = normalizeDatetime(value);
   if (!normalizedValue) {
     return undefined;
@@ -197,10 +258,6 @@ function wrap(value: number, min: number, max: number) {
   return value;
 }
 
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
-}
-
 function padNumber(value: number) {
   return String(value).padStart(2, "0");
 }
@@ -215,10 +272,11 @@ function padNumber(value: number) {
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
   width: 100%;
   height: 38px;
   padding: 0 12px;
+  overflow: hidden;
   color: #172033;
   font-size: 14px;
   line-height: 38px;
@@ -229,21 +287,48 @@ function padNumber(value: number) {
 }
 
 .datetime-picker__control--empty {
-  color: #9aa9b8;
+  color: #7f8fa3;
 }
 
 .datetime-picker__value {
   overflow: hidden;
+  font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .datetime-picker__icon {
-  width: 8px;
-  height: 8px;
-  border: solid #74879c;
-  border-width: 0 2px 2px 0;
-  transform: translateY(-2px) rotate(45deg);
+  position: relative;
+  flex: none;
+  box-sizing: border-box;
+  width: 17px;
+  height: 17px;
+  border: 2px solid currentColor;
+  border-radius: 4px;
+}
+
+.datetime-picker__icon::before,
+.datetime-picker__icon::after {
+  position: absolute;
+  content: "";
+}
+
+.datetime-picker__icon::before {
+  top: -5px;
+  left: 3px;
+  width: 7px;
+  height: 6px;
+  border-right: 2px solid currentColor;
+  border-left: 2px solid currentColor;
+}
+
+.datetime-picker__icon::after {
+  top: 4px;
+  left: 0;
+  width: 13px;
+  height: 0;
+  border-top: 2px solid currentColor;
+  transform: none;
 }
 
 .datetime-panel-mask {
@@ -253,166 +338,267 @@ function padNumber(value: number) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 35, 55, 0.28);
+  background: rgba(15, 35, 55, 0.22);
 }
 
 .datetime-panel {
-  width: 420px;
-  padding: 16px;
+  width: min(420px, calc(100vw - 24px));
+  overflow: hidden;
   background: #ffffff;
-  border: 1px solid #d8e6f2;
   border-radius: 6px;
   box-shadow: 0 18px 42px rgba(15, 35, 55, 0.2);
 }
 
-.datetime-panel__head,
-.datetime-panel__actions,
-.datetime-panel__quick {
-  display: flex;
-  align-items: center;
-}
-
-.datetime-panel__head {
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.datetime-panel__title {
-  color: #183755;
-  font-size: 16px;
-  font-weight: 900;
-}
-
-.datetime-panel__close {
-  color: #64748b;
-  font-size: 24px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.datetime-panel__preview {
-  height: 38px;
-  margin-bottom: 14px;
-  color: #0d82ee;
-  font-size: 18px;
-  font-weight: 900;
-  line-height: 38px;
-  text-align: center;
-  background: #f0f7ff;
-  border: 1px solid #cde5fb;
-  border-radius: 4px;
-}
-
-.datetime-panel__grid {
+.datetime-panel__tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(2, 1fr);
+  height: 48px;
+  border-bottom: 1px solid #f0f0f0;
 }
 
-.datetime-stepper__label {
-  display: block;
-  margin-bottom: 6px;
-  color: #34495e;
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.datetime-stepper__body {
-  display: grid;
-  grid-template-columns: 32px 1fr 32px;
-  align-items: center;
-  height: 36px;
-  overflow: hidden;
-  border: 1px solid #d5e2ee;
-  border-radius: 4px;
-}
-
-.datetime-stepper__button {
-  height: 36px;
+.datetime-panel__tab {
+  height: 48px;
   margin: 0;
   padding: 0;
-  color: #31506d;
-  font-size: 18px;
-  line-height: 36px;
-  background: #f6fbff;
+  color: #8a8a8a;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 48px;
+  background: #ffffff;
   border: 0;
   border-radius: 0;
 }
 
-.datetime-stepper__button::after,
-.datetime-panel__button::after,
-.datetime-panel__quick-button::after {
+.datetime-panel__tab::after,
+.calendar-panel__arrow::after,
+.calendar-panel__day::after,
+.time-wheel__item::after,
+.datetime-panel__button::after {
   border: 0;
 }
 
-.datetime-stepper__button--hover {
-  color: #0d82ee;
-  background: #edf7ff;
+.datetime-panel__tab--active {
+  color: #172033;
 }
 
-.datetime-stepper__value {
-  color: #172033;
-  font-size: 15px;
-  font-weight: 800;
+.calendar-panel {
+  padding-top: 16px;
+}
+
+.calendar-panel__month {
+  display: grid;
+  grid-template-columns: 52px 1fr 52px;
+  align-items: center;
+  padding: 0 52px;
+}
+
+.calendar-panel__title {
+  color: #666666;
+  font-size: 20px;
+  line-height: 34px;
   text-align: center;
 }
 
-.datetime-panel__quick {
-  gap: 8px;
-  margin-top: 14px;
+.calendar-panel__arrow {
+  width: 34px;
+  height: 34px;
+  margin: 0 auto;
+  padding: 0;
+  color: #777777;
+  font-size: 30px;
+  font-weight: 300;
+  line-height: 30px;
+  background: #ffffff;
+  border: 0;
+  border-radius: 50%;
 }
 
-.datetime-panel__quick-button {
-  height: 32px;
+.calendar-panel__arrow--hover {
+  color: #1677ff;
+  background: #f2f7ff;
+}
+
+.calendar-panel__week,
+.calendar-panel__days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.calendar-panel__week {
+  margin-top: 16px;
+  padding: 0 22px 12px;
+  color: #a7a7a7;
+  font-size: 16px;
+  text-align: center;
+  border-bottom: 1px solid #f4f4f4;
+}
+
+.calendar-panel__days {
+  padding: 14px 18px 16px;
+  row-gap: 8px;
+}
+
+.calendar-panel__day {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  margin: 0 auto;
+  padding: 0;
+  color: #082b64;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 34px;
+  background: #ffffff;
+  border: 0;
+  border-radius: 50%;
+}
+
+.calendar-panel__day--hover {
+  background: #edf5ff;
+}
+
+.calendar-panel__day--muted {
+  color: #cfcfcf;
+}
+
+.calendar-panel__day--selected {
+  color: #ffffff;
+  background: #1677ff;
+}
+
+.calendar-panel__day--today::after {
+  position: absolute;
+  top: 4px;
+  right: 1px;
+  width: 7px;
+  height: 7px;
+  content: "";
+  background: #e35151;
+  border-radius: 50%;
+}
+
+.calendar-panel__day--selected::after {
+  background: #ffffff;
+}
+
+.time-panel {
+  min-height: 286px;
+  padding: 42px 44px 0;
+}
+
+.time-panel__title {
+  display: block;
+  color: #172033;
+  font-size: 18px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.time-panel__columns {
+  display: grid;
+  grid-template-columns: 1fr 18px 1fr 18px 1fr;
+  align-items: center;
+  margin-top: 54px;
+}
+
+.time-wheel {
+  display: grid;
+  grid-template-rows: repeat(3, 42px);
+  align-items: center;
+}
+
+.time-wheel__item {
+  height: 42px;
   margin: 0;
-  padding: 0 12px;
-  color: #31506d;
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 32px;
-  background: #f6fbff;
-  border: 1px solid #cbdced;
-  border-radius: 4px;
+  padding: 0;
+  color: #333333;
+  font-size: 18px;
+  line-height: 42px;
+  text-align: center;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
 }
 
-.datetime-panel__quick-button--hover {
-  color: #0d82ee;
-  border-color: #a9d7ff;
+.time-wheel__item--active {
+  border-top: 1px solid #f0f0f0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.time-wheel__item--muted {
+  color: #d5d5d5;
+}
+
+.time-panel__colon {
+  color: #9a9a9a;
+  font-size: 20px;
+  text-align: center;
 }
 
 .datetime-panel__actions {
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 52px;
+  padding: 0 20px 14px;
+}
+
+.datetime-panel__spacer {
+  flex: 1;
 }
 
 .datetime-panel__button {
-  min-width: 76px;
+  min-width: 44px;
   height: 34px;
   margin: 0;
-  padding: 0 14px;
-  color: #31506d;
-  font-size: 14px;
-  font-weight: 800;
+  padding: 0;
+  color: #1677ff;
+  font-size: 16px;
   line-height: 34px;
-  background: #f6fbff;
-  border: 1px solid #cbdced;
+  background: transparent;
+  border: 0;
   border-radius: 4px;
 }
 
 .datetime-panel__button--hover {
-  color: #0d82ee;
-  border-color: #a9d7ff;
+  background: #edf5ff;
 }
 
 .datetime-panel__button--primary {
-  color: #ffffff;
-  background: #0d82ee;
-  border-color: #0d82ee;
+  font-weight: 500;
 }
 
 .datetime-panel__button--primary-hover {
-  background: #0674d8;
-  border-color: #0674d8;
+  background: #edf5ff;
+}
+
+@media (max-width: 640px) {
+  .datetime-panel__tab {
+    font-size: 15px;
+  }
+
+  .calendar-panel__month {
+    padding: 0 28px;
+  }
+
+  .calendar-panel__title {
+    font-size: 18px;
+  }
+
+  .calendar-panel__week {
+    font-size: 15px;
+  }
+
+  .calendar-panel__day {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+    line-height: 32px;
+  }
+
+  .time-panel {
+    padding-right: 28px;
+    padding-left: 28px;
+  }
 }
 </style>
