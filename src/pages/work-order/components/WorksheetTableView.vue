@@ -152,24 +152,53 @@
 
         <view v-if="!selectedWorksheet" class="detail-empty">请选择左侧工单查看详情</view>
         <view v-else class="detail-body">
-          <view v-if="activeTab === 'base'" class="detail-grid detail-grid--base">
-            <view v-for="item in baseDetailFields" :key="item.label" class="detail-item">
-              <text class="detail-item__label">{{ item.label }}</text>
-              <text class="detail-item__value" :class="getDetailValueClass(item.label)">{{ item.value }}</text>
+          <view v-if="activeTab === 'base'" class="detail-base-panel">
+            <view class="detail-summary">
+              <view class="detail-summary__main">
+                <text class="detail-summary__label">工单编号</text>
+                <text class="detail-summary__number">{{ baseSummary.number }}</text>
+              </view>
+              <view class="detail-summary__badges">
+                <text class="detail-summary__badge detail-summary__badge--status">{{ baseSummary.status }}</text>
+                <text class="detail-summary__badge detail-summary__badge--level">{{ baseSummary.urgency }}</text>
+              </view>
+            </view>
+
+            <view class="detail-grid detail-grid--base">
+              <view v-for="item in secondaryBaseDetailFields" :key="item.label" class="detail-item detail-item--base">
+                <text class="detail-item__label">{{ item.label }}</text>
+                <text class="detail-item__value">{{ item.value }}</text>
+              </view>
             </view>
           </view>
 
           <view v-if="activeTab === 'content'" class="detail-grid detail-grid--content">
-            <view v-for="item in contentDetailFields" :key="item.label" class="detail-item">
+            <view v-for="item in contentDetailFields" :key="item.label" class="detail-item detail-item--note">
               <text class="detail-item__label">{{ item.label }}</text>
               <text class="detail-item__value">{{ item.value }}</text>
             </view>
           </view>
 
-          <view v-if="activeTab === 'time'" class="detail-grid detail-grid--time">
-            <view v-for="item in timeDetailFields" :key="item.label" class="detail-item">
-              <text class="detail-item__label">{{ item.label }}</text>
-              <text class="detail-item__value">{{ item.value }}</text>
+          <view v-if="activeTab === 'time'" class="detail-time-panel">
+            <view class="time-section">
+              <text class="detail-section-title">时间信息</text>
+              <view class="time-list">
+                <view v-for="item in timeMomentFields" :key="item.label" class="time-row">
+                  <view class="time-row__marker"></view>
+                  <view class="time-row__content">
+                    <text class="time-row__label">{{ item.label }}</text>
+                    <text class="time-row__value">{{ item.value }}</text>
+                  </view>
+                </view>
+              </view>
+            </view>
+
+            <view class="time-section time-section--location">
+              <text class="detail-section-title">地点信息</text>
+              <view v-for="item in locationDetailFields" :key="item.label" class="location-row">
+                <text class="location-row__label">{{ item.label }}</text>
+                <text class="location-row__value">{{ item.value }}</text>
+              </view>
             </view>
           </view>
 
@@ -349,6 +378,18 @@ const baseDetailFields = computed(() => {
     { label: "关联渗漏ID", value: getTextValue(item, ["leakageId"], "-") },
   ];
 });
+const baseSummary = computed(() => {
+  const item = selectedWorksheet.value || {};
+
+  return {
+    number: getWorksheetNumber(item),
+    status: getWorksheetStatusLabel(item),
+    urgency: getUrgencyLabel(item),
+  };
+});
+const secondaryBaseDetailFields = computed(() =>
+  baseDetailFields.value.filter((item) => item.label !== "工单编号" && item.label !== "工单状态" && item.label !== "紧急程度"),
+);
 
 const contentDetailFields = computed(() => {
   const item = selectedWorksheet.value || {};
@@ -374,6 +415,8 @@ const timeDetailFields = computed(() => {
     { label: "坐标", value: getTextValue(item, ["coordinate"], "-") },
   ];
 });
+const timeMomentFields = computed(() => timeDetailFields.value.filter((item) => item.label !== "地址" && item.label !== "坐标"));
+const locationDetailFields = computed(() => timeDetailFields.value.filter((item) => item.label === "地址" || item.label === "坐标"));
 
 const statusBreakdown = computed(() => countByOptions(worksheets.value, worksheetStatusOptionsWithoutAll, "worksheetStatus"));
 const typeBreakdown = computed(() => countByOptions(worksheets.value, worksheetTypeOptionsWithoutAll, "worksheetType"));
@@ -943,9 +986,9 @@ defineExpose({
 .worksheet-detail-panel,
 .stat-card {
   background: #ffffff;
-  border: 1px solid #dbe6ee;
+  border: 1px solid #d8e5ef;
   border-radius: 6px;
-  box-shadow: 0 8px 18px rgba(40, 74, 104, 0.08);
+  box-shadow: 0 12px 26px rgba(35, 72, 104, 0.09);
 }
 
 .pagination-bar,
@@ -990,6 +1033,20 @@ defineExpose({
   line-height: 34px;
 }
 
+.filter-input,
+.filter-select {
+  height: 30px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 30px;
+}
+
+.toolbar-row--filters .filter-input,
+.toolbar-row--filters .filter-select {
+  height: 28px;
+  line-height: 28px;
+}
+
 .form-textarea {
   height: 76px;
   padding: 8px 10px;
@@ -1032,8 +1089,8 @@ defineExpose({
   flex-direction: column;
   align-items: stretch;
   flex: none;
-  gap: 10px;
-  min-height: 104px;
+  gap: 8px;
+  min-height: 96px;
   padding: 12px;
   overflow: visible;
 }
@@ -1056,7 +1113,7 @@ defineExpose({
 
 .toolbar-row--filters {
   flex-wrap: wrap;
-  gap: 10px 16px;
+  gap: 8px 16px;
 }
 
 .toolbar-row--bottom {
@@ -1079,7 +1136,7 @@ defineExpose({
 .filter-label {
   flex: none;
   color: #34495e;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -1106,6 +1163,24 @@ defineExpose({
 
 .filter-datetime {
   width: 188px;
+}
+
+.filter-datetime :deep(.datetime-picker__control) {
+  height: 30px;
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 30px;
+}
+
+.filter-datetime :deep(.datetime-picker__value) {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.filter-datetime :deep(.datetime-picker__icon) {
+  width: 15px;
+  height: 15px;
 }
 
 .filter-select {
@@ -1239,18 +1314,23 @@ defineExpose({
 
 .table-head {
   flex: none;
-  height: 44px;
-  padding: 0 14px;
-  color: #183755;
-  font-size: 15px;
+  height: 50px;
+  padding: 0 16px;
+  color: #24445f;
+  font-size: 16px;
   font-weight: 800;
+  background: #ffffff;
   border-bottom: 1px solid #edf3f8;
 }
 
 .table-head__meta {
-  color: #73859a;
+  padding: 4px 10px;
+  color: #6a7f94;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 800;
+  background: #f7fafc;
+  border: 1px solid #e3ebf2;
+  border-radius: 999px;
 }
 
 .table-scroll {
@@ -1291,29 +1371,33 @@ defineExpose({
 }
 
 .data-table {
-  width: 1830px;
-  min-width: 1830px;
+  width: 1880px;
+  min-width: 1880px;
   background: #ffffff;
 }
 
 .data-row {
   display: grid;
-  grid-template-columns: 58px 140px 116px 110px 110px 110px 138px 104px 168px 168px 168px 220px 220px;
-  min-height: 38px;
-  width: 1830px;
+  grid-template-columns: 58px 190px 116px 110px 110px 110px 138px 104px 168px 168px 168px 220px 220px;
+  min-height: 42px;
+  width: 1880px;
   border-bottom: 1px solid #edf1f5;
   cursor: pointer;
+  transition:
+    background 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .data-row--header {
   position: sticky;
   top: 0;
   z-index: 1;
-  min-height: 40px;
-  color: #1b344d;
+  min-height: 44px;
+  color: #20384f;
   font-weight: 800;
-  background: #f3f8fd;
+  background: #f6f9fc;
   cursor: default;
+  box-shadow: 0 1px 0 #dbe7f0;
 }
 
 .data-row:not(.data-row--header):nth-child(odd) {
@@ -1325,12 +1409,14 @@ defineExpose({
 }
 
 .data-row:not(.data-row--header):hover {
-  background: #f4faff;
+  background: #f1f8ff;
+  box-shadow: inset 0 0 0 1px #d7ebfb;
 }
 
 .data-row--active {
   position: relative;
-  background: #eaf5ff !important;
+  background: #e7f3ff !important;
+  box-shadow: inset 0 0 0 1px #b9dcff;
 }
 
 .data-row--active::before {
@@ -1344,11 +1430,6 @@ defineExpose({
   border-radius: 0 999px 999px 0;
 }
 
-.data-row--active .data-cell {
-  color: #143554;
-  font-weight: 700;
-}
-
 .data-cell {
   display: flex;
   align-items: center;
@@ -1357,12 +1438,18 @@ defineExpose({
   padding: 0 12px;
   overflow: hidden;
   color: #24384d;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.35;
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
   border-right: 1px solid #edf1f5;
+}
+
+.data-row--header .data-cell {
+  color: #415a73;
+  font-size: 12px;
+  letter-spacing: 0;
 }
 
 .data-cell:last-child {
@@ -1374,27 +1461,57 @@ defineExpose({
   color: #64748b;
 }
 
+.data-cell--number {
+  color: #0f4c81;
+  font-family: "DIN Alternate", "Arial", sans-serif;
+  font-weight: 800;
+}
+
+.data-cell--address,
+.data-cell--remark {
+  justify-content: flex-start;
+  text-align: left;
+}
+
 .status-pill,
 .urgency-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 54px;
+  height: 24px;
+  padding: 0 9px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 12px;
   font-weight: 800;
+  line-height: 24px;
 }
 
 .status-pill--processing,
 .urgency-pill--high {
-  color: #ef4444;
+  color: #b42318;
+  background: #fff1ee;
+  border-color: #ffd3cb;
 }
 
 .status-pill--done,
 .urgency-pill--normal {
-  color: #22a447;
+  color: #177245;
+  background: #eaf8ef;
+  border-color: #bfe8ce;
 }
 
 .status-pill--closed {
-  color: #7c3aed;
+  color: #6941c6;
+  background: #f3f0ff;
+  border-color: #d8ceff;
 }
 
 .status-pill--muted {
-  color: #708196;
+  color: #5f7186;
+  background: #f3f6f9;
+  border-color: #dbe4ec;
 }
 
 .table-state {
@@ -1440,9 +1557,11 @@ defineExpose({
   flex: none;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  height: 44px;
-  background: #ffffff;
-  border-bottom: 1px solid #edf3f8;
+  gap: 6px;
+  height: 54px;
+  padding: 8px;
+  background: #f6fafe;
+  border-bottom: 1px solid #e3edf6;
 }
 
 .detail-tab {
@@ -1450,29 +1569,34 @@ defineExpose({
   align-items: center;
   justify-content: center;
   color: #5d7188;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
   cursor: pointer;
-  border-right: 1px solid #edf3f8;
-}
-
-.detail-tab:last-child {
-  border-right: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  transition:
+    color 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease;
 }
 
 .detail-tab--active {
   color: #0d82ee;
-  background: #f4faff;
-  box-shadow: inset 0 3px 0 #0d82ee;
+  background: #ffffff;
+  border-color: #cfe7fb;
+  box-shadow: 0 6px 14px rgba(13, 130, 238, 0.1);
 }
 
 .detail-body {
   flex: 1;
   height: auto;
   min-height: 0;
-  padding: 12px;
+  padding: 16px;
   overflow-y: auto;
-  background: #f8fbfe;
+  background:
+    linear-gradient(180deg, #f5faff 0, #ffffff 142px),
+    #ffffff;
 }
 
 .detail-empty {
@@ -1485,68 +1609,159 @@ defineExpose({
 
 .detail-grid {
   display: grid;
-  overflow: hidden;
+  gap: 12px;
+}
+
+.detail-base-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.detail-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: stretch;
+  min-width: 0;
+  padding: 14px 16px;
   background: #ffffff;
-  border: 1px solid #e4edf6;
+  border: 1px solid #dce9f4;
+  border-left: 4px solid #0d82ee;
   border-radius: 6px;
+  box-shadow: 0 8px 18px rgba(33, 72, 108, 0.045);
+}
+
+.detail-summary__main {
+  min-width: 0;
+}
+
+.detail-summary__label {
+  display: block;
+  color: #6b7f94;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.detail-summary__number {
+  display: block;
+  margin-top: 7px;
+  color: #0f4c81;
+  font-family: "DIN Alternate", "Arial", sans-serif;
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1.25;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+.detail-summary__badges {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.detail-summary__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 900;
+  border: 1px solid transparent;
+  border-radius: 999px;
+}
+
+.detail-summary__badge--status {
+  color: #0d5ea6;
+  background: #eaf4ff;
+  border-color: #cfe7fb;
+}
+
+.detail-summary__badge--level {
+  color: #177245;
+  background: #eaf8ef;
+  border-color: #bfe8ce;
 }
 
 .detail-grid--base {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
+  gap: 0;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #dfebf5;
+  border-radius: 6px;
+  box-shadow: 0 8px 18px rgba(33, 72, 108, 0.045);
 }
 
 .detail-grid--content {
   grid-template-columns: 1fr;
-}
-
-.detail-grid--time {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .detail-item {
-  display: grid;
-  grid-template-columns: 78px minmax(0, 1fr);
-  align-items: center;
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   min-width: 0;
-  min-height: 52px;
-  padding: 8px 12px;
+  min-height: 74px;
+  padding: 12px 13px;
   overflow: hidden;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid #dfebf5;
+  border-radius: 6px;
+  box-shadow: 0 8px 18px rgba(33, 72, 108, 0.055);
+}
+
+.detail-item--base {
+  position: relative;
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  align-items: center;
+  min-height: 48px;
+  padding: 8px 14px;
   background: #ffffff;
   border: 0;
-  border-right: 1px solid #eef3f8;
-  border-bottom: 1px solid #eef3f8;
+  border-bottom: 1px solid #edf3f8;
   border-radius: 0;
+  box-shadow: none;
+}
+
+.detail-item--base::before {
+  display: none;
+}
+
+.detail-grid--base .detail-item--base:last-child {
+  border-bottom: 0;
+}
+
+.detail-item--base .detail-item__label {
+  color: #71869b;
+}
+
+.detail-item--base .detail-item__value {
+  margin-top: 0;
+  text-align: right;
 }
 
 .detail-grid--content .detail-item {
-  display: block;
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr);
+  align-items: stretch;
   min-height: 0;
-  padding: 12px;
+  padding: 0;
+  overflow: hidden;
   background: #ffffff;
-  border-right: 0;
-}
-
-.detail-grid--time .detail-item {
-  min-height: 50px;
-  padding: 8px 12px;
-}
-
-.detail-grid--base .detail-item:nth-child(2n),
-.detail-grid--time .detail-item:nth-child(2n) {
-  border-right: 0;
-}
-
-.detail-grid--base .detail-item:nth-last-child(-n + 2),
-.detail-grid--time .detail-item:nth-last-child(-n + 2),
-.detail-grid--content .detail-item:last-child {
-  border-bottom: 0;
+  border-color: #dfebf5;
+  box-shadow: none;
 }
 
 .detail-item__label {
   display: flex;
   align-items: center;
-  color: #708399;
+  color: #6b7f94;
   font-size: 12px;
   font-weight: 800;
   line-height: 1.3;
@@ -1554,29 +1769,49 @@ defineExpose({
 
 .detail-item__value {
   display: block;
-  margin-top: 0;
+  margin-top: 8px;
   color: #172033;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.45;
   word-break: break-all;
 }
 
-.detail-grid--time .detail-item__value {
+.detail-grid--content .detail-item__value {
+  min-height: 52px;
+  margin-top: 0;
+  padding: 14px 14px;
   color: #172033;
-  text-align: left;
+  font-size: 13px;
+  font-weight: 700;
+  background: #fbfdff;
+  border-left: 1px solid #edf3f8;
+  border-radius: 0;
+  box-shadow: none;
+  white-space: pre-wrap;
 }
 
-.detail-grid--content .detail-item__value {
-  min-height: 46px;
-  margin-top: 8px;
-  padding: 10px 11px;
-  color: #24384d;
-  font-weight: 500;
-  background: #f7fbff;
-  border: 1px solid #e2edf7;
-  border-radius: 4px;
-  white-space: pre-wrap;
+.detail-item--note .detail-item__label {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  color: #5f7891;
+  font-size: 12px;
+  background: #f7fafc;
+  border-left: 3px solid #b9dcff;
+}
+
+.detail-item--note:nth-child(1) .detail-item__label {
+  border-left-color: #7dd3fc;
+}
+
+.detail-item--note:nth-child(2) .detail-item__label {
+  border-left-color: #86efac;
+}
+
+.detail-item--note:nth-child(3) .detail-item__label,
+.detail-item--note:nth-child(4) .detail-item__label {
+  border-left-color: #cbd5e1;
 }
 
 .detail-item__value--status,
@@ -1600,6 +1835,117 @@ defineExpose({
 .detail-item__value--level {
   color: #15803d;
   background: #eaf8ef;
+}
+
+.detail-time-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.time-section {
+  min-width: 0;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #dfebf5;
+  border-radius: 6px;
+  box-shadow: 0 8px 18px rgba(33, 72, 108, 0.055);
+}
+
+.detail-section-title {
+  display: block;
+  margin-bottom: 12px;
+  color: #183755;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.time-list {
+  position: relative;
+  display: grid;
+  gap: 0;
+}
+
+.time-list::before {
+  position: absolute;
+  top: 16px;
+  bottom: 16px;
+  left: 6px;
+  width: 2px;
+  content: "";
+  background: #d7e8f6;
+}
+
+.time-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 10px;
+  min-width: 0;
+  padding: 9px 0;
+}
+
+.time-row__marker {
+  position: relative;
+  z-index: 1;
+  width: 10px;
+  height: 10px;
+  margin-top: 4px;
+  background: #0d82ee;
+  border: 3px solid #e8f4ff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #b9dcff;
+}
+
+.time-row__content {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.time-row__label {
+  color: #6b7f94;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.time-row__value {
+  min-width: 0;
+  color: #172033;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.45;
+  word-break: break-all;
+}
+
+.time-section--location {
+  background:
+    linear-gradient(90deg, rgba(13, 130, 238, 0.08), rgba(255, 255, 255, 0) 58%),
+    rgba(255, 255, 255, 0.96);
+}
+
+.location-row {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  gap: 10px;
+  min-width: 0;
+  padding: 11px 0;
+  border-top: 1px solid #edf3f8;
+}
+
+.location-row__label {
+  color: #6b7f94;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.location-row__value {
+  color: #172033;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+  word-break: break-all;
 }
 
 .process-box,
@@ -1660,24 +2006,31 @@ defineExpose({
 }
 
 @media (max-width: 520px) {
-  .detail-grid--base,
-  .detail-grid--time {
+  .detail-grid--base {
     grid-template-columns: 1fr;
   }
 
-  .detail-grid--base .detail-item,
-  .detail-grid--time .detail-item {
-    border-right: 0;
+  .detail-item--base {
+    grid-template-columns: 78px minmax(0, 1fr);
   }
 
-  .detail-grid--base .detail-item:nth-last-child(-n + 2),
-  .detail-grid--time .detail-item:nth-last-child(-n + 2) {
-    border-bottom: 1px solid #eef3f8;
+  .detail-grid--content .detail-item {
+    grid-template-columns: 1fr;
   }
 
-  .detail-grid--base .detail-item:last-child,
-  .detail-grid--time .detail-item:last-child {
-    border-bottom: 0;
+  .detail-grid--content .detail-item__value {
+    border-top: 1px solid #edf3f8;
+    border-left: 0;
+  }
+
+  .detail-item--note .detail-item__label {
+    min-height: 38px;
+  }
+
+  .time-row__content,
+  .location-row {
+    grid-template-columns: 1fr;
+    gap: 5px;
   }
 }
 </style>
