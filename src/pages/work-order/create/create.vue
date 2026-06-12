@@ -64,11 +64,30 @@
                   <view class="form-grid form-grid--main">
                     <view class="form-field">
                       <text class="form-label form-label--required">发起时间</text>
-                      <input v-model="riseTimeDisplay" class="form-input" placeholder="YYYY-MM-DD HH:mm:ss" placeholder-class="input-placeholder" />
+                      <view class="datetime-shell">
+                        <text class="datetime-text" :class="{ 'datetime-text--empty': !riseTimeDisplay }">{{ riseTimeDisplay || "请选择发起时间" }}</text>
+                        <input
+                          class="datetime-native"
+                          type="datetime-local"
+                          step="1"
+                          :value="createForm.riseTime"
+                          @change="handleDatetimeChange('riseTime', $event)"
+                        />
+                      </view>
                     </view>
                     <view class="form-field">
                       <text class="form-label">截止时间</text>
-                      <input v-model="deadlineTimeDisplay" class="form-input" placeholder="YYYY-MM-DD HH:mm:ss" placeholder-class="input-placeholder" />
+                      <view class="datetime-shell">
+                        <text class="datetime-text" :class="{ 'datetime-text--empty': !deadlineTimeDisplay }">{{ deadlineTimeDisplay || "请选择截止时间" }}</text>
+                        <input
+                          class="datetime-native"
+                          type="datetime-local"
+                          step="1"
+                          :value="createForm.deadlineTime"
+                          :min="createForm.riseTime"
+                          @change="handleDatetimeChange('deadlineTime', $event)"
+                        />
+                      </view>
                     </view>
                   </view>
                 </view>
@@ -94,13 +113,9 @@
                     <text class="section-title">说明备注</text>
                   </view>
                   <view class="form-grid form-grid--main">
-                    <view class="form-field">
+                    <view class="form-field form-field--wide">
                       <text class="form-label form-label--required">工单说明</text>
                       <textarea v-model="createForm.worksheetInstruction" class="form-textarea form-textarea--large" placeholder="请输入工单说明" placeholder-class="input-placeholder" />
-                    </view>
-                    <view class="form-field">
-                      <text class="form-label">备注</text>
-                      <textarea v-model="createForm.remark" class="form-textarea form-textarea--large" placeholder="请输入备注" placeholder-class="input-placeholder" />
                     </view>
                   </view>
                 </view>
@@ -131,6 +146,10 @@
                     <view class="form-field">
                       <text class="form-label">照片ID</text>
                       <input v-model="createForm.pictureIds" class="form-input" placeholder="文件ID，多个用逗号分隔" placeholder-class="input-placeholder" />
+                    </view>
+                    <view class="form-field">
+                      <text class="form-label">备注</text>
+                      <textarea v-model="createForm.remark" class="form-textarea form-textarea--large" placeholder="请输入备注" placeholder-class="input-placeholder" />
                     </view>
                   </view>
                 </view>
@@ -210,18 +229,8 @@ const createForm = reactive<CreateForm>(getDefaultCreateForm());
 const currentTypeLabel = computed(() => getOptionLabel(worksheetTypeOptions, createForm.worksheetType, "巡检"));
 const currentStatusLabel = computed(() => getOptionLabel(worksheetStatusOptions, createForm.worksheetStatus, "待处理"));
 const currentUrgencyLabel = computed(() => getOptionLabel(urgencyOptions, createForm.urgencyLevel, "一般"));
-const riseTimeDisplay = computed({
-  get: () => formatDatetimeForDisplay(createForm.riseTime),
-  set: (value: string) => {
-    createForm.riseTime = normalizeDisplayDatetime(value);
-  },
-});
-const deadlineTimeDisplay = computed({
-  get: () => formatDatetimeForDisplay(createForm.deadlineTime),
-  set: (value: string) => {
-    createForm.deadlineTime = normalizeDisplayDatetime(value);
-  },
-});
+const riseTimeDisplay = computed(() => formatDatetimeForDisplay(createForm.riseTime));
+const deadlineTimeDisplay = computed(() => formatDatetimeForDisplay(createForm.deadlineTime));
 
 function getDefaultCreateForm(): CreateForm {
   return {
@@ -273,6 +282,10 @@ function handleUrgencyChange(event: { detail: { value: number } }) {
   createForm.urgencyLevel = urgencyOptions[event.detail.value]?.value ?? 0;
 }
 
+function handleDatetimeChange(field: "riseTime" | "deadlineTime", event: Event & { detail?: { value?: string } }) {
+  createForm[field] = normalizeDatetimeForApi(getEventValue(event)) || "";
+}
+
 async function submitCreate() {
   if (!validateCreateForm()) {
     return;
@@ -310,6 +323,11 @@ function validateCreateForm() {
 
   if (!createForm.worksheetInstruction.trim()) {
     uni.showToast({ title: "请输入工单说明", icon: "none" });
+    return false;
+  }
+
+  if (createForm.deadlineTime && !isDeadlineAfterRiseTime()) {
+    uni.showToast({ title: "截止时间必须大于发起时间", icon: "none" });
     return false;
   }
 
@@ -389,6 +407,27 @@ function normalizeDisplayDatetime(value: string) {
   }
 
   return trimmedValue.replace(/\s+/, "T");
+}
+
+function getEventValue(event: Event & { detail?: { value?: string } }) {
+  const target = event.target as HTMLInputElement | null;
+  return event.detail?.value || target?.value || "";
+}
+
+function isDeadlineAfterRiseTime() {
+  const riseTimestamp = getDatetimeTimestamp(createForm.riseTime);
+  const deadlineTimestamp = getDatetimeTimestamp(createForm.deadlineTime);
+  return riseTimestamp !== undefined && deadlineTimestamp !== undefined && deadlineTimestamp > riseTimestamp;
+}
+
+function getDatetimeTimestamp(value: string) {
+  const normalizedValue = normalizeDatetimeForApi(value);
+  if (!normalizedValue) {
+    return undefined;
+  }
+
+  const timestamp = new Date(normalizedValue).getTime();
+  return Number.isNaN(timestamp) ? undefined : timestamp;
 }
 
 function toDatetimeLocal(value: Date) {
@@ -579,8 +618,8 @@ function generateWorksheetNumber() {
 
 .form-layout {
   display: grid;
-  grid-template-columns: 660px 310px;
-  gap: 22px;
+  grid-template-columns: 640px 360px;
+  gap: 24px;
   min-height: 100%;
   justify-content: start;
 }
@@ -641,7 +680,7 @@ function generateWorksheetNumber() {
 }
 
 .form-grid--main {
-  grid-template-columns: repeat(2, 310px);
+  grid-template-columns: repeat(2, 305px);
   justify-content: start;
 }
 
@@ -673,6 +712,7 @@ function generateWorksheetNumber() {
 
 .form-input,
 .form-select,
+.datetime-shell,
 .form-textarea {
   box-sizing: border-box;
   min-width: 0;
@@ -706,7 +746,8 @@ function generateWorksheetNumber() {
 }
 
 .form-input,
-.form-select {
+.form-select,
+.datetime-shell {
   height: 38px;
   padding: 0 12px;
   line-height: 38px;
@@ -723,6 +764,35 @@ function generateWorksheetNumber() {
   box-shadow: inset 0 -1px 0 rgba(13, 130, 238, 0.03);
 }
 
+.datetime-shell {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.datetime-text {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  color: #172033;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.datetime-text--empty {
+  color: #9aa9b8;
+}
+
+.datetime-native {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0;
+}
+
 .form-input:focus,
 .form-textarea:focus {
   background: #ffffff;
@@ -737,7 +807,7 @@ function generateWorksheetNumber() {
 }
 
 .form-textarea--large {
-  height: 90px;
+  height: 92px;
 }
 
 .select-arrow {

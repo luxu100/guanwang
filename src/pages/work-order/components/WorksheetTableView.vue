@@ -49,30 +49,26 @@
         <view class="filter-group filter-group--date">
           <text class="filter-label">创建时间</text>
           <view class="date-range">
-            <view class="datetime-picker-group">
-              <picker mode="date" :value="startDateValue" @change="handleStartDateChange">
-                <view class="datetime-picker-control" :class="{ 'datetime-picker-control--empty': !startDateValue }">
-                  {{ startDateValue || "请选择开始日期" }}
-                </view>
-              </picker>
-              <picker mode="time" :value="startTimeValue" @change="handleStartClockChange">
-                <view class="datetime-picker-control datetime-picker-control--time" :class="{ 'datetime-picker-control--empty': !startTimeValue }">
-                  {{ startTimeValue || "开始时间" }}
-                </view>
-              </picker>
+            <view class="datetime-picker-control" :class="{ 'datetime-picker-control--empty': !filters.startTime }">
+              <text>{{ formatDatetimeForControl(filters.startTime) || "请选择开始时间" }}</text>
+              <input
+                class="datetime-native-input"
+                type="datetime-local"
+                step="1"
+                :value="filters.startTime"
+                @change="handleFilterDatetimeChange('startTime', $event)"
+              />
             </view>
             <text class="filter-separator">至</text>
-            <view class="datetime-picker-group">
-              <picker mode="date" :value="endDateValue" @change="handleEndDateChange">
-                <view class="datetime-picker-control" :class="{ 'datetime-picker-control--empty': !endDateValue }">
-                  {{ endDateValue || "请选择结束日期" }}
-                </view>
-              </picker>
-              <picker mode="time" :value="endTimeValue" @change="handleEndClockChange">
-                <view class="datetime-picker-control datetime-picker-control--time" :class="{ 'datetime-picker-control--empty': !endTimeValue }">
-                  {{ endTimeValue || "结束时间" }}
-                </view>
-              </picker>
+            <view class="datetime-picker-control" :class="{ 'datetime-picker-control--empty': !filters.endTime }">
+              <text>{{ formatDatetimeForControl(filters.endTime) || "请选择结束时间" }}</text>
+              <input
+                class="datetime-native-input"
+                type="datetime-local"
+                step="1"
+                :value="filters.endTime"
+                @change="handleFilterDatetimeChange('endTime', $event)"
+              />
             </view>
           </view>
         </view>
@@ -349,10 +345,6 @@ const total = ref(0);
 const loading = ref(false);
 const submittingProcess = ref(false);
 const activeTab = ref<DetailTab>("base");
-const startDateValue = ref("");
-const startTimeValue = ref("");
-const endDateValue = ref("");
-const endTimeValue = ref("");
 
 const pageTitle = computed(() => pageTitleMap[props.mode]);
 const currentTypeLabel = computed(() => getOptionLabel(worksheetTypeOptions, filters.worksheetType, "不限"));
@@ -437,37 +429,8 @@ function handleStatusChange(event: { detail: { value: number } }) {
   filters.worksheetStatus = worksheetStatusOptions[event.detail.value]?.value ?? "";
 }
 
-function handleStartDateChange(event: { detail: { value: string } }) {
-  startDateValue.value = event.detail.value || "";
-  syncDateTimeFilter("start");
-}
-
-function handleStartClockChange(event: { detail: { value: string } }) {
-  startTimeValue.value = event.detail.value || "";
-  syncDateTimeFilter("start");
-}
-
-function handleEndDateChange(event: { detail: { value: string } }) {
-  endDateValue.value = event.detail.value || "";
-  syncDateTimeFilter("end");
-}
-
-function handleEndClockChange(event: { detail: { value: string } }) {
-  endTimeValue.value = event.detail.value || "";
-  syncDateTimeFilter("end");
-}
-
-function syncDateTimeFilter(type: "start" | "end") {
-  const date = type === "start" ? startDateValue.value : endDateValue.value;
-  const time = type === "start" ? startTimeValue.value : endTimeValue.value;
-  const value = date && time ? `${date}T${time}:00` : "";
-
-  if (type === "start") {
-    filters.startTime = value;
-    return;
-  }
-
-  filters.endTime = value;
+function handleFilterDatetimeChange(field: "startTime" | "endTime", event: Event & { detail?: { value?: string } }) {
+  filters[field] = normalizeDatetimeForApi(getEventValue(event)) || "";
 }
 
 function handleProcessStatusChange(event: { detail: { value: number } }) {
@@ -675,10 +638,6 @@ function searchWorksheets() {
 function resetFilters() {
   filters.startTime = "";
   filters.endTime = "";
-  startDateValue.value = "";
-  startTimeValue.value = "";
-  endDateValue.value = "";
-  endTimeValue.value = "";
   filters.worksheetNumber = "";
   filters.worksheetType = "";
   filters.worksheetStatus = "";
@@ -880,11 +839,13 @@ function normalizeDateForApi(value: string, isEnd: boolean) {
     return undefined;
   }
 
-  if (value.includes("T")) {
-    return value.length === 16 ? `${value}:00` : value;
+  const normalizedValue = normalizeDisplayDatetime(value);
+
+  if (normalizedValue.includes("T")) {
+    return normalizedValue.length === 16 ? `${normalizedValue}:00` : normalizedValue;
   }
 
-  return `${value}T${isEnd ? "23:59:59" : "00:00:00"}`;
+  return `${normalizedValue}T${isEnd ? "23:59:59" : "00:00:00"}`;
 }
 
 function normalizeDatetimeForApi(value: string) {
@@ -892,7 +853,17 @@ function normalizeDatetimeForApi(value: string) {
     return undefined;
   }
 
-  return value.includes("T") ? `${value.length === 16 ? `${value}:00` : value}` : value;
+  const normalizedValue = normalizeDisplayDatetime(value);
+  return normalizedValue.includes("T") ? `${normalizedValue.length === 16 ? `${normalizedValue}:00` : normalizedValue}` : normalizedValue;
+}
+
+function normalizeDisplayDatetime(value: string) {
+  return value.trim().replace(/\s+/, "T");
+}
+
+function getEventValue(event: Event & { detail?: { value?: string } }) {
+  const target = event.target as HTMLInputElement | null;
+  return event.detail?.value || target?.value || "";
 }
 
 function toDatetimeLocal(value: Date | string) {
@@ -915,6 +886,15 @@ function formatDateTime(value: string) {
   }
 
   return value.replace("T", " ").replace(/\.\d{3}Z?$/, "");
+}
+
+function formatDatetimeForControl(value: string) {
+  if (!value) {
+    return "";
+  }
+
+  const normalizedValue = normalizeDatetimeForApi(value);
+  return normalizedValue ? normalizedValue.replace("T", " ") : "";
 }
 
 function generateWorksheetNumber() {
@@ -1106,15 +1086,12 @@ defineExpose({
   flex-wrap: wrap;
 }
 
-.datetime-picker-group {
+.datetime-picker-control {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 6px;
-}
-
-.datetime-picker-control {
   box-sizing: border-box;
-  width: 136px;
+  width: 188px;
   height: 34px;
   padding: 0 10px;
   overflow: hidden;
@@ -1128,12 +1105,18 @@ defineExpose({
   border-radius: 4px;
 }
 
-.datetime-picker-control--time {
-  width: 88px;
-}
-
 .datetime-picker-control--empty {
   color: #9aa9b8;
+}
+
+.datetime-native-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0;
 }
 
 .filter-select {
