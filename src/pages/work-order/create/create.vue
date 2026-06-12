@@ -281,7 +281,7 @@ async function submitCreate() {
     uni.showToast({ title: "工单创建成功", icon: "success" });
     dialogVisible.value = false;
     resetCreateForm();
-    await tableViewRef.value?.fetchWorksheets();
+    await tableViewRef.value?.resetFiltersAndFetch();
   } catch (error) {
     uni.showToast({
       title: (error as { msg?: string })?.msg || "工单创建失败",

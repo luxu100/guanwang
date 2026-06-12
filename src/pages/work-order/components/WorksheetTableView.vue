@@ -640,6 +640,11 @@ function searchWorksheets() {
 }
 
 function resetFilters() {
+  clearFilters();
+  searchWorksheets();
+}
+
+function clearFilters() {
   filters.startTime = "";
   filters.endTime = "";
   filters.worksheetNumber = "";
@@ -647,7 +652,12 @@ function resetFilters() {
   filters.worksheetStatus = "";
   filters.riseAccount = "";
   filters.executeAccount = "";
-  searchWorksheets();
+}
+
+function resetFiltersAndFetch() {
+  clearFilters();
+  pagination.pageNum = 1;
+  return fetchWorksheets();
 }
 
 function changePage(step: number) {
@@ -912,6 +922,7 @@ function generateWorksheetNumber() {
 
 defineExpose({
   fetchWorksheets,
+  resetFiltersAndFetch,
 });
 </script>
 
@@ -1401,7 +1412,10 @@ defineExpose({
   flex: none;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  height: 44px;
+  gap: 4px;
+  height: 46px;
+  padding: 5px 6px 0;
+  background: #f7fbff;
   border-bottom: 1px solid #edf3f8;
 }
 
@@ -1409,20 +1423,19 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #5d7188;
+  color: #667b90;
   font-size: 14px;
   font-weight: 800;
   cursor: pointer;
-  border-right: 1px solid #edf3f8;
-}
-
-.detail-tab:last-child {
-  border-right: 0;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 6px 6px 0 0;
 }
 
 .detail-tab--active {
   color: #0d82ee;
-  background: #f4faff;
+  background: #ffffff;
+  border-color: #dceaf6;
   box-shadow: inset 0 3px 0 #0d82ee;
 }
 
@@ -1430,10 +1443,10 @@ defineExpose({
   flex: 1;
   height: auto;
   min-height: 0;
-  padding: 14px;
+  padding: 14px 14px 16px;
   overflow-y: auto;
   background:
-    linear-gradient(180deg, rgba(244, 250, 255, 0.72), rgba(255, 255, 255, 0) 96px),
+    linear-gradient(180deg, rgba(240, 247, 253, 0.88), rgba(255, 255, 255, 0) 118px),
     #ffffff;
 }
 
@@ -1447,7 +1460,7 @@ defineExpose({
 
 .detail-grid {
   display: grid;
-  gap: 10px;
+  gap: 11px;
 }
 
 .detail-grid--base {
@@ -1463,33 +1476,51 @@ defineExpose({
 }
 
 .detail-item {
+  position: relative;
   min-width: 0;
-  padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid #e3edf7;
+  padding: 11px 12px 11px 13px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #dfeaf5;
   border-radius: 6px;
-  box-shadow: 0 6px 14px rgba(24, 55, 85, 0.05);
+  box-shadow: 0 8px 18px rgba(24, 55, 85, 0.055);
+}
+
+.detail-item::before {
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  left: 0;
+  width: 3px;
+  content: "";
+  background: #9bcdf7;
+  border-radius: 0 999px 999px 0;
 }
 
 .detail-grid--base .detail-item {
-  background: #f8fbfe;
+  background: linear-gradient(180deg, #ffffff, #f8fbfe);
 }
 
 .detail-grid--content .detail-item {
-  padding: 12px;
+  padding: 12px 12px 13px;
   background: #fbfdff;
 }
 
 .detail-grid--time .detail-item {
-  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px 10px 13px;
   background: #ffffff;
 }
 
 .detail-item__label {
   display: block;
-  color: #71859a;
+  color: #6f8296;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
+  line-height: 1.2;
 }
 
 .detail-item__value {
@@ -1497,16 +1528,24 @@ defineExpose({
   margin-top: 7px;
   color: #172033;
   font-size: 14px;
+  font-weight: 700;
   line-height: 1.45;
   word-break: break-all;
 }
 
+.detail-grid--time .detail-item__value {
+  margin-top: 0;
+  color: #23384d;
+  text-align: right;
+}
+
 .detail-grid--content .detail-item__value {
-  min-height: 34px;
-  padding: 9px 10px;
+  min-height: 46px;
+  padding: 10px 11px;
   color: #24384d;
-  background: #f4f8fc;
-  border: 1px solid #e8f0f7;
+  font-weight: 600;
+  background: #f5f9fd;
+  border: 1px solid #e4eef7;
   border-radius: 4px;
   white-space: pre-wrap;
 }
@@ -1516,11 +1555,11 @@ defineExpose({
   display: inline-flex;
   align-items: center;
   width: fit-content;
-  min-height: 24px;
-  padding: 0 9px;
+  min-height: 25px;
+  padding: 0 10px;
   font-size: 13px;
   font-weight: 800;
-  line-height: 24px;
+  line-height: 25px;
   border-radius: 999px;
 }
 

@@ -597,7 +597,7 @@ function getInitialPath() {
 }
 
 function isDefaultAliasPath(path: string) {
-  return path === "/pages/index/index" || !path;
+  return !path;
 }
 
 function getInitialMenuCollapsed() {
