@@ -1,435 +1,479 @@
 # 城市管网渗漏预警平台
 
-基于 `uni-app`、`Vue 3`、`TypeScript` 和 `Vite 5` 的城市管网渗漏预警前端项目。项目主要面向 H5 端开发，同时保留多端小程序构建脚本。
+城市管网渗漏预警平台前端工程，基于 `uni-app`、`Vue 3`、`TypeScript` 和 `Vite 5` 构建。项目当前以 H5 后台管理端为主，同时保留微信、支付宝、百度、QQ、头条、小红书等多端小程序构建脚本，方便后续按终端形态扩展。
 
-本文档用于项目交接和日常开发，包含项目定位、运行方式、目录结构、页面路由、接口封装、样式组织和维护规范。
+系统围绕城市管网渗漏业务展开，覆盖渗漏监测、站点管理、设备管理、数据分析、疑漏点上报、统计分析、工单管理、实时报警、统计报表、系统设置、数据接收和解析等模块。登录后统一进入后台应用外壳，默认展示“渗漏监测”页面。
 
-## 阅读导航
+## 目录
 
-| 想了解 | 查看章节 |
-| --- | --- |
-| 如何运行项目 | [快速开始](#快速开始)、[常用脚本](#常用脚本) |
-| 代码放在哪里 | [目录结构](#目录结构) |
-| 页面和路由关系 | [页面目录和路由清单](#页面目录和路由清单) |
-| 接口如何组织 | [请求封装](#请求封装)、[services 目录说明](#services-目录说明) |
-| 新增页面或接口 | [新增页面流程](#新增页面流程)、[新增接口流程](#新增接口流程) |
-| 提交前检查 | [提交前检查](#提交前检查) |
+- [项目定位](#项目定位)
+- [技术架构](#技术架构)
+- [快速开始](#快速开始)
+- [环境和接口地址](#环境和接口地址)
+- [目录结构](#目录结构)
+- [页面和路由](#页面和路由)
+- [接口模块](#接口模块)
+- [核心实现说明](#核心实现说明)
+- [样式和资源](#样式和资源)
+- [开发流程](#开发流程)
+- [提交前检查](#提交前检查)
+- [常见问题](#常见问题)
 
-## 项目概览
+## 项目定位
 
-- 登录/注册页面负责账号入口、表单校验、登录态保存和错误提示。
-- 后台通用外壳 `AppShell` 负责顶部栏、站点搜索、侧边目录、页面页签、退出登录和内容区全屏能力。
-- 渗漏监测页面通过腾讯地图 GL JS SDK 展示地图、中心点和监测相关视图。
-- `src/services` 下按模块组织接口封装，便于页面按业务目录调用对应服务。
+本项目是城市管网渗漏预警平台的前端管理端，主要承担：
 
-## 技术栈
+- 用户登录、注册、登录态保存和权限信息缓存。
+- 后台管理端通用布局，包括顶部栏、侧边菜单、页面页签、内容区和退出登录。
+- 管网渗漏地图监测入口。
+- 站点、设备、报警、工单、报表、系统配置等业务模块页面承载。
+- 后端 API 的前端 service 封装。
+- H5 和多端小程序工程结构维护。
 
-| 类别 | 选型 | 说明 |
+当前业务页面多数已经完成路由、外壳、接口服务和页面骨架，后续开发应在既有模块和 service 基础上补充真实业务交互。
+
+## 技术架构
+
+### 总体架构
+
+```mermaid
+flowchart LR
+  User["用户 / 浏览器"] --> Uni["uni-app H5 应用"]
+  Uni --> Login["登录页"]
+  Uni --> Shell["AppShell 后台外壳"]
+  Shell --> Menu["侧边菜单"]
+  Shell --> Tabs["顶部页签"]
+  Shell --> Pages["业务页面"]
+  Pages --> Services["src/services 业务接口层"]
+  Services --> Request["src/utils/request.js"]
+  Request --> API["后端 API 服务"]
+  Pages --> Map["腾讯地图 GL JS SDK"]
+```
+
+### 技术栈
+
+| 层级 | 技术 | 说明 |
 | --- | --- | --- |
-| 跨端框架 | uni-app | 统一 H5 和多端小程序工程结构 |
-| 前端框架 | Vue 3 | 使用 `<script setup>` 和 Composition API |
-| 开发语言 | TypeScript | 页面逻辑和类型声明使用 TS，部分接口文件仍是 JS |
-| 构建工具 | Vite 5 | 由 uni-app CLI 驱动 |
-| 样式 | SCSS / Sass | Sass 固定为 `1.78.0` |
-| 包管理器 | npm | 使用 `package-lock.json` 锁定依赖 |
+| 应用框架 | `uni-app` | 统一 H5 和多端小程序目录、生命周期、路由和构建能力 |
+| UI 框架 | `Vue 3` | 使用 `<script setup>` 和 Composition API |
+| 类型系统 | `TypeScript` | 页面、组件、声明文件使用 TS；部分 service 仍为 JS |
+| 构建工具 | `Vite 5` | 由 `@dcloudio/vite-plugin-uni` 接入 uni-app |
+| 样式方案 | `SCSS` | 页面 scoped 样式为主，全局变量和 mixin 由 Vite 注入 |
+| 请求层 | `uni.request` | 通过 `src/utils/request.js` 封装统一请求入口 |
+| 地图能力 | 腾讯地图 GL JS SDK | 渗漏监测组件运行时懒加载 |
+| 包管理 | `npm` | 使用 `package-lock.json` 锁定依赖版本 |
+
+### 分层说明
+
+| 层级 | 目录 / 文件 | 职责 |
+| --- | --- | --- |
+| 应用入口 | `src/main.ts`、`src/App.vue` | 创建应用实例，承载 uni-app 根组件 |
+| 路由配置 | `src/pages.json` | 注册页面路由、页面标题和自定义导航 |
+| 后台外壳 | `src/components/AppShell.vue` | 登录后统一布局、菜单、页签、默认页面和退出登录 |
+| 页面层 | `src/pages/**` | 业务页面、页面组件和页面样式 |
+| 接口层 | `src/services/**` | 按业务模块封装后端 API |
+| 请求基础层 | `src/utils/request.js` | 基础地址、认证头、错误标准化、请求发起 |
+| 样式基础层 | `src/styles/**`、`src/uni.scss` | 全局样式、变量、mixin 和 uni 样式变量 |
+| 静态资源 | `src/assets/**` | 背景图、logo 等静态资源 |
+
+### 登录后页面运行关系
+
+```mermaid
+flowchart TD
+  Login["/pages/login/login"] -->|"登录成功"| Leak["/pages/leak-monitor/leak-monitor"]
+  Leak --> Shell["AppShell"]
+  Shell --> TencentMap["TencentLeakMap"]
+  Shell --> OtherPages["其他业务页面 slot"]
+  Shell --> Storage["本地缓存 token / userInfo / permissions / roles"]
+```
 
 ## 快速开始
 
-| 步骤 | 命令 | 说明 |
-| --- | --- | --- |
-| 安装依赖 | `npm install` | 根据 `package-lock.json` 安装依赖 |
-| 启动 H5 | `npm run dev:h5` | 默认访问 `http://localhost:5173/`，端口占用时会自动顺延 |
-| 类型检查 | `npm run type-check` | 检查 Vue 和 TypeScript 类型 |
-| H5 构建 | `npm run build:h5` | 生成 H5 构建产物 |
-| 完整检查 | `npm run check` | 先执行类型检查，再执行 H5 构建 |
+### 安装依赖
 
-## 常用脚本
+```bash
+npm install
+```
+
+### 启动 H5
+
+```bash
+npm run dev:h5
+```
+
+H5 开发服务默认从 `5173` 开始分配端口，若端口被占用会自动顺延。以终端输出的 `Local` 地址为准。
+
+### 常用脚本
 
 | 命令 | 说明 |
 | --- | --- |
 | `npm run dev:h5` | 启动 H5 本地开发服务 |
-| `npm run build:h5` | 构建 H5 产物 |
-| `npm run type-check` | 执行 Vue/TypeScript 类型检查 |
-| `npm run check` | 先类型检查，再构建 H5 |
+| `npm run build:h5` | 构建 H5 生产产物 |
+| `npm run type-check` | 执行 Vue 和 TypeScript 类型检查 |
+| `npm run check` | 先类型检查，再执行 H5 构建 |
 | `npm run dev:mp-weixin` | 微信小程序开发构建 |
 | `npm run build:mp-weixin` | 微信小程序生产构建 |
+| `npm run dev:mp-alipay` | 支付宝小程序开发构建 |
+| `npm run build:mp-alipay` | 支付宝小程序生产构建 |
 
-其他小程序平台脚本可查看 `package.json`。
+其他平台脚本可在 `package.json` 中查看，包括百度、京东、快手、QQ、头条、小红书等平台。
+
+## 环境和接口地址
+
+接口基础地址由 `src/utils/request.js` 统一处理。
+
+| 配置 | 说明 |
+| --- | --- |
+| 默认后端地址 | `http://47.118.24.91:28082` |
+| 环境变量 | `VITE_API_BASE_URL` |
+| 开发代理 | `vite.config.ts` 中 `/api` 代理到默认后端 |
+| 请求超时 | 默认 `15000ms` |
+| 认证头 | 自动读取本地缓存中的 `token` 和 `tokenPrefix` |
+
+示例：
+
+```bash
+VITE_API_BASE_URL=http://example.com npm run dev:h5
+```
+
+登录成功后写入本地缓存：
+
+| Key | 来源 | 用途 |
+| --- | --- | --- |
+| `token` | 登录接口返回 | 后续请求认证 |
+| `tokenPrefix` | 登录接口返回 | 拼接 `Authorization` 前缀 |
+| `userInfo` | 登录接口返回 | 顶部用户信息展示 |
+| `permissions` | 登录接口返回 | 权限数据缓存 |
+| `roles` | 登录接口返回 | 角色数据缓存 |
+| `rememberLoginAccount` | 登录页记住账号功能 | 回填登录账号和密码 |
+| `sideMenuCollapsed` | 后台外壳 | 记忆侧边栏折叠状态 |
 
 ## 目录结构
 
-### 项目根目录
+### 根目录
 
-```text
-guanwang/
-├─ src/
-├─ index.html
-├─ package.json
-├─ package-lock.json
-├─ tsconfig.json
-├─ vite.config.ts
-└─ README.md
-```
+| 路径 | 说明 |
+| --- | --- |
+| `src/` | 前端源码目录 |
+| `dist/` | 构建输出目录，提交时通常不应纳入版本控制 |
+| `index.html` | H5 入口 HTML |
+| `package.json` | 依赖、脚本和项目信息 |
+| `package-lock.json` | npm 依赖锁定文件 |
+| `tsconfig.json` | TypeScript 配置 |
+| `vite.config.ts` | Vite 和 uni-app 插件配置 |
+| `Dockerfile` | 容器化部署配置 |
+| `README.md` | 项目说明文档 |
 
 ### `src` 目录
 
 | 路径 | 说明 |
 | --- | --- |
-| `src/assets/images` | 项目图片资源 |
-| `src/components/AppShell.vue` | 登录后后台外壳，包含顶部栏、侧边栏、页签和内容区 |
-| `src/pages` | 页面目录，按业务模块分组 |
-| `src/services` | 接口请求和业务服务目录 |
-| `src/styles` | 全局样式、变量和 mixin |
-| `src/utils/request.js` | 请求封装 |
+| `src/assets/images/` | 背景图、logo 等图片资源 |
+| `src/components/AppShell.vue` | 登录后后台外壳，维护顶部栏、侧边栏、页签和内容区 |
+| `src/pages/` | 页面目录，按业务模块分组 |
+| `src/services/` | 接口请求服务，按业务模块分组 |
+| `src/styles/global.scss` | 全局样式 |
+| `src/styles/variables.scss` | 全局 SCSS 变量 |
+| `src/styles/mixins.scss` | 全局 SCSS mixin |
+| `src/utils/request.js` | 统一请求封装 |
 | `src/App.vue` | 应用根组件 |
 | `src/main.ts` | 应用入口 |
 | `src/pages.json` | uni-app 页面路由配置 |
 | `src/manifest.json` | uni-app 应用配置 |
-| `src/uni.scss` | uni-app 内置样式变量 |
+| `src/uni.scss` | uni-app 样式变量 |
+| `src/env.d.ts`、`src/shims-uni.d.ts` | 类型声明 |
+| `src/auto-imports.d.ts` | 自动导入类型声明 |
 
-### `src/pages` 目录
+### `src/pages` 模块结构
 
-| 目录 | 业务模块 | 主要文件 |
+| 目录 | 模块 | 说明 |
 | --- | --- | --- |
-| `login` | 登录和注册 | `login.vue`、`login.scss` |
-| `index` | 我的收藏 / 首页入口 | `index.vue` |
-| `leak-monitor` | 渗漏监测 | `leak-monitor.vue`、`components/TencentLeakMap.vue` |
-| `station` | 站点管理 | `station.vue` |
-| `device` | 设备管理 | `info`、`maintenance`、`status` |
-| `data-analysis` | 数据分析 | `overview`、`audio`、`device-params`、`leakage` |
-| `leak-report` | 疑漏点上报 | `suspect-management`、`suspect-processing`、`leak-management`、`leak-analysis`、`history-overview` |
-| `statistics` | 统计分析 | `statistics.vue` |
-| `work-order` | 工单管理 | `create`、`processing`、`statistics` |
-| `alarm` | 实时报警 | `strategy`、`processing`、`analysis` |
-| `report` | 统计报表 | `generate`、`operation`、`command` |
-| `system` | 系统设置 | `user`、`auth`、`menu`、`dict` |
-| `data-receive` | 数据接收和解析 | `access`、`parse`、`record` |
-
-### `src/services` 目录
-
-| 目录 | 业务模块 | 说明 |
-| --- | --- | --- |
-| `shared` | 公共服务 | REST 请求方法和 CRUD 工厂 |
-| `user` | 账号服务 | 登录、注册、用户信息 |
-| `leak-monitor` | 渗漏监测 | 地图、监测点、地图数据 |
+| `login` | 登录注册 | 登录、注册、记住账号、登录态保存 |
+| `index` | 首页入口 | 我的收藏或后台首页入口 |
+| `leak-monitor` | 渗漏监测 | 地图监测页面和腾讯地图组件 |
 | `station` | 站点管理 | 站点、分区、部门等基础资源 |
 | `device` | 设备管理 | 设备信息、拆装维护、设备状态 |
 | `data-analysis` | 数据分析 | 系统总览、音频、设备参数、渗漏数据 |
-| `leak-report` | 疑漏点上报 | 疑点、漏点、分析、历史总览 |
-| `statistics` | 统计分析 | 平台统计指标 |
-| `work-order` | 工单管理 | 工单创建、处理、查询统计 |
+| `leak-report` | 疑漏点上报 | 疑点、漏点、处理、分析和历史 |
+| `statistics` | 统计分析 | 设备、渗漏、工单、报警等统计 |
+| `work-order` | 工单管理 | 工单创建、处理、查询与统计 |
 | `alarm` | 实时报警 | 报警策略、处理、分析 |
 | `report` | 统计报表 | 报表生成、操作、指令管理 |
 | `system` | 系统设置 | 用户、权限、菜单、字典 |
-| `data-receive` | 数据接收和解析 | 数据接入、解析、记录 |
+| `data-receive` | 数据接收和解析 | 协议接入、解析规则、数据记录 |
 
-## 页面目录和路由清单
+### `src/services` 模块结构
 
-页面路由统一配置在 `src/pages.json`，后台菜单统一配置在 `src/components/AppShell.vue`。下列表格中的“文件”列均相对 `src/pages` 目录。新增、移动或删除页面时，需要同步维护页面文件、路由配置和后台菜单。
-
-### 顶层页面
-
-| 页面 | 路由 | 文件 | 职责 |
-| --- | --- | --- | --- |
-| 登录 | `/pages/login/login` | `login/login.vue` | 登录、注册、表单校验、登录态写入和错误提示入口。样式在 `login/login.scss`。 |
-| 我的收藏 | `/pages/index/index` | `index/index.vue` | 后台首页入口，可承载常用页面、收藏菜单或快捷入口。 |
-| 渗漏监测 | `/pages/leak-monitor/leak-monitor` | `leak-monitor/leak-monitor.vue` | 后台外壳中的地图监测页面，通过 `TencentLeakMap` 展示腾讯地图。 |
-| 站点管理 | `/pages/station/station` | `station/station.vue` | 用于维护站点、分区、部门等管网基础资源。 |
-| 统计分析 | `/pages/statistics/statistics` | `statistics/statistics.vue` | 用于承载平台级统计看板、指标汇总和趋势分析。 |
-
-### 渗漏监测子目录
-
-| 文件 | 类型 | 说明 |
+| 目录 | 模块 | 说明 |
 | --- | --- | --- |
-| `leak-monitor/leak-monitor.vue` | 页面 | 渗漏监测路由页面，只负责接入后台外壳并放置地图业务组件。 |
-| `leak-monitor/components/TencentLeakMap.vue` | 组件 | 腾讯地图 GL JS SDK 懒加载、地图初始化、中心标记和组件销毁清理。 |
+| `shared` | 通用请求能力 | GET、POST、PUT、DELETE 和 CRUD 工厂 |
+| `user` | 用户服务 | 登录、注册、用户 CRUD、角色分配、密码更新 |
+| `leak-monitor` | 渗漏监测 | 地图相关设备、管网、漏点、音频、算法结果 |
+| `station` | 站点管理 | 站点、管网分区、部门 |
+| `device` | 设备管理 | 设备、产品、协议、维护、状态 |
+| `data-analysis` | 数据分析 | 总览、音频、设备参数、渗漏数据 |
+| `leak-report` | 疑漏点上报 | 疑点、漏点、分析、历史、处理动作 |
+| `statistics` | 统计分析 | 平台级汇总统计 |
+| `work-order` | 工单管理 | 工单创建、处理、统计、导出 |
+| `alarm` | 实时报警 | 报警策略、报警记录、确认、忽略、转工单 |
+| `report` | 统计报表 | 报表模板、任务、报表、指令、固件 |
+| `system` | 系统设置 | 用户、角色、权限、菜单、字典 |
+| `data-receive` | 数据接收和解析 | 协议、字段、解析记录、采样记录 |
 
-### 设备管理 `device`
+## 页面和路由
 
-| 页面 | 路由 | 文件 | 职责 |
+页面路由统一配置在 `src/pages.json`。后台菜单统一配置在 `src/components/AppShell.vue`。
+
+路径规则：
+
+- `pages.json` 中的 `path` 不带开头斜杠，例如 `pages/leak-monitor/leak-monitor`
+- `AppShell.vue` 菜单中的 `path` 带开头斜杠，例如 `/pages/leak-monitor/leak-monitor`
+
+### 顶层和独立页面
+
+| 页面 | 路由 | 页面文件 | 说明 |
 | --- | --- | --- | --- |
-| 设备信息 | `/pages/device/info/info` | `device/info/info.vue` | 用于维护设备档案、设备产品、设备协议和基础属性。 |
-| 拆装维护 | `/pages/device/maintenance/maintenance` | `device/maintenance/maintenance.vue` | 用于记录设备安装、拆除、维修、保养等维护流程。 |
-| 设备状态 | `/pages/device/status/status` | `device/status/status.vue` | 用于查看设备在线状态、运行状态、故障状态和状态历史。 |
+| 登录 / 注册 | `/pages/login/login` | `src/pages/login/login.vue` | 用户登录、注册、表单校验、记住账号、登录态保存 |
+| 管网首页 / 我的收藏 | `/pages/index/index` | `src/pages/index/index.vue` | 首页入口，当前可作为收藏和常用功能承载页 |
+| 渗漏监测 | `/pages/leak-monitor/leak-monitor` | `src/pages/leak-monitor/leak-monitor.vue` | 登录后的默认页面，承载腾讯地图监测组件 |
+| 站点管理 | `/pages/station/station` | `src/pages/station/station.vue` | 站点、分区、部门等基础资源管理 |
+| 统计分析 | `/pages/statistics/statistics` | `src/pages/statistics/statistics.vue` | 平台级数据统计页面 |
 
-### 数据分析 `data-analysis`
+### 渗漏监测
 
-| 页面 | 路由 | 文件 | 职责 |
+| 页面 / 组件 | 路由 | 文件 | 说明 |
 | --- | --- | --- | --- |
-| 系统总览 | `/pages/data-analysis/overview/overview` | `data-analysis/overview/overview.vue` | 用于展示系统总体运行指标、站点概况、设备概况和数据概况。 |
-| 音频数据 | `/pages/data-analysis/audio/audio` | `data-analysis/audio/audio.vue` | 用于查看、检索和分析设备采集的音频数据。 |
-| 设备参数 | `/pages/data-analysis/device-params/device-params` | `data-analysis/device-params/device-params.vue` | 用于分析设备参数、采集频率、阈值和参数变化。 |
-| 渗漏数据 | `/pages/data-analysis/leakage/leakage` | `data-analysis/leakage/leakage.vue` | 用于展示渗漏指标、疑似渗漏趋势和分析结果。 |
+| 渗漏监测页面 | `/pages/leak-monitor/leak-monitor` | `src/pages/leak-monitor/leak-monitor.vue` | 使用 `AppShell` 包裹，渲染地图组件 |
+| 腾讯地图组件 | 无独立路由 | `src/pages/leak-monitor/components/TencentLeakMap.vue` | 懒加载腾讯地图 GL JS SDK，初始化地图和中心标记 |
 
-### 疑漏点上报 `leak-report`
+### 设备管理
 
-| 页面 | 路由 | 文件 | 职责 |
+| 页面 | 路由 | 文件 | 说明 |
 | --- | --- | --- | --- |
-| 疑点管理 | `/pages/leak-report/suspect-management/suspect-management` | `leak-report/suspect-management/suspect-management.vue` | 用于管理系统识别或人工上报的疑似漏点。 |
-| 疑点处理 | `/pages/leak-report/suspect-processing/suspect-processing` | `leak-report/suspect-processing/suspect-processing.vue` | 用于疑点核查、派发、确认和处理记录。 |
-| 漏点管理 | `/pages/leak-report/leak-management/leak-management` | `leak-report/leak-management/leak-management.vue` | 用于已确认漏点的登记、定位、状态跟踪和闭环管理。 |
-| 漏点分析 | `/pages/leak-report/leak-analysis/leak-analysis` | `leak-report/leak-analysis/leak-analysis.vue` | 用于漏点原因、区域、频次、趋势等分析。 |
-| 历史总览 | `/pages/leak-report/history-overview/history-overview` | `leak-report/history-overview/history-overview.vue` | 用于查看疑点和漏点历史数据总览。 |
+| 设备信息 | `/pages/device/info/info` | `src/pages/device/info/info.vue` | 设备档案、设备产品、设备协议绑定 |
+| 拆装维护 | `/pages/device/maintenance/maintenance` | `src/pages/device/maintenance/maintenance.vue` | 设备安装、拆除、维修、保养等维护记录 |
+| 设备状态 | `/pages/device/status/status` | `src/pages/device/status/status.vue` | 设备状态、状态上报、设备日数据 |
 
-### 工单管理 `work-order`
+### 数据分析
 
-| 页面 | 路由 | 文件 | 职责 |
+| 页面 | 路由 | 文件 | 说明 |
 | --- | --- | --- | --- |
-| 工单创建 | `/pages/work-order/create/create` | `work-order/create/create.vue` | 用于创建巡检、维修、核查等工单。 |
-| 工单处理 | `/pages/work-order/processing/processing` | `work-order/processing/processing.vue` | 用于接单、流转、处理、验收和关闭工单。 |
-| 工单查询与统计 | `/pages/work-order/statistics/statistics` | `work-order/statistics/statistics.vue` | 用于查询工单列表、处理效率和统计指标。 |
+| 系统总览 | `/pages/data-analysis/overview/overview` | `src/pages/data-analysis/overview/overview.vue` | 系统、设备、渗漏、工单、报警等总览数据 |
+| 音频数据 | `/pages/data-analysis/audio/audio` | `src/pages/data-analysis/audio/audio.vue` | 采样音频和采样明细分析 |
+| 设备参数 | `/pages/data-analysis/device-params/device-params` | `src/pages/data-analysis/device-params/device-params.vue` | 设备设置、设备日数据、设备状态上报 |
+| 渗漏数据 | `/pages/data-analysis/leakage/leakage` | `src/pages/data-analysis/leakage/leakage.vue` | 渗漏记录和算法结果分析 |
 
-### 实时报警 `alarm`
+### 疑漏点上报
 
-| 页面 | 路由 | 文件 | 职责 |
+| 页面 | 路由 | 文件 | 说明 |
 | --- | --- | --- | --- |
-| 报警策略 | `/pages/alarm/strategy/strategy` | `alarm/strategy/strategy.vue` | 用于配置报警规则、阈值、触发条件和启停状态。 |
-| 报警处理 | `/pages/alarm/processing/processing` | `alarm/processing/processing.vue` | 用于处理实时报警、确认报警和记录处置结果。 |
-| 报警分析 | `/pages/alarm/analysis/analysis` | `alarm/analysis/analysis.vue` | 用于报警数量、类型、区域、趋势和处置效率分析。 |
+| 疑点管理 | `/pages/leak-report/suspect-management/suspect-management` | `src/pages/leak-report/suspect-management/suspect-management.vue` | 疑似漏点分页、详情、创建、更新、删除 |
+| 疑点处理 | `/pages/leak-report/suspect-processing/suspect-processing` | `src/pages/leak-report/suspect-processing/suspect-processing.vue` | 疑点分配、确认、排除、转工单 |
+| 漏点管理 | `/pages/leak-report/leak-management/leak-management` | `src/pages/leak-report/leak-management/leak-management.vue` | 已确认漏点管理 |
+| 漏点分析 | `/pages/leak-report/leak-analysis/leak-analysis` | `src/pages/leak-report/leak-analysis/leak-analysis.vue` | 漏点趋势、分布、修复统计和算法结果 |
+| 历史总览 | `/pages/leak-report/history-overview/history-overview` | `src/pages/leak-report/history-overview/history-overview.vue` | 疑点和漏点历史分页、详情 |
 
-### 统计报表 `report`
+### 工单管理
 
-| 页面 | 路由 | 文件 | 职责 |
+| 页面 | 路由 | 文件 | 说明 |
 | --- | --- | --- | --- |
-| 报表生成 | `/pages/report/generate/generate` | `report/generate/generate.vue` | 用于按条件生成日报、周报、月报或专项报表。 |
-| 报表操作 | `/pages/report/operation/operation` | `report/operation/operation.vue` | 用于报表查看、下载、导出、删除和重新生成。 |
-| 指令管理 | `/pages/report/command/command` | `report/command/command.vue` | 用于管理设备指令、下发记录和执行结果。 |
+| 工单创建 | `/pages/work-order/create/create` | `src/pages/work-order/create/create.vue` | 创建工单和查询工单基础信息 |
+| 工单处理 | `/pages/work-order/processing/processing` | `src/pages/work-order/processing/processing.vue` | 工单详情、更新、分派、催办、关闭 |
+| 工单查询与统计 | `/pages/work-order/statistics/statistics` | `src/pages/work-order/statistics/statistics.vue` | 工单分页、列表、统计、导出 |
 
-### 系统设置 `system`
+### 实时报警
 
-| 页面 | 路由 | 文件 | 职责 |
+| 页面 | 路由 | 文件 | 说明 |
 | --- | --- | --- | --- |
-| 用户配置 | `/pages/system/user/user` | `system/user/user.vue` | 用于用户账号、组织关系、角色分配和账号状态维护。 |
-| 权限管理 | `/pages/system/auth/auth` | `system/auth/auth.vue` | 用于角色、权限点、资源权限和授权关系维护。 |
-| 菜单管理 | `/pages/system/menu/menu` | `system/menu/menu.vue` | 用于维护后台菜单、页面路由、排序和可见性。 |
-| 数据字典 | `/pages/system/dict/dict` | `system/dict/dict.vue` | 用于维护枚举、状态、类型等字典数据。 |
+| 报警策略 | `/pages/alarm/strategy/strategy` | `src/pages/alarm/strategy/strategy.vue` | 报警策略 CRUD |
+| 报警处理 | `/pages/alarm/processing/processing` | `src/pages/alarm/processing/processing.vue` | 报警记录、确认、忽略、转工单 |
+| 报警分析 | `/pages/alarm/analysis/analysis` | `src/pages/alarm/analysis/analysis.vue` | 报警统计、趋势、导出 |
 
-### 数据接收和解析 `data-receive`
+### 统计报表
 
-| 页面 | 路由 | 文件 | 职责 |
+| 页面 | 路由 | 文件 | 说明 |
 | --- | --- | --- | --- |
-| 数据接入 | `/pages/data-receive/access/access` | `data-receive/access/access.vue` | 用于配置设备数据接入方式、接入状态和接入来源。 |
-| 数据解析 | `/pages/data-receive/parse/parse` | `data-receive/parse/parse.vue` | 用于配置数据解析规则、协议解析和字段映射。 |
-| 数据记录 | `/pages/data-receive/record/record` | `data-receive/record/record.vue` | 用于查看接收记录、解析记录、异常记录和原始数据。 |
+| 报表生成 | `/pages/report/generate/generate` | `src/pages/report/generate/generate.vue` | 报表模板、生成任务、生成动作 |
+| 报表操作 | `/pages/report/operation/operation` | `src/pages/report/operation/operation.vue` | 报表查询、删除、导出、打印 |
+| 指令管理 | `/pages/report/command/command` | `src/pages/report/command/command.vue` | 指令字典、参数、下发记录、固件、升级 |
 
-### 页面开发约定
+### 系统设置
 
-- 登录后页面统一使用 `AppShell` 包裹，页面内容放在 `content-page` 容器内。
-- 页面模板内保留页面用途说明，开发时按页面语义补充真实内容。
-- `pages.json` 中的 `path` 不带开头斜杠，`AppShell` 菜单中的 `path` 带开头斜杠。
-- 页面标题以 `pages.json` 的 `navigationBarTitleText` 为准，后台菜单展示名以 `AppShell.vue` 的 `label` 为准。
-- 页面需要请求后端时，应调用 `src/services` 下对应模块，不要在页面中直接拼接接口地址。
+| 页面 | 路由 | 文件 | 说明 |
+| --- | --- | --- | --- |
+| 用户配置 | `/pages/system/user/user` | `src/pages/system/user/user.vue` | 用户 CRUD、角色分配、密码更新 |
+| 权限管理 | `/pages/system/auth/auth` | `src/pages/system/auth/auth.vue` | 角色、权限、权限树、角色授权 |
+| 菜单管理 | `/pages/system/menu/menu` | `src/pages/system/menu/menu.vue` | 基于权限资源维护菜单树 |
+| 数据字典 | `/pages/system/dict/dict` | `src/pages/system/dict/dict.vue` | 字典类型和字典项管理 |
 
-## 后台外壳 AppShell
+### 数据接收和解析
 
-`src/components/AppShell.vue` 是登录后页面的统一布局组件，职责包括：
+| 页面 | 路由 | 文件 | 说明 |
+| --- | --- | --- | --- |
+| 数据接入 | `/pages/data-receive/access/access` | `src/pages/data-receive/access/access.vue` | 协议定义、设备协议绑定 |
+| 数据解析 | `/pages/data-receive/parse/parse` | `src/pages/data-receive/parse/parse.vue` | 协议字段、解析记录、字段批量保存 |
+| 数据记录 | `/pages/data-receive/record/record` | `src/pages/data-receive/record/record.vue` | 采样记录、明细、日报、压力、CSS 采样数据 |
 
-- 顶部品牌和平台标题。
-- 站点搜索输入框。
-- 预警入口、用户信息和退出登录。
-- 左侧业务菜单和折叠态。
-- 页面页签打开、切换和关闭。
-- 内容区全屏和全屏退化方案。
-- H5 下浏览器路径、标题和当前页签同步。
+## 接口模块
 
-维护注意：
+### 请求封装
 
-- 菜单 `path` 必须和 `src/pages.json` 中的页面路径一致。
-- 菜单 `icon` 必须和 AppShell 样式里的 `side-menu__icon--xxx` / `page-tab__icon--xxx` 对应。
-- 新增页面后，需要同步维护页面文件、`pages.json` 和 AppShell 菜单。
-- AppShell 承担的布局职责较多，扩展复杂交互时可拆出顶部栏、侧边栏、页签和内容区组件。
+统一请求入口：`src/utils/request.js`
 
-## 登录页说明
+| 能力 | 说明 |
+| --- | --- |
+| 基础地址 | 优先读取 `VITE_API_BASE_URL`，否则使用默认后端地址 |
+| URL 标准化 | 支持完整 URL，也支持 `/api/user/login` 等相对路径 |
+| 认证头 | 自动读取 `token` 和 `tokenPrefix`，拼入 `Authorization` |
+| 超时 | 默认 `15000ms` |
+| 错误处理 | HTTP 非 2xx 和网络错误统一 reject 为 `{ code, msg, data }` |
 
-登录页相关文件：
+通用 CRUD 工厂：`src/services/shared/crud.js`
 
-- `src/pages/login/login.vue`
-- `src/pages/login/login.scss`
+| 方法 | HTTP | 默认路径 | 用途 |
+| --- | --- | --- | --- |
+| `getDetail(id)` | `GET` | `/resource/:id` | 详情 |
+| `create(data)` | `POST` | `/resource/create` | 新增 |
+| `update(id, data)` | `PUT` | `/resource/:id` | 更新 |
+| `delete(id)` | `DELETE` | `/resource/:id` | 删除 |
+| `getPage(data)` | `POST` | `/resource/page` | 分页 |
+| `getList(params)` | `GET` | `/resource/list` | 列表 |
+| `batchDelete(data)` | `DELETE` | `/resource/batch-delete` | 批量删除 |
 
-主要逻辑：
+### Service 详细清单
 
-- `activeMode` 控制登录/注册模式。
-- `loginForm` 保存登录表单。
-- `registerForm` 保存注册表单。
-- 登录成功后保存 `token`、`tokenPrefix`、`userInfo`、`permissions`、`roles`。
-- 登录态由 `src/utils/request.js` 自动读取并拼接到请求头。
+| 模块 | 文件 | 主要资源 / 接口 | 主要能力 |
+| --- | --- | --- | --- |
+| 用户服务 | `services/user/user.js` | `/api/user/login`、`/api/user/register`、`/api/user` | 登录、注册、用户 CRUD、批删、角色分配、密码更新 |
+| 系统用户 | `services/system/user.js` | 复用 `services/user/user.js` | 系统设置里的用户配置能力 |
+| 渗漏监测 | `services/leak-monitor/leak-monitor.js` | `/api/device`、`/api/tube-network`、`/api/leakage-record`、`/api/sampling-audio`、`/api/sampling-detail`、`/api/algorithm-result` | 地图设备、管网、渗漏记录、音频、采样明细、算法结果 |
+| 站点管理 | `services/station/station.js` | `/api/station`、`/api/tube-network`、`/api/dept` | 站点、分区、部门分页和列表 |
+| 设备信息 | `services/device/info.js` | `/api/device`、`/api/device-product`、`/api/device-protocol-relation` | 设备、产品、协议绑定、按设备/协议查询 |
+| 拆装维护 | `services/device/maintenance.js` | `/api/maintenance-record` | 维护记录 CRUD |
+| 设备状态 | `services/device/status.js` | `/api/device`、`/api/device-status-upload`、`/api/device-daily-data` | 设备状态、状态上报、设备日数据 |
+| 系统总览 | `services/data-analysis/overview.js` | `/api/statistics/overview`、`/api/statistics/device`、`/api/statistics/leakage`、`/api/statistics/worksheet`、`/api/statistics/alarm` | 总览统计 |
+| 音频数据 | `services/data-analysis/audio.js` | `/api/sampling-audio`、`/api/sampling-detail` | 采样音频和明细 |
+| 设备参数 | `services/data-analysis/device-params.js` | `/api/device-setting`、`/api/device-daily-data`、`/api/device-status-upload` | 设备设置、日数据、状态上报 |
+| 渗漏数据 | `services/data-analysis/leakage.js` | `/api/leakage-record`、`/api/algorithm-result` | 渗漏记录、算法结果 |
+| 疑点管理 | `services/leak-report/suspect-management.js` | `/api/suspected-leak`、`/api/leakage-record` | 疑点 CRUD、漏点关联查询 |
+| 疑点处理 | `services/leak-report/suspect-processing.js` | `/api/suspected-leak`、`/assign`、`/confirm`、`/exclude`、`/worksheet` | 分配、确认、排除、转工单 |
+| 漏点管理 | `services/leak-report/leak-management.js` | `/api/leakage-record` | 漏点记录 CRUD |
+| 漏点分析 | `services/leak-report/leak-analysis.js` | `/api/leakage-record`、`/api/algorithm-result`、`/trend`、`/distribution`、`/repair-statistics` | 趋势、分布、修复统计、算法分析 |
+| 历史总览 | `services/leak-report/history-overview.js` | `/api/suspected-leak`、`/api/leakage-record` | 疑点和漏点历史查询 |
+| 统计分析 | `services/statistics/statistics.js` | `/api/statistics/summary`、`/device`、`/leakage`、`/worksheet`、`/alarm` | 汇总统计 |
+| 工单创建 | `services/work-order/create.js` | `/api/worksheet` | 创建工单、工单分页/列表/详情 |
+| 工单处理 | `services/work-order/processing.js` | `/api/worksheet`、`/assign`、`/urge`、`/close` | 分派、催办、关闭、更新 |
+| 工单统计 | `services/work-order/statistics.js` | `/api/worksheet`、`/statistics`、`/export` | 工单统计、导出 |
+| 报警策略 | `services/alarm/strategy.js` | `/api/alarm-strategy` | 报警策略 CRUD |
+| 报警处理 | `services/alarm/processing.js` | `/api/alarm-record`、`/confirm`、`/ignore`、`/worksheet` | 报警确认、忽略、转工单 |
+| 报警分析 | `services/alarm/analysis.js` | `/api/alarm-record`、`/statistics`、`/trend`、`/export` | 报警统计、趋势、导出 |
+| 报表生成 | `services/report/generate.js` | `/api/report-template`、`/api/report-task`、`/api/report/generate` | 模板、任务、生成报表 |
+| 报表操作 | `services/report/operation.js` | `/api/report`、`/export`、`/print` | 报表查询、删除、导出、打印 |
+| 指令管理 | `services/report/command.js` | `/api/command-dict`、`/api/command-param`、`/api/command-send-log`、`/api/firmware`、`/api/firmware-upgrade-log`、`/api/command/send`、`/api/firmware/upgrade` | 指令字典、参数、下发、固件、升级 |
+| 权限管理 | `services/system/auth.js` | `/api/role`、`/api/permission`、`/api/permission/tree`、`/api/role/:id/permissions` | 角色、权限、权限树、角色授权 |
+| 菜单管理 | `services/system/menu.js` | `/api/permission`、`/api/permission/tree` | 菜单和权限树 |
+| 数据字典 | `services/system/dict.js` | `/api/dict-type`、`/api/dict-item` | 字典类型和字典项 |
+| 数据接入 | `services/data-receive/access.js` | `/api/protocol-definition`、`/api/device-protocol-relation`、`/by-device`、`/by-protocol` | 协议定义、设备协议关系 |
+| 数据解析 | `services/data-receive/parse.js` | `/api/protocol-field-definition`、`/api/protocol-parse-record`、`/by-protocol`、`/batch-save` | 协议字段、解析记录、字段批量保存 |
+| 数据记录 | `services/data-receive/record.js` | `/api/sampling-record`、`/api/sampling-detail`、`/api/sampling-daily`、`/api/sampling-pressure`、`/api/sampling-css-data` | 采样记录、明细、日报、压力、CSS 数据 |
 
-维护注意：
+## 核心实现说明
 
-- 密码长度、邮箱和手机号校验使用常量统一维护。
-- 后端成功码兼容 `0` 和 `200`。
-- 后端错误消息可能出现在 `msg`，也可能出现在 `data` 对象中，页面会优先提取更具体的提示。
-- 登录页视觉样式较集中，扩展复杂交互时可拆分表单、响应式和手写图标样式。
+### 登录页
 
-## 地图组件说明
-
-地图组件路径：
-
-```text
-src/pages/leak-monitor/components/TencentLeakMap.vue
-```
-
-组件职责：
-
-- 仅 H5 端加载腾讯地图 GL JS SDK。
-- 非 H5 平台展示“不支持”提示。
-- SDK 通过 `<script>` 懒加载，避免非地图页面加载地图资源。
-- 组件卸载时会销毁地图实例并清理 resize 定时器。
-- 地图中心点用于控制初始化视野，可由接口或配置驱动。
-
-维护注意：
-
-- 腾讯地图 Key 建议通过环境变量或后端配置管理，避免生产配置散落在组件中。
-- 组件内只声明地图能力所需的腾讯地图类型，扩展地图能力时应同步补充类型。
-- 地图容器高度依赖 `--shell-content-min-height`，因此应放在 AppShell 内容区内使用。
-
-## 请求封装
-
-核心文件：
-
-- `src/utils/request.js`
-- `src/services/shared/crud.js`
-
-`request.js` 负责：
-
-- 读取 `VITE_API_BASE_URL` 或默认后端地址。
-- 拼接相对接口路径。
-- 从本地缓存读取 token 并写入 `Authorization`。
-- 将 `uni.request` 回调封装为 Promise。
-- 将网络错误转为统一错误对象。
-
-`shared/crud.js` 负责：
-
-- 提供 `getRequest`、`postRequest`、`putRequest`、`deleteRequest`。
-- 根据统一 REST 约定生成标准 CRUD 方法。
-- 让业务 service 只导出语义化函数，避免页面里散落接口路径。
-
-标准 CRUD 约定：
-
-| 操作 | 方法 | 路径 |
-| --- | --- | --- |
-| 详情 | GET | `/resource/:id` |
-| 新增 | POST | `/resource/create` |
-| 更新 | PUT | `/resource/:id` |
-| 删除 | DELETE | `/resource/:id` |
-| 分页 | POST | `/resource/page` |
-| 列表 | GET | `/resource/list` |
-| 批量删除 | DELETE | `/resource/batch-delete` |
-
-如果后端路径不符合上述约定，应在对应业务 service 中单独写函数。
-
-## services 目录说明
-
-接口统一放在 `src/services` 下，按业务模块拆分。页面层只关心业务函数，不直接关心后端 URL。
-
-```text
-src/services/
-├─ shared/
-│  └─ crud.js                         # 公共 REST 请求方法和 CRUD 工厂
-├─ user/
-│  ├─ user.js                         # 登录、注册、用户信息等账号接口
-│  └─ user.d.ts                       # 用户接口类型声明
-├─ leak-monitor/
-│  └─ leak-monitor.js                 # 渗漏监测地图、监测点、地图数据接口
-├─ station/
-│  └─ station.js                      # 站点管理接口
-├─ device/
-│  ├─ info.js                         # 设备信息接口
-│  ├─ maintenance.js                  # 拆装维护接口
-│  └─ status.js                       # 设备状态接口
-├─ data-analysis/
-│  ├─ overview.js                     # 系统总览接口
-│  ├─ audio.js                        # 音频数据接口
-│  ├─ device-params.js                # 设备参数接口
-│  └─ leakage.js                      # 渗漏数据接口
-├─ leak-report/
-│  ├─ suspect-management.js           # 疑点管理接口
-│  ├─ suspect-processing.js           # 疑点处理接口
-│  ├─ leak-management.js              # 漏点管理接口
-│  ├─ leak-analysis.js                # 漏点分析接口
-│  └─ history-overview.js             # 历史总览接口
-├─ work-order/
-│  ├─ create.js                       # 工单创建接口
-│  ├─ processing.js                   # 工单处理接口
-│  └─ statistics.js                   # 工单查询与统计接口
-├─ alarm/
-│  ├─ strategy.js                     # 报警策略接口
-│  ├─ processing.js                   # 报警处理接口
-│  └─ analysis.js                     # 报警分析接口
-├─ statistics/
-│  └─ statistics.js                   # 平台统计分析接口
-├─ report/
-│  ├─ generate.js                     # 报表生成接口
-│  ├─ operation.js                    # 报表操作接口
-│  └─ command.js                      # 指令管理接口
-├─ system/
-│  ├─ user.js                         # 用户配置接口
-│  ├─ auth.js                         # 权限管理接口
-│  ├─ menu.js                         # 菜单管理接口
-│  └─ dict.js                         # 数据字典接口
-└─ data-receive/
-   ├─ access.js                       # 数据接入接口
-   ├─ parse.js                        # 数据解析接口
-   └─ record.js                       # 数据记录接口
-```
-
-### 页面和 service 对应关系
-
-| 业务模块 | 页面目录 | service 文件 |
-| --- | --- | --- |
-| 登录和注册 | `pages/login` | `services/user/user.js` |
-| 渗漏监测 | `pages/leak-monitor` | `services/leak-monitor/leak-monitor.js` |
-| 站点管理 | `pages/station` | `services/station/station.js` |
-| 设备管理 | `pages/device/*` | `services/device/info.js`<br>`services/device/maintenance.js`<br>`services/device/status.js` |
-| 数据分析 | `pages/data-analysis/*` | `services/data-analysis/overview.js`<br>`services/data-analysis/audio.js`<br>`services/data-analysis/device-params.js`<br>`services/data-analysis/leakage.js` |
-| 疑漏点上报 | `pages/leak-report/*` | `services/leak-report/suspect-management.js`<br>`services/leak-report/suspect-processing.js`<br>`services/leak-report/leak-management.js`<br>`services/leak-report/leak-analysis.js`<br>`services/leak-report/history-overview.js` |
-| 统计分析 | `pages/statistics` | `services/statistics/statistics.js` |
-| 工单管理 | `pages/work-order/*` | `services/work-order/create.js`<br>`services/work-order/processing.js`<br>`services/work-order/statistics.js` |
-| 实时报警 | `pages/alarm/*` | `services/alarm/strategy.js`<br>`services/alarm/processing.js`<br>`services/alarm/analysis.js` |
-| 统计报表 | `pages/report/*` | `services/report/generate.js`<br>`services/report/operation.js`<br>`services/report/command.js` |
-| 系统设置 | `pages/system/*` | `services/system/user.js`<br>`services/system/auth.js`<br>`services/system/menu.js`<br>`services/system/dict.js` |
-| 数据接收和解析 | `pages/data-receive/*` | `services/data-receive/access.js`<br>`services/data-receive/parse.js`<br>`services/data-receive/record.js` |
-
-### 重要说明
-
-- service 文件按页面业务域组织，命名应和页面目录保持一致。
-- 标准 REST 封装基于通用 CRUD 约定，具体路径以后端接口文档为准。
-- 每个 service 文件顶部都有模块级注释，说明该文件的业务职责。
-- 页面层应优先调用 service 中的函数，不要在 `.vue` 文件里直接拼接接口地址。
-
-## 样式组织
+相关文件：
 
 | 文件 | 说明 |
 | --- | --- |
-| `src/styles/global.scss` | 全局基础样式，例如页面背景、默认字体、盒模型 |
-| `src/styles/variables.scss` | 项目设计变量，例如主色、文字色、背景色、字体族 |
-| `src/styles/mixins.scss` | 可复用 SCSS mixin |
-| `src/uni.scss` | uni-app 内置样式变量 |
-| `src/pages/login/login.scss` | 登录页私有样式 |
+| `src/pages/login/login.vue` | 登录/注册模板和逻辑 |
+| `src/pages/login/login.scss` | 登录页样式 |
+| `src/services/user/user.js` | 登录、注册和用户接口 |
+| `src/services/user/user.d.ts` | 用户接口类型声明 |
 
-样式约定：
+关键点：
 
-- 页面私有样式优先放在页面同目录。
-- 跨页面复用变量放在 `styles/variables.scss`。
-- 跨页面复用样式逻辑放在 `styles/mixins.scss`。
-- 不建议在 `uni.scss` 中放大量业务样式。
-- 登录页样式抽取了部分颜色变量，扩展时优先复用这些变量。
+- `activeMode` 控制登录和注册模式。
+- `loginForm` 保存登录表单，`registerForm` 保存注册表单。
+- 登录成功后保存 token、用户、权限、角色信息。
+- 登录成功后跳转 `/pages/leak-monitor/leak-monitor`。
+- 支持记住账号与密码，缓存 key 为 `rememberLoginAccount`。
+- 注册字段中真实姓名、手机号、邮箱为选填项。
 
-## 新增页面流程
+### 后台外壳 `AppShell`
 
-1. 在 `src/pages` 下按业务模块创建页面文件。
-2. 页面需要后台布局时，引入并包裹 `AppShell`。
-3. 在 `src/pages.json` 中注册页面路径。
-4. 在 `AppShell.vue` 的菜单配置中添加对应菜单项。
-5. 如需接口，在 `src/services` 对应模块中新增语义化函数。
-6. 执行 `npm run type-check` 和 `npm run build:h5`。
+相关文件：`src/components/AppShell.vue`
 
-页面基础模板：
+| 能力 | 说明 |
+| --- | --- |
+| 顶部栏 | 平台标题、站点搜索、预警入口、用户信息、退出登录 |
+| 侧边菜单 | 支持多级菜单、折叠态、折叠浮层 |
+| 页面页签 | 打开、激活、关闭、滚动到当前页签 |
+| 默认页面 | 默认进入渗漏监测，全部页签关闭后回到渗漏监测 |
+| H5 路径同步 | 使用浏览器路径、hash、history 同步当前页面 |
+| 内容区全屏 | 后台内容区全屏能力和退化方案 |
+
+维护注意：
+
+- 菜单 `path` 必须和 `pages.json` 注册页面一致。
+- 菜单 `icon` 必须和样式中的 `side-menu__icon--xxx`、`page-tab__icon--xxx` 对应。
+- 新增页面时，需要同步页面文件、`pages.json`、`AppShell.vue` 菜单。
+
+### 渗漏监测地图
+
+相关文件：
+
+| 文件 | 说明 |
+| --- | --- |
+| `src/pages/leak-monitor/leak-monitor.vue` | 页面入口，使用 `AppShell` 承载 |
+| `src/pages/leak-monitor/components/TencentLeakMap.vue` | 腾讯地图 GL JS SDK 懒加载和地图初始化 |
+| `src/services/leak-monitor/leak-monitor.js` | 地图业务数据接口服务 |
+
+当前地图默认中心点为上海坐标。后续接入真实站点、设备或漏点时，应优先通过 `services/leak-monitor/leak-monitor.js` 获取数据，不要在地图组件中继续硬编码业务点位。
+
+## 样式和资源
+
+### 样式入口
+
+| 文件 | 说明 |
+| --- | --- |
+| `src/styles/global.scss` | 全局基础样式 |
+| `src/styles/variables.scss` | 全局变量 |
+| `src/styles/mixins.scss` | 全局 mixin |
+| `src/uni.scss` | uni-app 样式变量 |
+| 页面同目录 `.scss` | 页面局部样式，例如 `login/login.scss` |
+
+`vite.config.ts` 中已配置：
+
+```ts
+scss: {
+  additionalData: '@use "@/styles/variables.scss" as *;\n@use "@/styles/mixins.scss" as *;\n',
+}
+```
+
+因此页面 SCSS 中可以直接使用全局变量和 mixin。
+
+### 资源
+
+| 路径 | 说明 |
+| --- | --- |
+| `src/assets/images/background.webp` | 登录页背景图 |
+| `src/assets/images/logo.webp` | 登录页和顶部栏 logo |
+
+## 开发流程
+
+### 新增页面
+
+1. 在 `src/pages/<module>/<page>/<page>.vue` 创建页面。
+2. 在 `src/pages.json` 注册路由。
+3. 如需后台菜单入口，在 `src/components/AppShell.vue` 的 `menuItems` 中新增配置。
+4. 如需请求后端，在 `src/services/<module>` 下新增或复用 service。
+5. 运行 `npm run type-check`，涉及构建风险时运行 `npm run build:h5`。
+
+登录后页面推荐结构：
 
 ```vue
 <template>
   <AppShell>
-    <!-- 页面内容区：保留 AppShell 布局，业务内容写在 content-page 内。 -->
     <view class="content-page"></view>
   </AppShell>
 </template>
@@ -437,118 +481,89 @@ src/services/
 <script setup lang="ts">
 import AppShell from "@/components/AppShell.vue";
 </script>
-
-<style scoped lang="scss">
-.content-page {
-  min-height: var(--shell-content-min-height);
-}
-</style>
 ```
 
-## 新增接口流程
+### 新增接口
 
-1. 判断接口属于哪个业务模块。
-2. 如果符合标准 CRUD 约定，优先使用 `createCrudService`。
-3. 如果是动作类接口，例如确认、导出、分配、关闭，则单独写语义化函数。
-4. 函数名应描述业务动作，不要直接暴露 URL 语义。
-5. 页面只调用 service 函数，不直接调用 `request`。
+1. 判断接口归属业务模块。
+2. REST 风格资源优先使用 `createCrudService("/api/resource")`。
+3. 动作类接口使用 `getRequest`、`postRequest` 等语义方法封装。
+4. 页面层只调用 service 方法，不直接拼接 URL。
+5. 复杂返回结构优先补类型声明。
 
-示例：
+### 修改登录流程
 
-```js
-import { createCrudService, postRequest } from "@/services/shared/crud";
+关注点：
 
-const worksheetApi = createCrudService("/api/worksheet");
+- `TOKEN_KEY` 和 `TOKEN_PREFIX_KEY` 来自 `src/utils/request.js`。
+- 登录成功后的默认地址应保持为 `/pages/leak-monitor/leak-monitor`。
+- 退出登录需要清理 token、用户信息、权限和角色缓存。
+- 登录页同时包含登录和注册模式，表单样式和提示要兼顾两种状态。
 
-export const getWorksheetPage = worksheetApi.getPage;
+### 修改 AppShell 菜单
 
-export function closeWorksheet(id, data) {
-  return postRequest(`/api/worksheet/${id}/close`, data);
-}
-```
+关注点：
 
-## 注释规范
-
-项目注释主要分为三类：
-
-- 文件/模块级注释：说明该文件负责什么业务能力。
-- 复杂逻辑注释：说明为什么这样实现，例如地图 SDK 懒加载、全屏退化、登录态保存。
-- 页面用途注释：明确页面所属业务和职责，方便后续维护。
-
-新增注释时建议：
-
-- 注释解释“为什么”，不要重复“这行代码做了什么”。
-- 复杂条件判断、兼容逻辑、后端约定、平台差异需要注释。
-- 临时方案必须写清楚触发原因和替换方向。
-- 不要把注释当成废弃代码仓库，废弃代码应直接删除。
-
-## 环境变量
-
-请求层会读取：
-
-```text
-VITE_API_BASE_URL
-```
-
-如果没有配置，则使用 `src/utils/request.js` 中的默认后端地址。
-
-推荐环境变量：
-
-```text
-VITE_API_BASE_URL=http://后端地址
-VITE_TENCENT_MAP_KEY=腾讯地图Key
-```
-
-并将地图 Key 从源码迁移到环境变量。
-
-## HBuilderX 使用说明
-
-在 HBuilderX 中通过“文件 -> 打开目录”打开当前项目，然后选择 H5 或对应小程序平台运行。
-
-如果只做 H5 开发，推荐使用命令行：
-
-```bash
-npm run dev:h5
-```
+- 菜单 label、path、icon、children 要成组维护。
+- 子菜单的 path 必须已在 `pages.json` 注册。
+- icon 需要有对应 CSS mask 样式。
+- 默认页面逻辑由 `DEFAULT_PAGE_PATH` 控制。
 
 ## 提交前检查
 
-提交前建议至少执行：
+建议提交前执行：
 
 ```bash
 npm run type-check
 npm run build:h5
 ```
 
-或者直接执行：
+或：
 
 ```bash
 npm run check
 ```
 
-## Git 协作建议
+提交前确认：
 
-提交信息建议使用清晰中文描述，例如：
+- `git status --short` 中没有无关文件。
+- 未提交 `dist/`、临时目录、IDE 本地配置。
+- 新页面已同步页面文件、`pages.json`、菜单配置。
+- 新接口已放入对应 service，不在页面中直接拼 URL。
+- 登录态、默认页、页签关闭后的兜底逻辑符合预期。
 
-```bash
-git commit -m "优化登录页表单校验"
-git commit -m "新增站点管理页面"
-git commit -m "更新项目说明文档"
-```
+## 常见问题
 
-如果要强制本地与远端 `master` 完全一致：
+### 本地启动端口不是 5173
 
-```bash
-git fetch origin
-git reset --hard origin/master
-git clean -fd
-```
+Vite 会在端口占用时自动顺延，以终端输出的 `Local` 地址为准。
 
-注意：这会删除所有本地未提交改动和未跟踪文件。
+### 请求地址不对
 
-## 维护建议
+先检查是否设置了 `VITE_API_BASE_URL`。未设置时会使用 `src/utils/request.js` 中的默认地址。开发代理配置在 `vite.config.ts`。
 
-- 腾讯地图 Key 建议迁移到环境变量或后端配置。
-- service 模块需要以后端接口文档为准。
-- AppShell 可按顶部栏、侧边栏、页签和内容区继续拆分。
-- 登录页样式可按表单、响应式和图标样式继续拆分。
+### 登录后没有进入渗漏监测
+
+检查：
+
+- 登录成功后的 `uni.reLaunch` 地址。
+- `AppShell.vue` 中 `DEFAULT_PAGE_PATH`。
+- H5 浏览器路径同步逻辑是否被修改。
+
+### 新页面打不开
+
+通常是以下原因：
+
+- 页面文件路径不正确。
+- `src/pages.json` 未注册。
+- `AppShell.vue` 菜单 path 和 `pages.json` 不一致。
+- 页面没有使用 `AppShell` 承载登录后布局。
+
+### 地图加载失败
+
+优先检查：
+
+- 腾讯地图 Key 是否有效。
+- Web 端域名白名单是否包含当前访问域名。
+- 当前是否在 H5 端运行。
+- 浏览器网络是否能访问腾讯地图 SDK。
