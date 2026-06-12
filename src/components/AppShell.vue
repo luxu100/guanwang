@@ -736,7 +736,7 @@ function scrollActiveTabIntoView(path = currentPath.value) {
     );
 
     activeTab?.scrollIntoView({
-      behavior: "smooth",
+      behavior: "auto",
       block: "nearest",
       inline: "center",
     });
@@ -801,8 +801,10 @@ onUnmounted(() => {
   --shell-content-min-height: calc(var(--shell-viewport-height) - var(--shell-header-height));
 
   width: 100%;
+  height: var(--shell-viewport-height);
   min-height: var(--shell-viewport-height);
   overflow-x: hidden;
+  overflow-y: hidden;
   background: #edf5ff;
 }
 
@@ -1160,7 +1162,9 @@ onUnmounted(() => {
 
 .shell-body {
   display: flex;
-  min-height: var(--shell-content-min-height);
+  height: var(--shell-content-min-height);
+  min-height: 0;
+  overflow: hidden;
 }
 
 .side-menu {
@@ -1621,7 +1625,7 @@ onUnmounted(() => {
   overflow-x: auto;
   overflow-y: hidden;
   scroll-padding: 0 18px;
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
   white-space: nowrap;
 }
 
@@ -1843,6 +1847,7 @@ onUnmounted(() => {
   position: relative;
   box-sizing: border-box;
   margin: var(--shell-content-gap);
+  height: var(--shell-content-min-height);
   min-height: var(--shell-content-min-height);
   overflow: hidden;
   background: #ffffff;

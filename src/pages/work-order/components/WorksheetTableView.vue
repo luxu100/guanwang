@@ -843,8 +843,13 @@ defineExpose({
 
 <style scoped lang="scss">
 .worksheet-view {
-  min-height: var(--shell-content-min-height);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
   padding: 14px;
+  overflow: hidden;
   background: #eef4f8;
 }
 
@@ -911,6 +916,7 @@ defineExpose({
 }
 
 .stats-grid {
+  flex: none;
   display: grid;
   grid-template-columns: repeat(6, minmax(120px, 1fr));
   gap: 10px;
@@ -940,6 +946,7 @@ defineExpose({
   display: flex;
   align-items: center;
   flex-wrap: wrap;
+  flex: none;
   gap: 10px;
   min-height: 50px;
   padding: 8px 12px;
@@ -1080,22 +1087,23 @@ defineExpose({
 .worksheet-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 380px;
+  flex: 1;
   gap: 14px;
   margin-top: 14px;
-  min-height: calc(var(--shell-content-min-height) - 92px);
-}
-
-.worksheet-layout--statistics {
-  min-height: calc(var(--shell-content-min-height) - 178px);
+  min-height: 0;
 }
 
 .worksheet-table-panel,
 .worksheet-detail-panel {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  min-height: 0;
   overflow: hidden;
 }
 
 .table-head {
+  flex: none;
   height: 44px;
   padding: 0 14px;
   color: #183755;
@@ -1111,8 +1119,9 @@ defineExpose({
 }
 
 .table-scroll {
-  height: calc(var(--shell-content-min-height) - 184px);
-  min-height: 420px;
+  flex: 1;
+  height: auto;
+  min-height: 0;
 }
 
 .data-table {
@@ -1194,6 +1203,7 @@ defineExpose({
 }
 
 .pagination-bar {
+  flex: none;
   justify-content: flex-end;
   gap: 10px;
   height: 48px;
@@ -1224,6 +1234,7 @@ defineExpose({
 }
 
 .detail-tabs {
+  flex: none;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   height: 44px;
@@ -1252,8 +1263,9 @@ defineExpose({
 }
 
 .detail-body {
-  height: calc(var(--shell-content-min-height) - 138px);
-  min-height: 470px;
+  flex: 1;
+  height: auto;
+  min-height: 0;
   padding: 16px;
   overflow-y: auto;
 }

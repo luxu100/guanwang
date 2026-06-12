@@ -318,7 +318,9 @@ function generateWorksheetNumber() {
 <style scoped lang="scss">
 .work-order-create-page {
   position: relative;
-  min-height: var(--shell-content-min-height);
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
   background: #eef4f8;
 }
 
