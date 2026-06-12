@@ -4,6 +4,7 @@
 html {
   min-height: 100%;
   background: $color-page-bg;
+  scrollbar-gutter: stable;
 }
 
 /* body 只在内容超出时出现纵向滚动条，首页等未超出页面不会强制显示滚动条。 */
@@ -11,6 +12,7 @@ body {
   min-height: 100%;
   margin: 0;
   overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 /* uni-app 的 page 节点是所有页面的真实外层容器，通用字体和文字色放这里继承。 */

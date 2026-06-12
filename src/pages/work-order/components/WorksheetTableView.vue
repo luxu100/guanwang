@@ -1,90 +1,5 @@
 <template>
   <view class="worksheet-view">
-    <view v-if="mode === 'create'" class="worksheet-panel create-panel">
-      <view class="panel-head">
-        <view>
-          <text class="panel-title">新增工单</text>
-          <text class="panel-subtitle">按工单管理接口创建巡检、检漏、拆装和维护任务</text>
-        </view>
-        <button class="toolbar-button" hover-class="toolbar-button--hover" @click="resetCreateForm">清空</button>
-      </view>
-
-      <view class="form-grid">
-        <view class="form-field">
-          <text class="form-label">工单编号</text>
-          <input v-model="createForm.worksheetNumber" class="form-input" placeholder="不填则自动生成" placeholder-class="input-placeholder" />
-        </view>
-        <view class="form-field">
-          <text class="form-label">工单类型</text>
-          <picker :range="worksheetTypeOptionsWithoutAll" range-key="label" @change="handleCreateTypeChange">
-            <view class="form-select">{{ createTypeLabel }}</view>
-          </picker>
-        </view>
-        <view class="form-field">
-          <text class="form-label">紧急程度</text>
-          <picker :range="urgencyOptions" range-key="label" @change="handleCreateUrgencyChange">
-            <view class="form-select">{{ createUrgencyLabel }}</view>
-          </picker>
-        </view>
-        <view class="form-field">
-          <text class="form-label">工单状态</text>
-          <picker :range="worksheetStatusOptionsWithoutAll" range-key="label" @change="handleCreateStatusChange">
-            <view class="form-select">{{ createStatusLabel }}</view>
-          </picker>
-        </view>
-        <view class="form-field">
-          <text class="form-label">发起人账号</text>
-          <input v-model="createForm.riseAccount" class="form-input" placeholder="请输入发起人" placeholder-class="input-placeholder" />
-        </view>
-        <view class="form-field">
-          <text class="form-label">执行人账号</text>
-          <input v-model="createForm.executeAccount" class="form-input" placeholder="请输入执行人" placeholder-class="input-placeholder" />
-        </view>
-        <view class="form-field">
-          <text class="form-label">关联设备</text>
-          <input v-model="createForm.deviceReference" class="form-input" placeholder="设备编号，多个用逗号分隔" placeholder-class="input-placeholder" />
-        </view>
-        <view class="form-field">
-          <text class="form-label">关联渗漏ID</text>
-          <input v-model="createForm.leakageId" class="form-input" type="number" placeholder="可选" placeholder-class="input-placeholder" />
-        </view>
-        <view class="form-field">
-          <text class="form-label">发起时间</text>
-          <input v-model="createForm.riseTime" class="form-input" type="datetime-local" />
-        </view>
-        <view class="form-field">
-          <text class="form-label">截止时间</text>
-          <input v-model="createForm.deadlineTime" class="form-input" type="datetime-local" />
-        </view>
-        <view class="form-field form-field--wide">
-          <text class="form-label">工单地址</text>
-          <input v-model="createForm.address" class="form-input" placeholder="请输入地址" placeholder-class="input-placeholder" />
-        </view>
-        <view class="form-field">
-          <text class="form-label">坐标</text>
-          <input v-model="createForm.coordinate" class="form-input" placeholder="经度,纬度" placeholder-class="input-placeholder" />
-        </view>
-        <view class="form-field">
-          <text class="form-label">照片ID</text>
-          <input v-model="createForm.pictureIds" class="form-input" placeholder="文件ID，多个用逗号分隔" placeholder-class="input-placeholder" />
-        </view>
-        <view class="form-field form-field--wide">
-          <text class="form-label">工单说明</text>
-          <textarea v-model="createForm.worksheetInstruction" class="form-textarea" placeholder="请输入工单说明" placeholder-class="input-placeholder" />
-        </view>
-        <view class="form-field form-field--wide">
-          <text class="form-label">备注</text>
-          <textarea v-model="createForm.remark" class="form-textarea" placeholder="请输入备注" placeholder-class="input-placeholder" />
-        </view>
-      </view>
-
-      <view class="panel-actions">
-        <button class="toolbar-button toolbar-button--primary" :disabled="submittingCreate" hover-class="toolbar-button--hover" @click="submitCreate">
-          {{ submittingCreate ? "提交中..." : "创建工单" }}
-        </button>
-      </view>
-    </view>
-
     <view v-if="mode === 'statistics'" class="stats-grid">
       <view v-for="item in statisticsCards" :key="item.label" class="stat-card">
         <text class="stat-card__label">{{ item.label }}</text>
@@ -139,6 +54,14 @@
       <button class="toolbar-button" hover-class="toolbar-button--hover" @click="resetFilters">重置</button>
       <button class="toolbar-icon-button" hover-class="toolbar-icon-button--hover" aria-label="刷新" @click="fetchWorksheets">
         <text class="icon-refresh"></text>
+      </button>
+      <button
+        v-if="mode === 'create'"
+        class="toolbar-button toolbar-button--primary toolbar-button--create"
+        hover-class="toolbar-button--hover"
+        @click="emit('create')"
+      >
+        新增工单
       </button>
     </view>
 
@@ -300,7 +223,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
-import { createWorksheet, getWorksheetCreatePage } from "@/services/work-order/create";
+import { getWorksheetCreatePage } from "@/services/work-order/create";
 import { getWorksheetProcessDetail, getWorksheetProcessPage, updateWorksheetProcess } from "@/services/work-order/processing";
 import { getWorksheetStatisticsPage } from "@/services/work-order/statistics";
 
@@ -322,28 +245,12 @@ interface ApiResponseLike {
   msg?: string;
 }
 
-interface CreateForm {
-  worksheetNumber: string;
-  worksheetType: number;
-  riseAccount: string;
-  executeAccount: string;
-  deviceReference: string;
-  urgencyLevel: number;
-  riseTime: string;
-  finishTime: string;
-  deadlineTime: string;
-  worksheetStatus: number;
-  worksheetFeedback: string;
-  worksheetInstruction: string;
-  remark: string;
-  address: string;
-  coordinate: string;
-  pictureIds: string;
-  leakageId: string;
-}
-
 const props = defineProps<{
   mode: WorkOrderMode;
+}>();
+
+const emit = defineEmits<{
+  (event: "create"): void;
 }>();
 
 const pageTitleMap: Record<WorkOrderMode, string> = {
@@ -397,7 +304,6 @@ const pagination = reactive({
   pageSize: 10,
 });
 
-const createForm = reactive<CreateForm>(getDefaultCreateForm());
 const processForm = reactive({
   worksheetStatus: 1,
   executeAccount: "",
@@ -411,16 +317,12 @@ const selectedWorksheet = ref<WorksheetRecord | null>(null);
 const selectedKey = ref("");
 const total = ref(0);
 const loading = ref(false);
-const submittingCreate = ref(false);
 const submittingProcess = ref(false);
 const activeTab = ref<DetailTab>("base");
 
 const pageTitle = computed(() => pageTitleMap[props.mode]);
 const currentTypeLabel = computed(() => getOptionLabel(worksheetTypeOptions, filters.worksheetType, "不限"));
 const currentStatusLabel = computed(() => getOptionLabel(worksheetStatusOptions, filters.worksheetStatus, "不限"));
-const createTypeLabel = computed(() => getOptionLabel(worksheetTypeOptionsWithoutAll, createForm.worksheetType, "巡检"));
-const createUrgencyLabel = computed(() => getOptionLabel(urgencyOptions, createForm.urgencyLevel, "一般"));
-const createStatusLabel = computed(() => getOptionLabel(worksheetStatusOptionsWithoutAll, createForm.worksheetStatus, "待处理"));
 const processStatusLabel = computed(() => getOptionLabel(worksheetStatusOptionsWithoutAll, processForm.worksheetStatus, "处理中"));
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pagination.pageSize)));
 
@@ -493,46 +395,12 @@ watch(selectedWorksheet, (item) => {
   }
 });
 
-function getDefaultCreateForm(): CreateForm {
-  return {
-    worksheetNumber: "",
-    worksheetType: 0,
-    riseAccount: "",
-    executeAccount: "",
-    deviceReference: "",
-    urgencyLevel: 0,
-    riseTime: toDatetimeLocal(new Date()),
-    finishTime: "",
-    deadlineTime: "",
-    worksheetStatus: 0,
-    worksheetFeedback: "",
-    worksheetInstruction: "",
-    remark: "",
-    address: "",
-    coordinate: "",
-    pictureIds: "",
-    leakageId: "",
-  };
-}
-
 function handleTypeChange(event: { detail: { value: number } }) {
   filters.worksheetType = worksheetTypeOptions[event.detail.value]?.value ?? "";
 }
 
 function handleStatusChange(event: { detail: { value: number } }) {
   filters.worksheetStatus = worksheetStatusOptions[event.detail.value]?.value ?? "";
-}
-
-function handleCreateTypeChange(event: { detail: { value: number } }) {
-  createForm.worksheetType = worksheetTypeOptionsWithoutAll[event.detail.value]?.value ?? 0;
-}
-
-function handleCreateUrgencyChange(event: { detail: { value: number } }) {
-  createForm.urgencyLevel = urgencyOptions[event.detail.value]?.value ?? 0;
-}
-
-function handleCreateStatusChange(event: { detail: { value: number } }) {
-  createForm.worksheetStatus = worksheetStatusOptionsWithoutAll[event.detail.value]?.value ?? 0;
 }
 
 function handleProcessStatusChange(event: { detail: { value: number } }) {
@@ -654,75 +522,6 @@ async function selectWorksheet(item: WorksheetRecord, index: number) {
   } catch {
     // 详情失败时保留列表数据，避免影响主表格展示。
   }
-}
-
-async function submitCreate() {
-  if (!validateCreateForm()) {
-    return;
-  }
-
-  submittingCreate.value = true;
-
-  try {
-    const response = await createWorksheet(buildCreatePayload()) as ApiResponseLike;
-    assertSuccessResponse(response);
-    uni.showToast({ title: "工单创建成功", icon: "success" });
-    resetCreateForm();
-    pagination.pageNum = 1;
-    await fetchWorksheets();
-  } catch (error) {
-    uni.showToast({
-      title: (error as { msg?: string })?.msg || "工单创建失败",
-      icon: "none",
-    });
-  } finally {
-    submittingCreate.value = false;
-  }
-}
-
-function validateCreateForm() {
-  if (!createForm.riseAccount.trim()) {
-    uni.showToast({ title: "请输入发起人账号", icon: "none" });
-    return false;
-  }
-
-  if (!createForm.executeAccount.trim()) {
-    uni.showToast({ title: "请输入执行人账号", icon: "none" });
-    return false;
-  }
-
-  if (!createForm.worksheetInstruction.trim()) {
-    uni.showToast({ title: "请输入工单说明", icon: "none" });
-    return false;
-  }
-
-  return true;
-}
-
-function buildCreatePayload() {
-  return removeEmptyFields({
-    worksheetNumber: createForm.worksheetNumber.trim() || generateWorksheetNumber(),
-    worksheetType: createForm.worksheetType,
-    riseAccount: createForm.riseAccount.trim(),
-    executeAccount: createForm.executeAccount.trim(),
-    deviceReference: createForm.deviceReference.trim(),
-    urgencyLevel: createForm.urgencyLevel,
-    riseTime: normalizeDatetimeForApi(createForm.riseTime),
-    finishTime: normalizeDatetimeForApi(createForm.finishTime),
-    deadlineTime: normalizeDatetimeForApi(createForm.deadlineTime),
-    worksheetStatus: createForm.worksheetStatus,
-    worksheetFeedback: createForm.worksheetFeedback.trim(),
-    worksheetInstruction: createForm.worksheetInstruction.trim(),
-    remark: createForm.remark.trim(),
-    address: createForm.address.trim(),
-    coordinate: createForm.coordinate.trim(),
-    pictureIds: createForm.pictureIds.trim(),
-    leakageId: createForm.leakageId ? Number(createForm.leakageId) : undefined,
-  });
-}
-
-function resetCreateForm() {
-  Object.assign(createForm, getDefaultCreateForm());
 }
 
 function fillProcessForm(item: WorksheetRecord | null) {
@@ -1036,6 +835,10 @@ function generateWorksheetNumber() {
   const pad = (number: number) => String(number).padStart(2, "0");
   return `WO${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
 }
+
+defineExpose({
+  fetchWorksheets,
+});
 </script>
 
 <style scoped lang="scss">
@@ -1045,7 +848,6 @@ function generateWorksheetNumber() {
   background: #eef4f8;
 }
 
-.worksheet-panel,
 .worksheet-toolbar,
 .worksheet-table-panel,
 .worksheet-detail-panel,
@@ -1056,13 +858,6 @@ function generateWorksheetNumber() {
   box-shadow: 0 8px 18px rgba(40, 74, 104, 0.08);
 }
 
-.create-panel {
-  margin-bottom: 14px;
-  padding: 14px;
-}
-
-.panel-head,
-.panel-actions,
 .pagination-bar,
 .table-head {
   display: flex;
@@ -1070,33 +865,8 @@ function generateWorksheetNumber() {
   justify-content: space-between;
 }
 
-.panel-title {
-  display: block;
-  color: #183755;
-  font-size: 16px;
-  font-weight: 800;
-}
-
-.panel-subtitle {
-  display: block;
-  margin-top: 4px;
-  color: #64748b;
-  font-size: 13px;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(180px, 1fr));
-  gap: 12px;
-  margin-top: 14px;
-}
-
 .form-field {
   min-width: 0;
-}
-
-.form-field--wide {
-  grid-column: span 2;
 }
 
 .form-label {
@@ -1138,11 +908,6 @@ function generateWorksheetNumber() {
 
 .input-placeholder {
   color: #9aa9b8;
-}
-
-.panel-actions {
-  justify-content: flex-end;
-  margin-top: 14px;
 }
 
 .stats-grid {
@@ -1574,7 +1339,6 @@ function generateWorksheetNumber() {
 }
 
 @media (max-width: 1280px) {
-  .form-grid,
   .stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
