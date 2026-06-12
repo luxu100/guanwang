@@ -3,32 +3,6 @@
  *
  * 页面层应优先调用这里导出的语义化函数，避免在 .vue 文件中直接拼接接口地址。
  */
-import { postRequest } from "@/services/shared/crud";
+const statisticsService = {};
 
-export function getStatisticsSummary(data) {
-  return postRequest("/api/statistics/summary", data);
-}
-
-export function getDeviceStatistics(data) {
-  return postRequest("/api/statistics/device", data);
-}
-
-export function getLeakageStatistics(data) {
-  return postRequest("/api/statistics/leakage", data);
-}
-
-export function getWorksheetStatistics(data) {
-  return postRequest("/api/statistics/worksheet", data);
-}
-
-export function getAlarmStatistics(data) {
-  return postRequest("/api/statistics/alarm", data);
-}
-
-export default {
-  getStatisticsSummary,
-  getDeviceStatistics,
-  getLeakageStatistics,
-  getWorksheetStatistics,
-  getAlarmStatistics,
-};
+export default statisticsService;

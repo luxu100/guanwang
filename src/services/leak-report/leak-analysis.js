@@ -3,30 +3,19 @@
  *
  * 页面层应优先调用这里导出的语义化函数，避免在 .vue 文件中直接拼接接口地址。
  */
-import { createCrudService, postRequest } from "@/services/shared/crud";
+import { createCrudService } from "@/services/shared/crud";
 
 const leakageRecordApi = createCrudService("/api/leakage-record");
 const algorithmResultApi = createCrudService("/api/algorithm-result");
 
 export const getLeakAnalysisPage = leakageRecordApi.getPage;
 export const getAlgorithmAnalysisPage = algorithmResultApi.getPage;
-
-export function getLeakTrend(data) {
-  return postRequest("/api/leakage-record/trend", data);
-}
-
-export function getLeakDistribution(data) {
-  return postRequest("/api/leakage-record/distribution", data);
-}
-
-export function getLeakRepairStatistics(data) {
-  return postRequest("/api/leakage-record/repair-statistics", data);
-}
+export const getLeakAnalysisDetail = leakageRecordApi.getDetail;
+export const getAlgorithmAnalysisDetail = algorithmResultApi.getDetail;
 
 export default {
   getLeakAnalysisPage,
   getAlgorithmAnalysisPage,
-  getLeakTrend,
-  getLeakDistribution,
-  getLeakRepairStatistics,
+  getLeakAnalysisDetail,
+  getAlgorithmAnalysisDetail,
 };

@@ -347,29 +347,29 @@ VITE_API_BASE_URL=http://example.com npm run dev:h5
 | 用户服务 | `services/user/user.js` | `/api/user/login`、`/api/user/register`、`/api/user` | 登录、注册、用户 CRUD、批删、角色分配、密码更新 |
 | 系统用户 | `services/system/user.js` | 复用 `services/user/user.js` | 系统设置里的用户配置能力 |
 | 渗漏监测 | `services/leak-monitor/leak-monitor.js` | `/api/device`、`/api/tube-network`、`/api/leakage-record`、`/api/sampling-audio`、`/api/sampling-detail`、`/api/algorithm-result` | 地图设备、管网、渗漏记录、音频、采样明细、算法结果 |
-| 站点管理 | `services/station/station.js` | `/api/station`、`/api/tube-network`、`/api/dept` | 站点、分区、部门分页和列表 |
+| 站点管理 | `services/station/station.js` | `/api/tube-network`、`/api/dept` | 分区、管网、部门接口；`jiekou` 暂未提供独立站点接口 |
 | 设备信息 | `services/device/info.js` | `/api/device`、`/api/device-product`、`/api/device-protocol-relation` | 设备、产品、协议绑定、按设备/协议查询 |
 | 拆装维护 | `services/device/maintenance.js` | `/api/maintenance-record` | 维护记录 CRUD |
 | 设备状态 | `services/device/status.js` | `/api/device`、`/api/device-status-upload`、`/api/device-daily-data` | 设备状态、状态上报、设备日数据 |
-| 系统总览 | `services/data-analysis/overview.js` | `/api/statistics/overview`、`/api/statistics/device`、`/api/statistics/leakage`、`/api/statistics/worksheet`、`/api/statistics/alarm` | 总览统计 |
+| 系统总览 | `services/data-analysis/overview.js` | 暂无 | `jiekou` 暂未提供总览统计接口，service 暂不封装请求 |
 | 音频数据 | `services/data-analysis/audio.js` | `/api/sampling-audio`、`/api/sampling-detail` | 采样音频和明细 |
 | 设备参数 | `services/data-analysis/device-params.js` | `/api/device-setting`、`/api/device-daily-data`、`/api/device-status-upload` | 设备设置、日数据、状态上报 |
 | 渗漏数据 | `services/data-analysis/leakage.js` | `/api/leakage-record`、`/api/algorithm-result` | 渗漏记录、算法结果 |
-| 疑点管理 | `services/leak-report/suspect-management.js` | `/api/suspected-leak`、`/api/leakage-record` | 疑点 CRUD、漏点关联查询 |
-| 疑点处理 | `services/leak-report/suspect-processing.js` | `/api/suspected-leak`、`/assign`、`/confirm`、`/exclude`、`/worksheet` | 分配、确认、排除、转工单 |
+| 疑点管理 | `services/leak-report/suspect-management.js` | `/api/leakage-record` | `jiekou` 暂未提供疑点接口，当前仅保留漏点关联查询 |
+| 疑点处理 | `services/leak-report/suspect-processing.js` | 暂无 | `jiekou` 暂未提供疑点处理接口，service 暂不封装请求 |
 | 漏点管理 | `services/leak-report/leak-management.js` | `/api/leakage-record` | 漏点记录 CRUD |
-| 漏点分析 | `services/leak-report/leak-analysis.js` | `/api/leakage-record`、`/api/algorithm-result`、`/trend`、`/distribution`、`/repair-statistics` | 趋势、分布、修复统计、算法分析 |
-| 历史总览 | `services/leak-report/history-overview.js` | `/api/suspected-leak`、`/api/leakage-record` | 疑点和漏点历史查询 |
-| 统计分析 | `services/statistics/statistics.js` | `/api/statistics/summary`、`/device`、`/leakage`、`/worksheet`、`/alarm` | 汇总统计 |
+| 漏点分析 | `services/leak-report/leak-analysis.js` | `/api/leakage-record`、`/api/algorithm-result` | 渗漏记录和算法分析结果查询 |
+| 历史总览 | `services/leak-report/history-overview.js` | `/api/leakage-record` | 漏点历史查询；`jiekou` 暂未提供疑点历史接口 |
+| 统计分析 | `services/statistics/statistics.js` | 暂无 | `jiekou` 暂未提供统计分析接口，service 暂不封装请求 |
 | 工单创建 | `services/work-order/create.js` | `/api/worksheet` | 创建工单、工单分页/列表/详情 |
-| 工单处理 | `services/work-order/processing.js` | `/api/worksheet`、`/assign`、`/urge`、`/close` | 分派、催办、关闭、更新 |
-| 工单统计 | `services/work-order/statistics.js` | `/api/worksheet`、`/statistics`、`/export` | 工单统计、导出 |
-| 报警策略 | `services/alarm/strategy.js` | `/api/alarm-strategy` | 报警策略 CRUD |
-| 报警处理 | `services/alarm/processing.js` | `/api/alarm-record`、`/confirm`、`/ignore`、`/worksheet` | 报警确认、忽略、转工单 |
-| 报警分析 | `services/alarm/analysis.js` | `/api/alarm-record`、`/statistics`、`/trend`、`/export` | 报警统计、趋势、导出 |
-| 报表生成 | `services/report/generate.js` | `/api/report-template`、`/api/report-task`、`/api/report/generate` | 模板、任务、生成报表 |
-| 报表操作 | `services/report/operation.js` | `/api/report`、`/export`、`/print` | 报表查询、删除、导出、打印 |
-| 指令管理 | `services/report/command.js` | `/api/command-dict`、`/api/command-param`、`/api/command-send-log`、`/api/firmware`、`/api/firmware-upgrade-log`、`/api/command/send`、`/api/firmware/upgrade` | 指令字典、参数、下发、固件、升级 |
+| 工单处理 | `services/work-order/processing.js` | `/api/worksheet` | 工单详情和更新；`jiekou` 暂未提供分派、催办、关闭接口 |
+| 工单统计 | `services/work-order/statistics.js` | `/api/worksheet` | 工单分页和列表；`jiekou` 暂未提供统计、导出接口 |
+| 报警策略 | `services/alarm/strategy.js` | 暂无 | `jiekou` 暂未提供报警策略接口，service 暂不封装请求 |
+| 报警处理 | `services/alarm/processing.js` | 暂无 | `jiekou` 暂未提供报警记录接口，service 暂不封装请求 |
+| 报警分析 | `services/alarm/analysis.js` | 暂无 | `jiekou` 暂未提供报警分析接口，service 暂不封装请求 |
+| 报表生成 | `services/report/generate.js` | 暂无 | `jiekou` 暂未提供报表生成接口，service 暂不封装请求 |
+| 报表操作 | `services/report/operation.js` | 暂无 | `jiekou` 暂未提供报表操作接口，service 暂不封装请求 |
+| 指令管理 | `services/report/command.js` | `/api/command-dict`、`/api/command-param`、`/api/command-send-log`、`/api/firmware`、`/api/firmware-upgrade-log` | 指令字典、参数、下发记录、固件、升级记录 |
 | 权限管理 | `services/system/auth.js` | `/api/role`、`/api/permission`、`/api/permission/tree`、`/api/role/:id/permissions` | 角色、权限、权限树、角色授权 |
 | 菜单管理 | `services/system/menu.js` | `/api/permission`、`/api/permission/tree` | 菜单和权限树 |
 | 数据字典 | `services/system/dict.js` | `/api/dict-type`、`/api/dict-item` | 字典类型和字典项 |
