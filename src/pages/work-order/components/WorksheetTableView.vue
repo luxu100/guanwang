@@ -1412,10 +1412,8 @@ defineExpose({
   flex: none;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 4px;
-  height: 46px;
-  padding: 5px 6px 0;
-  background: #f7fbff;
+  height: 44px;
+  background: #ffffff;
   border-bottom: 1px solid #edf3f8;
 }
 
@@ -1423,19 +1421,20 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #667b90;
+  color: #5d7188;
   font-size: 14px;
   font-weight: 800;
   cursor: pointer;
-  border: 1px solid transparent;
-  border-bottom: 0;
-  border-radius: 6px 6px 0 0;
+  border-right: 1px solid #edf3f8;
+}
+
+.detail-tab:last-child {
+  border-right: 0;
 }
 
 .detail-tab--active {
   color: #0d82ee;
-  background: #ffffff;
-  border-color: #dceaf6;
+  background: #f4faff;
   box-shadow: inset 0 3px 0 #0d82ee;
 }
 
@@ -1443,11 +1442,9 @@ defineExpose({
   flex: 1;
   height: auto;
   min-height: 0;
-  padding: 14px 14px 16px;
+  padding: 14px;
   overflow-y: auto;
-  background:
-    linear-gradient(180deg, rgba(240, 247, 253, 0.88), rgba(255, 255, 255, 0) 118px),
-    #ffffff;
+  background: #ffffff;
 }
 
 .detail-empty {
@@ -1460,7 +1457,7 @@ defineExpose({
 
 .detail-grid {
   display: grid;
-  gap: 11px;
+  gap: 10px;
 }
 
 .detail-grid--base {
@@ -1476,76 +1473,58 @@ defineExpose({
 }
 
 .detail-item {
-  position: relative;
   min-width: 0;
-  padding: 11px 12px 11px 13px;
+  padding: 10px 12px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid #dfeaf5;
+  background: #f8fbfe;
+  border: 1px solid #e4eef7;
   border-radius: 6px;
-  box-shadow: 0 8px 18px rgba(24, 55, 85, 0.055);
-}
-
-.detail-item::before {
-  position: absolute;
-  top: 10px;
-  bottom: 10px;
-  left: 0;
-  width: 3px;
-  content: "";
-  background: #9bcdf7;
-  border-radius: 0 999px 999px 0;
 }
 
 .detail-grid--base .detail-item {
-  background: linear-gradient(180deg, #ffffff, #f8fbfe);
+  background: #f8fbfe;
 }
 
 .detail-grid--content .detail-item {
-  padding: 12px 12px 13px;
-  background: #fbfdff;
+  padding: 10px 12px;
+  background: #f8fbfe;
 }
 
 .detail-grid--time .detail-item {
-  display: grid;
-  grid-template-columns: 74px minmax(0, 1fr);
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px 10px 13px;
-  background: #ffffff;
+  padding: 10px 12px;
+  background: #f8fbfe;
 }
 
 .detail-item__label {
   display: block;
-  color: #6f8296;
+  color: #6a7d90;
   font-size: 12px;
-  font-weight: 800;
-  line-height: 1.2;
+  font-weight: 700;
 }
 
 .detail-item__value {
   display: block;
-  margin-top: 7px;
+  margin-top: 6px;
   color: #172033;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.45;
   word-break: break-all;
 }
 
 .detail-grid--time .detail-item__value {
-  margin-top: 0;
-  color: #23384d;
-  text-align: right;
+  margin-top: 6px;
+  color: #172033;
+  text-align: left;
 }
 
 .detail-grid--content .detail-item__value {
-  min-height: 46px;
-  padding: 10px 11px;
+  min-height: 40px;
+  padding: 9px 10px;
   color: #24384d;
-  font-weight: 600;
-  background: #f5f9fd;
-  border: 1px solid #e4eef7;
+  font-weight: 500;
+  background: #ffffff;
+  border: 1px solid #e8f0f7;
   border-radius: 4px;
   white-space: pre-wrap;
 }
@@ -1555,11 +1534,11 @@ defineExpose({
   display: inline-flex;
   align-items: center;
   width: fit-content;
-  min-height: 25px;
-  padding: 0 10px;
+  min-height: 24px;
+  padding: 0 9px;
   font-size: 13px;
   font-weight: 800;
-  line-height: 25px;
+  line-height: 24px;
   border-radius: 999px;
 }
 
