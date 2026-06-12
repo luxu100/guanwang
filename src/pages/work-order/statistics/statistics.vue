@@ -1,6 +1,8 @@
 <template>
   <AppShell>
-    <WorksheetTableView mode="statistics" />
+    <view class="work-order-page">
+      <WorksheetTableView mode="statistics" />
+    </view>
   </AppShell>
 </template>
 
@@ -8,3 +10,19 @@
 import AppShell from "@/components/AppShell.vue";
 import WorksheetTableView from "@/pages/work-order/components/WorksheetTableView.vue";
 </script>
+
+<style scoped lang="scss">
+.work-order-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: #eef4f8;
+}
+
+.work-order-page :deep(.worksheet-view) {
+  flex: 1;
+  height: auto;
+}
+</style>

@@ -8,7 +8,7 @@
           <view class="dialog-head">
             <view>
               <text class="dialog-title">新增工单</text>
-              <text class="dialog-subtitle">填写基础信息后创建工单记录</text>
+              <text class="dialog-subtitle">按工单类型、派发人员和现场信息生成新工单</text>
             </view>
             <button class="icon-button" hover-class="icon-button--hover" aria-label="关闭" @click="closeCreateDialog">
               <text class="close-icon"></text>
@@ -16,81 +16,133 @@
           </view>
 
           <scroll-view class="dialog-body" scroll-y>
-            <view class="form-grid">
-              <view class="form-field">
-                <text class="form-label">工单编号</text>
-                <input v-model="createForm.worksheetNumber" class="form-input" placeholder="不填则自动生成" placeholder-class="input-placeholder" />
+            <view class="form-layout">
+              <view class="form-main">
+                <view class="form-section">
+                  <view class="section-head">
+                    <text class="section-title">基础信息</text>
+                  </view>
+                  <view class="form-grid form-grid--main">
+                    <view class="form-field">
+                      <text class="form-label">工单编号</text>
+                      <input v-model="createForm.worksheetNumber" class="form-input" placeholder="不填则自动生成" placeholder-class="input-placeholder" />
+                    </view>
+                    <view class="form-field">
+                      <text class="form-label form-label--required">工单类型</text>
+                      <picker :range="worksheetTypeOptions" range-key="label" @change="handleTypeChange">
+                        <view class="form-select form-select--dropdown">
+                          <text>{{ currentTypeLabel }}</text>
+                          <text class="select-arrow"></text>
+                        </view>
+                      </picker>
+                    </view>
+                    <view class="form-field">
+                      <text class="form-label form-label--required">紧急程度</text>
+                      <picker :range="urgencyOptions" range-key="label" @change="handleUrgencyChange">
+                        <view class="form-select form-select--dropdown">
+                          <text>{{ currentUrgencyLabel }}</text>
+                          <text class="select-arrow"></text>
+                        </view>
+                      </picker>
+                    </view>
+                    <view class="form-field">
+                      <text class="form-label form-label--required">工单状态</text>
+                      <picker :range="worksheetStatusOptions" range-key="label" @change="handleStatusChange">
+                        <view class="form-select form-select--dropdown">
+                          <text>{{ currentStatusLabel }}</text>
+                          <text class="select-arrow"></text>
+                        </view>
+                      </picker>
+                    </view>
+                  </view>
+                </view>
+
+                <view class="form-section">
+                  <view class="section-head">
+                    <text class="section-title">时间安排</text>
+                  </view>
+                  <view class="form-grid form-grid--main">
+                    <view class="form-field">
+                      <text class="form-label form-label--required">发起时间</text>
+                      <input v-model="riseTimeDisplay" class="form-input" placeholder="YYYY-MM-DD HH:mm:ss" placeholder-class="input-placeholder" />
+                    </view>
+                    <view class="form-field">
+                      <text class="form-label">截止时间</text>
+                      <input v-model="deadlineTimeDisplay" class="form-input" placeholder="YYYY-MM-DD HH:mm:ss" placeholder-class="input-placeholder" />
+                    </view>
+                  </view>
+                </view>
+
+                <view class="form-section">
+                  <view class="section-head">
+                    <text class="section-title">派发信息</text>
+                  </view>
+                  <view class="form-grid form-grid--main">
+                    <view class="form-field">
+                      <text class="form-label form-label--required">发起人账号</text>
+                      <input v-model="createForm.riseAccount" class="form-input" placeholder="请输入发起人账号" placeholder-class="input-placeholder" />
+                    </view>
+                    <view class="form-field">
+                      <text class="form-label form-label--required">执行人账号</text>
+                      <input v-model="createForm.executeAccount" class="form-input" placeholder="请输入执行人账号" placeholder-class="input-placeholder" />
+                    </view>
+                  </view>
+                </view>
+
+                <view class="form-section">
+                  <view class="section-head">
+                    <text class="section-title">说明备注</text>
+                  </view>
+                  <view class="form-grid form-grid--main">
+                    <view class="form-field">
+                      <text class="form-label form-label--required">工单说明</text>
+                      <textarea v-model="createForm.worksheetInstruction" class="form-textarea form-textarea--large" placeholder="请输入工单说明" placeholder-class="input-placeholder" />
+                    </view>
+                    <view class="form-field">
+                      <text class="form-label">备注</text>
+                      <textarea v-model="createForm.remark" class="form-textarea form-textarea--large" placeholder="请输入备注" placeholder-class="input-placeholder" />
+                    </view>
+                  </view>
+                </view>
               </view>
-              <view class="form-field">
-                <text class="form-label">工单类型</text>
-                <picker :range="worksheetTypeOptions" range-key="label" @change="handleTypeChange">
-                  <view class="form-select">{{ currentTypeLabel }}</view>
-                </picker>
-              </view>
-              <view class="form-field">
-                <text class="form-label">紧急程度</text>
-                <picker :range="urgencyOptions" range-key="label" @change="handleUrgencyChange">
-                  <view class="form-select">{{ currentUrgencyLabel }}</view>
-                </picker>
-              </view>
-              <view class="form-field">
-                <text class="form-label">工单状态</text>
-                <picker :range="worksheetStatusOptions" range-key="label" @change="handleStatusChange">
-                  <view class="form-select">{{ currentStatusLabel }}</view>
-                </picker>
-              </view>
-              <view class="form-field">
-                <text class="form-label">发起人账号</text>
-                <input v-model="createForm.riseAccount" class="form-input" placeholder="请输入发起人" placeholder-class="input-placeholder" />
-              </view>
-              <view class="form-field">
-                <text class="form-label">执行人账号</text>
-                <input v-model="createForm.executeAccount" class="form-input" placeholder="请输入执行人" placeholder-class="input-placeholder" />
-              </view>
-              <view class="form-field">
-                <text class="form-label">关联设备</text>
-                <input v-model="createForm.deviceReference" class="form-input" placeholder="设备编号，多个用逗号分隔" placeholder-class="input-placeholder" />
-              </view>
-              <view class="form-field">
-                <text class="form-label">关联渗漏ID</text>
-                <input v-model="createForm.leakageId" class="form-input" type="number" placeholder="可选" placeholder-class="input-placeholder" />
-              </view>
-              <view class="form-field">
-                <text class="form-label">发起时间</text>
-                <input v-model="createForm.riseTime" class="form-input" type="datetime-local" />
-              </view>
-              <view class="form-field">
-                <text class="form-label">截止时间</text>
-                <input v-model="createForm.deadlineTime" class="form-input" type="datetime-local" />
-              </view>
-              <view class="form-field form-field--wide">
-                <text class="form-label">工单地址</text>
-                <input v-model="createForm.address" class="form-input" placeholder="请输入地址" placeholder-class="input-placeholder" />
-              </view>
-              <view class="form-field">
-                <text class="form-label">坐标</text>
-                <input v-model="createForm.coordinate" class="form-input" placeholder="经度,纬度" placeholder-class="input-placeholder" />
-              </view>
-              <view class="form-field">
-                <text class="form-label">照片ID</text>
-                <input v-model="createForm.pictureIds" class="form-input" placeholder="文件ID，多个用逗号分隔" placeholder-class="input-placeholder" />
-              </view>
-              <view class="form-field form-field--wide">
-                <text class="form-label">工单说明</text>
-                <textarea v-model="createForm.worksheetInstruction" class="form-textarea" placeholder="请输入工单说明" placeholder-class="input-placeholder" />
-              </view>
-              <view class="form-field form-field--wide">
-                <text class="form-label">备注</text>
-                <textarea v-model="createForm.remark" class="form-textarea" placeholder="请输入备注" placeholder-class="input-placeholder" />
+
+              <view class="form-side">
+                <view class="form-section">
+                  <view class="section-head">
+                    <text class="section-title">位置与关联</text>
+                  </view>
+                  <view class="form-grid form-grid--side">
+                    <view class="form-field">
+                      <text class="form-label">关联设备</text>
+                      <input v-model="createForm.deviceReference" class="form-input" placeholder="设备编号，多个用逗号分隔" placeholder-class="input-placeholder" />
+                    </view>
+                    <view class="form-field">
+                      <text class="form-label">关联渗漏ID</text>
+                      <input v-model="createForm.leakageId" class="form-input" type="number" placeholder="可选" placeholder-class="input-placeholder" />
+                    </view>
+                    <view class="form-field">
+                      <text class="form-label">工单地址</text>
+                      <input v-model="createForm.address" class="form-input" placeholder="请输入工单地址" placeholder-class="input-placeholder" />
+                    </view>
+                    <view class="form-field">
+                      <text class="form-label">坐标</text>
+                      <input v-model="createForm.coordinate" class="form-input" placeholder="经度,纬度" placeholder-class="input-placeholder" />
+                    </view>
+                    <view class="form-field">
+                      <text class="form-label">照片ID</text>
+                      <input v-model="createForm.pictureIds" class="form-input" placeholder="文件ID，多个用逗号分隔" placeholder-class="input-placeholder" />
+                    </view>
+                  </view>
+                </view>
               </view>
             </view>
           </scroll-view>
 
           <view class="dialog-actions">
-            <button class="secondary-button" hover-class="secondary-button--hover" @click="resetCreateForm">清空</button>
             <button class="secondary-button" hover-class="secondary-button--hover" @click="closeCreateDialog">取消</button>
+            <button class="secondary-button" hover-class="secondary-button--hover" @click="resetCreateForm">清空表单</button>
             <button class="primary-button" :disabled="submitting" hover-class="primary-button--hover" @click="submitCreate">
-              {{ submitting ? "提交中..." : "创建工单" }}
+              {{ submitting ? "创建中..." : "确认创建" }}
             </button>
           </view>
         </view>
@@ -158,6 +210,18 @@ const createForm = reactive<CreateForm>(getDefaultCreateForm());
 const currentTypeLabel = computed(() => getOptionLabel(worksheetTypeOptions, createForm.worksheetType, "巡检"));
 const currentStatusLabel = computed(() => getOptionLabel(worksheetStatusOptions, createForm.worksheetStatus, "待处理"));
 const currentUrgencyLabel = computed(() => getOptionLabel(urgencyOptions, createForm.urgencyLevel, "一般"));
+const riseTimeDisplay = computed({
+  get: () => formatDatetimeForDisplay(createForm.riseTime),
+  set: (value: string) => {
+    createForm.riseTime = normalizeDisplayDatetime(value);
+  },
+});
+const deadlineTimeDisplay = computed({
+  get: () => formatDatetimeForDisplay(createForm.deadlineTime),
+  set: (value: string) => {
+    createForm.deadlineTime = normalizeDisplayDatetime(value);
+  },
+});
 
 function getDefaultCreateForm(): CreateForm {
   return {
@@ -300,12 +364,41 @@ function normalizeDatetimeForApi(value: string) {
     return undefined;
   }
 
-  return value.includes("T") ? `${value.length === 16 ? `${value}:00` : value}` : value;
+  const normalizedValue = normalizeDisplayDatetime(value);
+  return normalizedValue.includes("T") ? `${normalizedValue.length === 16 ? `${normalizedValue}:00` : normalizedValue}` : normalizedValue;
+}
+
+function formatDatetimeForDisplay(value: string) {
+  if (!value) {
+    return "";
+  }
+
+  const normalizedValue = normalizeDisplayDatetime(value);
+  const [date = "", time = ""] = normalizedValue.split("T");
+  if (!date || !time) {
+    return value;
+  }
+
+  return `${date} ${time.length === 5 ? `${time}:00` : time}`;
+}
+
+function normalizeDisplayDatetime(value: string) {
+  const trimmedValue = value.trim();
+  if (!trimmedValue) {
+    return "";
+  }
+
+  return trimmedValue.replace(/\s+/, "T");
 }
 
 function toDatetimeLocal(value: Date) {
   const pad = (number: number) => String(number).padStart(2, "0");
-  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}T${pad(value.getHours())}:${pad(value.getMinutes())}`;
+  return `${toDatePart(value)}T${pad(value.getHours())}:${pad(value.getMinutes())}:${pad(value.getSeconds())}`;
+}
+
+function toDatePart(value: Date) {
+  const pad = (number: number) => String(number).padStart(2, "0");
+  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
 }
 
 function generateWorksheetNumber() {
@@ -318,10 +411,17 @@ function generateWorksheetNumber() {
 <style scoped lang="scss">
 .work-order-create-page {
   position: relative;
+  display: flex;
+  flex-direction: column;
   height: 100%;
   min-height: 0;
   overflow: hidden;
   background: #eef4f8;
+}
+
+.work-order-create-page :deep(.worksheet-view) {
+  flex: 1;
+  height: auto;
 }
 
 .primary-button,
@@ -341,12 +441,13 @@ function generateWorksheetNumber() {
 }
 
 .primary-button {
-  height: 34px;
-  padding: 0 16px;
+  min-width: 104px;
+  height: 36px;
+  padding: 0 18px;
   color: #ffffff;
   font-size: 14px;
   font-weight: 800;
-  line-height: 34px;
+  line-height: 36px;
   background: #0d82ee;
   border: 1px solid #0d82ee;
 }
@@ -363,12 +464,13 @@ function generateWorksheetNumber() {
 }
 
 .secondary-button {
-  height: 34px;
+  min-width: 84px;
+  height: 36px;
   padding: 0 14px;
   color: #31506d;
   font-size: 14px;
   font-weight: 700;
-  line-height: 34px;
+  line-height: 36px;
   background: #f6fbff;
   border: 1px solid #cbdced;
 }
@@ -386,41 +488,44 @@ function generateWorksheetNumber() {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 14px;
   background: rgba(15, 35, 55, 0.36);
 }
 
 .dialog-panel {
   display: flex;
   flex-direction: column;
-  width: min(980px, 96vw);
-  max-height: 88vh;
+  width: min(1120px, calc(100vw - 44px));
+  height: min(730px, calc(100vh - 28px));
+  max-height: calc(100vh - 28px);
   overflow: hidden;
   background: #ffffff;
-  border: 1px solid #dbe6ee;
+  border: 1px solid #d8e6f2;
   border-radius: 6px;
-  box-shadow: 0 18px 48px rgba(15, 35, 55, 0.22);
+  box-shadow: 0 18px 46px rgba(15, 35, 55, 0.2);
 }
 
 .dialog-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 18px;
+  flex: none;
+  padding: 18px 24px;
+  background: #f8fbfe;
   border-bottom: 1px solid #edf3f8;
 }
 
 .dialog-title {
   display: block;
   color: #183755;
-  font-size: 17px;
+  font-size: 22px;
   font-weight: 900;
 }
 
 .dialog-subtitle {
   display: block;
   margin-top: 4px;
-  color: #64748b;
+  color: #5f7188;
   font-size: 13px;
 }
 
@@ -465,14 +570,83 @@ function generateWorksheetNumber() {
 }
 
 .dialog-body {
-  max-height: calc(88vh - 124px);
-  padding: 16px 18px;
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  padding: 18px 24px 16px;
+  background: #ffffff;
+}
+
+.form-layout {
+  display: grid;
+  grid-template-columns: 660px 310px;
+  gap: 22px;
+  min-height: 100%;
+  justify-content: start;
+}
+
+.form-main {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.form-side {
+  min-width: 0;
+  padding-left: 20px;
+  border-left: 1px solid #e4edf6;
+}
+
+.form-section {
+  padding: 0;
+  background: #ffffff;
+  border: 0;
+  border-radius: 0;
+}
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 11px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid #eef4fa;
+}
+
+.section-title {
+  position: relative;
+  padding-left: 10px;
+  color: #183755;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.section-title::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 3px;
+  height: 16px;
+  content: "";
+  background: #0d82ee;
+  border-radius: 999px;
+  transform: translateY(-50%);
 }
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 12px 18px;
+}
+
+.form-grid--main {
+  grid-template-columns: repeat(2, 310px);
+  justify-content: start;
+}
+
+.form-grid--side {
+  grid-template-columns: 1fr;
 }
 
 .form-field {
@@ -485,35 +659,93 @@ function generateWorksheetNumber() {
 
 .form-label {
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
   color: #34495e;
   font-size: 13px;
   font-weight: 700;
+}
+
+.form-label--required::after {
+  margin-left: 4px;
+  color: #ef4444;
+  content: "*";
 }
 
 .form-input,
 .form-select,
 .form-textarea {
   box-sizing: border-box;
+  min-width: 0;
   width: 100%;
+  max-width: 100%;
+  overflow: hidden;
   color: #172033;
   font-size: 14px;
-  background: #f9fcff;
-  border: 1px solid #cbdced;
+  text-overflow: ellipsis;
+  background: #fbfdff;
+  border: 1px solid #d5e2ee;
   border-radius: 4px;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    background-color 0.16s ease;
+}
+
+.form-select {
+  max-width: 100%;
+}
+
+.form-grid--side .form-input,
+.form-grid--side .form-select,
+.form-grid--side .form-textarea {
+  max-width: 100%;
+}
+
+.form-textarea--large {
+  max-width: 100%;
 }
 
 .form-input,
 .form-select {
-  height: 34px;
-  padding: 0 10px;
-  line-height: 34px;
+  height: 38px;
+  padding: 0 12px;
+  line-height: 38px;
+}
+
+.form-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.form-select--dropdown {
+  background: #f7fbff;
+  box-shadow: inset 0 -1px 0 rgba(13, 130, 238, 0.03);
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  background: #ffffff;
+  border-color: #8fc8f8;
+  box-shadow: 0 0 0 3px rgba(13, 130, 238, 0.1);
 }
 
 .form-textarea {
-  height: 82px;
-  padding: 8px 10px;
+  height: 78px;
+  padding: 9px 12px;
   line-height: 1.45;
+}
+
+.form-textarea--large {
+  height: 90px;
+}
+
+.select-arrow {
+  width: 8px;
+  height: 8px;
+  border: solid #74879c;
+  border-width: 0 2px 2px 0;
+  transform: translateY(-2px) rotate(45deg);
 }
 
 .input-placeholder {
@@ -522,15 +754,24 @@ function generateWorksheetNumber() {
 
 .dialog-actions {
   display: flex;
+  flex: none;
   justify-content: flex-end;
-  gap: 10px;
-  padding: 12px 18px 16px;
+  gap: 12px;
+  padding: 12px 22px;
+  background: #ffffff;
   border-top: 1px solid #edf3f8;
+  box-shadow: 0 -8px 18px rgba(24, 55, 85, 0.04);
 }
 
 @media (max-width: 980px) {
-  .form-grid {
+  .form-layout,
+  .form-grid--main {
     grid-template-columns: 1fr;
+  }
+
+  .form-side {
+    padding-left: 0;
+    border-left: 0;
   }
 
   .form-field--wide {

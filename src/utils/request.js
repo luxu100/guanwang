@@ -44,8 +44,10 @@ function getAuthHeader() {
     return {};
   }
 
+  const normalizedPrefix = typeof tokenPrefix === "string" ? tokenPrefix.trim() : "";
+
   return {
-    Authorization: tokenPrefix ? `${tokenPrefix} ${token}` : token,
+    Authorization: normalizedPrefix ? `${normalizedPrefix} ${token}` : token,
   };
 }
 

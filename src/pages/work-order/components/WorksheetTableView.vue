@@ -8,61 +8,91 @@
     </view>
 
     <view class="worksheet-toolbar">
-      <view class="filter-group filter-group--date">
-        <text class="filter-label">创建时间</text>
-        <input v-model="filters.startTime" class="filter-input filter-input--date" type="date" />
-        <text class="filter-separator">至</text>
-        <input v-model="filters.endTime" class="filter-input filter-input--date" type="date" />
+      <view class="toolbar-row toolbar-row--filters">
+        <view class="filter-group">
+          <text class="filter-label">工单编号</text>
+          <input v-model="filters.worksheetNumber" class="filter-input" placeholder="请输入编号" placeholder-class="input-placeholder" />
+        </view>
+
+        <view class="filter-group">
+          <text class="filter-label">工单类型</text>
+          <picker :range="worksheetTypeOptions" range-key="label" @change="handleTypeChange">
+            <view class="filter-select">
+              <text>{{ currentTypeLabel }}</text>
+              <text class="filter-select__arrow"></text>
+            </view>
+          </picker>
+        </view>
+
+        <view class="filter-group">
+          <text class="filter-label">工单状态</text>
+          <picker :range="worksheetStatusOptions" range-key="label" @change="handleStatusChange">
+            <view class="filter-select">
+              <text>{{ currentStatusLabel }}</text>
+              <text class="filter-select__arrow"></text>
+            </view>
+          </picker>
+        </view>
+
+        <view class="filter-group">
+          <text class="filter-label">发起人</text>
+          <input v-model="filters.riseAccount" class="filter-input filter-input--name" placeholder="请输入发起人" placeholder-class="input-placeholder" />
+        </view>
+
+        <view class="filter-group">
+          <text class="filter-label">执行人</text>
+          <input v-model="filters.executeAccount" class="filter-input filter-input--name" placeholder="请输入执行人" placeholder-class="input-placeholder" />
+        </view>
       </view>
 
-      <view class="filter-group">
-        <text class="filter-label">工单编号</text>
-        <input v-model="filters.worksheetNumber" class="filter-input" placeholder="请输入编号" placeholder-class="input-placeholder" />
-      </view>
-
-      <view class="filter-group">
-        <text class="filter-label">工单类型</text>
-        <picker :range="worksheetTypeOptions" range-key="label" @change="handleTypeChange">
-          <view class="filter-select">
-            <text>{{ currentTypeLabel }}</text>
-            <text class="filter-select__arrow"></text>
+      <view class="toolbar-row toolbar-row--bottom">
+        <view class="filter-group filter-group--date">
+          <text class="filter-label">创建时间</text>
+          <view class="date-range">
+            <view class="datetime-picker-group">
+              <picker mode="date" :value="startDateValue" @change="handleStartDateChange">
+                <view class="datetime-picker-control" :class="{ 'datetime-picker-control--empty': !startDateValue }">
+                  {{ startDateValue || "请选择开始日期" }}
+                </view>
+              </picker>
+              <picker mode="time" :value="startTimeValue" @change="handleStartClockChange">
+                <view class="datetime-picker-control datetime-picker-control--time" :class="{ 'datetime-picker-control--empty': !startTimeValue }">
+                  {{ startTimeValue || "开始时间" }}
+                </view>
+              </picker>
+            </view>
+            <text class="filter-separator">至</text>
+            <view class="datetime-picker-group">
+              <picker mode="date" :value="endDateValue" @change="handleEndDateChange">
+                <view class="datetime-picker-control" :class="{ 'datetime-picker-control--empty': !endDateValue }">
+                  {{ endDateValue || "请选择结束日期" }}
+                </view>
+              </picker>
+              <picker mode="time" :value="endTimeValue" @change="handleEndClockChange">
+                <view class="datetime-picker-control datetime-picker-control--time" :class="{ 'datetime-picker-control--empty': !endTimeValue }">
+                  {{ endTimeValue || "结束时间" }}
+                </view>
+              </picker>
+            </view>
           </view>
-        </picker>
-      </view>
+        </view>
 
-      <view class="filter-group">
-        <text class="filter-label">工单状态</text>
-        <picker :range="worksheetStatusOptions" range-key="label" @change="handleStatusChange">
-          <view class="filter-select">
-            <text>{{ currentStatusLabel }}</text>
-            <text class="filter-select__arrow"></text>
-          </view>
-        </picker>
+        <view class="toolbar-actions">
+          <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="searchWorksheets">查询</button>
+          <button class="toolbar-button" hover-class="toolbar-button--hover" @click="resetFilters">重置</button>
+          <button class="toolbar-icon-button" hover-class="toolbar-icon-button--hover" aria-label="刷新" @click="fetchWorksheets">
+            <text class="icon-refresh"></text>
+          </button>
+          <button
+            v-if="mode === 'create'"
+            class="toolbar-button toolbar-button--primary toolbar-button--create"
+            hover-class="toolbar-button--hover"
+            @click="emit('create')"
+          >
+            新增工单
+          </button>
+        </view>
       </view>
-
-      <view class="filter-group">
-        <text class="filter-label">发起人</text>
-        <input v-model="filters.riseAccount" class="filter-input filter-input--name" placeholder="请输入发起人" placeholder-class="input-placeholder" />
-      </view>
-
-      <view class="filter-group">
-        <text class="filter-label">执行人</text>
-        <input v-model="filters.executeAccount" class="filter-input filter-input--name" placeholder="请输入执行人" placeholder-class="input-placeholder" />
-      </view>
-
-      <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="searchWorksheets">查询</button>
-      <button class="toolbar-button" hover-class="toolbar-button--hover" @click="resetFilters">重置</button>
-      <button class="toolbar-icon-button" hover-class="toolbar-icon-button--hover" aria-label="刷新" @click="fetchWorksheets">
-        <text class="icon-refresh"></text>
-      </button>
-      <button
-        v-if="mode === 'create'"
-        class="toolbar-button toolbar-button--primary toolbar-button--create"
-        hover-class="toolbar-button--hover"
-        @click="emit('create')"
-      >
-        新增工单
-      </button>
     </view>
 
     <view class="worksheet-layout" :class="{ 'worksheet-layout--statistics': mode === 'statistics' }">
@@ -319,6 +349,10 @@ const total = ref(0);
 const loading = ref(false);
 const submittingProcess = ref(false);
 const activeTab = ref<DetailTab>("base");
+const startDateValue = ref("");
+const startTimeValue = ref("");
+const endDateValue = ref("");
+const endTimeValue = ref("");
 
 const pageTitle = computed(() => pageTitleMap[props.mode]);
 const currentTypeLabel = computed(() => getOptionLabel(worksheetTypeOptions, filters.worksheetType, "不限"));
@@ -403,6 +437,39 @@ function handleStatusChange(event: { detail: { value: number } }) {
   filters.worksheetStatus = worksheetStatusOptions[event.detail.value]?.value ?? "";
 }
 
+function handleStartDateChange(event: { detail: { value: string } }) {
+  startDateValue.value = event.detail.value || "";
+  syncDateTimeFilter("start");
+}
+
+function handleStartClockChange(event: { detail: { value: string } }) {
+  startTimeValue.value = event.detail.value || "";
+  syncDateTimeFilter("start");
+}
+
+function handleEndDateChange(event: { detail: { value: string } }) {
+  endDateValue.value = event.detail.value || "";
+  syncDateTimeFilter("end");
+}
+
+function handleEndClockChange(event: { detail: { value: string } }) {
+  endTimeValue.value = event.detail.value || "";
+  syncDateTimeFilter("end");
+}
+
+function syncDateTimeFilter(type: "start" | "end") {
+  const date = type === "start" ? startDateValue.value : endDateValue.value;
+  const time = type === "start" ? startTimeValue.value : endTimeValue.value;
+  const value = date && time ? `${date}T${time}:00` : "";
+
+  if (type === "start") {
+    filters.startTime = value;
+    return;
+  }
+
+  filters.endTime = value;
+}
+
 function handleProcessStatusChange(event: { detail: { value: number } }) {
   processForm.worksheetStatus = worksheetStatusOptionsWithoutAll[event.detail.value]?.value ?? 1;
   if (processForm.worksheetStatus === 2 && !processForm.finishTime) {
@@ -411,6 +478,13 @@ function handleProcessStatusChange(event: { detail: { value: number } }) {
 }
 
 function buildQueryParams() {
+  if (!validateDateTimeRange()) {
+    throw {
+      code: -2,
+      msg: "时间格式应为 YYYY-MM-DDTHH:mm:ss",
+    };
+  }
+
   return {
     pageNum: pagination.pageNum,
     pageSize: pagination.pageSize,
@@ -424,6 +498,11 @@ function buildQueryParams() {
     riseAccount: filters.riseAccount.trim() || undefined,
     executeAccount: filters.executeAccount.trim() || undefined,
   };
+}
+
+function validateDateTimeRange() {
+  const pattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/;
+  return (!filters.startTime || pattern.test(filters.startTime)) && (!filters.endTime || pattern.test(filters.endTime));
 }
 
 async function fetchWorksheets() {
@@ -596,6 +675,10 @@ function searchWorksheets() {
 function resetFilters() {
   filters.startTime = "";
   filters.endTime = "";
+  startDateValue.value = "";
+  startTimeValue.value = "";
+  endDateValue.value = "";
+  endTimeValue.value = "";
   filters.worksheetNumber = "";
   filters.worksheetType = "";
   filters.worksheetStatus = "";
@@ -797,6 +880,10 @@ function normalizeDateForApi(value: string, isEnd: boolean) {
     return undefined;
   }
 
+  if (value.includes("T")) {
+    return value.length === 16 ? `${value}:00` : value;
+  }
+
   return `${value}T${isEnd ? "23:59:59" : "00:00:00"}`;
 }
 
@@ -944,23 +1031,51 @@ defineExpose({
 
 .worksheet-toolbar {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: stretch;
   flex: none;
   gap: 10px;
-  min-height: 50px;
-  padding: 8px 12px;
+  min-height: 104px;
+  padding: 12px;
+  overflow: visible;
 }
 
 .filter-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   flex: 0 0 auto;
 }
 
+.toolbar-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+.toolbar-row--filters {
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+
+.toolbar-row--bottom {
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.toolbar-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  min-width: 0;
+}
+
 .filter-group--date {
-  min-width: 358px;
+  min-width: 0;
 }
 
 .filter-label {
@@ -972,15 +1087,11 @@ defineExpose({
 }
 
 .filter-input {
-  width: 144px;
-}
-
-.filter-input--date {
-  width: 136px;
+  width: 132px;
 }
 
 .filter-input--name {
-  width: 128px;
+  width: 120px;
 }
 
 .filter-separator {
@@ -988,11 +1099,48 @@ defineExpose({
   font-size: 13px;
 }
 
+.date-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.datetime-picker-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.datetime-picker-control {
+  box-sizing: border-box;
+  width: 136px;
+  height: 34px;
+  padding: 0 10px;
+  overflow: hidden;
+  color: #172033;
+  font-size: 14px;
+  line-height: 34px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: #f9fcff;
+  border: 1px solid #cbdced;
+  border-radius: 4px;
+}
+
+.datetime-picker-control--time {
+  width: 88px;
+}
+
+.datetime-picker-control--empty {
+  color: #9aa9b8;
+}
+
 .filter-select {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 112px;
+  width: 104px;
 }
 
 .filter-select__arrow {
@@ -1019,6 +1167,21 @@ defineExpose({
   background: #f6fbff;
   border: 1px solid #cbdced;
   border-radius: 4px;
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  justify-content: flex-start;
+  width: auto;
+  margin-left: 0;
+}
+
+.toolbar-filters,
+.toolbar-actions {
+  align-self: center;
 }
 
 .toolbar-button::after,
