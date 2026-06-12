@@ -189,6 +189,7 @@ interface PageTab {
 }
 
 const MENU_COLLAPSED_KEY = "sideMenuCollapsed";
+const OPENED_TABS_KEY = "appShellOpenedTabs";
 const LEAK_MONITOR_PATH = "/pages/leak-monitor/leak-monitor";
 const DEFAULT_PAGE_PATH = LEAK_MONITOR_PATH;
 
@@ -310,7 +311,7 @@ const routePath = computed(() => {
   return `/${route}`;
 });
 const currentPath = ref(getInitialPath());
-const openedTabs = ref<PageTab[]>([]);
+const openedTabs = ref<PageTab[]>(getInitialOpenedTabs());
 const isFullscreen = ref(false);
 const isFallbackFullscreen = ref(false);
 const pageTabsListRef = ref<HTMLElement | { $el?: HTMLElement } | null>(null);
@@ -394,7 +395,11 @@ function goPage(path: string, options: { keepCollapsedSubmenu?: boolean } = {}) 
   }
 
   // #ifdef H5
-  navigateInPlace(path);
+  uni.redirectTo({
+    url: path,
+    animationType: "none",
+    animationDuration: 0,
+  });
   updateDocumentTitle(path);
   // #endif
 
@@ -422,6 +427,7 @@ function closeTab(path: string) {
   }
 
   openedTabs.value.splice(index, 1);
+  persistOpenedTabs();
   if (openedTabs.value.length === 0) {
     goPage(DEFAULT_PAGE_PATH);
     return;
@@ -584,6 +590,7 @@ function handleLogout() {
   uni.removeStorageSync("userInfo");
   uni.removeStorageSync("permissions");
   uni.removeStorageSync("roles");
+  uni.removeStorageSync(OPENED_TABS_KEY);
   uni.reLaunch({
     url: "/pages/login/login",
   });
@@ -607,6 +614,23 @@ function isDefaultAliasPath(path: string) {
 
 function getInitialMenuCollapsed() {
   return uni.getStorageSync(MENU_COLLAPSED_KEY) === true;
+}
+
+function getInitialOpenedTabs() {
+  const cached = uni.getStorageSync(OPENED_TABS_KEY);
+  if (!Array.isArray(cached)) {
+    return [];
+  }
+
+  return cached.filter((tab): tab is PageTab => {
+    return Boolean(
+      tab &&
+        typeof tab.path === "string" &&
+        typeof tab.label === "string" &&
+        typeof tab.icon === "string" &&
+        getMenuLabelByPath(tab.path),
+    );
+  });
 }
 
 function getHashPath() {
@@ -689,6 +713,11 @@ function ensureTab(path: string) {
   }
 
   openedTabs.value.push({ icon: getMenuIconByPath(path), label, path });
+  persistOpenedTabs();
+}
+
+function persistOpenedTabs() {
+  uni.setStorageSync(OPENED_TABS_KEY, openedTabs.value);
 }
 
 /**

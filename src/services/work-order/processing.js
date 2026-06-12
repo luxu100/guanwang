@@ -1,9 +1,9 @@
 /**
- * 工单处理接口封装，包含工单详情、更新、分派、催办和关闭动作。
+ * 工单处理接口封装。
  *
- * 页面层应优先调用这里导出的语义化函数，避免在 .vue 文件中直接拼接接口地址。
+ * Swagger 当前仅提供 worksheet 的标准 CRUD 接口，处理、关闭等动作通过更新工单字段完成。
  */
-import { createCrudService, postRequest } from "@/services/shared/crud";
+import { createCrudService } from "@/services/shared/crud";
 
 const worksheetApi = createCrudService("/api/worksheet");
 
@@ -12,15 +12,18 @@ export const getWorksheetProcessDetail = worksheetApi.getDetail;
 export const updateWorksheetProcess = worksheetApi.update;
 
 export function assignWorksheet(id, data) {
-  return postRequest(`/api/worksheet/${id}/assign`, data);
+  return updateWorksheetProcess(id, data);
 }
 
 export function urgeWorksheet(id, data) {
-  return postRequest(`/api/worksheet/${id}/urge`, data);
+  return updateWorksheetProcess(id, data);
 }
 
 export function closeWorksheet(id, data) {
-  return postRequest(`/api/worksheet/${id}/close`, data);
+  return updateWorksheetProcess(id, {
+    ...data,
+    worksheetStatus: 3,
+  });
 }
 
 export default {
