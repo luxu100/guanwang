@@ -190,6 +190,7 @@ interface PageTab {
 
 const MENU_COLLAPSED_KEY = "sideMenuCollapsed";
 const LEAK_MONITOR_PATH = "/pages/leak-monitor/leak-monitor";
+const DEFAULT_PAGE_PATH = LEAK_MONITOR_PATH;
 
 /**
  * 后台侧边栏菜单配置。
@@ -421,12 +422,17 @@ function closeTab(path: string) {
   }
 
   openedTabs.value.splice(index, 1);
+  if (openedTabs.value.length === 0) {
+    goPage(DEFAULT_PAGE_PATH);
+    return;
+  }
+
   if (currentPath.value !== path) {
     return;
   }
 
   const nextTab = openedTabs.value[index] || openedTabs.value[index - 1];
-  goPage(nextTab?.path || "/pages/leak-monitor/leak-monitor");
+  goPage(nextTab?.path || DEFAULT_PAGE_PATH);
 }
 
 /**
@@ -587,12 +593,16 @@ function getInitialPath() {
   // #ifdef H5
   const browser = getBrowserPath();
   const base = browser || routePath.value;
-  return base === "/pages/index/index" || !base ? LEAK_MONITOR_PATH : base;
+  return isDefaultAliasPath(base) ? DEFAULT_PAGE_PATH : base;
   // #endif
 
   // #ifndef H5
-  return routePath.value === "/pages/index/index" || !routePath.value ? LEAK_MONITOR_PATH : routePath.value;
+  return isDefaultAliasPath(routePath.value) ? DEFAULT_PAGE_PATH : routePath.value;
   // #endif
+}
+
+function isDefaultAliasPath(path: string) {
+  return path === "/pages/index/index" || !path;
 }
 
 function getInitialMenuCollapsed() {
@@ -625,6 +635,14 @@ function navigateInPlace(path: string) {
   }
 
   window.history.pushState({ path }, "", path);
+}
+
+function replaceBrowserPath(path: string) {
+  if (window.location.pathname === path && !window.location.hash) {
+    return;
+  }
+
+  window.history.replaceState({ path }, "", path);
 }
 
 function updateDocumentTitle(path: string) {
@@ -709,18 +727,24 @@ function syncExpandedMenuByPath(path: string) {
 function syncPathFromBrowser() {
   const path = getBrowserPath();
   if (path) {
-    currentPath.value = path;
-    ensureTab(path);
-    scrollActiveTabIntoView(path);
-    syncExpandedMenuByPath(path);
-    updateDocumentTitle(path);
+    const nextPath = isDefaultAliasPath(path) ? DEFAULT_PAGE_PATH : path;
+    currentPath.value = nextPath;
+    ensureTab(nextPath);
+    scrollActiveTabIntoView(nextPath);
+    syncExpandedMenuByPath(nextPath);
+    updateDocumentTitle(nextPath);
   }
 }
 
 // #ifdef H5
 onMounted(() => {
+  if (isDefaultAliasPath(getBrowserPath() || routePath.value)) {
+    replaceBrowserPath(DEFAULT_PAGE_PATH);
+  }
   ensureTab(currentPath.value);
   scrollActiveTabIntoView(currentPath.value);
+  syncExpandedMenuByPath(currentPath.value);
+  updateDocumentTitle(currentPath.value);
   window.addEventListener("popstate", syncPathFromBrowser);
   window.addEventListener("hashchange", syncPathFromBrowser);
   document.addEventListener("fullscreenchange", syncFullscreenState);
@@ -1113,6 +1137,7 @@ onUnmounted(() => {
 .side-menu {
   position: sticky;
   top: var(--shell-header-height);
+  z-index: 25;
   flex: 0 0 240px;
   width: 240px;
   height: var(--shell-content-min-height);
@@ -1260,6 +1285,10 @@ onUnmounted(() => {
   margin-bottom: 4px;
 }
 
+.side-menu__group:hover {
+  z-index: 45;
+}
+
 .side-menu__item {
   position: relative;
   display: flex;
@@ -1336,7 +1365,7 @@ onUnmounted(() => {
   position: absolute;
   top: 0;
   left: 100%;
-  z-index: 30;
+  z-index: 60;
   width: 156px;
   padding: 6px 0;
   color: #334155;
@@ -1373,7 +1402,7 @@ onUnmounted(() => {
   position: absolute;
   top: 50%;
   left: 76px;
-  z-index: 8;
+  z-index: 70;
   display: none;
   height: 34px;
   padding: 0 14px;

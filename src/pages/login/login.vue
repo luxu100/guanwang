@@ -31,11 +31,11 @@
             placeholder-class="field-placeholder"
           />
           <button
-            v-if="loginForm.username"
+            v-if="loginForm.username || loginForm.password"
             class="field-clear"
             hover-class="field-clear--hover"
             @click="clearLoginAccount"
-            aria-label="清除账号"
+            aria-label="清除账号和密码"
           >
             <view class="clear-icon"></view>
           </button>
@@ -108,7 +108,7 @@
               v-model="registerForm.realName"
               class="field-input"
               type="text"
-              placeholder="真实姓名"
+              placeholder="真实姓名（选填）"
               placeholder-class="field-placeholder"
             />
           </view>
@@ -117,7 +117,7 @@
               v-model="registerForm.phone"
               class="field-input"
               type="text"
-              placeholder="手机号"
+              placeholder="手机号（选填）"
               placeholder-class="field-placeholder"
             />
           </view>
@@ -128,13 +128,19 @@
             v-model="registerForm.email"
             class="field-input"
             type="text"
-            placeholder="邮箱，可选"
+            placeholder="邮箱（选填）"
             placeholder-class="field-placeholder"
           />
         </view>
       </view>
 
-      <view class="form-links">
+      <view class="form-links" :class="{ 'form-links--login': activeMode === 'login' }">
+        <view v-if="activeMode === 'login'" class="remember-login" @click="toggleRememberLogin">
+          <view class="remember-login__box" :class="{ 'remember-login__box--checked': rememberLogin }">
+            <view class="remember-login__tick"></view>
+          </view>
+          <text class="remember-login__text">记住账号与密码</text>
+        </view>
         <text class="form-link" @click="switchMode(activeMode === 'register' ? 'login' : 'register')">
           {{ activeMode === "register" ? "已有账号？返回登录" : "没有账号？用户注册" }}
         </text>
@@ -189,6 +195,7 @@ const PASSWORD_MIN_LENGTH = 6;
 const PASSWORD_MAX_LENGTH = 20;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^1[3-9]\d{9}$/;
+const REMEMBER_LOGIN_KEY = "rememberLoginAccount";
 
 /**
  * 登录页同时承载登录和注册两个模式。
@@ -204,6 +211,7 @@ const modeOptions: Array<{ label: string; value: Mode }> = [
 const activeMode = ref<Mode>("login");
 const submitting = ref(false);
 const passwordVisible = ref(false);
+const rememberLogin = ref(false);
 const notice = ref<{ type: NoticeType; text: string } | null>(null);
 
 const loginForm = reactive<LoginForm>({
@@ -221,6 +229,7 @@ const registerForm = reactive<RegisterForm>({
 });
 
 onMounted(() => {
+  loadRememberedLogin();
   const token = uni.getStorageSync(TOKEN_KEY);
   if (token) {
     uni.reLaunch({
@@ -271,6 +280,37 @@ function showToast(title: string, icon: "none" | "success" = "none") {
 function clearLoginAccount() {
   loginForm.username = "";
   loginForm.password = "";
+}
+
+function toggleRememberLogin() {
+  rememberLogin.value = !rememberLogin.value;
+
+  if (!rememberLogin.value) {
+    uni.removeStorageSync(REMEMBER_LOGIN_KEY);
+  }
+}
+
+function loadRememberedLogin() {
+  const remembered = uni.getStorageSync(REMEMBER_LOGIN_KEY) as Partial<LoginForm> | "";
+  if (!remembered || typeof remembered !== "object") {
+    return;
+  }
+
+  loginForm.username = remembered.username || "";
+  loginForm.password = remembered.password || "";
+  rememberLogin.value = Boolean(loginForm.username || loginForm.password);
+}
+
+function saveRememberedLogin() {
+  if (!rememberLogin.value) {
+    uni.removeStorageSync(REMEMBER_LOGIN_KEY);
+    return;
+  }
+
+  uni.setStorageSync(REMEMBER_LOGIN_KEY, {
+    username: loginForm.username.trim(),
+    password: loginForm.password,
+  });
 }
 
 function showNotice(type: NoticeType, text: string) {
@@ -414,6 +454,7 @@ async function handleLogin() {
     }
 
     saveLoginData(response.data);
+    saveRememberedLogin();
     showToast("登录成功", "success");
     // 确保登录后侧边栏为展开状态
     try {

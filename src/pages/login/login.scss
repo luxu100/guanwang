@@ -321,21 +321,91 @@
 
 .form-links {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   width: calc(100% - 2px);
   margin: 16px 0 28px 1px;
   color: var(--login-white);
   font-size: 15px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.form-links--login {
+  justify-content: space-between;
+  gap: 18px;
 }
 
 .form-link {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
   cursor: pointer;
-  line-height: 1.4;
+  line-height: inherit;
+  white-space: nowrap;
   transition: opacity 0.2s ease;
 }
 
 .form-link:hover {
   opacity: 0.78;
+}
+
+.remember-login {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  cursor: pointer;
+  line-height: inherit;
+  user-select: none;
+  transition: opacity 0.2s ease;
+}
+
+.remember-login:hover {
+  opacity: 0.82;
+}
+
+.remember-login__box {
+  position: relative;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 4px;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.remember-login__box--checked {
+  background: #ffffff;
+  border-color: #ffffff;
+}
+
+.remember-login__tick {
+  position: absolute;
+  top: 2px;
+  left: 5px;
+  width: 5px;
+  height: 9px;
+  border: solid var(--login-primary);
+  border-width: 0 2px 2px 0;
+  opacity: 0;
+  transform: rotate(45deg);
+}
+
+.remember-login__box--checked .remember-login__tick {
+  opacity: 1;
+}
+
+.remember-login__text {
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  white-space: nowrap;
 }
 
 .login-button {
@@ -535,6 +605,12 @@
   .form-links {
     margin: 12px 0 18px 1px;
     font-size: 14px;
+  }
+
+  .form-links--login {
+    align-items: flex-end;
+    flex-direction: column;
+    gap: 8px;
   }
 
   .login-button {
