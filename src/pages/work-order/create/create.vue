@@ -64,30 +64,11 @@
                   <view class="form-grid form-grid--main">
                     <view class="form-field">
                       <text class="form-label form-label--required">发起时间</text>
-                      <view class="datetime-shell">
-                        <text class="datetime-text" :class="{ 'datetime-text--empty': !riseTimeDisplay }">{{ riseTimeDisplay || "请选择发起时间" }}</text>
-                        <input
-                          class="datetime-native"
-                          type="datetime-local"
-                          step="1"
-                          :value="createForm.riseTime"
-                          @change="handleDatetimeChange('riseTime', $event)"
-                        />
-                      </view>
+                      <WorkOrderDatetimePicker v-model="createForm.riseTime" title="选择发起时间" placeholder="请选择发起时间" :clearable="false" />
                     </view>
                     <view class="form-field">
                       <text class="form-label">截止时间</text>
-                      <view class="datetime-shell">
-                        <text class="datetime-text" :class="{ 'datetime-text--empty': !deadlineTimeDisplay }">{{ deadlineTimeDisplay || "请选择截止时间" }}</text>
-                        <input
-                          class="datetime-native"
-                          type="datetime-local"
-                          step="1"
-                          :value="createForm.deadlineTime"
-                          :min="createForm.riseTime"
-                          @change="handleDatetimeChange('deadlineTime', $event)"
-                        />
-                      </view>
+                      <WorkOrderDatetimePicker v-model="createForm.deadlineTime" title="选择截止时间" placeholder="请选择截止时间" :min-value="createForm.riseTime" />
                     </view>
                   </view>
                 </view>
@@ -174,6 +155,7 @@
 import { computed, reactive, ref } from "vue";
 import AppShell from "@/components/AppShell.vue";
 import WorksheetTableView from "@/pages/work-order/components/WorksheetTableView.vue";
+import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
 import { createWorksheet } from "@/services/work-order/create";
 
 interface ApiResponseLike {
@@ -229,8 +211,6 @@ const createForm = reactive<CreateForm>(getDefaultCreateForm());
 const currentTypeLabel = computed(() => getOptionLabel(worksheetTypeOptions, createForm.worksheetType, "巡检"));
 const currentStatusLabel = computed(() => getOptionLabel(worksheetStatusOptions, createForm.worksheetStatus, "待处理"));
 const currentUrgencyLabel = computed(() => getOptionLabel(urgencyOptions, createForm.urgencyLevel, "一般"));
-const riseTimeDisplay = computed(() => formatDatetimeForDisplay(createForm.riseTime));
-const deadlineTimeDisplay = computed(() => formatDatetimeForDisplay(createForm.deadlineTime));
 
 function getDefaultCreateForm(): CreateForm {
   return {
@@ -280,10 +260,6 @@ function handleStatusChange(event: { detail: { value: number } }) {
 
 function handleUrgencyChange(event: { detail: { value: number } }) {
   createForm.urgencyLevel = urgencyOptions[event.detail.value]?.value ?? 0;
-}
-
-function handleDatetimeChange(field: "riseTime" | "deadlineTime", event: Event & { detail?: { value?: string } }) {
-  createForm[field] = normalizeDatetimeForApi(getEventValue(event)) || "";
 }
 
 async function submitCreate() {
@@ -386,20 +362,6 @@ function normalizeDatetimeForApi(value: string) {
   return normalizedValue.includes("T") ? `${normalizedValue.length === 16 ? `${normalizedValue}:00` : normalizedValue}` : normalizedValue;
 }
 
-function formatDatetimeForDisplay(value: string) {
-  if (!value) {
-    return "";
-  }
-
-  const normalizedValue = normalizeDisplayDatetime(value);
-  const [date = "", time = ""] = normalizedValue.split("T");
-  if (!date || !time) {
-    return value;
-  }
-
-  return `${date} ${time.length === 5 ? `${time}:00` : time}`;
-}
-
 function normalizeDisplayDatetime(value: string) {
   const trimmedValue = value.trim();
   if (!trimmedValue) {
@@ -407,11 +369,6 @@ function normalizeDisplayDatetime(value: string) {
   }
 
   return trimmedValue.replace(/\s+/, "T");
-}
-
-function getEventValue(event: Event & { detail?: { value?: string } }) {
-  const target = event.target as HTMLInputElement | null;
-  return event.detail?.value || target?.value || "";
 }
 
 function isDeadlineAfterRiseTime() {
@@ -431,19 +388,20 @@ function getDatetimeTimestamp(value: string) {
 }
 
 function toDatetimeLocal(value: Date) {
-  const pad = (number: number) => String(number).padStart(2, "0");
-  return `${toDatePart(value)}T${pad(value.getHours())}:${pad(value.getMinutes())}:${pad(value.getSeconds())}`;
+  return `${toDatePart(value)}T${padNumber(value.getHours())}:${padNumber(value.getMinutes())}:${padNumber(value.getSeconds())}`;
 }
 
 function toDatePart(value: Date) {
-  const pad = (number: number) => String(number).padStart(2, "0");
-  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
+  return `${value.getFullYear()}-${padNumber(value.getMonth() + 1)}-${padNumber(value.getDate())}`;
+}
+
+function padNumber(number: number) {
+  return String(number).padStart(2, "0");
 }
 
 function generateWorksheetNumber() {
   const now = new Date();
-  const pad = (number: number) => String(number).padStart(2, "0");
-  return `WO${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  return `WO${now.getFullYear()}${padNumber(now.getMonth() + 1)}${padNumber(now.getDate())}${padNumber(now.getHours())}${padNumber(now.getMinutes())}${padNumber(now.getSeconds())}`;
 }
 </script>
 
@@ -712,7 +670,6 @@ function generateWorksheetNumber() {
 
 .form-input,
 .form-select,
-.datetime-shell,
 .form-textarea {
   box-sizing: border-box;
   min-width: 0;
@@ -746,8 +703,7 @@ function generateWorksheetNumber() {
 }
 
 .form-input,
-.form-select,
-.datetime-shell {
+.form-select {
   height: 38px;
   padding: 0 12px;
   line-height: 38px;
@@ -762,35 +718,6 @@ function generateWorksheetNumber() {
 .form-select--dropdown {
   background: #f7fbff;
   box-shadow: inset 0 -1px 0 rgba(13, 130, 238, 0.03);
-}
-
-.datetime-shell {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.datetime-text {
-  display: block;
-  width: 100%;
-  overflow: hidden;
-  color: #172033;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.datetime-text--empty {
-  color: #9aa9b8;
-}
-
-.datetime-native {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  padding: 0;
-  cursor: pointer;
-  opacity: 0;
 }
 
 .form-input:focus,

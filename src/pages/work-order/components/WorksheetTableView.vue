@@ -49,27 +49,9 @@
         <view class="filter-group filter-group--date">
           <text class="filter-label">创建时间</text>
           <view class="date-range">
-            <view class="datetime-picker-control" :class="{ 'datetime-picker-control--empty': !filters.startTime }">
-              <text>{{ formatDatetimeForControl(filters.startTime) || "请选择开始时间" }}</text>
-              <input
-                class="datetime-native-input"
-                type="datetime-local"
-                step="1"
-                :value="filters.startTime"
-                @change="handleFilterDatetimeChange('startTime', $event)"
-              />
-            </view>
+            <WorkOrderDatetimePicker v-model="filters.startTime" class="filter-datetime" title="选择开始时间" placeholder="请选择开始时间" />
             <text class="filter-separator">至</text>
-            <view class="datetime-picker-control" :class="{ 'datetime-picker-control--empty': !filters.endTime }">
-              <text>{{ formatDatetimeForControl(filters.endTime) || "请选择结束时间" }}</text>
-              <input
-                class="datetime-native-input"
-                type="datetime-local"
-                step="1"
-                :value="filters.endTime"
-                @change="handleFilterDatetimeChange('endTime', $event)"
-              />
-            </view>
+            <WorkOrderDatetimePicker v-model="filters.endTime" class="filter-datetime" title="选择结束时间" placeholder="请选择结束时间" />
           </view>
         </view>
 
@@ -252,6 +234,7 @@ import { computed, onMounted, reactive, ref, watch } from "vue";
 import { getWorksheetCreatePage } from "@/services/work-order/create";
 import { getWorksheetProcessDetail, getWorksheetProcessPage, updateWorksheetProcess } from "@/services/work-order/processing";
 import { getWorksheetStatisticsPage } from "@/services/work-order/statistics";
+import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
 
 type WorkOrderMode = "create" | "processing" | "statistics";
 type DetailTab = "base" | "content" | "time";
@@ -427,10 +410,6 @@ function handleTypeChange(event: { detail: { value: number } }) {
 
 function handleStatusChange(event: { detail: { value: number } }) {
   filters.worksheetStatus = worksheetStatusOptions[event.detail.value]?.value ?? "";
-}
-
-function handleFilterDatetimeChange(field: "startTime" | "endTime", event: Event & { detail?: { value?: string } }) {
-  filters[field] = normalizeDatetimeForApi(getEventValue(event)) || "";
 }
 
 function handleProcessStatusChange(event: { detail: { value: number } }) {
@@ -861,11 +840,6 @@ function normalizeDisplayDatetime(value: string) {
   return value.trim().replace(/\s+/, "T");
 }
 
-function getEventValue(event: Event & { detail?: { value?: string } }) {
-  const target = event.target as HTMLInputElement | null;
-  return event.detail?.value || target?.value || "";
-}
-
 function toDatetimeLocal(value: Date | string) {
   if (!value) {
     return "";
@@ -876,8 +850,7 @@ function toDatetimeLocal(value: Date | string) {
     return "";
   }
 
-  const pad = (number: number) => String(number).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return `${date.getFullYear()}-${padNumber(date.getMonth() + 1)}-${padNumber(date.getDate())}T${padNumber(date.getHours())}:${padNumber(date.getMinutes())}:${padNumber(date.getSeconds())}`;
 }
 
 function formatDateTime(value: string) {
@@ -888,19 +861,13 @@ function formatDateTime(value: string) {
   return value.replace("T", " ").replace(/\.\d{3}Z?$/, "");
 }
 
-function formatDatetimeForControl(value: string) {
-  if (!value) {
-    return "";
-  }
-
-  const normalizedValue = normalizeDatetimeForApi(value);
-  return normalizedValue ? normalizedValue.replace("T", " ") : "";
+function padNumber(number: number) {
+  return String(number).padStart(2, "0");
 }
 
 function generateWorksheetNumber() {
   const now = new Date();
-  const pad = (number: number) => String(number).padStart(2, "0");
-  return `WO${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  return `WO${now.getFullYear()}${padNumber(now.getMonth() + 1)}${padNumber(now.getDate())}${padNumber(now.getHours())}${padNumber(now.getMinutes())}${padNumber(now.getSeconds())}`;
 }
 
 defineExpose({
@@ -1086,37 +1053,8 @@ defineExpose({
   flex-wrap: wrap;
 }
 
-.datetime-picker-control {
-  position: relative;
-  display: flex;
-  align-items: center;
-  box-sizing: border-box;
+.filter-datetime {
   width: 188px;
-  height: 34px;
-  padding: 0 10px;
-  overflow: hidden;
-  color: #172033;
-  font-size: 14px;
-  line-height: 34px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  background: #f9fcff;
-  border: 1px solid #cbdced;
-  border-radius: 4px;
-}
-
-.datetime-picker-control--empty {
-  color: #9aa9b8;
-}
-
-.datetime-native-input {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  padding: 0;
-  cursor: pointer;
-  opacity: 0;
 }
 
 .filter-select {
