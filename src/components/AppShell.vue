@@ -3,7 +3,12 @@
     后台页面通用外壳：顶部栏、侧边目录、页签和内容区统一在这里维护。
     业务页面只需要把主体内容放进默认插槽即可。
   -->
-  <view ref="appShellRef" class="app-shell" :class="{ 'app-shell--maximized': isFallbackFullscreen }">
+  <view
+    v-if="isAuthReady"
+    ref="appShellRef"
+    class="app-shell"
+    :class="{ 'app-shell--maximized': isFallbackFullscreen }"
+  >
     <view v-if="isFallbackFullscreen" class="fullscreen-exit-tip">ESC 退出</view>
     <view class="top-bar">
       <view class="brand">
@@ -184,7 +189,9 @@ import SystemManagementView from "@/pages/system/components/SystemManagementView
 import DataReceiveView from "@/pages/data-receive/components/DataReceiveView.vue";
 import WorkOrderCreateView from "@/pages/work-order/components/WorkOrderCreateView.vue";
 import WorksheetTableView from "@/pages/work-order/components/WorksheetTableView.vue";
+import { clearAuthStorage, createProtectedRouteDecision, LOGIN_PATH } from "@/utils/authGuard";
 import { filterMenuItemsByAccess, flattenMenuPaths, getFirstAccessiblePath } from "@/utils/menuAccess";
+import { TOKEN_KEY } from "@/utils/request";
 
 interface MenuItem {
   label: string;
@@ -353,6 +360,7 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
 
 const searchKeyword = ref("");
 const isSearchFocused = ref(false);
+const isAuthReady = ref(false);
 const isMenuCollapsed = ref(getInitialMenuCollapsed());
 const expandedMenuPaths = ref<string[]>([]);
 const collapsedSubmenuPath = ref("");
@@ -644,15 +652,38 @@ function isCollapsedSubmenuVisible(item: MenuItem) {
 
 function handleLogout() {
   // 登录态和权限信息都保存在本地缓存，退出时必须全部清理，避免下次进入误判已登录。
-  uni.removeStorageSync("token");
-  uni.removeStorageSync("tokenPrefix");
-  uni.removeStorageSync("userInfo");
-  uni.removeStorageSync("permissions");
-  uni.removeStorageSync("roles");
-  uni.removeStorageSync(OPENED_TABS_KEY);
+  clearAuthStorage(uni, [OPENED_TABS_KEY]);
   uni.reLaunch({
-    url: "/pages/login/login",
+    url: LOGIN_PATH,
   });
+}
+
+function ensureAuthenticatedRoute() {
+  const decision = createProtectedRouteDecision({
+    currentPath: getCurrentAuthPath(),
+    token: uni.getStorageSync(TOKEN_KEY),
+  });
+
+  if (!decision.shouldRedirect) {
+    isAuthReady.value = true;
+    return true;
+  }
+
+  clearAuthStorage(uni, [OPENED_TABS_KEY]);
+  uni.reLaunch({
+    url: decision.redirectUrl,
+  });
+  return false;
+}
+
+function getCurrentAuthPath() {
+  // #ifdef H5
+  return getBrowserPath() || routePath.value;
+  // #endif
+
+  // #ifndef H5
+  return routePath.value;
+  // #endif
 }
 
 function getInitialPath() {
@@ -877,6 +908,10 @@ function syncPathFromBrowser() {
 
 // #ifdef H5
 onMounted(() => {
+  if (!ensureAuthenticatedRoute()) {
+    return;
+  }
+
   if (isDefaultAliasPath(getBrowserPath() || routePath.value)) {
     replaceBrowserPath(firstAccessibleMenuPath.value);
   }
@@ -900,6 +935,12 @@ onUnmounted(() => {
   document.removeEventListener("fullscreenchange", syncFullscreenState);
   document.removeEventListener("webkitfullscreenchange", syncFullscreenState);
   window.removeEventListener("keydown", handleFullscreenKeydown);
+});
+// #endif
+
+// #ifndef H5
+onMounted(() => {
+  ensureAuthenticatedRoute();
 });
 // #endif
 </script>

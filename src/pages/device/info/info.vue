@@ -1,10 +1,12 @@
 <template>
   <AppShell>
-    <DeviceManagementView mode="info" />
+    <StationManagementView />
   </AppShell>
 </template>
 
 <script setup lang="ts">
 import AppShell from "@/components/AppShell.vue";
-import DeviceManagementView from "@/pages/device/components/DeviceManagementView.vue";
+import StationManagementView from "@/pages/station/components/StationManagementView.vue";
 </script>
+
+

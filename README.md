@@ -87,6 +87,8 @@ flowchart TD
   Shell --> Storage["本地缓存 token / userInfo / permissions / roles"]
 ```
 
+未登录状态直接访问登录后页面时，`AppShell` 会通过 `src/utils/authGuard.js` 清理本地登录态并跳回 `/pages/login/login`，避免只显示后台外壳或首页内容。
+
 ## 快速开始
 
 ### 安装依赖
@@ -496,6 +498,7 @@ import AppShell from "@/components/AppShell.vue";
 关注点：
 
 - `TOKEN_KEY` 和 `TOKEN_PREFIX_KEY` 来自 `src/utils/request.js`。
+- 登录后页面需要经由 `src/utils/authGuard.js` 判断本地 token；未登录直达受保护页面时回到 `/pages/login/login`。
 - 登录成功后的默认地址应保持为 `/pages/leak-monitor/leak-monitor`。
 - 退出登录需要清理 token、用户信息、权限和角色缓存。
 - 登录页同时包含登录和注册模式，表单样式和提示要兼顾两种状态。
