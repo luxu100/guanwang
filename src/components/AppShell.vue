@@ -3,7 +3,8 @@
     后台页面通用外壳：顶部栏、侧边目录、页签和内容区统一在这里维护。
     业务页面只需要把主体内容放进默认插槽即可。
   -->
-  <view class="app-shell">
+  <view ref="appShellRef" class="app-shell" :class="{ 'app-shell--maximized': isFallbackFullscreen }">
+    <view v-if="isFallbackFullscreen" class="fullscreen-exit-tip">ESC 退出</view>
     <view class="top-bar">
       <view class="brand">
         <image class="brand__logo" :src="logoImage" mode="heightFix" />
@@ -158,10 +159,8 @@
         <view
           ref="shellContentRef"
           class="shell-content"
-          :class="{ 'shell-content--maximized': isFallbackFullscreen }"
           data-fullscreen-target="shell-content"
         >
-          <view v-if="isFallbackFullscreen" class="fullscreen-exit-tip">ESC</view>
           <!-- AppShell 内部切换目录时真实页面不会立即卸载，内容必须跟随 currentPath 控制。 -->
           <TencentLeakMap v-if="isLeakMonitorActive" />
           <component v-else-if="shellContentComponent" :is="shellContentComponent" v-bind="shellContentProps" />
@@ -368,6 +367,7 @@ const currentPath = ref(getInitialPath());
 const openedTabs = ref<PageTab[]>(getInitialOpenedTabs());
 const isFullscreen = ref(false);
 const isFallbackFullscreen = ref(false);
+const appShellRef = ref<HTMLElement | { $el?: HTMLElement } | null>(null);
 const pageTabsListRef = ref<HTMLElement | { $el?: HTMLElement } | null>(null);
 const shellContentRef = ref<HTMLElement | { $el?: HTMLElement } | null>(null);
 
@@ -512,12 +512,6 @@ function closeTab(path: string) {
   goPage(nextTab?.path || firstAccessibleMenuPath.value);
 }
 
-/**
- * 进入/退出内容区全屏。
- *
- * 优先使用浏览器 Fullscreen API；如果当前环境不支持或调用失败，则退化为
- * shell-content--maximized 固定定位模拟全屏。
- */
 async function toggleFullscreen() {
   if (typeof document === "undefined") {
     return;
@@ -528,38 +522,32 @@ async function toggleFullscreen() {
     return;
   }
 
-  const target = getFullscreenTarget();
-  if (!target) {
-    return;
-  }
-
   const fullscreenElement =
     document.fullscreenElement ||
     (document as Document & { webkitFullscreenElement?: Element | null }).webkitFullscreenElement;
+  const target = getFullscreenTarget();
 
   try {
     if (fullscreenElement === target) {
       await exitFullscreen();
-    } else if (fullscreenElement) {
+      return;
+    }
+
+    if (fullscreenElement) {
       await exitFullscreen();
-      const entered = await enterFullscreen(target);
-      if (!entered) {
-        openFallbackFullscreen();
-      }
-    } else {
-      const entered = await enterFullscreen(target);
-      if (!entered) {
-        openFallbackFullscreen();
-      }
+    }
+
+    if (!target || !(await enterFullscreen(target))) {
+      openFallbackFullscreen();
     }
   } catch (error) {
-    console.error("toggle fullscreen failed", error);
+    console.error("toggle app fullscreen failed", error);
     openFallbackFullscreen();
   }
 }
 
 function getFullscreenTarget() {
-  return getElementFromRef(shellContentRef.value) || document.querySelector<HTMLElement>('[data-fullscreen-target="shell-content"]');
+  return getElementFromRef(appShellRef.value) || document.querySelector<HTMLElement>(".app-shell");
 }
 
 function getElementFromRef(refValue: HTMLElement | { $el?: HTMLElement } | null) {
@@ -680,7 +668,7 @@ function getInitialPath() {
 }
 
 function isDefaultAliasPath(path: string) {
-  return path === "/pages/index/index" || !path;
+  return !path;
 }
 
 function getInitialMenuCollapsed() {
@@ -932,9 +920,35 @@ onUnmounted(() => {
   background: #edf5ff;
 }
 
+.app-shell--maximized {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  width: 100%;
+  height: 100vh;
+  min-height: 100vh;
+  background: #edf5ff;
+}
+
+.app-shell:fullscreen,
+.app-shell:-webkit-full-screen {
+  width: 100%;
+  height: 100vh;
+  min-height: 100vh;
+  overflow: hidden;
+  background: #edf5ff;
+}
+
 @supports (height: 100dvh) {
   .app-shell {
     --shell-viewport-height: 100dvh;
+  }
+
+  .app-shell--maximized,
+  .app-shell:fullscreen,
+  .app-shell:-webkit-full-screen {
+    height: 100dvh;
+    min-height: 100dvh;
   }
 }
 
@@ -1989,12 +2003,14 @@ onUnmounted(() => {
   --shell-content-min-height: 100vh;
 
   position: fixed;
+  box-sizing: border-box;
   inset: 0;
   z-index: 1000;
-  width: 100vw;
+  width: 100%;
   height: 100vh;
   min-height: 100vh;
   margin: 0;
+  padding: 0;
   background: #edf5ff;
   border-radius: 0;
   box-shadow: none;
@@ -2010,11 +2026,28 @@ onUnmounted(() => {
   min-height: 100vh;
 }
 
+.shell-content:fullscreen :deep(.work-order-create-page),
+.shell-content:fullscreen :deep(.work-order-page),
+.shell-content:-webkit-full-screen :deep(.work-order-create-page),
+.shell-content:-webkit-full-screen :deep(.work-order-page),
+.shell-content--maximized :deep(.work-order-create-page),
+.shell-content--maximized :deep(.work-order-page) {
+  box-sizing: border-box;
+  height: 100vh;
+  padding: 12px;
+}
+
+.shell-content:fullscreen :deep(.worksheet-view),
+.shell-content:-webkit-full-screen :deep(.worksheet-view),
+.shell-content--maximized :deep(.worksheet-view) {
+  height: 100%;
+}
+
 .fullscreen-exit-tip {
-  position: absolute;
+  position: fixed;
   top: 16px;
   left: 50%;
-  z-index: 20;
+  z-index: 1100;
   padding: 8px 14px;
   color: #ffffff;
   font-size: 13px;

@@ -65,6 +65,8 @@ const mapError = ref("");
 let mapInstance: TencentMapInstance | null = null;
 let sdkLoadingPromise: Promise<void> | null = null;
 let resizeTimer: ReturnType<typeof window.setTimeout> | null = null;
+let resizeFrame: number | null = null;
+let resizeObserver: ResizeObserver | null = null;
 
 declare global {
   interface Window {
@@ -75,6 +77,7 @@ declare global {
 onMounted(() => {
   // #ifdef H5
   nextTick(() => {
+    bindResizeEvents();
     loadTencentMap()
       .then(initMap)
       .catch(() => {
@@ -90,6 +93,12 @@ onBeforeUnmount(() => {
     resizeTimer = null;
   }
 
+  if (resizeFrame !== null) {
+    window.cancelAnimationFrame(resizeFrame);
+    resizeFrame = null;
+  }
+
+  unbindResizeEvents();
   mapInstance?.destroy?.();
   mapInstance = null;
 });
@@ -162,24 +171,76 @@ function initMap() {
     ],
   });
 
+  bindContainerResizeObserver();
   resizeTimer = window.setTimeout(() => {
     resizeTimer = null;
     mapInstance?.resize?.();
   }, MAP_RESIZE_DELAY);
+}
+
+function bindResizeEvents() {
+  window.addEventListener("resize", scheduleMapResize);
+  document.addEventListener("fullscreenchange", scheduleMapResize);
+  document.addEventListener("webkitfullscreenchange", scheduleMapResize);
+
+  scheduleMapResize();
+}
+
+function bindContainerResizeObserver() {
+  if (!mapContainer.value || typeof ResizeObserver === "undefined") {
+    return;
+  }
+
+  resizeObserver?.disconnect();
+  resizeObserver = new ResizeObserver(scheduleMapResize);
+  resizeObserver.observe(mapContainer.value);
+}
+
+function unbindResizeEvents() {
+  window.removeEventListener("resize", scheduleMapResize);
+  document.removeEventListener("fullscreenchange", scheduleMapResize);
+  document.removeEventListener("webkitfullscreenchange", scheduleMapResize);
+  resizeObserver?.disconnect();
+  resizeObserver = null;
+}
+
+function scheduleMapResize() {
+  if (resizeTimer) {
+    window.clearTimeout(resizeTimer);
+  }
+
+  if (resizeFrame !== null) {
+    window.cancelAnimationFrame(resizeFrame);
+  }
+
+  resizeFrame = window.requestAnimationFrame(() => {
+    resizeFrame = null;
+    mapInstance?.resize?.();
+
+    resizeTimer = window.setTimeout(() => {
+      resizeTimer = null;
+      mapInstance?.resize?.();
+    }, 260);
+  });
 }
 </script>
 
 <style scoped lang="scss">
 .leak-map {
   position: relative;
+  width: 100%;
+  height: 100%;
   min-height: var(--shell-content-min-height);
+  overflow: hidden;
   background: #edf5ff;
 }
 
 .leak-map__canvas {
+  display: block;
   width: 100%;
-  height: var(--shell-content-min-height);
-  min-height: 520px;
+  height: 100%;
+  min-height: var(--shell-content-min-height);
+  overflow: hidden;
 }
 
 .leak-map__error {
