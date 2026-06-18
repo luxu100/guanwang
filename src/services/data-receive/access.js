@@ -16,7 +16,10 @@ export const updateProtocolDefinition = protocolDefinitionApi.update;
 export const deleteProtocolDefinition = protocolDefinitionApi.delete;
 
 export const getDeviceProtocolRelationPage = deviceProtocolRelationApi.getPage;
+export const getDeviceProtocolRelationDetail = deviceProtocolRelationApi.getDetail;
 export const createDeviceProtocolRelation = deviceProtocolRelationApi.create;
+export const updateDeviceProtocolRelation = deviceProtocolRelationApi.update;
+export const deleteDeviceProtocolRelation = deviceProtocolRelationApi.delete;
 
 export function getDeviceProtocolRelationByDevice(deviceId, params) {
   return getRequest(`/api/device-protocol-relation/by-device/${deviceId}`, params);
@@ -34,7 +37,10 @@ export default {
   updateProtocolDefinition,
   deleteProtocolDefinition,
   getDeviceProtocolRelationPage,
+  getDeviceProtocolRelationDetail,
   createDeviceProtocolRelation,
+  updateDeviceProtocolRelation,
+  deleteDeviceProtocolRelation,
   getDeviceProtocolRelationByDevice,
   getDeviceProtocolRelationByProtocol,
 };

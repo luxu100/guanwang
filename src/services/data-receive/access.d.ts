@@ -1,0 +1,76 @@
+export interface ApiResponse<T = unknown> {
+  code?: number;
+  msg?: string;
+  data?: T;
+  timestamp?: number;
+}
+
+export interface PageResult<T> {
+  records: T[];
+  total: number;
+  size?: number;
+  current?: number;
+}
+
+export type ServiceId = string | number;
+export type ServiceQuery = Record<string, unknown>;
+
+export interface ProtocolDefinition {
+  id?: ServiceId;
+  createdAt?: string;
+  updatedAt?: string;
+  isDeleted?: boolean;
+  protocolCode?: string;
+  protocolName?: string;
+  protocolVersion?: string;
+  description?: string;
+  enabled?: boolean;
+  priority?: number;
+}
+
+export interface DeviceProtocolRelation {
+  id?: ServiceId;
+  createdAt?: string;
+  updatedAt?: string;
+  isDeleted?: boolean;
+  deviceId?: ServiceId;
+  protocolId?: ServiceId;
+  afn?: string;
+  taskType?: string;
+  contentPrefix?: string;
+  priority?: number;
+  enabled?: boolean;
+}
+
+export function getProtocolDefinitionPage(data: ServiceQuery): Promise<ApiResponse<PageResult<ProtocolDefinition>>>;
+export function getProtocolDefinitionList(params?: ServiceQuery): Promise<ApiResponse<ProtocolDefinition[]>>;
+export function getProtocolDefinitionDetail(id: ServiceId): Promise<ApiResponse<ProtocolDefinition>>;
+export function createProtocolDefinition(data: ProtocolDefinition): Promise<ApiResponse<ProtocolDefinition>>;
+export function updateProtocolDefinition(id: ServiceId, data: ProtocolDefinition): Promise<ApiResponse<boolean>>;
+export function deleteProtocolDefinition(id: ServiceId): Promise<ApiResponse<boolean>>;
+
+export function getDeviceProtocolRelationPage(data: ServiceQuery): Promise<ApiResponse<PageResult<DeviceProtocolRelation>>>;
+export function getDeviceProtocolRelationDetail(id: ServiceId): Promise<ApiResponse<DeviceProtocolRelation>>;
+export function createDeviceProtocolRelation(data: DeviceProtocolRelation): Promise<ApiResponse<DeviceProtocolRelation>>;
+export function updateDeviceProtocolRelation(id: ServiceId, data: DeviceProtocolRelation): Promise<ApiResponse<boolean>>;
+export function deleteDeviceProtocolRelation(id: ServiceId): Promise<ApiResponse<boolean>>;
+export function getDeviceProtocolRelationByDevice(deviceId: ServiceId, params?: ServiceQuery): Promise<ApiResponse<DeviceProtocolRelation[]>>;
+export function getDeviceProtocolRelationByProtocol(protocolId: ServiceId, params?: ServiceQuery): Promise<ApiResponse<DeviceProtocolRelation[]>>;
+
+declare const service: {
+  getProtocolDefinitionPage: typeof getProtocolDefinitionPage;
+  getProtocolDefinitionList: typeof getProtocolDefinitionList;
+  getProtocolDefinitionDetail: typeof getProtocolDefinitionDetail;
+  createProtocolDefinition: typeof createProtocolDefinition;
+  updateProtocolDefinition: typeof updateProtocolDefinition;
+  deleteProtocolDefinition: typeof deleteProtocolDefinition;
+  getDeviceProtocolRelationPage: typeof getDeviceProtocolRelationPage;
+  getDeviceProtocolRelationDetail: typeof getDeviceProtocolRelationDetail;
+  createDeviceProtocolRelation: typeof createDeviceProtocolRelation;
+  updateDeviceProtocolRelation: typeof updateDeviceProtocolRelation;
+  deleteDeviceProtocolRelation: typeof deleteDeviceProtocolRelation;
+  getDeviceProtocolRelationByDevice: typeof getDeviceProtocolRelationByDevice;
+  getDeviceProtocolRelationByProtocol: typeof getDeviceProtocolRelationByProtocol;
+};
+
+export default service;

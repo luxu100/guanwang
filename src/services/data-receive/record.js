@@ -20,8 +20,14 @@ export const getSamplingDetailList = samplingDetailApi.getList;
 export const getSamplingDetailDetail = samplingDetailApi.getDetail;
 
 export const getSamplingDailyPage = samplingDailyApi.getPage;
+export const getSamplingDailyList = samplingDailyApi.getList;
+export const getSamplingDailyDetail = samplingDailyApi.getDetail;
 export const getSamplingPressurePage = samplingPressureApi.getPage;
+export const getSamplingPressureList = samplingPressureApi.getList;
+export const getSamplingPressureDetail = samplingPressureApi.getDetail;
 export const getSamplingCssDataPage = samplingCssDataApi.getPage;
+export const getSamplingCssDataList = samplingCssDataApi.getList;
+export const getSamplingCssDataDetail = samplingCssDataApi.getDetail;
 
 export default {
   getSamplingRecordPage,
@@ -31,6 +37,12 @@ export default {
   getSamplingDetailList,
   getSamplingDetailDetail,
   getSamplingDailyPage,
+  getSamplingDailyList,
+  getSamplingDailyDetail,
   getSamplingPressurePage,
+  getSamplingPressureList,
+  getSamplingPressureDetail,
   getSamplingCssDataPage,
+  getSamplingCssDataList,
+  getSamplingCssDataDetail,
 };

@@ -1,17 +1,10 @@
 <template>
   <AppShell>
-    <!-- 数据接入页面：后续用于维护协议定义和设备协议绑定关系。 -->
-    <view class="content-page"></view>
+    <DataReceiveView mode="access" />
   </AppShell>
 </template>
 
 <script setup lang="ts">
 import AppShell from "@/components/AppShell.vue";
+import DataReceiveView from "@/pages/data-receive/components/DataReceiveView.vue";
 </script>
-
-<style scoped lang="scss">
-.content-page {
-  min-height: var(--shell-content-min-height);
-}
-</style>
-

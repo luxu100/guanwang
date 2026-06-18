@@ -200,7 +200,7 @@ VITE_API_BASE_URL=http://example.com npm run dev:h5
 | `alarm` | 实时报警 | 报警策略、处理、分析 |
 | `report` | 统计报表 | 报表生成、操作、指令管理 |
 | `system` | 系统设置 | 用户、权限、菜单、字典 |
-| `data-receive` | 数据接收和解析 | 协议接入、解析规则、数据记录 |
+| `data-receive` | 数据接收和解析 | 协议管理、解析规则、数据记录 |
 
 ### `src/services` 模块结构
 
@@ -310,7 +310,7 @@ VITE_API_BASE_URL=http://example.com npm run dev:h5
 
 | 页面 | 路由 | 文件 | 说明 |
 | --- | --- | --- | --- |
-| 数据接入 | `/pages/data-receive/access/access` | `src/pages/data-receive/access/access.vue` | 协议定义、设备协议绑定 |
+| 协议管理 | `/pages/data-receive/access/access` | `src/pages/data-receive/access/access.vue` | 协议定义、设备协议绑定 |
 | 数据解析 | `/pages/data-receive/parse/parse` | `src/pages/data-receive/parse/parse.vue` | 协议字段、解析记录、字段批量保存 |
 | 数据记录 | `/pages/data-receive/record/record` | `src/pages/data-receive/record/record.vue` | 采样记录、明细、日报、压力、CSS 采样数据 |
 

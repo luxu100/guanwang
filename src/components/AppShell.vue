@@ -83,6 +83,7 @@
                 'side-menu__item--popover-open': isCollapsedSubmenuVisible(item),
               }"
               :data-label="item.label"
+              :data-menu-path="item.path"
               @click="goMenuItem(item)"
             >
               <text class="side-menu__icon" :class="`side-menu__icon--${item.icon}`"></text>
@@ -95,6 +96,7 @@
                 :key="child.path"
                 class="side-menu__child"
                 :class="{ 'side-menu__child--active': currentPath === child.path }"
+                :data-menu-path="child.path"
                 @click.stop="goPage(child.path)"
               >
                 <text class="side-menu__child-dot"></text>
@@ -108,6 +110,7 @@
                 :key="child.path"
                 class="side-menu__popover-item"
                 :class="{ 'side-menu__popover-item--active': currentPath === child.path }"
+                :data-menu-path="child.path"
                 @click.stop="goChildPage(child.path)"
               >
                 {{ child.label }}
@@ -161,6 +164,7 @@
           <view v-if="isFallbackFullscreen" class="fullscreen-exit-tip">ESC</view>
           <!-- AppShell 内部切换目录时真实页面不会立即卸载，内容必须跟随 currentPath 控制。 -->
           <TencentLeakMap v-if="isLeakMonitorActive" />
+          <component v-else-if="shellContentComponent" :is="shellContentComponent" v-bind="shellContentProps" />
           <slot v-else-if="shouldRenderPageSlot"></slot>
           <view v-else class="shell-placeholder"></view>
         </view>
@@ -171,13 +175,23 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
+import type { Component } from "vue";
 import logoImage from "@/assets/images/logo.webp";
+import AdminPlaceholderView from "@/components/admin/AdminPlaceholderView.vue";
 import TencentLeakMap from "@/pages/leak-monitor/components/TencentLeakMap.vue";
+import StationManagementView from "@/pages/station/components/StationManagementView.vue";
+import DeviceManagementView from "@/pages/device/components/DeviceManagementView.vue";
+import SystemManagementView from "@/pages/system/components/SystemManagementView.vue";
+import DataReceiveView from "@/pages/data-receive/components/DataReceiveView.vue";
+import WorkOrderCreateView from "@/pages/work-order/components/WorkOrderCreateView.vue";
+import WorksheetTableView from "@/pages/work-order/components/WorksheetTableView.vue";
+import { filterMenuItemsByAccess, flattenMenuPaths, getFirstAccessiblePath } from "@/utils/menuAccess";
 
 interface MenuItem {
   label: string;
   path: string;
   icon: string;
+  permissionCode?: string;
   keywords?: string[];
   children?: MenuItem[];
 }
@@ -186,6 +200,11 @@ interface PageTab {
   icon: string;
   label: string;
   path: string;
+}
+
+interface ShellContentDefinition {
+  component: Component;
+  props?: Record<string, unknown>;
 }
 
 const MENU_COLLAPSED_KEY = "sideMenuCollapsed";
@@ -290,13 +309,48 @@ const menuItems: MenuItem[] = [
     path: "/pages/data-receive/access/access",
     icon: "command",
     keywords: ["数据接收", "解析", "接入"],
+    permissionCode: "module:data-receive",
     children: [
-      { label: "数据接入", path: "/pages/data-receive/access/access", icon: "command", keywords: ["接入"] },
-      { label: "数据解析", path: "/pages/data-receive/parse/parse", icon: "command", keywords: ["解析"] },
-      { label: "数据记录", path: "/pages/data-receive/record/record", icon: "command", keywords: ["记录"] },
+      { label: "协议管理", path: "/pages/data-receive/access/access", icon: "command", permissionCode: "page:data-receive:protocol", keywords: ["协议", "接入", "定义", "绑定"] },
+      { label: "数据解析", path: "/pages/data-receive/parse/parse", icon: "command", permissionCode: "page:data-receive:parse", keywords: ["解析"] },
+      { label: "数据记录", path: "/pages/data-receive/record/record", icon: "command", permissionCode: "page:data-receive:record", keywords: ["记录"] },
     ],
   },
 ];
+
+const shellContentDefinitions: Record<string, ShellContentDefinition> = {
+  "/pages/index/index": createPlaceholderContent("/pages/index/index"),
+  "/pages/station/station": { component: StationManagementView },
+  "/pages/device/info/info": { component: DeviceManagementView, props: { mode: "info" } },
+  "/pages/device/maintenance/maintenance": { component: DeviceManagementView, props: { mode: "maintenance" } },
+  "/pages/device/status/status": { component: DeviceManagementView, props: { mode: "status" } },
+  "/pages/data-analysis/overview/overview": createPlaceholderContent("/pages/data-analysis/overview/overview"),
+  "/pages/data-analysis/audio/audio": createPlaceholderContent("/pages/data-analysis/audio/audio"),
+  "/pages/data-analysis/device-params/device-params": createPlaceholderContent("/pages/data-analysis/device-params/device-params"),
+  "/pages/data-analysis/leakage/leakage": createPlaceholderContent("/pages/data-analysis/leakage/leakage"),
+  "/pages/leak-report/suspect-management/suspect-management": createPlaceholderContent("/pages/leak-report/suspect-management/suspect-management"),
+  "/pages/leak-report/suspect-processing/suspect-processing": createPlaceholderContent("/pages/leak-report/suspect-processing/suspect-processing"),
+  "/pages/leak-report/leak-management/leak-management": createPlaceholderContent("/pages/leak-report/leak-management/leak-management"),
+  "/pages/leak-report/leak-analysis/leak-analysis": createPlaceholderContent("/pages/leak-report/leak-analysis/leak-analysis"),
+  "/pages/leak-report/history-overview/history-overview": createPlaceholderContent("/pages/leak-report/history-overview/history-overview"),
+  "/pages/statistics/statistics": createPlaceholderContent("/pages/statistics/statistics"),
+  "/pages/work-order/create/create": { component: WorkOrderCreateView },
+  "/pages/work-order/processing/processing": { component: WorksheetTableView, props: { mode: "processing" } },
+  "/pages/work-order/statistics/statistics": { component: WorksheetTableView, props: { mode: "statistics" } },
+  "/pages/alarm/strategy/strategy": createPlaceholderContent("/pages/alarm/strategy/strategy"),
+  "/pages/alarm/processing/processing": createPlaceholderContent("/pages/alarm/processing/processing"),
+  "/pages/alarm/analysis/analysis": createPlaceholderContent("/pages/alarm/analysis/analysis"),
+  "/pages/report/generate/generate": createPlaceholderContent("/pages/report/generate/generate"),
+  "/pages/report/operation/operation": createPlaceholderContent("/pages/report/operation/operation"),
+  "/pages/report/command/command": createPlaceholderContent("/pages/report/command/command"),
+  "/pages/system/user/user": { component: SystemManagementView, props: { mode: "user" } },
+  "/pages/system/auth/auth": { component: SystemManagementView, props: { mode: "auth" } },
+  "/pages/system/menu/menu": { component: SystemManagementView, props: { mode: "menu" } },
+  "/pages/system/dict/dict": { component: SystemManagementView, props: { mode: "dict" } },
+  "/pages/data-receive/access/access": { component: DataReceiveView, props: { mode: "access" } },
+  "/pages/data-receive/parse/parse": { component: DataReceiveView, props: { mode: "parse" } },
+  "/pages/data-receive/record/record": { component: DataReceiveView, props: { mode: "record" } },
+};
 
 const searchKeyword = ref("");
 const isSearchFocused = ref(false);
@@ -319,11 +373,21 @@ const shellContentRef = ref<HTMLElement | { $el?: HTMLElement } | null>(null);
 
 const isContentFullscreen = computed(() => isFullscreen.value || isFallbackFullscreen.value);
 const isLeakMonitorActive = computed(() => currentPath.value === LEAK_MONITOR_PATH);
-const shouldRenderPageSlot = computed(() => currentPath.value === routePath.value && !isLeakMonitorActive.value);
+const shellContentDefinition = computed(() => shellContentDefinitions[currentPath.value]);
+const shellContentComponent = computed(() => shellContentDefinition.value?.component || null);
+const shellContentProps = computed(() => shellContentDefinition.value?.props || {});
+const shouldRenderPageSlot = computed(() => currentPath.value === routePath.value && !isLeakMonitorActive.value && !shellContentComponent.value);
 
+const menuAccessState = computed(() => ({
+  permissions: uni.getStorageSync("permissions") || [],
+  roles: uni.getStorageSync("roles") || [],
+  userInfo: uni.getStorageSync("userInfo") || {},
+}));
 const filteredMenuItems = computed(() => {
-  return menuItems;
+  return filterMenuItemsByAccess(menuItems, menuAccessState.value);
 });
+const accessibleMenuPathSet = computed(() => new Set(flattenMenuPaths(filteredMenuItems.value)));
+const firstAccessibleMenuPath = computed(() => getFirstAccessiblePath(filteredMenuItems.value, DEFAULT_PAGE_PATH));
 
 const userName = computed(() => {
   const userInfo = uni.getStorageSync("userInfo");
@@ -381,6 +445,15 @@ function goMenuItem(item: MenuItem) {
 }
 
 function goPage(path: string, options: { keepCollapsedSubmenu?: boolean } = {}) {
+  const targetPath = getAccessiblePathOrFallback(path);
+  if (targetPath !== path) {
+    uni.showToast({ title: "暂无访问权限", icon: "none" });
+    if (targetPath) {
+      goPage(targetPath, options);
+    }
+    return;
+  }
+
   if (currentPath.value === path) {
     ensureTab(path);
     scrollActiveTabIntoView(path);
@@ -395,21 +468,19 @@ function goPage(path: string, options: { keepCollapsedSubmenu?: boolean } = {}) 
   }
 
   // #ifdef H5
-  uni.redirectTo({
-    url: path,
-    animationType: "none",
-    animationDuration: 0,
-  });
-  updateDocumentTitle(path);
+  if (canRenderInShell(path)) {
+    navigateInPlace(path);
+    syncExpandedMenuByPath(path);
+    updateDocumentTitle(path);
+    return;
+  }
   // #endif
 
-  // #ifndef H5
   uni.redirectTo({
     url: path,
     animationType: "none",
     animationDuration: 0,
   });
-  // #endif
 }
 
 function goChildPage(path: string) {
@@ -429,7 +500,7 @@ function closeTab(path: string) {
   openedTabs.value.splice(index, 1);
   persistOpenedTabs();
   if (openedTabs.value.length === 0) {
-    goPage(DEFAULT_PAGE_PATH);
+    goPage(firstAccessibleMenuPath.value);
     return;
   }
 
@@ -438,7 +509,7 @@ function closeTab(path: string) {
   }
 
   const nextTab = openedTabs.value[index] || openedTabs.value[index - 1];
-  goPage(nextTab?.path || DEFAULT_PAGE_PATH);
+  goPage(nextTab?.path || firstAccessibleMenuPath.value);
 }
 
 /**
@@ -653,6 +724,53 @@ function getBrowserPath() {
   return path.startsWith("/pages/") ? path : "";
 }
 
+function isMenuPathAccessible(path: string) {
+  const paths = accessibleMenuPathSet.value;
+  return paths.size === 0 || paths.has(path);
+}
+
+function getAccessiblePathOrFallback(path: string) {
+  if (isMenuPathAccessible(path)) {
+    return path;
+  }
+
+  return firstAccessibleMenuPath.value;
+}
+
+function ensureCurrentPathAccessible() {
+  const nextPath = getAccessiblePathOrFallback(currentPath.value);
+  if (nextPath === currentPath.value) {
+    return;
+  }
+
+  currentPath.value = nextPath;
+  replaceBrowserPath(nextPath);
+}
+
+function pruneOpenedTabsByAccess() {
+  const nextTabs = openedTabs.value.filter((tab) => isMenuPathAccessible(tab.path));
+  if (nextTabs.length === openedTabs.value.length) {
+    return;
+  }
+
+  openedTabs.value = nextTabs;
+  persistOpenedTabs();
+}
+
+function createPlaceholderContent(path: string): ShellContentDefinition {
+  return {
+    component: AdminPlaceholderView,
+    props: {
+      title: getMenuLabelByPath(path) || "页面",
+      path,
+    },
+  };
+}
+
+function canRenderInShell(path: string) {
+  return path === LEAK_MONITOR_PATH || Boolean(shellContentDefinitions[path]);
+}
+
 function navigateInPlace(path: string) {
   if (window.location.pathname === path && !window.location.hash) {
     return;
@@ -708,7 +826,7 @@ function getMenuIconByPath(path: string) {
 
 function ensureTab(path: string) {
   const label = getMenuLabelByPath(path);
-  if (!label || openedTabs.value.some((tab) => tab.path === path)) {
+  if (!label || !isMenuPathAccessible(path) || openedTabs.value.some((tab) => tab.path === path)) {
     return;
   }
 
@@ -749,15 +867,19 @@ function syncExpandedMenuByPath(path: string) {
     return;
   }
 
-  const parent = menuItems.find((item) => item.children?.some((child) => child.path === path));
+  const parent = filteredMenuItems.value.find((item) => item.children?.some((child) => child.path === path));
   expandedMenuPaths.value = parent ? [parent.path] : [];
 }
 
 function syncPathFromBrowser() {
   const path = getBrowserPath();
   if (path) {
-    const nextPath = isDefaultAliasPath(path) ? DEFAULT_PAGE_PATH : path;
+    const requestedPath = isDefaultAliasPath(path) ? DEFAULT_PAGE_PATH : path;
+    const nextPath = getAccessiblePathOrFallback(requestedPath);
     currentPath.value = nextPath;
+    if (nextPath !== requestedPath) {
+      replaceBrowserPath(nextPath);
+    }
     ensureTab(nextPath);
     scrollActiveTabIntoView(nextPath);
     syncExpandedMenuByPath(nextPath);
@@ -768,8 +890,10 @@ function syncPathFromBrowser() {
 // #ifdef H5
 onMounted(() => {
   if (isDefaultAliasPath(getBrowserPath() || routePath.value)) {
-    replaceBrowserPath(DEFAULT_PAGE_PATH);
+    replaceBrowserPath(firstAccessibleMenuPath.value);
   }
+  ensureCurrentPathAccessible();
+  pruneOpenedTabsByAccess();
   ensureTab(currentPath.value);
   scrollActiveTabIntoView(currentPath.value);
   syncExpandedMenuByPath(currentPath.value);

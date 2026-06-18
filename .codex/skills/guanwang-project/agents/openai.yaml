@@ -1,0 +1,4 @@
+interface:
+  display_name: "管网项目规范"
+  short_description: "城市管网渗漏预警平台的统一开发规范和项目约定"
+  default_prompt: "Use $guanwang-project to implement changes in the guanwang project while following its page, service, AppShell, styling, and verification conventions."

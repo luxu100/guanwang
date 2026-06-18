@@ -185,7 +185,7 @@
     {
       "path": "pages/data-receive/access/access",
       "style": {
-        "navigationBarTitleText": "数据接入",
+        "navigationBarTitleText": "协议管理",
         "navigationStyle": "custom"
       }
     },
