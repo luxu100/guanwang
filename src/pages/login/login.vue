@@ -230,12 +230,6 @@ const registerForm = reactive<RegisterForm>({
 
 onMounted(() => {
   loadRememberedLogin();
-  const token = uni.getStorageSync(TOKEN_KEY);
-  if (token) {
-    uni.reLaunch({
-      url: "/pages/leak-monitor/leak-monitor",
-    });
-  }
 });
 
 const modeTitle = computed(() => {
