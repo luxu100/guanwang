@@ -41,33 +41,73 @@
         <button class="toolbar-icon-button" hover-class="toolbar-icon-button--hover" aria-label="刷新" @click="fetchRecords">
           <text class="icon-refresh"></text>
         </button>
-        <button v-if="activeConfig.formFields?.length" class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="startCreate">
+        <button v-if="activeConfig.formFields?.length" class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="isProtocolFieldEditor ? addInlineFieldRecord() : startCreate()">
           {{ createActionText }}
         </button>
-        <button
-          v-if="activeConfig.key === 'protocol'"
-          class="toolbar-button toolbar-button--upload"
-          :disabled="importingProtocolJson"
-          hover-class="toolbar-button--hover"
-          @click="triggerProtocolJsonUpload"
-        >
-          {{ importingProtocolJson ? "导入中..." : "上传JSON" }}
-        </button>
-        <input
-          v-if="activeConfig.key === 'protocol'"
-          ref="protocolJsonInputRef"
-          class="json-upload-input"
-          type="file"
-          accept=".json,application/json"
-          @change="handleProtocolJsonFileChange"
-        />
-        <button v-if="activeConfig.key === 'field'" class="toolbar-button" hover-class="toolbar-button--hover" @click="saveCurrentFieldList">
+        <button v-if="activeConfig.key === 'field' && !isProtocolFieldEditor" class="toolbar-button" hover-class="toolbar-button--hover" @click="saveCurrentFieldList">
           批量保存
         </button>
       </view>
     </view>
 
-    <view class="data-layout">
+    <view v-if="isProtocolFieldEditor" class="protocol-editor-card protocol-editor-card--standalone">
+      <view class="protocol-editor-head">
+        <view>
+          <text class="protocol-editor-title">当前协议信息</text>
+          <text class="protocol-editor-subtitle">端口号使用协议ID，保存时会同步保存协议和字段列表</text>
+        </view>
+        <view class="protocol-editor-actions">
+          <button class="secondary-button" :disabled="importingProtocolJson" hover-class="secondary-button--hover" @click="openProtocolJsonDialog">
+            {{ importingProtocolJson ? "导入中..." : "上传JSON" }}
+          </button>
+          <button class="primary-button" :disabled="submitting" hover-class="primary-button--hover" @click="saveProtocolAndFields">
+            {{ submitting ? "保存中..." : "保存全部" }}
+          </button>
+        </view>
+      </view>
+      <view class="protocol-editor-grid">
+        <view class="form-field">
+          <text class="form-label form-label--required">端口号</text>
+          <input v-model="fieldProtocolForm.id" class="form-input" type="number" placeholder="如 9001" placeholder-class="input-placeholder" />
+        </view>
+        <view class="form-field">
+          <text class="form-label form-label--required">协议编码</text>
+          <input v-model="fieldProtocolForm.protocolCode" class="form-input" placeholder="请输入协议编码" placeholder-class="input-placeholder" />
+        </view>
+        <view class="form-field">
+          <text class="form-label form-label--required">协议名称</text>
+          <input v-model="fieldProtocolForm.protocolName" class="form-input" placeholder="请输入协议名称" placeholder-class="input-placeholder" />
+        </view>
+        <view class="form-field">
+          <text class="form-label">协议版本</text>
+          <input v-model="fieldProtocolForm.protocolVersion" class="form-input" placeholder="请输入协议版本" placeholder-class="input-placeholder" />
+        </view>
+        <view class="form-field">
+          <text class="form-label">优先级</text>
+          <input v-model="fieldProtocolForm.priority" class="form-input" type="number" placeholder="请输入优先级" placeholder-class="input-placeholder" />
+        </view>
+        <view class="form-field">
+          <text class="form-label">启用状态</text>
+          <picker :range="booleanOptions" range-key="label" @change="handleFieldProtocolEnabledChange">
+            <view class="form-select">
+              <text>{{ getBooleanLabel(fieldProtocolForm.enabled) }}</text>
+              <text class="select-arrow"></text>
+            </view>
+          </picker>
+        </view>
+        <view class="form-field form-field--wide">
+          <text class="form-label">协议说明</text>
+          <textarea
+            v-model="fieldProtocolForm.description"
+            class="form-textarea form-textarea--compact"
+            placeholder="请输入协议说明"
+            placeholder-class="input-placeholder"
+          />
+        </view>
+      </view>
+    </view>
+
+    <view class="data-layout" :class="{ 'data-layout--field-editor': isProtocolFieldEditor }">
       <view class="table-panel">
         <view class="table-head">
           <view>
@@ -79,8 +119,8 @@
 
         <scroll-view class="table-scroll" scroll-x scroll-y>
           <view class="data-table" :style="{ minWidth: activeTableMinWidth }">
-            <view class="data-row data-row--header" :style="{ gridTemplateColumns: activeTableColumns }">
-              <view v-for="column in activeConfig.columns" :key="column.key" class="data-cell">{{ column.label }}</view>
+            <view class="data-row data-row--header">
+              <view v-for="column in activeConfig.columns" :key="column.key" class="data-cell" :style="{ minWidth: getColumnMinWidth(column) }">{{ column.label }}</view>
             </view>
 
             <view v-if="loading" class="table-state">加载中...</view>
@@ -91,16 +131,39 @@
               v-else
               :key="getRowKey(item, index)"
               class="data-row"
-              :class="{ 'data-row--active': getRowKey(item, index) === selectedKey }"
-              :style="{ gridTemplateColumns: activeTableColumns }"
+              :class="{ 'data-row--active': getRowKey(item, index) === selectedKey, 'data-row--dragging': draggingFieldIndex === index, 'data-row--drop-target': dropTargetFieldIndex === index }"
+              :draggable="isProtocolFieldEditor"
+              @dragstart="handleFieldDragStart(index)"
+              @dragover.prevent="handleFieldDragOver(index)"
+              @drop="handleFieldDrop(index)"
+              @dragend="handleFieldDragEnd"
               @click="selectRecord(item, index)"
             >
-              <view v-for="column in activeConfig.columns" :key="column.key" class="data-cell">
+              <view v-for="column in activeConfig.columns" :key="column.key" class="data-cell" :style="{ minWidth: getColumnMinWidth(column) }">
                 <view v-if="column.type === 'actions'" class="row-actions">
-                  <text v-if="activeConfig.key === 'protocol'" class="row-action-link" @click.stop="viewProtocolFields(item, index)">查看字段</text>
-                  <text class="row-action-link" @click.stop="editTableRecord(item, index)">编辑</text>
-                  <text v-if="activeConfig.deleteRecord" class="row-action-link row-action-link--danger" @click.stop="deleteTableRecord(item)">删除</text>
+                  <template v-if="isProtocolFieldEditor">
+                    <text class="row-action-link" @click.stop="moveFieldRecord(index, -1)">上移</text>
+                    <text class="row-action-link" @click.stop="moveFieldRecord(index, 1)">下移</text>
+                    <text class="row-action-link row-action-link--danger" @click.stop="deleteInlineFieldRecord(index)">删除</text>
+                  </template>
+                  <text v-else-if="activeConfig.key === 'protocol'" class="row-action-link" @click.stop="openProtocolFieldEditor(item, index)">编辑字段</text>
+                  <text v-else class="row-action-link" @click.stop="editTableRecord(item, index)">编辑</text>
+                  <text v-if="!isProtocolFieldEditor && activeConfig.deleteRecord" class="row-action-link row-action-link--danger" @click.stop="deleteTableRecord(item)">删除</text>
                 </view>
+                <template v-else-if="isProtocolFieldEditor">
+                  <picker v-if="isInlineBooleanField(column)" :range="booleanOptions" range-key="label" @change="handleInlineFieldBooleanChange(item, column.key, $event)">
+                    <view class="table-select">{{ getBooleanLabel(getValue(item, [column.key])) }}</view>
+                  </picker>
+                  <input
+                    v-else
+                    class="table-input"
+                    :type="isInlineNumberField(column) ? 'number' : 'text'"
+                    :value="getInlineFieldValue(item, column.key)"
+                    placeholder="-"
+                    placeholder-class="input-placeholder"
+                    @input="handleInlineFieldInput(item, column.key, $event)"
+                  />
+                </template>
                 <text v-else-if="column.type === 'status'" class="status-pill" :class="getStatusClass(item, column)">{{ getColumnText(item, column) }}</text>
                 <text v-else>{{ getColumnText(item, column) }}</text>
               </view>
@@ -125,7 +188,7 @@
         </view>
       </view>
 
-      <view class="detail-panel">
+      <view v-if="!isProtocolFieldEditor" class="detail-panel">
         <view class="detail-head">
           <text class="detail-title">{{ activeConfig.formFields?.length ? "编辑信息" : "详情信息" }}</text>
           <text class="detail-subtitle">{{ selectedRecord ? getSelectedSummary() : "请选择左侧记录" }}</text>
@@ -176,6 +239,28 @@
           <button v-if="selectedRecord && activeConfig.deleteRecord" class="danger-button" hover-class="danger-button--hover" @click="deleteSelectedRecord">删除</button>
           <button class="primary-button" :disabled="submitting" hover-class="primary-button--hover" @click="saveRecord">
             {{ submitting ? "保存中..." : "保存" }}
+          </button>
+        </view>
+      </view>
+    </view>
+
+    <view v-if="showProtocolJsonDialog" class="modal-mask" @click.self="closeProtocolJsonDialog">
+      <view class="modal-panel">
+        <view class="modal-head">
+          <text>上传协议JSON</text>
+          <text class="modal-close" @click="closeProtocolJsonDialog">×</text>
+        </view>
+        <view class="modal-body">
+          <text class="modal-tip">JSON 可包含协议基础信息和 fields 字段数组，导入后会保存到当前协议。</text>
+          <input
+            ref="protocolJsonDialogInputRef"
+            class="json-upload-input"
+            type="file"
+            accept=".json,application/json"
+            @change="handleProtocolJsonDialogFileChange"
+          />
+          <button class="primary-button modal-upload-button" :disabled="importingProtocolJson" hover-class="primary-button--hover" @click="triggerProtocolJsonDialogUpload">
+            {{ importingProtocolJson ? "导入中..." : "选择JSON文件" }}
           </button>
         </view>
       </view>
@@ -304,6 +389,8 @@ const leakStatusOptions: SelectOption[] = [
   { label: "正常", value: "0" },
   { label: "异常", value: "1" },
 ];
+const inlineNumberFieldKeys = new Set(["protocolId", "startPosition", "fieldLength", "sortOrder"]);
+const inlineBooleanFieldKeys = new Set(["required", "enabled"]);
 
 const baseTimeFilters: FieldConfig[] = [
   { key: "startTime", label: "开始时间", type: "datetime" },
@@ -318,7 +405,7 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     description: "维护动态协议、端口标识、字段配置和启用状态",
     columns: [
       { key: "protocolName", label: "协议名称", width: 180 },
-      { key: "port", label: "端口", width: 90 },
+      { key: "id", label: "端口", width: 90 },
       { key: "enabled", label: "端口状态", type: "status", width: 100 },
       { key: "description", label: "描述", width: 220 },
       { key: "createdAt", label: "创建时间", type: "datetime", width: 170 },
@@ -329,7 +416,7 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     formFields: [
       { key: "protocolCode", label: "协议编码", required: true },
       { key: "protocolName", label: "协议名称", required: true },
-      { key: "port", label: "端口", type: "number", placeholder: "如 9001" },
+      { key: "id", label: "端口", type: "number", placeholder: "如 9001" },
       { key: "protocolVersion", label: "协议版本" },
       { key: "priority", label: "优先级", type: "number" },
       { key: "enabled", label: "端口状态", type: "boolean" },
@@ -403,6 +490,7 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
       { key: "unit", label: "单位", width: 90 },
       { key: "required", label: "必填", type: "status", width: 80 },
       { key: "enabled", label: "状态", type: "status", width: 80 },
+      { key: "actions", label: "操作", type: "actions", width: 170 },
     ],
     detailFields: [],
     filters: [
@@ -560,7 +648,20 @@ const total = ref(0);
 const loading = ref(false);
 const submitting = ref(false);
 const importingProtocolJson = ref(false);
-const protocolJsonInputRef = ref<HTMLInputElement | null>(null);
+const protocolJsonDialogInputRef = ref<HTMLInputElement | null>(null);
+const showProtocolJsonDialog = ref(false);
+const activeFieldProtocol = ref<RecordLike | null>(null);
+const draggingFieldIndex = ref<number | null>(null);
+const dropTargetFieldIndex = ref<number | null>(null);
+const fieldProtocolForm = reactive({
+  id: "",
+  protocolCode: "",
+  protocolName: "",
+  protocolVersion: "",
+  priority: "",
+  enabled: true,
+  description: "",
+});
 const pagination = reactive({
   pageNum: 1,
   pageSize: 10,
@@ -572,9 +673,14 @@ const formModel = reactive<Record<string, FormValue>>({});
 const modeSections = computed(() => modeSectionKeys[props.mode].map((key) => sectionConfigs[key]));
 const activeConfig = computed(() => sectionConfigs[activeSectionKey.value]);
 const filterModel = computed(() => filterState[activeSectionKey.value]);
-const createActionText = computed(() => (activeConfig.value.key === "protocol" ? "新增协议" : "新增"));
+const isProtocolFieldEditor = computed(() => activeConfig.value.key === "field" && Boolean(activeFieldProtocol.value));
+const createActionText = computed(() => {
+  if (isProtocolFieldEditor.value) {
+    return "新增字段";
+  }
+  return activeConfig.value.key === "protocol" ? "新增协议" : "新增";
+});
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pagination.pageSize)));
-const activeTableColumns = computed(() => activeConfig.value.columns.map((column) => `${column.width || 120}px`).join(" "));
 const activeTableMinWidth = computed(() => `${activeConfig.value.columns.reduce((sum, column) => sum + (column.width || 120), 0)}px`);
 const metricItems = computed(() => {
   const enabledCount = records.value.filter((item) => getValue(item, ["enabled"]) === true).length;
@@ -648,6 +754,10 @@ function createInitialFilterState() {
 function switchSection(key: SectionKey) {
   if (activeSectionKey.value !== key) {
     activeSectionKey.value = key;
+  }
+  if (key !== "field") {
+    activeFieldProtocol.value = null;
+    closeProtocolJsonDialog();
   }
 }
 
@@ -751,6 +861,10 @@ async function selectRecord(item: RecordLike | null, index: number) {
   selectedKey.value = item ? getRowKey(item, index) : "";
   fillForm(item);
 
+  if (isProtocolFieldEditor.value) {
+    return;
+  }
+
   const id = getId(item);
   if (!id || !activeConfig.value.getDetail) {
     return;
@@ -774,7 +888,10 @@ function fillForm(item: RecordLike | null) {
   });
 
   for (const field of activeConfig.value.formFields || []) {
-    const value = item ? getValue(item, [field.key]) : undefined;
+    let value = item ? getValue(item, [field.key]) : undefined;
+    if (activeConfig.value.key === "protocol" && field.key === "id" && (value === undefined || value === null || value === "")) {
+      value = item ? getValue(item, ["port"]) : undefined;
+    }
     if (field.type === "boolean") {
       formModel[field.key] = value === undefined ? true : Boolean(value);
     } else {
@@ -839,18 +956,93 @@ function editTableRecord(item: RecordLike, index: number) {
   void selectRecord(item, index);
 }
 
-async function viewProtocolFields(item: RecordLike, index: number) {
+async function openProtocolFieldEditor(item: RecordLike, index: number) {
   const protocolId = getId(item);
   if (!protocolId) {
-    uni.showToast({ title: "当前协议缺少ID，无法查看字段", icon: "none" });
+    uni.showToast({ title: "当前协议缺少端口号，无法编辑字段", icon: "none" });
     return;
   }
 
   await selectRecord(item, index);
+  activeFieldProtocol.value = isObject(selectedRecord.value) ? selectedRecord.value : item;
+  fillFieldProtocolForm(activeFieldProtocol.value);
   activeSectionKey.value = "field";
   filterState.field.protocolId = String(protocolId);
   pagination.pageNum = 1;
   void fetchRecords();
+}
+
+function fillFieldProtocolForm(item: RecordLike | null) {
+  const source = item || {};
+  fieldProtocolForm.id = String(getValue(source, ["id"]) ?? getValue(source, ["port"]) ?? "");
+  fieldProtocolForm.protocolCode = String(getValue(source, ["protocolCode"]) ?? "");
+  fieldProtocolForm.protocolName = String(getValue(source, ["protocolName"]) ?? "");
+  fieldProtocolForm.protocolVersion = String(getValue(source, ["protocolVersion"]) ?? "");
+  fieldProtocolForm.priority = String(getValue(source, ["priority"]) ?? "");
+  fieldProtocolForm.enabled = getValue(source, ["enabled"]) === false ? false : true;
+  fieldProtocolForm.description = String(getValue(source, ["description"]) ?? "");
+}
+
+function handleFieldProtocolEnabledChange(event: { detail: { value: number } }) {
+  fieldProtocolForm.enabled = Boolean(booleanOptions[event.detail.value]?.value ?? true);
+}
+
+function getActiveFieldProtocolId() {
+  return fieldProtocolForm.id || getId(activeFieldProtocol.value);
+}
+
+function buildActiveFieldProtocolPayload() {
+  return removeEmptyFields({
+    id: normalizeImportNumber(fieldProtocolForm.id),
+    protocolCode: fieldProtocolForm.protocolCode.trim(),
+    protocolName: fieldProtocolForm.protocolName.trim(),
+    protocolVersion: fieldProtocolForm.protocolVersion.trim(),
+    priority: normalizeImportNumber(fieldProtocolForm.priority),
+    enabled: fieldProtocolForm.enabled,
+    description: fieldProtocolForm.description.trim(),
+  });
+}
+
+async function saveProtocolAndFields() {
+  const originalId = getId(activeFieldProtocol.value);
+  const formId = getActiveFieldProtocolId();
+
+  if (!formId) {
+    uni.showToast({ title: "请填写端口号", icon: "none" });
+    return;
+  }
+
+  if (!fieldProtocolForm.protocolCode.trim() || !fieldProtocolForm.protocolName.trim()) {
+    uni.showToast({ title: "请填写协议编码和协议名称", icon: "none" });
+    return;
+  }
+
+  submitting.value = true;
+
+  try {
+    const protocolPayload = buildActiveFieldProtocolPayload();
+    const targetId = originalId || formId;
+    const protocolResponse = await updateProtocolDefinition(targetId, protocolPayload);
+    assertSuccessResponse(protocolResponse);
+
+    const payloadProtocolId = protocolPayload.id;
+    const nextProtocolId = typeof payloadProtocolId === "string" || typeof payloadProtocolId === "number" ? payloadProtocolId : targetId;
+    const fieldPayload = buildFieldRecordsPayload(nextProtocolId);
+    if (fieldPayload.length > 0) {
+      const fieldResponse = await batchSaveProtocolFields(fieldPayload);
+      assertSuccessResponse(fieldResponse);
+    }
+
+    activeFieldProtocol.value = { ...(activeFieldProtocol.value || {}), ...protocolPayload };
+    fillFieldProtocolForm(activeFieldProtocol.value);
+    filterState.field.protocolId = String(nextProtocolId);
+    uni.showToast({ title: "协议和字段保存成功", icon: "success" });
+    await fetchRecords();
+  } catch (error) {
+    toastError(error, "保存全部失败");
+  } finally {
+    submitting.value = false;
+  }
 }
 
 async function deleteTableRecord(item: RecordLike) {
@@ -882,7 +1074,7 @@ async function saveCurrentFieldList() {
   submitting.value = true;
 
   try {
-    const response = await batchSaveProtocolFields(records.value);
+    const response = await batchSaveProtocolFields(buildFieldRecordsPayload(getActiveFieldProtocolId()));
     assertSuccessResponse(response);
     uni.showToast({ title: "批量保存成功", icon: "success" });
     await fetchRecords();
@@ -893,15 +1085,161 @@ async function saveCurrentFieldList() {
   }
 }
 
-function triggerProtocolJsonUpload() {
+function getInlineFieldValue(item: RecordLike, key: string) {
+  return String(getValue(item, [key]) ?? "");
+}
+
+function isInlineNumberField(field: FieldConfig) {
+  return field.type === "number" || inlineNumberFieldKeys.has(field.key);
+}
+
+function isInlineBooleanField(field: FieldConfig) {
+  return inlineBooleanFieldKeys.has(field.key);
+}
+
+function handleInlineFieldInput(item: RecordLike, key: string, event: Event | { detail?: { value?: string | number } }) {
+  let value: string | number = "";
+  if ("detail" in event && event.detail?.value !== undefined) {
+    value = event.detail.value;
+  } else {
+    const target = (event as Event).target;
+    value = target instanceof HTMLInputElement ? target.value : "";
+  }
+  item[key] = inlineNumberFieldKeys.has(key) && value !== "" ? Number(value) : value;
+}
+
+function handleInlineFieldBooleanChange(item: RecordLike, key: string, event: { detail: { value: number } }) {
+  item[key] = Boolean(booleanOptions[event.detail.value]?.value ?? true);
+}
+
+function addInlineFieldRecord() {
+  const protocolId = getActiveFieldProtocolId();
+  if (!protocolId) {
+    uni.showToast({ title: "请先填写端口号", icon: "none" });
+    return;
+  }
+
+  const nextIndex = records.value.length + 1;
+  const item: RecordLike = {
+    protocolId: Number(protocolId),
+    fieldName: "",
+    fieldCnName: "",
+    startPosition: 0,
+    fieldLength: 1,
+    format: "",
+    outputType: "",
+    unit: "",
+    required: false,
+    enabled: true,
+    sortOrder: nextIndex,
+  };
+  records.value.push(item);
+  selectRecord(item, records.value.length - 1);
+  syncFieldSortOrder();
+}
+
+function deleteInlineFieldRecord(index: number) {
+  records.value.splice(index, 1);
+  syncFieldSortOrder();
+  selectRecord(records.value[Math.min(index, records.value.length - 1)] || null, Math.min(index, records.value.length - 1));
+}
+
+function moveFieldRecord(index: number, step: number) {
+  const targetIndex = index + step;
+  if (targetIndex < 0 || targetIndex >= records.value.length) {
+    return;
+  }
+
+  const nextRecords = [...records.value];
+  const [item] = nextRecords.splice(index, 1);
+  nextRecords.splice(targetIndex, 0, item);
+  records.value = nextRecords;
+  syncFieldSortOrder();
+  selectRecord(item, targetIndex);
+}
+
+function handleFieldDragStart(index: number) {
+  if (!isProtocolFieldEditor.value) {
+    return;
+  }
+  draggingFieldIndex.value = index;
+}
+
+function handleFieldDragOver(index: number) {
+  if (draggingFieldIndex.value === null || draggingFieldIndex.value === index) {
+    return;
+  }
+  dropTargetFieldIndex.value = index;
+}
+
+function handleFieldDrop(index: number) {
+  const fromIndex = draggingFieldIndex.value;
+  if (fromIndex === null || fromIndex === index) {
+    handleFieldDragEnd();
+    return;
+  }
+
+  const nextRecords = [...records.value];
+  const [item] = nextRecords.splice(fromIndex, 1);
+  nextRecords.splice(index, 0, item);
+  records.value = nextRecords;
+  syncFieldSortOrder();
+  selectRecord(item, index);
+  handleFieldDragEnd();
+}
+
+function handleFieldDragEnd() {
+  draggingFieldIndex.value = null;
+  dropTargetFieldIndex.value = null;
+}
+
+function syncFieldSortOrder() {
+  records.value.forEach((item, index) => {
+    item.sortOrder = index + 1;
+  });
+}
+
+function normalizeFieldRecordForSave(item: RecordLike, protocolId: string | number | null | undefined, index: number) {
+  const payload: RecordLike = { ...item };
+  if (protocolId) {
+    payload.protocolId = Number(protocolId);
+  }
+  for (const key of inlineNumberFieldKeys) {
+    if (payload[key] !== undefined && payload[key] !== "") {
+      payload[key] = Number(payload[key]);
+    }
+  }
+  payload.sortOrder = index + 1;
+  return removeEmptyFields(payload);
+}
+
+function buildFieldRecordsPayload(protocolId: string | number | null | undefined) {
+  return records.value
+    .map((item, index) => normalizeFieldRecordForSave(item, protocolId, index))
+    .filter((item) => Boolean(getValue(item, ["fieldName"]) || getValue(item, ["fieldCnName"])));
+}
+
+function openProtocolJsonDialog() {
+  if (!activeFieldProtocol.value) {
+    uni.showToast({ title: "请先从协议管理进入编辑字段", icon: "none" });
+    return;
+  }
+  showProtocolJsonDialog.value = true;
+}
+
+function closeProtocolJsonDialog() {
+  showProtocolJsonDialog.value = false;
+}
+
+function triggerProtocolJsonDialogUpload() {
   if (importingProtocolJson.value) {
     return;
   }
 
-  protocolJsonInputRef.value?.click();
+  protocolJsonDialogInputRef.value?.click();
 }
 
-function handleProtocolJsonFileChange(event: Event) {
+function handleProtocolJsonDialogFileChange(event: Event) {
   const input = event.target as HTMLInputElement | null;
   const file = input?.files?.[0];
 
@@ -909,14 +1247,14 @@ function handleProtocolJsonFileChange(event: Event) {
     return;
   }
 
-  void importProtocolJsonFile(file).finally(() => {
+  void importProtocolJsonFile(file, { targetProtocolId: getActiveFieldProtocolId() }).finally(() => {
     if (input) {
       input.value = "";
     }
   });
 }
 
-async function importProtocolJsonFile(file: File) {
+async function importProtocolJsonFile(file: File, options: { targetProtocolId?: string | number | null } = {}) {
   if (importingProtocolJson.value) {
     return;
   }
@@ -927,6 +1265,7 @@ async function importProtocolJsonFile(file: File) {
     const text = await readTextFile(file);
     const parsed = JSON.parse(text) as unknown;
     const importResult = normalizeProtocolImportResult(parsed);
+    const targetProtocolId = options.targetProtocolId;
 
     if (importResult.protocols.length === 0 && importResult.fields.length === 0) {
       uni.showToast({ title: "JSON中没有可导入的协议内容", icon: "none" });
@@ -936,29 +1275,48 @@ async function importProtocolJsonFile(file: File) {
     let importedProtocols = 0;
     const collectedFields: RecordLike[] = [...importResult.fields];
 
-    for (const protocol of importResult.protocols) {
-      const nestedFields = collectProtocolFields(protocol);
-      const payload = buildProtocolImportPayload(protocol);
+    if (targetProtocolId) {
+      const protocolSource = importResult.protocols[0] || (isObject(parsed) ? parsed : null);
+      const nestedFields = protocolSource ? collectProtocolFields(protocolSource) : [];
+      collectedFields.push(...nestedFields);
 
-      if (!payload.protocolCode && !payload.protocolName) {
-        collectedFields.push(...nestedFields);
-        continue;
+      if (protocolSource) {
+        const payload = buildProtocolImportPayload(protocolSource);
+        if (Object.keys(payload).length > 0) {
+          const response = await updateProtocolDefinition(targetProtocolId, payload);
+          assertSuccessResponse(response);
+          importedProtocols = 1;
+          activeFieldProtocol.value = { ...(activeFieldProtocol.value || {}), ...payload };
+          fillFieldProtocolForm(activeFieldProtocol.value);
+        }
       }
+    } else {
+      for (const protocol of importResult.protocols) {
+        const nestedFields = collectProtocolFields(protocol);
+        const payload = buildProtocolImportPayload(protocol);
 
-      const response = await createProtocolDefinition(payload);
-      assertSuccessResponse(response);
-      importedProtocols += 1;
+        if (!payload.protocolCode && !payload.protocolName) {
+          collectedFields.push(...nestedFields);
+          continue;
+        }
 
-      const createdId = getId(response.data as RecordLike) || getId(protocol);
-      if (createdId) {
-        collectedFields.push(...nestedFields.map((field) => ({ ...field, protocolId: getValue(field, ["protocolId"]) || createdId })));
-      } else {
-        collectedFields.push(...nestedFields);
+        const response = await createProtocolDefinition(payload);
+        assertSuccessResponse(response);
+        importedProtocols += 1;
+
+        const createdId = getId(response.data as RecordLike) || getId(protocol);
+        if (createdId) {
+          collectedFields.push(...nestedFields.map((field) => ({ ...field, protocolId: getValue(field, ["protocolId"]) || createdId })));
+        } else {
+          collectedFields.push(...nestedFields);
+        }
       }
     }
 
+    const targetFieldProtocolId = getActiveFieldProtocolId();
     const normalizedFields = collectedFields
       .map(normalizeProtocolFieldImportPayload)
+      .map((field) => (targetProtocolId ? { ...field, protocolId: field.protocolId || targetFieldProtocolId } : field))
       .filter((field) => Boolean(getFirstImportValue(field, ["fieldName", "name"])));
 
     if (normalizedFields.length > 0) {
@@ -970,6 +1328,7 @@ async function importProtocolJsonFile(file: File) {
       title: `导入成功：${importedProtocols}个协议${normalizedFields.length ? `，${normalizedFields.length}个字段` : ""}`,
       icon: "success",
     });
+    closeProtocolJsonDialog();
     await fetchRecords();
   } catch (error) {
     toastError(error, "JSON导入失败");
@@ -1025,9 +1384,9 @@ function buildProtocolImportPayload(protocol: RecordLike) {
   const protocolName = getFirstImportValue(protocol, ["protocolName", "name", "title"]);
 
   return removeEmptyFields({
+    id: normalizeImportNumber(getFirstImportValue(protocol, ["id", "port", "portNumber", "listenPort"])),
     protocolCode: getFirstImportValue(protocol, ["protocolCode", "code", "protocolNo"]) || protocolName,
     protocolName,
-    port: normalizeImportNumber(getFirstImportValue(protocol, ["port", "portNumber", "listenPort"])),
     protocolVersion: getFirstImportValue(protocol, ["protocolVersion", "version"]),
     description: getFirstImportValue(protocol, ["description", "remark", "memo"]),
     enabled: normalizeImportBoolean(getFirstImportValue(protocol, ["enabled", "status", "enable", "isPortOpen", "openPortOnAdd"])),
@@ -1128,7 +1487,7 @@ function buildPayload(fields: FieldConfig[]) {
   }
 
   const id = getId(selectedRecord.value);
-  if (id) {
+  if (id && payload.id === undefined) {
     payload.id = id;
   }
 
@@ -1162,7 +1521,10 @@ function getBooleanLabel(value: unknown) {
 }
 
 function getColumnText(item: RecordLike, field: FieldConfig) {
-  const value = getValue(item, [field.key]);
+  let value = getValue(item, [field.key]);
+  if (activeConfig.value.key === "protocol" && field.key === "id" && (value === undefined || value === null || value === "")) {
+    value = getValue(item, ["port"]);
+  }
 
   if (field.type === "datetime") {
     return formatDateTime(String(value || "-"));
@@ -1181,6 +1543,10 @@ function getColumnText(item: RecordLike, field: FieldConfig) {
   }
 
   return getText(item, [field.key], "-");
+}
+
+function getColumnMinWidth(field: FieldConfig) {
+  return `${field.width || 120}px`;
 }
 
 function getStatusLabel(value: unknown, key: string) {
@@ -1277,7 +1643,7 @@ function resetRuntimeState() {
   height: 100%;
   min-height: 0;
   padding: var(--admin-page-padding, 14px);
-  overflow: hidden;
+  overflow: auto;
   background: var(--admin-page-bg, #eef4f8);
 }
 
@@ -1402,6 +1768,11 @@ function resetRuntimeState() {
   min-width: 0;
   min-height: 0;
   margin-top: 14px;
+  overflow: auto;
+}
+
+.data-layout--field-editor {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .table-panel,
@@ -1410,7 +1781,7 @@ function resetRuntimeState() {
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .table-head,
@@ -1463,55 +1834,73 @@ function resetRuntimeState() {
 
 .table-scroll {
   flex: 1;
+  width: 100%;
+  max-width: 100%;
   height: auto;
   min-height: 0;
+  overflow: auto;
 }
 
 .data-table {
-  min-height: 100%;
+  display: table;
+  table-layout: auto;
+  border-collapse: separate;
+  border-spacing: 0;
+  width: max-content;
+  min-width: 100%;
 }
 
 .data-row {
-  display: grid;
-  min-height: 38px;
-  border-bottom: 1px solid #edf1f5;
+  display: table-row;
   cursor: pointer;
 }
 
 .data-row--header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  min-height: 40px;
   color: #1b344d;
   font-weight: 900;
-  background: #f3f8fd;
   cursor: default;
 }
 
-.data-row--active,
-.data-row:not(.data-row--header):hover {
+.data-row--active .data-cell,
+.data-row:not(.data-row--header):hover .data-cell {
   background: #f4faff;
 }
 
+.data-row--dragging .data-cell {
+  opacity: 0.58;
+}
+
+.data-row--drop-target .data-cell {
+  background: #edf7ff;
+}
+
 .data-cell {
-  display: flex;
-  align-items: center;
+  display: table-cell;
+  height: 38px;
+  box-sizing: border-box;
+  vertical-align: middle;
   min-width: 0;
   padding: 0 12px;
-  overflow: hidden;
+  overflow: visible;
   color: #24384d;
   font-size: 13px;
   line-height: 1.35;
-  text-overflow: ellipsis;
   white-space: nowrap;
   border-right: 1px solid #edf1f5;
+  border-bottom: 1px solid #edf1f5;
+}
+
+.data-row--header .data-cell {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 40px;
+  background: #f3f8fd;
 }
 
 .data-cell > text:not(.status-pill) {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
   white-space: nowrap;
 }
 
@@ -1521,6 +1910,27 @@ function resetRuntimeState() {
   gap: 10px;
   min-width: 0;
   overflow: hidden;
+}
+
+.table-input,
+.table-select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 80px;
+  height: 30px;
+  padding: 0 8px;
+  color: #17324d;
+  font-size: 13px;
+  line-height: 30px;
+  background: #ffffff;
+  border: 1px solid #cbdced;
+  border-radius: 4px;
+}
+
+.table-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .row-action-link {
@@ -1698,13 +2108,72 @@ function resetRuntimeState() {
   max-width: 100%;
   min-height: 0;
   padding: 14px;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .detail-body :deep(.uni-scroll-view-content) {
   box-sizing: border-box;
   width: 100%;
   max-width: 100%;
+}
+
+.protocol-editor-card {
+  box-sizing: border-box;
+  width: 100%;
+  overflow: auto;
+  background: #f8fbfe;
+  border: 1px solid #d8e6f2;
+  border-radius: 6px;
+}
+
+.protocol-editor-card--standalone {
+  flex: none;
+  margin: 0 0 12px;
+}
+
+.protocol-editor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e2edf7;
+}
+
+.protocol-editor-title,
+.protocol-editor-subtitle {
+  display: block;
+}
+
+.protocol-editor-title {
+  color: #173b5f;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.protocol-editor-subtitle {
+  margin-top: 4px;
+  color: #6c7f92;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.protocol-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: none;
+}
+
+.protocol-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px 12px;
 }
 
 .form-grid,
@@ -1723,7 +2192,7 @@ function resetRuntimeState() {
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .form-label {
@@ -1760,6 +2229,10 @@ function resetRuntimeState() {
   height: 76px;
   padding: 8px 10px;
   line-height: 1.45;
+}
+
+.form-textarea--compact {
+  height: 52px;
 }
 
 .select-arrow {
@@ -1808,6 +2281,63 @@ function resetRuntimeState() {
   min-height: 52px;
   padding: 8px 14px;
   border-top: 1px solid var(--admin-subtle-border, #edf3f8);
+}
+
+.modal-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 35, 55, 0.28);
+}
+
+.modal-panel {
+  display: flex;
+  flex-direction: column;
+  width: min(460px, 100%);
+  max-height: min(520px, calc(100vh - 56px));
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #cfe0ee;
+  border-radius: 6px;
+  box-shadow: 0 18px 46px rgba(28, 55, 82, 0.22);
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  color: #173b5f;
+  font-size: 16px;
+  font-weight: 900;
+  border-bottom: 1px solid #edf3f8;
+}
+
+.modal-close {
+  color: #64748b;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+}
+
+.modal-tip {
+  color: #5b7187;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.modal-upload-button {
+  align-self: flex-end;
 }
 
 .status-pill {

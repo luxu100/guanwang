@@ -89,7 +89,7 @@
           </view>
         </view>
 
-        <view v-if="mode === 'user'" class="content-layout content-layout--vertical">
+        <view v-if="mode === 'user'" class="content-layout content-layout--vertical content-layout--user">
           <view class="table-panel">
             <view class="table-head">
               <text>用户列表</text>
@@ -182,6 +182,19 @@
                     <text class="check-box"></text>
                     <text>{{ item.label }}</text>
                   </view>
+                </view>
+              </view>
+              <view class="form-field form-field--wide">
+                <view class="binding-field-head">
+                  <text class="form-label">用户绑定分区（部门接口）</text>
+                  <button class="mini-button" hover-class="mini-button--hover" @click="openUserPartitionDialog">新增绑定</button>
+                </view>
+                <view class="bound-partition-list">
+                  <view v-for="id in selectedUserPartitionIds" :key="id" class="bound-partition-tag">
+                    <text>{{ getPartitionNameById(id) }}</text>
+                    <text class="bound-partition-tag__remove" @click="removeUserPartition(id)">×</text>
+                  </view>
+                  <text v-if="!selectedUserPartitionIds.length" class="empty-inline">暂未绑定分区</text>
                 </view>
               </view>
             </view>
@@ -413,6 +426,38 @@
         </view>
       </view>
     </view>
+
+    <view v-if="showUserPartitionDialog" class="modal-mask" @click.self="closeUserPartitionDialog">
+      <view class="modal-panel">
+        <view class="modal-head">
+          <text>新增绑定分区</text>
+          <text class="modal-close" @click="closeUserPartitionDialog">×</text>
+        </view>
+        <view class="modal-body">
+          <view class="check-item check-item--select-all" :class="{ 'check-item--checked': isAllUserPartitionDraftSelected }" @click="toggleAllUserPartitionDraft">
+            <text class="check-box"></text>
+            <text>全选</text>
+          </view>
+          <view class="partition-dialog-list">
+            <view
+              v-for="item in availableUserPartitionOptions"
+              :key="getId(item)"
+              class="check-item partition-dialog-item"
+              :class="{ 'check-item--checked': userPartitionDraftIds.includes(getId(item)) }"
+              @click="toggleUserPartitionDraft(getId(item))"
+            >
+              <text class="check-box"></text>
+              <text>{{ getPartitionName(item) }}</text>
+            </view>
+            <view v-if="!availableUserPartitionOptions.length" class="modal-empty">暂无可新增绑定的分区</view>
+          </view>
+        </view>
+        <view class="modal-actions">
+          <button class="toolbar-button" hover-class="toolbar-button--hover" @click="closeUserPartitionDialog">取消</button>
+          <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="confirmUserPartitionBinding">确定绑定</button>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -595,6 +640,8 @@ const selectedDictItem = ref<RecordLike | null>(null);
 const selectedRoleIds = ref<Array<string | number>>([]);
 const selectedPermissionIds = ref<Array<string | number>>([]);
 const selectedPartitionIds = ref<Array<string | number>>([]);
+const selectedUserPartitionIds = ref<Array<string | number>>([]);
+const userPartitionDraftIds = ref<Array<string | number>>([]);
 const selectedAlarmOptions = ref(["enabled", "web", "app"]);
 const activeOrg = ref("all");
 const permissionSource = ref<"api" | "local">("api");
@@ -603,6 +650,7 @@ const total = ref(0);
 const loading = ref(false);
 const saving = ref(false);
 const isCreating = ref(false);
+const showUserPartitionDialog = ref(false);
 const dictCreateTarget = ref<"type" | "item">("item");
 
 const mode = computed(() => props.mode);
@@ -653,6 +701,16 @@ const menuParentOptions = computed<Array<SelectOption<string>>>(() => [
     })),
 ]);
 const currentMenuParentLabel = computed(() => menuParentOptions.value.find((item) => item.value === String(menuForm.parentId || "0"))?.label || "根节点");
+const availableUserPartitionOptions = computed(() =>
+  partitionOptions.value.filter((item) => {
+    const id = getId(item);
+    return id && !selectedUserPartitionIds.value.includes(id);
+  }),
+);
+const isAllUserPartitionDraftSelected = computed(() => {
+  const ids = availableUserPartitionOptions.value.map((item) => getId(item)).filter(isValidId);
+  return ids.length > 0 && ids.every((id) => userPartitionDraftIds.value.includes(id));
+});
 const canDelete = computed(() => {
   if (props.mode === "user") {
     return Boolean(getId(selectedUser.value));
@@ -979,6 +1037,11 @@ function selectUser(item: RecordLike | null) {
     location: item ? getText(item, ["location", "address"], "") : "",
   });
   selectedRoleIds.value = getArrayValue(item || {}, ["roleIds", "roles"]).map((value) => (isObject(value) ? getId(value) : value)).filter(isValidId);
+  selectedUserPartitionIds.value = getArrayValue(item || {}, ["deptIds", "departmentIds", "partitionIds", "depts", "departments", "partitions"])
+    .map((value) => (isObject(value) ? getId(value) : value))
+    .filter(isValidId);
+  userPartitionDraftIds.value = [];
+  showUserPartitionDialog.value = false;
 }
 
 function selectRole(item: RecordLike | null) {
@@ -1095,6 +1158,7 @@ async function saveUser() {
       email: userForm.email.trim(),
       password: userForm.password.trim(),
       status: userForm.status,
+      deptIds: selectedUserPartitionIds.value,
     });
     const response = isCreating.value || !userForm.id ? await createUser(payload) : await updateUser(userForm.id, payload);
     assertSuccessResponse(response as ApiResponseLike);
@@ -1282,6 +1346,39 @@ function toggleUserRole(id: string | number) {
   toggleId(selectedRoleIds.value, id);
 }
 
+function openUserPartitionDialog() {
+  userPartitionDraftIds.value = [];
+  showUserPartitionDialog.value = true;
+  if (!partitionOptions.value.length) {
+    void loadPartitions();
+  }
+}
+
+function closeUserPartitionDialog() {
+  showUserPartitionDialog.value = false;
+  userPartitionDraftIds.value = [];
+}
+
+function toggleUserPartitionDraft(id: string | number) {
+  toggleId(userPartitionDraftIds.value, id);
+}
+
+function toggleAllUserPartitionDraft() {
+  const ids = availableUserPartitionOptions.value.map((item) => getId(item)).filter(isValidId);
+  userPartitionDraftIds.value = isAllUserPartitionDraftSelected.value ? [] : ids;
+}
+
+function confirmUserPartitionBinding() {
+  const merged = new Set<string | number>(selectedUserPartitionIds.value);
+  userPartitionDraftIds.value.forEach((id) => merged.add(id));
+  selectedUserPartitionIds.value = Array.from(merged);
+  closeUserPartitionDialog();
+}
+
+function removeUserPartition(id: string | number) {
+  selectedUserPartitionIds.value = selectedUserPartitionIds.value.filter((item) => item !== id);
+}
+
 function togglePermission(id: string | number) {
   toggleId(selectedPermissionIds.value, id);
 }
@@ -1355,6 +1452,11 @@ function getPartitionName(item: RecordLike) {
   return getText(item, ["deptName", "departmentName", "partitionName", "name", "label"], "未命名分区");
 }
 
+function getPartitionNameById(id: string | number) {
+  const partition = partitionOptions.value.find((item) => getId(item) === id);
+  return partition ? getPartitionName(partition) : `分区 ${id}`;
+}
+
 function userMatchesPartition(user: RecordLike, partitionId: string, partitionName: string) {
   const directId = getText(user, ["deptId", "departmentId", "partitionId"], "");
   if (directId && String(directId) === partitionId) {
@@ -1415,7 +1517,7 @@ function isValidId(value: unknown): value is string | number {
   height: 100%;
   min-height: var(--shell-content-min-height);
   padding: 14px;
-  overflow: hidden;
+  overflow: auto;
   background: $color-admin-page-bg;
 }
 
@@ -1453,7 +1555,7 @@ function isValidId(value: unknown): value is string | number {
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .panel-head,
@@ -1495,7 +1597,7 @@ function isValidId(value: unknown): value is string | number {
   flex: 1;
   min-height: 0;
   padding: 10px;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .tree-node,
@@ -1746,12 +1848,17 @@ function isValidId(value: unknown): value is string | number {
   min-width: 0;
   min-height: 0;
   padding: 12px;
+  overflow: auto;
 }
 
 .content-layout--vertical,
 .content-layout--dict {
   grid-template-columns: 1fr;
   grid-template-rows: minmax(190px, 0.9fr) minmax(220px, 1.1fr);
+}
+
+.content-layout--user {
+  grid-template-rows: minmax(160px, 0.8fr) minmax(320px, 1.2fr);
 }
 
 .table-panel,
@@ -1761,84 +1868,133 @@ function isValidId(value: unknown): value is string | number {
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .table-scroll,
 .permission-tree {
   flex: 1;
+  width: 100%;
+  max-width: 100%;
   min-height: 0;
+  overflow: auto;
 }
 
 .data-table {
+  display: table;
+  table-layout: auto;
+  border-collapse: separate;
+  border-spacing: 0;
+  width: max-content;
   min-width: 100%;
 }
 
 .data-table--user {
-  min-width: 920px;
+  min-width: 1100px;
 }
 
 .data-table--menu {
-  min-width: 860px;
+  min-width: 980px;
 }
 
 .data-table--dict {
-  min-width: 860px;
+  min-width: 980px;
 }
 
 .data-row {
-  display: grid;
+  display: table-row;
   min-height: 42px;
   color: #24384d;
-  border-bottom: 1px solid #edf1f5;
   cursor: pointer;
 }
 
 .data-row--header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
   min-height: 40px;
   color: #5d7188;
   font-size: 14px;
   font-weight: 800;
-  background: #f4faff;
   cursor: default;
 }
 
-.data-row--active,
-.data-row:hover:not(.data-row--header) {
+.data-row--active .data-cell,
+.data-row:hover:not(.data-row--header) .data-cell {
   background: #f4faff;
 }
 
-.data-table--user .data-row {
-  grid-template-columns: 130px 140px 140px 200px 100px 170px;
+.data-table--user .data-cell--name {
+  min-width: 140px;
 }
 
-.data-table--menu .data-row {
-  grid-template-columns: 180px 180px 320px 100px;
+.data-table--user .data-cell--account,
+.data-table--user .data-cell--phone {
+  min-width: 150px;
 }
 
-.data-table--dict .data-row {
-  grid-template-columns: 80px 160px 180px 260px 170px;
+.data-table--user .data-cell--email {
+  min-width: 240px;
+}
+
+.data-cell.data-cell--status {
+  min-width: 100px;
+}
+
+.data-cell.data-cell--time {
+  min-width: 180px;
+}
+
+.data-table--menu .data-cell--name {
+  min-width: 180px;
+}
+
+.data-table--menu .data-cell--code {
+  min-width: 220px;
+}
+
+.data-table--menu .data-cell--path {
+  min-width: 380px;
+}
+
+.data-table--dict .data-cell--sort {
+  min-width: 80px;
+}
+
+.data-table--dict .data-cell--code {
+  min-width: 170px;
+}
+
+.data-table--dict .data-cell--name {
+  min-width: 190px;
+}
+
+.data-table--dict .data-cell--remark {
+  min-width: 320px;
 }
 
 .data-cell {
-  display: flex;
-  align-items: center;
+  display: table-cell;
+  height: 42px;
+  box-sizing: border-box;
+  vertical-align: middle;
   min-width: 0;
   padding: 0 12px;
-  overflow: hidden;
+  overflow: visible;
   font-size: 14px;
-  text-overflow: ellipsis;
   white-space: nowrap;
   border-right: 1px solid #edf1f5;
+  border-bottom: 1px solid #edf1f5;
+}
+
+.data-row--header .data-cell {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 40px;
+  background: #f4faff;
 }
 
 .data-cell > text:not(.status-pill) {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
   white-space: nowrap;
 }
 
@@ -1900,6 +2056,14 @@ function isValidId(value: unknown): value is string | number {
   align-content: start;
 }
 
+.content-layout--user .form-grid--user {
+  padding-bottom: 16px;
+}
+
+.content-layout--user .form-field {
+  overflow: visible;
+}
+
 .form-field {
   box-sizing: border-box;
   width: 100%;
@@ -1932,6 +2096,87 @@ function isValidId(value: unknown): value is string | number {
   overflow-y: auto;
 }
 
+.binding-field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  margin-bottom: 6px;
+}
+
+.binding-field-head .form-label {
+  margin-bottom: 0;
+}
+
+.mini-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  height: 28px;
+  margin: 0;
+  padding: 0 10px;
+  color: #0d82ee;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 28px;
+  background: #edf7ff;
+  border: 1px solid #b9dcff;
+  border-radius: 4px;
+}
+
+.mini-button::after {
+  border: 0;
+}
+
+.mini-button--hover {
+  color: #ffffff;
+  background: #0d82ee;
+  border-color: #0d82ee;
+}
+
+.bound-partition-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 38px;
+  padding: 9px 10px;
+  background: #f8fbfe;
+  border: 1px solid #d8e6f2;
+  border-radius: 4px;
+}
+
+.bound-partition-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-height: 24px;
+  padding: 0 8px;
+  color: #24527a;
+  font-size: 13px;
+  font-weight: 800;
+  background: #edf7ff;
+  border: 1px solid #cce6ff;
+  border-radius: 999px;
+}
+
+.bound-partition-tag text:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bound-partition-tag__remove {
+  flex: none;
+  color: #d92d20;
+  cursor: pointer;
+}
+
 .check-item,
 .permission-node {
   display: flex;
@@ -1948,6 +2193,90 @@ function isValidId(value: unknown): value is string | number {
 .empty-inline {
   color: #8a9aab;
   font-size: 13px;
+}
+
+.modal-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 35, 55, 0.28);
+}
+
+.modal-panel {
+  display: flex;
+  flex-direction: column;
+  width: min(520px, 100%);
+  max-height: min(640px, calc(100vh - 56px));
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #cfe0ee;
+  border-radius: 6px;
+  box-shadow: 0 18px 46px rgba(28, 55, 82, 0.22);
+}
+
+.modal-head,
+.modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: none;
+  padding: 12px 14px;
+  border-bottom: 1px solid #edf3f8;
+}
+
+.modal-head {
+  color: #183755;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.modal-close {
+  color: #64748b;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.modal-body {
+  flex: 1;
+  min-height: 0;
+  padding: 12px 14px;
+  overflow: hidden;
+}
+
+.partition-dialog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 360px;
+  margin-top: 10px;
+  overflow-y: auto;
+}
+
+.partition-dialog-item,
+.check-item--select-all {
+  min-height: 34px;
+  padding: 7px 8px;
+  background: #f8fbfe;
+  border: 1px solid #d8e6f2;
+  border-radius: 4px;
+}
+
+.modal-empty {
+  padding: 24px 10px;
+  color: #8a9aab;
+  font-size: 14px;
+  text-align: center;
+}
+
+.modal-actions {
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid #edf3f8;
+  border-bottom: 0;
 }
 
 .check-item text:last-child,
@@ -2039,6 +2368,10 @@ function isValidId(value: unknown): value is string | number {
   .content-layout--vertical,
   .content-layout--dict {
     grid-template-rows: minmax(180px, 0.85fr) minmax(220px, 1fr);
+  }
+
+  .content-layout--user {
+    grid-template-rows: minmax(160px, 0.8fr) minmax(320px, 1.2fr);
   }
 
   .form-grid--user {

@@ -110,6 +110,7 @@ import AppShell from "@/components/AppShell.vue";
 - 页面级尺寸或局部主题优先用局部 CSS 变量。
 - 类名沿用项目里的 BEM-like 风格，例如 `block__element--modifier`。
 - 表格、筛选、详情、分页要稳定可扫：固定必要宽度，使用滚动容器，保留 loading/empty 状态。
+- 后台表格和内容面板不能用 `overflow: hidden` 直接裁掉业务内容；横向或纵向超出容器时必须出现滚动条，表格列宽至少能容纳当前单元格内容。
 - 不添加装饰性 hero、大段营销文案、无业务意义的渐变背景或浮动装饰。
 
 ## 平台边界

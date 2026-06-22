@@ -27,5 +27,31 @@ test("detail forms constrain inputs to their panels", () => {
   assert.match(systemSource, /\.content-layout\s*\{[\s\S]*?max-width:\s*100%;/);
   assert.match(systemSource, /\.form-field\s*\{[\s\S]*?max-width:\s*100%;/);
   assert.match(systemSource, /\.form-grid--user\s*\{[\s\S]*?repeat\(auto-fit, minmax\(220px, 1fr\)\)/);
+  assert.match(systemSource, /class="content-layout content-layout--vertical content-layout--user"/);
+  assert.match(systemSource, /\.content-layout--user\s*\{[\s\S]*?grid-template-rows:\s*minmax\(160px, 0\.8fr\) minmax\(320px, 1\.2fr\);/);
+  assert.match(systemSource, /\.content-layout--user \.form-grid--user\s*\{[\s\S]*?padding-bottom:\s*16px;/);
+  assert.match(systemSource, /\.content-layout--user \.form-field\s*\{[\s\S]*?overflow:\s*visible;/);
   assert.match(systemSource, /\.check-grid\s*\{[\s\S]*?max-width:\s*100%;/);
+});
+
+test("admin tables and module containers scroll instead of clipping overflowing content", () => {
+  assert.match(systemSource, /\.system-view\s*\{[\s\S]*?overflow:\s*auto;/);
+  assert.match(systemSource, /\.content-layout\s*\{[\s\S]*?overflow:\s*auto;/);
+  assert.match(systemSource, /\.table-scroll,\s*\r?\n\.permission-tree\s*\{[\s\S]*?overflow:\s*auto;/);
+  assert.match(systemSource, /\.data-table\s*\{[\s\S]*?display:\s*table;[\s\S]*?table-layout:\s*auto;[\s\S]*?width:\s*max-content;/);
+  assert.match(systemSource, /\.data-row\s*\{[\s\S]*?display:\s*table-row;/);
+  assert.match(systemSource, /\.data-cell\s*\{[\s\S]*?display:\s*table-cell;/);
+  assert.match(systemSource, /\.data-table--user \.data-cell--email\s*\{[\s\S]*?min-width:\s*240px;/);
+  assert.match(systemSource, /\.data-cell\s*\{[\s\S]*?overflow:\s*visible;/);
+
+  assert.match(dataReceiveSource, /\.data-receive-view\s*\{[\s\S]*?overflow:\s*auto;/);
+  assert.match(dataReceiveSource, /\.data-layout\s*\{[\s\S]*?overflow:\s*auto;/);
+  assert.doesNotMatch(dataReceiveSource, /activeTableColumns|gridTemplateColumns/);
+  assert.match(dataReceiveSource, /getColumnMinWidth\(column\)/);
+  assert.match(dataReceiveSource, /\.data-table\s*\{[\s\S]*?display:\s*table;[\s\S]*?table-layout:\s*auto;[\s\S]*?width:\s*max-content;/);
+  assert.doesNotMatch(dataReceiveSource, /\.data-table\s*\{[\s\S]*?min-height:\s*100%;[\s\S]*?\}/);
+  assert.match(dataReceiveSource, /\.data-row\s*\{[\s\S]*?display:\s*table-row;/);
+  assert.match(dataReceiveSource, /\.table-scroll\s*\{[\s\S]*?overflow:\s*auto;/);
+  assert.match(dataReceiveSource, /\.data-cell\s*\{[\s\S]*?display:\s*table-cell;/);
+  assert.match(dataReceiveSource, /\.data-cell\s*\{[\s\S]*?overflow:\s*visible;/);
 });
