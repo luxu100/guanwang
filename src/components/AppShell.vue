@@ -184,7 +184,9 @@ import logoImage from "@/assets/images/logo.webp";
 import AdminPlaceholderView from "@/components/admin/AdminPlaceholderView.vue";
 import TencentLeakMap from "@/pages/leak-monitor/components/TencentLeakMap.vue";
 import StationManagementView from "@/pages/station/components/StationManagementView.vue";
-import DeviceManagementView from "@/pages/device/components/DeviceManagementView.vue";
+import DeviceInfoView from "@/pages/device/info/DeviceInfoView.vue";
+import DeviceStatusView from "@/pages/device/status/DeviceStatusView.vue";
+import DeviceMaintenanceView from "@/pages/device/maintenance/DeviceMaintenanceView.vue";
 import SystemManagementView from "@/pages/system/components/SystemManagementView.vue";
 import DataReceiveView from "@/pages/data-receive/components/DataReceiveView.vue";
 import WorkOrderCreateView from "@/pages/work-order/components/WorkOrderCreateView.vue";
@@ -326,9 +328,9 @@ const menuItems: MenuItem[] = [
 const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/index/index": createPlaceholderContent("/pages/index/index"),
   "/pages/station/station": { component: StationManagementView },
-  "/pages/device/info/info": { component: DeviceManagementView, props: { mode: "info" } },
-  "/pages/device/maintenance/maintenance": { component: DeviceManagementView, props: { mode: "maintenance" } },
-  "/pages/device/status/status": { component: DeviceManagementView, props: { mode: "status" } },
+  "/pages/device/info/info": { component: DeviceInfoView },
+  "/pages/device/maintenance/maintenance": { component: DeviceMaintenanceView },
+  "/pages/device/status/status": { component: DeviceStatusView },
   "/pages/data-analysis/overview/overview": createPlaceholderContent("/pages/data-analysis/overview/overview"),
   "/pages/data-analysis/audio/audio": createPlaceholderContent("/pages/data-analysis/audio/audio"),
   "/pages/data-analysis/device-params/device-params": createPlaceholderContent("/pages/data-analysis/device-params/device-params"),
