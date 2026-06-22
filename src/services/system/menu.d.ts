@@ -7,7 +7,7 @@ export function getMenuList(params?: Record<string, unknown>): Promise<ApiRespon
 export function getMenuDetail(id: number | string): Promise<ApiResponse<PermissionItem>>;
 export function createMenu(data: MenuPayload): Promise<ApiResponse<PermissionItem>>;
 export function updateMenu(id: number | string, data: MenuPayload): Promise<ApiResponse<boolean>>;
-export function deleteMenu(id: number | string): Promise<ApiResponse<void>>;
+export function deleteMenu(id: number | string, isForce?: boolean): Promise<ApiResponse<void>>;
 export function batchDeleteMenu(data: Array<number | string>): Promise<ApiResponse<void>>;
 export function getMenuTree(params?: Record<string, unknown>): Promise<ApiResponse<PermissionItem[]>>;
 

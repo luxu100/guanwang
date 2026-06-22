@@ -13,7 +13,7 @@ export function getMaintenanceRecordList(params?: ServiceQuery): Promise<ApiResp
 export function getMaintenanceRecordDetail(id: ServiceId): Promise<ApiResponse>;
 export function createMaintenanceRecord(data: ServicePayload): Promise<ApiResponse>;
 export function updateMaintenanceRecord(id: ServiceId, data: ServicePayload): Promise<ApiResponse>;
-export function deleteMaintenanceRecord(id: ServiceId): Promise<ApiResponse>;
+export function deleteMaintenanceRecord(id: ServiceId, isForce?: boolean): Promise<ApiResponse>;
 export function batchDeleteMaintenanceRecord(data: ServicePayload): Promise<ApiResponse>;
 
 declare const service: {

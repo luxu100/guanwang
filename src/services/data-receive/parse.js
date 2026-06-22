@@ -16,12 +16,12 @@ export const deleteProtocolField = protocolFieldDefinitionApi.delete;
 
 export const getProtocolParseRecordPage = protocolParseRecordApi.getPage;
 
-export function getFieldsByProtocol(protocolId, params) {
-  return getRequest(`/api/protocol-field-definition/by-protocol/${protocolId}`, params);
-}
-
 export function batchSaveProtocolFields(data) {
   return postRequest("/api/protocol-field-definition/batch-save", data);
+}
+
+export function getFieldsByProtocol(protocolId, params) {
+  return getRequest(`/api/protocol-field-definition/by-protocol/${protocolId}`, params);
 }
 
 export default {
@@ -30,7 +30,7 @@ export default {
   createProtocolField,
   updateProtocolField,
   deleteProtocolField,
+  batchSaveProtocolFields,
   getProtocolParseRecordPage,
   getFieldsByProtocol,
-  batchSaveProtocolFields,
 };

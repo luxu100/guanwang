@@ -152,7 +152,24 @@
               </view>
               <view class="form-field" v-if="isCreating">
                 <text class="form-label form-label--required">初始密码</text>
-                <input v-model="userForm.password" class="form-input" password placeholder="请输入初始密码" placeholder-class="input-placeholder" />
+                <view class="password-input-wrap">
+                  <input
+                    v-model="userForm.password"
+                    class="form-input form-input--password"
+                    :password="!showUserPassword"
+                    placeholder="请输入初始密码"
+                    placeholder-class="input-placeholder"
+                  />
+                  <button
+                    class="password-toggle"
+                    :class="{ 'password-toggle--visible': showUserPassword }"
+                    hover-class="password-toggle--hover"
+                    :aria-label="showUserPassword ? '隐藏密码' : '显示密码'"
+                    @click="toggleUserPasswordVisibility"
+                  >
+                    <text class="password-toggle__eye"></text>
+                  </button>
+                </view>
               </view>
               <view class="form-field">
                 <text class="form-label">用户状态</text>
@@ -463,11 +480,11 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
-import { assignUserRoles, createUser, deleteUser, getUserPage, updateUser } from "@/services/system/user";
+import { assignUserRoles, deleteUser, getUserPage, register, updateUser, type RegisterParams } from "@/services/system/user";
 import { assignRolePermissions, createRole, deleteRole, getPermissionTree, getRoleList, getRolePage, updateRole } from "@/services/system/auth";
 import { createMenu, deleteMenu, getMenuPage, getMenuTree, updateMenu } from "@/services/system/menu";
 import { createDictItem, createDictType, deleteDictItem, deleteDictType, getDictItemPage, getDictTypePage, updateDictItem, updateDictType } from "@/services/system/dict";
-import { getDeptList } from "@/services/station/station";
+import { getDeptList } from "@/services/partition/partition";
 import {
   type ApiResponseLike,
   type RecordLike,
@@ -496,7 +513,7 @@ const LOCAL_MENU_ID_PREFIX = "local-menu:";
 const defaultMenuTree: RecordLike[] = [
   { id: `${LOCAL_MENU_ID_PREFIX}favorite`, permissionName: "我的收藏", permissionCode: "page:favorite", path: "/pages/index/index", permissionType: 1, status: 1 },
   { id: `${LOCAL_MENU_ID_PREFIX}leak-monitor`, permissionName: "渗漏监测", permissionCode: "page:leak-monitor", path: "/pages/leak-monitor/leak-monitor", permissionType: 1, status: 1 },
-  { id: `${LOCAL_MENU_ID_PREFIX}partition`, permissionName: "分区管理", permissionCode: "page:partition", path: "/pages/station/station", permissionType: 1, status: 1 },
+  { id: `${LOCAL_MENU_ID_PREFIX}partition`, permissionName: "分区管理", permissionCode: "page:partition", path: "/pages/partition/partition", permissionType: 1, status: 1 },
   {
     id: `${LOCAL_MENU_ID_PREFIX}device`,
     permissionName: "设备管理",
@@ -650,6 +667,7 @@ const total = ref(0);
 const loading = ref(false);
 const saving = ref(false);
 const isCreating = ref(false);
+const showUserPassword = ref(false);
 const showUserPartitionDialog = ref(false);
 const dictCreateTarget = ref<"type" | "item">("item");
 
@@ -1025,6 +1043,7 @@ async function loadDictItems() {
 function selectUser(item: RecordLike | null) {
   selectedUser.value = item;
   isCreating.value = false;
+  showUserPassword.value = false;
   Object.assign(userForm, {
     id: item ? String(getId(item)) : "",
     username: item ? getText(item, ["username"], "") : "",
@@ -1036,12 +1055,16 @@ function selectUser(item: RecordLike | null) {
     scope: "company",
     location: item ? getText(item, ["location", "address"], "") : "",
   });
-  selectedRoleIds.value = getArrayValue(item || {}, ["roleIds", "roles"]).map((value) => (isObject(value) ? getId(value) : value)).filter(isValidId);
+  selectedRoleIds.value = [];
   selectedUserPartitionIds.value = getArrayValue(item || {}, ["deptIds", "departmentIds", "partitionIds", "depts", "departments", "partitions"])
     .map((value) => (isObject(value) ? getId(value) : value))
     .filter(isValidId);
   userPartitionDraftIds.value = [];
   showUserPartitionDialog.value = false;
+}
+
+function toggleUserPasswordVisibility() {
+  showUserPassword.value = !showUserPassword.value;
 }
 
 function selectRole(item: RecordLike | null) {
@@ -1160,7 +1183,18 @@ async function saveUser() {
       status: userForm.status,
       deptIds: selectedUserPartitionIds.value,
     });
-    const response = isCreating.value || !userForm.id ? await createUser(payload) : await updateUser(userForm.id, payload);
+    const response =
+      isCreating.value || !userForm.id
+        ? await register({
+            username: userForm.username.trim(),
+            password: userForm.password.trim(),
+            realName: userForm.realName.trim() || undefined,
+            phone: userForm.phone.trim() || undefined,
+            email: userForm.email.trim() || undefined,
+            status: userForm.status,
+            deptIds: selectedUserPartitionIds.value,
+          } satisfies RegisterParams)
+        : await updateUser(userForm.id, payload);
     assertSuccessResponse(response as ApiResponseLike);
 
     const roleAssignment = buildUserRoleAssignment(response, userForm.id, selectedRoleIds.value);
@@ -1725,6 +1759,68 @@ function isValidId(value: unknown): value is string | number {
   background: #f9fcff;
   border: 1px solid #cbdced;
   border-radius: 4px;
+}
+
+.password-input-wrap {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.form-input--password {
+  padding-right: 42px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+}
+
+.password-toggle::after {
+  border: 0;
+}
+
+.password-toggle--hover {
+  background: #eaf4ff;
+}
+
+.password-toggle__eye {
+  position: relative;
+  display: block;
+  width: 17px;
+  height: 11px;
+  border: 1.5px solid #6b7f95;
+  border-radius: 50%;
+}
+
+.password-toggle__eye::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  background: #6b7f95;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  content: "";
+}
+
+.password-toggle--visible .password-toggle__eye {
+  border-color: #0d82ee;
+}
+
+.password-toggle--visible .password-toggle__eye::after {
+  background: #0d82ee;
 }
 
 .filter-input {

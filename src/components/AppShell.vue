@@ -183,7 +183,7 @@ import type { Component } from "vue";
 import logoImage from "@/assets/images/logo.webp";
 import AdminPlaceholderView from "@/components/admin/AdminPlaceholderView.vue";
 import TencentLeakMap from "@/pages/leak-monitor/components/TencentLeakMap.vue";
-import StationManagementView from "@/pages/station/components/StationManagementView.vue";
+import PartitionManagementView from "@/pages/partition/components/PartitionManagementView.vue";
 import DeviceInfoView from "@/pages/device/info/DeviceInfoView.vue";
 import DeviceStatusView from "@/pages/device/status/DeviceStatusView.vue";
 import DeviceMaintenanceView from "@/pages/device/maintenance/DeviceMaintenanceView.vue";
@@ -228,7 +228,7 @@ const DEFAULT_PAGE_PATH = LEAK_MONITOR_PATH;
 const menuItems: MenuItem[] = [
   { label: "我的收藏", path: "/pages/index/index", icon: "star", keywords: ["首页", "收藏"] },
   { label: "渗漏监测", path: "/pages/leak-monitor/leak-monitor", icon: "monitor", keywords: ["渗漏", "监测"] },
-  { label: "分区管理", path: "/pages/station/station", icon: "station", keywords: ["分区", "部门", "管理"] },
+  { label: "分区管理", path: "/pages/partition/partition", icon: "partition", keywords: ["分区", "部门", "管理"] },
   {
     label: "设备管理",
     path: "/pages/device/info/info",
@@ -327,7 +327,7 @@ const menuItems: MenuItem[] = [
 
 const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/index/index": createPlaceholderContent("/pages/index/index"),
-  "/pages/station/station": { component: StationManagementView },
+  "/pages/partition/partition": { component: PartitionManagementView },
   "/pages/device/info/info": { component: DeviceInfoView },
   "/pages/device/maintenance/maintenance": { component: DeviceMaintenanceView },
   "/pages/device/status/status": { component: DeviceStatusView },
@@ -1691,8 +1691,8 @@ onMounted(() => {
   --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='4.6' y='4.4' width='5.6' height='15.2' rx='1.2'/%3E%3Crect x='13.8' y='4.4' width='5.6' height='15.2' rx='1.2'/%3E%3Cpath d='M7.4 8h.1M16.6 8h.1M7.4 16h.1M16.6 16h.1' stroke-width='2.4'/%3E%3C/svg%3E");
 }
 
-.side-menu__icon--station,
-.page-tab__icon--station {
+.side-menu__icon--partition,
+.page-tab__icon--partition {
   --side-icon-url: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 21s6.2-5.5 6.2-11.2A6.2 6.2 0 1 0 5.8 9.8C5.8 15.5 12 21 12 21Z'/%3E%3Ccircle cx='12' cy='9.8' r='2.2'/%3E%3C/svg%3E");
 }
 

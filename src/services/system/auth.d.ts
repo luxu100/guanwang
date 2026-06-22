@@ -16,7 +16,7 @@ export function getRoleList(params?: RolePageParams): Promise<ApiResponse<RoleIt
 export function getRoleDetail(id: number | string): Promise<ApiResponse<RoleItem>>;
 export function createRole(data: RolePayload): Promise<ApiResponse<RoleItem>>;
 export function updateRole(id: number | string, data: RolePayload): Promise<ApiResponse<boolean>>;
-export function deleteRole(id: number | string): Promise<ApiResponse<void>>;
+export function deleteRole(id: number | string, isForce?: boolean): Promise<ApiResponse<void>>;
 export function batchDeleteRole(data: Array<number | string>): Promise<ApiResponse<void>>;
 
 export function getPermissionPage(data: Record<string, unknown>): Promise<ApiResponse<PageResult<PermissionItem>>>;
@@ -24,7 +24,7 @@ export function getPermissionList(params?: Record<string, unknown>): Promise<Api
 export function getPermissionDetail(id: number | string): Promise<ApiResponse<PermissionItem>>;
 export function createPermission(data: PermissionPayload): Promise<ApiResponse<PermissionItem>>;
 export function updatePermission(id: number | string, data: PermissionPayload): Promise<ApiResponse<boolean>>;
-export function deletePermission(id: number | string): Promise<ApiResponse<void>>;
+export function deletePermission(id: number | string, isForce?: boolean): Promise<ApiResponse<void>>;
 export function batchDeletePermission(data: Array<number | string>): Promise<ApiResponse<void>>;
 export function getPermissionTree(data?: Record<string, unknown>): Promise<ApiResponse<PermissionItem[]>>;
 export function assignRolePermissions(roleId: number | string, data: Array<number | string>): Promise<ApiResponse<void>>;

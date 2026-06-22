@@ -16,7 +16,8 @@ test("protocol management moves JSON upload into the field editor dialog", () =>
   assert.match(source, /protocolJsonDialogInputRef\.value\?\.click\(\)/);
   assert.match(source, /handleProtocolJsonDialogFileChange/);
   assert.match(source, /updateProtocolDefinition\(targetProtocolId, payload\)/);
-  assert.match(source, /batchSaveProtocolFields\(fieldPayload\)/);
+  assert.match(source, /saveProtocolFieldRecordsIndividually\(fieldPayload\)/);
+  assert.doesNotMatch(source, /batchSaveProtocolFields/);
   assert.doesNotMatch(source, /@click="triggerProtocolJsonUpload"/);
   assert.doesNotMatch(source, /ref="protocolJsonInputRef"/);
   assert.doesNotMatch(source, /@click="saveActiveFieldProtocol"/);
@@ -37,18 +38,27 @@ test("protocol management follows the provided table actions and import aliases"
   assert.match(source, /isCorrectedField/);
 });
 
-test("protocol field editor uses inline editable and movable field rows", () => {
+test("protocol field editor recalculates moved rows and saves only changed sortOrder", () => {
   assert.match(source, /data-layout--field-editor/);
   assert.match(source, /isProtocolFieldEditor/);
   assert.match(source, /class="table-input"/);
   assert.match(source, /class="table-select"/);
   assert.match(source, /handleInlineFieldInput/);
   assert.match(source, /handleInlineFieldBooleanChange/);
+  assert.match(source, /captureFieldRecordBaselines/);
+  assert.match(source, /sortProtocolFieldRecords/);
   assert.match(source, /handleFieldDragStart/);
   assert.match(source, /handleFieldDrop/);
   assert.match(source, /moveFieldRecord/);
   assert.match(source, /syncFieldSortOrder/);
-  assert.match(source, /buildFieldRecordsPayload/);
+  assert.match(source, /item\.sortOrder = \(index \+ 1\) \* 10/);
+  assert.match(source, /buildChangedFieldRecordsPayload/);
+  assert.match(source, /buildChangedFieldRecordPayload/);
+  assert.match(source, /sortOrder: normalizeInlineNumberValue\(getValue\(item, \["sortOrder"\]\)\)/);
+  assert.match(source, /protocolId: normalizeInlineNumberValue\(getValue\(normalized, \["protocolId"\]\)\)/);
+  assert.match(source, /afn: getValue\(normalized, \["afn"\]\)/);
+  assert.match(source, /fieldName: getValue\(normalized, \["fieldName"\]\)/);
+  assert.match(source, /format: getValue\(normalized, \["format"\]\)/);
 });
 
 test("pagination supports editable current page and blur jump", () => {

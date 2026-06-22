@@ -66,10 +66,10 @@ export function getProtocolFieldPage(data: ServiceQuery): Promise<ApiResponse<Pa
 export function getProtocolFieldDetail(id: ServiceId): Promise<ApiResponse<ProtocolFieldDefinition>>;
 export function createProtocolField(data: ProtocolFieldDefinition): Promise<ApiResponse<ProtocolFieldDefinition>>;
 export function updateProtocolField(id: ServiceId, data: ProtocolFieldDefinition): Promise<ApiResponse<boolean>>;
-export function deleteProtocolField(id: ServiceId): Promise<ApiResponse<boolean>>;
+export function deleteProtocolField(id: ServiceId, isForce?: boolean): Promise<ApiResponse<boolean>>;
+export function batchSaveProtocolFields(data: ProtocolFieldDefinition[]): Promise<ApiResponse<boolean>>;
 export function getProtocolParseRecordPage(data: ProtocolParseRecordQuery): Promise<ApiResponse<PageResult<ProtocolParseRecord>>>;
 export function getFieldsByProtocol(protocolId: ServiceId, params?: ServiceQuery): Promise<ApiResponse<ProtocolFieldDefinition[]>>;
-export function batchSaveProtocolFields(data: ProtocolFieldDefinition[]): Promise<ApiResponse<boolean>>;
 
 declare const service: {
   getProtocolFieldPage: typeof getProtocolFieldPage;
@@ -77,9 +77,9 @@ declare const service: {
   createProtocolField: typeof createProtocolField;
   updateProtocolField: typeof updateProtocolField;
   deleteProtocolField: typeof deleteProtocolField;
+  batchSaveProtocolFields: typeof batchSaveProtocolFields;
   getProtocolParseRecordPage: typeof getProtocolParseRecordPage;
   getFieldsByProtocol: typeof getFieldsByProtocol;
-  batchSaveProtocolFields: typeof batchSaveProtocolFields;
 };
 
 export default service;

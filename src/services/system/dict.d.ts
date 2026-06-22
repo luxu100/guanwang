@@ -42,7 +42,7 @@ export function getDictTypeList(params?: Record<string, unknown>): Promise<ApiRe
 export function getDictTypeDetail(id: number | string): Promise<ApiResponse<DictTypeItem>>;
 export function createDictType(data: DictPayload): Promise<ApiResponse<DictTypeItem>>;
 export function updateDictType(id: number | string, data: DictPayload): Promise<ApiResponse<boolean>>;
-export function deleteDictType(id: number | string): Promise<ApiResponse<void>>;
+export function deleteDictType(id: number | string, isForce?: boolean): Promise<ApiResponse<void>>;
 export function batchDeleteDictType(data: Array<number | string>): Promise<ApiResponse<void>>;
 
 export function getDictItemPage(data: Record<string, unknown>): Promise<ApiResponse<PageResult<DictItem>>>;
@@ -50,7 +50,7 @@ export function getDictItemList(params?: Record<string, unknown>): Promise<ApiRe
 export function getDictItemDetail(id: number | string): Promise<ApiResponse<DictItem>>;
 export function createDictItem(data: DictPayload): Promise<ApiResponse<DictItem>>;
 export function updateDictItem(id: number | string, data: DictPayload): Promise<ApiResponse<boolean>>;
-export function deleteDictItem(id: number | string): Promise<ApiResponse<void>>;
+export function deleteDictItem(id: number | string, isForce?: boolean): Promise<ApiResponse<void>>;
 export function batchDeleteDictItem(data: Array<number | string>): Promise<ApiResponse<void>>;
 
 declare const dictService: {

@@ -26,3 +26,24 @@ test("user save payload carries multiple department partition ids", () => {
   assert.match(source, /getArrayValue\(item \|\| \{\}, \["deptIds", "departmentIds", "partitionIds", "depts", "departments", "partitions"\]\)/);
 });
 
+test("new users are submitted through register instead of create", () => {
+  assert.match(source, /register, updateUser, type RegisterParams/);
+  assert.match(source, /isCreating\.value \|\| !userForm\.id[\s\S]*await register\(\{/);
+  assert.match(source, /satisfies RegisterParams/);
+  assert.doesNotMatch(source, /createUser\(payload\)/);
+});
+
+test("new user password field has a stable visibility toggle", () => {
+  assert.match(source, /showUserPassword/);
+  assert.match(source, /toggleUserPasswordVisibility/);
+  assert.match(source, /class="password-input-wrap"/);
+  assert.match(source, /class="password-toggle"/);
+  assert.match(source, /:password="!showUserPassword"/);
+});
+
+test("user role assignment uses role list ids without fetching user roles", () => {
+  assert.doesNotMatch(source, /getUserRoles/);
+  assert.doesNotMatch(source, /loadSelectedUserRoles/);
+  assert.match(source, /selectedRoleIds\.value = \[\]/);
+  assert.match(source, /assignUserRoles\(roleAssignment\.userId, roleAssignment\.roleIds\)/);
+});

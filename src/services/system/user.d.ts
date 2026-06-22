@@ -6,8 +6,11 @@ export {
   getUserDetail,
   getUserList,
   getUserPage,
+  register,
   updateUser,
   updateUserPassword,
 } from "@/services/user/user";
+
+export type { RegisterParams } from "@/services/user/user";
 
 export { default } from "@/services/user/user";

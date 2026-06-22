@@ -1,4 +1,4 @@
-const DEFAULT_BASE_URL = "http://47.118.24.91:28082";
+const DEFAULT_BASE_URL = "";
 const TOKEN_KEY = "token";
 const TOKEN_PREFIX_KEY = "tokenPrefix";
 
@@ -22,7 +22,7 @@ function getFriendlyErrorMessage(error) {
 
 /**
  * 获取接口基础地址。
- * 配置 VITE_API_BASE_URL 时优先使用环境变量，未配置时回退到项目默认后端地址。
+ * 配置 VITE_API_BASE_URL 时优先使用环境变量，未配置时默认走同源相对 /api。
  */
 function getBaseUrl() {
   if (Object.prototype.hasOwnProperty.call(import.meta.env, "VITE_API_BASE_URL")) {
