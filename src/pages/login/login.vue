@@ -168,6 +168,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 import logoImage from "@/assets/images/logo.webp";
 import { login, register } from "@/services/user/user";
 import type { LoginResult } from "@/services/user/user";
+import { MENU_COLLAPSED_KEY, OPENED_TABS_KEY } from "@/utils/appShellStorage";
 import { TOKEN_KEY, TOKEN_PREFIX_KEY } from "@/utils/request";
 import type { RequestError } from "@/utils/request";
 
@@ -452,7 +453,8 @@ async function handleLogin() {
     showToast("登录成功", "success");
     // 确保登录后侧边栏为展开状态
     try {
-      uni.setStorageSync("sideMenuCollapsed", false);
+      uni.setStorageSync(MENU_COLLAPSED_KEY, false);
+      uni.removeStorageSync(OPENED_TABS_KEY);
     } catch (e) {
       // ignore
     }
