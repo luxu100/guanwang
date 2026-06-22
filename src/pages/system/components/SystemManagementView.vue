@@ -1,7 +1,5 @@
 <template>
   <view class="system-view">
-    <AdminMetricRow :items="metricCards" />
-
     <view class="workspace" :class="`workspace--${mode}`">
       <view class="side-panel">
         <view class="panel-head">
@@ -133,7 +131,7 @@
           <view class="detail-panel">
             <view class="detail-head">
               <text>{{ isCreating ? "新增用户" : "用户详细信息配置" }}</text>
-              <text class="detail-head__sub">基础信息、角色分配、报警通知和站点绑定状态</text>
+              <text class="detail-head__sub">基础信息、角色分配和报警通知配置</text>
             </view>
             <view class="form-grid form-grid--user">
               <view class="form-field">
@@ -186,22 +184,6 @@
                   </view>
                 </view>
               </view>
-              <view class="form-field">
-                <text class="form-label">站点绑定范围</text>
-                <picker disabled :range="scopeOptions" range-key="label" @change="handleScopeChange">
-                  <view class="form-select form-select--disabled">站点绑定接口待接入</view>
-                </picker>
-              </view>
-              <view class="form-field">
-                <text class="form-label">绑定说明</text>
-                <input v-model="userForm.location" class="form-input" disabled placeholder="后端提供用户-站点绑定接口后启用" placeholder-class="input-placeholder" />
-              </view>
-              <view class="form-field form-field--wide">
-                <view class="binding-notice">
-                  <text class="binding-notice__title">用户-站点绑定暂未接入后端</text>
-                  <text class="binding-notice__text">当前真实保存的是用户基础信息、用户角色，以及角色对应的菜单权限；站点范围不会写入后端，避免产生前端假绑定。</text>
-                </view>
-              </view>
             </view>
             <view class="form-actions">
               <button class="toolbar-button" hover-class="toolbar-button--hover" @click="cancelEdit">取消</button>
@@ -234,6 +216,22 @@
               <view class="form-field">
                 <text class="form-label">说明</text>
                 <input v-model="roleForm.description" class="form-input" placeholder="角色说明" placeholder-class="input-placeholder" />
+              </view>
+              <view class="form-field form-field--wide">
+                <text class="form-label">绑定分区（部门接口）</text>
+                <view class="check-grid check-grid--partition">
+                  <view
+                    v-for="item in partitionOptions"
+                    :key="getId(item)"
+                    class="check-item"
+                    :class="{ 'check-item--checked': selectedPartitionIds.includes(getId(item)) }"
+                    @click="togglePartition(getId(item))"
+                  >
+                    <text class="check-box"></text>
+                    <text>{{ getPartitionName(item) }}</text>
+                  </view>
+                  <text v-if="!partitionOptions.length" class="empty-inline">暂无分区数据</text>
+                </view>
               </view>
             </view>
             <view class="form-actions">
@@ -420,11 +418,11 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
-import AdminMetricRow from "@/components/admin/AdminMetricRow.vue";
 import { assignUserRoles, createUser, deleteUser, getUserPage, updateUser } from "@/services/system/user";
 import { assignRolePermissions, createRole, deleteRole, getPermissionTree, getRoleList, getRolePage, updateRole } from "@/services/system/auth";
 import { createMenu, deleteMenu, getMenuPage, getMenuTree, updateMenu } from "@/services/system/menu";
 import { createDictItem, createDictType, deleteDictItem, deleteDictType, getDictItemPage, getDictTypePage, updateDictItem, updateDictType } from "@/services/system/dict";
+import { getDeptList } from "@/services/station/station";
 import {
   type ApiResponseLike,
   type RecordLike,
@@ -453,7 +451,7 @@ const LOCAL_MENU_ID_PREFIX = "local-menu:";
 const defaultMenuTree: RecordLike[] = [
   { id: `${LOCAL_MENU_ID_PREFIX}favorite`, permissionName: "我的收藏", permissionCode: "page:favorite", path: "/pages/index/index", permissionType: 1, status: 1 },
   { id: `${LOCAL_MENU_ID_PREFIX}leak-monitor`, permissionName: "渗漏监测", permissionCode: "page:leak-monitor", path: "/pages/leak-monitor/leak-monitor", permissionType: 1, status: 1 },
-  { id: `${LOCAL_MENU_ID_PREFIX}station`, permissionName: "站点管理", permissionCode: "page:station", path: "/pages/station/station", permissionType: 1, status: 1 },
+  { id: `${LOCAL_MENU_ID_PREFIX}partition`, permissionName: "分区管理", permissionCode: "page:partition", path: "/pages/station/station", permissionType: 1, status: 1 },
   {
     id: `${LOCAL_MENU_ID_PREFIX}device`,
     permissionName: "设备管理",
@@ -514,12 +512,6 @@ const permissionTypeOptions: Array<SelectOption<number>> = [
   { label: "菜单", value: 1 },
   { label: "按钮", value: 2 },
 ];
-const scopeOptions: Array<SelectOption<string>> = [
-  { label: "所有站点", value: "all" },
-  { label: "杭州瑞利超声科技有限公司（全域）", value: "company" },
-  { label: "双浦镇管网片区", value: "shuangpu" },
-  { label: "自定义绑定多个站点", value: "custom" },
-];
 const alarmOptions = [
   { label: "开启实时报警接收", value: "enabled" },
   { label: "Web端系统弹窗", value: "web" },
@@ -528,10 +520,15 @@ const alarmOptions = [
 ];
 
 const orgOptions = computed(() => [
-  { label: "全部组织", value: "all", count: users.value.length },
-  { label: "杭州瑞利超声科技有限公司", value: "company", count: users.value.length },
-  { label: "双浦镇管网片区", value: "shuangpu", count: users.value.filter((item) => getText(item, ["realName", "username"], "").includes("巡")).length },
-  { label: "数据分析组", value: "analysis", count: users.value.filter((item) => getText(item, ["realName", "username"], "").includes("分析")).length },
+  { label: "全部分区", value: "all", count: users.value.length },
+  ...partitionOptions.value.map((item) => {
+    const id = String(getId(item));
+    return {
+      label: getPartitionName(item),
+      value: id,
+      count: users.value.filter((user) => userMatchesPartition(user, id, getPartitionName(item))).length,
+    };
+  }),
 ]);
 
 const filters = reactive({
@@ -589,6 +586,7 @@ const permissions = ref<RecordLike[]>([]);
 const menus = ref<RecordLike[]>([]);
 const dictTypes = ref<RecordLike[]>([]);
 const dictItems = ref<RecordLike[]>([]);
+const partitionOptions = ref<RecordLike[]>([]);
 const selectedUser = ref<RecordLike | null>(null);
 const selectedRole = ref<RecordLike | null>(null);
 const selectedMenu = ref<RecordLike | null>(null);
@@ -596,6 +594,7 @@ const selectedDictType = ref<RecordLike | null>(null);
 const selectedDictItem = ref<RecordLike | null>(null);
 const selectedRoleIds = ref<Array<string | number>>([]);
 const selectedPermissionIds = ref<Array<string | number>>([]);
+const selectedPartitionIds = ref<Array<string | number>>([]);
 const selectedAlarmOptions = ref(["enabled", "web", "app"]);
 const activeOrg = ref("all");
 const permissionSource = ref<"api" | "local">("api");
@@ -609,7 +608,7 @@ const dictCreateTarget = ref<"type" | "item">("item");
 const mode = computed(() => props.mode);
 const sideTitle = computed(() => {
   const map: Record<AdminMode, string> = {
-    user: "组织结构",
+    user: "分区结构",
     auth: "角色列表",
     menu: "菜单资源",
     dict: "字典分类",
@@ -673,7 +672,7 @@ const metricCards = computed(() => {
       { label: "用户总数", value: String(total.value || users.value.length) },
       { label: "启用账号", value: String(users.value.filter((item) => Number(getValue(item, ["status"]) ?? 1) === 1).length) },
       { label: "角色数量", value: String(roles.value.length) },
-      { label: "当前组织", value: orgOptions.value.find((item) => item.value === activeOrg.value)?.label || "全部组织" },
+      { label: "当前分区", value: orgOptions.value.find((item) => item.value === activeOrg.value)?.label || "全部分区" },
     ];
   }
 
@@ -682,7 +681,7 @@ const metricCards = computed(() => {
       { label: "角色数量", value: String(total.value || roles.value.length) },
       { label: "权限节点", value: String(permissions.value.length) },
       { label: "已选权限", value: String(selectedPermissionIds.value.length) },
-      { label: "当前角色", value: selectedRole.value ? getRoleName(selectedRole.value) : "未选择" },
+      { label: "绑定分区", value: String(selectedPartitionIds.value.length) },
     ];
   }
 
@@ -735,10 +734,6 @@ function handleMenuParentChange(event: { detail: { value: number } }) {
   menuForm.parentId = menuParentOptions.value[event.detail.value]?.value || "0";
 }
 
-function handleScopeChange(event: { detail: { value: number } }) {
-  userForm.scope = scopeOptions[event.detail.value]?.value ?? "all";
-}
-
 function selectOrg(value: string) {
   activeOrg.value = value;
   pagination.pageNum = 1;
@@ -758,12 +753,12 @@ function resetFilters() {
 
 async function refreshCurrent() {
   if (props.mode === "user") {
-    await Promise.all([loadUsers(), loadRoles()]);
+    await Promise.all([loadUsers(), loadRoles(), loadPartitions()]);
     return;
   }
 
   if (props.mode === "auth") {
-    await Promise.all([loadRolesPage(), loadPermissions()]);
+    await Promise.all([loadRolesPage(), loadPermissions(), loadPartitions()]);
     return;
   }
 
@@ -786,6 +781,7 @@ async function loadUsers() {
       realName: keyword || undefined,
       phone: keyword || undefined,
       status: filters.status === "" ? undefined : filters.status,
+      deptId: activeOrg.value === "all" ? undefined : activeOrg.value,
     })) as ApiResponseLike;
     assertSuccessResponse(response);
     const parsed = parsePageResponse(response);
@@ -809,6 +805,16 @@ async function loadRoles() {
     roles.value = parseListResponse(response);
   } catch {
     roles.value = [];
+  }
+}
+
+async function loadPartitions() {
+  try {
+    const response = await getDeptList() as ApiResponseLike;
+    assertSuccessResponse(response);
+    partitionOptions.value = parseListResponse(response);
+  } catch {
+    partitionOptions.value = [];
   }
 }
 
@@ -986,6 +992,9 @@ function selectRole(item: RecordLike | null) {
     sort: item ? getText(item, ["sort"], "0") : "0",
   });
   selectedPermissionIds.value = getArrayValue(item || {}, ["permissionIds", "permissions"]).map((value) => (isObject(value) ? getId(value) : value)).filter(isValidId);
+  selectedPartitionIds.value = getArrayValue(item || {}, ["deptIds", "departmentIds", "partitionIds", "depts", "departments", "partitions"])
+    .map((value) => (isObject(value) ? getId(value) : value))
+    .filter(isValidId);
 }
 
 function selectMenu(item: RecordLike | null) {
@@ -1120,6 +1129,7 @@ async function saveRole() {
       roleCode: roleForm.roleCode.trim(),
       description: roleForm.description.trim(),
       sort: Number(roleForm.sort) || 0,
+      deptIds: selectedPartitionIds.value,
     });
     const response = isCreating.value || !roleForm.id ? await createRole(payload) : await updateRole(roleForm.id, payload);
     assertSuccessResponse(response as ApiResponseLike);
@@ -1276,6 +1286,10 @@ function togglePermission(id: string | number) {
   toggleId(selectedPermissionIds.value, id);
 }
 
+function togglePartition(id: string | number) {
+  toggleId(selectedPartitionIds.value, id);
+}
+
 function toggleAlarm(value: string) {
   const index = selectedAlarmOptions.value.indexOf(value);
   if (index >= 0) {
@@ -1335,6 +1349,25 @@ function isLocalMenuId(value: unknown) {
 
 function getRoleName(item: RecordLike) {
   return getText(item, ["roleName", "name"], "未命名角色");
+}
+
+function getPartitionName(item: RecordLike) {
+  return getText(item, ["deptName", "departmentName", "partitionName", "name", "label"], "未命名分区");
+}
+
+function userMatchesPartition(user: RecordLike, partitionId: string, partitionName: string) {
+  const directId = getText(user, ["deptId", "departmentId", "partitionId"], "");
+  if (directId && String(directId) === partitionId) {
+    return true;
+  }
+
+  const ids = getArrayValue(user, ["deptIds", "departmentIds", "partitionIds"]).map(String);
+  if (ids.includes(partitionId)) {
+    return true;
+  }
+
+  const text = getText(user, ["deptName", "departmentName", "partitionName", "location", "address"], "");
+  return Boolean(partitionName && text.includes(partitionName));
 }
 
 function getPermissionName(item: RecordLike) {
@@ -1399,9 +1432,10 @@ function isValidId(value: unknown): value is string | number {
 
 .workspace {
   display: grid;
-  grid-template-columns: 236px minmax(0, 1fr);
+  grid-template-columns: 220px minmax(0, 1fr);
   gap: 12px;
   flex: 1;
+  min-width: 0;
   min-height: 0;
 }
 
@@ -1417,6 +1451,7 @@ function isValidId(value: unknown): value is string | number {
 .main-panel {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   min-height: 0;
   overflow: hidden;
 }
@@ -1520,6 +1555,8 @@ function isValidId(value: unknown): value is string | number {
 .toolbar {
   gap: 12px;
   flex-wrap: wrap;
+  align-items: flex-start;
+  padding: 8px 12px;
 }
 
 .toolbar__filters,
@@ -1528,12 +1565,23 @@ function isValidId(value: unknown): value is string | number {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  min-width: 0;
+}
+
+.toolbar__filters {
+  flex: 1 1 360px;
+}
+
+.toolbar__actions {
+  justify-content: flex-end;
+  flex: 0 1 auto;
 }
 
 .filter-field {
   display: flex;
   align-items: center;
   gap: 7px;
+  min-width: 0;
 }
 
 .filter-field--small .filter-select {
@@ -1565,6 +1613,8 @@ function isValidId(value: unknown): value is string | number {
 .form-select {
   box-sizing: border-box;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   height: 34px;
   padding: 0 10px;
   color: #172033;
@@ -1576,7 +1626,7 @@ function isValidId(value: unknown): value is string | number {
 }
 
 .filter-input {
-  width: 210px;
+  width: clamp(150px, 18vw, 220px);
 }
 
 .form-select--disabled,
@@ -1606,6 +1656,7 @@ function isValidId(value: unknown): value is string | number {
   color: #64758b;
   font-size: 12px;
   line-height: 1.6;
+  word-break: break-word;
 }
 
 .input-placeholder {
@@ -1686,9 +1737,13 @@ function isValidId(value: unknown): value is string | number {
 
 .content-layout {
   display: grid;
-  grid-template-columns: minmax(360px, 0.72fr) minmax(420px, 1fr);
+  grid-template-columns: minmax(320px, 0.7fr) minmax(360px, 1fr);
   gap: 12px;
   flex: 1;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   min-height: 0;
   padding: 12px;
 }
@@ -1696,7 +1751,7 @@ function isValidId(value: unknown): value is string | number {
 .content-layout--vertical,
 .content-layout--dict {
   grid-template-columns: 1fr;
-  grid-template-rows: minmax(240px, 1fr) auto;
+  grid-template-rows: minmax(190px, 0.9fr) minmax(220px, 1.1fr);
 }
 
 .table-panel,
@@ -1704,6 +1759,7 @@ function isValidId(value: unknown): value is string | number {
 .permission-panel {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   min-height: 0;
   overflow: hidden;
 }
@@ -1779,6 +1835,13 @@ function isValidId(value: unknown): value is string | number {
   border-right: 1px solid #edf1f5;
 }
 
+.data-cell > text:not(.status-pill) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .table-state,
 .empty-tip {
   padding: 26px 12px;
@@ -1818,15 +1881,31 @@ function isValidId(value: unknown): value is string | number {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px 16px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   padding: 14px;
+  overflow: auto;
+}
+
+.detail-panel > .form-grid,
+.permission-tree {
+  flex: 1;
+  min-height: 0;
 }
 
 .form-grid--user {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  align-content: start;
 }
 
 .form-field {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
+  overflow: hidden;
 }
 
 .form-field--wide {
@@ -1837,20 +1916,46 @@ function isValidId(value: unknown): value is string | number {
   display: flex;
   flex-wrap: wrap;
   gap: 8px 12px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   padding: 10px;
+  overflow: hidden;
   background: #f8fbfe;
   border: 1px solid #d8e6f2;
   border-radius: 4px;
+}
+
+.check-grid--partition {
+  max-height: 118px;
+  overflow-y: auto;
 }
 
 .check-item,
 .permission-node {
   display: flex;
   align-items: center;
+  flex: 0 1 auto;
   gap: 7px;
+  max-width: 100%;
+  min-width: 0;
   color: #34495e;
   font-size: 14px;
   cursor: pointer;
+}
+
+.empty-inline {
+  color: #8a9aab;
+  font-size: 13px;
+}
+
+.check-item text:last-child,
+.permission-node text:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .check-item--checked {
@@ -1889,6 +1994,7 @@ function isValidId(value: unknown): value is string | number {
 .form-actions {
   display: flex;
   justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 10px;
   padding: 12px 14px;
   border-top: 1px solid #edf3f8;
@@ -1919,6 +2025,25 @@ function isValidId(value: unknown): value is string | number {
   margin-left: auto;
   color: #8a9aab;
   font-size: 12px;
+}
+
+@media (max-width: 1360px) {
+  .workspace {
+    grid-template-columns: 200px minmax(0, 1fr);
+  }
+
+  .content-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .content-layout--vertical,
+  .content-layout--dict {
+    grid-template-rows: minmax(180px, 0.85fr) minmax(220px, 1fr);
+  }
+
+  .form-grid--user {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 1100px) {

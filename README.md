@@ -2,7 +2,7 @@
 
 城市管网渗漏预警平台前端工程，基于 `uni-app`、`Vue 3`、`TypeScript` 和 `Vite 5` 构建。项目当前以 H5 后台管理端为主，同时保留微信、支付宝、百度、QQ、头条、小红书等多端小程序构建脚本，方便后续按终端形态扩展。
 
-系统围绕城市管网渗漏业务展开，覆盖渗漏监测、站点管理、设备管理、数据分析、疑漏点上报、统计分析、工单管理、实时报警、统计报表、系统设置、数据接收和解析等模块。登录后统一进入后台应用外壳，默认展示“渗漏监测”页面。
+系统围绕城市管网渗漏业务展开，覆盖渗漏监测、分区管理、设备管理、数据分析、疑漏点上报、统计分析、工单管理、实时报警、统计报表、系统设置、数据接收和解析等模块。登录后统一进入后台应用外壳，默认展示“渗漏监测”页面。
 
 ## 目录
 
@@ -26,7 +26,7 @@
 - 用户登录、注册、登录态保存和权限信息缓存。
 - 后台管理端通用布局，包括顶部栏、侧边菜单、页面页签、内容区和退出登录。
 - 管网渗漏地图监测入口。
-- 站点、设备、报警、工单、报表、系统配置等业务模块页面承载。
+- 分区、设备、报警、工单、报表、系统配置等业务模块页面承载。
 - 后端 API 的前端 service 封装。
 - H5 和多端小程序工程结构维护。
 
@@ -193,7 +193,7 @@ VITE_API_BASE_URL=http://example.com npm run dev:h5
 | `login` | 登录注册 | 登录、注册、记住账号、登录态保存 |
 | `index` | 首页入口 | 我的收藏或后台首页入口 |
 | `leak-monitor` | 渗漏监测 | 地图监测页面和腾讯地图组件 |
-| `station` | 站点管理 | 站点、分区、部门等基础资源 |
+| `station` | 分区管理 | 管网分区、部门等基础资源 |
 | `device` | 设备管理 | 设备信息、拆装维护、设备状态 |
 | `data-analysis` | 数据分析 | 系统总览、音频、设备参数、渗漏数据 |
 | `leak-report` | 疑漏点上报 | 疑点、漏点、处理、分析和历史 |
@@ -211,7 +211,7 @@ VITE_API_BASE_URL=http://example.com npm run dev:h5
 | `shared` | 通用请求能力 | GET、POST、PUT、DELETE 和 CRUD 工厂 |
 | `user` | 用户服务 | 登录、注册、用户 CRUD、角色分配、密码更新 |
 | `leak-monitor` | 渗漏监测 | 地图相关设备、管网、漏点、音频、算法结果 |
-| `station` | 站点管理 | 站点、管网分区、部门 |
+| `station` | 分区管理 | 管网分区、部门 |
 | `device` | 设备管理 | 设备、产品、协议、维护、状态 |
 | `data-analysis` | 数据分析 | 总览、音频、设备参数、渗漏数据 |
 | `leak-report` | 疑漏点上报 | 疑点、漏点、分析、历史、处理动作 |
@@ -238,7 +238,7 @@ VITE_API_BASE_URL=http://example.com npm run dev:h5
 | 登录 / 注册 | `/pages/login/login` | `src/pages/login/login.vue` | 用户登录、注册、表单校验、记住账号、登录态保存 |
 | 管网首页 / 我的收藏 | `/pages/index/index` | `src/pages/index/index.vue` | 首页入口，当前可作为收藏和常用功能承载页 |
 | 渗漏监测 | `/pages/leak-monitor/leak-monitor` | `src/pages/leak-monitor/leak-monitor.vue` | 登录后的默认页面，承载腾讯地图监测组件 |
-| 站点管理 | `/pages/station/station` | `src/pages/station/station.vue` | 站点、分区、部门等基础资源管理 |
+| 分区管理 | `/pages/station/station` | `src/pages/station/station.vue` | 管网分区、部门等基础资源管理 |
 | 统计分析 | `/pages/statistics/statistics` | `src/pages/statistics/statistics.vue` | 平台级数据统计页面 |
 
 ### 渗漏监测
@@ -312,7 +312,7 @@ VITE_API_BASE_URL=http://example.com npm run dev:h5
 
 | 页面 | 路由 | 文件 | 说明 |
 | --- | --- | --- | --- |
-| 协议管理 | `/pages/data-receive/access/access` | `src/pages/data-receive/access/access.vue` | 协议定义、设备协议绑定 |
+| 协议管理 | `/pages/data-receive/access/access` | `src/pages/data-receive/access/access.vue` | 协议定义、设备协议绑定、JSON 文件导入协议内容 |
 | 数据解析 | `/pages/data-receive/parse/parse` | `src/pages/data-receive/parse/parse.vue` | 协议字段、解析记录、字段批量保存 |
 | 数据记录 | `/pages/data-receive/record/record` | `src/pages/data-receive/record/record.vue` | 采样记录、明细、日报、压力、CSS 采样数据 |
 
@@ -349,7 +349,7 @@ VITE_API_BASE_URL=http://example.com npm run dev:h5
 | 用户服务 | `services/user/user.js` | `/api/user/login`、`/api/user/register`、`/api/user` | 登录、注册、用户 CRUD、批删、角色分配、密码更新 |
 | 系统用户 | `services/system/user.js` | 复用 `services/user/user.js` | 系统设置里的用户配置能力 |
 | 渗漏监测 | `services/leak-monitor/leak-monitor.js` | `/api/device`、`/api/tube-network`、`/api/leakage-record`、`/api/sampling-audio`、`/api/sampling-detail`、`/api/algorithm-result` | 地图设备、管网、渗漏记录、音频、采样明细、算法结果 |
-| 站点管理 | `services/station/station.js` | `/api/tube-network`、`/api/dept` | 分区、管网、部门接口；`jiekou` 暂未提供独立站点接口 |
+| 分区管理 | `services/station/station.js` | `/api/tube-network`、`/api/dept` | 分区、管网、部门接口；当前分区候选复用部门接口 |
 | 设备信息 | `services/device/info.js` | `/api/device`、`/api/device-product`、`/api/device-protocol-relation` | 设备、产品、协议绑定、按设备/协议查询 |
 | 拆装维护 | `services/device/maintenance.js` | `/api/maintenance-record` | 维护记录 CRUD |
 | 设备状态 | `services/device/status.js` | `/api/device`、`/api/device-status-upload`、`/api/device-daily-data` | 设备状态、状态上报、设备日数据 |
@@ -375,7 +375,7 @@ VITE_API_BASE_URL=http://example.com npm run dev:h5
 | 权限管理 | `services/system/auth.js` | `/api/role`、`/api/permission`、`/api/permission/tree`、`/api/role/:id/permissions` | 角色、权限、权限树、角色授权 |
 | 菜单管理 | `services/system/menu.js` | `/api/permission`、`/api/permission/tree` | 菜单和权限树 |
 | 数据字典 | `services/system/dict.js` | `/api/dict-type`、`/api/dict-item` | 字典类型和字典项 |
-| 数据接入 | `services/data-receive/access.js` | `/api/protocol-definition`、`/api/device-protocol-relation`、`/by-device`、`/by-protocol` | 协议定义、设备协议关系 |
+| 数据接入 | `services/data-receive/access.js` | `/api/protocol-definition`、`/api/device-protocol-relation`、`/by-device`、`/by-protocol` | 协议定义、设备协议关系；协议 JSON 导入复用协议定义新增接口提交到后端 |
 | 数据解析 | `services/data-receive/parse.js` | `/api/protocol-field-definition`、`/api/protocol-parse-record`、`/by-protocol`、`/batch-save` | 协议字段、解析记录、字段批量保存 |
 | 数据记录 | `services/data-receive/record.js` | `/api/sampling-record`、`/api/sampling-detail`、`/api/sampling-daily`、`/api/sampling-pressure`、`/api/sampling-css-data` | 采样记录、明细、日报、压力、CSS 数据 |
 
@@ -407,7 +407,7 @@ VITE_API_BASE_URL=http://example.com npm run dev:h5
 
 | 能力 | 说明 |
 | --- | --- |
-| 顶部栏 | 平台标题、站点搜索、预警入口、用户信息、退出登录 |
+| 顶部栏 | 平台标题、分区搜索、预警入口、用户信息、退出登录 |
 | 侧边菜单 | 支持多级菜单、折叠态、折叠浮层 |
 | 页面页签 | 打开、激活、关闭、滚动到当前页签 |
 | 默认页面 | 默认进入渗漏监测，全部页签关闭后回到渗漏监测 |

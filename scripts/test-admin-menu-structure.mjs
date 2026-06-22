@@ -4,6 +4,28 @@ import test from "node:test";
 
 const appShellSource = readFileSync(new URL("../src/components/AppShell.vue", import.meta.url), "utf8");
 const systemSource = readFileSync(new URL("../src/pages/system/components/SystemManagementView.vue", import.meta.url), "utf8");
+const pagesJsonSource = readFileSync(new URL("../src/pages.json", import.meta.url), "utf8");
+
+test("partition management replaces station management in visible menu labels", () => {
+  assert.match(appShellSource, /label: "分区管理"/);
+  assert.match(appShellSource, /placeholder="分区搜索"/);
+  assert.match(pagesJsonSource, /"navigationBarTitleText": "分区管理"/);
+  assert.doesNotMatch(appShellSource, /label: "站点管理"/);
+});
+
+test("default permission resources include partition management", () => {
+  assert.match(systemSource, /permissionName: "分区管理"/);
+  assert.match(systemSource, /permissionCode: "page:partition"/);
+  assert.doesNotMatch(systemSource, /permissionName: "站点管理"/);
+});
+
+test("system settings binds roles to partitions from department service", () => {
+  assert.match(systemSource, /import \{ getDeptList \} from "@\/services\/station\/station"/);
+  assert.match(systemSource, /绑定分区（部门接口）/);
+  assert.match(systemSource, /function loadPartitions/);
+  assert.match(systemSource, /deptIds: selectedPartitionIds\.value/);
+  assert.doesNotMatch(systemSource, /站点绑定范围|用户-站点绑定/);
+});
 
 test("protocol management is a child of the data receiving menu in AppShell", () => {
   const dataReceiveIndex = appShellSource.indexOf('label: "数据接收和解析"');

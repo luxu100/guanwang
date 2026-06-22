@@ -25,7 +25,7 @@
           v-model="searchKeyword"
           class="site-search__input"
           confirm-type="search"
-          placeholder="站点搜索"
+          placeholder="分区搜索"
           placeholder-class="site-search__placeholder"
           @focus="isSearchFocused = true"
           @blur="isSearchFocused = false"
@@ -227,7 +227,7 @@ const DEFAULT_PAGE_PATH = LEAK_MONITOR_PATH;
 const menuItems: MenuItem[] = [
   { label: "我的收藏", path: "/pages/index/index", icon: "star", keywords: ["首页", "收藏"] },
   { label: "渗漏监测", path: "/pages/leak-monitor/leak-monitor", icon: "monitor", keywords: ["渗漏", "监测"] },
-  { label: "站点管理", path: "/pages/station/station", icon: "station", keywords: ["站点", "管理"] },
+  { label: "分区管理", path: "/pages/station/station", icon: "station", keywords: ["分区", "部门", "管理"] },
   {
     label: "设备管理",
     path: "/pages/device/info/info",

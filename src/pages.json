@@ -24,7 +24,7 @@
     {
       "path": "pages/station/station",
       "style": {
-        "navigationBarTitleText": "站点管理",
+        "navigationBarTitleText": "分区管理",
         "navigationStyle": "custom"
       }
     },
