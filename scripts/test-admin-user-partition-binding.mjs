@@ -41,9 +41,9 @@ test("new user password field has a stable visibility toggle", () => {
   assert.match(source, /:password="!showUserPassword"/);
 });
 
-test("selecting an existing user fetches roles from the user roles endpoint", () => {
-  assert.match(source, /getUserRoles/);
-  assert.match(source, /loadSelectedUserRoles/);
-  assert.match(source, /getUserRoles\(userId\)/);
-  assert.match(source, /selectedRoleIds\.value = parseUserRoleIdsResponse\(response\)/);
+test("user role assignment uses role list ids without fetching user roles", () => {
+  assert.doesNotMatch(source, /getUserRoles/);
+  assert.doesNotMatch(source, /loadSelectedUserRoles/);
+  assert.match(source, /selectedRoleIds\.value = \[\]/);
+  assert.match(source, /assignUserRoles\(roleAssignment\.userId, roleAssignment\.roleIds\)/);
 });

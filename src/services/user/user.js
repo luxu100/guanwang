@@ -87,13 +87,6 @@ export function assignUserRoles(id, data) {
   });
 }
 
-export function getUserRoles(id) {
-  return request({
-    url: `/api/user/${id}/roles`,
-    method: "get",
-  });
-}
-
 export function updateUserPassword(id, data) {
   return request({
     url: `/api/user/${id}/password`,
@@ -113,6 +106,5 @@ export default {
   deleteUser,
   batchDeleteUser,
   assignUserRoles,
-  getUserRoles,
   updateUserPassword,
 };

@@ -480,7 +480,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
-import { assignUserRoles, deleteUser, getUserPage, getUserRoles, register, updateUser, type RegisterParams } from "@/services/system/user";
+import { assignUserRoles, deleteUser, getUserPage, register, updateUser, type RegisterParams } from "@/services/system/user";
 import { assignRolePermissions, createRole, deleteRole, getPermissionTree, getRoleList, getRolePage, updateRole } from "@/services/system/auth";
 import { createMenu, deleteMenu, getMenuPage, getMenuTree, updateMenu } from "@/services/system/menu";
 import { createDictItem, createDictType, deleteDictItem, deleteDictType, getDictItemPage, getDictTypePage, updateDictItem, updateDictType } from "@/services/system/dict";
@@ -1055,10 +1055,7 @@ function selectUser(item: RecordLike | null) {
     scope: "company",
     location: item ? getText(item, ["location", "address"], "") : "",
   });
-  selectedRoleIds.value = getArrayValue(item || {}, ["roleIds", "roles"]).map((value) => (isObject(value) ? getId(value) : value)).filter(isValidId);
-  if (item && userForm.id) {
-    void loadSelectedUserRoles(userForm.id);
-  }
+  selectedRoleIds.value = [];
   selectedUserPartitionIds.value = getArrayValue(item || {}, ["deptIds", "departmentIds", "partitionIds", "depts", "departments", "partitions"])
     .map((value) => (isObject(value) ? getId(value) : value))
     .filter(isValidId);
@@ -1068,30 +1065,6 @@ function selectUser(item: RecordLike | null) {
 
 function toggleUserPasswordVisibility() {
   showUserPassword.value = !showUserPassword.value;
-}
-
-async function loadSelectedUserRoles(userId: string | number) {
-  try {
-    const response = (await getUserRoles(userId)) as ApiResponseLike;
-    assertSuccessResponse(response);
-    if (userForm.id !== String(userId)) {
-      return;
-    }
-    selectedRoleIds.value = parseUserRoleIdsResponse(response);
-  } catch (error) {
-    toastError(error, "用户角色加载失败");
-  }
-}
-
-function parseUserRoleIdsResponse(response: ApiResponseLike) {
-  const data = response?.data;
-  const values = Array.isArray(data)
-    ? data
-    : isObject(data)
-      ? getFirstArray(data, ["roleIds", "roles", "records", "list"])
-      : [];
-
-  return values.map((value) => (isObject(value) ? getId(value) : value)).filter(isValidId);
 }
 
 function selectRole(item: RecordLike | null) {
