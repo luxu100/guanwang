@@ -189,6 +189,7 @@ import SystemManagementView from "@/pages/system/components/SystemManagementView
 import DataReceiveView from "@/pages/data-receive/components/DataReceiveView.vue";
 import WorkOrderCreateView from "@/pages/work-order/components/WorkOrderCreateView.vue";
 import WorksheetTableView from "@/pages/work-order/components/WorksheetTableView.vue";
+import { MENU_COLLAPSED_KEY, OPENED_TABS_KEY } from "@/utils/appShellStorage";
 import { clearAuthStorage, createProtectedRouteDecision, LOGIN_PATH } from "@/utils/authGuard";
 import { filterMenuItemsByAccess, flattenMenuPaths, getFirstAccessiblePath } from "@/utils/menuAccess";
 import { TOKEN_KEY } from "@/utils/request";
@@ -213,8 +214,6 @@ interface ShellContentDefinition {
   props?: Record<string, unknown>;
 }
 
-const MENU_COLLAPSED_KEY = "sideMenuCollapsed";
-const OPENED_TABS_KEY = "appShellOpenedTabs";
 const LEAK_MONITOR_PATH = "/pages/leak-monitor/leak-monitor";
 const DEFAULT_PAGE_PATH = LEAK_MONITOR_PATH;
 
