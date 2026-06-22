@@ -20,7 +20,7 @@ test("default permission resources include partition management", () => {
 });
 
 test("system settings binds roles to partitions from department service", () => {
-  assert.match(systemSource, /import \{ getDeptList \} from "@\/services\/station\/station"/);
+  assert.match(systemSource, /import \{ getDeptList \} from "@\/services\/partition\/partition"/);
   assert.match(systemSource, /绑定分区（部门接口）/);
   assert.match(systemSource, /function loadPartitions/);
   assert.match(systemSource, /deptIds: selectedPartitionIds\.value/);

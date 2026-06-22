@@ -349,7 +349,7 @@ VITE_DEV_PROXY_TARGET=http://127.0.0.1:28082 npm run dev:h5
 | 用户服务 | `services/user/user.js` | `/api/user/login`、`/api/user/register`、`/api/user` | 登录、注册、用户 CRUD、批删、角色分配、密码更新 |
 | 系统用户 | `services/system/user.js` | 复用 `services/user/user.js` | 系统设置里的用户配置能力 |
 | 渗漏监测 | `services/leak-monitor/leak-monitor.js` | `/api/device`、`/api/tube-network`、`/api/leakage-record`、`/api/sampling-audio`、`/api/sampling-detail`、`/api/algorithm-result` | 地图设备、管网、渗漏记录、音频、采样明细、算法结果 |
-| 分区管理 | `services/partition/partition.js` | `/api/tube-network`、`/api/dept` | 分区、管网、部门接口；当前分区候选复用部门接口 |
+| 分区管理 | `services/partition/partition.js` | `/api/dept`、`/api/device`、`/api/tube-network` | 分区语义统一对应部门接口；分区下设备通过设备分页的 `deptId` 查询；管网接口使用 `getTubeNetwork*` 显式命名 |
 | 设备信息 | `services/device/info.js` | `/api/device`、`/api/device-product`、`/api/device-protocol-relation` | 设备、产品、协议绑定、按设备/协议查询 |
 | 拆装维护 | `services/device/maintenance.js` | `/api/maintenance-record` | 维护记录 CRUD |
 | 设备状态 | `services/device/status.js` | `/api/device`、`/api/device-status-upload`、`/api/device-daily-data` | 设备状态、状态上报、设备日数据 |

@@ -67,6 +67,7 @@ export function getProtocolFieldDetail(id: ServiceId): Promise<ApiResponse<Proto
 export function createProtocolField(data: ProtocolFieldDefinition): Promise<ApiResponse<ProtocolFieldDefinition>>;
 export function updateProtocolField(id: ServiceId, data: ProtocolFieldDefinition): Promise<ApiResponse<boolean>>;
 export function deleteProtocolField(id: ServiceId, isForce?: boolean): Promise<ApiResponse<boolean>>;
+export function batchSaveProtocolFields(data: ProtocolFieldDefinition[]): Promise<ApiResponse<boolean>>;
 export function getProtocolParseRecordPage(data: ProtocolParseRecordQuery): Promise<ApiResponse<PageResult<ProtocolParseRecord>>>;
 export function getFieldsByProtocol(protocolId: ServiceId, params?: ServiceQuery): Promise<ApiResponse<ProtocolFieldDefinition[]>>;
 
@@ -76,6 +77,7 @@ declare const service: {
   createProtocolField: typeof createProtocolField;
   updateProtocolField: typeof updateProtocolField;
   deleteProtocolField: typeof deleteProtocolField;
+  batchSaveProtocolFields: typeof batchSaveProtocolFields;
   getProtocolParseRecordPage: typeof getProtocolParseRecordPage;
   getFieldsByProtocol: typeof getFieldsByProtocol;
 };
