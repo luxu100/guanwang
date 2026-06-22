@@ -11,6 +11,8 @@ export {
   getUserDetail,
   getUserList,
   getUserPage,
+  getUserRoles,
+  register,
   updateUser,
   updateUserPassword,
 } from "@/services/user/user";

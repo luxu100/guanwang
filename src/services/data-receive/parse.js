@@ -3,7 +3,7 @@
  *
  * 页面层应优先调用这里导出的语义化函数，避免在 .vue 文件中直接拼接接口地址。
  */
-import { createCrudService, getRequest, postRequest } from "@/services/shared/crud";
+import { createCrudService, getRequest } from "@/services/shared/crud";
 
 const protocolFieldDefinitionApi = createCrudService("/api/protocol-field-definition");
 const protocolParseRecordApi = createCrudService("/api/protocol-parse-record");
@@ -20,10 +20,6 @@ export function getFieldsByProtocol(protocolId, params) {
   return getRequest(`/api/protocol-field-definition/by-protocol/${protocolId}`, params);
 }
 
-export function batchSaveProtocolFields(data) {
-  return postRequest("/api/protocol-field-definition/batch-save", data);
-}
-
 export default {
   getProtocolFieldPage,
   getProtocolFieldDetail,
@@ -32,5 +28,4 @@ export default {
   deleteProtocolField,
   getProtocolParseRecordPage,
   getFieldsByProtocol,
-  batchSaveProtocolFields,
 };

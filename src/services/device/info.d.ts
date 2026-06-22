@@ -13,7 +13,7 @@ export function getDeviceList(params?: ServiceQuery): Promise<ApiResponse>;
 export function getDeviceDetail(id: ServiceId): Promise<ApiResponse>;
 export function createDevice(data: ServicePayload): Promise<ApiResponse>;
 export function updateDevice(id: ServiceId, data: ServicePayload): Promise<ApiResponse>;
-export function deleteDevice(id: ServiceId): Promise<ApiResponse>;
+export function deleteDevice(id: ServiceId, isForce?: boolean): Promise<ApiResponse>;
 export function batchDeleteDevice(data: ServicePayload): Promise<ApiResponse>;
 
 export function getDeviceProductPage(data: ServiceQuery): Promise<ApiResponse>;
@@ -21,7 +21,7 @@ export function getDeviceProductList(params?: ServiceQuery): Promise<ApiResponse
 export function getDeviceProductDetail(id: ServiceId): Promise<ApiResponse>;
 export function createDeviceProduct(data: ServicePayload): Promise<ApiResponse>;
 export function updateDeviceProduct(id: ServiceId, data: ServicePayload): Promise<ApiResponse>;
-export function deleteDeviceProduct(id: ServiceId): Promise<ApiResponse>;
+export function deleteDeviceProduct(id: ServiceId, isForce?: boolean): Promise<ApiResponse>;
 export function batchDeleteDeviceProduct(data: ServicePayload): Promise<ApiResponse>;
 
 export function getDeviceProtocolPage(data: ServiceQuery): Promise<ApiResponse>;

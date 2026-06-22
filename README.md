@@ -126,16 +126,16 @@ H5 开发服务默认从 `5173` 开始分配端口，若端口被占用会自动
 
 | 配置 | 说明 |
 | --- | --- |
-| 默认后端地址 | `http://47.118.24.91:28082` |
-| 环境变量 | `VITE_API_BASE_URL` |
-| 开发代理 | `vite.config.ts` 中 `/api` 代理到默认后端 |
+| 默认后端地址 | 同源相对 `/api` |
+| 环境变量 | `VITE_API_BASE_URL`、`VITE_DEV_PROXY_TARGET` |
+| 开发代理 | `vite.config.ts` 中 `/api` 默认代理到 `http://127.0.0.1:28082` |
 | 请求超时 | 默认 `15000ms` |
 | 认证头 | 自动读取本地缓存中的 `token` 和 `tokenPrefix` |
 
 示例：
 
 ```bash
-VITE_API_BASE_URL=http://example.com npm run dev:h5
+VITE_DEV_PROXY_TARGET=http://127.0.0.1:28082 npm run dev:h5
 ```
 
 登录成功后写入本地缓存：
@@ -238,7 +238,7 @@ VITE_API_BASE_URL=http://example.com npm run dev:h5
 | 登录 / 注册 | `/pages/login/login` | `src/pages/login/login.vue` | 用户登录、注册、表单校验、记住账号、登录态保存 |
 | 管网首页 / 我的收藏 | `/pages/index/index` | `src/pages/index/index.vue` | 首页入口，当前可作为收藏和常用功能承载页 |
 | 渗漏监测 | `/pages/leak-monitor/leak-monitor` | `src/pages/leak-monitor/leak-monitor.vue` | 登录后的默认页面，承载腾讯地图监测组件 |
-| 分区管理 | `/pages/station/station` | `src/pages/station/station.vue` | 管网分区、部门等基础资源管理 |
+| 分区管理 | `/pages/partition/partition` | `src/pages/partition/partition.vue` | 管网分区、部门等基础资源管理 |
 | 统计分析 | `/pages/statistics/statistics` | `src/pages/statistics/statistics.vue` | 平台级数据统计页面 |
 
 ### 渗漏监测
@@ -324,7 +324,7 @@ VITE_API_BASE_URL=http://example.com npm run dev:h5
 
 | 能力 | 说明 |
 | --- | --- |
-| 基础地址 | 优先读取 `VITE_API_BASE_URL`，否则使用默认后端地址 |
+| 基础地址 | 优先读取 `VITE_API_BASE_URL`，否则使用同源相对 `/api` |
 | URL 标准化 | 支持完整 URL，也支持 `/api/user/login` 等相对路径 |
 | 认证头 | 自动读取 `token` 和 `tokenPrefix`，拼入 `Authorization` |
 | 超时 | 默认 `15000ms` |
@@ -349,7 +349,7 @@ VITE_API_BASE_URL=http://example.com npm run dev:h5
 | 用户服务 | `services/user/user.js` | `/api/user/login`、`/api/user/register`、`/api/user` | 登录、注册、用户 CRUD、批删、角色分配、密码更新 |
 | 系统用户 | `services/system/user.js` | 复用 `services/user/user.js` | 系统设置里的用户配置能力 |
 | 渗漏监测 | `services/leak-monitor/leak-monitor.js` | `/api/device`、`/api/tube-network`、`/api/leakage-record`、`/api/sampling-audio`、`/api/sampling-detail`、`/api/algorithm-result` | 地图设备、管网、渗漏记录、音频、采样明细、算法结果 |
-| 分区管理 | `services/station/station.js` | `/api/tube-network`、`/api/dept` | 分区、管网、部门接口；当前分区候选复用部门接口 |
+| 分区管理 | `services/partition/partition.js` | `/api/tube-network`、`/api/dept` | 分区、管网、部门接口；当前分区候选复用部门接口 |
 | 设备信息 | `services/device/info.js` | `/api/device`、`/api/device-product`、`/api/device-protocol-relation` | 设备、产品、协议绑定、按设备/协议查询 |
 | 拆装维护 | `services/device/maintenance.js` | `/api/maintenance-record` | 维护记录 CRUD |
 | 设备状态 | `services/device/status.js` | `/api/device`、`/api/device-status-upload`、`/api/device-daily-data` | 设备状态、状态上报、设备日数据 |
@@ -376,7 +376,7 @@ VITE_API_BASE_URL=http://example.com npm run dev:h5
 | 菜单管理 | `services/system/menu.js` | `/api/permission`、`/api/permission/tree` | 菜单和权限树 |
 | 数据字典 | `services/system/dict.js` | `/api/dict-type`、`/api/dict-item` | 字典类型和字典项 |
 | 数据接入 | `services/data-receive/access.js` | `/api/protocol-definition`、`/api/device-protocol-relation`、`/by-device`、`/by-protocol` | 协议定义、设备协议关系；协议 JSON 导入复用协议定义新增接口提交到后端 |
-| 数据解析 | `services/data-receive/parse.js` | `/api/protocol-field-definition`、`/api/protocol-parse-record`、`/by-protocol`、`/batch-save` | 协议字段、解析记录、字段批量保存 |
+| 数据解析 | `services/data-receive/parse.js` | `/api/protocol-field-definition`、`/api/protocol-parse-record`、`/by-protocol` | 协议字段、解析记录、字段逐条保存 |
 | 数据记录 | `services/data-receive/record.js` | `/api/sampling-record`、`/api/sampling-detail`、`/api/sampling-daily`、`/api/sampling-pressure`、`/api/sampling-css-data` | 采样记录、明细、日报、压力、CSS 数据 |
 
 ## 核心实现说明
@@ -543,7 +543,7 @@ Vite 会在端口占用时自动顺延，以终端输出的 `Local` 地址为准
 
 ### 请求地址不对
 
-先检查是否设置了 `VITE_API_BASE_URL`。未设置时会使用 `src/utils/request.js` 中的默认地址。开发代理配置在 `vite.config.ts`。
+先检查是否设置了 `VITE_API_BASE_URL` 或 `VITE_DEV_PROXY_TARGET`。未设置 `VITE_API_BASE_URL` 时会使用同源相对 `/api`，开发代理配置在 `vite.config.ts`。
 
 ### 登录后没有进入渗漏监测
 

@@ -22,7 +22,7 @@
       }
     },
     {
-      "path": "pages/station/station",
+      "path": "pages/partition/partition",
       "style": {
         "navigationBarTitleText": "分区管理",
         "navigationStyle": "custom"

@@ -5,6 +5,11 @@
  */
 import request from "@/utils/request";
 
+function appendForceDeleteParam(url, isForce = true) {
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}${new URLSearchParams({ is_force: String(isForce) }).toString()}`;
+}
+
 export function login(data) {
   return request({
     url: "/api/user/login",
@@ -59,16 +64,16 @@ export function updateUser(id, data) {
   });
 }
 
-export function deleteUser(id) {
+export function deleteUser(id, isForce = true) {
   return request({
-    url: `/api/user/${id}`,
+    url: appendForceDeleteParam(`/api/user/${id}`, isForce),
     method: "delete",
   });
 }
 
-export function batchDeleteUser(data) {
+export function batchDeleteUser(data, isForce = true) {
   return request({
-    url: "/api/user/batch-delete",
+    url: appendForceDeleteParam("/api/user/batch-delete", isForce),
     method: "delete",
     data,
   });
@@ -79,6 +84,13 @@ export function assignUserRoles(id, data) {
     url: `/api/user/${id}/roles`,
     method: "post",
     data,
+  });
+}
+
+export function getUserRoles(id) {
+  return request({
+    url: `/api/user/${id}/roles`,
+    method: "get",
   });
 }
 
@@ -101,5 +113,6 @@ export default {
   deleteUser,
   batchDeleteUser,
   assignUserRoles,
+  getUserRoles,
   updateUserPassword,
 };

@@ -13,7 +13,7 @@ export function getPartitionList(params?: ServiceQuery): Promise<ApiResponse>;
 export function getPartitionDetail(id: ServiceId): Promise<ApiResponse>;
 export function createPartition(data: ServicePayload): Promise<ApiResponse>;
 export function updatePartition(id: ServiceId, data: ServicePayload): Promise<ApiResponse>;
-export function deletePartition(id: ServiceId): Promise<ApiResponse>;
+export function deletePartition(id: ServiceId, isForce?: boolean): Promise<ApiResponse>;
 export function batchDeletePartition(data: ServicePayload): Promise<ApiResponse>;
 
 export function getDeptPage(data: ServiceQuery): Promise<ApiResponse>;
@@ -21,7 +21,7 @@ export function getDeptList(params?: ServiceQuery): Promise<ApiResponse>;
 export function getDeptDetail(id: ServiceId): Promise<ApiResponse>;
 export function createDept(data: ServicePayload): Promise<ApiResponse>;
 export function updateDept(id: ServiceId, data: ServicePayload): Promise<ApiResponse>;
-export function deleteDept(id: ServiceId): Promise<ApiResponse>;
+export function deleteDept(id: ServiceId, isForce?: boolean): Promise<ApiResponse>;
 export function batchDeleteDept(data: ServicePayload): Promise<ApiResponse>;
 
 declare const service: {

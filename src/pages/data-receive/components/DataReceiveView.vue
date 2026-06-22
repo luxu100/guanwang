@@ -286,13 +286,13 @@ import {
   updateProtocolDefinition,
 } from "@/services/data-receive/access";
 import {
-  batchSaveProtocolFields,
   createProtocolField,
   deleteProtocolField,
   getFieldsByProtocol,
   getProtocolFieldDetail,
   getProtocolFieldPage,
   getProtocolParseRecordPage,
+  type ProtocolFieldDefinition,
   updateProtocolField,
 } from "@/services/data-receive/parse";
 import {
@@ -653,6 +653,7 @@ const showProtocolJsonDialog = ref(false);
 const activeFieldProtocol = ref<RecordLike | null>(null);
 const draggingFieldIndex = ref<number | null>(null);
 const dropTargetFieldIndex = ref<number | null>(null);
+const fieldRecordBaselines = ref(new Map<string, string>());
 const fieldProtocolForm = reactive({
   id: "",
   protocolCode: "",
@@ -770,8 +771,13 @@ async function fetchRecords() {
     assertSuccessResponse(response);
     const parsed = parseResponseRecords(response);
 
-    records.value = parsed.records;
+    records.value = isProtocolFieldEditor.value ? sortProtocolFieldRecords(parsed.records) : parsed.records;
     total.value = parsed.total;
+    if (isProtocolFieldEditor.value) {
+      captureFieldRecordBaselines(records.value);
+    } else {
+      fieldRecordBaselines.value = new Map();
+    }
     selectRecord(records.value[0] || null, 0);
   } catch (error) {
     records.value = [];
@@ -1027,10 +1033,9 @@ async function saveProtocolAndFields() {
 
     const payloadProtocolId = protocolPayload.id;
     const nextProtocolId = typeof payloadProtocolId === "string" || typeof payloadProtocolId === "number" ? payloadProtocolId : targetId;
-    const fieldPayload = buildFieldRecordsPayload(nextProtocolId);
+    const fieldPayload = buildChangedFieldRecordsPayload(nextProtocolId);
     if (fieldPayload.length > 0) {
-      const fieldResponse = await batchSaveProtocolFields(fieldPayload);
-      assertSuccessResponse(fieldResponse);
+      await saveProtocolFieldRecordsIndividually(fieldPayload);
     }
 
     activeFieldProtocol.value = { ...(activeFieldProtocol.value || {}), ...protocolPayload };
@@ -1074,8 +1079,13 @@ async function saveCurrentFieldList() {
   submitting.value = true;
 
   try {
-    const response = await batchSaveProtocolFields(buildFieldRecordsPayload(getActiveFieldProtocolId()));
-    assertSuccessResponse(response);
+    const payload = buildChangedFieldRecordsPayload(getActiveFieldProtocolId());
+    if (payload.length === 0) {
+      uni.showToast({ title: "暂无字段变更可保存", icon: "none" });
+      return;
+    }
+
+    await saveProtocolFieldRecordsIndividually(payload);
     uni.showToast({ title: "批量保存成功", icon: "success" });
     await fetchRecords();
   } catch (error) {
@@ -1119,7 +1129,6 @@ function addInlineFieldRecord() {
     return;
   }
 
-  const nextIndex = records.value.length + 1;
   const item: RecordLike = {
     protocolId: Number(protocolId),
     fieldName: "",
@@ -1131,11 +1140,10 @@ function addInlineFieldRecord() {
     unit: "",
     required: false,
     enabled: true,
-    sortOrder: nextIndex,
+    sortOrder: getNextFieldSortOrder(),
   };
   records.value.push(item);
   selectRecord(item, records.value.length - 1);
-  syncFieldSortOrder();
 }
 
 function deleteInlineFieldRecord(index: number) {
@@ -1195,28 +1203,110 @@ function handleFieldDragEnd() {
 
 function syncFieldSortOrder() {
   records.value.forEach((item, index) => {
-    item.sortOrder = index + 1;
+    item.sortOrder = (index + 1) * 10;
   });
 }
 
-function normalizeFieldRecordForSave(item: RecordLike, protocolId: string | number | null | undefined, index: number) {
+function getNextFieldSortOrder() {
+  const maxSortOrder = records.value.reduce((max, item) => {
+    const sortOrder = normalizeInlineNumberValue(getValue(item, ["sortOrder"]));
+    return sortOrder === undefined ? max : Math.max(max, sortOrder);
+  }, 0);
+  return maxSortOrder + 10;
+}
+
+function sortProtocolFieldRecords(items: RecordLike[]) {
+  return [...items].sort((left, right) => {
+    const leftSortOrder = normalizeInlineNumberValue(getValue(left, ["sortOrder"])) ?? Number.MAX_SAFE_INTEGER;
+    const rightSortOrder = normalizeInlineNumberValue(getValue(right, ["sortOrder"])) ?? Number.MAX_SAFE_INTEGER;
+    return leftSortOrder - rightSortOrder;
+  });
+}
+
+function normalizeInlineNumberValue(value: unknown) {
+  if (value === "" || value === undefined || value === null) {
+    return undefined;
+  }
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : undefined;
+}
+
+function normalizeFieldRecordForSave(item: RecordLike, protocolId: string | number | null | undefined) {
   const payload: RecordLike = { ...item };
   if (protocolId) {
     payload.protocolId = Number(protocolId);
   }
   for (const key of inlineNumberFieldKeys) {
-    if (payload[key] !== undefined && payload[key] !== "") {
-      payload[key] = Number(payload[key]);
-    }
+    payload[key] = normalizeInlineNumberValue(payload[key]);
   }
-  payload.sortOrder = index + 1;
+  payload.sortOrder = normalizeInlineNumberValue(getValue(item, ["sortOrder"]));
   return removeEmptyFields(payload);
 }
 
-function buildFieldRecordsPayload(protocolId: string | number | null | undefined) {
+function captureFieldRecordBaselines(items: RecordLike[]) {
+  const protocolId = getActiveFieldProtocolId();
+  fieldRecordBaselines.value = new Map(
+    items
+      .map((item) => {
+        const id = getId(item);
+        return id ? [String(id), JSON.stringify(normalizeFieldRecordForSave(item, protocolId))] : null;
+      })
+      .filter((item): item is [string, string] => Boolean(item)),
+  );
+}
+
+function buildChangedFieldRecordsPayload(protocolId: string | number | null | undefined) {
   return records.value
-    .map((item, index) => normalizeFieldRecordForSave(item, protocolId, index))
-    .filter((item) => Boolean(getValue(item, ["fieldName"]) || getValue(item, ["fieldCnName"])));
+    .map((item) => buildChangedFieldRecordPayload(item, protocolId))
+    .filter((item): item is RecordLike => Boolean(item && (getValue(item, ["fieldName"]) || getValue(item, ["fieldCnName"]) || getValue(item, ["id"]))));
+}
+
+function buildChangedFieldRecordPayload(item: RecordLike, protocolId: string | number | null | undefined) {
+  const normalized = normalizeFieldRecordForSave(item, protocolId);
+  const id = getId(item);
+  if (!id) {
+    return normalized;
+  }
+
+  const baselineText = fieldRecordBaselines.value.get(String(id));
+  if (!baselineText) {
+    return normalized;
+  }
+
+  const baseline = JSON.parse(baselineText) as RecordLike;
+  const changedKeys = Array.from(new Set([...Object.keys(normalized), ...Object.keys(baseline)]))
+    .filter((key) => JSON.stringify(normalized[key]) !== JSON.stringify(baseline[key]));
+
+  if (changedKeys.length === 0) {
+    return null;
+  }
+
+  if (changedKeys.length === 1 && changedKeys[0] === "sortOrder") {
+    return removeEmptyFields({
+      id,
+      protocolId: normalizeInlineNumberValue(getValue(normalized, ["protocolId"])),
+      afn: getValue(normalized, ["afn"]),
+      taskType: getValue(normalized, ["taskType"]),
+      fieldName: getValue(normalized, ["fieldName"]),
+      fieldCnName: getValue(normalized, ["fieldCnName"]),
+      startPosition: normalizeInlineNumberValue(getValue(normalized, ["startPosition"])),
+      fieldLength: normalizeInlineNumberValue(getValue(normalized, ["fieldLength"])),
+      format: getValue(normalized, ["format"]),
+      sortOrder: normalizeInlineNumberValue(getValue(item, ["sortOrder"])),
+    });
+  }
+
+  return normalized;
+}
+
+async function saveProtocolFieldRecordsIndividually(payloads: RecordLike[]) {
+  for (const payload of payloads) {
+    const id = getId(payload);
+    const response = id
+      ? await updateProtocolField(id, payload as ProtocolFieldDefinition)
+      : await createProtocolField(payload as ProtocolFieldDefinition);
+    assertSuccessResponse(response);
+  }
 }
 
 function openProtocolJsonDialog() {
@@ -1320,8 +1410,7 @@ async function importProtocolJsonFile(file: File, options: { targetProtocolId?: 
       .filter((field) => Boolean(getFirstImportValue(field, ["fieldName", "name"])));
 
     if (normalizedFields.length > 0) {
-      const response = await batchSaveProtocolFields(normalizedFields);
-      assertSuccessResponse(response);
+      await saveProtocolFieldRecordsIndividually(normalizedFields);
     }
 
     uni.showToast({
@@ -1631,6 +1720,7 @@ function resetRuntimeState() {
   pagination.pageNum = 1;
   records.value = [];
   total.value = 0;
+  fieldRecordBaselines.value = new Map();
   selectRecord(null, 0);
 }
 </script>

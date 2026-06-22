@@ -5,6 +5,11 @@ function normalizeBaseUrl(baseUrl) {
   return baseUrl.startsWith("/") ? baseUrl : `/${baseUrl}`;
 }
 
+function appendForceDeleteParam(url, isForce = true) {
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}${new URLSearchParams({ is_force: String(isForce) }).toString()}`;
+}
+
 /** GET 请求封装，通常用于详情、列表、树结构等读取类接口。 */
 export function getRequest(url, data) {
   return request({
@@ -33,9 +38,9 @@ export function putRequest(url, data) {
 }
 
 /** DELETE 请求封装，通常用于删除或批量删除资源。 */
-export function deleteRequest(url, data) {
+export function deleteRequest(url, data, isForce = true) {
   return request({
-    url,
+    url: appendForceDeleteParam(url, isForce),
     method: "delete",
     data,
   });
@@ -66,8 +71,8 @@ export function createCrudService(baseUrl) {
     update(id, data) {
       return putRequest(`${url}/${id}`, data);
     },
-    delete(id) {
-      return deleteRequest(`${url}/${id}`);
+    delete(id, isForce = true) {
+      return deleteRequest(`${url}/${id}`, undefined, isForce);
     },
     getPage(data) {
       return postRequest(`${url}/page`, data);
@@ -75,8 +80,8 @@ export function createCrudService(baseUrl) {
     getList(params) {
       return getRequest(`${url}/list`, params);
     },
-    batchDelete(data) {
-      return deleteRequest(`${url}/batch-delete`, data);
+    batchDelete(data, isForce = true) {
+      return deleteRequest(`${url}/batch-delete`, data, isForce);
     },
   };
 }
