@@ -1,25 +1,20 @@
-<!-- components/DeviceDetailDrawer.vue -->
 <template>
-  <!--
-    根节点：移除了 fixed 定位和遮罩层，改为使用模板的 worksheet-detail-panel 样式
-    注意：v-if 移到了内部容器，如果不需要显示，直接不渲染内容即可
-  -->
   <view v-if="visible" class="detail-panel">
 
-    <!-- 1. 摘要信息 (复用模板的 detail-summary 结构) -->
-    <!-- 注意：原模板中 detail-summary 是包含在 detail-body 内部的，这里为了结构清晰单独拿出来 -->
+    <!-- 头部 -->
     <view class="detail-summary-panel">
       <view class="detail-summary">
         <view class="detail-summary__main">
           <text class="detail-summary__label">设备详情</text>
-          <text class="detail-summary__number">{{ deviceData.deviceNumber || '未知编号' }}</text>
+          <text class="detail-summary__number">
+            {{ deviceData.deviceNumber || '未知编号' }}
+          </text>
         </view>
+
         <view class="detail-summary__badges">
-          <!-- 状态 Badge -->
           <text class="detail-summary__badge" :class="statusClass">
             {{ getDeviceStatusLabel }}
           </text>
-          <!-- 类型 Badge -->
           <text class="detail-summary__badge detail-summary__badge--type">
             {{ getDeviceTypeLabel }}
           </text>
@@ -27,7 +22,7 @@
       </view>
     </view>
 
-    <!-- 2. Tab 切换栏 (直接复用模板类名) -->
+    <!-- Tabs -->
     <view class="detail-tabs">
       <view
           v-for="tab in detailTabs"
@@ -40,33 +35,48 @@
       </view>
     </view>
 
-    <!-- 3. 详情内容区域 (复用模板的 scroll 和 grid 样式) -->
-    <!-- 注意：这里使用了 view 而不是 scroll-view，因为原模板使用的是普通的 overflow-y: auto -->
+    <!-- 内容 -->
     <view class="detail-body">
 
-      <!-- 基础信息 Tab -->
-      <view v-if="activeTab === 'base'" class="detail-grid detail-grid--base">
-        <view v-for="field in baseFields" :key="field.label" class="detail-item detail-item--base">
-          <text class="detail-item__label">{{ field.label }}</text>
-          <text class="detail-item__value">{{ field.value }}</text>
+      <!-- 基础信息 -->
+      <view v-if="activeTab === 'base'" class="detail-grid">
+        <view v-for="f in baseFields" :key="f.label" class="detail-item detail-item--base">
+          <text class="detail-item__label">{{ f.label }}</text>
+          <text class="detail-item__value">{{ f.value }}</text>
         </view>
       </view>
 
-      <!-- 配置/参数 Tab -->
-      <view v-if="activeTab === 'config'" class="detail-grid detail-grid--config">
-        <view v-for="field in configFields" :key="field.label" class="detail-item detail-item--base">
-          <text class="detail-item__label">{{ field.label }}</text>
-          <text class="detail-item__value">{{ field.value }}</text>
+      <!-- 安装信息 -->
+      <view v-if="activeTab === 'install'" class="detail-grid">
+        <view v-for="f in installFields" :key="f.label" class="detail-item detail-item--base">
+          <text class="detail-item__label">{{ f.label }}</text>
+          <text class="detail-item__value">{{ f.value }}</text>
         </view>
       </view>
 
-      <!-- 运行状态 Tab -->
-      <view v-if="activeTab === 'status'" class="detail-grid detail-grid--base">
-        <view v-for="field in statusFields" :key="field.label" class="detail-item detail-item--base">
-          <text class="detail-item__label">{{ field.label }}</text>
-          <text class="detail-item__value">{{ field.value }}</text>
+      <!-- 运行状态 -->
+      <view v-if="activeTab === 'status'" class="detail-grid">
+        <view v-for="f in statusFields" :key="f.label" class="detail-item detail-item--base">
+          <text class="detail-item__label">{{ f.label }}</text>
+          <text class="detail-item__value">{{ f.value }}</text>
         </view>
       </view>
+
+      <!-- 管线信息 -->
+      <view v-if="activeTab === 'tube'" class="detail-grid">
+        <view v-for="f in tubeFields" :key="f.label" class="detail-item detail-item--base">
+          <text class="detail-item__label">{{ f.label }}</text>
+          <text class="detail-item__value">{{ f.value }}</text>
+        </view>
+      </view>
+
+<!--      &lt;!&ndash; 协议信息 &ndash;&gt;-->
+<!--      <view v-if="activeTab === 'protocol'" class="detail-grid">-->
+<!--        <view v-for="f in protocolFields" :key="f.label" class="detail-item detail-item&#45;&#45;base">-->
+<!--          <text class="detail-item__label">{{ f.label }}</text>-->
+<!--          <text class="detail-item__value">{{ f.value }}</text>-->
+<!--        </view>-->
+<!--      </view>-->
 
     </view>
   </view>
@@ -75,12 +85,23 @@
 <script setup lang="ts">
 // ... (这部分的逻辑代码保持不变，直接复用你原来的)
 import { computed, ref } from 'vue';
-import type { Device } from '@/services/device/types';
+import { watch } from 'vue';
+import type {Dept, Device, DeviceDept, DeviceProduct, TubeNetwork} from '@/services/device/types';
+import {
+  getDeviceProductByIdT,
+  getTubeNetworkByTubeNameT,
+  getDeptByIdT,
+  getDeptDeviceByDeviceIdT
+} from '@/services/device/info.typed';
 
 interface Props {
   visible: boolean;
   deviceData: Partial<Device>;
 }
+const product = ref<DeviceProduct>();
+const tube = ref<TubeNetwork>();
+const dept = ref<Dept>();
+const deviceDept = ref<DeviceDept>();
 
 const emit = defineEmits<{
   (e: 'update:visible', value: boolean): void;
@@ -94,10 +115,24 @@ const props = withDefaults(defineProps<Props>(), {
 
 const activeTab = ref('base');
 
+watch(
+    () => props.deviceData.id,
+    async (id) => {
+      if (!id) return;
+
+      await loadRelationData(props.deviceData);
+    },
+    {
+      immediate: true
+    }
+);
+
 const detailTabs = [
   { label: '基础信息', value: 'base' },
-  { label: '配置参数', value: 'config' },
+  { label: '安装信息', value: 'install' },
   { label: '运行状态', value: 'status' },
+  { label: '管线信息', value: 'tube' },
+  // { label: '协议信息', value: 'protocol' }
 ];
 
 const statusClass = computed(() => {
@@ -126,45 +161,99 @@ function handleEdit() {
 
 const baseFields = computed(() => [
   { label: '设备编号', value: props.deviceData.deviceNumber },
-  { label: '设备类型', value: props.deviceData.deviceType },
-  { label: '产品ID', value: props.deviceData.productId },
-  { label: 'NB编号', value: props.deviceData.nbNumber },
+  { label: '产品型号', value: product.value?.productName },
   { label: 'IMEI', value: props.deviceData.deviceImei },
   { label: 'IMSI', value: props.deviceData.deviceImsi },
   { label: '序列号', value: props.deviceData.serialNumber },
-  { label: '安装地址', value: props.deviceData.installAddress }
-])
-const configFields = computed(() => [
   { label: '硬件版本', value: props.deviceData.hardwareVersion },
   { label: '软件版本', value: props.deviceData.softwareVersion },
-  { label: '观察周期', value: props.deviceData.observeDay },
-  { label: '发送方式', value: props.deviceData.commandSendway },
-  { label: 'WiFi名称', value: props.deviceData.wifiName },
-  { label: 'WiFi MAC', value: props.deviceData.wifiMac },
-  { label: '服务器IP', value: props.deviceData.serverIp },
-  { label: '端口', value: props.deviceData.serverPort },
-  { label: '信号等级', value: props.deviceData.loraSignalLevel }
-])
-const statusFields = computed(() => [
-  {
-    label: '在线状态',
-    value:
-        props.deviceData.onlineStatus === 1
-            ? '在线'
-            : props.deviceData.onlineStatus === 0
-                ? '离线'
-                : '未知'
-  },
-  { label: '启用状态', value: props.deviceData.enableState },
+  { label: '出厂时间', value: props.deviceData.factoryTime }
+]);
+const installFields = computed(() => [
   { label: '安装状态', value: props.deviceData.installState },
   { label: '安装模式', value: props.deviceData.installMode },
-  { label: '漏损状态', value: props.deviceData.leakStatus },
-  { label: '漏损属性', value: props.deviceData.leakProperty },
-  { label: '采样时间', value: props.deviceData.lastSamplingTime },
-  { label: '创建时间', value: props.deviceData.createdAt },
-  { label: '更新时间', value: props.deviceData.updatedAt }
-])
+  { label: '安装地址', value: props.deviceData.installAddress },
+  { label: '经度', value: props.deviceData.installLongitude },
+  { label: '纬度', value: props.deviceData.installLatitude },
+  { label: '管组编号', value: props.deviceData.tubeGroup },
+  { label: '管线排序', value: props.deviceData.tubeOrder }
+]);
+
+const statusFields = computed(() => [
+  { label: '启用状态', value: props.deviceData.enableState },
+  { label: '在线状态', value: props.deviceData.onlineStatus },
+  { label: '渗漏状态', value: props.deviceData.leakStatus },
+  { label: '特征值', value: props.deviceData.leakProperty },
+  { label: '最后采样时间', value: props.deviceData.lastSamplingTime },
+  { label: '观测天数', value: props.deviceData.observeDay }
+]);
+
+const tubeFields = computed(() => [
+  { label: '管组编号', value: props.deviceData.tubeGroup },
+  { label: '管线名称', value: tube.value?.tubeName },
+  { label: '管线类型', value: tube.value?.tubeType },
+  { label: '分区信息', value: dept.value?.deptName }
+]);
+
+// const protocolFields = computed(() => [
+//   { label: 'AFN', value: props.deviceData.afn },
+//
+//   {
+//     label: '任务类型',
+//     value: props.deviceData.taskType
+//   },
+//
+//   {
+//     label: '优先级',
+//     value: props.deviceData.priority
+//   },
+//
+//   {
+//     label: '是否启用',
+//     value: props.deviceData.enabled ? '是' : '否'
+//   }
+// ]);
+
+
+async function loadRelationData(device: Partial<Device>) {
+  if (!device?.id) return;
+
+  // 1️⃣ 并发请求（允许 null 占位，避免 undefined 污染类型）
+  const [productRes, deviceDeptRes, tubeRes] = await Promise.all([
+    device.productId
+        ? getDeviceProductByIdT(device.productId)
+        : null,
+
+    getDeptDeviceByDeviceIdT(device.id),
+
+    device.tubeGroup
+        ? getTubeNetworkByTubeNameT(device.tubeGroup)
+        : null
+  ]);
+
+  // console.log('productRes', productRes);
+  // console.log('deviceDeptRes', deviceDeptRes);
+  // console.log('tubeRes', tubeRes);
+
+  // 2️⃣ 统一解包 .data（关键）
+  product.value = productRes?.data as DeviceProduct;
+  deviceDept.value = deviceDeptRes?.data as DeviceDept;
+  tube.value = tubeRes?.data as TubeNetwork;
+
+  // 3️⃣ 串行依赖查询 dept
+  if (deviceDept.value?.deptId) {
+    const deptRes = await getDeptByIdT(deviceDept.value.deptId);
+    dept.value = deptRes?.data as Dept;
+  }
+
+  // 4️⃣ debug
+  // console.log('product', product.value);
+  // console.log('dept', dept.value);
+  // console.log('tube', tube.value);
+  // console.log('deviceDept', deviceDept.value);
+}
 </script>
+
 
 <style scoped lang="scss">
 .detail-panel {
@@ -184,7 +273,7 @@ const statusFields = computed(() => [
 .detail-tabs {
   flex: none;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 6px;
   height: 54px;
   padding: 8px;

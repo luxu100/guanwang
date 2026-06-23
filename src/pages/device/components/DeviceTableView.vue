@@ -10,59 +10,16 @@
         <view class="data-row data-row--header">
 
           <text class="data-cell data-cell--index">序号</text>
-
-          <!-- 基础信息 -->
           <text class="data-cell data-cell--device">设备编号</text>
-          <text class="data-cell data-cell--device">产品ID</text>
-          <text class="data-cell data-cell--device">NB编号</text>
           <text class="data-cell data-cell--type">设备类型</text>
-
-          <!-- 标识信息 -->
-          <text class="data-cell data-cell--number">IMEI</text>
-          <text class="data-cell data-cell--number">IMSI</text>
-          <text class="data-cell data-cell--number">序列号</text>
-
-          <!-- 状态 -->
           <text class="data-cell data-cell--status">启用状态</text>
           <text class="data-cell data-cell--status">安装状态</text>
-          <text class="data-cell data-cell--status">在线状态</text>
-
-          <!-- 安装信息 -->
+          <text class="data-cell data-cell--status">安装模式</text>
           <text class="data-cell data-cell--address">安装地址</text>
-          <text class="data-cell data-cell--location">经度</text>
-          <text class="data-cell data-cell--location">纬度</text>
-
-          <!-- 时间 -->
-          <text class="data-cell data-cell--time">出厂时间</text>
+          <text class="data-cell data-cell--number">管组编号</text>
+          <text class="data-cell data-cell--status">渗漏状态</text>
           <text class="data-cell data-cell--time">最后采样时间</text>
-          <text class="data-cell data-cell--time">创建时间</text>
-          <text class="data-cell data-cell--time">更新时间</text>
-
-          <!-- 网络 -->
-          <text class="data-cell data-cell--number">WiFi名称</text>
-          <text class="data-cell data-cell--number">WiFi MAC</text>
-          <text class="data-cell data-cell--number">服务器IP</text>
-          <text class="data-cell data-cell--number">端口</text>
-          <text class="data-cell data-cell--number">LORA信号</text>
-
-          <!-- 硬件 -->
-          <text class="data-cell data-cell--number">硬件版本</text>
-          <text class="data-cell data-cell--number">软件版本</text>
-          <text class="data-cell data-cell--number">压力型号</text>
-          <text class="data-cell data-cell--number">压力序列号</text>
-
-          <!-- 业务 -->
-          <text class="data-cell data-cell--number">管组</text>
-          <text class="data-cell data-cell--number">管序</text>
-          <text class="data-cell data-cell--number">观测天数</text>
-          <text class="data-cell data-cell--number">指令方式</text>
-
-          <!-- 漏损 -->
-          <text class="data-cell data-cell--number">渗漏状态</text>
-          <text class="data-cell data-cell--number">漏水特征</text>
-
-          <!-- 系统 -->
-          <text class="data-cell data-cell--account">创建人</text>
+          <text class="data-cell data-cell--status">在线状态</text>
         </view>
 
         <view v-if="loading" class="table-state">加载中...</view>
@@ -76,85 +33,30 @@
             @click="selectRow(device)"
         >
 
-          <!-- index -->
           <text class="data-cell data-cell--index">
             {{ (pagination.current - 1) * pagination.size + index + 1 }}
           </text>
 
-          <!-- number -->
-          <text class="data-cell data-cell--number">{{ device.deviceNumber }}</text>
-
-          <!-- product -->
-          <text class="data-cell data-cell--number">{{ device.productId }}</text>
-
-          <!-- number -->
-          <text class="data-cell data-cell--number">{{ device.nbNumber }}</text>
-
-          <!-- type -->
+          <text class="data-cell data-cell--device">{{ device.deviceNumber }}</text>
           <text class="data-cell data-cell--type">{{ device.deviceType }}</text>
-
-          <!-- device identifiers -->
-          <text class="data-cell data-cell--device">{{ device.deviceImei }}</text>
-          <text class="data-cell data-cell--device">{{ device.deviceImsi }}</text>
-          <text class="data-cell data-cell--device">{{ device.serialNumber }}</text>
-
-          <!-- time -->
-          <text class="data-cell data-cell--time">{{ device.factoryTime }}</text>
-
-          <!-- status -->
-          <text class="data-cell data-cell--status">{{ device.enableState }}</text>
-          <text class="data-cell data-cell--status">{{ device.installState }}</text>
-
-          <!-- type -->
-          <text class="data-cell data-cell--type">{{ device.installMode }}</text>
-
-          <!-- address -->
+          <text class="data-cell data-cell--status">
+            {{ enableStateMap[device.enableState] || '-' }}
+          </text>
+          <text class="data-cell data-cell--status">
+            {{ installStateMap[device.installState] || '-' }}
+          </text>
+          <text class="data-cell data-cell--status">
+            {{ installModeMap[device.installMode] || '-' }}
+          </text>
           <text class="data-cell data-cell--address">{{ device.installAddress }}</text>
-
-          <!-- location -->
-          <text class="data-cell data-cell--location">{{ device.installLongitude }}</text>
-          <text class="data-cell data-cell--location">{{ device.installLatitude }}</text>
-
-          <!-- business -->
           <text class="data-cell data-cell--number">{{ device.tubeGroup }}</text>
-          <text class="data-cell data-cell--number">{{ device.tubeOrder }}</text>
-
-          <!-- hardware -->
-          <text class="data-cell data-cell--number">{{ device.hardwareVersion }}</text>
-          <text class="data-cell data-cell--number">{{ device.softwareVersion }}</text>
-
-          <!-- level -->
-          <text class="data-cell data-cell--number">{{ device.leakStatus }}</text>
-          <text class="data-cell data-cell--number">{{ device.leakProperty }}</text>
-
-          <!-- time -->
+          <text class="data-cell data-cell--status">
+            {{ leakStatusMap[device.leakStatus] || '-' }}
+          </text>
           <text class="data-cell data-cell--time">{{ device.lastSamplingTime }}</text>
-
-          <!-- business -->
-          <text class="data-cell data-cell--number">{{ device.observeDay }}</text>
-          <text class="data-cell data-cell--number">{{ device.commandSendway }}</text>
-
-          <!-- status -->
-          <text class="data-cell data-cell--status">{{ device.onlineStatus }}</text>
-
-          <!-- network -->
-          <text class="data-cell data-cell--number">{{ device.wifiName }}</text>
-          <text class="data-cell data-cell--number">{{ device.wifiMac }}</text>
-          <text class="data-cell data-cell--number">{{ device.serverIp }}</text>
-          <text class="data-cell data-cell--number">{{ device.serverPort }}</text>
-          <text class="data-cell data-cell--number">{{ device.loraSignalLevel }}</text>
-
-          <!-- hardware -->
-          <text class="data-cell data-cell--number">{{ device.pressureSensorModel }}</text>
-          <text class="data-cell data-cell--number">{{ device.pressureSensorSerial }}</text>
-
-          <!-- account -->
-          <text class="data-cell data-cell--account">{{ device.createUser }}</text>
-
-          <!-- time -->
-          <text class="data-cell data-cell--time">{{ device.createdAt }}</text>
-          <text class="data-cell data-cell--time">{{ device.updatedAt }}</text>
-
+          <text class="data-cell data-cell--status">
+            {{ onlineStatusMap[device.onlineStatus] || '-' }}
+          </text>
         </view>
       </view>
     </scroll-view>
@@ -177,7 +79,32 @@ const props = defineProps<{
 }>();
 
 const loading = ref(false);
+const enableStateMap: Record<number, string> = {
+  0: '停用',
+  1: '启用'
+}
 
+const installStateMap: Record<number, string> = {
+  0: '未安装',
+  1: '已安装'
+}
+
+const installModeMap: Record<number, string> = {
+  0: '固定点',
+  1: '流动点'
+}
+
+const onlineStatusMap: Record<number, string> = {
+  0: '离线',
+  1: '在线'
+}
+
+const leakStatusMap: Record<number, string> = {
+  0: '渗漏',
+  1: '正常',
+  2: '疑似',
+  3: '未知'
+}
 
 const emit = defineEmits<{
   (e: 'create'): void;

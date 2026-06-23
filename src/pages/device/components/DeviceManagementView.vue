@@ -112,10 +112,10 @@ const deviceModuleConfig = {
 
     searchForm: {
       deviceNumber: "",
-      productId: "",
-      installAddress: "",
+      deviceType: "",
+      // installAddress: "",
       enableState: "",
-      installState: "",
+      // installState: "",
       onlineStatus: "",
       leakStatus: "",
       startTime: "",
@@ -124,10 +124,10 @@ const deviceModuleConfig = {
 
     toolbar: [
       { key: "deviceNumber", label: "设备编号", type: "input" },
-      { key: "productId", label: "产品型号", type: "select", dict: "product" },
-      { key: "installAddress", label: "安装位置", type: "input" },
+      { key: "deviceType", label: "产品型号", type: "select", dict: "product" },
+      // { key: "installAddress", label: "安装位置", type: "input" },
       { key: "onlineStatus", label: "在线状态", type: "select", dict: "online" },
-      { key: "installState", label: "安装状态", type: "select", dict: "install" },
+      // { key: "installState", label: "安装状态", type: "select", dict: "install" },
       { key: "enableState", label: "启用状态", type: "select", dict: "enable" },
       { key: "leakStatus", label: "渗漏状态", type: "select", dict: "leak" },
     ],
@@ -204,6 +204,8 @@ watch(
         ...currentModule.value.searchForm,
       };
 
+      console.log("searchForm", searchForm.value);
+
       fetchDevices();
     },
     { immediate: true }
@@ -220,9 +222,11 @@ type SelectOption = {
 };
 
 const productOptions = ref<SelectOption[]>([
-  { label: "全部产品", value: "" },
+  { label: "全部型号", value: "" },
+  { label: "LD18", value: "LD18" },
+  { label: "LD18E-FM", value: "LD18E-FM" },
+  { label: "LD18HE-FM", value: "LD18HE-FM" },
 ]);
-
 const enableStateOptions: SelectOption[] = [
   { label: "全部", value: "" },
   { label: "启用", value: 1 },
@@ -263,8 +267,6 @@ async function fetchDevices() {
 
   const pageData = res.data;
 
-  console.log("设备列表:", pageData);
-
   deviceList.value = pageData?.records ?? [];
   pagination.value.total = pageData?.total ?? 0;
   pagination.value.current = pageData?.current ?? 1;
@@ -284,6 +286,7 @@ function handlePageChange(page: number) {
  * =========================
  */
 function handleSearch() {
+  console.log("handleSearch", searchForm.value);
   fetchDevices();
 }
 
