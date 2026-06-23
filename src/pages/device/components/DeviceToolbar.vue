@@ -1,281 +1,200 @@
 <template>
   <view class="toolbar">
-    <!-- 第一行 -->
+
     <view class="toolbar-row toolbar-row--filters">
-      <view class="filter-group">
-        <text class="filter-label">设备编号</text>
-        <input
-            v-model="localFilters.deviceNumber"
-            class="filter-input"
-            placeholder="请输入设备编号"
-            placeholder-class="input-placeholder"
-        />
-      </view>
 
-      <view class="filter-group">
-        <text class="filter-label">产品</text>
+      <view
+          v-for="item in fields"
+          :key="item.key"
+          class="filter-group"
+      >
+
+        <text class="filter-label">{{ item.label }}</text>
+
+        <!-- input -->
+        <input
+            v-if="item.type === 'input'"
+            v-model="model[item.key]"
+            class="filter-input"
+            placeholder="请输入"
+        />
+
+        <!-- select -->
         <picker
-            :range="productOptions"
+            v-else-if="item.type === 'select'"
+            :range="dictMap[item.dict]"
             range-key="label"
-            @change="handleProductChange"
+            @change="handleSelect(item, $event)"
         >
           <view class="filter-select">
-            <text>{{ currentProductLabel }}</text>
+            <text>{{ getLabel(item) }}</text>
             <text class="filter-select__arrow"></text>
           </view>
         </picker>
+
+        <!-- date -->
+        <DeviceDatetimePicker
+            v-else-if="item.type === 'date'"
+            :model-value="String(model[item.key] ?? '')"
+            class="filter-datetime"
+            :title="item.label"
+            :placeholder="item.label"
+        />
+
       </view>
 
-      <view class="filter-group">
-        <text class="filter-label">NB卡号</text>
-        <input
-            v-model="localFilters.nbNumber"
-            class="filter-input"
-            placeholder="请输入NB卡号"
-            placeholder-class="input-placeholder"
-        />
-      </view>
-
-      <view class="filter-group">
-        <text class="filter-label">IMEI</text>
-        <input
-            v-model="localFilters.deviceImei"
-            class="filter-input"
-            placeholder="请输入IMEI"
-            placeholder-class="input-placeholder"
-        />
-      </view>
     </view>
 
-    <!-- 第二行 -->
-    <view class="toolbar-row toolbar-row--filters">
-      <view class="filter-group">
-        <text class="filter-label">启用状态</text>
-        <picker
-            :range="enableStateOptions"
-            range-key="label"
-            @change="handleEnableStateChange"
-        >
-          <view class="filter-select">
-            <text>{{ currentEnableStateLabel }}</text>
-            <text class="filter-select__arrow"></text>
-          </view>
-        </picker>
-      </view>
+    <!-- ⭐ FIX：固定右下角 actions（不再参与 schema） -->
+    <view class="toolbar-actions">
 
-      <view class="filter-group">
-        <text class="filter-label">安装状态</text>
-        <picker
-            :range="installStateOptions"
-            range-key="label"
-            @change="handleInstallStateChange"
-        >
-          <view class="filter-select">
-            <text>{{ currentInstallStateLabel }}</text>
-            <text class="filter-select__arrow"></text>
-          </view>
-        </picker>
-      </view>
+      <button
+          class="toolbar-button toolbar-button--primary"
+          hover-class="toolbar-button--hover"
+          @click="emit('search')"
+      >
+        查询
+      </button>
 
-      <view class="filter-group">
-        <text class="filter-label">在线状态</text>
-        <picker
-            :range="onlineStatusOptions"
-            range-key="label"
-            @change="handleOnlineStatusChange"
-        >
-          <view class="filter-select">
-            <text>{{ currentOnlineStatusLabel }}</text>
-            <text class="filter-select__arrow"></text>
-          </view>
-        </picker>
-      </view>
+      <button
+          class="toolbar-button"
+          hover-class="toolbar-button--hover"
+          @click="emit('reset')"
+      >
+        重置
+      </button>
+
+      <button
+          class="toolbar-icon-button"
+          hover-class="toolbar-icon-button--hover"
+          aria-label="刷新"
+          @click="emit('refresh')"
+      >
+        <text class="icon-refresh"></text>
+      </button>
+
     </view>
 
-    <!-- 第三行 -->
-    <view class="toolbar-row toolbar-row--bottom">
-      <view class="filter-group filter-group--date">
-        <text class="filter-label">创建时间</text>
-
-        <view class="date-range">
-          <DeviceDatetimePicker
-              v-model="localFilters.startTime"
-              class="filter-datetime"
-              title="选择开始时间"
-              placeholder="开始时间"
-          />
-
-          <text class="filter-separator">至</text>
-
-          <DeviceDatetimePicker
-              v-model="localFilters.endTime"
-              class="filter-datetime"
-              title="选择结束时间"
-              placeholder="结束时间"
-          />
-        </view>
-      </view>
-
-      <view class="toolbar-actions">
-        <button
-            class="toolbar-button toolbar-button--primary"
-            @click="emitSearch"
-        >
-          查询
-        </button>
-
-        <button
-            class="toolbar-button"
-            @click="emitReset"
-        >
-          重置
-        </button>
-
-        <button
-            class="toolbar-icon-button"
-            @click="$emit('refresh')"
-        >
-          <text class="icon-refresh"></text>
-        </button>
-
-        <button
-            class="toolbar-button toolbar-button--primary toolbar-button--create"
-            @click="$emit('create')"
-        >
-          新增设备
-        </button>
-      </view>
-    </view>
   </view>
 </template>
-
 <script setup lang="ts">
 import { computed, reactive, watch } from "vue";
 import DeviceDatetimePicker from "@/pages/device/components/DeviceDatetimePicker.vue";
 
-type OptionValue = string | number;
+/**
+ * =========================
+ * types
+ * =========================
+ */
+type Option = { label: string; value: string | number };
 
-type SelectOption<T extends OptionValue = OptionValue> = {
-  label: string;
-  value: T;
-};
+type DictKey = "product" | "enable" | "install" | "online" | "leak";
 
-export interface DeviceSearchForm {
-  deviceNumber: string;
+type Field =
+    | { key: string; label: string; type: "input" }
+    | { key: string; label: string; type: "date" }
+    | { key: string; label: string; type: "select"; dict: DictKey };
 
-  productId: string | number;
+type DeviceForm = Record<string, string | number>;
 
-  nbNumber: string;
-  deviceImei: string;
-
-  enableState: string | number;
-  installState: string | number;
-  onlineStatus: string | number;
-
-  startTime: string;
-  endTime: string;
-}
-
+/**
+ * =========================
+ * props
+ * =========================
+ */
 const props = defineProps<{
-  modelValue: DeviceSearchForm;
+  modelValue: DeviceForm;
+  fields: readonly Field[];
 
-  productOptions: SelectOption[];
-
-  enableStateOptions: SelectOption[];
-  installStateOptions: SelectOption[];
-  onlineStatusOptions: SelectOption[];
+  productOptions: Option[];
+  enableStateOptions: Option[];
+  installStateOptions: Option[];
+  onlineStatusOptions: Option[];
+  leakStatusOptions: Option[];
 }>();
 
 const emit = defineEmits<{
-  (e: "update:modelValue", v: DeviceSearchForm): void;
+  (e: "update:modelValue", v: DeviceForm): void;
   (e: "search"): void;
   (e: "reset"): void;
   (e: "refresh"): void;
-  (e: "create"): void;
 }>();
 
-const localFilters = reactive<DeviceSearchForm>({
-  ...props.modelValue,
-});
+/**
+ * =========================
+ * model proxy
+ * =========================
+ */
+const model = reactive<DeviceForm>({ ...props.modelValue });
 
 watch(
     () => props.modelValue,
-    (v) => {
-      Object.assign(localFilters, v);
-    },
+    (v) => Object.assign(model, v),
     { deep: true }
 );
 
 watch(
-    localFilters,
-    (v) => {
-      emit("update:modelValue", { ...v });
-    },
+    model,
+    (v) => emit("update:modelValue", { ...v }),
     { deep: true }
 );
 
-const currentProductLabel = computed(() => {
-  const hit = props.productOptions.find(
-      item => item.value === localFilters.productId
-  );
+/**
+ * =========================
+ * dict map
+ * =========================
+ */
+const dictMap: Record<DictKey, Option[]> = {
+  product: props.productOptions,
+  enable: props.enableStateOptions,
+  install: props.installStateOptions,
+  online: props.onlineStatusOptions,
+  leak: props.leakStatusOptions,
+};
 
-  return hit?.label || "全部产品";
-});
+/**
+ * =========================
+ * computed
+ * =========================
+ */
+const fields = computed(() => props.fields);
 
-const currentEnableStateLabel = computed(() => {
-  const hit = props.enableStateOptions.find(
-      item => item.value === localFilters.enableState
-  );
+/**
+ * =========================
+ * select handler (FIX TS ERROR HERE)
+ * =========================
+ */
+type PickerEvent = {
+  detail: {
+    value: number;
+  };
+};
+
+function handleSelect(item: Field, e: PickerEvent) {
+  if (item.type !== "select") return;
+
+  const list = dictMap[item.dict];
+  const index = e.detail.value;
+
+  model[item.key] = list[index]?.value ?? "";
+}
+
+/**
+ * =========================
+ * label
+ * =========================
+ */
+function getLabel(item: Field) {
+  const value = model[item.key];
+
+  if (item.type !== "select") return String(value ?? "");
+
+  const list = dictMap[item.dict];
+  const hit = list.find(i => i.value === value);
 
   return hit?.label || "全部";
-});
-
-const currentInstallStateLabel = computed(() => {
-  const hit = props.installStateOptions.find(
-      item => item.value === localFilters.installState
-  );
-
-  return hit?.label || "全部";
-});
-
-const currentOnlineStatusLabel = computed(() => {
-  const hit = props.onlineStatusOptions.find(
-      item => item.value === localFilters.onlineStatus
-  );
-
-  return hit?.label || "全部";
-});
-
-function handleProductChange(e: any) {
-  localFilters.productId =
-      props.productOptions[e.detail.value]?.value ?? "";
-}
-
-function handleEnableStateChange(e: any) {
-  localFilters.enableState =
-      props.enableStateOptions[e.detail.value]?.value ?? "";
-}
-
-function handleInstallStateChange(e: any) {
-  localFilters.installState =
-      props.installStateOptions[e.detail.value]?.value ?? "";
-}
-
-function handleOnlineStatusChange(e: any) {
-  localFilters.onlineStatus =
-      props.onlineStatusOptions[e.detail.value]?.value ?? "";
-}
-
-function emitSearch() {
-  emit("search");
-}
-
-function emitReset() {
-  emit("reset");
 }
 </script>
-
-
 <style scoped lang="scss">
 
 
@@ -451,7 +370,8 @@ function emitReset() {
   flex: 0 0 auto;
   justify-content: flex-start;
   width: auto;
-  margin-left: 0;
+  margin-left: auto;   /* ⭐关键：右对齐 */
+  align-self: flex-end; /* ⭐关键：压到底部 */
 }
 
 .toolbar-filters,
