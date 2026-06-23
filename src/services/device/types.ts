@@ -137,3 +137,44 @@ export interface DeviceProtocol {
     priority: number;
     enabled: boolean;
 }
+
+export interface Dept {
+    id: number;
+    deptName: string;
+    parentId: number;
+    description?: string;
+    administrator?: string;
+    sort?: number;
+    status?: number;
+    createdAt?: string;
+    updatedAt?: string;
+    isDeleted?: boolean;
+}
+
+export interface TubeNetwork {
+    id: number;
+    tubeName: string;
+    parentId: number;
+    description?: string;
+    administrator?: string;
+    tubeType?: number;
+    tubeShape?: number;
+    tubeOrder?: number;
+    wellNumber?: string;
+    isStartEnd?: number;
+    status?: number;
+    deptId?: number;
+    remark?: string;
+    createdAt?: string;
+    updatedAt?: string;
+    isDeleted?: boolean;
+}
+
+export interface DeviceDept {
+    id: number;
+    deptId: number;
+    deviceId: number;
+    createdAt: string;
+    updatedAt: string;
+    isDeleted: boolean;
+}

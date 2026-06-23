@@ -1,5 +1,12 @@
-import { createCrudService } from "./crud";
+import { createCrudService,getRequest} from "./crud";
 import type {ApiResponse, PageResult} from "@/types/api";
+
+export function getRequestT<T>(
+    url: string,
+    data?: any
+): Promise<ApiResponse<T>> {
+  return getRequest(url, data);
+}
 
 /**
  * 类型增强版 CRUD（不修改原 crud.js）
