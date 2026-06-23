@@ -189,6 +189,8 @@ import SystemManagementView from "@/pages/system/components/SystemManagementView
 import DataReceiveView from "@/pages/data-receive/components/DataReceiveView.vue";
 import WorkOrderCreateView from "@/pages/work-order/components/WorkOrderCreateView.vue";
 import WorksheetTableView from "@/pages/work-order/components/WorksheetTableView.vue";
+import SuspectEditView from "@/pages/leak-report/components/SuspectEditView.vue";
+import SuspectProcessView from "@/pages/leak-report/components/SuspectProcessView.vue";
 import { MENU_COLLAPSED_KEY, OPENED_TABS_KEY } from "@/utils/appShellStorage";
 import { clearAuthStorage, createProtectedRouteDecision, LOGIN_PATH } from "@/utils/authGuard";
 import { filterMenuItemsByAccess, flattenMenuPaths, getFirstAccessiblePath } from "@/utils/menuAccess";
@@ -333,8 +335,8 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/data-analysis/audio/audio": createPlaceholderContent("/pages/data-analysis/audio/audio"),
   "/pages/data-analysis/device-params/device-params": createPlaceholderContent("/pages/data-analysis/device-params/device-params"),
   "/pages/data-analysis/leakage/leakage": createPlaceholderContent("/pages/data-analysis/leakage/leakage"),
-  "/pages/leak-report/suspect-management/suspect-management": createPlaceholderContent("/pages/leak-report/suspect-management/suspect-management"),
-  "/pages/leak-report/suspect-processing/suspect-processing": createPlaceholderContent("/pages/leak-report/suspect-processing/suspect-processing"),
+  "/pages/leak-report/suspect-management/suspect-management": { component: SuspectEditView },
+  "/pages/leak-report/suspect-processing/suspect-processing": { component: SuspectProcessView },
   "/pages/leak-report/leak-management/leak-management": createPlaceholderContent("/pages/leak-report/leak-management/leak-management"),
   "/pages/leak-report/leak-analysis/leak-analysis": createPlaceholderContent("/pages/leak-report/leak-analysis/leak-analysis"),
   "/pages/leak-report/history-overview/history-overview": createPlaceholderContent("/pages/leak-report/history-overview/history-overview"),
