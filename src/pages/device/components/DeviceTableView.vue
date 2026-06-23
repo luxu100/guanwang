@@ -23,7 +23,8 @@
             v-for="device in filteredDevices"
             :key="device.id"
             class="device-table__row"
-            @click="$emit('view', device)"
+            :class="{ 'data-row--active': selectedId === device.id }"
+            @click="selectRow(device)"
         >
           <text class="col-number device-table__number">{{ device.deviceNumber }}</text>
           <text class="col-name">{{ device.productName }}</text>
@@ -51,19 +52,16 @@
     </view>
   </view>
 </template>
-
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import type { Device } from '@/services/device/types';
 
-// 定义 Props
 interface Props {
   devices: Device[];
 }
 
 const props = defineProps<Props>();
 
-// 定义 Emits
 const emit = defineEmits<{
   (e: 'create'): void;
   (e: 'view', device: Device): void;
@@ -71,23 +69,25 @@ const emit = defineEmits<{
   (e: 'delete', device: Device): void;
 }>();
 
-// 搜索关键字
 const searchKeyword = ref('');
+const selectedId = ref<number | null>(null);
 
-// 前端过滤逻辑（根据编号或名称）
+// ✅ 点击行：选中 + 查看
+function selectRow(device: Device) {
+  selectedId.value = device.id;
+  emit('view', device);
+}
+
+// 过滤
 const filteredDevices = computed(() => {
   if (!searchKeyword.value) return props.devices;
+
   const keyword = searchKeyword.value.toLowerCase();
-  return props.devices.filter(
-      (d) =>
-          d.deviceNumber.toLowerCase().includes(keyword)
+
+  return props.devices.filter(d =>
+      d.deviceNumber.toLowerCase().includes(keyword)
   );
 });
-
-// 搜索防抖（可选，这里直接触发即可）
-function handleSearch() {
-  // 逻辑已在 computed 中处理
-}
 </script>
 
 <style scoped lang="scss">
@@ -248,5 +248,23 @@ function handleSearch() {
   height: 200px;
   color: #8a9bb0;
   font-size: 14px;
+}
+
+
+.data-row--active {
+  position: relative;
+  background: #e7f3ff !important;
+  box-shadow: inset 0 0 0 1px #b9dcff;
+}
+
+.data-row--active::before {
+  position: absolute;
+  top: 7px;
+  bottom: 7px;
+  left: 0;
+  width: 3px;
+  content: "";
+  background: #0d82ee;
+  border-radius: 0 999px 999px 0;
 }
 </style>

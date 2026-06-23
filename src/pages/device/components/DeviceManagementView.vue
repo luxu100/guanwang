@@ -63,7 +63,6 @@
 
   </view>
 </template>
-
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
 
