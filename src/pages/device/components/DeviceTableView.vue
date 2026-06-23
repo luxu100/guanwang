@@ -1,88 +1,190 @@
 <template>
   <view class="worksheet-table-panel">
     <view class="table-head">
-      <text>{{ 123 }}</text>
-      <text class="table-head__meta">共 {{ 123 }} 条</text>
+      <text>设备创建记录</text>
+      <text class="table-head__meta">共 {{ pagination.total }} 条</text>
     </view>
 
     <scroll-view class="table-scroll" scroll-x scroll-y>
       <view class="data-table">
         <view class="data-row data-row--header">
+
           <text class="data-cell data-cell--index">序号</text>
-          <text class="data-cell data-cell--number">工单编号</text>
-          <text class="data-cell data-cell--type">工单类型</text>
-          <text class="data-cell data-cell--status">工单状态</text>
-          <text class="data-cell data-cell--account">发起人</text>
-          <text class="data-cell data-cell--account">执行人</text>
-          <text class="data-cell data-cell--device">设备引用</text>
-          <text class="data-cell data-cell--level">紧急程度</text>
-          <text class="data-cell data-cell--time">发起时间</text>
-          <text class="data-cell data-cell--time">截止时间</text>
-          <text class="data-cell data-cell--time">完成时间</text>
-          <text class="data-cell data-cell--address">地址</text>
-          <text class="data-cell data-cell--remark">备注</text>
+
+          <!-- 基础信息 -->
+          <text class="data-cell data-cell--device">设备编号</text>
+          <text class="data-cell data-cell--device">产品ID</text>
+          <text class="data-cell data-cell--device">NB编号</text>
+          <text class="data-cell data-cell--type">设备类型</text>
+
+          <!-- 标识信息 -->
+          <text class="data-cell data-cell--number">IMEI</text>
+          <text class="data-cell data-cell--number">IMSI</text>
+          <text class="data-cell data-cell--number">序列号</text>
+
+          <!-- 状态 -->
+          <text class="data-cell data-cell--status">启用状态</text>
+          <text class="data-cell data-cell--status">安装状态</text>
+          <text class="data-cell data-cell--status">在线状态</text>
+
+          <!-- 安装信息 -->
+          <text class="data-cell data-cell--address">安装地址</text>
+          <text class="data-cell data-cell--location">经度</text>
+          <text class="data-cell data-cell--location">纬度</text>
+
+          <!-- 时间 -->
+          <text class="data-cell data-cell--time">出厂时间</text>
+          <text class="data-cell data-cell--time">最后采样时间</text>
+          <text class="data-cell data-cell--time">创建时间</text>
+          <text class="data-cell data-cell--time">更新时间</text>
+
+          <!-- 网络 -->
+          <text class="data-cell data-cell--number">WiFi名称</text>
+          <text class="data-cell data-cell--number">WiFi MAC</text>
+          <text class="data-cell data-cell--number">服务器IP</text>
+          <text class="data-cell data-cell--number">端口</text>
+          <text class="data-cell data-cell--number">LORA信号</text>
+
+          <!-- 硬件 -->
+          <text class="data-cell data-cell--number">硬件版本</text>
+          <text class="data-cell data-cell--number">软件版本</text>
+          <text class="data-cell data-cell--number">压力型号</text>
+          <text class="data-cell data-cell--number">压力序列号</text>
+
+          <!-- 业务 -->
+          <text class="data-cell data-cell--number">管组</text>
+          <text class="data-cell data-cell--number">管序</text>
+          <text class="data-cell data-cell--number">观测天数</text>
+          <text class="data-cell data-cell--number">指令方式</text>
+
+          <!-- 漏损 -->
+          <text class="data-cell data-cell--number">渗漏状态</text>
+          <text class="data-cell data-cell--number">漏水特征</text>
+
+          <!-- 系统 -->
+          <text class="data-cell data-cell--account">创建人</text>
         </view>
 
         <view v-if="loading" class="table-state">加载中...</view>
         <view v-else-if="filteredDevices.length === 0" class="table-state">暂无工单数据</view>
 
         <view
-            v-for="device in filteredDevices"
+            v-for="(device, index) in filteredDevices"
             :key="device.id"
             class="data-row"
             :class="{ 'data-row--active': selectedId === device.id }"
             @click="selectRow(device)"
         >
-          <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
-          <text class="data-cell data-cell--number">{{ getWorksheetNumber(item) }}</text>
-          <text class="data-cell data-cell--type">{{ getWorksheetTypeLabel(item) }}</text>
-          <text class="data-cell data-cell--status">
-            <text class="status-pill" :class="getStatusClass(item)">{{ getWorksheetStatusLabel(item) }}</text>
+
+          <!-- index -->
+          <text class="data-cell data-cell--index">
+            {{ (pagination.current - 1) * pagination.size + index + 1 }}
           </text>
-          <text class="data-cell data-cell--account">{{ getRiseAccount(item) }}</text>
-          <text class="data-cell data-cell--account">{{ getExecuteAccount(item) }}</text>
-          <text class="data-cell data-cell--device">{{ getDeviceReference(item) }}</text>
-          <text class="data-cell data-cell--level">
-            <text class="urgency-pill" :class="getUrgencyClass(item)">{{ getUrgencyLabel(item) }}</text>
-          </text>
-          <text class="data-cell data-cell--time">{{ getRiseTime(item) }}</text>
-          <text class="data-cell data-cell--time">{{ getDeadlineTime(item) }}</text>
-          <text class="data-cell data-cell--time">{{ getFinishTime(item) }}</text>
-          <text class="data-cell data-cell--address">{{ getAddress(item) }}</text>
-          <text class="data-cell data-cell--remark">{{ getRemark(item) }}</text>
+
+          <!-- number -->
+          <text class="data-cell data-cell--number">{{ device.deviceNumber }}</text>
+
+          <!-- product -->
+          <text class="data-cell data-cell--number">{{ device.productId }}</text>
+
+          <!-- number -->
+          <text class="data-cell data-cell--number">{{ device.nbNumber }}</text>
+
+          <!-- type -->
+          <text class="data-cell data-cell--type">{{ device.deviceType }}</text>
+
+          <!-- device identifiers -->
+          <text class="data-cell data-cell--device">{{ device.deviceImei }}</text>
+          <text class="data-cell data-cell--device">{{ device.deviceImsi }}</text>
+          <text class="data-cell data-cell--device">{{ device.serialNumber }}</text>
+
+          <!-- time -->
+          <text class="data-cell data-cell--time">{{ device.factoryTime }}</text>
+
+          <!-- status -->
+          <text class="data-cell data-cell--status">{{ device.enableState }}</text>
+          <text class="data-cell data-cell--status">{{ device.installState }}</text>
+
+          <!-- type -->
+          <text class="data-cell data-cell--type">{{ device.installMode }}</text>
+
+          <!-- address -->
+          <text class="data-cell data-cell--address">{{ device.installAddress }}</text>
+
+          <!-- location -->
+          <text class="data-cell data-cell--location">{{ device.installLongitude }}</text>
+          <text class="data-cell data-cell--location">{{ device.installLatitude }}</text>
+
+          <!-- business -->
+          <text class="data-cell data-cell--number">{{ device.tubeGroup }}</text>
+          <text class="data-cell data-cell--number">{{ device.tubeOrder }}</text>
+
+          <!-- hardware -->
+          <text class="data-cell data-cell--number">{{ device.hardwareVersion }}</text>
+          <text class="data-cell data-cell--number">{{ device.softwareVersion }}</text>
+
+          <!-- level -->
+          <text class="data-cell data-cell--number">{{ device.leakStatus }}</text>
+          <text class="data-cell data-cell--number">{{ device.leakProperty }}</text>
+
+          <!-- time -->
+          <text class="data-cell data-cell--time">{{ device.lastSamplingTime }}</text>
+
+          <!-- business -->
+          <text class="data-cell data-cell--number">{{ device.observeDay }}</text>
+          <text class="data-cell data-cell--number">{{ device.commandSendway }}</text>
+
+          <!-- status -->
+          <text class="data-cell data-cell--status">{{ device.onlineStatus }}</text>
+
+          <!-- network -->
+          <text class="data-cell data-cell--number">{{ device.wifiName }}</text>
+          <text class="data-cell data-cell--number">{{ device.wifiMac }}</text>
+          <text class="data-cell data-cell--number">{{ device.serverIp }}</text>
+          <text class="data-cell data-cell--number">{{ device.serverPort }}</text>
+          <text class="data-cell data-cell--number">{{ device.loraSignalLevel }}</text>
+
+          <!-- hardware -->
+          <text class="data-cell data-cell--number">{{ device.pressureSensorModel }}</text>
+          <text class="data-cell data-cell--number">{{ device.pressureSensorSerial }}</text>
+
+          <!-- account -->
+          <text class="data-cell data-cell--account">{{ device.createUser }}</text>
+
+          <!-- time -->
+          <text class="data-cell data-cell--time">{{ device.createdAt }}</text>
+          <text class="data-cell data-cell--time">{{ device.updatedAt }}</text>
+
         </view>
       </view>
     </scroll-view>
 
     <view class="pagination-bar">
-      <button class="page-button" :disabled="pagination.pageNum <= 1" @click="changePage(-1)">上一页</button>
-      <text class="page-info">第 {{ pagination.pageNum }} / {{ 1 }} 页</text>
-      <button class="page-button" :disabled="pagination.pageNum >= 1" @click="changePage(1)">下一页</button>
+      <button class="page-button" :disabled="pagination.current <= 1" @click="changePage(-1)">上一页</button>
+      <text class="page-info">第 {{ pagination.current }} / {{  Math.ceil(pagination.total / pagination.size) || 1  }} 页</text>
+      <button class="page-button" :disabled="pagination.current >= 1" @click="changePage(1)">下一页</button>
     </view>
   </view>
 </template>
 <script setup lang="ts">
 import {ref, computed, reactive} from 'vue';
 import type { Device } from '@/services/device/types';
+import type {Pagination} from "@/types/api";
 
-interface Props {
+const props = defineProps<{
   devices: Device[];
-}
-
-const pagination = reactive({
-  pageNum: 1,
-  pageSize: 10,
-});
+  pagination: Pagination;
+}>();
 
 const loading = ref(false);
 
-const props = defineProps<Props>();
 
 const emit = defineEmits<{
   (e: 'create'): void;
   (e: 'view', device: Device): void;
   (e: 'edit', device: Device): void;
   (e: 'delete', device: Device): void;
+  (e: 'page-change', step: number): void;
 }>();
 
 const searchKeyword = ref('');
@@ -106,9 +208,14 @@ const filteredDevices = computed(() => {
 });
 
 function changePage(step: number) {
+  const maxPage = Math.ceil(props.pagination.total / props.pagination.size);
+
+  const next = props.pagination.current + step;
+
+  if (next < 1 || next > maxPage) return;
+
+  emit('page-change', next);
 }
-
-
 
 </script>
 <style scoped lang="scss">
@@ -153,6 +260,14 @@ function changePage(step: number) {
   height: 100%;
 }
 
+.table-state {
+  height: 180px;
+  color: #7c8da1;
+  font-size: 14px;
+  line-height: 180px;
+  text-align: center;
+}
+
 .worksheet-table-panel {
   display: flex;
   flex-direction: column;
@@ -166,11 +281,15 @@ function changePage(step: number) {
   align-items: center;
   justify-content: space-between;
 }
-
 .table-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex: none;
+  height: 50px;
+  padding: 0 16px;
+  color: #24445f;
+  font-size: 16px;
+  font-weight: 800;
+  background: #ffffff;
+  border-bottom: 1px solid #edf3f8;
 }
 
 .table-head__meta {
@@ -188,20 +307,23 @@ function changePage(step: number) {
   height: auto;
   min-height: 0;
   background: #ffffff;
+  overflow-x: auto;
+  white-space: nowrap;
 }
 
 .data-table {
-  width: 1880px;
-  min-width: 1880px;
+  display: inline-flex;
+  flex-direction: column;
+  width: max-content;
   background: #ffffff;
 }
 
 
 .data-row {
-  display: grid;
+  display: flex;
   grid-template-columns: 58px 190px 116px 110px 110px 110px 138px 104px 168px 168px 168px 220px 220px;
   min-height: 42px;
-  width: 1880px;
+  width: max-content;
   border-bottom: 1px solid #edf1f5;
   cursor: pointer;
   transition:
@@ -253,7 +375,8 @@ function changePage(step: number) {
 
 
 .data-cell {
-  display: flex;
+  display: flex !important;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   min-width: 0;
@@ -266,6 +389,7 @@ function changePage(step: number) {
   text-overflow: ellipsis;
   white-space: nowrap;
   border-right: 1px solid #edf1f5;
+  width: 140px;
 }
 
 .data-row--header .data-cell {

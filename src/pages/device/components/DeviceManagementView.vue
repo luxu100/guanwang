@@ -32,6 +32,8 @@
       <view class="table-panel">
         <DeviceTableView
             :devices="deviceList"
+            :pagination="pagination"
+            @page-change="handlePageChange"
             @create="handleCreate"
             @view="handleView"
             @edit="handleEdit"
@@ -67,7 +69,7 @@
 import { ref, computed, watch, onMounted } from "vue";
 
 import type { Device } from "@/services/device/types";
-import { getDeviceListT } from "@/services/device/info.typed";
+import { getDevicePageT } from "@/services/device/info.typed";
 
 import DeviceInfoPanel from "./DeviceInfoPanel.vue";
 import DeviceMaintenancePanel from "./DeviceMaintenancePanel.vue";
@@ -92,6 +94,12 @@ const props = defineProps<{
  */
 const deviceList = ref<Device[]>([]);
 const currentDevice = ref<Partial<Device>>({});
+
+const pagination = ref({
+  current: 1,
+  size: 10,
+  total: 0,
+});
 
 /**
  * =========================
@@ -247,10 +255,27 @@ const leakStatusOptions = [
  * =========================
  */
 async function fetchDevices() {
-  const res = await getDeviceListT();
-  deviceList.value = res.data ?? [];
+  const res = await getDevicePageT({
+    ...searchForm.value,
+    page: pagination.value.current,
+    pageSize: pagination.value.size,
+  });
+
+  const pageData = res.data;
+
+  console.log("设备列表:", pageData);
+
+  deviceList.value = pageData?.records ?? [];
+  pagination.value.total = pageData?.total ?? 0;
+  pagination.value.current = pageData?.current ?? 1;
+  pagination.value.size = pageData?.size ?? 10;
 
   currentDevice.value = deviceList.value[0] || {};
+}
+
+function handlePageChange(page: number) {
+  pagination.value.current = page;
+  fetchDevices();
 }
 
 /**

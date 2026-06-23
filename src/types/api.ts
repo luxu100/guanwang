@@ -11,3 +11,9 @@ export interface PageResult<T> {
     size: number;
     current: number;
 }
+
+export interface Pagination {
+    current: number;
+    size: number;
+    total: number;
+}
