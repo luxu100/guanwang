@@ -178,3 +178,30 @@ export interface DeviceDept {
     updatedAt: string;
     isDeleted: boolean;
 }
+
+export interface MaintenanceRecord {
+    id: number;
+    deviceId?: number;
+    deviceNumber?: string;
+
+    maintainType?: number;        // 0-拆 1-装 2-维护 3-巡检
+    maintainTime?: string;        // datetime
+    maintainAddress?: string;
+    maintainCoordinate?: string;
+
+    installMode?: number;
+    maintainAccount?: string;
+    maintainFeedback?: string;
+
+    maintainPicture?: string;     // file id list (comma/json string)
+
+    tubeGroup?: string;
+    tubeMaterial?: string;
+    tubeBore?: string;
+    tubeOrder?: number;
+
+    remark?: string;
+
+    createdAt?: string;
+    updatedAt?: string;
+}
