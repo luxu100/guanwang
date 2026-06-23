@@ -189,6 +189,9 @@ import SystemManagementView from "@/pages/system/components/SystemManagementView
 import DataReceiveView from "@/pages/data-receive/components/DataReceiveView.vue";
 import WorkOrderCreateView from "@/pages/work-order/components/WorkOrderCreateView.vue";
 import WorksheetTableView from "@/pages/work-order/components/WorksheetTableView.vue";
+import LeakManagementView from "@/pages/leak-report/components/LeakManagementView.vue";
+import LeakAnalysisView from "@/pages/leak-report/components/LeakAnalysisView.vue";
+import HistoryOverviewView from "@/pages/leak-report/components/HistoryOverviewView.vue";
 import { MENU_COLLAPSED_KEY, OPENED_TABS_KEY } from "@/utils/appShellStorage";
 import { clearAuthStorage, createProtectedRouteDecision, LOGIN_PATH } from "@/utils/authGuard";
 import { filterMenuItemsByAccess, flattenMenuPaths, getFirstAccessiblePath } from "@/utils/menuAccess";
@@ -335,9 +338,9 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/data-analysis/leakage/leakage": createPlaceholderContent("/pages/data-analysis/leakage/leakage"),
   "/pages/leak-report/suspect-management/suspect-management": createPlaceholderContent("/pages/leak-report/suspect-management/suspect-management"),
   "/pages/leak-report/suspect-processing/suspect-processing": createPlaceholderContent("/pages/leak-report/suspect-processing/suspect-processing"),
-  "/pages/leak-report/leak-management/leak-management": createPlaceholderContent("/pages/leak-report/leak-management/leak-management"),
-  "/pages/leak-report/leak-analysis/leak-analysis": createPlaceholderContent("/pages/leak-report/leak-analysis/leak-analysis"),
-  "/pages/leak-report/history-overview/history-overview": createPlaceholderContent("/pages/leak-report/history-overview/history-overview"),
+  "/pages/leak-report/leak-management/leak-management": { component: LeakManagementView },
+  "/pages/leak-report/leak-analysis/leak-analysis": { component: LeakAnalysisView },
+  "/pages/leak-report/history-overview/history-overview": { component: HistoryOverviewView },
   "/pages/statistics/statistics": createPlaceholderContent("/pages/statistics/statistics"),
   "/pages/work-order/create/create": { component: WorkOrderCreateView },
   "/pages/work-order/processing/processing": { component: WorksheetTableView, props: { mode: "processing" } },
