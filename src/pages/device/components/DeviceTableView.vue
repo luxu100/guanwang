@@ -1,64 +1,80 @@
 <template>
-  <view class="device-table-view">
+  <view class="worksheet-table-panel">
+    <view class="table-head">
+      <text>{{ 123 }}</text>
+      <text class="table-head__meta">共 {{ 123 }} 条</text>
+    </view>
 
-    <!-- 2. 设备列表表格 -->
-    <view class="device-table__container">
-      <view class="device-table__head">
-        <text class="col-number">设备编号</text>
-        <text class="col-name">产品名称</text>
-        <text class="col-address">安装地址</text>
-        <text class="col-status">在线状态</text>
-        <text class="col-time">创建时间</text>
-        <text class="col-actions">操作</text>
-      </view>
-
-      <scroll-view class="device-table__body" scroll-y>
-        <!-- 空状态 -->
-        <view v-if="!filteredDevices.length" class="device-table__empty">
-          <text>暂无匹配的设备数据</text>
+    <scroll-view class="table-scroll" scroll-x scroll-y>
+      <view class="data-table">
+        <view class="data-row data-row--header">
+          <text class="data-cell data-cell--index">序号</text>
+          <text class="data-cell data-cell--number">工单编号</text>
+          <text class="data-cell data-cell--type">工单类型</text>
+          <text class="data-cell data-cell--status">工单状态</text>
+          <text class="data-cell data-cell--account">发起人</text>
+          <text class="data-cell data-cell--account">执行人</text>
+          <text class="data-cell data-cell--device">设备引用</text>
+          <text class="data-cell data-cell--level">紧急程度</text>
+          <text class="data-cell data-cell--time">发起时间</text>
+          <text class="data-cell data-cell--time">截止时间</text>
+          <text class="data-cell data-cell--time">完成时间</text>
+          <text class="data-cell data-cell--address">地址</text>
+          <text class="data-cell data-cell--remark">备注</text>
         </view>
 
-        <!-- 数据行 -->
+        <view v-if="loading" class="table-state">加载中...</view>
+        <view v-else-if="filteredDevices.length === 0" class="table-state">暂无工单数据</view>
+
         <view
             v-for="device in filteredDevices"
             :key="device.id"
-            class="device-table__row"
+            class="data-row"
             :class="{ 'data-row--active': selectedId === device.id }"
             @click="selectRow(device)"
         >
-          <text class="col-number device-table__number">{{ device.deviceNumber }}</text>
-          <text class="col-name">{{ device.productName }}</text>
-          <text class="col-address">{{ device.installAddress }}</text>
-
-          <!-- 状态标签 -->
-          <view class="col-status">
-            <text
-                class="device-status__pill"
-                :class="device.onlineStatus === 1 ? 'device-status--online' : 'device-status--offline'"
-            >
-              {{ device.onlineStatus === 1 ? '在线' : '离线' }}
-            </text>
-          </view>
-
-          <text class="col-time">{{ device.createdAt || '-' }}</text>
-
-          <!-- 操作按钮 -->
-          <view class="col-actions device-row__actions" @click.stop>
-            <button class="device-btn device-btn--edit" @click="$emit('edit', device)">编辑</button>
-            <button class="device-btn device-btn--delete" @click="$emit('delete', device)">删除</button>
-          </view>
+          <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
+          <text class="data-cell data-cell--number">{{ getWorksheetNumber(item) }}</text>
+          <text class="data-cell data-cell--type">{{ getWorksheetTypeLabel(item) }}</text>
+          <text class="data-cell data-cell--status">
+            <text class="status-pill" :class="getStatusClass(item)">{{ getWorksheetStatusLabel(item) }}</text>
+          </text>
+          <text class="data-cell data-cell--account">{{ getRiseAccount(item) }}</text>
+          <text class="data-cell data-cell--account">{{ getExecuteAccount(item) }}</text>
+          <text class="data-cell data-cell--device">{{ getDeviceReference(item) }}</text>
+          <text class="data-cell data-cell--level">
+            <text class="urgency-pill" :class="getUrgencyClass(item)">{{ getUrgencyLabel(item) }}</text>
+          </text>
+          <text class="data-cell data-cell--time">{{ getRiseTime(item) }}</text>
+          <text class="data-cell data-cell--time">{{ getDeadlineTime(item) }}</text>
+          <text class="data-cell data-cell--time">{{ getFinishTime(item) }}</text>
+          <text class="data-cell data-cell--address">{{ getAddress(item) }}</text>
+          <text class="data-cell data-cell--remark">{{ getRemark(item) }}</text>
         </view>
-      </scroll-view>
+      </view>
+    </scroll-view>
+
+    <view class="pagination-bar">
+      <button class="page-button" :disabled="pagination.pageNum <= 1" @click="changePage(-1)">上一页</button>
+      <text class="page-info">第 {{ pagination.pageNum }} / {{ 1 }} 页</text>
+      <button class="page-button" :disabled="pagination.pageNum >= 1" @click="changePage(1)">下一页</button>
     </view>
   </view>
 </template>
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import {ref, computed, reactive} from 'vue';
 import type { Device } from '@/services/device/types';
 
 interface Props {
   devices: Device[];
 }
+
+const pagination = reactive({
+  pageNum: 1,
+  pageSize: 10,
+});
+
+const loading = ref(false);
 
 const props = defineProps<Props>();
 
@@ -88,168 +104,135 @@ const filteredDevices = computed(() => {
       d.deviceNumber.toLowerCase().includes(keyword)
   );
 });
-</script>
 
-<style scoped lang="scss">
-/* 1. 容器与头部 */
-.device-table-view {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  background: #ffffff;
-  border-radius: 8px;
-  overflow: hidden;
+function changePage(step: number) {
 }
 
-.device-table__header-bar {
+
+
+</script>
+<style scoped lang="scss">
+
+.pagination-bar{
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
-  border-bottom: 1px solid #e4eaf0;
 }
 
-.device-search__box {
-  flex: 1;
-  max-width: 300px;
+.page-info {
+  color: #64748b;
+  font-size: 13px;
 }
 
-.device-search__input {
-  width: 100%;
-  height: 36px;
+.page-button::after {
+  border: 0;
+}
+
+.page-button {
+  height: 30px;
+  margin: 0;
   padding: 0 12px;
-  border: 1px solid #d0d9e2;
-  border-radius: 6px;
+  color: #31506d;
   font-size: 13px;
-  outline: none;
-  transition: border-color 0.2s;
-
-  &:focus {
-    border-color: #1a65d6;
-  }
+  line-height: 30px;
+  background: #f6fbff;
+  border: 1px solid #cbdced;
+  border-radius: 4px;
 }
 
-.device-action__add-btn {
-  height: 36px;
-  padding: 0 16px;
-  background: #1a65d6; /* 科技感蓝色 */
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  transition: opacity 0.2s;
-
-  &:hover { opacity: 0.9; }
+.page-button[disabled] {
+  color: #a9b4c1;
+  background: #f4f7fa;
 }
 
-/* 2. 表格主体 */
-.device-table__container {
-  flex: 1;
+.worksheet-table-panel {
+  background: #ffffff;
+  border: 1px solid #d8e5ef;
+  border-radius: 6px;
+  box-shadow: 0 12px 26px rgba(35, 72, 104, 0.09);
+  height: 100%;
+}
+
+.worksheet-table-panel {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   min-height: 0;
+  overflow: hidden;
 }
 
-.device-table__head,
-.device-table__row {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr 1.5fr 0.8fr 1fr 1fr;
-  align-items: center;
-  padding: 0 16px;
-  font-size: 13px;
-}
-
-.device-table__head {
-  height: 40px;
-  background: #f0f5fa; /* 表头背景色 */
-  color: #5a6d82;      /* 表头文字色 */
-  font-weight: 800;
-  border-bottom: 1px solid #e4eaf0;
-}
-
-.device-table__body {
-  flex: 1;
-  min-height: 0;
-}
-
-.device-table__row {
-  height: 50px;
-  border-bottom: 1px solid #f0f4f8;
-  cursor: pointer;
-  transition: background 0.2s;
-
-  &:hover {
-    background: #f7fafd;
-  }
-}
-
-.device-table__number {
-  font-weight: 700;
-  color: #1a65d6;
-}
-
-/* 3. 状态标签 */
-.device-status__pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 10px;
-  height: 22px;
-  font-size: 12px;
-  border-radius: 999px;
-  font-weight: 700;
-}
-
-.device-status--online {
-  background: #e6f7ee;
-  color: #0f7b43;
-}
-
-.device-status--offline {
-  background: #f0f4f8;
-  color: #6b7f94;
-}
-
-/* 4. 操作按钮 */
-.device-row__actions {
+.table-head {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.device-btn {
+.table-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.table-head__meta {
   padding: 4px 10px;
-  font-size: 12px;
-  font-weight: 700;
-  border-radius: 4px;
-  border: 1px solid transparent;
+  color: #6a7f94;
+  font-size: 13px;
+  font-weight: 800;
+  background: #f7fafc;
+  border: 1px solid #e3ebf2;
+  border-radius: 999px;
+}
+
+.table-scroll {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+  background: #ffffff;
+}
+
+.data-table {
+  width: 1880px;
+  min-width: 1880px;
+  background: #ffffff;
+}
+
+
+.data-row {
+  display: grid;
+  grid-template-columns: 58px 190px 116px 110px 110px 110px 138px 104px 168px 168px 168px 220px 220px;
+  min-height: 42px;
+  width: 1880px;
+  border-bottom: 1px solid #edf1f5;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition:
+      background 0.18s ease,
+      box-shadow 0.18s ease;
 }
 
-.device-btn--edit {
-  background: #eef4ff;
-  color: #1a65d6;
-  border-color: #c2d9f7;
+.data-row--header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  min-height: 44px;
+  color: #20384f;
+  font-weight: 800;
+  background: #f6f9fc;
+  cursor: default;
+  box-shadow: 0 1px 0 #dbe7f0;
 }
 
-.device-btn--delete {
-  background: #fff1ee;
-  color: #c93526;
-  border-color: #fcdad5;
+.data-row:not(.data-row--header):nth-child(odd) {
+  background: #ffffff;
 }
 
-/* 5. 空状态 */
-.device-table__empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 200px;
-  color: #8a9bb0;
-  font-size: 14px;
+.data-row:not(.data-row--header):nth-child(even) {
+  background: #fbfdff;
 }
 
+.data-row:not(.data-row--header):hover {
+  background: #f1f8ff;
+  box-shadow: inset 0 0 0 1px #d7ebfb;
+}
 
 .data-row--active {
   position: relative;
@@ -266,5 +249,58 @@ const filteredDevices = computed(() => {
   content: "";
   background: #0d82ee;
   border-radius: 0 999px 999px 0;
+}
+
+
+.data-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 0 12px;
+  overflow: hidden;
+  color: #24384d;
+  font-size: 13px;
+  line-height: 1.35;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-right: 1px solid #edf1f5;
+}
+
+.data-row--header .data-cell {
+  color: #415a73;
+  font-size: 12px;
+  letter-spacing: 0;
+}
+
+.data-cell:last-child {
+  border-right: 0;
+}
+
+.data-cell--index {
+  justify-content: center;
+  color: #64748b;
+}
+
+.data-cell--number {
+  color: #0f4c81;
+  font-family: "DIN Alternate", "Arial", sans-serif;
+  font-weight: 800;
+}
+
+.data-cell--address,
+.data-cell--remark {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.pagination-bar {
+  flex: none;
+  justify-content: flex-end;
+  gap: 10px;
+  height: 48px;
+  padding: 0 14px;
+  border-top: 1px solid #edf3f8;
 }
 </style>

@@ -1,56 +1,37 @@
 export interface Device {
     id: number;
-
     deviceNumber: string;
     productId: number;
-    productName?: string;
-
     nbNumber: string;
     deviceType: string;
-
     deviceImei: string;
     deviceImsi: string;
     serialNumber: string;
-
     factoryTime?: string;
-
     enableState: number;
     installState: number;
     installMode: number;
-
     installAddress: string;
     installLongitude: number;
     installLatitude: number;
-
     tubeGroup: string;
     tubeOrder: number;
-
     hardwareVersion: string;
     softwareVersion: string;
-
     leakStatus: number;
     leakProperty: number;
-
     lastSamplingTime?: string;
     observeDay: number;
-
     commandSendway: number;
-
     onlineStatus: number;
-
     wifiName?: string;
     wifiMac?: string;
-
     serverIp?: string;
     serverPort?: string;
-
     loraSignalLevel?: string;
-
     pressureSensorModel?: string;
     pressureSensorSerial?: string;
-
     createUser?: string;
-
     createdAt?: string;
     updatedAt?: string;
 }
