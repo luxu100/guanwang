@@ -88,7 +88,7 @@ import DeviceDatetimePicker from "@/pages/device/components/DeviceDatetimePicker
  */
 type Option = { label: string; value: string | number };
 
-type DictKey = "product" | "enable" | "install" | "online" | "leak";
+type DictKey = "product" | "enable" | "install" | "online" | "leak" | "maintain";
 
 type Field =
     | { key: string; label: string; type: "input" }
@@ -111,6 +111,7 @@ const props = defineProps<{
   installStateOptions: Option[];
   onlineStatusOptions: Option[];
   leakStatusOptions: Option[];
+  maintainTypeOptions: Option[];
 }>();
 
 const emit = defineEmits<{
@@ -150,6 +151,7 @@ const dictMap: Record<DictKey, Option[]> = {
   install: props.installStateOptions,
   online: props.onlineStatusOptions,
   leak: props.leakStatusOptions,
+  maintain: props.maintainTypeOptions,
 };
 
 /**

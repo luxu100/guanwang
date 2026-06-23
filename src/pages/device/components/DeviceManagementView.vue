@@ -20,13 +20,14 @@
         :install-state-options="installStateOptions"
         :online-status-options="onlineStatusOptions"
         :leak-status-options="leakStatusOptions"
+        :maintain-type-options="maintainTypeOptions"
         @search="handleSearch"
         @reset="handleReset"
         @refresh="fetchDevices"
     />
 
     <!-- 主体 -->
-    <view class="worksheet-layout">
+    <view class="worksheet-layout" :class="layoutClass">
 
       <!-- 左侧 table（固定不变） -->
       <view class="table-panel">
@@ -138,14 +139,14 @@ const deviceModuleConfig = {
 
     searchForm: {
       deviceNumber: "",
-      installState: "",
+      maintainType: "",
       startTime: "",
       endTime: "",
     },
 
     toolbar: [
       { key: "deviceNumber", label: "设备编号", type: "input" },
-      { key: "installState", label: "安装状态", type: "select", dict: "install" },
+      { key: "maintainType", label: "维护类型", type: "select", dict: "maintain" },
       { key: "startTime", label: "开始时间", type: "date" },
       { key: "endTime", label: "结束时间", type: "date" },
     ],
@@ -185,7 +186,8 @@ const CurrentPanel = computed(() => currentModule.value.panel);
 /**
  * toolbar config（核心）
  */
-const toolbarConfig = computed(() => currentModule.value.toolbar);
+// const toolbarConfig = computed(() => currentModule.value.toolbar);
+const toolbarConfig = computed(() => deviceModuleConfig['info'].toolbar);
 
 /**
  * search form（随 mode 切换）
@@ -203,8 +205,6 @@ watch(
       searchForm.value = {
         ...currentModule.value.searchForm,
       };
-
-      console.log("searchForm", searchForm.value);
 
       fetchDevices();
     },
@@ -231,6 +231,14 @@ const enableStateOptions: SelectOption[] = [
   { label: "全部", value: "" },
   { label: "启用", value: 1 },
   { label: "禁用", value: 0 },
+];
+
+const maintainTypeOptions: SelectOption[] = [
+    { label: "全部", value: "" },
+    { label: "拆", value: 0 },
+    { label: "装", value: 1 },
+    { label: "维护", value: 2 },
+    { label: "巡检", value: 3 },
 ];
 
 const installStateOptions: SelectOption[] = [
@@ -261,7 +269,7 @@ const leakStatusOptions = [
 async function fetchDevices() {
   const res = await getDevicePageT({
     ...searchForm.value,
-    page: pagination.value.current,
+    pageNum: pagination.value.current,
     pageSize: pagination.value.size,
   });
 
@@ -286,7 +294,6 @@ function handlePageChange(page: number) {
  * =========================
  */
 function handleSearch() {
-  console.log("handleSearch", searchForm.value);
   fetchDevices();
 }
 
@@ -322,6 +329,12 @@ function handleDelete(device: Device) {
   });
 }
 
+const layoutClass = computed(() => {
+  return props.mode === "maintenance"
+      ? "layout-equal"
+      : "layout-split";
+});
+
 onMounted(() => {
   fetchDevices();
 });
@@ -346,13 +359,22 @@ onMounted(() => {
   flex: 1;
 
   display: grid;
-  grid-template-columns: minmax(0,1fr) 380px;
 
   gap: 14px;
   margin-top: 14px;
 
   min-height: 0;
   overflow: hidden;
+}
+
+/* 默认：左列表 + 右详情 */
+.layout-split {
+  grid-template-columns: minmax(0, 1fr) 380px;
+}
+
+/* maintenance：左右等分 */
+.layout-equal {
+  grid-template-columns: 1fr 1fr;
 }
 
 .table-panel,
