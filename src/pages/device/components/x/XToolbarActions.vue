@@ -1,8 +1,18 @@
 <template>
   <view class="toolbar-actions">
     <slot name="left" />
+
     <button
+        v-if="showAdd"
         class="toolbar-button toolbar-button--primary"
+        hover-class="toolbar-button--hover"
+        @click="emit('add')"
+    >
+      新增
+    </button>
+
+    <button
+        class="toolbar-button"
         hover-class="toolbar-button--hover"
         :disabled="loading"
         @click="emit('search')"
@@ -20,17 +30,8 @@
     </button>
 
     <button
-        v-if="showAdd"
-        class="toolbar-button"
-        hover-class="toolbar-button--hover"
-        @click="emit('add')"
-    >
-      新增
-    </button>
-
-    <button
         v-if="showDelete"
-        class="toolbar-button"
+        class="toolbar-button toolbar-button--danger"
         hover-class="toolbar-button--hover"
         :disabled="!canDelete"
         @click="emit('delete')"

@@ -61,7 +61,15 @@
             @add="$emit('add')"
             @delete="$emit('delete')"
             @refresh="$emit('refresh')"
-        />
+        >
+          <template #left>
+            <slot name="actions-left" />
+          </template>
+
+          <template #right>
+            <slot name="actions-right" />
+          </template>
+        </XToolbarActions>
       </view>
     </view>
   </view>

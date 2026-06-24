@@ -40,7 +40,6 @@
             :title="item.label"
             :placeholder="item.label"
         />
-
       </view>
 
     </view>
@@ -50,7 +49,12 @@
         @reset="emit('reset')"
         @refresh="emit('refresh')"
         @add="emit('add')"
-    />
+    >
+      <template #left>
+        <button class = "toolbar-button toolbar-button--green" @click="emit('onImport')">导入</button>
+        <button class = "toolbar-button toolbar-button--green" @click="emit('onExport')">导出</button>
+      </template>
+    </XToolbarActions>
 
   </view>
 </template>
@@ -98,6 +102,8 @@ const emit = defineEmits<{
   (e: "reset"): void;
   (e: "refresh"): void;
   (e: "add"): void;
+  (e: "onImport"): void;
+  (e: "onExport"): void;
 }>();
 
 /**
@@ -374,6 +380,21 @@ function getLabel(item: Field) {
   color: #b42318;
   background: #fff5f3;
   border-color: #ffc9c0;
+}
+
+.toolbar-button--green {
+  color: #16a34a;                 /* 稍深一点的绿（保证可读性） */
+  background: #ecfdf3;           /* 很浅的绿底（贴你蓝系风格） */
+  border: 1px solid #b7ebc6;     /* 柔和绿边（和 #cbdced 同级别） */
+
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.toolbar-button--green:hover {
+  color: #15803d;
+  background: #dcfce7;
+  border-color: #86efac;
 }
 
 .toolbar-button--hover,

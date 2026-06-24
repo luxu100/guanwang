@@ -96,13 +96,29 @@
       <button class="page-button" :disabled="pagination.current >= 1" @click="changePage(1)">下一页</button>
     </view>
   </view>
+
+  <XDynamicDialog
+      v-model:visible="dialogVisible"
+      v-model="formData"
+      :schema="addSchema"
+      title="新增维护记录"
+      @submit="handleSubmit"
+      @cancel="dialogVisible = false"
+  />
 </template>
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import type {Device, MaintenanceRecord} from '@/services/device/types';
+import type {Device, MaintenanceRecord,MaintenanceCreateForm} from '@/services/device/types';
 import type { Pagination } from '@/types/api';
-import {deleteMaintenanceRecordT, getMaintenanceRecordPageT} from "@/services/device/maintenance.typed";
+import {
+  createMaintenanceRecordT,
+  deleteMaintenanceRecordT,
+  getMaintenanceRecordPageT
+} from "@/services/device/maintenance.typed";
 import MaintenanceRecordToolbar from "@/pages/device/maintenance/components/MaintenanceRecordToolbar.vue";
+import type {FormSection} from "@/pages/device/components/x/types";
+import XDynamicDialog from "@/pages/device/components/x/XDynamicDialog.vue";
+
 
 // ===== 数据 =====
 const loading = ref(false);
@@ -127,6 +143,95 @@ const searchForm = ref({
   startTime: '',
   endTime: ''
 });
+
+const dialogVisible = ref(false);
+const formData = ref<MaintenanceCreateForm>({})
+const addSchema: FormSection[] = [
+  {
+    title: "基础信息",
+    fields: [
+      {
+        key: "deviceNumber",
+        label: "设备编号",
+        type: "input",
+        required: true
+      },
+      {
+        key: "maintainType",
+        label: "维护类型",
+        type: "select",
+        required: true,
+        options: [
+          { label: "拆卸", value: 0 },
+          { label: "安装", value: 1 },
+          { label: "维护", value: 2 },
+          { label: "巡检", value: 3 }
+        ]
+      },
+      {
+        key: "maintainTime",
+        label: "维护时间",
+        type: "datetime",
+        required: true
+      },
+      {
+        key: "maintainAddress",
+        label: "维护地址",
+        type: "input"
+      },
+      {
+        key: "installMode",
+        label: "安装模式",
+        type: "select",
+        options: [
+          { label: "固定点", value: 0 },
+          { label: "流动点", value: 1 }
+        ]
+      },
+      {
+        key: "tubeGroup",
+        label: "管组编号",
+        type: "input"
+      },
+      {
+        key: "tubeMaterial",
+        label: "管材",
+        type: "input"
+      },
+      {
+        key: "tubeBore",
+        label: "管径",
+        type: "input"
+      },
+      {
+        key: "remark",
+        label: "备注",
+        type: "textarea"
+      }
+    ]
+  },
+  {
+    title: "扩展信息（可选）",
+    fields: [
+      {
+        key: "maintainAccount",
+        label: "维护人员",
+        type: "input"
+      },
+      {
+        key: "maintainFeedback",
+        label: "维护反馈",
+        type: "textarea",
+        large: true
+      },
+      {
+        key: "maintainCoordinate",
+        label: "坐标",
+        type: "input"
+      }
+    ]
+  }
+];
 
 watch(
     // 1. 直接监听具体的字段
@@ -210,11 +315,89 @@ async function handleSearch() {
 }
 
 function handleAdd() {
+  formData.value = {
+    deviceNumber: props.deviceData?.deviceNumber || "",
+    maintainType: undefined,
+    maintainTime: "",
+    maintainAddress: "",
+    installMode: undefined,
+    tubeGroup: "",
+    tubeMaterial: "",
+    tubeBore: "",
+    tubeOrder: undefined,
+    remark: "",
+    maintainAccount: "",
+    maintainFeedback: "",
+    maintainCoordinate: "",
+    maintainPicture: ""
+  };
 
+  dialogVisible.value = true;
 }
 
-function handleDelete() {
+async function handleSubmit(form: MaintenanceCreateForm) {
+  try {
+    const payload: MaintenanceCreateForm = {
+      ...form,
+    };
 
+    const res = await createMaintenanceRecordT(payload);
+
+    if (res.code !== 200) {
+      uni.showToast({
+        title: res.msg || "失败",
+        icon: "error"
+      });
+      console.log(res)
+      return;
+    }else {
+      uni.showToast({
+        title: "新增成功",
+        icon: "success"
+      });
+      await fetchMaintenanceRecords();
+    }
+    dialogVisible.value = false;
+
+  } catch (e: any) {
+    console.error("submit error:", e);
+
+    uni.showToast({
+      title: e?.message || "新增失败",
+      icon: "error"
+    });
+  }
+}
+
+async function handleDelete() {
+  try {
+    if (!selectedId.value) return;
+
+    uni.showModal({
+      title: '提示',
+      content: '确定要删除该记录吗？',
+      success: async (res) => {
+        if (!res.confirm) return;
+
+        await deleteMaintenanceRecordT(selectedId.value ?? 0);
+
+        await fetchMaintenanceRecords();
+
+        uni.showToast({
+          title: '删除成功',
+          icon: 'success'
+        });
+
+        selectedId.value = null;
+      }
+    });
+
+  } catch (e: any) {
+    uni.showToast({
+      title: e?.message || '删除失败',
+      icon: 'error'
+    });
+  }
 }
 
 </script>

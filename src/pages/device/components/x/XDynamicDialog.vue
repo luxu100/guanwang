@@ -100,12 +100,13 @@
                   </view>
 
                   <!-- datetime placeholder -->
-                  <view
+                  <XDatetimePicker
                       v-else-if="field.type === 'datetime'"
-                      class="form-input"
-                  >
-                    {{ field.placeholder }}
-                  </view>
+                      v-model="formData[field.key]"
+                      class="datetime-wrapper"
+                      :title="field.label"
+                      :placeholder="field.placeholder || field.label"
+                  />
 
                   <!-- textarea -->
                   <textarea
@@ -191,6 +192,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from "vue";
 import type {FieldOption, FormSection} from "@/pages/device/components/x/types";
+import XDatetimePicker from "@/pages/device/components/x/XDatetimePicker.vue";
 
 interface Props {
   modelValue: Record<string, any>;
@@ -374,6 +376,13 @@ defineExpose({
 });
 </script>
 <style scoped lang="scss">
+
+
+.datetime-wrapper {
+  display: block;
+  width: 100%;
+}
+
 .primary-button,
 .secondary-button,
 .icon-button {
