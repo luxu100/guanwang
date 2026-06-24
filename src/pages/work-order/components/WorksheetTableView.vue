@@ -186,8 +186,8 @@
                 <text class="detail-summary__number">{{ baseSummary.number }}</text>
               </view>
               <view class="detail-summary__badges">
-                <text class="detail-summary__badge detail-summary__badge--status">{{ baseSummary.status }}</text>
-                <text class="detail-summary__badge detail-summary__badge--level">{{ baseSummary.urgency }}</text>
+                <text class="detail-summary__badge status-pill" :class="baseSummary.statusClass">{{ baseSummary.status }}</text>
+                <text class="detail-summary__badge urgency-pill" :class="baseSummary.urgencyClass">{{ baseSummary.urgency }}</text>
               </view>
             </view>
 
@@ -423,6 +423,8 @@ const baseSummary = computed(() => {
     number: getWorksheetNumber(item),
     status: getWorksheetStatusLabel(item),
     urgency: getUrgencyLabel(item),
+    statusClass: getStatusClass(item),
+    urgencyClass: getUrgencyClass(item),
   };
 });
 const secondaryBaseDetailFields = computed(() =>
@@ -1975,27 +1977,9 @@ defineExpose({
 }
 
 .detail-summary__badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 26px;
-  padding: 0 10px;
-  font-size: 12px;
-  font-weight: 900;
-  border: 1px solid transparent;
-  border-radius: 999px;
-}
-
-.detail-summary__badge--status {
-  color: #0d5ea6;
-  background: #eaf4ff;
-  border-color: #cfe7fb;
-}
-
-.detail-summary__badge--level {
-  color: #177245;
-  background: #eaf8ef;
-  border-color: #bfe8ce;
+  min-width: 64px;
+  height: 26px;
+  line-height: 26px;
 }
 
 .detail-grid--base {
