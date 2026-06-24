@@ -16,7 +16,7 @@
 
         <view class="filter-group">
           <text class="filter-label">工单类型</text>
-          <picker :range="worksheetTypeOptions" range-key="label" @change="handleTypeChange">
+          <picker :range="worksheetTypeOptions" range-key="label" :value="currentTypeIndex" @change="handleTypeChange">
             <view class="filter-select">
               <text>{{ currentTypeLabel }}</text>
               <text class="filter-select__arrow"></text>
@@ -26,9 +26,19 @@
 
         <view class="filter-group">
           <text class="filter-label">工单状态</text>
-          <picker :range="worksheetStatusOptions" range-key="label" @change="handleStatusChange">
+          <picker :range="worksheetStatusOptions" range-key="label" :value="currentStatusIndex" @change="handleStatusChange">
             <view class="filter-select">
               <text>{{ currentStatusLabel }}</text>
+              <text class="filter-select__arrow"></text>
+            </view>
+          </picker>
+        </view>
+
+        <view class="filter-group">
+          <text class="filter-label">紧急程度</text>
+          <picker :range="urgencyFilterOptions" range-key="label" :value="currentUrgencyIndex" @change="handleUrgencyChange">
+            <view class="filter-select">
+              <text>{{ currentUrgencyLabel }}</text>
               <text class="filter-select__arrow"></text>
             </view>
           </picker>
@@ -43,11 +53,16 @@
           <text class="filter-label">执行人</text>
           <input v-model="filters.executeAccount" class="filter-input filter-input--name" placeholder="请输入执行人" placeholder-class="input-placeholder" />
         </view>
+
+        <view class="filter-group">
+          <text class="filter-label">关联设备</text>
+          <input v-model="filters.deviceReference" class="filter-input filter-input--device" placeholder="设备编号" placeholder-class="input-placeholder" />
+        </view>
       </view>
 
       <view class="toolbar-row toolbar-row--bottom">
         <view class="filter-group filter-group--date">
-          <text class="filter-label">创建时间</text>
+          <text class="filter-label">发起时间</text>
           <view class="date-range">
             <WorkOrderDatetimePicker v-model="filters.startTime" class="filter-datetime" title="选择开始时间" placeholder="请选择开始时间" />
             <text class="filter-separator">至</text>
@@ -206,7 +221,7 @@
             <text class="process-box__title">工单处理</text>
             <view class="form-field">
               <text class="form-label">处理状态</text>
-              <picker :range="worksheetStatusOptionsWithoutAll" range-key="label" @change="handleProcessStatusChange">
+              <picker :range="worksheetStatusOptionsWithoutAll" range-key="label" :value="processStatusIndex" @change="handleProcessStatusChange">
                 <view class="form-select">{{ processStatusLabel }}</view>
               </picker>
             </view>
@@ -231,7 +246,7 @@
                 {{ submittingProcess ? "保存中..." : "保存处理" }}
               </button>
               <button class="toolbar-button" :disabled="submittingProcess" hover-class="toolbar-button--hover" @click="markFinished">标记完成</button>
-              <button class="toolbar-button toolbar-button--danger" :disabled="submittingProcess" hover-class="toolbar-button--hover" @click="markClosed">关闭工单</button>
+              <button class="toolbar-button toolbar-button--danger" :disabled="submittingProcess" hover-class="toolbar-button--hover" @click="cancelWorksheet">取消工单</button>
             </view>
           </view>
 
@@ -261,7 +276,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { getWorksheetCreatePage } from "@/services/work-order/create";
-import { getWorksheetProcessDetail, getWorksheetProcessPage, updateWorksheetProcess } from "@/services/work-order/processing";
+import { closeWorksheet, getWorksheetProcessDetail, getWorksheetProcessPage, updateWorksheetProcess } from "@/services/work-order/processing";
 import { getWorksheetStatisticsPage } from "@/services/work-order/statistics";
 import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
 
@@ -317,6 +332,10 @@ const urgencyOptions: Array<SelectOption<number>> = [
   { label: "一般", value: 0 },
   { label: "紧急", value: 1 },
 ];
+const urgencyFilterOptions: SelectOption[] = [
+  { label: "不限", value: "" },
+  ...urgencyOptions,
+];
 
 const detailTabs: Array<{ label: string; value: DetailTab }> = [
   { label: "工单详情", value: "base" },
@@ -333,8 +352,10 @@ const filters = reactive({
   worksheetNumber: "",
   worksheetType: "" as number | "",
   worksheetStatus: "" as number | "",
+  urgencyLevel: "" as number | "",
   riseAccount: "",
   executeAccount: "",
+  deviceReference: "",
 });
 
 const pagination = reactive({
@@ -361,7 +382,12 @@ const activeTab = ref<DetailTab>("base");
 const pageTitle = computed(() => pageTitleMap[props.mode]);
 const currentTypeLabel = computed(() => getOptionLabel(worksheetTypeOptions, filters.worksheetType, "不限"));
 const currentStatusLabel = computed(() => getOptionLabel(worksheetStatusOptions, filters.worksheetStatus, "不限"));
+const currentUrgencyLabel = computed(() => getOptionLabel(urgencyFilterOptions, filters.urgencyLevel, "不限"));
 const processStatusLabel = computed(() => getOptionLabel(worksheetStatusOptionsWithoutAll, processForm.worksheetStatus, "处理中"));
+const currentTypeIndex = computed(() => getOptionIndex(worksheetTypeOptions, filters.worksheetType));
+const currentStatusIndex = computed(() => getOptionIndex(worksheetStatusOptions, filters.worksheetStatus));
+const currentUrgencyIndex = computed(() => getOptionIndex(urgencyFilterOptions, filters.urgencyLevel));
+const processStatusIndex = computed(() => getOptionIndex(worksheetStatusOptionsWithoutAll, processForm.worksheetStatus));
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pagination.pageSize)));
 
 const baseDetailFields = computed(() => {
@@ -455,6 +481,10 @@ function handleStatusChange(event: { detail: { value: number } }) {
   filters.worksheetStatus = worksheetStatusOptions[event.detail.value]?.value ?? "";
 }
 
+function handleUrgencyChange(event: { detail: { value: number } }) {
+  filters.urgencyLevel = urgencyFilterOptions[event.detail.value]?.value ?? "";
+}
+
 function handleProcessStatusChange(event: { detail: { value: number } }) {
   processForm.worksheetStatus = worksheetStatusOptionsWithoutAll[event.detail.value]?.value ?? 1;
   if (processForm.worksheetStatus === 2 && !processForm.finishTime) {
@@ -480,8 +510,10 @@ function buildQueryParams() {
     worksheetNumber: filters.worksheetNumber.trim() || undefined,
     worksheetType: filters.worksheetType === "" ? undefined : filters.worksheetType,
     worksheetStatus: filters.worksheetStatus === "" ? undefined : filters.worksheetStatus,
+    urgencyLevel: filters.urgencyLevel === "" ? undefined : filters.urgencyLevel,
     riseAccount: filters.riseAccount.trim() || undefined,
     executeAccount: filters.executeAccount.trim() || undefined,
+    deviceReference: filters.deviceReference.trim() || undefined,
   };
 }
 
@@ -672,9 +704,36 @@ function markFinished() {
   void submitProcess();
 }
 
-function markClosed() {
-  processForm.worksheetStatus = 3;
-  void submitProcess();
+async function cancelWorksheet() {
+  const id = selectedWorksheet.value ? getRowId(selectedWorksheet.value) : "";
+  if (!id) {
+    uni.showToast({ title: "请先选择工单", icon: "none" });
+    return;
+  }
+
+  submittingProcess.value = true;
+
+  try {
+    const response = await closeWorksheet(id, buildCancelPayload()) as ApiResponseLike;
+    assertSuccessResponse(response);
+    uni.showToast({ title: "工单已取消", icon: "success" });
+    await fetchWorksheets();
+  } catch (error) {
+    uni.showToast({
+      title: (error as { msg?: string })?.msg || "取消工单失败",
+      icon: "none",
+    });
+  } finally {
+    submittingProcess.value = false;
+  }
+}
+
+function buildCancelPayload() {
+  return removeEmptyFields({
+    executeAccount: processForm.executeAccount.trim(),
+    worksheetFeedback: processForm.worksheetFeedback.trim(),
+    remark: processForm.remark.trim(),
+  });
 }
 
 function searchWorksheets() {
@@ -693,8 +752,10 @@ function clearFilters() {
   filters.worksheetNumber = "";
   filters.worksheetType = "";
   filters.worksheetStatus = "";
+  filters.urgencyLevel = "";
   filters.riseAccount = "";
   filters.executeAccount = "";
+  filters.deviceReference = "";
 }
 
 function resetFiltersAndFetch() {
@@ -833,6 +894,11 @@ function getDetailValueClass(label: string) {
 function getOptionLabel(options: SelectOption[], value: unknown, fallback: string) {
   const normalized = typeof value === "string" && value.trim() !== "" ? Number(value) : value;
   return options.find((item) => item.value === normalized)?.label || fallback;
+}
+
+function getOptionIndex(options: SelectOption[], value: unknown) {
+  const normalized = typeof value === "string" && value.trim() !== "" ? Number(value) : value;
+  return Math.max(0, options.findIndex((item) => item.value === normalized));
 }
 
 function countByOptions(records: WorksheetRecord[], options: Array<{ label: string; value: number }>, key: string) {
@@ -1147,6 +1213,10 @@ defineExpose({
 
 .filter-input--name {
   width: 120px;
+}
+
+.filter-input--device {
+  width: 142px;
 }
 
 .filter-separator {

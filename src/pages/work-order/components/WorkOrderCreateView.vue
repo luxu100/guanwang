@@ -3,16 +3,18 @@
       <WorksheetTableView ref="tableViewRef" mode="create" @create="openCreateDialog" />
 
       <view v-if="dialogVisible" class="dialog-mask" @click="closeCreateDialog">
-        <view class="dialog-panel" @click.stop>
+        <view class="dialog-panel" @click.stop="closeCreateSelect">
           <view class="dialog-head">
             <view>
               <text class="dialog-title">新增工单</text>
-              <text class="dialog-subtitle">按工单类型、派发人员和现场信息生成新工单</text>
+              <text class="dialog-subtitle">按 Worksheet 字段填写工单类型、人员、时间和现场信息</text>
             </view>
             <button class="icon-button" hover-class="icon-button--hover" aria-label="关闭" @click="closeCreateDialog">
               <text class="close-icon"></text>
             </button>
           </view>
+
+          <view v-if="firstCreateError" class="error-summary">{{ firstCreateError }}</view>
 
           <scroll-view class="dialog-body" scroll-y>
             <view class="form-layout">
@@ -28,30 +30,66 @@
                     </view>
                     <view class="form-field">
                       <text class="form-label form-label--required">工单类型</text>
-                      <picker :range="worksheetTypeOptions" range-key="label" @change="handleTypeChange">
-                        <view class="form-select form-select--dropdown">
-                          <text>{{ currentTypeLabel }}</text>
+                      <view class="select-field">
+                        <view class="form-select form-select--dropdown" :class="{ 'form-select--open': activeSelect === 'worksheetType', 'form-control--error': validationErrors.worksheetType }" @click.stop="toggleCreateSelect('worksheetType')">
+                          <text :class="{ 'select-placeholder': createForm.worksheetType === '' }">{{ currentTypeLabel }}</text>
                           <text class="select-arrow"></text>
                         </view>
-                      </picker>
+                        <view v-if="activeSelect === 'worksheetType'" class="select-menu">
+                          <view
+                            v-for="item in worksheetTypeOptions"
+                            :key="item.value"
+                            class="select-option"
+                            :class="{ 'select-option--active': createForm.worksheetType === item.value }"
+                            @click.stop="selectWorksheetType(item.value)"
+                          >
+                            {{ item.label }}
+                          </view>
+                        </view>
+                      </view>
+                      <text v-if="validationErrors.worksheetType" class="form-error">{{ validationErrors.worksheetType }}</text>
                     </view>
                     <view class="form-field">
-                      <text class="form-label form-label--required">紧急程度</text>
-                      <picker :range="urgencyOptions" range-key="label" @change="handleUrgencyChange">
-                        <view class="form-select form-select--dropdown">
-                          <text>{{ currentUrgencyLabel }}</text>
+                      <text class="form-label form-label--required">紧急等级</text>
+                      <view class="select-field">
+                        <view class="form-select form-select--dropdown" :class="{ 'form-select--open': activeSelect === 'urgencyLevel', 'form-control--error': validationErrors.urgencyLevel }" @click.stop="toggleCreateSelect('urgencyLevel')">
+                          <text :class="{ 'select-placeholder': createForm.urgencyLevel === '' }">{{ currentUrgencyLabel }}</text>
                           <text class="select-arrow"></text>
                         </view>
-                      </picker>
+                        <view v-if="activeSelect === 'urgencyLevel'" class="select-menu">
+                          <view
+                            v-for="item in urgencyOptions"
+                            :key="item.value"
+                            class="select-option"
+                            :class="{ 'select-option--active': createForm.urgencyLevel === item.value }"
+                            @click.stop="selectUrgencyLevel(item.value)"
+                          >
+                            {{ item.label }}
+                          </view>
+                        </view>
+                      </view>
+                      <text v-if="validationErrors.urgencyLevel" class="form-error">{{ validationErrors.urgencyLevel }}</text>
                     </view>
                     <view class="form-field">
                       <text class="form-label form-label--required">工单状态</text>
-                      <picker :range="worksheetStatusOptions" range-key="label" @change="handleStatusChange">
-                        <view class="form-select form-select--dropdown">
-                          <text>{{ currentStatusLabel }}</text>
+                      <view class="select-field">
+                        <view class="form-select form-select--dropdown" :class="{ 'form-select--open': activeSelect === 'worksheetStatus', 'form-control--error': validationErrors.worksheetStatus }" @click.stop="toggleCreateSelect('worksheetStatus')">
+                          <text :class="{ 'select-placeholder': createForm.worksheetStatus === '' }">{{ currentStatusLabel }}</text>
                           <text class="select-arrow"></text>
                         </view>
-                      </picker>
+                        <view v-if="activeSelect === 'worksheetStatus'" class="select-menu">
+                          <view
+                            v-for="item in worksheetStatusOptions"
+                            :key="item.value"
+                            class="select-option"
+                            :class="{ 'select-option--active': createForm.worksheetStatus === item.value }"
+                            @click.stop="selectWorksheetStatus(item.value)"
+                          >
+                            {{ item.label }}
+                          </view>
+                        </view>
+                      </view>
+                      <text v-if="validationErrors.worksheetStatus" class="form-error">{{ validationErrors.worksheetStatus }}</text>
                     </view>
                   </view>
                 </view>
@@ -62,12 +100,18 @@
                   </view>
                   <view class="form-grid form-grid--main">
                     <view class="form-field">
-                      <text class="form-label form-label--required">发起时间</text>
-                      <WorkOrderDatetimePicker v-model="createForm.riseTime" title="选择发起时间" placeholder="请选择发起时间" :clearable="false" />
+                      <text class="form-label form-label--required">工单发起时间</text>
+                      <WorkOrderDatetimePicker v-model="createForm.riseTime" title="选择工单发起时间" placeholder="请选择工单发起时间" :clearable="false" />
                     </view>
                     <view class="form-field">
-                      <text class="form-label">截止时间</text>
-                      <WorkOrderDatetimePicker v-model="createForm.deadlineTime" title="选择截止时间" placeholder="请选择截止时间" :min-value="createForm.riseTime" />
+                      <text class="form-label">工单截止时间</text>
+                      <WorkOrderDatetimePicker v-model="createForm.deadlineTime" title="选择工单截止时间" placeholder="请选择工单截止时间" :min-value="createForm.riseTime" />
+                      <text v-if="validationErrors.deadlineTime" class="form-error">{{ validationErrors.deadlineTime }}</text>
+                    </view>
+                    <view class="form-field">
+                      <text class="form-label">工单完成时间</text>
+                      <WorkOrderDatetimePicker v-model="createForm.finishTime" title="选择工单完成时间" placeholder="未完成可不填" :min-value="createForm.riseTime" />
+                      <text v-if="validationErrors.finishTime" class="form-error">{{ validationErrors.finishTime }}</text>
                     </view>
                   </view>
                 </view>
@@ -78,12 +122,14 @@
                   </view>
                   <view class="form-grid form-grid--main">
                     <view class="form-field">
-                      <text class="form-label form-label--required">发起人账号</text>
-                      <input v-model="createForm.riseAccount" class="form-input" placeholder="请输入发起人账号" placeholder-class="input-placeholder" />
+                      <text class="form-label form-label--required">工单发起人账号</text>
+                      <input v-model="createForm.riseAccount" class="form-input" :class="{ 'form-control--error': validationErrors.riseAccount }" placeholder="请输入工单发起人账号" placeholder-class="input-placeholder" @input="clearCreateError('riseAccount')" />
+                      <text v-if="validationErrors.riseAccount" class="form-error">{{ validationErrors.riseAccount }}</text>
                     </view>
                     <view class="form-field">
-                      <text class="form-label form-label--required">执行人账号</text>
-                      <input v-model="createForm.executeAccount" class="form-input" placeholder="请输入执行人账号" placeholder-class="input-placeholder" />
+                      <text class="form-label form-label--required">工单执行人账号</text>
+                      <input v-model="createForm.executeAccount" class="form-input" :class="{ 'form-control--error': validationErrors.executeAccount }" placeholder="请输入工单执行人账号" placeholder-class="input-placeholder" @input="clearCreateError('executeAccount')" />
+                      <text v-if="validationErrors.executeAccount" class="form-error">{{ validationErrors.executeAccount }}</text>
                     </view>
                   </view>
                 </view>
@@ -95,7 +141,12 @@
                   <view class="form-grid form-grid--main">
                     <view class="form-field form-field--wide">
                       <text class="form-label form-label--required">工单说明</text>
-                      <textarea v-model="createForm.worksheetInstruction" class="form-textarea form-textarea--large" placeholder="请输入工单说明" placeholder-class="input-placeholder" />
+                      <textarea v-model="createForm.worksheetInstruction" class="form-textarea form-textarea--large" :class="{ 'form-control--error': validationErrors.worksheetInstruction }" placeholder="请输入工单说明" placeholder-class="input-placeholder" @input="clearCreateError('worksheetInstruction')" />
+                      <text v-if="validationErrors.worksheetInstruction" class="form-error">{{ validationErrors.worksheetInstruction }}</text>
+                    </view>
+                    <view class="form-field form-field--wide">
+                      <text class="form-label">工单反馈</text>
+                      <textarea v-model="createForm.worksheetFeedback" class="form-textarea" placeholder="未处理可不填" placeholder-class="input-placeholder" />
                     </view>
                   </view>
                 </view>
@@ -109,23 +160,23 @@
                   <view class="form-grid form-grid--side">
                     <view class="form-field">
                       <text class="form-label">关联设备</text>
-                      <input v-model="createForm.deviceReference" class="form-input" placeholder="设备编号，多个用逗号分隔" placeholder-class="input-placeholder" />
+                      <input v-model="createForm.deviceReference" class="form-input" placeholder="设备编号列表，多个用逗号分隔" placeholder-class="input-placeholder" />
                     </view>
                     <view class="form-field">
-                      <text class="form-label">关联渗漏ID</text>
-                      <input v-model="createForm.leakageId" class="form-input" type="number" placeholder="可选" placeholder-class="input-placeholder" />
+                      <text class="form-label">关联渗漏记录ID</text>
+                      <input v-model="createForm.leakageId" class="form-input" type="number" placeholder="请输入关联渗漏记录ID" placeholder-class="input-placeholder" />
                     </view>
                     <view class="form-field">
                       <text class="form-label">工单地址</text>
                       <input v-model="createForm.address" class="form-input" placeholder="请输入工单地址" placeholder-class="input-placeholder" />
                     </view>
                     <view class="form-field">
-                      <text class="form-label">坐标</text>
+                      <text class="form-label">工单坐标</text>
                       <input v-model="createForm.coordinate" class="form-input" placeholder="经度,纬度" placeholder-class="input-placeholder" />
                     </view>
                     <view class="form-field">
-                      <text class="form-label">照片ID</text>
-                      <input v-model="createForm.pictureIds" class="form-input" placeholder="文件ID，多个用逗号分隔" placeholder-class="input-placeholder" />
+                      <text class="form-label">工单照片</text>
+                      <input v-model="createForm.pictureIds" class="form-input" placeholder="文件 ID 列表，多个用逗号分隔" placeholder-class="input-placeholder" />
                     </view>
                     <view class="form-field">
                       <text class="form-label">备注</text>
@@ -163,15 +214,15 @@ interface ApiResponseLike {
 
 interface CreateForm {
   worksheetNumber: string;
-  worksheetType: number;
+  worksheetType: number | "";
   riseAccount: string;
   executeAccount: string;
   deviceReference: string;
-  urgencyLevel: number;
+  urgencyLevel: number | "";
   riseTime: string;
   finishTime: string;
   deadlineTime: string;
-  worksheetStatus: number;
+  worksheetStatus: number | "";
   worksheetFeedback: string;
   worksheetInstruction: string;
   remark: string;
@@ -180,6 +231,17 @@ interface CreateForm {
   pictureIds: string;
   leakageId: string;
 }
+
+type CreateSelectKey = "worksheetType" | "urgencyLevel" | "worksheetStatus";
+type CreateValidationKey =
+  | "worksheetType"
+  | "urgencyLevel"
+  | "worksheetStatus"
+  | "riseAccount"
+  | "executeAccount"
+  | "worksheetInstruction"
+  | "deadlineTime"
+  | "finishTime";
 
 const worksheetTypeOptions = [
   { label: "巡检", value: 0 },
@@ -203,24 +265,27 @@ const urgencyOptions = [
 const tableViewRef = ref<InstanceType<typeof WorksheetTableView> | null>(null);
 const dialogVisible = ref(false);
 const submitting = ref(false);
+const activeSelect = ref<CreateSelectKey | "">("");
 const createForm = reactive<CreateForm>(getDefaultCreateForm());
+const validationErrors = reactive<Record<CreateValidationKey, string>>(getEmptyValidationErrors());
 
-const currentTypeLabel = computed(() => getOptionLabel(worksheetTypeOptions, createForm.worksheetType, "巡检"));
-const currentStatusLabel = computed(() => getOptionLabel(worksheetStatusOptions, createForm.worksheetStatus, "待处理"));
-const currentUrgencyLabel = computed(() => getOptionLabel(urgencyOptions, createForm.urgencyLevel, "一般"));
+const currentTypeLabel = computed(() => getOptionLabel(worksheetTypeOptions, createForm.worksheetType, "请选择工单类型"));
+const currentStatusLabel = computed(() => getOptionLabel(worksheetStatusOptions, createForm.worksheetStatus, "请选择工单状态"));
+const currentUrgencyLabel = computed(() => getOptionLabel(urgencyOptions, createForm.urgencyLevel, "请选择紧急等级"));
+const firstCreateError = computed(() => Object.values(validationErrors).find(Boolean) || "");
 
 function getDefaultCreateForm(): CreateForm {
   return {
     worksheetNumber: "",
-    worksheetType: 0,
+    worksheetType: "",
     riseAccount: "",
     executeAccount: "",
     deviceReference: "",
-    urgencyLevel: 0,
+    urgencyLevel: "",
     riseTime: toDatetimeLocal(new Date()),
     finishTime: "",
     deadlineTime: "",
-    worksheetStatus: 0,
+    worksheetStatus: "",
     worksheetFeedback: "",
     worksheetInstruction: "",
     remark: "",
@@ -231,8 +296,23 @@ function getDefaultCreateForm(): CreateForm {
   };
 }
 
+function getEmptyValidationErrors(): Record<CreateValidationKey, string> {
+  return {
+    worksheetType: "",
+    urgencyLevel: "",
+    worksheetStatus: "",
+    riseAccount: "",
+    executeAccount: "",
+    worksheetInstruction: "",
+    deadlineTime: "",
+    finishTime: "",
+  };
+}
+
 function openCreateDialog() {
   Object.assign(createForm, getDefaultCreateForm());
+  clearCreateErrors();
+  activeSelect.value = "";
   dialogVisible.value = true;
 }
 
@@ -241,23 +321,40 @@ function closeCreateDialog() {
     return;
   }
 
+  activeSelect.value = "";
   dialogVisible.value = false;
 }
 
 function resetCreateForm() {
   Object.assign(createForm, getDefaultCreateForm());
+  clearCreateErrors();
+  activeSelect.value = "";
 }
 
-function handleTypeChange(event: { detail: { value: number } }) {
-  createForm.worksheetType = worksheetTypeOptions[event.detail.value]?.value ?? 0;
+function toggleCreateSelect(key: CreateSelectKey) {
+  activeSelect.value = activeSelect.value === key ? "" : key;
 }
 
-function handleStatusChange(event: { detail: { value: number } }) {
-  createForm.worksheetStatus = worksheetStatusOptions[event.detail.value]?.value ?? 0;
+function closeCreateSelect() {
+  activeSelect.value = "";
 }
 
-function handleUrgencyChange(event: { detail: { value: number } }) {
-  createForm.urgencyLevel = urgencyOptions[event.detail.value]?.value ?? 0;
+function selectWorksheetType(value: number) {
+  createForm.worksheetType = value;
+  clearCreateError("worksheetType");
+  activeSelect.value = "";
+}
+
+function selectWorksheetStatus(value: number) {
+  createForm.worksheetStatus = value;
+  clearCreateError("worksheetStatus");
+  activeSelect.value = "";
+}
+
+function selectUrgencyLevel(value: number) {
+  createForm.urgencyLevel = value;
+  clearCreateError("urgencyLevel");
+  activeSelect.value = "";
 }
 
 async function submitCreate() {
@@ -285,27 +382,57 @@ async function submitCreate() {
 }
 
 function validateCreateForm() {
+  clearCreateErrors();
+
+  if (createForm.worksheetType === "") {
+    return setCreateError("worksheetType", "请选择工单类型");
+  }
+
+  if (createForm.urgencyLevel === "") {
+    return setCreateError("urgencyLevel", "请选择紧急等级");
+  }
+
+  if (createForm.worksheetStatus === "") {
+    return setCreateError("worksheetStatus", "请选择工单状态");
+  }
+
   if (!createForm.riseAccount.trim()) {
-    uni.showToast({ title: "请输入发起人账号", icon: "none" });
-    return false;
+    return setCreateError("riseAccount", "请输入工单发起人账号");
   }
 
   if (!createForm.executeAccount.trim()) {
-    uni.showToast({ title: "请输入执行人账号", icon: "none" });
-    return false;
+    return setCreateError("executeAccount", "请输入工单执行人账号");
   }
 
   if (!createForm.worksheetInstruction.trim()) {
-    uni.showToast({ title: "请输入工单说明", icon: "none" });
-    return false;
+    return setCreateError("worksheetInstruction", "请输入工单说明");
   }
 
   if (createForm.deadlineTime && !isDeadlineAfterRiseTime()) {
-    uni.showToast({ title: "截止时间必须大于发起时间", icon: "none" });
-    return false;
+    return setCreateError("deadlineTime", "截止时间必须大于发起时间");
+  }
+
+  if (createForm.finishTime && !isFinishAfterRiseTime()) {
+    return setCreateError("finishTime", "完成时间不能早于发起时间");
   }
 
   return true;
+}
+
+function setCreateError(key: CreateValidationKey, message: string) {
+  validationErrors[key] = message;
+  uni.showToast({ title: message, icon: "none" });
+  return false;
+}
+
+function clearCreateError(key: CreateValidationKey) {
+  validationErrors[key] = "";
+}
+
+function clearCreateErrors() {
+  (Object.keys(validationErrors) as CreateValidationKey[]).forEach((key) => {
+    validationErrors[key] = "";
+  });
 }
 
 function buildCreatePayload() {
@@ -343,7 +470,7 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   };
 }
 
-function getOptionLabel(options: Array<{ label: string; value: number }>, value: number, fallback: string) {
+function getOptionLabel(options: Array<{ label: string; value: number }>, value: number | "", fallback: string) {
   return options.find((item) => item.value === value)?.label || fallback;
 }
 
@@ -373,6 +500,12 @@ function isDeadlineAfterRiseTime() {
   const riseTimestamp = getDatetimeTimestamp(createForm.riseTime);
   const deadlineTimestamp = getDatetimeTimestamp(createForm.deadlineTime);
   return riseTimestamp !== undefined && deadlineTimestamp !== undefined && deadlineTimestamp > riseTimestamp;
+}
+
+function isFinishAfterRiseTime() {
+  const riseTimestamp = getDatetimeTimestamp(createForm.riseTime);
+  const finishTimestamp = getDatetimeTimestamp(createForm.finishTime);
+  return riseTimestamp !== undefined && finishTimestamp !== undefined && finishTimestamp >= riseTimestamp;
 }
 
 function getDatetimeTimestamp(value: string) {
@@ -572,6 +705,18 @@ function generateWorksheetNumber() {
   background: #ffffff;
 }
 
+.error-summary {
+  flex: none;
+  margin: 12px 24px 0;
+  padding: 9px 12px;
+  color: #b42318;
+  font-size: 13px;
+  font-weight: 800;
+  background: #fff5f3;
+  border: 1px solid #ffc9c0;
+  border-radius: 4px;
+}
+
 .form-layout {
   display: grid;
   grid-template-columns: 640px 360px;
@@ -645,6 +790,7 @@ function generateWorksheetNumber() {
 }
 
 .form-field {
+  position: relative;
   min-width: 0;
 }
 
@@ -716,6 +862,13 @@ function generateWorksheetNumber() {
 .form-select--dropdown {
   background: #f7fbff;
   box-shadow: inset 0 -1px 0 rgba(13, 130, 238, 0.03);
+  cursor: pointer;
+}
+
+.form-select--open {
+  background: #ffffff;
+  border-color: #8fc8f8;
+  box-shadow: 0 0 0 3px rgba(13, 130, 238, 0.1);
 }
 
 .form-input:focus,
@@ -723,6 +876,22 @@ function generateWorksheetNumber() {
   background: #ffffff;
   border-color: #8fc8f8;
   box-shadow: 0 0 0 3px rgba(13, 130, 238, 0.1);
+}
+
+.form-control--error,
+.form-control--error:focus {
+  background: #fffafa;
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.form-error {
+  display: block;
+  margin-top: 5px;
+  color: #d92d20;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
 }
 
 .form-textarea {
@@ -741,6 +910,48 @@ function generateWorksheetNumber() {
   border: solid #74879c;
   border-width: 0 2px 2px 0;
   transform: translateY(-2px) rotate(45deg);
+}
+
+.select-field {
+  position: relative;
+}
+
+.select-menu {
+  position: absolute;
+  right: 0;
+  left: 0;
+  z-index: 20;
+  margin-top: 4px;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #cbdced;
+  border-radius: 4px;
+  box-shadow: 0 14px 28px rgba(15, 35, 55, 0.16);
+}
+
+.select-option {
+  min-height: 36px;
+  padding: 0 12px;
+  color: #172033;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 36px;
+  cursor: pointer;
+  border-bottom: 1px solid #edf3f8;
+}
+
+.select-option:last-child {
+  border-bottom: 0;
+}
+
+.select-option:hover,
+.select-option--active {
+  color: #0d82ee;
+  background: #edf7ff;
+}
+
+.select-placeholder {
+  color: #9aa9b8;
 }
 
 .input-placeholder {
