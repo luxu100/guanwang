@@ -68,7 +68,6 @@
               <text class="data-cell data-cell--index">序号</text>
               <text class="data-cell data-cell--time">检出时间</text>
               <text class="data-cell data-cell--address">渗漏位置</text>
-              <text class="data-cell data-cell--level">渗漏级别</text>
               <text class="data-cell data-cell--part">渗漏部位</text>
               <text class="data-cell data-cell--device">关联设备</text>
               <text class="data-cell data-cell--account">检出人</text>
@@ -90,9 +89,6 @@
               <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
               <text class="data-cell data-cell--time">{{ getDetectedTime(item) }}</text>
               <text class="data-cell data-cell--address">{{ getLeakAddress(item) }}</text>
-              <text class="data-cell data-cell--level">
-                <text class="level-pill" :class="getLevelClass(item)">{{ getLeakLevelLabel(item) }}</text>
-              </text>
               <text class="data-cell data-cell--part">{{ getLeakPart(item) }}</text>
               <text class="data-cell data-cell--device">{{ getReferenceDevices(item) }}</text>
               <text class="data-cell data-cell--account">{{ getDetectAccount(item) }}</text>
@@ -129,9 +125,6 @@
               <view class="detail-summary__main">
                 <text class="detail-summary__label">疑点编号</text>
                 <text class="detail-summary__number">{{ baseSummary.id }}</text>
-              </view>
-              <view class="detail-summary__badges">
-                <text class="detail-summary__badge detail-summary__badge--level">{{ baseSummary.level }}</text>
               </view>
             </view>
 
@@ -177,9 +170,9 @@
         <view v-if="mode === 'processing' && selectedSuspect" class="process-box">
           <text class="process-box__title">疑点处理</text>
           <view class="process-actions">
-            <button class="toolbar-button toolbar-button--primary" :disabled="processing" hover-class="toolbar-button--hover" @click="openConfirmDialog">确认疑点</button>
-            <button class="toolbar-button toolbar-button--danger" :disabled="processing" hover-class="toolbar-button--hover" @click="handleExclude">排除疑点</button>
-            <button class="toolbar-button" :disabled="processing" hover-class="toolbar-button--hover" @click="openWorksheetDialog">转工单</button>
+            <button class="toolbar-button process-action process-action--confirm process-action--full" :disabled="processing" hover-class="toolbar-button--hover" @click="openConfirmDialog">确认疑点</button>
+            <button class="toolbar-button process-action process-action--exclude" :disabled="processing" hover-class="toolbar-button--hover" @click="handleExclude">排除疑点</button>
+            <button class="toolbar-button process-action process-action--worksheet" :disabled="processing" hover-class="toolbar-button--hover" @click="openWorksheetDialog">转工单</button>
           </view>
         </view>
       </view>
@@ -188,7 +181,10 @@
     <view v-if="confirmDialogVisible" class="dialog-mask" @click.self="closeConfirmDialog">
       <view class="dialog-panel dialog-panel--sm" @click.stop>
         <view class="dialog-header">
-          <text class="dialog-title">确认疑点</text>
+          <view>
+            <text class="dialog-title">确认疑点</text>
+            <text class="dialog-subtitle">选择渗漏级别，确认后该疑点将转为漏点</text>
+          </view>
           <button class="dialog-close" hover-class="dialog-close--hover" aria-label="关闭" @click="closeConfirmDialog">×</button>
         </view>
         <view class="dialog-body">
@@ -214,7 +210,7 @@
         </view>
         <view class="dialog-footer">
           <button class="dialog-button" hover-class="dialog-button--hover" @click="closeConfirmDialog">取消</button>
-          <button class="dialog-button dialog-button--primary" :disabled="processing" hover-class="dialog-button--primary-hover" @click="submitConfirm">
+          <button class="dialog-button dialog-button--primary" :disabled="processing" hover-class="dialog-button--hover" @click="submitConfirm">
             {{ processing ? "处理中..." : "确认" }}
           </button>
         </view>
@@ -224,7 +220,10 @@
     <view v-if="worksheetDialogVisible" class="dialog-mask" @click.self="closeWorksheetDialog">
       <view class="dialog-panel dialog-panel--sm" @click.stop>
         <view class="dialog-header">
-          <text class="dialog-title">转工单</text>
+          <view>
+            <text class="dialog-title">转工单</text>
+            <text class="dialog-subtitle">填写工单信息，创建工单并关联当前疑点</text>
+          </view>
           <button class="dialog-close" hover-class="dialog-close--hover" aria-label="关闭" @click="closeWorksheetDialog">×</button>
         </view>
         <view class="dialog-body">
@@ -254,7 +253,7 @@
         </view>
         <view class="dialog-footer">
           <button class="dialog-button" hover-class="dialog-button--hover" @click="closeWorksheetDialog">取消</button>
-          <button class="dialog-button dialog-button--primary" :disabled="processing" hover-class="dialog-button--primary-hover" @click="submitWorksheet">
+          <button class="dialog-button dialog-button--primary" :disabled="processing" hover-class="dialog-button--hover" @click="submitWorksheet">
             {{ processing ? "处理中..." : "转工单" }}
           </button>
         </view>
@@ -343,7 +342,6 @@ const baseDetailFields = computed(() => {
 
   return [
     { label: "疑点编号", value: getId(item) },
-    { label: "渗漏级别", value: getLeakLevelLabel(item) },
     { label: "渗漏部位", value: getLeakPart(item) },
     { label: "检出人", value: getDetectAccount(item) },
     { label: "关联设备", value: getReferenceDevices(item) },
@@ -357,12 +355,11 @@ const baseSummary = computed(() => {
   const item = selectedSuspect.value || {};
   return {
     id: getId(item),
-    level: getLeakLevelLabel(item),
   };
 });
 
 const secondaryBaseDetailFields = computed(() =>
-  baseDetailFields.value.filter((item) => item.label !== "疑点编号" && item.label !== "渗漏级别"),
+  baseDetailFields.value.filter((item) => item.label !== "疑点编号"),
 );
 
 const pipeDetailFields = computed(() => {
@@ -986,29 +983,29 @@ defineExpose({
 }
 
 .filter-group {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  flex: 0 0 auto;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  flex: 0 0 136px;
+  min-width: 0;
 }
 
 .toolbar-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: nowrap;
-  gap: 12px;
-  width: 100%;
   min-width: 0;
 }
 
 .toolbar-row--filters {
+  display: flex;
   flex-wrap: wrap;
-  gap: 8px 16px;
+  align-items: end;
+  gap: 10px 12px;
 }
 
 .toolbar-row--bottom {
-  justify-content: space-between;
-  gap: 16px;
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  width: 100%;
 }
 
 .toolbar-spacer {
@@ -1016,10 +1013,10 @@ defineExpose({
 }
 
 .filter-label {
-  flex: none;
-  color: #34495e;
-  font-size: 13px;
-  font-weight: 700;
+  color: #52677b;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
   white-space: nowrap;
 }
 
@@ -1036,14 +1033,8 @@ defineExpose({
 
 .filter-input,
 .filter-select {
-  height: 34px;
-  padding: 0 10px;
-  line-height: 34px;
-}
-
-.filter-input,
-.filter-select {
   height: 30px;
+  padding: 0 10px;
   font-size: 13px;
   font-weight: 600;
   line-height: 30px;
@@ -1060,11 +1051,11 @@ defineExpose({
 }
 
 .filter-input {
-  width: 132px;
+  width: 100%;
 }
 
 .filter-input--name {
-  width: 140px;
+  width: 100%;
 }
 
 .filter-separator {
@@ -1076,15 +1067,17 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .filter-group--date {
+  flex: 0 0 auto;
   min-width: 0;
 }
 
 .filter-datetime {
-  width: 188px;
+  flex: 0 0 200px;
+  width: 200px;
 }
 
 .filter-datetime :deep(.datetime-picker__control) {
@@ -1109,7 +1102,7 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 104px;
+  width: 100%;
 }
 
 .filter-select__arrow {
@@ -1121,14 +1114,13 @@ defineExpose({
 }
 
 .suspect-toolbar {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
   flex: none;
-  gap: 8px;
-  min-height: 96px;
-  padding: 12px;
+  display: grid;
+  gap: 12px;
+  min-height: 0;
+  padding: 14px;
   overflow: visible;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
 }
 
 .toolbar-button,
@@ -1137,13 +1129,13 @@ defineExpose({
   align-items: center;
   justify-content: center;
   flex: none;
-  height: 34px;
+  height: 30px;
   margin: 0;
-  padding: 0 14px;
+  padding: 0 12px;
   color: #31506d;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
-  line-height: 34px;
+  line-height: 30px;
   background: #f6fbff;
   border: 1px solid #cbdced;
   border-radius: 4px;
@@ -1152,11 +1144,27 @@ defineExpose({
 .toolbar-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   flex: 0 0 auto;
   justify-content: flex-start;
   width: auto;
   margin-left: 0;
+}
+
+.toolbar-actions .toolbar-button,
+.toolbar-actions .toolbar-icon-button {
+  height: 38px;
+  line-height: 1.2;
+  border-radius: 5px;
+}
+
+.toolbar-actions .toolbar-button {
+  min-width: 64px;
+  padding: 0 15px;
+}
+
+.toolbar-actions .toolbar-icon-button {
+  width: 38px;
 }
 
 .toolbar-button::after,
@@ -1169,6 +1177,7 @@ defineExpose({
   color: #ffffff;
   background: #0d82ee;
   border-color: #0d82ee;
+  box-shadow: 0 5px 12px rgba(13, 130, 238, 0.18);
 }
 
 .toolbar-button--danger {
@@ -1197,14 +1206,14 @@ defineExpose({
 }
 
 .toolbar-icon-button {
-  width: 34px;
+  width: 30px;
   padding: 0;
 }
 
 .icon-refresh {
   position: relative;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border: 2px solid currentColor;
   border-right-color: transparent;
   border-radius: 50%;
@@ -1299,16 +1308,16 @@ defineExpose({
 }
 
 .data-table {
-  width: 1480px;
-  min-width: 1480px;
+  width: 1280px;
+  min-width: 1280px;
   background: #ffffff;
 }
 
 .data-row {
   display: grid;
-  grid-template-columns: 58px 168px 220px 100px 130px 160px 110px 110px 220px;
+  grid-template-columns: 58px 168px 220px 120px 150px 120px 130px 220px;
   min-height: 42px;
-  width: 1480px;
+  width: 1280px;
   border-bottom: 1px solid #edf1f5;
   cursor: pointer;
   transition:
@@ -1375,9 +1384,11 @@ defineExpose({
 }
 
 .data-row--header .data-cell {
+  justify-content: center;
   color: #415a73;
   font-size: 12px;
   letter-spacing: 0;
+  text-align: center;
 }
 
 .data-cell:last-child {
@@ -1398,45 +1409,23 @@ defineExpose({
 .data-cell--time {
   color: #0f4c81;
   font-family: "DIN Alternate", "Arial", sans-serif;
-  font-weight: 700;
-}
-
-.level-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 54px;
-  height: 24px;
-  padding: 0 9px;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  font-size: 12px;
   font-weight: 800;
-  line-height: 24px;
 }
 
-.level-pill--low {
-  color: #5f7186;
-  background: #f3f6f9;
-  border-color: #dbe4ec;
+.data-cell--device {
+  color: #0f4c81;
+  font-family: "DIN Alternate", "Arial", sans-serif;
+  font-weight: 800;
 }
 
-.level-pill--mid {
-  color: #b45309;
-  background: #fff8eb;
-  border-color: #ffe2b4;
+.data-cell--account {
+  color: #24384d;
 }
 
-.level-pill--high {
-  color: #b42318;
-  background: #fff1ee;
-  border-color: #ffd3cb;
-}
-
-.level-pill--suspect {
-  color: #3b82f6;
-  background: #eff6ff;
-  border-color: #bfdbfe;
+.data-cell--worksheet {
+  color: #0f4c81;
+  font-family: "DIN Alternate", "Arial", sans-serif;
+  font-weight: 800;
 }
 
 .table-state {
@@ -1886,42 +1875,75 @@ defineExpose({
 }
 
 .process-box {
-  flex: none;
-  padding: 14px 16px;
-  background: #f6fafe;
-  border-top: 1px solid #e3edf6;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #edf3f8;
 }
 
 .process-box__title {
   display: block;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   color: #183755;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 800;
 }
 
 .process-actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+  padding-top: 2px;
+}
+
+.process-action {
+  width: 100%;
+  height: 36px;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 36px;
+}
+
+.process-action--full {
+  grid-column: 1 / -1;
+}
+
+.process-action--confirm {
+  color: #177245;
+  background: #eaf8ef;
+  border-color: #bfe8ce;
+}
+
+.process-action--exclude {
+  color: #b42318;
+  background: #fff5f3;
+  border-color: #ffc9c0;
+}
+
+.process-action--worksheet {
+  color: #ffffff;
+  background: #0d82ee;
+  border-color: #0d82ee;
 }
 
 .dialog-mask {
   position: fixed;
   inset: 0;
-  z-index: 1500;
+  z-index: 2000;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 35, 55, 0.45);
+  background: rgba(15, 35, 55, 0.22);
 }
 
 .dialog-panel--sm {
-  width: min(440px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  width: min(480px, calc(100vw - 32px));
   max-height: calc(100vh - 64px);
   overflow: hidden;
   background: #ffffff;
   border-radius: 8px;
-  box-shadow: 0 24px 60px rgba(15, 35, 55, 0.28);
+  box-shadow: 0 18px 46px rgba(15, 35, 55, 0.2);
 }
 
 .dialog-header {
@@ -1929,59 +1951,69 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   flex: none;
-  height: 48px;
-  padding: 0 16px;
-  color: #183755;
-  font-size: 16px;
-  font-weight: 800;
-  background: #f6fafe;
-  border-bottom: 1px solid #e3edf6;
+  padding: 18px 24px;
+  background: #f8fbfe;
+  border-bottom: 1px solid #edf3f8;
 }
 
 .dialog-title {
+  display: block;
   color: #183755;
-  font-size: 16px;
-  font-weight: 800;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.dialog-subtitle {
+  display: block;
+  margin-top: 4px;
+  color: #5f7188;
+  font-size: 13px;
 }
 
 .dialog-close {
-  width: 28px;
-  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   margin: 0;
   padding: 0;
-  color: #64748b;
-  font-size: 20px;
-  line-height: 28px;
-  background: transparent;
-  border: 0;
-  border-radius: 50%;
+  background: #f6fbff;
+  border: 1px solid #d9e7f3;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
 .dialog-close--hover {
-  color: #b42318;
-  background: #fff1ee;
+  background: #edf7ff;
+  border-color: #0d82ee;
 }
 
 .dialog-body {
-  padding: 16px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 24px 16px;
+  background: #fff;
 }
 
 .form-field {
   display: flex;
   flex-direction: column;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .form-label {
-  margin-bottom: 6px;
+  display: block;
+  margin-bottom: 5px;
   color: #34495e;
   font-size: 13px;
   font-weight: 700;
 }
 
-.form-label--required::before {
-  margin-right: 4px;
-  color: #b42318;
+.form-label--required::after {
+  margin-left: 4px;
+  color: #ef4444;
   content: "*";
 }
 
@@ -1992,16 +2024,24 @@ defineExpose({
   width: 100%;
   color: #172033;
   font-size: 14px;
-  background: #f9fcff;
-  border: 1px solid #cbdced;
+  background: #fbfdff;
+  border: 1px solid #d5e2ee;
   border-radius: 4px;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
 }
 
 .form-input,
 .form-select {
-  height: 36px;
+  height: 38px;
   padding: 0 12px;
-  line-height: 36px;
+  line-height: 38px;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  background: #fff;
+  border-color: #8fc8f8;
+  box-shadow: 0 0 0 3px rgba(13, 130, 238, 0.1);
 }
 
 .form-select {
@@ -2020,37 +2060,46 @@ defineExpose({
 }
 
 .form-textarea {
-  height: 72px;
-  padding: 8px 12px;
-  line-height: 1.5;
+  min-height: 88px;
+  padding: 9px 12px;
+  line-height: 1.45;
 }
 
 .input-placeholder {
   color: #9aa9b8;
+  font-size: 14px;
 }
 
 .dialog-footer {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 12px;
   flex: none;
-  padding: 12px 16px;
-  background: #fbfdff;
-  border-top: 1px solid #e3edf6;
+  padding: 12px 22px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  background: #fff;
+  border-top: 1px solid #edf3f8;
+  box-shadow: 0 -4px 16px rgba(24, 55, 85, 0.06);
 }
 
 .dialog-button {
-  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 80px;
+  height: 38px;
   margin: 0;
-  padding: 0 16px;
-  color: #31506d;
+  padding: 0 22px;
+  color: #34495e;
   font-size: 14px;
   font-weight: 700;
-  line-height: 34px;
-  background: #ffffff;
-  border: 1px solid #cbdced;
-  border-radius: 4px;
+  line-height: 38px;
+  background: #f1f5f9;
+  border: 1px solid #d5e2ee;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: opacity 0.16s ease;
 }
 
 .dialog-button::after {
@@ -2058,9 +2107,7 @@ defineExpose({
 }
 
 .dialog-button--hover {
-  color: #0d82ee;
-  background: #edf7ff;
-  border-color: #a9d7ff;
+  opacity: 0.85;
 }
 
 .dialog-button--primary {
@@ -2069,16 +2116,9 @@ defineExpose({
   border-color: #0d82ee;
 }
 
-.dialog-button--primary-hover {
-  color: #ffffff;
-  background: #0674d8;
-  border-color: #0674d8;
-}
-
 .dialog-button[disabled] {
-  color: #9aa9b8;
-  background: #eef2f6;
-  border-color: #d7e0e8;
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .option-group {
@@ -2088,16 +2128,19 @@ defineExpose({
 
 .option-button {
   flex: 1;
-  height: 36px;
+  height: 38px;
   margin: 0;
   padding: 0 12px;
   color: #31506d;
   font-size: 14px;
   font-weight: 700;
-  line-height: 36px;
-  background: #ffffff;
-  border: 1px solid #cbdced;
+  line-height: 38px;
+  text-align: center;
+  background: #fbfdff;
+  border: 1px solid #d5e2ee;
   border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
 }
 
 .option-button::after {
@@ -2105,14 +2148,14 @@ defineExpose({
 }
 
 .option-button--hover {
-  color: #0d82ee;
-  background: #edf7ff;
-  border-color: #a9d7ff;
+  border-color: #8fc8f8;
+  box-shadow: 0 0 0 3px rgba(13, 130, 238, 0.1);
 }
 
 .option-button--active {
   color: #ffffff;
   background: #0d82ee;
   border-color: #0d82ee;
+  box-shadow: 0 5px 12px rgba(13, 130, 238, 0.18);
 }
 </style>

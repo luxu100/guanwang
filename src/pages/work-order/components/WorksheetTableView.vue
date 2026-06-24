@@ -1,9 +1,21 @@
 <template>
   <view class="worksheet-view">
     <view v-if="mode === 'statistics'" class="stats-grid">
-      <view v-for="item in statisticsCards" :key="item.label" class="stat-card">
-        <text class="stat-card__label">{{ item.label }}</text>
-        <text class="stat-card__value">{{ item.value }}</text>
+      <view v-for="item in statisticsCards" :key="item.label" class="stat-card" :class="`stat-card--${item.tone}`">
+        <view class="stat-card__head">
+          <view class="stat-card__title">
+            <view class="stat-card__marker"></view>
+            <text class="stat-card__label">{{ item.label }}</text>
+          </view>
+          <text class="stat-card__percent">{{ item.percentLabel }}</text>
+        </view>
+        <view class="stat-card__body">
+          <text class="stat-card__value">{{ item.value }}</text>
+          <text v-if="item.unit" class="stat-card__unit">{{ item.unit }}</text>
+        </view>
+        <view class="stat-card__progress">
+          <view class="stat-card__progress-bar" :style="{ width: `${item.percent}%` }"></view>
+        </view>
       </view>
     </view>
 
@@ -174,8 +186,8 @@
                 <text class="detail-summary__number">{{ baseSummary.number }}</text>
               </view>
               <view class="detail-summary__badges">
-                <text class="detail-summary__badge detail-summary__badge--status">{{ baseSummary.status }}</text>
-                <text class="detail-summary__badge detail-summary__badge--level">{{ baseSummary.urgency }}</text>
+                <text class="detail-summary__badge status-pill" :class="baseSummary.statusClass">{{ baseSummary.status }}</text>
+                <text class="detail-summary__badge urgency-pill" :class="baseSummary.urgencyClass">{{ baseSummary.urgency }}</text>
               </view>
             </view>
 
@@ -221,32 +233,35 @@
             <text class="process-box__title">工单处理</text>
             <view class="form-field">
               <text class="form-label">处理状态</text>
-              <picker :range="worksheetStatusOptionsWithoutAll" range-key="label" :value="processStatusIndex" @change="handleProcessStatusChange">
-                <view class="form-select">{{ processStatusLabel }}</view>
+              <picker :range="processStatusOptions" range-key="label" :value="processStatusIndex" :disabled="isSelectedWorksheetCanceled" @change="handleProcessStatusChange">
+                <view class="form-select process-select" :class="{ 'process-select--disabled': isSelectedWorksheetCanceled }">
+                  <text>{{ processStatusLabel }}</text>
+                  <text class="process-select__arrow"></text>
+                </view>
               </picker>
             </view>
             <view class="form-field">
               <text class="form-label">执行人账号</text>
-              <input v-model="processForm.executeAccount" class="form-input" placeholder="请输入执行人" placeholder-class="input-placeholder" />
+              <input v-model="processForm.executeAccount" class="form-input" :disabled="isSelectedWorksheetCanceled" placeholder="请输入执行人" placeholder-class="input-placeholder" />
             </view>
             <view class="form-field">
               <text class="form-label">完成时间</text>
-              <input v-model="processForm.finishTime" class="form-input" type="datetime-local" />
+              <input v-model="processForm.finishTime" class="form-input" :disabled="isSelectedWorksheetCanceled" type="datetime-local" />
             </view>
             <view class="form-field">
               <text class="form-label">处理反馈</text>
-              <textarea v-model="processForm.worksheetFeedback" class="form-textarea" placeholder="请输入处理反馈" placeholder-class="input-placeholder" />
+              <textarea v-model="processForm.worksheetFeedback" class="form-textarea" :disabled="isSelectedWorksheetCanceled" placeholder="请输入处理反馈" placeholder-class="input-placeholder" />
             </view>
             <view class="form-field">
               <text class="form-label">备注</text>
-              <textarea v-model="processForm.remark" class="form-textarea" placeholder="请输入备注" placeholder-class="input-placeholder" />
+              <textarea v-model="processForm.remark" class="form-textarea form-textarea--compact" :disabled="isSelectedWorksheetCanceled" placeholder="请输入备注" placeholder-class="input-placeholder" />
             </view>
             <view class="process-actions">
-              <button class="toolbar-button toolbar-button--primary" :disabled="submittingProcess" hover-class="toolbar-button--hover" @click="submitProcess">
+              <button class="toolbar-button toolbar-button--primary process-action process-action--save" :disabled="submittingProcess || isSelectedWorksheetCanceled" hover-class="toolbar-button--hover" @click="submitProcess">
                 {{ submittingProcess ? "保存中..." : "保存处理" }}
               </button>
-              <button class="toolbar-button" :disabled="submittingProcess" hover-class="toolbar-button--hover" @click="markFinished">标记完成</button>
-              <button class="toolbar-button toolbar-button--danger" :disabled="submittingProcess" hover-class="toolbar-button--hover" @click="cancelWorksheet">取消工单</button>
+              <button class="toolbar-button process-action process-action--finish" :disabled="submittingProcess || isSelectedWorksheetCanceled" hover-class="toolbar-button--hover" @click="markFinished">标记完成</button>
+              <button class="toolbar-button toolbar-button--danger process-action process-action--cancel" :disabled="submittingProcess || isSelectedWorksheetCanceled" hover-class="toolbar-button--hover" @click="cancelWorksheet">取消工单</button>
             </view>
           </view>
 
@@ -345,6 +360,7 @@ const detailTabs: Array<{ label: string; value: DetailTab }> = [
 
 const worksheetTypeOptionsWithoutAll = worksheetTypeOptions.filter((item) => item.value !== "") as Array<{ label: string; value: number }>;
 const worksheetStatusOptionsWithoutAll = worksheetStatusOptions.filter((item) => item.value !== "") as Array<{ label: string; value: number }>;
+const processStatusOptions = worksheetStatusOptionsWithoutAll.filter((item) => item.value !== 3);
 
 const filters = reactive({
   startTime: "",
@@ -387,8 +403,10 @@ const processStatusLabel = computed(() => getOptionLabel(worksheetStatusOptionsW
 const currentTypeIndex = computed(() => getOptionIndex(worksheetTypeOptions, filters.worksheetType));
 const currentStatusIndex = computed(() => getOptionIndex(worksheetStatusOptions, filters.worksheetStatus));
 const currentUrgencyIndex = computed(() => getOptionIndex(urgencyFilterOptions, filters.urgencyLevel));
-const processStatusIndex = computed(() => getOptionIndex(worksheetStatusOptionsWithoutAll, processForm.worksheetStatus));
+const processStatusIndex = computed(() => getOptionIndex(processStatusOptions, processForm.worksheetStatus));
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pagination.pageSize)));
+const selectedWorksheetStatus = computed(() => Number(getStableValue(selectedWorksheet.value || {}, ["worksheetStatus"])));
+const isSelectedWorksheetCanceled = computed(() => selectedWorksheetStatus.value === 3);
 
 const baseDetailFields = computed(() => {
   const item = selectedWorksheet.value || {};
@@ -411,6 +429,8 @@ const baseSummary = computed(() => {
     number: getWorksheetNumber(item),
     status: getWorksheetStatusLabel(item),
     urgency: getUrgencyLabel(item),
+    statusClass: getStatusClass(item),
+    urgencyClass: getUrgencyClass(item),
   };
 });
 const secondaryBaseDetailFields = computed(() =>
@@ -447,19 +467,20 @@ const locationDetailFields = computed(() => timeDetailFields.value.filter((item)
 const statusBreakdown = computed(() => countByOptions(worksheets.value, worksheetStatusOptionsWithoutAll, "worksheetStatus"));
 const typeBreakdown = computed(() => countByOptions(worksheets.value, worksheetTypeOptionsWithoutAll, "worksheetType"));
 const statisticsCards = computed(() => {
+  const visibleCount = worksheets.value.length;
   const doneCount = worksheets.value.filter((item) => Number(getStableValue(item, ["worksheetStatus"])) === 2).length;
   const pendingCount = worksheets.value.filter((item) => Number(getStableValue(item, ["worksheetStatus"])) === 0).length;
   const processingCount = worksheets.value.filter((item) => Number(getStableValue(item, ["worksheetStatus"])) === 1).length;
   const urgentCount = worksheets.value.filter((item) => Number(getStableValue(item, ["urgencyLevel"])) === 1).length;
-  const completionRate = worksheets.value.length > 0 ? Math.round((doneCount / worksheets.value.length) * 100) : 0;
+  const completionRate = getPercent(doneCount, visibleCount);
 
   return [
-    { label: "筛选结果", value: `${total.value}` },
-    { label: "当前页待处理", value: `${pendingCount}` },
-    { label: "当前页处理中", value: `${processingCount}` },
-    { label: "当前页已完成", value: `${doneCount}` },
-    { label: "当前页紧急", value: `${urgentCount}` },
-    { label: "当前页完成率", value: `${completionRate}%` },
+    { label: "筛选结果", value: `${total.value}`, unit: "条", percent: 100, percentLabel: "100%", tone: "total" },
+    { label: "工单待处理", value: `${pendingCount}`, unit: "条", percent: getPercent(pendingCount, visibleCount), percentLabel: `${getPercent(pendingCount, visibleCount)}%`, tone: "pending" },
+    { label: "工单处理中", value: `${processingCount}`, unit: "条", percent: getPercent(processingCount, visibleCount), percentLabel: `${getPercent(processingCount, visibleCount)}%`, tone: "processing" },
+    { label: "工单已完成", value: `${doneCount}`, unit: "条", percent: completionRate, percentLabel: `${completionRate}%`, tone: "done" },
+    { label: "紧急工单", value: `${urgentCount}`, unit: "条", percent: getPercent(urgentCount, visibleCount), percentLabel: `${getPercent(urgentCount, visibleCount)}%`, tone: "urgent" },
+    { label: "工单完成率", value: `${completionRate}%`, unit: "", percent: completionRate, percentLabel: `${completionRate}%`, tone: "rate" },
   ];
 });
 
@@ -486,9 +507,14 @@ function handleUrgencyChange(event: { detail: { value: number } }) {
 }
 
 function handleProcessStatusChange(event: { detail: { value: number } }) {
-  processForm.worksheetStatus = worksheetStatusOptionsWithoutAll[event.detail.value]?.value ?? 1;
+  processForm.worksheetStatus = processStatusOptions[event.detail.value]?.value ?? 1;
   if (processForm.worksheetStatus === 2 && !processForm.finishTime) {
-    processForm.finishTime = toDatetimeLocal(new Date());
+    fillFinishTimeNow();
+    return;
+  }
+
+  if (processForm.worksheetStatus !== 2) {
+    processForm.finishTime = "";
   }
 }
 
@@ -505,6 +531,10 @@ function buildQueryParams() {
     pageSize: pagination.pageSize,
     startTime: normalizeDateForApi(filters.startTime, false),
     endTime: normalizeDateForApi(filters.endTime, true),
+    riseTimeStart: normalizeDateForApi(filters.startTime, false),
+    riseTimeEnd: normalizeDateForApi(filters.endTime, true),
+    riseStartTime: normalizeDateForApi(filters.startTime, false),
+    riseEndTime: normalizeDateForApi(filters.endTime, true),
     sortOrder: "desc",
     sortField: "createdAt",
     worksheetNumber: filters.worksheetNumber.trim() || undefined,
@@ -529,8 +559,9 @@ async function fetchWorksheets() {
     const response = await getPageApi()(buildQueryParams()) as ApiResponseLike;
     assertSuccessResponse(response);
     const parsed = parsePageResponse(response);
-    worksheets.value = parsed.records;
-    total.value = parsed.total;
+    const filteredRecords = applyLocalFilters(parsed.records);
+    worksheets.value = filteredRecords;
+    total.value = hasActiveFilters() && filteredRecords.length !== parsed.records.length ? filteredRecords.length : parsed.total;
     selectFirstRow();
   } catch (error) {
     worksheets.value = [];
@@ -657,7 +688,7 @@ function fillProcessForm(item: WorksheetRecord | null) {
 
   processForm.worksheetStatus = Number(getStableValue(item, ["worksheetStatus"]) ?? 1);
   processForm.executeAccount = getTextValue(item, ["executeAccount"], "");
-  processForm.finishTime = toDatetimeLocal(getTextValue(item, ["finishTime"], ""));
+  processForm.finishTime = toDatetimeMinuteLocal(getTextValue(item, ["finishTime"], ""));
   processForm.worksheetFeedback = getTextValue(item, ["worksheetFeedback"], "");
   processForm.remark = getTextValue(item, ["remark"], "");
 }
@@ -667,6 +698,15 @@ async function submitProcess() {
   if (!id) {
     uni.showToast({ title: "请先选择工单", icon: "none" });
     return;
+  }
+
+  if (isSelectedWorksheetCanceled.value || processForm.worksheetStatus === 3) {
+    uni.showToast({ title: "已取消工单不能保存处理", icon: "none" });
+    return;
+  }
+
+  if (processForm.worksheetStatus === 2 && !processForm.finishTime) {
+    fillFinishTimeNow();
   }
 
   submittingProcess.value = true;
@@ -687,27 +727,50 @@ async function submitProcess() {
 }
 
 function buildProcessPayload() {
-  return removeEmptyFields({
+  const payload = removeEmptyFields({
     worksheetStatus: processForm.worksheetStatus,
     executeAccount: processForm.executeAccount.trim(),
-    finishTime: normalizeDatetimeForApi(processForm.finishTime),
+    finishTime: processForm.worksheetStatus === 2 ? normalizeDatetimeForApi(processForm.finishTime) : undefined,
     worksheetFeedback: processForm.worksheetFeedback.trim(),
     remark: processForm.remark.trim(),
   });
+
+  if (processForm.worksheetStatus !== 2) {
+    return {
+      ...payload,
+      finishTime: null,
+    };
+  }
+
+  return payload;
 }
 
 function markFinished() {
+  if (isSelectedWorksheetCanceled.value) {
+    uni.showToast({ title: "已取消工单不能标记完成", icon: "none" });
+    return;
+  }
+
   processForm.worksheetStatus = 2;
   if (!processForm.finishTime) {
-    processForm.finishTime = toDatetimeLocal(new Date());
+    fillFinishTimeNow();
   }
   void submitProcess();
+}
+
+function fillFinishTimeNow() {
+  processForm.finishTime = toDatetimeMinuteLocal(new Date());
 }
 
 async function cancelWorksheet() {
   const id = selectedWorksheet.value ? getRowId(selectedWorksheet.value) : "";
   if (!id) {
     uni.showToast({ title: "请先选择工单", icon: "none" });
+    return;
+  }
+
+  if (isSelectedWorksheetCanceled.value) {
+    uni.showToast({ title: "工单已取消", icon: "none" });
     return;
   }
 
@@ -794,6 +857,91 @@ function getRowId(item: WorksheetRecord) {
 
 function getRowKey(item: WorksheetRecord, index: number) {
   return String(getRowId(item) || getWorksheetNumber(item) || index);
+}
+
+function hasActiveFilters() {
+  return Boolean(
+    filters.startTime ||
+    filters.endTime ||
+    filters.worksheetNumber.trim() ||
+    filters.worksheetType !== "" ||
+    filters.worksheetStatus !== "" ||
+    filters.urgencyLevel !== "" ||
+    filters.riseAccount.trim() ||
+    filters.executeAccount.trim() ||
+    filters.deviceReference.trim(),
+  );
+}
+
+function applyLocalFilters(records: WorksheetRecord[]) {
+  if (!hasActiveFilters()) {
+    return records;
+  }
+
+  return records.filter((item) => {
+    if (!includesText(getWorksheetNumber(item), filters.worksheetNumber)) {
+      return false;
+    }
+
+    if (!matchesOptionValue(getStableValue(item, ["worksheetType"]), filters.worksheetType)) {
+      return false;
+    }
+
+    if (!matchesOptionValue(getStableValue(item, ["worksheetStatus"]), filters.worksheetStatus)) {
+      return false;
+    }
+
+    if (!matchesOptionValue(getStableValue(item, ["urgencyLevel"]), filters.urgencyLevel)) {
+      return false;
+    }
+
+    if (!includesText(getRiseAccount(item), filters.riseAccount)) {
+      return false;
+    }
+
+    if (!includesText(getExecuteAccount(item), filters.executeAccount)) {
+      return false;
+    }
+
+    if (!includesText(getDeviceReference(item), filters.deviceReference)) {
+      return false;
+    }
+
+    return isRiseTimeInRange(item);
+  });
+}
+
+function includesText(value: string, keyword: string) {
+  const normalizedKeyword = keyword.trim().toLowerCase();
+  if (!normalizedKeyword) {
+    return true;
+  }
+
+  return value.toLowerCase().includes(normalizedKeyword);
+}
+
+function matchesOptionValue(value: unknown, filterValue: number | "") {
+  if (filterValue === "") {
+    return true;
+  }
+
+  return Number(value) === filterValue;
+}
+
+function isRiseTimeInRange(item: WorksheetRecord) {
+  const riseTimestamp = getDatetimeTimestamp(getRiseTime(item));
+  const startTimestamp = getDatetimeTimestamp(filters.startTime);
+  const endTimestamp = getDatetimeTimestamp(filters.endTime);
+
+  if (startTimestamp !== undefined && (riseTimestamp === undefined || riseTimestamp < startTimestamp)) {
+    return false;
+  }
+
+  if (endTimestamp !== undefined && (riseTimestamp === undefined || riseTimestamp > endTimestamp)) {
+    return false;
+  }
+
+  return true;
 }
 
 function getWorksheetNumber(item: WorksheetRecord) {
@@ -901,6 +1049,10 @@ function getOptionIndex(options: SelectOption[], value: unknown) {
   return Math.max(0, options.findIndex((item) => item.value === normalized));
 }
 
+function getPercent(count: number, totalCount: number) {
+  return totalCount > 0 ? Math.round((count / totalCount) * 100) : 0;
+}
+
 function countByOptions(records: WorksheetRecord[], options: Array<{ label: string; value: number }>, key: string) {
   return options.map((option) => ({
     label: option.label,
@@ -996,6 +1148,16 @@ function normalizeDisplayDatetime(value: string) {
   return value.trim().replace(/\s+/, "T");
 }
 
+function getDatetimeTimestamp(value: string) {
+  if (!value || value === "-") {
+    return undefined;
+  }
+
+  const normalizedValue = normalizeDisplayDatetime(value).replace(/\.\d+/, "").replace(/(?:Z|[+-]\d{2}:?\d{2})$/, "");
+  const timestamp = new Date(normalizedValue).getTime();
+  return Number.isNaN(timestamp) ? undefined : timestamp;
+}
+
 function toDatetimeLocal(value: Date | string) {
   if (!value) {
     return "";
@@ -1007,6 +1169,11 @@ function toDatetimeLocal(value: Date | string) {
   }
 
   return `${date.getFullYear()}-${padNumber(date.getMonth() + 1)}-${padNumber(date.getDate())}T${padNumber(date.getHours())}:${padNumber(date.getMinutes())}:${padNumber(date.getSeconds())}`;
+}
+
+function toDatetimeMinuteLocal(value: Date | string) {
+  const valueWithSeconds = toDatetimeLocal(value);
+  return valueWithSeconds ? valueWithSeconds.slice(0, 16) : "";
 }
 
 function formatDateTime(value: string) {
@@ -1119,6 +1286,10 @@ defineExpose({
   line-height: 1.45;
 }
 
+.form-textarea--compact {
+  height: 52px;
+}
+
 .input-placeholder {
   color: #9aa9b8;
 }
@@ -1132,59 +1303,194 @@ defineExpose({
 }
 
 .stat-card {
-  padding: 12px;
+  --stat-color: #0d82ee;
+  --stat-color-light: #65b6ff;
+  --stat-bg: #f3f9ff;
+  --stat-border: #d7eaff;
+  --stat-soft: rgba(13, 130, 238, 0.12);
+  position: relative;
+  min-width: 0;
+  padding: 13px 14px 12px;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, var(--stat-bg) 100%),
+    radial-gradient(circle at 92% 18%, var(--stat-soft) 0, transparent 34%);
+  border-color: var(--stat-border);
+  box-shadow: 0 10px 22px rgba(35, 72, 104, 0.07);
 }
 
-.stat-card__label {
-  display: block;
-  color: #64748b;
-  font-size: 13px;
-  font-weight: 700;
+.stat-card::after {
+  position: absolute;
+  right: -18px;
+  bottom: -24px;
+  width: 84px;
+  height: 84px;
+  content: "";
+  background: var(--stat-color);
+  border-radius: 50%;
+  opacity: 0.06;
 }
 
-.stat-card__value {
-  display: block;
-  margin-top: 8px;
-  color: #183755;
-  font-size: 24px;
-  font-weight: 900;
+.stat-card--total {
+  --stat-color: #0d82ee;
+  --stat-color-light: #65b6ff;
+  --stat-bg: #f3f9ff;
+  --stat-border: #d7eaff;
+  --stat-soft: rgba(13, 130, 238, 0.12);
 }
 
-.worksheet-toolbar {
+.stat-card--pending {
+  --stat-color: #f59e0b;
+  --stat-color-light: #fbbf24;
+  --stat-bg: #fff8eb;
+  --stat-border: #fde4b5;
+  --stat-soft: rgba(245, 158, 11, 0.16);
+}
+
+.stat-card--processing {
+  --stat-color: #2563eb;
+  --stat-color-light: #60a5fa;
+  --stat-bg: #f1f6ff;
+  --stat-border: #d7e5ff;
+  --stat-soft: rgba(37, 99, 235, 0.13);
+}
+
+.stat-card--done,
+.stat-card--rate {
+  --stat-color: #16a34a;
+  --stat-color-light: #4ade80;
+  --stat-bg: #f0fbf4;
+  --stat-border: #ccefd8;
+  --stat-soft: rgba(22, 163, 74, 0.13);
+}
+
+.stat-card--urgent {
+  --stat-color: #dc2626;
+  --stat-color-light: #fb7185;
+  --stat-bg: #fff4f4;
+  --stat-border: #ffd3d3;
+  --stat-soft: rgba(220, 38, 38, 0.13);
+}
+
+.stat-card__head,
+.stat-card__body {
+  position: relative;
+  z-index: 1;
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  flex: none;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
-  min-height: 96px;
-  padding: 12px;
-  overflow: visible;
 }
 
-.filter-group {
+.stat-card__title {
   display: flex;
   align-items: center;
   gap: 7px;
-  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.stat-card__marker {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  background: var(--stat-color);
+  border: 3px solid rgba(255, 255, 255, 0.86);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--stat-soft);
+}
+
+.stat-card__label {
+  color: #53687d;
+  font-size: 12px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stat-card__percent {
+  flex: none;
+  padding: 3px 8px;
+  color: var(--stat-color);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.2;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid var(--stat-border);
+  border-radius: 999px;
+}
+
+.stat-card__body {
+  margin-top: 10px;
+  justify-content: flex-start;
+  gap: 5px;
+}
+
+.stat-card__value {
+  color: var(--stat-color);
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.stat-card__unit {
+  color: #7a8b9d;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  transform: translateY(4px);
+}
+
+.stat-card__progress {
+  position: relative;
+  z-index: 1;
+  height: 6px;
+  margin-top: 12px;
+  overflow: hidden;
+  background: rgba(125, 148, 170, 0.13);
+  border-radius: 999px;
+}
+
+.stat-card__progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--stat-color), var(--stat-color-light));
+  border-radius: inherit;
+}
+
+.worksheet-toolbar {
+  flex: none;
+  display: grid;
+  gap: 12px;
+  min-height: 0;
+  padding: 14px;
+  overflow: visible;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+}
+
+.filter-group {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  flex: 0 0 136px;
+  min-width: 0;
 }
 
 .toolbar-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: nowrap;
-  gap: 12px;
-  width: 100%;
   min-width: 0;
 }
 
 .toolbar-row--filters {
+  display: flex;
   flex-wrap: wrap;
-  gap: 8px 16px;
+  align-items: end;
+  gap: 10px 12px;
 }
 
 .toolbar-row--bottom {
-  justify-content: space-between;
-  gap: 16px;
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  width: 100%;
 }
 
 .toolbar-filters {
@@ -1196,27 +1502,41 @@ defineExpose({
 }
 
 .filter-group--date {
+  flex: 0 0 auto;
   min-width: 0;
 }
 
+.toolbar-row--filters .filter-group:first-child {
+  flex-basis: 236px;
+}
+
+.toolbar-row--filters .filter-group:nth-child(5),
+.toolbar-row--filters .filter-group:nth-child(6) {
+  flex-basis: 140px;
+}
+
+.toolbar-row--filters .filter-group:nth-child(7) {
+  flex-basis: 210px;
+}
+
 .filter-label {
-  flex: none;
-  color: #34495e;
-  font-size: 13px;
-  font-weight: 700;
+  color: #52677b;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
   white-space: nowrap;
 }
 
 .filter-input {
-  width: 132px;
+  width: 100%;
 }
 
 .filter-input--name {
-  width: 120px;
+  width: 100%;
 }
 
 .filter-input--device {
-  width: 142px;
+  width: 100%;
 }
 
 .filter-separator {
@@ -1228,11 +1548,12 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .filter-datetime {
-  width: 188px;
+  flex: 0 0 200px;
+  width: 200px;
 }
 
 .filter-datetime :deep(.datetime-picker__control) {
@@ -1257,7 +1578,7 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 104px;
+  width: 100%;
 }
 
 .filter-select__arrow {
@@ -1274,13 +1595,13 @@ defineExpose({
   align-items: center;
   justify-content: center;
   flex: none;
-  height: 34px;
+  height: 30px;
   margin: 0;
-  padding: 0 14px;
+  padding: 0 12px;
   color: #31506d;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
-  line-height: 34px;
+  line-height: 30px;
   background: #f6fbff;
   border: 1px solid #cbdced;
   border-radius: 4px;
@@ -1289,7 +1610,7 @@ defineExpose({
 .toolbar-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   flex: 0 0 auto;
   justify-content: flex-start;
   width: auto;
@@ -1298,7 +1619,23 @@ defineExpose({
 
 .toolbar-filters,
 .toolbar-actions {
-  align-self: center;
+  align-self: end;
+}
+
+.toolbar-actions .toolbar-button,
+.toolbar-actions .toolbar-icon-button {
+  height: 38px;
+  line-height: 1.2;
+  border-radius: 5px;
+}
+
+.toolbar-actions .toolbar-button {
+  min-width: 64px;
+  padding: 0 15px;
+}
+
+.toolbar-actions .toolbar-icon-button {
+  width: 38px;
 }
 
 .toolbar-button::after,
@@ -1311,6 +1648,13 @@ defineExpose({
   color: #ffffff;
   background: #0d82ee;
   border-color: #0d82ee;
+  box-shadow: 0 5px 12px rgba(13, 130, 238, 0.18);
+}
+
+.toolbar-button--create {
+  margin-left: 6px;
+  min-width: 88px;
+  padding: 0 16px;
 }
 
 .toolbar-button--danger {
@@ -1339,14 +1683,66 @@ defineExpose({
 }
 
 .toolbar-icon-button {
-  width: 34px;
+  width: 30px;
   padding: 0;
+}
+
+@media (max-width: 1280px) {
+  .toolbar-row--filters {
+    gap: 10px;
+  }
+
+  .toolbar-row--bottom {
+    flex-wrap: wrap;
+  }
+
+  .toolbar-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  .worksheet-toolbar {
+    padding: 12px;
+  }
+
+  .toolbar-row--filters,
+  .toolbar-row--bottom {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .filter-group,
+  .toolbar-row--filters .filter-group:first-child,
+  .toolbar-row--filters .filter-group:nth-child(5),
+  .toolbar-row--filters .filter-group:nth-child(6),
+  .toolbar-row--filters .filter-group:nth-child(7) {
+    flex-basis: auto;
+  }
+
+  .date-range {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .filter-datetime {
+    flex-basis: auto;
+    width: 100%;
+  }
+
+  .filter-separator {
+    display: none;
+  }
+
+  .toolbar-actions {
+    flex-wrap: wrap;
+  }
 }
 
 .icon-refresh {
   position: relative;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border: 2px solid currentColor;
   border-right-color: transparent;
   border-radius: 50%;
@@ -1733,27 +2129,9 @@ defineExpose({
 }
 
 .detail-summary__badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 26px;
-  padding: 0 10px;
-  font-size: 12px;
-  font-weight: 900;
-  border: 1px solid transparent;
-  border-radius: 999px;
-}
-
-.detail-summary__badge--status {
-  color: #0d5ea6;
-  background: #eaf4ff;
-  border-color: #cfe7fb;
-}
-
-.detail-summary__badge--level {
-  color: #177245;
-  background: #eaf8ef;
-  border-color: #bfe8ce;
+  min-width: 64px;
+  height: 26px;
+  line-height: 26px;
 }
 
 .detail-grid--base {
@@ -2038,10 +2416,62 @@ defineExpose({
   margin-bottom: 12px;
 }
 
-.process-actions {
+.process-select {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 36px;
+  color: #183755;
+  font-weight: 800;
+  background: #f7fbff;
+  border-color: #a9d7ff;
+  box-shadow: inset 0 -1px 0 rgba(13, 130, 238, 0.06);
+}
+
+.process-select--disabled {
+  color: #8b9aac;
+  background: #f1f5f9;
+  border-color: #d7e0e8;
+}
+
+.process-select__arrow {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border: solid #5e7691;
+  border-width: 0 2px 2px 0;
+  transform: translateY(-2px) rotate(45deg);
+}
+
+.process-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+  padding-top: 2px;
+}
+
+.process-action {
+  width: 100%;
+  height: 36px;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 36px;
+}
+
+.process-action--save {
+  grid-column: 1 / -1;
+}
+
+.process-action--finish {
+  color: #177245;
+  background: #eaf8ef;
+  border-color: #bfe8ce;
+}
+
+.process-action--cancel {
+  color: #b42318;
+  background: #fff5f3;
+  border-color: #ffc9c0;
 }
 
 .breakdown-section__title {
