@@ -33,7 +33,7 @@
         </picker>
 
         <!-- date -->
-        <DeviceDatetimePicker
+        <XDatetimePicker
             v-else-if="item.type === 'date'"
             :model-value="String(model[item.key] ?? '')"
             class="filter-datetime"
@@ -45,41 +45,19 @@
 
     </view>
 
-    <!-- ⭐ FIX：固定右下角 actions（不再参与 schema） -->
-    <view class="toolbar-actions">
-
-      <button
-          class="toolbar-button toolbar-button--primary"
-          hover-class="toolbar-button--hover"
-          @click="emit('search')"
-      >
-        查询
-      </button>
-
-      <button
-          class="toolbar-button"
-          hover-class="toolbar-button--hover"
-          @click="emit('reset')"
-      >
-        重置
-      </button>
-
-      <button
-          class="toolbar-icon-button"
-          hover-class="toolbar-icon-button--hover"
-          aria-label="刷新"
-          @click="emit('refresh')"
-      >
-        <text class="icon-refresh"></text>
-      </button>
-
-    </view>
+    <XToolbarActions
+        @search="emit('search')"
+        @reset="emit('reset')"
+        @refresh="emit('refresh')"
+        @add="emit('add')"
+    />
 
   </view>
 </template>
 <script setup lang="ts">
 import { computed, reactive, watch } from "vue";
-import DeviceDatetimePicker from "@/pages/device/components/DeviceDatetimePicker.vue";
+import XDatetimePicker from "@/pages/device/components/x/XDatetimePicker.vue";
+import XToolbarActions from "@/pages/device/components/x/XToolbarActions.vue";
 
 /**
  * =========================
@@ -119,6 +97,7 @@ const emit = defineEmits<{
   (e: "search"): void;
   (e: "reset"): void;
   (e: "refresh"): void;
+  (e: "add"): void;
 }>();
 
 /**
@@ -198,8 +177,6 @@ function getLabel(item: Field) {
 }
 </script>
 <style scoped lang="scss">
-
-
 .icon-refresh {
   position: relative;
   width: 16px;

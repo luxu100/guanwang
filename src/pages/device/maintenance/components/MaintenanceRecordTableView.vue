@@ -5,6 +5,8 @@
         @search="handleSearch"
         @reset="handleSearch"
         @refresh="fetchMaintenanceRecords"
+        @add="handleAdd"
+        @delete="handleDelete"
     />
 
     <view class="table-head">
@@ -99,7 +101,7 @@
 import { ref, watch } from 'vue';
 import type {Device, MaintenanceRecord} from '@/services/device/types';
 import type { Pagination } from '@/types/api';
-import { getMaintenanceRecordPageT } from "@/services/device/maintenance.typed";
+import {deleteMaintenanceRecordT, getMaintenanceRecordPageT} from "@/services/device/maintenance.typed";
 import MaintenanceRecordToolbar from "@/pages/device/maintenance/components/MaintenanceRecordToolbar.vue";
 
 // ===== 数据 =====
@@ -121,7 +123,7 @@ const props = defineProps<{
 
 // ===== 查询条件（后端过滤）=====
 const searchForm = ref({
-  maintainType: undefined as number | undefined,
+  maintainType: null as number | null,
   startTime: '',
   endTime: ''
 });
@@ -201,10 +203,20 @@ function changePage(step: number) {
 }
 
 // ===== 查询触发（建议你按钮调用）=====
-function handleSearch() {
+async function handleSearch() {
   pagination.value.current = 1;
+  await Promise.resolve();
   fetchMaintenanceRecords();
 }
+
+function handleAdd() {
+
+}
+
+function handleDelete() {
+
+}
+
 </script>
 <style scoped lang="scss">
 

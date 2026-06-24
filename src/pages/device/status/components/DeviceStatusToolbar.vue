@@ -13,7 +13,7 @@
 
       <text class="filter-label">开始时间</text>
 
-      <DeviceDatetimePicker
+      <XDatetimePicker
           v-model="model.startTime"
           class="filter-datetime"
           title="开始时间"
@@ -22,7 +22,7 @@
 
       <text class="filter-label">结束时间</text>
 
-      <DeviceDatetimePicker
+      <XDatetimePicker
           v-model="model.endTime"
           class="filter-datetime"
           title="结束时间"
@@ -64,7 +64,7 @@
 </template>
 <script setup lang="ts">
 import { computed, reactive, watch } from "vue";
-import DeviceDatetimePicker from "@/pages/device/components/DeviceDatetimePicker.vue";
+import XDatetimePicker from "@/pages/device/components/x/XDatetimePicker.vue";
 
 type Option = { label: string; value: number | null };
 
@@ -116,14 +116,6 @@ const leakStatusLabel = computed(() => {
 function onLeakStatusChange(e: any) {
   const index = e.detail.value;
   model.leakStatus = leakStatusOptions[index].value;
-}
-
-// ===== 重置 =====
-function onReset() {
-  model.leakStatus = null;
-  model.startTime = "";
-  model.endTime = "";
-  emit("reset");
 }
 </script>
 

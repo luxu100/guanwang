@@ -234,11 +234,11 @@ const enableStateOptions: SelectOption[] = [
 ];
 
 const maintainTypeOptions: SelectOption[] = [
-    { label: "全部", value: "" },
-    { label: "拆", value: 0 },
-    { label: "装", value: 1 },
-    { label: "维护", value: 2 },
-    { label: "巡检", value: 3 },
+  { label: "全部", value: "" },
+  { label: "拆", value: 0 },
+  { label: "装", value: 1 },
+  { label: "维护", value: 2 },
+  { label: "巡检", value: 3 },
 ];
 
 const installStateOptions: SelectOption[] = [
