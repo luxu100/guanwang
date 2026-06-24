@@ -205,3 +205,59 @@ export interface MaintenanceRecord {
     createdAt?: string;
     updatedAt?: string;
 }
+
+
+export interface DeviceStatusVO {
+    /** 主键ID */
+    id: number;
+
+    /** 设备ID */
+    deviceId: number;
+
+    /** 设备编号 */
+    deviceNumber: string;
+
+    /** 固件版本 */
+    firmwareVersion: string;
+
+    /** 硬件版本 */
+    hardwareVersion: string;
+
+    /** 工作模式 */
+    workMode: number;
+
+    /** 电池电压 */
+    batteryVoltage: string;
+
+    /** 设备温度 */
+    deviceTemperature: string;
+
+    /** 信号强度 */
+    signalIntensity: string;
+
+    /** 信号质量 */
+    signalQuality: string;
+
+    /** 坐标位置 */
+    coordinateLocation: string;
+
+    /** ESA指标 */
+    leakEsa: number;
+
+    /** 漏损强度 */
+    leakIntensity: number;
+
+    /** 漏损频率 */
+    leakFrequency: number;
+
+    /**
+     * 漏损状态
+     * 0-渗漏
+     * 1-正常
+     * 2-疑似
+     */
+    leakStatus: number;
+
+    /** 上报时间 */
+    uploadTime: string;
+}
