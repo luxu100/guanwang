@@ -23,13 +23,19 @@ const MAP_RESIZE_DELAY = 300;
  * 腾讯地图 GL JS SDK 没有在项目里安装类型包，这里只声明当前组件用到的最小接口。
  * 后续如果地图功能变复杂，应优先补充完整类型，而不是重新引入 any。
  */
+interface TencentLatLngValue {
+  getLat?: () => number;
+  getLng?: () => number;
+}
+
 interface TencentLatLng {
-  new (lat: number, lng: number): unknown;
+  new (lat: number, lng: number): TencentLatLngValue;
 }
 
 interface TencentMapInstance {
   destroy?: () => void;
   resize?: () => void;
+  on?: (event: string, handler: (e: { latLng: TencentLatLngValue }) => void) => void;
 }
 
 interface TencentMapConstructor {

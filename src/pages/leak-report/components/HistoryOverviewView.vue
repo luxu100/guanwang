@@ -468,8 +468,9 @@ function selectRecord(item: HistoryRecord, index: number) {
   getApiFunction().detail(id)
     .then((response: unknown) => {
       assertSuccessResponse(response as ApiResponseLike);
-      if (isObject((response as ApiResponseLike)?.data)) {
-        selectedRecord.value = { ...item, ...(response as ApiResponseLike).data };
+      const detailData = (response as ApiResponseLike)?.data;
+      if (isObject(detailData)) {
+        selectedRecord.value = { ...item, ...detailData };
       }
     })
     .catch(() => {});

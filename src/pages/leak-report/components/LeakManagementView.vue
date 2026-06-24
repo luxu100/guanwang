@@ -539,13 +539,11 @@ function handleUploadAudio() { uni.showToast({ title: "音频上传功能开发�
 const mapPickerVisible = ref(false);
 const mapPickedCoord = ref("");
 const mapPickerContainer = ref<HTMLElement | null>(null);
-let mapPickerInstance: { destroy?: () => void } | null = null;
+let mapPickerInstance: { destroy?: () => void; on?: (event: string, handler: (e: { latLng: { getLat?: () => number; getLng?: () => number } }) => void) => void } | null = null;
 
 const TENCENT_MAP_KEY = "JCDBZ-Z2HLI-V26GX-UL7VO-LJFO2-TIFMZ";
 const TENCENT_MAP_SCRIPT_ID = "tencent-map-sdk-picker";
 const TENCENT_MAP_SCRIPT_URL = `https://map.qq.com/api/gljs?v=1.exp&key=${TENCENT_MAP_KEY}`;
-
-declare global { interface Window { TMap?: { LatLng: new (lat: number, lng: number) => { getLat: () => number; getLng: () => number }; Map: new (container: HTMLElement, opts: { center: { getLat: () => number; getLng: () => number }; zoom: number; pitch: number; rotation: number }) => { on: (event: string, handler: (e: { latLng: { getLat: () => number; getLng: () => number } }) => void) => void; destroy?: () => void }; } } }
 
 function loadTencentMapSDK(): Promise<void> {
   if (window.TMap) return Promise.resolve();
@@ -566,9 +564,10 @@ function initMapPicker(lng: number, lat: number) {
   const center = new window.TMap.LatLng(lat, lng);
   const map = new window.TMap.Map(mapPickerContainer.value, { center, zoom: 15, pitch: 0, rotation: 0 });
   mapPickerInstance = map;
-  map.on("click", (e: { latLng: { getLat: () => number; getLng: () => number } }) => {
-    const clng = e.latLng.getLng().toFixed(6);
-    const clat = e.latLng.getLat().toFixed(6);
+  map.on?.("click", (e: { latLng: { getLat?: () => number; getLng?: () => number } }) => {
+    const clng = e.latLng.getLng?.().toFixed(6);
+    const clat = e.latLng.getLat?.().toFixed(6);
+    if (!clng || !clat) return;
     mapPickedCoord.value = `${clng},${clat}`;
   });
 }

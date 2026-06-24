@@ -365,8 +365,9 @@ function selectRecord(item: AnalysisRecord, index: number) {
   apiFn(id)
     .then((response: unknown) => {
       assertSuccessResponse(response as ApiResponseLike);
-      if (isObject((response as ApiResponseLike)?.data)) {
-        selectedRecord.value = { ...item, ...(response as ApiResponseLike).data };
+      const detailData = (response as ApiResponseLike)?.data;
+      if (isObject(detailData)) {
+        selectedRecord.value = { ...item, ...detailData };
       }
     })
     .catch(() => {});
