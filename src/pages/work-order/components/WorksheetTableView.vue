@@ -233,32 +233,35 @@
             <text class="process-box__title">工单处理</text>
             <view class="form-field">
               <text class="form-label">处理状态</text>
-              <picker :range="worksheetStatusOptionsWithoutAll" range-key="label" :value="processStatusIndex" @change="handleProcessStatusChange">
-                <view class="form-select">{{ processStatusLabel }}</view>
+              <picker :range="processStatusOptions" range-key="label" :value="processStatusIndex" :disabled="isSelectedWorksheetCanceled" @change="handleProcessStatusChange">
+                <view class="form-select process-select" :class="{ 'process-select--disabled': isSelectedWorksheetCanceled }">
+                  <text>{{ processStatusLabel }}</text>
+                  <text class="process-select__arrow"></text>
+                </view>
               </picker>
             </view>
             <view class="form-field">
               <text class="form-label">执行人账号</text>
-              <input v-model="processForm.executeAccount" class="form-input" placeholder="请输入执行人" placeholder-class="input-placeholder" />
+              <input v-model="processForm.executeAccount" class="form-input" :disabled="isSelectedWorksheetCanceled" placeholder="请输入执行人" placeholder-class="input-placeholder" />
             </view>
             <view class="form-field">
               <text class="form-label">完成时间</text>
-              <input v-model="processForm.finishTime" class="form-input" type="datetime-local" />
+              <input v-model="processForm.finishTime" class="form-input" :disabled="isSelectedWorksheetCanceled" type="datetime-local" />
             </view>
             <view class="form-field">
               <text class="form-label">处理反馈</text>
-              <textarea v-model="processForm.worksheetFeedback" class="form-textarea" placeholder="请输入处理反馈" placeholder-class="input-placeholder" />
+              <textarea v-model="processForm.worksheetFeedback" class="form-textarea" :disabled="isSelectedWorksheetCanceled" placeholder="请输入处理反馈" placeholder-class="input-placeholder" />
             </view>
             <view class="form-field">
               <text class="form-label">备注</text>
-              <textarea v-model="processForm.remark" class="form-textarea" placeholder="请输入备注" placeholder-class="input-placeholder" />
+              <textarea v-model="processForm.remark" class="form-textarea form-textarea--compact" :disabled="isSelectedWorksheetCanceled" placeholder="请输入备注" placeholder-class="input-placeholder" />
             </view>
             <view class="process-actions">
-              <button class="toolbar-button toolbar-button--primary" :disabled="submittingProcess" hover-class="toolbar-button--hover" @click="submitProcess">
+              <button class="toolbar-button toolbar-button--primary process-action process-action--save" :disabled="submittingProcess || isSelectedWorksheetCanceled" hover-class="toolbar-button--hover" @click="submitProcess">
                 {{ submittingProcess ? "保存中..." : "保存处理" }}
               </button>
-              <button class="toolbar-button" :disabled="submittingProcess" hover-class="toolbar-button--hover" @click="markFinished">标记完成</button>
-              <button class="toolbar-button toolbar-button--danger" :disabled="submittingProcess" hover-class="toolbar-button--hover" @click="cancelWorksheet">取消工单</button>
+              <button class="toolbar-button process-action process-action--finish" :disabled="submittingProcess || isSelectedWorksheetCanceled" hover-class="toolbar-button--hover" @click="markFinished">标记完成</button>
+              <button class="toolbar-button toolbar-button--danger process-action process-action--cancel" :disabled="submittingProcess || isSelectedWorksheetCanceled" hover-class="toolbar-button--hover" @click="cancelWorksheet">取消工单</button>
             </view>
           </view>
 
@@ -357,6 +360,7 @@ const detailTabs: Array<{ label: string; value: DetailTab }> = [
 
 const worksheetTypeOptionsWithoutAll = worksheetTypeOptions.filter((item) => item.value !== "") as Array<{ label: string; value: number }>;
 const worksheetStatusOptionsWithoutAll = worksheetStatusOptions.filter((item) => item.value !== "") as Array<{ label: string; value: number }>;
+const processStatusOptions = worksheetStatusOptionsWithoutAll.filter((item) => item.value !== 3);
 
 const filters = reactive({
   startTime: "",
@@ -399,8 +403,10 @@ const processStatusLabel = computed(() => getOptionLabel(worksheetStatusOptionsW
 const currentTypeIndex = computed(() => getOptionIndex(worksheetTypeOptions, filters.worksheetType));
 const currentStatusIndex = computed(() => getOptionIndex(worksheetStatusOptions, filters.worksheetStatus));
 const currentUrgencyIndex = computed(() => getOptionIndex(urgencyFilterOptions, filters.urgencyLevel));
-const processStatusIndex = computed(() => getOptionIndex(worksheetStatusOptionsWithoutAll, processForm.worksheetStatus));
+const processStatusIndex = computed(() => getOptionIndex(processStatusOptions, processForm.worksheetStatus));
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pagination.pageSize)));
+const selectedWorksheetStatus = computed(() => Number(getStableValue(selectedWorksheet.value || {}, ["worksheetStatus"])));
+const isSelectedWorksheetCanceled = computed(() => selectedWorksheetStatus.value === 3);
 
 const baseDetailFields = computed(() => {
   const item = selectedWorksheet.value || {};
@@ -501,9 +507,14 @@ function handleUrgencyChange(event: { detail: { value: number } }) {
 }
 
 function handleProcessStatusChange(event: { detail: { value: number } }) {
-  processForm.worksheetStatus = worksheetStatusOptionsWithoutAll[event.detail.value]?.value ?? 1;
+  processForm.worksheetStatus = processStatusOptions[event.detail.value]?.value ?? 1;
   if (processForm.worksheetStatus === 2 && !processForm.finishTime) {
-    processForm.finishTime = toDatetimeLocal(new Date());
+    fillFinishTimeNow();
+    return;
+  }
+
+  if (processForm.worksheetStatus !== 2) {
+    processForm.finishTime = "";
   }
 }
 
@@ -520,6 +531,10 @@ function buildQueryParams() {
     pageSize: pagination.pageSize,
     startTime: normalizeDateForApi(filters.startTime, false),
     endTime: normalizeDateForApi(filters.endTime, true),
+    riseTimeStart: normalizeDateForApi(filters.startTime, false),
+    riseTimeEnd: normalizeDateForApi(filters.endTime, true),
+    riseStartTime: normalizeDateForApi(filters.startTime, false),
+    riseEndTime: normalizeDateForApi(filters.endTime, true),
     sortOrder: "desc",
     sortField: "createdAt",
     worksheetNumber: filters.worksheetNumber.trim() || undefined,
@@ -544,8 +559,9 @@ async function fetchWorksheets() {
     const response = await getPageApi()(buildQueryParams()) as ApiResponseLike;
     assertSuccessResponse(response);
     const parsed = parsePageResponse(response);
-    worksheets.value = parsed.records;
-    total.value = parsed.total;
+    const filteredRecords = applyLocalFilters(parsed.records);
+    worksheets.value = filteredRecords;
+    total.value = hasActiveFilters() && filteredRecords.length !== parsed.records.length ? filteredRecords.length : parsed.total;
     selectFirstRow();
   } catch (error) {
     worksheets.value = [];
@@ -672,7 +688,7 @@ function fillProcessForm(item: WorksheetRecord | null) {
 
   processForm.worksheetStatus = Number(getStableValue(item, ["worksheetStatus"]) ?? 1);
   processForm.executeAccount = getTextValue(item, ["executeAccount"], "");
-  processForm.finishTime = toDatetimeLocal(getTextValue(item, ["finishTime"], ""));
+  processForm.finishTime = toDatetimeMinuteLocal(getTextValue(item, ["finishTime"], ""));
   processForm.worksheetFeedback = getTextValue(item, ["worksheetFeedback"], "");
   processForm.remark = getTextValue(item, ["remark"], "");
 }
@@ -682,6 +698,15 @@ async function submitProcess() {
   if (!id) {
     uni.showToast({ title: "请先选择工单", icon: "none" });
     return;
+  }
+
+  if (isSelectedWorksheetCanceled.value || processForm.worksheetStatus === 3) {
+    uni.showToast({ title: "已取消工单不能保存处理", icon: "none" });
+    return;
+  }
+
+  if (processForm.worksheetStatus === 2 && !processForm.finishTime) {
+    fillFinishTimeNow();
   }
 
   submittingProcess.value = true;
@@ -702,27 +727,50 @@ async function submitProcess() {
 }
 
 function buildProcessPayload() {
-  return removeEmptyFields({
+  const payload = removeEmptyFields({
     worksheetStatus: processForm.worksheetStatus,
     executeAccount: processForm.executeAccount.trim(),
-    finishTime: normalizeDatetimeForApi(processForm.finishTime),
+    finishTime: processForm.worksheetStatus === 2 ? normalizeDatetimeForApi(processForm.finishTime) : undefined,
     worksheetFeedback: processForm.worksheetFeedback.trim(),
     remark: processForm.remark.trim(),
   });
+
+  if (processForm.worksheetStatus !== 2) {
+    return {
+      ...payload,
+      finishTime: null,
+    };
+  }
+
+  return payload;
 }
 
 function markFinished() {
+  if (isSelectedWorksheetCanceled.value) {
+    uni.showToast({ title: "已取消工单不能标记完成", icon: "none" });
+    return;
+  }
+
   processForm.worksheetStatus = 2;
   if (!processForm.finishTime) {
-    processForm.finishTime = toDatetimeLocal(new Date());
+    fillFinishTimeNow();
   }
   void submitProcess();
+}
+
+function fillFinishTimeNow() {
+  processForm.finishTime = toDatetimeMinuteLocal(new Date());
 }
 
 async function cancelWorksheet() {
   const id = selectedWorksheet.value ? getRowId(selectedWorksheet.value) : "";
   if (!id) {
     uni.showToast({ title: "请先选择工单", icon: "none" });
+    return;
+  }
+
+  if (isSelectedWorksheetCanceled.value) {
+    uni.showToast({ title: "工单已取消", icon: "none" });
     return;
   }
 
@@ -809,6 +857,91 @@ function getRowId(item: WorksheetRecord) {
 
 function getRowKey(item: WorksheetRecord, index: number) {
   return String(getRowId(item) || getWorksheetNumber(item) || index);
+}
+
+function hasActiveFilters() {
+  return Boolean(
+    filters.startTime ||
+    filters.endTime ||
+    filters.worksheetNumber.trim() ||
+    filters.worksheetType !== "" ||
+    filters.worksheetStatus !== "" ||
+    filters.urgencyLevel !== "" ||
+    filters.riseAccount.trim() ||
+    filters.executeAccount.trim() ||
+    filters.deviceReference.trim(),
+  );
+}
+
+function applyLocalFilters(records: WorksheetRecord[]) {
+  if (!hasActiveFilters()) {
+    return records;
+  }
+
+  return records.filter((item) => {
+    if (!includesText(getWorksheetNumber(item), filters.worksheetNumber)) {
+      return false;
+    }
+
+    if (!matchesOptionValue(getStableValue(item, ["worksheetType"]), filters.worksheetType)) {
+      return false;
+    }
+
+    if (!matchesOptionValue(getStableValue(item, ["worksheetStatus"]), filters.worksheetStatus)) {
+      return false;
+    }
+
+    if (!matchesOptionValue(getStableValue(item, ["urgencyLevel"]), filters.urgencyLevel)) {
+      return false;
+    }
+
+    if (!includesText(getRiseAccount(item), filters.riseAccount)) {
+      return false;
+    }
+
+    if (!includesText(getExecuteAccount(item), filters.executeAccount)) {
+      return false;
+    }
+
+    if (!includesText(getDeviceReference(item), filters.deviceReference)) {
+      return false;
+    }
+
+    return isRiseTimeInRange(item);
+  });
+}
+
+function includesText(value: string, keyword: string) {
+  const normalizedKeyword = keyword.trim().toLowerCase();
+  if (!normalizedKeyword) {
+    return true;
+  }
+
+  return value.toLowerCase().includes(normalizedKeyword);
+}
+
+function matchesOptionValue(value: unknown, filterValue: number | "") {
+  if (filterValue === "") {
+    return true;
+  }
+
+  return Number(value) === filterValue;
+}
+
+function isRiseTimeInRange(item: WorksheetRecord) {
+  const riseTimestamp = getDatetimeTimestamp(getRiseTime(item));
+  const startTimestamp = getDatetimeTimestamp(filters.startTime);
+  const endTimestamp = getDatetimeTimestamp(filters.endTime);
+
+  if (startTimestamp !== undefined && (riseTimestamp === undefined || riseTimestamp < startTimestamp)) {
+    return false;
+  }
+
+  if (endTimestamp !== undefined && (riseTimestamp === undefined || riseTimestamp > endTimestamp)) {
+    return false;
+  }
+
+  return true;
 }
 
 function getWorksheetNumber(item: WorksheetRecord) {
@@ -1015,6 +1148,16 @@ function normalizeDisplayDatetime(value: string) {
   return value.trim().replace(/\s+/, "T");
 }
 
+function getDatetimeTimestamp(value: string) {
+  if (!value || value === "-") {
+    return undefined;
+  }
+
+  const normalizedValue = normalizeDisplayDatetime(value).replace(/\.\d+/, "").replace(/(?:Z|[+-]\d{2}:?\d{2})$/, "");
+  const timestamp = new Date(normalizedValue).getTime();
+  return Number.isNaN(timestamp) ? undefined : timestamp;
+}
+
 function toDatetimeLocal(value: Date | string) {
   if (!value) {
     return "";
@@ -1026,6 +1169,11 @@ function toDatetimeLocal(value: Date | string) {
   }
 
   return `${date.getFullYear()}-${padNumber(date.getMonth() + 1)}-${padNumber(date.getDate())}T${padNumber(date.getHours())}:${padNumber(date.getMinutes())}:${padNumber(date.getSeconds())}`;
+}
+
+function toDatetimeMinuteLocal(value: Date | string) {
+  const valueWithSeconds = toDatetimeLocal(value);
+  return valueWithSeconds ? valueWithSeconds.slice(0, 16) : "";
 }
 
 function formatDateTime(value: string) {
@@ -1136,6 +1284,10 @@ defineExpose({
   height: 76px;
   padding: 8px 10px;
   line-height: 1.45;
+}
+
+.form-textarea--compact {
+  height: 52px;
 }
 
 .input-placeholder {
@@ -2264,10 +2416,62 @@ defineExpose({
   margin-bottom: 12px;
 }
 
-.process-actions {
+.process-select {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 36px;
+  color: #183755;
+  font-weight: 800;
+  background: #f7fbff;
+  border-color: #a9d7ff;
+  box-shadow: inset 0 -1px 0 rgba(13, 130, 238, 0.06);
+}
+
+.process-select--disabled {
+  color: #8b9aac;
+  background: #f1f5f9;
+  border-color: #d7e0e8;
+}
+
+.process-select__arrow {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border: solid #5e7691;
+  border-width: 0 2px 2px 0;
+  transform: translateY(-2px) rotate(45deg);
+}
+
+.process-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+  padding-top: 2px;
+}
+
+.process-action {
+  width: 100%;
+  height: 36px;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 36px;
+}
+
+.process-action--save {
+  grid-column: 1 / -1;
+}
+
+.process-action--finish {
+  color: #177245;
+  background: #eaf8ef;
+  border-color: #bfe8ce;
+}
+
+.process-action--cancel {
+  color: #b42318;
+  background: #fff5f3;
+  border-color: #ffc9c0;
 }
 
 .breakdown-section__title {
