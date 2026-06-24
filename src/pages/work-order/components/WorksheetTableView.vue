@@ -249,6 +249,29 @@
                 <text class="detail-item__value">{{ item.value }}</text>
               </view>
             </view>
+
+            <view v-if="mode !== 'statistics'" class="detail-time-panel detail-time-panel--embedded">
+              <view class="time-section">
+                <text class="detail-section-title">时间信息</text>
+                <view class="time-list">
+                  <view v-for="item in timeMomentFields" :key="item.label" class="time-row">
+                    <view class="time-row__marker"></view>
+                    <view class="time-row__content">
+                      <text class="time-row__label">{{ item.label }}</text>
+                      <text class="time-row__value">{{ item.value }}</text>
+                    </view>
+                  </view>
+                </view>
+              </view>
+
+              <view class="time-section time-section--location">
+                <text class="detail-section-title">地点信息</text>
+                <view v-for="item in locationDetailFields" :key="item.label" class="location-row">
+                  <text class="location-row__label">{{ item.label }}</text>
+                  <text class="location-row__value">{{ item.value }}</text>
+                </view>
+              </view>
+            </view>
           </view>
 
           <view v-if="activeTab === 'content'" class="detail-grid detail-grid--content">
@@ -281,7 +304,7 @@
             </view>
           </view>
 
-          <view v-if="mode === 'processing'" class="process-box">
+          <view v-if="mode === 'processing' && activeTab === 'processing'" class="process-box process-box--standalone">
             <text class="process-box__title">工单处理</text>
             <view class="form-field">
               <text class="form-label">处理状态</text>
@@ -369,7 +392,7 @@ import { getWorksheetStatisticsPage } from "@/services/work-order/statistics";
 import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
 
 type WorkOrderMode = "create" | "processing" | "statistics";
-type DetailTab = "base" | "content" | "time";
+type DetailTab = "base" | "content" | "time" | "processing";
 type WorksheetRecord = Record<string, unknown>;
 type OptionValue = number | "";
 type SortOrder = "asc" | "desc";
@@ -446,10 +469,9 @@ const urgencyFilterOptions: SelectOption[] = [
   ...urgencyOptions,
 ];
 
-const detailTabs: Array<{ label: string; value: DetailTab }> = [
+const baseDetailTabs: Array<{ label: string; value: DetailTab }> = [
   { label: "工单详情", value: "base" },
   { label: "反馈说明", value: "content" },
-  { label: "时间地点", value: "time" },
 ];
 
 const tableColumns: TableColumn[] = [
@@ -530,6 +552,23 @@ const processUrgencyIndex = computed(() => getOptionIndex(urgencyOptions, proces
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pagination.pageSize)));
 const selectedWorksheetStatus = computed(() => Number(getStableValue(selectedWorksheet.value || {}, ["worksheetStatus"])));
 const isSelectedWorksheetCanceled = computed(() => selectedWorksheetStatus.value === 3);
+const detailTabs = computed(() => {
+  if (props.mode === "statistics") {
+    return [
+      ...baseDetailTabs,
+      { label: "时间信息", value: "time" as DetailTab },
+    ];
+  }
+
+  if (props.mode === "processing") {
+    return [
+      ...baseDetailTabs,
+      { label: "工单处理", value: "processing" as DetailTab },
+    ];
+  }
+
+  return baseDetailTabs;
+});
 
 const baseDetailFields = computed(() => {
   const item = selectedWorksheet.value || {};
@@ -581,7 +620,7 @@ const timeDetailFields = computed(() => {
     { label: "创建时间", value: getCreatedAt(item) },
     { label: "更新时间", value: formatDateTime(getTextValue(item, ["updatedAt"], "-")) },
     { label: "地址", value: getAddress(item) },
-    { label: "坐标", value: getTextValue(item, ["coordinate"], "-") },
+    { label: "坐标", value: getCoordinate(item) },
   ];
 });
 const timeMomentFields = computed(() => timeDetailFields.value.filter((item) => item.label !== "地址" && item.label !== "坐标"));
@@ -615,6 +654,10 @@ watch(selectedWorksheet, (item) => {
   if (props.mode === "processing") {
     fillProcessForm(item);
   }
+});
+
+watch(() => props.mode, () => {
+  activeTab.value = "base";
 });
 
 function handleTypeChange(event: { detail: { value: number } }) {
@@ -942,7 +985,7 @@ function fillProcessForm(item: WorksheetRecord | null) {
   processForm.worksheetFeedback = getTextValue(item, ["worksheetFeedback"], "");
   processForm.worksheetInstruction = getTextValue(item, ["worksheetInstruction"], "");
   processForm.address = getTextValue(item, ["address"], "");
-  processForm.coordinate = getTextValue(item, ["coordinate"], "");
+  processForm.coordinate = getCoordinate(item, "");
   processForm.pictureIds = getTextValue(item, ["pictureIds"], "");
   processForm.remark = getTextValue(item, ["remark"], "");
 }
@@ -1270,6 +1313,21 @@ function getRemark(item: WorksheetRecord) {
 
 function getAddress(item: WorksheetRecord) {
   return getTextValue(item, ["address"], "-");
+}
+
+function getCoordinate(item: WorksheetRecord, fallback = "-") {
+  const directValue = getTextValue(item, ["coordinate", "coordinates", "lngLat", "lnglat", "locationCoordinate"], "");
+  if (directValue) {
+    return directValue;
+  }
+
+  const longitude = getStableValue(item, ["longitude", "lng", "lon"]);
+  const latitude = getStableValue(item, ["latitude", "lat"]);
+  if (longitude !== undefined && longitude !== null && latitude !== undefined && latitude !== null) {
+    return `${longitude},${latitude}`;
+  }
+
+  return fallback;
 }
 
 function getStatusClass(item: WorksheetRecord) {
@@ -2449,7 +2507,7 @@ defineExpose({
 .detail-tabs {
   flex: none;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   gap: 6px;
   height: 54px;
   padding: 8px;
@@ -2717,6 +2775,10 @@ defineExpose({
   gap: 12px;
 }
 
+.detail-time-panel--embedded {
+  margin-top: 14px;
+}
+
 .time-section {
   min-width: 0;
   padding: 14px;
@@ -2827,6 +2889,12 @@ defineExpose({
   margin-top: 14px;
   padding-top: 14px;
   border-top: 1px solid #edf3f8;
+}
+
+.process-box--standalone {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
 }
 
 .process-box__title {
