@@ -67,11 +67,11 @@
 import { computed, reactive, watch } from "vue";
 import DeviceDatetimePicker from "@/pages/device/components/DeviceDatetimePicker.vue";
 
-type Option = { label: string; value: number };
+type Option = { label: string; value: number | null};
 
 const props = defineProps<{
   modelValue: {
-    maintainType?: number;
+    maintainType?: number | null;
     startTime: string;
     endTime: string;
   };
@@ -101,7 +101,7 @@ watch(
 
 // ===== 写死枚举 =====
 const maintainTypeOptions: Option[] = [
-  { label: "全部", value: -1 },
+  { label: "全部", value: null },
   { label: "拆卸", value: 0 },
   { label: "安装", value: 1 },
   { label: "维护", value: 2 },

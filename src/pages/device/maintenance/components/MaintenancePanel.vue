@@ -1,15 +1,14 @@
 <template>
   <view class = "panel">
-    <DeviceTableMaintenanceRecordView
+    <MaintenanceRecordTableView
         :device-data="props.deviceData"
     />
   </view>
 </template>
 
 <script setup lang="ts">
-import DeviceTableMaintenanceRecordView from "@/pages/device/components/DeviceTableMaintenanceRecordView.vue";
+import MaintenanceRecordTableView from "@/pages/device/maintenance/components/MaintenanceRecordTableView.vue";
 import type {Device} from "@/services/device/types";
-import {watch} from "vue";
 
 const props = defineProps<{
   visible: boolean;

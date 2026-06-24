@@ -1,6 +1,6 @@
 <template>
   <view class="worksheet-table-panel">
-    <DeviceMaintenanceRecordToolbar
+    <MaintenanceRecordToolbar
         v-model="searchForm"
         @search="handleSearch"
         @reset="handleSearch"
@@ -96,11 +96,11 @@
   </view>
 </template>
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch } from 'vue';
 import type {Device, MaintenanceRecord} from '@/services/device/types';
 import type { Pagination } from '@/types/api';
 import { getMaintenanceRecordPageT } from "@/services/device/maintenance.typed";
-import DeviceMaintenanceRecordToolbar from "@/pages/device/components/DeviceMaintenanceRecordToolbar.vue";
+import MaintenanceRecordToolbar from "@/pages/device/maintenance/components/MaintenanceRecordToolbar.vue";
 
 // ===== 数据 =====
 const loading = ref(false);
@@ -112,6 +112,8 @@ const pagination = ref<Pagination>({
   size: 10,
   total: 0
 });
+
+let currentRequestId = 0;
 
 const props = defineProps<{
   deviceData: Partial<Device>;
@@ -125,11 +127,24 @@ const searchForm = ref({
 });
 
 watch(
-    () => props.deviceData.deviceNumber,
-    (newVal) => {
+    // 1. 直接监听具体的字段
+    () => props.deviceData?.deviceNumber,
+    async (newVal, oldVal) => {
+      // 2. 增加判断：只有当值真正存在时才请求
       if (!newVal) return;
+
+      // 3. 防止重复触发：如果正在加载中，且是同一个设备编号，不要重复请求
+      if (loading.value && newVal === oldVal) {
+        return;
+      }
+
+      // 重置分页
       pagination.value.current = 1;
-      fetchMaintenanceRecords();
+
+      // 4. 【重要】竞态处理：记录当前请求ID
+      const requestId = ++currentRequestId;
+
+      await fetchMaintenanceRecords(requestId);
     },
     { immediate: true }
 );
@@ -142,7 +157,7 @@ function selectRow(record: MaintenanceRecord) {
 }
 
 // ===== 请求数据 =====
-async function fetchMaintenanceRecords() {
+async function fetchMaintenanceRecords(requestId?: number) {
   loading.value = true;
 
   try {
@@ -154,6 +169,11 @@ async function fetchMaintenanceRecords() {
       startTime: searchForm.value.startTime || undefined,
       endTime: searchForm.value.endTime || undefined,
     });
+
+    // 如果在 await 期间触发了新的 watch，requestId 会变大，当前的响应应该被丢弃
+    if (requestId && requestId !== currentRequestId) {
+      return;
+    }
 
     const pageData = res.data;
 

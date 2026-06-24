@@ -72,9 +72,9 @@ import { ref, computed, watch, onMounted } from "vue";
 import type { Device } from "@/services/device/types";
 import { getDevicePageT } from "@/services/device/info.typed";
 
-import DeviceInfoPanel from "./DeviceInfoPanel.vue";
-import DeviceMaintenancePanel from "./DeviceMaintenancePanel.vue";
-import DeviceStatusPanel from "./DeviceStatusPanel.vue";
+import DeviceInfoPanel from "../info/components/DeviceInfoPanel.vue";
+import MaintenancePanel from "../maintenance/components/MaintenancePanel.vue";
+import DeviceStatusPanel from "../status/components/DeviceStatusPanel.vue";
 
 import DeviceToolbar from "./DeviceToolbar.vue";
 import DeviceTableView from "./DeviceTableView.vue";
@@ -135,7 +135,7 @@ const deviceModuleConfig = {
   },
 
   maintenance: {
-    panel: DeviceMaintenancePanel,
+    panel: MaintenancePanel,
 
     searchForm: {
       deviceNumber: "",
