@@ -16,10 +16,11 @@
       <view class="data-toolbar__filters">
         <view v-for="field in activeConfig.filters" :key="field.key" class="filter-field">
           <text class="filter-label">{{ field.label }}</text>
-          <AdminDateTimePicker
+          <WorkOrderDatetimePicker
             v-if="field.type === 'datetime'"
             v-model="filterModel[field.key]"
-            :default-time="getDateTimeDefaultTime(field.key)"
+            class="filter-datetime"
+            :placeholder="field.key === 'endTime' ? '请选择结束时间' : '请选择开始时间'"
           />
           <picker v-else-if="field.options?.length" :range="field.options" range-key="label" @change="handleFilterSelectChange(field.key, field.options || [], $event)">
             <view class="filter-select">{{ getFilterOptionLabel(field) }}</view>
@@ -270,7 +271,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
-import AdminDateTimePicker from "@/components/admin/AdminDateTimePicker.vue";
+import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
 import {
   createDeviceProtocolRelation,
   createProtocolDefinition,
@@ -830,10 +831,6 @@ function handleFilterSelectChange(key: string, options: SelectOption[], event: {
 
 function getFilterOptionLabel(field: FieldConfig) {
   return field.options?.find((item) => item.value === filterModel.value[field.key])?.label || "全部";
-}
-
-function getDateTimeDefaultTime(key: string) {
-  return key === "endTime" ? "23:59:59" : "00:00:00";
 }
 
 function changePage(step: number) {
@@ -1846,8 +1843,22 @@ function resetRuntimeState() {
   background: #ffffff;
 }
 
-.filter-field :deep(.admin-datetime-picker) {
-  width: clamp(170px, 16vw, 210px);
+.filter-datetime {
+  width: clamp(180px, 17vw, 220px);
+}
+
+.filter-datetime :deep(.datetime-picker__control) {
+  height: 34px;
+  padding: 0 10px;
+  line-height: 34px;
+  background: #ffffff;
+  border-color: #cbdced;
+}
+
+.filter-datetime :deep(.datetime-picker__value) {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .data-layout {

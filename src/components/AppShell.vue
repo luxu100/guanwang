@@ -129,6 +129,12 @@
       <view class="shell-main">
         <!-- 打开的页面标签用于模拟后台系统的多页签体验，当前路径始终和 active tab 保持同步。 -->
         <view class="page-tabs" v-if="openedTabs.length">
+          <button class="page-tabs__scroll" hover-class="page-tabs__scroll--hover" aria-label="向左滚动页签" @click="scrollTabs(-1)">
+            <text class="page-tabs__scroll-icon page-tabs__scroll-icon--left"></text>
+          </button>
+          <button class="page-tabs__scroll" hover-class="page-tabs__scroll--hover" aria-label="向右滚动页签" @click="scrollTabs(1)">
+            <text class="page-tabs__scroll-icon page-tabs__scroll-icon--right"></text>
+          </button>
           <view ref="pageTabsListRef" class="page-tabs__list">
             <view
               v-for="tab in openedTabs"
@@ -501,6 +507,21 @@ function goChildPage(path: string) {
 
 function activateTab(path: string) {
   goPage(path);
+}
+
+function scrollTabs(direction: -1 | 1) {
+  // #ifdef H5
+  const listElement = getElementFromRef(pageTabsListRef.value);
+  if (!listElement) {
+    return;
+  }
+
+  const distance = Math.max(160, Math.floor(listElement.clientWidth * 0.72));
+  listElement.scrollBy({
+    left: direction * distance,
+    behavior: "smooth",
+  });
+  // #endif
 }
 
 function closeTab(path: string) {
@@ -1790,10 +1811,10 @@ onMounted(() => {
 .page-tabs {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 6px;
   box-sizing: border-box;
   height: var(--shell-tabs-height);
-  padding: 0 14px 0 22px;
+  padding: 0 14px 0 10px;
   overflow: hidden;
   background: #ffffff;
   border-bottom: 1px solid #edf3f8;
@@ -1805,6 +1826,7 @@ onMounted(() => {
   flex: 1 1 0;
   min-width: 0;
   height: 100%;
+  margin-left: 4px;
   overflow-x: auto;
   overflow-y: hidden;
   scroll-padding: 0 18px;
@@ -1814,6 +1836,51 @@ onMounted(() => {
 
 .page-tabs__list::-webkit-scrollbar {
   display: none;
+}
+
+.page-tabs__scroll {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  margin: 0;
+  padding: 0;
+  color: #53687f;
+  background: #f6fbff;
+  border: 1px solid #dcebf8;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(20, 91, 160, 0.06);
+}
+
+.page-tabs__scroll::after {
+  border: 0;
+}
+
+.page-tabs__scroll--hover {
+  color: #0d82ee;
+  background: #edf7ff;
+  border-color: #c8e3fb;
+}
+
+.page-tabs__scroll-icon {
+  width: 8px;
+  height: 8px;
+  border: solid currentColor;
+  transform: rotate(45deg);
+}
+
+.page-tabs__scroll-icon--left {
+  margin-left: 3px;
+  border-width: 0 0 2px 2px;
+}
+
+.page-tabs__scroll-icon--right {
+  margin-right: 3px;
+  border-width: 2px 2px 0 0;
 }
 
 .page-tabs__fullscreen {

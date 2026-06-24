@@ -1055,13 +1055,41 @@ function selectUser(item: RecordLike | null) {
     scope: "company",
     location: item ? getText(item, ["location", "address"], "") : "",
   });
-  selectedRoleIds.value = [];
+  selectedRoleIds.value = getUserRoleIdsFromPageRecord(item);
   selectedUserPartitionIds.value = getArrayValue(item || {}, ["deptIds", "departmentIds", "partitionIds", "depts", "departments", "partitions"])
     .map((value) => (isObject(value) ? getId(value) : value))
     .filter(isValidId);
   userPartitionDraftIds.value = [];
   showUserPartitionDialog.value = false;
 }
+
+function getUserRoleIdsFromPageRecord(item: RecordLike | null) {
+  if (!item) {
+    return [];
+  }
+
+  const roleIds  = getArrayValue(item, ["roleIds", "roles"])
+    .map((value) => (isObject(value) ? getId(value) : value))
+    .filter(isValidId);
+
+  if (roleIds.length) {
+    return [roleIds[0]];
+  }
+
+  const roleCode = getText(item, ["roleCode"], "");
+  const roleName = getText(item, ["roleName"], "");
+
+  const matchedRole = roles.value.find((role) => {
+    const codeMatched = roleCode && getText(role, ["roleCode"], "") === roleCode;
+    const nameMatched = roleName && getText(role, ["roleName"], "") === roleName;
+    return codeMatched || nameMatched;
+  });
+
+  const matchedId = matchedRole ? getId(matchedRole) : "";
+  return isValidId(matchedId) ? [matchedId] : [];
+
+}
+
 
 function toggleUserPasswordVisibility() {
   showUserPassword.value = !showUserPassword.value;
@@ -1377,7 +1405,7 @@ async function deleteCurrent() {
 }
 
 function toggleUserRole(id: string | number) {
-  toggleId(selectedRoleIds.value, id);
+ selectedRoleIds.value = selectedRoleIds.value.includes(id) ? [] : [id];
 }
 
 function openUserPartitionDialog() {

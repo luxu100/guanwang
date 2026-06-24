@@ -33,6 +33,7 @@ export interface UserInfo {
   phone: string;
   avatar: string;
   status: number;
+  roles?: RoleItem[];
 }
 
 export interface User extends UserInfo {
