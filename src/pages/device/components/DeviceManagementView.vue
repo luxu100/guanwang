@@ -330,9 +330,9 @@ function handleDelete(device: Device) {
 }
 
 const layoutClass = computed(() => {
-  return props.mode === "maintenance"
-      ? "layout-equal"
-      : "layout-split";
+  return props.mode === "info"
+      ? "layout-split"
+      : "layout-equal";
 });
 
 onMounted(() => {
