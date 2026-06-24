@@ -176,7 +176,7 @@ const props = defineProps<{
 
 // ===== 查询条件（后端过滤）=====
 const searchForm = ref({
-  leakStatus: undefined as number | undefined,
+  leakStatus: null as number | null,
   startTime: '',
   endTime: ''
 });

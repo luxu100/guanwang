@@ -261,3 +261,25 @@ export interface DeviceStatusVO {
     /** 上报时间 */
     uploadTime: string;
 }
+
+export interface MaintenanceCreateForm {
+    deviceNumber?: string;
+
+    maintainType?: number;
+    maintainTime?: string;
+    maintainAddress?: string;
+    maintainCoordinate?: string;
+
+    installMode?: number;
+    maintainAccount?: string;
+    maintainFeedback?: string;
+
+    maintainPicture?: string;
+
+    tubeGroup?: string;
+    tubeMaterial?: string;
+    tubeBore?: string;
+    tubeOrder?: number;
+
+    remark?: string;
+};

@@ -16,6 +16,7 @@
           <text class="data-cell data-cell--status">安装状态</text>
           <text class="data-cell data-cell--status">安装模式</text>
           <text class="data-cell data-cell--address">安装地址</text>
+          <text class="data-cell data-cell--coord">设备坐标</text>
           <text class="data-cell data-cell--number">管组编号</text>
           <text class="data-cell data-cell--status">渗漏状态</text>
           <text class="data-cell data-cell--time">最后采样时间</text>
@@ -49,6 +50,14 @@
             {{ installModeMap[device.installMode] || '-' }}
           </text>
           <text class="data-cell data-cell--address">{{ device.installAddress }}</text>
+          <text
+              class="data-cell data-cell--coord data-cell--link"
+              @click.stop="openCoord(device.installLongitude, device.installLatitude)"
+          >
+            {{ device.installLongitude && device.installLatitude
+              ? `${device.installLongitude}, ${device.installLatitude}`
+              : '-' }}
+          </text>
           <text class="data-cell data-cell--number">{{ device.tubeGroup }}</text>
           <text class="data-cell data-cell--status">
             {{ leakStatusMap[device.leakStatus] || '-' }}
@@ -67,11 +76,19 @@
       <button class="page-button" :disabled="pagination.current >= 1" @click="changePage(1)">下一页</button>
     </view>
   </view>
+
+  <XMapPopup
+      v-model:visible="showMap"
+      :lng="lng"
+      :lat="lat"
+      title="设备坐标"
+  />
 </template>
 <script setup lang="ts">
 import {ref, computed, reactive} from 'vue';
 import type { Device } from '@/services/device/types';
 import type {Pagination} from "@/types/api";
+import XMapPopup from "@/pages/device/components/x/XMapPopup.vue";
 
 const props = defineProps<{
   devices: Device[];
@@ -144,8 +161,40 @@ function changePage(step: number) {
   emit('page-change', next);
 }
 
+const showMap = ref(false);
+const lng = ref(0);
+const lat = ref(0);
+
+function openCoord(longitude: number, latitude: number) {
+  lng.value = longitude;
+  lat.value = latitude;
+  showMap.value = true;
+}
+
 </script>
 <style scoped lang="scss">
+.data-cell--coord {
+  min-width: 140px;
+  color: #172033;
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.data-cell--link {
+  color: #1677ff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+
+.data-cell--link:hover {
+  color: #0d82ee;
+  text-decoration: underline;
+}
+
+.data-cell--link:active {
+  opacity: 0.7;
+}
 
 .pagination-bar{
   display: flex;
