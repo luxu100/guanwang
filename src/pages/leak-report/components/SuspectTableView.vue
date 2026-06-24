@@ -170,7 +170,7 @@
         <view v-if="mode === 'processing' && selectedSuspect" class="process-box">
           <text class="process-box__title">疑点处理</text>
           <view class="process-actions">
-            <button class="toolbar-button process-action process-action--confirm process-action--full" :disabled="processing" hover-class="toolbar-button--hover" @click="openConfirmDialog">确认疑点</button>
+            <button class="toolbar-button process-action process-action--confirm" :disabled="processing" hover-class="toolbar-button--hover" @click="openConfirmDialog">确认疑点</button>
             <button class="toolbar-button process-action process-action--exclude" :disabled="processing" hover-class="toolbar-button--hover" @click="handleExclude">排除疑点</button>
             <button class="toolbar-button process-action process-action--worksheet" :disabled="processing" hover-class="toolbar-button--hover" @click="openWorksheetDialog">转工单</button>
           </view>
@@ -188,6 +188,10 @@
           <button class="dialog-close" hover-class="dialog-close--hover" aria-label="关闭" @click="closeConfirmDialog">×</button>
         </view>
         <view class="dialog-body">
+          <view class="form-field">
+            <text class="form-label">编号</text>
+            <view class="form-readonly">{{ worksheetSuspectId || "-" }}</view>
+          </view>
           <view class="form-field">
             <text class="form-label form-label--required">渗漏级别</text>
             <view class="option-group">
@@ -227,6 +231,10 @@
           <button class="dialog-close" hover-class="dialog-close--hover" aria-label="关闭" @click="closeWorksheetDialog">×</button>
         </view>
         <view class="dialog-body">
+          <view class="form-field">
+            <text class="form-label">编号</text>
+            <view class="form-readonly">{{ worksheetSuspectId || "-" }}</view>
+          </view>
           <view class="form-field">
             <text class="form-label form-label--required">工单标题</text>
             <input v-model="worksheetForm.title" class="form-input" placeholder="请输入工单标题" placeholder-class="input-placeholder" />
@@ -612,6 +620,7 @@ const worksheetForm = reactive({ title: "", type: 0, description: "" });
 
 const confirmLevelLabel = computed(() => confirmLevelOptions.find((item) => item.value === confirmLevel.value)?.label || "请选择");
 const worksheetTypeLabel = computed(() => worksheetTypeOptions.find((item) => item.value === worksheetForm.type)?.label || "请选择");
+const worksheetSuspectId = computed(() => (selectedSuspect.value ? getRowId(selectedSuspect.value) : ""));
 
 function handleConfirmLevelChange(event: { detail: { value: number } }) {
   confirmLevel.value = confirmLevelOptions[event.detail.value]?.value ?? 0;
@@ -1875,36 +1884,39 @@ defineExpose({
 }
 
 .process-box {
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid #edf3f8;
+  flex: none;
+  margin-top: 16px;
+  padding: 16px 18px 18px;
+  background: #f8fbfe;
+  border-top: 1px solid #e3edf6;
 }
 
 .process-box__title {
   display: block;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+  padding-left: 10px;
   color: #183755;
   font-size: 15px;
   font-weight: 800;
+  border-left: 3px solid #0d82ee;
+  border-radius: 2px;
 }
 
 .process-actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  padding-top: 2px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .process-action {
   width: 100%;
-  height: 36px;
-  font-size: 13px;
+  height: 40px;
+  margin: 0;
+  padding: 0 12px;
+  font-size: 14px;
   font-weight: 800;
-  line-height: 36px;
-}
-
-.process-action--full {
-  grid-column: 1 / -1;
+  line-height: 40px;
+  border-radius: 6px;
 }
 
 .process-action--confirm {
@@ -2063,6 +2075,21 @@ defineExpose({
   min-height: 88px;
   padding: 9px 12px;
   line-height: 1.45;
+}
+
+.form-readonly {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  color: #31506d;
+  font-size: 14px;
+  font-weight: 700;
+  background: #f1f5f9;
+  border: 1px solid #e3edf6;
+  border-radius: 4px;
 }
 
 .input-placeholder {
