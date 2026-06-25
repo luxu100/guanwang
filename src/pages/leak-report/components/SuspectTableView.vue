@@ -1884,27 +1884,17 @@ defineExpose({
 }
 
 .process-box {
-<<<<<<< HEAD
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid #edf3f8;
-=======
   flex: none;
   margin-top: 16px;
   padding: 16px 18px 18px;
   background: #f8fbfe;
   border-top: 1px solid #e3edf6;
->>>>>>> 8ea44dc5bd2fba71140fe22ac9a7abcc8f3e666e
 }
 
 .process-box__title {
   display: block;
-<<<<<<< HEAD
-  margin-bottom: 12px;
-=======
   margin-bottom: 14px;
   padding-left: 10px;
->>>>>>> 8ea44dc5bd2fba71140fe22ac9a7abcc8f3e666e
   color: #183755;
   font-size: 15px;
   font-weight: 800;
@@ -1914,28 +1904,12 @@ defineExpose({
 
 .process-actions {
   display: grid;
-<<<<<<< HEAD
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  padding-top: 2px;
-=======
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
->>>>>>> 8ea44dc5bd2fba71140fe22ac9a7abcc8f3e666e
 }
 
 .process-action {
   width: 100%;
-<<<<<<< HEAD
-  height: 36px;
-  font-size: 13px;
-  font-weight: 800;
-  line-height: 36px;
-}
-
-.process-action--full {
-  grid-column: 1 / -1;
-=======
   height: 40px;
   margin: 0;
   padding: 0 12px;
@@ -1943,7 +1917,6 @@ defineExpose({
   font-weight: 800;
   line-height: 40px;
   border-radius: 6px;
->>>>>>> 8ea44dc5bd2fba71140fe22ac9a7abcc8f3e666e
 }
 
 .process-action--confirm {
@@ -2102,8 +2075,6 @@ defineExpose({
   min-height: 88px;
   padding: 9px 12px;
   line-height: 1.45;
-<<<<<<< HEAD
-=======
 }
 
 .form-readonly {
@@ -2119,7 +2090,6 @@ defineExpose({
   background: #f1f5f9;
   border: 1px solid #e3edf6;
   border-radius: 4px;
->>>>>>> 8ea44dc5bd2fba71140fe22ac9a7abcc8f3e666e
 }
 
 .input-placeholder {

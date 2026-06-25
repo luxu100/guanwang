@@ -315,15 +315,6 @@
                 </view>
               </picker>
             </view>
-<<<<<<< HEAD
-            <view class="form-field">
-              <text class="form-label">执行人账号</text>
-              <input v-model="processForm.executeAccount" class="form-input" :disabled="isSelectedWorksheetCanceled" placeholder="请输入执行人" placeholder-class="input-placeholder" />
-            </view>
-            <view class="form-field">
-              <text class="form-label">完成时间</text>
-              <input v-model="processForm.finishTime" class="form-input" :disabled="isSelectedWorksheetCanceled" type="datetime-local" />
-=======
             <view class="process-form-grid">
               <view class="form-field">
                 <text class="form-label">紧急程度</text>
@@ -352,13 +343,10 @@
                 <text class="form-label">完成时间</text>
                 <input v-model="processForm.finishTime" class="form-input" :disabled="isSelectedWorksheetCanceled || processForm.worksheetStatus !== 2" type="datetime-local" />
               </view>
->>>>>>> 8ea44dc5bd2fba71140fe22ac9a7abcc8f3e666e
             </view>
             <view class="form-field">
               <text class="form-label">处理反馈</text>
               <textarea v-model="processForm.worksheetFeedback" class="form-textarea" :disabled="isSelectedWorksheetCanceled" placeholder="请输入处理反馈" placeholder-class="input-placeholder" />
-<<<<<<< HEAD
-=======
             </view>
             <view class="form-field">
               <text class="form-label">工单说明</text>
@@ -377,7 +365,6 @@
                 <text class="form-label">照片ID</text>
                 <input v-model="processForm.pictureIds" class="form-input" :disabled="isSelectedWorksheetCanceled" placeholder="文件 ID 列表" placeholder-class="input-placeholder" />
               </view>
->>>>>>> 8ea44dc5bd2fba71140fe22ac9a7abcc8f3e666e
             </view>
             <view class="form-field">
               <text class="form-label">备注</text>
@@ -389,27 +376,6 @@
               </button>
               <button class="toolbar-button process-action process-action--finish" :disabled="submittingProcess || isSelectedWorksheetCanceled" hover-class="toolbar-button--hover" @click="markFinished">标记完成</button>
               <button class="toolbar-button toolbar-button--danger process-action process-action--cancel" :disabled="submittingProcess || isSelectedWorksheetCanceled" hover-class="toolbar-button--hover" @click="cancelWorksheet">取消工单</button>
-<<<<<<< HEAD
-            </view>
-          </view>
-
-          <view v-if="mode === 'statistics'" class="breakdown-box">
-            <text class="process-box__title">分类统计</text>
-            <view class="breakdown-section">
-              <text class="breakdown-section__title">状态分布</text>
-              <view v-for="item in statusBreakdown" :key="item.label" class="breakdown-row">
-                <text>{{ item.label }}</text>
-                <text>{{ item.count }} 条</text>
-              </view>
-            </view>
-            <view class="breakdown-section">
-              <text class="breakdown-section__title">类型分布</text>
-              <view v-for="item in typeBreakdown" :key="item.label" class="breakdown-row">
-                <text>{{ item.label }}</text>
-                <text>{{ item.count }} 条</text>
-              </view>
-=======
->>>>>>> 8ea44dc5bd2fba71140fe22ac9a7abcc8f3e666e
             </view>
           </view>
         </view>
@@ -581,11 +547,6 @@ const currentTypeIndex = computed(() => getOptionIndex(worksheetTypeOptions, fil
 const currentStatusIndex = computed(() => getOptionIndex(worksheetStatusOptions, filters.worksheetStatus));
 const currentUrgencyIndex = computed(() => getOptionIndex(urgencyFilterOptions, filters.urgencyLevel));
 const processStatusIndex = computed(() => getOptionIndex(processStatusOptions, processForm.worksheetStatus));
-<<<<<<< HEAD
-const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pagination.pageSize)));
-const selectedWorksheetStatus = computed(() => Number(getStableValue(selectedWorksheet.value || {}, ["worksheetStatus"])));
-const isSelectedWorksheetCanceled = computed(() => selectedWorksheetStatus.value === 3);
-=======
 const processUrgencyLabel = computed(() => getOptionLabel(urgencyOptions, processForm.urgencyLevel, "一般"));
 const processUrgencyIndex = computed(() => getOptionIndex(urgencyOptions, processForm.urgencyLevel));
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pagination.pageSize)));
@@ -608,7 +569,6 @@ const detailTabs = computed(() => {
 
   return baseDetailTabs;
 });
->>>>>>> 8ea44dc5bd2fba71140fe22ac9a7abcc8f3e666e
 
 const baseDetailFields = computed(() => {
   const item = selectedWorksheet.value || {};
@@ -717,13 +677,6 @@ function handleProcessStatusChange(event: { detail: { value: number } }) {
   if (processForm.worksheetStatus === 2 && !processForm.finishTime) {
     fillFinishTimeNow();
     return;
-<<<<<<< HEAD
-  }
-
-  if (processForm.worksheetStatus !== 2) {
-    processForm.finishTime = "";
-=======
->>>>>>> 8ea44dc5bd2fba71140fe22ac9a7abcc8f3e666e
   }
 
   if (processForm.worksheetStatus !== 2) {
@@ -801,11 +754,7 @@ async function fetchWorksheets() {
     assertSuccessResponse(response);
     const parsed = parsePageResponse(response);
     const filteredRecords = applyLocalFilters(parsed.records);
-<<<<<<< HEAD
-    worksheets.value = filteredRecords;
-=======
     worksheets.value = sortWorksheets(filteredRecords);
->>>>>>> 8ea44dc5bd2fba71140fe22ac9a7abcc8f3e666e
     total.value = hasActiveFilters() && filteredRecords.length !== parsed.records.length ? filteredRecords.length : parsed.total;
     selectFirstRow();
   } catch (error) {
@@ -1030,11 +979,8 @@ function fillProcessForm(item: WorksheetRecord | null) {
   processForm.worksheetStatus = Number(getStableValue(item, ["worksheetStatus"]) ?? 1);
   processForm.urgencyLevel = Number(getStableValue(item, ["urgencyLevel"]) ?? 0);
   processForm.executeAccount = getTextValue(item, ["executeAccount"], "");
-<<<<<<< HEAD
-=======
   processForm.deviceReference = getTextValue(item, ["deviceReference"], "");
   processForm.deadlineTime = toDatetimeMinuteLocal(getTextValue(item, ["deadlineTime"], ""));
->>>>>>> 8ea44dc5bd2fba71140fe22ac9a7abcc8f3e666e
   processForm.finishTime = toDatetimeMinuteLocal(getTextValue(item, ["finishTime"], ""));
   processForm.worksheetFeedback = getTextValue(item, ["worksheetFeedback"], "");
   processForm.worksheetInstruction = getTextValue(item, ["worksheetInstruction"], "");
@@ -1082,11 +1028,8 @@ function buildProcessPayload() {
     worksheetStatus: processForm.worksheetStatus,
     urgencyLevel: processForm.urgencyLevel,
     executeAccount: processForm.executeAccount.trim(),
-<<<<<<< HEAD
-=======
     deviceReference: processForm.deviceReference.trim(),
     deadlineTime: normalizeDatetimeForApi(processForm.deadlineTime),
->>>>>>> 8ea44dc5bd2fba71140fe22ac9a7abcc8f3e666e
     finishTime: processForm.worksheetStatus === 2 ? normalizeDatetimeForApi(processForm.finishTime) : undefined,
     worksheetFeedback: processForm.worksheetFeedback.trim(),
     worksheetInstruction: processForm.worksheetInstruction.trim(),
@@ -2966,15 +2909,12 @@ defineExpose({
   margin-bottom: 12px;
 }
 
-<<<<<<< HEAD
-=======
 .process-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
->>>>>>> 8ea44dc5bd2fba71140fe22ac9a7abcc8f3e666e
 .process-select {
   display: flex;
   align-items: center;
@@ -3031,8 +2971,6 @@ defineExpose({
   color: #b42318;
   background: #fff5f3;
   border-color: #ffc9c0;
-<<<<<<< HEAD
-=======
 }
 
 .breakdown-section {
@@ -3062,7 +3000,6 @@ defineExpose({
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 10px;
->>>>>>> 8ea44dc5bd2fba71140fe22ac9a7abcc8f3e666e
 }
 
 .breakdown-section__title {
