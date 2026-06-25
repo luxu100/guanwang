@@ -8,7 +8,6 @@
     <scroll-view class="table-scroll" scroll-x scroll-y>
       <view class="data-table">
         <view class="data-row data-row--header">
-
           <text class="data-cell data-cell--index">序号</text>
           <text class="data-cell data-cell--device">设备编号</text>
           <text class="data-cell data-cell--type">设备类型</text>
@@ -16,6 +15,7 @@
           <text class="data-cell data-cell--status">安装状态</text>
           <text class="data-cell data-cell--status">安装模式</text>
           <text class="data-cell data-cell--address">安装地址</text>
+          <text class="data-cell data-cell--coord">设备坐标</text>
           <text class="data-cell data-cell--number">管组编号</text>
           <text class="data-cell data-cell--status">渗漏状态</text>
           <text class="data-cell data-cell--time">最后采样时间</text>
@@ -39,22 +39,57 @@
 
           <text class="data-cell data-cell--device">{{ device.deviceNumber }}</text>
           <text class="data-cell data-cell--type">{{ device.deviceType }}</text>
-          <text class="data-cell data-cell--status">
+          <text
+              class="data-cell data-cell--status"
+              :class="{
+                'is-enabled': device.enableState === 1,
+                'is-disabled': device.enableState === 0
+              }"
+          >
             {{ enableStateMap[device.enableState] || '-' }}
           </text>
-          <text class="data-cell data-cell--status">
+          <text
+              class="data-cell data-cell--status"
+              :class="{
+                'is-installed': device.installState === 1,
+                'is-not-installed': device.installState === 0
+              }"
+          >
             {{ installStateMap[device.installState] || '-' }}
           </text>
-          <text class="data-cell data-cell--status">
+          <text
+              class="data-cell data-cell--status"
+              :class="{
+                'is-fixed': device.installMode === 0,
+                'is-mobile': device.installMode === 1
+              }"
+          >
             {{ installModeMap[device.installMode] || '-' }}
           </text>
           <text class="data-cell data-cell--address">{{ device.installAddress }}</text>
+          <text
+              class="data-cell data-cell--coord data-cell--link"
+              @click.stop="openCoord(device.installLongitude, device.installLatitude)"
+          >
+            {{ device.installLongitude && device.installLatitude
+              ? `${device.installLongitude}, ${device.installLatitude}`
+              : '-' }}
+          </text>
           <text class="data-cell data-cell--number">{{ device.tubeGroup }}</text>
-          <text class="data-cell data-cell--status">
+          <text
+              class="data-cell data-cell--status"
+              :class="getStatusClass('leak', device.leakStatus)"
+          >
             {{ leakStatusMap[device.leakStatus] || '-' }}
           </text>
-          <text class="data-cell data-cell--time">{{ device.lastSamplingTime }}</text>
-          <text class="data-cell data-cell--status">
+          <text class="data-cell data-cell--time">{{ formatDate(device.lastSamplingTime) }}</text>
+          <text
+              class="data-cell data-cell--status"
+              :class="{
+                'is-online': device.onlineStatus === 1,
+                'is-offline': device.onlineStatus === 0
+              }"
+          >
             {{ onlineStatusMap[device.onlineStatus] || '-' }}
           </text>
         </view>
@@ -67,11 +102,19 @@
       <button class="page-button" :disabled="pagination.current >= 1" @click="changePage(1)">下一页</button>
     </view>
   </view>
+
+  <XMapPopup
+      v-model:visible="showMap"
+      :lng="lng"
+      :lat="lat"
+      title="设备坐标"
+  />
 </template>
 <script setup lang="ts">
 import {ref, computed, reactive} from 'vue';
 import type { Device } from '@/services/device/types';
 import type {Pagination} from "@/types/api";
+import XMapPopup from "@/pages/device/components/x/XMapPopup.vue";
 
 const props = defineProps<{
   devices: Device[];
@@ -107,11 +150,8 @@ const leakStatusMap: Record<number, string> = {
 }
 
 const emit = defineEmits<{
-  (e: 'create'): void;
   (e: 'view', device: Device): void;
-  (e: 'edit', device: Device): void;
-  (e: 'delete', device: Device): void;
-  (e: 'page-change', step: number): void;
+  (e: 'select', device: Device): void;
 }>();
 
 const searchKeyword = ref('');
@@ -121,6 +161,31 @@ const selectedId = ref<number | null>(null);
 function selectRow(device: Device) {
   selectedId.value = device.id;
   emit('view', device);
+  emit('select', device);
+}
+
+function formatDate(
+    dateStr: string | number | Date | undefined | null,
+    format: string = 'YYYY-MM-DD HH:mm:ss'
+): string {
+  if (!dateStr) return '-';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return '-';
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+
+  return format
+      .replace('YYYY', String(year))
+      .replace('MM', month)
+      .replace('DD', day)
+      .replace('HH', hours)
+      .replace('mm', minutes)
+      .replace('ss', seconds);
 }
 
 // 过滤
@@ -144,8 +209,56 @@ function changePage(step: number) {
   emit('page-change', next);
 }
 
+const showMap = ref(false);
+const lng = ref(0);
+const lat = ref(0);
+
+function openCoord(longitude: number, latitude: number) {
+  lng.value = longitude;
+  lat.value = latitude;
+  showMap.value = true;
+}
+
+const getStatusClass = (type: string, value: number) => {
+  // 如果是渗漏状态 (leak)
+  if (type === 'leak') {
+    switch (value) {
+      case 0: return 'is-leak';      // 渗漏 -> 红色
+      case 1: return 'is-normal';    // 正常 -> 绿色
+      case 2: return 'is-warning';   // 疑似 -> 橙色
+      case 3: return 'is-unknown';   // 未知 -> 灰色
+      default: return 'is-unknown';
+    }
+  }
+  // 如果以后有其他类型的状态，可以在这里添加逻辑
+  return '';
+};
+
 </script>
+
 <style scoped lang="scss">
+.data-cell--coord {
+  min-width: 140px;
+  color: #172033;
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.data-cell--link {
+  color: #1677ff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+
+.data-cell--link:hover {
+  color: #0d82ee;
+  text-decoration: underline;
+}
+
+.data-cell--link:active {
+  opacity: 0.7;
+}
 
 .pagination-bar{
   display: flex;
@@ -353,5 +466,112 @@ function changePage(step: number) {
   height: 48px;
   padding: 0 14px;
   border-top: 1px solid #edf3f8;
+}
+
+/* 设备编号：通常由字母和数字组成，使用等宽字体更清晰，颜色适中 */
+.data-cell--device {
+  color: #1e293b;
+  font-family: "DIN Alternate", "Arial", sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* 设备类型：作为普通文本标签，颜色略深以区分状态 */
+.data-cell--type {
+  color: #334155;
+  font-weight: 600;
+}
+
+/* 状态类（启用/安装/渗漏/在线）：
+   由于状态列通常包含不同状态，这里提供基础样式。
+   实际开发中建议配合 JS 动态添加如 .is-online / .is-leak 等修饰类 */
+.data-cell--status {
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase; /* 如果状态是英文，大写更美观；中文可去掉 */
+  letter-spacing: 0.5px;
+}
+
+/* 安装模式：普通文本，稍浅的颜色 */
+.data-cell--mode {
+  color: #475569;
+}
+
+/* 最后采样时间：时间数据使用等宽字体对齐，颜色偏灰 */
+.data-cell--time {
+  color: #64748b;
+  font-family: "DIN Alternate", "Arial", sans-serif;
+  font-size: 12px;
+}
+
+/* 正常/在线/启用 */
+.data-cell--status.is-online,
+.data-cell--status.is-enabled {
+  color: #10b981; /* 绿色 */
+}
+
+/* 异常/渗漏/离线 */
+.data-cell--status.is-leak,
+.data-cell--status.is-offline {
+  color: #ef4444; /* 红色 */
+}
+
+/* 警告/安装中 */
+.data-cell--status.is-warning,
+.data-cell--status.is-installing {
+  color: #f59e0b; /* 橙色 */
+}
+
+/* ==========================================
+   状态列增强样式 (Status Badge Styles)
+   ========================================== */
+
+/* 基础状态样式：加粗、大写、紧凑间距 */
+.data-cell--status {
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase; /* 如果是中文，可以删掉这行 */
+  position: relative;
+  padding-left: 24px; /* 为左侧圆点留出空间 */
+}
+
+/* --- 通用语义化颜色 --- */
+/* 成功/启用/在线/已安装 (绿色) */
+.is-enabled,
+.is-installed,
+.is-online,
+.is-normal{
+  color: #059669; /* 深绿 */
+}
+
+/* 警告/流动点/疑似 (琥珀色/橙色) */
+.is-mobile,
+.is-warning,
+  /* 渗漏状态中的 "疑似" */
+[data-v-xxxxxx] .is-leak-status-2 {
+  color: #92400e; /* 深橙 */
+}
+
+/* 危险/停用/离线/渗漏 (红色) */
+.is-disabled,
+.is-offline,
+.is-leak,
+  /* 渗漏状态中的 "渗漏" */
+[data-v-xxxxxx] .is-leak-status-0 {
+  color: #991b1b; /* 深红 */
+}
+
+/* 未知/未安装/灰色 (中性色) */
+.is-not-installed,
+.is-unknown,
+  /* 渗漏状态中的 "未知" */
+[data-v-xxxxxx] .is-leak-status-3 {
+  color: #4b5563; /* 灰 */
+}
+
+/* 固定点 (蓝色) */
+.is-fixed {
+  color: #1e40af;
 }
 </style>

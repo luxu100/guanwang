@@ -5,6 +5,9 @@
         @search="handleSearch"
         @reset="handleSearch"
         @refresh="fetchMaintenanceRecords"
+        @add="handleAdd"
+        @delete="handleDelete"
+        @edit="handleEdit"
     />
 
     <view class="table-head">
@@ -19,13 +22,13 @@
           <text class="data-cell data-cell--index">序号</text>
           <text class="data-cell data-cell--device">设备编号</text>
           <text class="data-cell data-cell--type">维护类型</text>
-          <text class="data-cell data-cell--status">维护时间</text>
+          <text class="data-cell data-cell--time">维护时间</text>
           <text class="data-cell data-cell--address">维护地址</text>
           <text class="data-cell data-cell--status">安装模式</text>
           <text class="data-cell data-cell--number">管组编号</text>
-          <text class="data-cell data-cell--status">管材</text>
-          <text class="data-cell data-cell--status">管径</text>
-          <text class="data-cell data-cell--status">备注</text>
+          <text class="data-cell data-cell--text">管材</text>
+          <text class="data-cell data-cell--text">管径</text>
+          <text class="data-cell data-cell--text">备注</text>
         </view>
 
         <view v-if="loading" class="loading-mask">加载中...</view>
@@ -35,7 +38,7 @@
             v-for="(record, index) in deviceList"
             :key="record.id"
             class="data-row"
-            :class="{ 'data-row--active': selectedId === record.id }"
+            :class="{ 'data-row--active': selectedRecord?.id === record.id }"
             @click="selectRow(record)"
         >
 
@@ -47,16 +50,14 @@
             {{ record.deviceNumber || '-' }}
           </text>
 
-          <text class="data-cell data-cell--type">
-            {{
-              record.maintainType === 0 ? '拆卸' :
-                  record.maintainType === 1 ? '安装' :
-                      record.maintainType === 2 ? '维护' :
-                          record.maintainType === 3 ? '巡检' : '-'
-            }}
+          <text
+              class="data-cell data-cell--type"
+              :class="getMaintainTypeMeta(record.maintainType!).className"
+          >
+            {{ getMaintainTypeMeta(record.maintainType!).label }}
           </text>
 
-          <text class="data-cell data-cell--status">
+          <text class="data-cell data-cell--time">
             {{ record.maintainTime || '-' }}
           </text>
 
@@ -64,7 +65,13 @@
             {{ record.maintainAddress || '-' }}
           </text>
 
-          <text class="data-cell data-cell--status">
+          <text
+              class="data-cell data-cell--status"
+              :class="{
+              'is-fixed': record.installMode === 0,
+              'is-mobile': record.installMode === 1
+            }"
+          >
             {{ record.installMode === 0 ? '固定点' : record.installMode === 1 ? '流动点' : '-' }}
           </text>
 
@@ -72,15 +79,15 @@
             {{ record.tubeGroup || '-' }}
           </text>
 
-          <text class="data-cell data-cell--status">
+          <text class="data-cell data-cell--text">
             {{ record.tubeMaterial || '-' }}
           </text>
 
-          <text class="data-cell data-cell--status">
+          <text class="data-cell data-cell--text">
             {{ record.tubeBore || '-' }}
           </text>
 
-          <text class="data-cell data-cell--status">
+          <text class="data-cell data-cell--text">
             {{ record.remark || '-' }}
           </text>
 
@@ -94,13 +101,29 @@
       <button class="page-button" :disabled="pagination.current >= 1" @click="changePage(1)">下一页</button>
     </view>
   </view>
+
+  <XDynamicDialog
+      v-model:visible="dialogVisible"
+      v-model="formData"
+      :schema="addSchema"
+      :title="isEditMode ? '编辑维护记录' : '新增维护记录'"
+      @submit="handleSubmit"
+      @cancel="dialogVisible = false"
+  />
 </template>
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import type {Device, MaintenanceRecord} from '@/services/device/types';
+import type {Device, MaintenanceRecord,MaintenanceCreateForm} from '@/services/device/types';
 import type { Pagination } from '@/types/api';
-import { getMaintenanceRecordPageT } from "@/services/device/maintenance.typed";
+import {
+  createMaintenanceRecordT,
+  deleteMaintenanceRecordT,
+  getMaintenanceRecordPageT, updateMaintenanceRecordT
+} from "@/services/device/maintenance.typed";
 import MaintenanceRecordToolbar from "@/pages/device/maintenance/components/MaintenanceRecordToolbar.vue";
+import type {FormSection} from "@/pages/device/components/x/types";
+import XDynamicDialog from "@/pages/device/components/x/XDynamicDialog.vue";
+
 
 // ===== 数据 =====
 const loading = ref(false);
@@ -121,10 +144,101 @@ const props = defineProps<{
 
 // ===== 查询条件（后端过滤）=====
 const searchForm = ref({
-  maintainType: undefined as number | undefined,
+  maintainType: null as number | null,
   startTime: '',
   endTime: ''
 });
+
+const dialogVisible = ref(false);
+const formData = ref<MaintenanceCreateForm>({})
+const isEditMode = ref(false);
+const editingId = ref<number | null>(null);
+const addSchema: FormSection[] = [
+  {
+    title: "基础信息",
+    fields: [
+      {
+        key: "deviceNumber",
+        label: "设备编号",
+        type: "input",
+        required: true
+      },
+      {
+        key: "maintainType",
+        label: "维护类型",
+        type: "select",
+        required: true,
+        options: [
+          { label: "拆卸", value: 0 },
+          { label: "安装", value: 1 },
+          { label: "维护", value: 2 },
+          { label: "巡检", value: 3 }
+        ]
+      },
+      {
+        key: "maintainTime",
+        label: "维护时间",
+        type: "datetime",
+        required: true
+      },
+      {
+        key: "maintainAddress",
+        label: "维护地址",
+        type: "input"
+      },
+      {
+        key: "installMode",
+        label: "安装模式",
+        type: "select",
+        options: [
+          { label: "固定点", value: 0 },
+          { label: "流动点", value: 1 }
+        ]
+      },
+      {
+        key: "tubeGroup",
+        label: "管组编号",
+        type: "input"
+      },
+      {
+        key: "tubeMaterial",
+        label: "管材",
+        type: "input"
+      },
+      {
+        key: "tubeBore",
+        label: "管径",
+        type: "input"
+      },
+      {
+        key: "remark",
+        label: "备注",
+        type: "textarea"
+      }
+    ]
+  },
+  {
+    title: "扩展信息（可选）",
+    fields: [
+      {
+        key: "maintainAccount",
+        label: "维护人员",
+        type: "input"
+      },
+      {
+        key: "maintainFeedback",
+        label: "维护反馈",
+        type: "textarea",
+        large: true
+      },
+      {
+        key: "maintainCoordinate",
+        label: "坐标",
+        type: "input"
+      }
+    ]
+  }
+];
 
 watch(
     // 1. 直接监听具体的字段
@@ -150,10 +264,10 @@ watch(
 );
 
 // ===== 选中行 =====
-const selectedId = ref<number | null>(null);
+const selectedRecord = ref<MaintenanceRecord | null>(null);
 
 function selectRow(record: MaintenanceRecord) {
-  selectedId.value = record.id;
+  selectedRecord.value = record;
 }
 
 // ===== 请求数据 =====
@@ -201,10 +315,158 @@ function changePage(step: number) {
 }
 
 // ===== 查询触发（建议你按钮调用）=====
-function handleSearch() {
+async function handleSearch() {
   pagination.value.current = 1;
+  await Promise.resolve();
   fetchMaintenanceRecords();
 }
+
+function handleAdd() {
+  isEditMode.value = false;
+  editingId.value = null;
+
+  formData.value = {
+    deviceNumber: props.deviceData?.deviceNumber || "",
+    maintainType: undefined,
+    maintainTime: "",
+    maintainAddress: "",
+    installMode: undefined,
+    tubeGroup: "",
+    tubeMaterial: "",
+    tubeBore: "",
+    tubeOrder: undefined,
+    remark: "",
+    maintainAccount: "",
+    maintainFeedback: "",
+    maintainCoordinate: "",
+    maintainPicture: ""
+  };
+
+  dialogVisible.value = true;
+}
+
+async function handleSubmit(form: MaintenanceCreateForm) {
+  try {
+    if (isEditMode.value) {
+      await submitUpdate(form);
+    } else {
+      await submitCreate(form);
+    }
+
+    dialogVisible.value = false;
+    await refreshList({ resetPage: true });
+
+  } catch (e: any) {
+    uni.showToast({
+      title: e?.message || "操作失败",
+      icon: "error"
+    });
+  }
+}
+
+async function submitCreate(form: MaintenanceCreateForm) {
+  const res = await createMaintenanceRecordT(form);
+
+  if (res.code !== 200) {
+    uni.showToast({
+      title: res.msg || "新增失败",
+      icon: "error"
+    });
+    throw new Error(res.msg);
+  }
+
+  uni.showToast({
+    title: "新增成功",
+    icon: "success"
+  });
+}
+
+async function submitUpdate(form: MaintenanceCreateForm) {
+  if (!editingId.value) return;
+
+  const res = await updateMaintenanceRecordT(
+    editingId.value,
+      {...form}
+  );
+
+  if (res.code !== 200) {
+    uni.showToast({
+      title: res.msg || "更新失败",
+      icon: "error"
+    });
+    throw new Error(res.msg);
+  }
+
+  uni.showToast({
+    title: "更新成功",
+    icon: "success"
+  });
+}
+
+async function handleDelete() {
+  try {
+    if (!selectedRecord.value?.id) return;
+
+    uni.showModal({
+      title: '提示',
+      content: '确定要删除该记录吗？',
+      success: async (res) => {
+        if (!res.confirm) return;
+
+        await deleteMaintenanceRecordT(selectedRecord.value?.id ?? 0);
+
+        await refreshList();
+
+        uni.showToast({
+          title: '删除成功',
+          icon: 'success'
+        });
+
+        selectedRecord.value = null;
+      }
+    });
+
+  } catch (e: any) {
+    uni.showToast({
+      title: e?.message || '删除失败',
+      icon: 'error'
+    });
+  }
+}
+
+async function handleEdit() {
+  if (!selectedRecord.value) {
+    uni.showToast({ title: '请选择记录', icon: 'none' });
+    return;
+  }
+
+  isEditMode.value = true;
+  editingId.value = selectedRecord.value.id;
+
+  formData.value = { ...selectedRecord.value }
+
+  dialogVisible.value = true;
+}
+
+async function refreshList({ resetPage = false } = {}) {
+  if (resetPage) pagination.value.current = 1;
+
+  await fetchMaintenanceRecords();
+}
+
+
+const maintainTypeMap = {
+  0: { label: '拆卸', className: 'is-removed' },
+  1: { label: '安装', className: 'is-installed' },
+  2: { label: '维护', className: 'is-warning' },
+  3: { label: '巡检', className: 'is-info' }
+} as Record<number, { label: string; className: string }>;
+
+// 获取维护类型元数据
+const getMaintainTypeMeta = (type: number) => {
+  return maintainTypeMap[type] || { label: '-', className: 'is-unknown' };
+};
+
 </script>
 <style scoped lang="scss">
 
@@ -436,5 +698,135 @@ function handleSearch() {
   height: 48px;
   padding: 0 14px;
   border-top: 1px solid #edf3f8;
+}
+
+
+/* 设备编号：通常由字母和数字组成，使用等宽字体更清晰，颜色适中 */
+.data-cell--device {
+  color: #1e293b;
+  font-family: "DIN Alternate", "Arial", sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* 设备类型：作为普通文本标签，颜色略深以区分状态 */
+.data-cell--type {
+  color: #334155;
+  font-weight: 600;
+}
+
+/* 状态类（启用/安装/渗漏/在线）：
+   由于状态列通常包含不同状态，这里提供基础样式。
+   实际开发中建议配合 JS 动态添加如 .is-online / .is-leak 等修饰类 */
+.data-cell--status {
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase; /* 如果状态是英文，大写更美观；中文可去掉 */
+  letter-spacing: 0.5px;
+}
+
+/* 安装模式：普通文本，稍浅的颜色 */
+.data-cell--mode {
+  color: #475569;
+}
+
+/* 最后采样时间：时间数据使用等宽字体对齐，颜色偏灰 */
+.data-cell--time {
+  color: #64748b;
+  font-family: "DIN Alternate", "Arial", sans-serif;
+  font-size: 12px;
+}
+
+/* 正常/在线/启用 */
+.data-cell--status.is-online,
+.data-cell--status.is-enabled {
+  color: #10b981; /* 绿色 */
+}
+
+/* 异常/渗漏/离线 */
+.data-cell--status.is-leak,
+.data-cell--status.is-offline {
+  color: #ef4444; /* 红色 */
+}
+
+/* 警告/安装中 */
+.data-cell--status.is-warning,
+.data-cell--status.is-installing {
+  color: #f59e0b; /* 橙色 */
+}
+
+/* ==========================================
+   状态列增强样式 (Status Badge Styles)
+   ========================================== */
+
+/* 基础状态样式：加粗、大写、紧凑间距 */
+.data-cell--status {
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase; /* 如果是中文，可以删掉这行 */
+  position: relative;
+  padding-left: 24px; /* 为左侧圆点留出空间 */
+}
+
+/* --- 通用语义化颜色 --- */
+/* 成功/启用/在线/已安装 (绿色) */
+.is-enabled,
+.is-installed,
+.is-online,
+.is-normal{
+  color: #059669; /* 深绿 */
+}
+
+/* 警告/流动点/疑似 (琥珀色/橙色) */
+.is-mobile,
+.is-warning,
+  /* 渗漏状态中的 "疑似" */
+[data-v-xxxxxx] .is-leak-status-2 {
+  color: #92400e; /* 深橙 */
+}
+
+/* 危险/停用/离线/渗漏 (红色) */
+.is-disabled,
+.is-offline,
+.is-leak,
+  /* 渗漏状态中的 "渗漏" */
+[data-v-xxxxxx] .is-leak-status-0 {
+  color: #991b1b; /* 深红 */
+}
+
+/* 未知/未安装/灰色 (中性色) */
+.is-not-installed,
+.is-unknown,
+  /* 渗漏状态中的 "未知" */
+[data-v-xxxxxx] .is-leak-status-3 {
+  color: #4b5563; /* 灰 */
+}
+
+/* 固定点 (蓝色) */
+.is-fixed {
+  color: #1e40af;
+}
+
+.data-cell--info {
+  color: #334155;
+  font-size: 13px;
+  text-align: center;
+}
+
+// 2. 维护类型的具体颜色定义
+// 请根据你的设计稿调整这些颜色值
+.is-removed { color: #991b1b; } // 深红 - 拆卸
+.is-installed { color: #059669; } // 深绿 - 安装
+.is-warning { color: #92400e; } // 深橙 - 维护
+.is-info { color: #1e40af; } // 深蓝 - 巡检
+
+// 3. 备注列样式 (参考文档)
+.data-cell--remark {
+  justify-content: flex-start;
+  text-align: left;
+  color: #64748b;
+  font-size: 12px;
+  padding: 0 12px;
 }
 </style>

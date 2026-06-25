@@ -24,6 +24,9 @@
         @search="handleSearch"
         @reset="handleReset"
         @refresh="fetchDevices"
+        @delete="handleDelete"
+        @add="handleAdd"
+        @edit="handleEdit"
     />
 
     <!-- 主体 -->
@@ -34,11 +37,8 @@
         <DeviceTableView
             :devices="deviceList"
             :pagination="pagination"
-            @page-change="handlePageChange"
-            @create="handleCreate"
             @view="handleView"
-            @edit="handleEdit"
-            @delete="handleDelete"
+            @select="handleSelect"
         />
       </view>
 
@@ -46,7 +46,7 @@
       <view class="detail-panel">
 
         <view
-            v-if="!currentDevice.id"
+            v-if="!currentDevice?.id"
             class="detail-empty"
         >
           请选择左侧设备查看详情
@@ -65,12 +65,27 @@
     </view>
 
   </view>
+
+  <XDynamicDialog
+      v-model:visible="dialogVisible"
+      v-model="formData"
+      :schema="addSchema"
+      :title="isEditMode ? '编辑设备' : '新增设备'"
+      @submit="handleSubmit"
+      @cancel="dialogVisible = false"
+  />
 </template>
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
 
-import type { Device } from "@/services/device/types";
-import { getDevicePageT } from "@/services/device/info.typed";
+import type {Device, DeviceCreateForm, MaintenanceCreateForm} from "@/services/device/types";
+import {
+  createDeviceT,
+  deleteDeviceT,
+  getDevicePageT,
+  getDeviceProductListT,
+  updateDeviceT
+} from "@/services/device/info.typed";
 
 import DeviceInfoPanel from "../info/components/DeviceInfoPanel.vue";
 import MaintenancePanel from "../maintenance/components/MaintenancePanel.vue";
@@ -78,6 +93,10 @@ import DeviceStatusPanel from "../status/components/DeviceStatusPanel.vue";
 
 import DeviceToolbar from "./DeviceToolbar.vue";
 import DeviceTableView from "./DeviceTableView.vue";
+import XDynamicDialog from "@/pages/device/components/x/XDynamicDialog.vue";
+import type {FormSection} from "@/pages/device/components/x/types";
+import {createMaintenanceRecordT, updateMaintenanceRecordT} from "@/services/device/maintenance.typed";
+import {updateDevice} from "@/services/device/info";
 
 /**
  * =========================
@@ -94,13 +113,15 @@ const props = defineProps<{
  * =========================
  */
 const deviceList = ref<Device[]>([]);
-const currentDevice = ref<Partial<Device>>({});
-
+const currentDevice = ref<Device | null>(null);
+const selectedDevice = ref<Device | null>(null);
 const pagination = ref({
   current: 1,
   size: 10,
   total: 0,
 });
+const isEditMode = ref(false);
+const editingId = ref<number | null>(null);
 
 /**
  * =========================
@@ -227,6 +248,7 @@ const productOptions = ref<SelectOption[]>([
   { label: "LD18E-FM", value: "LD18E-FM" },
   { label: "LD18HE-FM", value: "LD18HE-FM" },
 ]);
+
 const enableStateOptions: SelectOption[] = [
   { label: "全部", value: "" },
   { label: "启用", value: 1 },
@@ -234,11 +256,11 @@ const enableStateOptions: SelectOption[] = [
 ];
 
 const maintainTypeOptions: SelectOption[] = [
-    { label: "全部", value: "" },
-    { label: "拆", value: 0 },
-    { label: "装", value: 1 },
-    { label: "维护", value: 2 },
-    { label: "巡检", value: 3 },
+  { label: "全部", value: "" },
+  { label: "拆", value: 0 },
+  { label: "装", value: 1 },
+  { label: "维护", value: 2 },
+  { label: "巡检", value: 3 },
 ];
 
 const installStateOptions: SelectOption[] = [
@@ -283,9 +305,15 @@ async function fetchDevices() {
   currentDevice.value = deviceList.value[0] || {};
 }
 
-function handlePageChange(page: number) {
-  pagination.value.current = page;
-  fetchDevices();
+const deviceProductOptions = ref<{ label: string; value: number }[]>([]);
+
+async function fetchProductOptions() {
+  const res = await getDeviceProductListT();
+  deviceProductOptions.value = (res.data || []).map((item: any) => ({
+    label: item.productName,   // 或 name，看你后端字段
+    value: item.id
+  }));
+  console.log("deviceProductOptions",deviceProductOptions);
 }
 
 /**
@@ -309,24 +337,323 @@ function handleView(device: Device) {
   currentDevice.value = device;
 }
 
-function handleCreate() {
-  currentDevice.value = {};
+function handleSelect(device: Device) {
+  selectedDevice.value = device;
 }
 
-function handleEdit(device: Partial<Device>) {
-  currentDevice.value = device;
-}
+const dialogVisible = ref(false);
+const formData = ref<DeviceCreateForm>({})
+const addSchema = computed<FormSection[]>(() => [
+  {
+    title: "基础信息",
+    fields: [
+      {
+        key: "deviceNumber",
+        label: "设备编号",
+        type: "input",
+        required: true,
+        placeholder: "请输入设备编号"
+      },
+      {
+        key: "productId",
+        label: "产品型号",
+        type: "select",
+        options: deviceProductOptions.value
+      },
+      {
+        key: "deviceType",
+        label: "设备类型",
+        type: "select",
+        options: [
+          { label: "LD18", value: "LD18" },
+          { label: "LD18E-FM", value: "LD18E-FM" },
+          { label: "LD18HE-FM", value: "LD18HE-FM" }
+        ]
+      },
+    ]
+  },
 
-function handleDelete(device: Device) {
-  uni.showModal({
-    title: "提示",
-    content: `确定删除设备 ${device.deviceNumber} 吗？`,
-    success(res) {
-      if (res.confirm) {
-        console.log("删除设备:", device.id);
+  {
+    title: "设备标识",
+    fields: [
+      {
+        key: "nbNumber",
+        label: "NB编号",
+        type: "input"
+      },
+      {
+        key: "deviceImei",
+        label: "IMEI",
+        type: "input"
+      },
+      {
+        key: "deviceImsi",
+        label: "IMSI",
+        type: "input"
+      },
+      {
+        key: "serialNumber",
+        label: "序列号",
+        type: "input"
       }
-    },
+    ]
+  },
+
+  {
+    title: "安装信息",
+    fields: [
+      {
+        key: "installState",
+        label: "安装状态",
+        type: "select",
+        options: [
+          { label: "未安装", value: 0 },
+          { label: "已安装", value: 1 }
+        ]
+      },
+      {
+        key: "installMode",
+        label: "安装模式",
+        type: "select",
+        options: [
+          { label: "固定点", value: 0 },
+          { label: "流动点", value: 1 }
+        ]
+      },
+      {
+        key: "installAddress",
+        label: "安装地址",
+        type: "input"
+      },
+      {
+        key: "installLongitude",
+        label: "经度",
+        type: "input"
+      },
+      {
+        key: "installLatitude",
+        label: "纬度",
+        type: "input"
+      }
+    ]
+  },
+
+  {
+    title: "设备状态",
+    fields: [
+      {
+        key: "enableState",
+        label: "启用状态",
+        type: "select",
+        options: [
+          { label: "启用", value: 1 },
+          { label: "禁用", value: 0 }
+        ]
+      },
+      {
+        key: "leakStatus",
+        label: "渗漏状态",
+        type: "select",
+        options: [
+          { label: "正常", value: 1 },
+          { label: "渗漏", value: 0 },
+          { label: "疑似", value: 2 },
+          { label: "未知", value: 3 }
+        ]
+      },
+      {
+        key: "leakProperty",
+        label: "渗漏值",
+        type: "input"
+      },
+    ]
+  },
+
+  {
+    title: "管网信息",
+    fields: [
+      {
+        key: "tubeGroup",
+        label: "管组编号",
+        type: "input"
+      },
+      {
+        key: "tubeOrder",
+        label: "管序号",
+        type: "input"
+      }
+    ]
+  },
+
+  {
+    title: "系统信息（可选）",
+    fields: [
+      {
+        key: "hardwareVersion",
+        label: "硬件版本",
+        type: "input"
+      },
+      {
+        key: "softwareVersion",
+        label: "软件版本",
+        type: "input"
+      }
+    ]
+  }
+]);
+
+function handleAdd() {
+  selectedDevice.value = null;
+  isEditMode.value = false;
+  editingId.value = null;
+
+  formData.value = {
+    deviceNumber: "",
+    productId: undefined,
+    deviceType: "",
+
+    nbNumber: "",
+    deviceImei: "",
+    deviceImsi: "",
+    serialNumber: "",
+
+    enableState: 1,
+    installState: undefined,
+    installMode: undefined,
+
+    installAddress: "",
+    installLongitude: undefined,
+    installLatitude: undefined,
+
+    tubeGroup: "",
+    tubeOrder: undefined,
+
+    hardwareVersion: "",
+    softwareVersion: "",
+
+    leakProperty: undefined,
+    leakStatus: undefined
+  };
+
+  dialogVisible.value = true;
+}
+
+
+async function handleSubmit(form: DeviceCreateForm) {
+  try {
+    if (isEditMode.value) {
+      await submitUpdate(form);
+    } else {
+      await submitCreate(form);
+    }
+
+    dialogVisible.value = false;
+    await fetchDevices();
+
+  } catch (e: any) {
+    uni.showToast({
+      title: e?.message || "操作失败",
+      icon: "error"
+    });
+  }
+}
+
+async function submitCreate(form: DeviceCreateForm) {
+  const res = await createDeviceT(form);
+
+  if (res.code !== 200) {
+    uni.showToast({
+      title: res.msg || "新增失败",
+      icon: "error"
+    });
+    throw new Error(res.msg);
+  }
+
+  uni.showToast({
+    title: "新增成功",
+    icon: "success"
   });
+}
+
+async function submitUpdate(form: DeviceCreateForm) {
+  if (!editingId.value) return;
+
+  const res = await updateDeviceT(
+      editingId.value,
+      {...form}
+  );
+
+  if (res.code !== 200) {
+    uni.showToast({
+      title: res.msg || "更新失败",
+      icon: "error"
+    });
+    throw new Error(res.msg);
+  }
+
+  uni.showToast({
+    title: "更新成功",
+    icon: "success"
+  });
+}
+
+function handleEdit() {
+  if (!selectedDevice.value) {
+    uni.showToast({ title: '请选择记录', icon: 'none' });
+    return;
+  }
+
+  isEditMode.value = true;
+  editingId.value = selectedDevice.value.id;
+
+  formData.value = { ...selectedDevice.value }
+
+  console.log("formData",formData.value);
+  console.log("selectedDevice",selectedDevice.value);
+
+  dialogVisible.value = true;
+}
+
+async function handleDelete() {
+  try {
+    if (!selectedDevice.value) {
+      uni.showToast({
+        title: '请先选择设备',
+        icon: 'none'
+      });
+      return;
+    }
+
+    const device = selectedDevice.value;
+
+    uni.showModal({
+      title: '提示',
+      content: `确定要删除设备 ${device.deviceNumber} 吗？`,
+      success: async (res) => {
+        if (!res.confirm) return;
+
+        await deleteDeviceT(device.id);
+
+        await fetchDevices();
+
+        uni.showToast({
+          title: '删除成功',
+          icon: 'success'
+        });
+
+        selectedDevice.value = null;
+
+        // 可选：同步清理右侧详情
+        currentDevice.value = null;
+      }
+    });
+
+  } catch (e: any) {
+    uni.showToast({
+      title: e?.message || '删除失败',
+      icon: 'error'
+    });
+  }
 }
 
 const layoutClass = computed(() => {
@@ -337,6 +664,7 @@ const layoutClass = computed(() => {
 
 onMounted(() => {
   fetchDevices();
+  fetchProductOptions();
 });
 </script>
 <style scoped lang="scss">
