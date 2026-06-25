@@ -60,11 +60,13 @@
               :show-delete="showDelete"
               :show-refresh="showRefresh"
               :can-delete="canDelete"
+              :show-edit="showEdit"
               @search="$emit('search')"
               @reset="handleReset"
               @add="$emit('add')"
               @delete="$emit('delete')"
               @refresh="$emit('refresh')"
+              @edit="$emit('edit')"
           >
             <template #left>
               <slot name="actions-left" />
@@ -108,6 +110,7 @@ const props = withDefaults(defineProps<{
   showDelete?: boolean;
   showRefresh?: boolean;
   canDelete?: boolean;
+  showEdit?: boolean;
 }>(), {
   showAdd: true,
   showDelete: true,
@@ -121,7 +124,8 @@ const emit = defineEmits([
   "reset",
   "add",
   "delete",
-  "refresh"
+  "refresh",
+  "edit",
 ]);
 
 /** 折叠状态 */

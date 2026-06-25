@@ -7,6 +7,7 @@
         @refresh="fetchMaintenanceRecords"
         @add="handleAdd"
         @delete="handleDelete"
+        @edit="handleEdit"
     />
 
     <view class="table-head">
@@ -37,7 +38,7 @@
             v-for="(record, index) in deviceList"
             :key="record.id"
             class="data-row"
-            :class="{ 'data-row--active': selectedId === record.id }"
+            :class="{ 'data-row--active': selectedRecord?.id === record.id }"
             @click="selectRow(record)"
         >
 
@@ -105,7 +106,7 @@
       v-model:visible="dialogVisible"
       v-model="formData"
       :schema="addSchema"
-      title="新增维护记录"
+      :title="isEditMode ? '编辑维护记录' : '新增维护记录'"
       @submit="handleSubmit"
       @cancel="dialogVisible = false"
   />
@@ -117,7 +118,7 @@ import type { Pagination } from '@/types/api';
 import {
   createMaintenanceRecordT,
   deleteMaintenanceRecordT,
-  getMaintenanceRecordPageT
+  getMaintenanceRecordPageT, updateMaintenanceRecordT
 } from "@/services/device/maintenance.typed";
 import MaintenanceRecordToolbar from "@/pages/device/maintenance/components/MaintenanceRecordToolbar.vue";
 import type {FormSection} from "@/pages/device/components/x/types";
@@ -150,6 +151,8 @@ const searchForm = ref({
 
 const dialogVisible = ref(false);
 const formData = ref<MaintenanceCreateForm>({})
+const isEditMode = ref(false);
+const editingId = ref<number | null>(null);
 const addSchema: FormSection[] = [
   {
     title: "基础信息",
@@ -261,10 +264,10 @@ watch(
 );
 
 // ===== 选中行 =====
-const selectedId = ref<number | null>(null);
+const selectedRecord = ref<MaintenanceRecord | null>(null);
 
 function selectRow(record: MaintenanceRecord) {
-  selectedId.value = record.id;
+  selectedRecord.value = record;
 }
 
 // ===== 请求数据 =====
@@ -319,6 +322,9 @@ async function handleSearch() {
 }
 
 function handleAdd() {
+  isEditMode.value = false;
+  editingId.value = null;
+
   formData.value = {
     deviceNumber: props.deviceData?.deviceNumber || "",
     maintainType: undefined,
@@ -341,40 +347,65 @@ function handleAdd() {
 
 async function handleSubmit(form: MaintenanceCreateForm) {
   try {
-    const payload: MaintenanceCreateForm = {
-      ...form,
-    };
-
-    const res = await createMaintenanceRecordT(payload);
-
-    if (res.code !== 200) {
-      uni.showToast({
-        title: res.msg || "失败",
-        icon: "error"
-      });
-      console.log(res)
-      return;
-    }else {
-      uni.showToast({
-        title: "新增成功",
-        icon: "success"
-      });
-      dialogVisible.value = false;
-      await refreshList({ resetPage: true });
+    if (isEditMode.value) {
+      await submitUpdate(form);
+    } else {
+      await submitCreate(form);
     }
-  } catch (e: any) {
-    console.error("submit error:", e);
 
+    dialogVisible.value = false;
+    await refreshList({ resetPage: true });
+
+  } catch (e: any) {
     uni.showToast({
-      title: e?.message || "新增失败",
+      title: e?.message || "操作失败",
       icon: "error"
     });
   }
 }
 
+async function submitCreate(form: MaintenanceCreateForm) {
+  const res = await createMaintenanceRecordT(form);
+
+  if (res.code !== 200) {
+    uni.showToast({
+      title: res.msg || "新增失败",
+      icon: "error"
+    });
+    throw new Error(res.msg);
+  }
+
+  uni.showToast({
+    title: "新增成功",
+    icon: "success"
+  });
+}
+
+async function submitUpdate(form: MaintenanceCreateForm) {
+  if (!editingId.value) return;
+
+  const res = await updateMaintenanceRecordT(
+    editingId.value,
+      {...form}
+  );
+
+  if (res.code !== 200) {
+    uni.showToast({
+      title: res.msg || "更新失败",
+      icon: "error"
+    });
+    throw new Error(res.msg);
+  }
+
+  uni.showToast({
+    title: "更新成功",
+    icon: "success"
+  });
+}
+
 async function handleDelete() {
   try {
-    if (!selectedId.value) return;
+    if (!selectedRecord.value?.id) return;
 
     uni.showModal({
       title: '提示',
@@ -382,7 +413,7 @@ async function handleDelete() {
       success: async (res) => {
         if (!res.confirm) return;
 
-        await deleteMaintenanceRecordT(selectedId.value ?? 0);
+        await deleteMaintenanceRecordT(selectedRecord.value?.id ?? 0);
 
         await refreshList();
 
@@ -391,7 +422,7 @@ async function handleDelete() {
           icon: 'success'
         });
 
-        selectedId.value = null;
+        selectedRecord.value = null;
       }
     });
 
@@ -401,6 +432,20 @@ async function handleDelete() {
       icon: 'error'
     });
   }
+}
+
+async function handleEdit() {
+  if (!selectedRecord.value) {
+    uni.showToast({ title: '请选择记录', icon: 'none' });
+    return;
+  }
+
+  isEditMode.value = true;
+  editingId.value = selectedRecord.value.id;
+
+  formData.value = { ...selectedRecord.value }
+
+  dialogVisible.value = true;
 }
 
 async function refreshList({ resetPage = false } = {}) {

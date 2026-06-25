@@ -8,11 +8,13 @@
         :show-delete="true"
         :show-refresh="true"
         :can-delete="true"
+        :show-edit="true"
         @search="emit('search')"
         @reset="emit('reset')"
         @add="emit('add')"
         @delete="emit('delete')"
         @refresh="emit('refresh')"
+        @edit="emit('edit')"
     />
   </view>
 </template>
@@ -36,6 +38,7 @@ const emit = defineEmits<{
   (e: "refresh"): void;
   (e: "add"): void;
   (e: "delete"): void;
+  (e: "edit"): void;
 }>();
 
 // ===== 唯一数据源代理（正确写法）=====

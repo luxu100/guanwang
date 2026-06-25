@@ -316,4 +316,5 @@ export interface DeviceCreateForm {
 
     // ===== 设备属性 =====
     leakProperty?: number;
+    leakStatus?: number;
 }

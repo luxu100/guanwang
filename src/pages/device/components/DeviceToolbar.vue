@@ -50,6 +50,8 @@
         @refresh="emit('refresh')"
         @add="emit('add')"
         @delete="emit('delete')"
+        @edit="emit('edit')"
+        :show-edit="true"
     >
       <template #left>
         <button class = "toolbar-button toolbar-button--green" @click="emit('onImport')">导入</button>
@@ -106,6 +108,7 @@ const emit = defineEmits<{
   (e: "onImport"): void;
   (e: "onExport"): void;
   (e: "delete"): void;
+  (e: "edit"): void;
 }>();
 
 /**

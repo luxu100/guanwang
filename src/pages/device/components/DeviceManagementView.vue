@@ -26,6 +26,7 @@
         @refresh="fetchDevices"
         @delete="handleDelete"
         @add="handleAdd"
+        @edit="handleEdit"
     />
 
     <!-- 主体 -->
@@ -69,7 +70,7 @@
       v-model:visible="dialogVisible"
       v-model="formData"
       :schema="addSchema"
-      title="新增设备"
+      :title="isEditMode ? '编辑设备' : '新增设备'"
       @submit="handleSubmit"
       @cancel="dialogVisible = false"
   />
@@ -78,7 +79,13 @@
 import { ref, computed, watch, onMounted } from "vue";
 
 import type {Device, DeviceCreateForm, MaintenanceCreateForm} from "@/services/device/types";
-import {createDeviceT, deleteDeviceT, getDevicePageT, getDeviceProductListT} from "@/services/device/info.typed";
+import {
+  createDeviceT,
+  deleteDeviceT,
+  getDevicePageT,
+  getDeviceProductListT,
+  updateDeviceT
+} from "@/services/device/info.typed";
 
 import DeviceInfoPanel from "../info/components/DeviceInfoPanel.vue";
 import MaintenancePanel from "../maintenance/components/MaintenancePanel.vue";
@@ -88,6 +95,8 @@ import DeviceToolbar from "./DeviceToolbar.vue";
 import DeviceTableView from "./DeviceTableView.vue";
 import XDynamicDialog from "@/pages/device/components/x/XDynamicDialog.vue";
 import type {FormSection} from "@/pages/device/components/x/types";
+import {createMaintenanceRecordT, updateMaintenanceRecordT} from "@/services/device/maintenance.typed";
+import {updateDevice} from "@/services/device/info";
 
 /**
  * =========================
@@ -111,6 +120,8 @@ const pagination = ref({
   size: 10,
   total: 0,
 });
+const isEditMode = ref(false);
+const editingId = ref<number | null>(null);
 
 /**
  * =========================
@@ -354,9 +365,9 @@ const addSchema = computed<FormSection[]>(() => [
         label: "设备类型",
         type: "select",
         options: [
-          { label: "LD18", value: 1 },
-          { label: "LD18E-FM", value: 2 },
-          { label: "LD18HE-FM", value: 3 }
+          { label: "LD18", value: "LD18" },
+          { label: "LD18E-FM", value: "LD18E-FM" },
+          { label: "LD18HE-FM", value: "LD18HE-FM" }
         ]
       },
     ]
@@ -440,8 +451,8 @@ const addSchema = computed<FormSection[]>(() => [
         ]
       },
       {
-        key: "leakProperty",
-        label: "渗漏属性",
+        key: "leakStatus",
+        label: "渗漏状态",
         type: "select",
         options: [
           { label: "正常", value: 1 },
@@ -449,7 +460,12 @@ const addSchema = computed<FormSection[]>(() => [
           { label: "疑似", value: 2 },
           { label: "未知", value: 3 }
         ]
-      }
+      },
+      {
+        key: "leakProperty",
+        label: "渗漏值",
+        type: "input"
+      },
     ]
   },
 
@@ -488,6 +504,8 @@ const addSchema = computed<FormSection[]>(() => [
 
 function handleAdd() {
   selectedDevice.value = null;
+  isEditMode.value = false;
+  editingId.value = null;
 
   formData.value = {
     deviceNumber: "",
@@ -513,48 +531,87 @@ function handleAdd() {
     hardwareVersion: "",
     softwareVersion: "",
 
-    leakProperty: undefined
+    leakProperty: undefined,
+    leakStatus: undefined
   };
 
   dialogVisible.value = true;
 }
 
+
 async function handleSubmit(form: DeviceCreateForm) {
   try {
-
-    const payload: DeviceCreateForm = {
-      ...form,
-    };
-
-    const res = await createDeviceT(payload);
-
-    if (res.code !== 200) {
-      uni.showToast({
-        title: res.msg || "新增失败",
-        icon: "error"
-      });
-      return;
+    if (isEditMode.value) {
+      await submitUpdate(form);
+    } else {
+      await submitCreate(form);
     }
 
-    uni.showToast({
-      title: "新增成功",
-      icon: "success"
-    });
-
     dialogVisible.value = false;
-
     await fetchDevices();
 
   } catch (e: any) {
     uni.showToast({
-      title: e?.message || "新增失败",
+      title: e?.message || "操作失败",
       icon: "error"
     });
   }
 }
 
-function handleEdit(device: Device) {
-  currentDevice.value = device;
+async function submitCreate(form: DeviceCreateForm) {
+  const res = await createDeviceT(form);
+
+  if (res.code !== 200) {
+    uni.showToast({
+      title: res.msg || "新增失败",
+      icon: "error"
+    });
+    throw new Error(res.msg);
+  }
+
+  uni.showToast({
+    title: "新增成功",
+    icon: "success"
+  });
+}
+
+async function submitUpdate(form: DeviceCreateForm) {
+  if (!editingId.value) return;
+
+  const res = await updateDeviceT(
+      editingId.value,
+      {...form}
+  );
+
+  if (res.code !== 200) {
+    uni.showToast({
+      title: res.msg || "更新失败",
+      icon: "error"
+    });
+    throw new Error(res.msg);
+  }
+
+  uni.showToast({
+    title: "更新成功",
+    icon: "success"
+  });
+}
+
+function handleEdit() {
+  if (!selectedDevice.value) {
+    uni.showToast({ title: '请选择记录', icon: 'none' });
+    return;
+  }
+
+  isEditMode.value = true;
+  editingId.value = selectedDevice.value.id;
+
+  formData.value = { ...selectedDevice.value }
+
+  console.log("formData",formData.value);
+  console.log("selectedDevice",selectedDevice.value);
+
+  dialogVisible.value = true;
 }
 
 async function handleDelete() {

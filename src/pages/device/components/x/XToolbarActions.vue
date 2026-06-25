@@ -12,6 +12,15 @@
     </button>
 
     <button
+        v-if="showEdit"
+        class="toolbar-button"
+        hover-class="toolbar-button--hover"
+        @click="emit('edit')"
+    >
+      编辑
+    </button>
+
+    <button
         class="toolbar-button"
         hover-class="toolbar-button--hover"
         :disabled="loading"
@@ -78,6 +87,10 @@ defineProps({
   canDelete: {
     type: Boolean,
     default: true
+  },
+  showEdit: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -86,7 +99,8 @@ const emit = defineEmits([
   'reset',
   'add',
   'delete',
-  'refresh'
+  'refresh',
+  'edit',
 ])
 </script>
 <style scoped lang="scss">
