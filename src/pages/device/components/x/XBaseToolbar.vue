@@ -1,85 +1,100 @@
 <template>
-  <view class="toolbar">
-    <view class="toolbar-row toolbar-row--filters">
-      <!-- filters -->
-      <view class="filter-group">
+  <view class="toolbar-wrapper">
 
-        <view
-            v-for="item in fields"
-            :key="item.key"
-            class="filter-item"
-        >
+    <!-- toolbar -->
+    <view class="toolbar" :class="{ collapsed: !visible }">
 
-          <text class="filter-label">
-            {{ item.label }}
-          </text>
+      <view class="toolbar-row toolbar-row--filters">
 
-          <!-- input -->
-          <input
-              v-if="item.type === 'input'"
-              v-model="model[item.key]"
-              class="filter-input"
-              placeholder="请输入"
-          />
+        <view class="filter-group">
 
-          <!-- select (dict) -->
-          <picker
-              v-else-if="item.type === 'select'"
-              :range="dictMap[item.dict]"
-              range-key="label"
-              @change="handleSelect(item, $event)"
+          <view
+              v-for="item in fields"
+              :key="item.key"
+              class="filter-item"
           >
-            <view class="filter-select">
-              <text>{{ getSelectLabel(item) }}</text>
-              <text class="filter-select__arrow"></text>
-            </view>
-          </picker>
 
-          <!-- date -->
-          <XDatetimePicker
-              v-else-if="item.type === 'date'"
-              v-model="model[item.key]"
-              class="filter-datetime"
-              :title="item.label"
-              :placeholder="item.label"
-          />
+            <text class="filter-label">
+              {{ item.label }}
+            </text>
+
+            <!-- input -->
+            <input
+                v-if="item.type === 'input'"
+                v-model="model[item.key]"
+                class="filter-input"
+                placeholder="请输入"
+            />
+
+            <!-- select -->
+            <picker
+                v-else-if="item.type === 'select'"
+                :range="dictMap[item.dict]"
+                range-key="label"
+                @change="handleSelect(item, $event)"
+            >
+              <view class="filter-select">
+                <text>{{ getSelectLabel(item) }}</text>
+                <text class="filter-select__arrow"></text>
+              </view>
+            </picker>
+
+            <!-- date -->
+            <XDatetimePicker
+                v-else-if="item.type === 'date'"
+                v-model="model[item.key]"
+                class="filter-datetime"
+                :title="item.label"
+                :placeholder="item.label"
+            />
+
+          </view>
 
         </view>
 
-      </view>
+        <!-- actions -->
+        <view class="toolbar-actions-wrapper">
+          <XToolbarActions
+              :loading="loading"
+              :show-add="showAdd"
+              :show-delete="showDelete"
+              :show-refresh="showRefresh"
+              :can-delete="canDelete"
+              @search="$emit('search')"
+              @reset="handleReset"
+              @add="$emit('add')"
+              @delete="$emit('delete')"
+              @refresh="$emit('refresh')"
+          >
+            <template #left>
+              <slot name="actions-left" />
+            </template>
 
-      <!-- actions -->
-      <view class="toolbar-actions-wrapper">
-        <XToolbarActions
-            :loading="loading"
-            :show-add="showAdd"
-            :show-delete="showDelete"
-            :show-refresh="showRefresh"
-            :can-delete="canDelete"
-            @search="$emit('search')"
-            @reset="handleReset"
-            @add="$emit('add')"
-            @delete="$emit('delete')"
-            @refresh="$emit('refresh')"
-        >
-          <template #left>
-            <slot name="actions-left" />
-          </template>
+            <template #right>
+              <slot name="actions-right" />
+            </template>
+          </XToolbarActions>
+        </view>
 
-          <template #right>
-            <slot name="actions-right" />
-          </template>
-        </XToolbarActions>
       </view>
     </view>
+
+    <!-- collapse handle（永远可见） -->
+    <view class="collapse-handle" @click="toggleVisible">
+      <text
+          class="collapse-arrow"
+          :class="{ 'is-collapsed': !visible }"
+      ></text>
+    </view>
+
   </view>
 </template>
 
 <script setup lang="ts">
-import { reactive, watch } from "vue";
+import { reactive, watch, ref } from "vue";
 import XToolbarActions from "./XToolbarActions.vue";
 import XDatetimePicker from "./XDatetimePicker.vue";
-import type {Field,DictItem} from "@/pages/device/components/x/types";
+import type { Field, DictItem } from "@/pages/device/components/x/types";
 
 const props = defineProps<{
   modelValue: Record<string, any>;
@@ -102,7 +117,16 @@ const emit = defineEmits([
   "refresh"
 ]);
 
-// local model
+/** 折叠状态 */
+const visible = ref(true);
+
+function toggleVisible() {
+  visible.value = !visible.value;
+}
+
+defineExpose({ toggleVisible, visible });
+
+/** model */
 const model = reactive({ ...props.modelValue });
 
 watch(
@@ -117,14 +141,14 @@ watch(
     { deep: true }
 );
 
-// select label
+/** select label */
 function getSelectLabel(item: Extract<Field, { type: "select" }>) {
   const list = props.dictMap[item.dict] || [];
   const val = model[item.key];
   return list.find(i => i.value === val)?.label || "全部";
 }
 
-// select change
+/** select change */
 function handleSelect(
     item: Extract<Field, { type: "select" }>,
     e: { detail: { value: number } }
@@ -132,11 +156,11 @@ function handleSelect(
   const index = e.detail.value;
   model[item.key] = props.dictMap[item.dict][index].value;
 }
-// reset
+
+/** reset */
 function handleReset() {
   props.fields.forEach(f => {
-    if (f.type === "select") model[f.key] = null;
-    else model[f.key] = "";
+    model[f.key] = f.type === "select" ? null : "";
   });
 
   emit("reset");
@@ -144,70 +168,73 @@ function handleReset() {
 </script>
 
 <style scoped lang="scss">
+.toolbar-wrapper {
+  position: relative;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+/* =======================
+   TOOLBAR CORE
+======================= */
 .toolbar {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  flex: none;
   gap: 8px;
-  min-height: 96px;
-  padding: 12px;
-  overflow: visible;
 
-  background: #ffffff;
+  padding: 12px;
+  background: #fff;
   border: 1px solid #d8e5ef;
   border-radius: 6px;
   box-shadow: 0 12px 26px rgba(35, 72, 104, 0.09);
+
+  overflow: hidden;
+
+  max-height: 600px;
+  opacity: 1;
+
+  transition: max-height 0.3s ease, opacity 0.2s ease, padding 0.2s ease;
 }
 
+/* 折叠状态 */
+.toolbar.collapsed {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border: none;
+}
+
+/* =======================
+   LAYOUT
+======================= */
 .toolbar-row {
   display: flex;
-  align-items: center;
-  flex-wrap: nowrap;
-  gap: 12px;
-  width: 100%;
-  min-width: 0;
-}
-
-.toolbar-row--filters {
-  display: flex;
-  flex-wrap: wrap;
   justify-content: space-between;
-  align-items: flex-end;
+  flex-wrap: wrap;
   gap: 8px 16px;
-}
-
-.toolbar-row--bottom {
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.toolbar-filters {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px 16px;
-  min-width: 0;
 }
 
 .filter-group {
   display: flex;
   flex-wrap: wrap;
   gap: 8px 12px;
-
   flex: 1;
-  min-width: 0;
 }
 
-.filter-group--date {
-  min-width: 0;
+/* =======================
+   FILTER
+======================= */
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .filter-label {
-  flex: none;
-  color: #34495e;
   font-size: 13px;
   font-weight: 700;
+  color: #34495e;
   white-space: nowrap;
 }
 
@@ -220,84 +247,78 @@ function handleReset() {
   background: #f9fcff;
   border: 1px solid #cbdced;
   border-radius: 4px;
-  box-sizing: border-box;
-}
-
-.filter-input--name {
-  width: 120px;
-}
-
-.filter-datetime {
-  width: 188px;
-}
-
-.filter-datetime :deep(.datetime-picker__control) {
-  height: 30px;
-  padding: 0 10px;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 30px;
-}
-
-.filter-datetime :deep(.datetime-picker__value) {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.filter-datetime :deep(.datetime-picker__icon) {
-  width: 15px;
-  height: 15px;
 }
 
 .filter-select {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   width: 104px;
   height: 30px;
   padding: 0 10px;
 
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
   font-size: 13px;
   font-weight: 600;
-  color: #172033;
 
   background: #f9fcff;
   border: 1px solid #cbdced;
   border-radius: 4px;
-
-  box-sizing: border-box;
 }
 
 .filter-select__arrow {
   width: 8px;
   height: 8px;
-  border: solid #74879c;
-  border-width: 0 2px 2px 0;
-  transform: translateY(-2px) rotate(45deg);
+  border: 2px solid #74879c;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
 }
 
+/* =======================
+   ACTIONS
+======================= */
 .toolbar-actions-wrapper {
-  display: flex;
-  flex: none;
   margin-left: auto;
   align-self: flex-end;
 }
 
-.filter-item {
+/* =======================
+   COLLAPSE HANDLE (关键)
+======================= */
+.collapse-handle {
+  position: absolute;
+  right: 12px;
+  bottom: -10px;
+
+  width: 32px;
+  height: 16px;
+
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 6px;
-  flex: none;
+
+  cursor: pointer;
+
+  background: transparent;
 }
 
-.filter-label {
-  flex: none;
-  white-space: nowrap;
+.collapse-arrow {
+  width: 8px;
+  height: 8px;
+  border: 2px solid #74879c;
+  border-top: none;
+  border-left: none;
+  transform: rotate(-135deg);
+  transition: transform 0.25s ease;
 }
 
-.filter-input,
-.filter-select,
-.filter-datetime {
-  flex: none;
+/* 收起：箭头向上 */
+.is-collapsed {
+  transform: rotate(45deg);
+}
+
+.toolbar:not(.collapsed) + .collapse-handle {
+  transform: translateY(-8px);
 }
 </style>

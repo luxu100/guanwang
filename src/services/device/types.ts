@@ -282,4 +282,38 @@ export interface MaintenanceCreateForm {
     tubeOrder?: number;
 
     remark?: string;
-};
+}
+
+export interface DeviceCreateForm {
+    // ===== 必填核心 =====
+    deviceNumber?: string;
+    productId?: number;
+    deviceType?: string;
+
+    // ===== 设备标识（可选）=====
+    nbNumber?: string;
+    deviceImei?: string;
+    deviceImsi?: string;
+    serialNumber?: string;
+
+    // ===== 安装信息 =====
+    installState?: number;
+    installMode?: number;
+    installAddress?: string;
+    installLongitude?: number;
+    installLatitude?: number;
+
+    // ===== 启用状态 =====
+    enableState?: number;
+
+    // ===== 管网信息 =====
+    tubeGroup?: string;
+    tubeOrder?: number;
+
+    // ===== 备注/扩展 =====
+    hardwareVersion?: string;
+    softwareVersion?: string;
+
+    // ===== 设备属性 =====
+    leakProperty?: number;
+}

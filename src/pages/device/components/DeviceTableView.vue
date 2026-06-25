@@ -150,11 +150,8 @@ const leakStatusMap: Record<number, string> = {
 }
 
 const emit = defineEmits<{
-  (e: 'create'): void;
   (e: 'view', device: Device): void;
-  (e: 'edit', device: Device): void;
-  (e: 'delete', device: Device): void;
-  (e: 'page-change', step: number): void;
+  (e: 'select', device: Device): void;
 }>();
 
 const searchKeyword = ref('');
@@ -164,6 +161,7 @@ const selectedId = ref<number | null>(null);
 function selectRow(device: Device) {
   selectedId.value = device.id;
   emit('view', device);
+  emit('select', device);
 }
 
 function formatDate(

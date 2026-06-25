@@ -51,9 +51,9 @@
 
           <text
               class="data-cell data-cell--type"
-              :class="getMaintainTypeMeta(record.maintainType).className"
+              :class="getMaintainTypeMeta(record.maintainType!).className"
           >
-            {{ getMaintainTypeMeta(record.maintainType).label }}
+            {{ getMaintainTypeMeta(record.maintainType!).label }}
           </text>
 
           <text class="data-cell data-cell--time">
@@ -359,10 +359,9 @@ async function handleSubmit(form: MaintenanceCreateForm) {
         title: "新增成功",
         icon: "success"
       });
-      await fetchMaintenanceRecords();
+      dialogVisible.value = false;
+      await refreshList({ resetPage: true });
     }
-    dialogVisible.value = false;
-
   } catch (e: any) {
     console.error("submit error:", e);
 
@@ -385,7 +384,7 @@ async function handleDelete() {
 
         await deleteMaintenanceRecordT(selectedId.value ?? 0);
 
-        await fetchMaintenanceRecords();
+        await refreshList();
 
         uni.showToast({
           title: '删除成功',
@@ -403,6 +402,13 @@ async function handleDelete() {
     });
   }
 }
+
+async function refreshList({ resetPage = false } = {}) {
+  if (resetPage) pagination.value.current = 1;
+
+  await fetchMaintenanceRecords();
+}
+
 
 const maintainTypeMap = {
   0: { label: '拆卸', className: 'is-removed' },

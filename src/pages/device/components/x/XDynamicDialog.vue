@@ -52,7 +52,7 @@
                       v-if="field.type === 'input'"
                       v-model="formData[field.key]"
                       class="form-input"
-                      :placeholder="field.placeholder"
+                      :placeholder="field.placeholder || `请输入${field.label}`"
                       placeholder-class="input-placeholder"
                       @input="clearError(field.key)"
                   />
@@ -76,7 +76,7 @@
                           getSelectLabel(
                               field.options,
                               formData[field.key],
-                              field.placeholder
+                              field.placeholder || `请选择${field.label}`
                           )
                         }}
                       </text>
@@ -114,7 +114,7 @@
                       v-model="formData[field.key]"
                       class="form-textarea"
                       :class="{ 'form-textarea--large': field.large }"
-                      :placeholder="field.placeholder"
+                      :placeholder="field.placeholder || `请输入${field.label}`"
                       placeholder-class="input-placeholder"
                       @input="clearError(field.key)"
                   />
