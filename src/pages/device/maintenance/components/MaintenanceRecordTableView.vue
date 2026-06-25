@@ -21,13 +21,13 @@
           <text class="data-cell data-cell--index">序号</text>
           <text class="data-cell data-cell--device">设备编号</text>
           <text class="data-cell data-cell--type">维护类型</text>
-          <text class="data-cell data-cell--status">维护时间</text>
+          <text class="data-cell data-cell--time">维护时间</text>
           <text class="data-cell data-cell--address">维护地址</text>
           <text class="data-cell data-cell--status">安装模式</text>
           <text class="data-cell data-cell--number">管组编号</text>
-          <text class="data-cell data-cell--status">管材</text>
-          <text class="data-cell data-cell--status">管径</text>
-          <text class="data-cell data-cell--status">备注</text>
+          <text class="data-cell data-cell--text">管材</text>
+          <text class="data-cell data-cell--text">管径</text>
+          <text class="data-cell data-cell--text">备注</text>
         </view>
 
         <view v-if="loading" class="loading-mask">加载中...</view>
@@ -49,16 +49,14 @@
             {{ record.deviceNumber || '-' }}
           </text>
 
-          <text class="data-cell data-cell--type">
-            {{
-              record.maintainType === 0 ? '拆卸' :
-                  record.maintainType === 1 ? '安装' :
-                      record.maintainType === 2 ? '维护' :
-                          record.maintainType === 3 ? '巡检' : '-'
-            }}
+          <text
+              class="data-cell data-cell--type"
+              :class="getMaintainTypeMeta(record.maintainType).className"
+          >
+            {{ getMaintainTypeMeta(record.maintainType).label }}
           </text>
 
-          <text class="data-cell data-cell--status">
+          <text class="data-cell data-cell--time">
             {{ record.maintainTime || '-' }}
           </text>
 
@@ -66,7 +64,13 @@
             {{ record.maintainAddress || '-' }}
           </text>
 
-          <text class="data-cell data-cell--status">
+          <text
+              class="data-cell data-cell--status"
+              :class="{
+              'is-fixed': record.installMode === 0,
+              'is-mobile': record.installMode === 1
+            }"
+          >
             {{ record.installMode === 0 ? '固定点' : record.installMode === 1 ? '流动点' : '-' }}
           </text>
 
@@ -74,15 +78,15 @@
             {{ record.tubeGroup || '-' }}
           </text>
 
-          <text class="data-cell data-cell--status">
+          <text class="data-cell data-cell--text">
             {{ record.tubeMaterial || '-' }}
           </text>
 
-          <text class="data-cell data-cell--status">
+          <text class="data-cell data-cell--text">
             {{ record.tubeBore || '-' }}
           </text>
 
-          <text class="data-cell data-cell--status">
+          <text class="data-cell data-cell--text">
             {{ record.remark || '-' }}
           </text>
 
@@ -400,6 +404,18 @@ async function handleDelete() {
   }
 }
 
+const maintainTypeMap = {
+  0: { label: '拆卸', className: 'is-removed' },
+  1: { label: '安装', className: 'is-installed' },
+  2: { label: '维护', className: 'is-warning' },
+  3: { label: '巡检', className: 'is-info' }
+} as Record<number, { label: string; className: string }>;
+
+// 获取维护类型元数据
+const getMaintainTypeMeta = (type: number) => {
+  return maintainTypeMap[type] || { label: '-', className: 'is-unknown' };
+};
+
 </script>
 <style scoped lang="scss">
 
@@ -631,5 +647,135 @@ async function handleDelete() {
   height: 48px;
   padding: 0 14px;
   border-top: 1px solid #edf3f8;
+}
+
+
+/* 设备编号：通常由字母和数字组成，使用等宽字体更清晰，颜色适中 */
+.data-cell--device {
+  color: #1e293b;
+  font-family: "DIN Alternate", "Arial", sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* 设备类型：作为普通文本标签，颜色略深以区分状态 */
+.data-cell--type {
+  color: #334155;
+  font-weight: 600;
+}
+
+/* 状态类（启用/安装/渗漏/在线）：
+   由于状态列通常包含不同状态，这里提供基础样式。
+   实际开发中建议配合 JS 动态添加如 .is-online / .is-leak 等修饰类 */
+.data-cell--status {
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase; /* 如果状态是英文，大写更美观；中文可去掉 */
+  letter-spacing: 0.5px;
+}
+
+/* 安装模式：普通文本，稍浅的颜色 */
+.data-cell--mode {
+  color: #475569;
+}
+
+/* 最后采样时间：时间数据使用等宽字体对齐，颜色偏灰 */
+.data-cell--time {
+  color: #64748b;
+  font-family: "DIN Alternate", "Arial", sans-serif;
+  font-size: 12px;
+}
+
+/* 正常/在线/启用 */
+.data-cell--status.is-online,
+.data-cell--status.is-enabled {
+  color: #10b981; /* 绿色 */
+}
+
+/* 异常/渗漏/离线 */
+.data-cell--status.is-leak,
+.data-cell--status.is-offline {
+  color: #ef4444; /* 红色 */
+}
+
+/* 警告/安装中 */
+.data-cell--status.is-warning,
+.data-cell--status.is-installing {
+  color: #f59e0b; /* 橙色 */
+}
+
+/* ==========================================
+   状态列增强样式 (Status Badge Styles)
+   ========================================== */
+
+/* 基础状态样式：加粗、大写、紧凑间距 */
+.data-cell--status {
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase; /* 如果是中文，可以删掉这行 */
+  position: relative;
+  padding-left: 24px; /* 为左侧圆点留出空间 */
+}
+
+/* --- 通用语义化颜色 --- */
+/* 成功/启用/在线/已安装 (绿色) */
+.is-enabled,
+.is-installed,
+.is-online,
+.is-normal{
+  color: #059669; /* 深绿 */
+}
+
+/* 警告/流动点/疑似 (琥珀色/橙色) */
+.is-mobile,
+.is-warning,
+  /* 渗漏状态中的 "疑似" */
+[data-v-xxxxxx] .is-leak-status-2 {
+  color: #92400e; /* 深橙 */
+}
+
+/* 危险/停用/离线/渗漏 (红色) */
+.is-disabled,
+.is-offline,
+.is-leak,
+  /* 渗漏状态中的 "渗漏" */
+[data-v-xxxxxx] .is-leak-status-0 {
+  color: #991b1b; /* 深红 */
+}
+
+/* 未知/未安装/灰色 (中性色) */
+.is-not-installed,
+.is-unknown,
+  /* 渗漏状态中的 "未知" */
+[data-v-xxxxxx] .is-leak-status-3 {
+  color: #4b5563; /* 灰 */
+}
+
+/* 固定点 (蓝色) */
+.is-fixed {
+  color: #1e40af;
+}
+
+.data-cell--info {
+  color: #334155;
+  font-size: 13px;
+  text-align: center;
+}
+
+// 2. 维护类型的具体颜色定义
+// 请根据你的设计稿调整这些颜色值
+.is-removed { color: #991b1b; } // 深红 - 拆卸
+.is-installed { color: #059669; } // 深绿 - 安装
+.is-warning { color: #92400e; } // 深橙 - 维护
+.is-info { color: #1e40af; } // 深蓝 - 巡检
+
+// 3. 备注列样式 (参考文档)
+.data-cell--remark {
+  justify-content: flex-start;
+  text-align: left;
+  color: #64748b;
+  font-size: 12px;
+  padding: 0 12px;
 }
 </style>
