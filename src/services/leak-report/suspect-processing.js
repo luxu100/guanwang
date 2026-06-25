@@ -27,14 +27,30 @@ export function excludeSuspect(id) {
 }
 
 /**
- * 转工单：创建工单并更新疑点的关联工单ID。
+ * 转工单：创建工单并自动回写工单ID到疑点的 referenceWorksheetId 字段。
  */
 export async function convertToWorksheet(suspectId, worksheetPayload) {
-  const worksheetResponse = await createWorksheet(worksheetPayload);
+  const { title, type, description, ...rest } = worksheetPayload || {};
+
+  // 自动填充疑点标号 + 字段映射，确保工单能正确关联疑点
+  const payload = {
+    ...rest,
+    worksheetType: type,
+    worksheetInstruction: title,
+    remark: description,
+    leakageId: suspectId,
+  };
+
+  const worksheetResponse = await createWorksheet(payload);
+
+  // 兼容后端返回结构：可能是 { data: { id } }、{ data: id } 或直接返回 id
   const worksheetId = worksheetResponse?.data?.id || worksheetResponse?.data;
-  if (worksheetId) {
+
+  // 自动回写工单ID到疑点的 referenceWorksheetId 字段
+  if (worksheetId !== undefined && worksheetId !== null && worksheetId !== "") {
     await leakageRecordApi.update(suspectId, { referenceWorksheetId: worksheetId });
   }
+
   return worksheetResponse;
 }
 

@@ -19,6 +19,61 @@
       </view>
     </view>
 
+    <view v-if="mode === 'statistics'" class="global-breakdown">
+      <view class="global-breakdown__head">
+        <view class="global-breakdown__title-group">
+          <text class="global-breakdown__title">分类统计</text>
+          <text class="global-breakdown__desc">按当前筛选结果汇总状态与类型分布</text>
+        </view>
+        <view class="global-breakdown__summary">
+          <text class="global-breakdown__summary-label">当前结果</text>
+          <text class="global-breakdown__summary-value">{{ worksheets.length }} 条</text>
+        </view>
+      </view>
+      <view class="global-breakdown__content">
+        <view class="breakdown-section">
+          <view class="breakdown-section__head">
+            <text class="breakdown-section__title">状态分布</text>
+            <text class="breakdown-section__count">{{ worksheets.length }} 条</text>
+          </view>
+          <view class="breakdown-list">
+            <view v-for="item in statusBreakdown" :key="item.label" class="breakdown-row" :class="`breakdown-row--${item.tone}`">
+              <view class="breakdown-row__top">
+                <text class="breakdown-row__label">{{ item.label }}</text>
+                <view class="breakdown-row__value">
+                  <text>{{ item.count }} 条</text>
+                  <text class="breakdown-row__percent">{{ item.percentLabel }}</text>
+                </view>
+              </view>
+              <view class="breakdown-row__track">
+                <view class="breakdown-row__bar" :style="{ width: `${item.percent}%` }"></view>
+              </view>
+            </view>
+          </view>
+        </view>
+        <view class="breakdown-section">
+          <view class="breakdown-section__head">
+            <text class="breakdown-section__title">类型分布</text>
+            <text class="breakdown-section__count">{{ worksheets.length }} 条</text>
+          </view>
+          <view class="breakdown-list">
+            <view v-for="item in typeBreakdown" :key="item.label" class="breakdown-row" :class="`breakdown-row--${item.tone}`">
+              <view class="breakdown-row__top">
+                <text class="breakdown-row__label">{{ item.label }}</text>
+                <view class="breakdown-row__value">
+                  <text>{{ item.count }} 条</text>
+                  <text class="breakdown-row__percent">{{ item.percentLabel }}</text>
+                </view>
+              </view>
+              <view class="breakdown-row__track">
+                <view class="breakdown-row__bar" :style="{ width: `${item.percent}%` }"></view>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
     <view class="worksheet-toolbar">
       <view class="toolbar-row toolbar-row--filters">
         <view class="filter-group">
@@ -110,19 +165,16 @@
         <scroll-view class="table-scroll" scroll-x scroll-y>
           <view class="data-table">
             <view class="data-row data-row--header">
-              <text class="data-cell data-cell--index">序号</text>
-              <text class="data-cell data-cell--number">工单编号</text>
-              <text class="data-cell data-cell--type">工单类型</text>
-              <text class="data-cell data-cell--status">工单状态</text>
-              <text class="data-cell data-cell--account">发起人</text>
-              <text class="data-cell data-cell--account">执行人</text>
-              <text class="data-cell data-cell--device">设备引用</text>
-              <text class="data-cell data-cell--level">紧急程度</text>
-              <text class="data-cell data-cell--time">发起时间</text>
-              <text class="data-cell data-cell--time">截止时间</text>
-              <text class="data-cell data-cell--time">完成时间</text>
-              <text class="data-cell data-cell--address">地址</text>
-              <text class="data-cell data-cell--remark">备注</text>
+              <view
+                v-for="column in tableColumns"
+                :key="column.key"
+                class="data-cell data-header-cell"
+                :class="[column.className, { 'data-header-cell--sortable': column.sortable, 'data-header-cell--active': sortState.field === column.key }]"
+                @click="column.sortable && toggleSort(column.key)"
+              >
+                <text>{{ column.label }}</text>
+                <text v-if="column.sortable" class="sort-indicator" :class="getSortIndicatorClass(column.key)"></text>
+              </view>
             </view>
 
             <view v-if="loading" class="table-state">加载中...</view>
@@ -197,6 +249,29 @@
                 <text class="detail-item__value">{{ item.value }}</text>
               </view>
             </view>
+
+            <view v-if="mode !== 'statistics'" class="detail-time-panel detail-time-panel--embedded">
+              <view class="time-section">
+                <text class="detail-section-title">时间信息</text>
+                <view class="time-list">
+                  <view v-for="item in timeMomentFields" :key="item.label" class="time-row">
+                    <view class="time-row__marker"></view>
+                    <view class="time-row__content">
+                      <text class="time-row__label">{{ item.label }}</text>
+                      <text class="time-row__value">{{ item.value }}</text>
+                    </view>
+                  </view>
+                </view>
+              </view>
+
+              <view class="time-section time-section--location">
+                <text class="detail-section-title">地点信息</text>
+                <view v-for="item in locationDetailFields" :key="item.label" class="location-row">
+                  <text class="location-row__label">{{ item.label }}</text>
+                  <text class="location-row__value">{{ item.value }}</text>
+                </view>
+              </view>
+            </view>
           </view>
 
           <view v-if="activeTab === 'content'" class="detail-grid detail-grid--content">
@@ -229,7 +304,7 @@
             </view>
           </view>
 
-          <view v-if="mode === 'processing'" class="process-box">
+          <view v-if="mode === 'processing' && activeTab === 'processing'" class="process-box process-box--standalone">
             <text class="process-box__title">工单处理</text>
             <view class="form-field">
               <text class="form-label">处理状态</text>
@@ -240,17 +315,56 @@
                 </view>
               </picker>
             </view>
-            <view class="form-field">
-              <text class="form-label">执行人账号</text>
-              <input v-model="processForm.executeAccount" class="form-input" :disabled="isSelectedWorksheetCanceled" placeholder="请输入执行人" placeholder-class="input-placeholder" />
+            <view class="process-form-grid">
+              <view class="form-field">
+                <text class="form-label">紧急程度</text>
+                <picker :range="urgencyOptions" range-key="label" :value="processUrgencyIndex" :disabled="isSelectedWorksheetCanceled" @change="handleProcessUrgencyChange">
+                  <view class="form-select process-select" :class="{ 'process-select--disabled': isSelectedWorksheetCanceled }">
+                    <text>{{ processUrgencyLabel }}</text>
+                    <text class="process-select__arrow"></text>
+                  </view>
+                </picker>
+              </view>
+              <view class="form-field">
+                <text class="form-label">执行人</text>
+                <input v-model="processForm.executeAccount" class="form-input" :disabled="isSelectedWorksheetCanceled" placeholder="请输入执行人" placeholder-class="input-placeholder" />
+              </view>
             </view>
             <view class="form-field">
-              <text class="form-label">完成时间</text>
-              <input v-model="processForm.finishTime" class="form-input" :disabled="isSelectedWorksheetCanceled" type="datetime-local" />
+              <text class="form-label">关联设备</text>
+              <input v-model="processForm.deviceReference" class="form-input" :disabled="isSelectedWorksheetCanceled" placeholder="设备编号列表，多个用逗号分隔" placeholder-class="input-placeholder" />
+            </view>
+            <view class="process-form-grid">
+              <view class="form-field">
+                <text class="form-label">截止时间</text>
+                <input v-model="processForm.deadlineTime" class="form-input" :disabled="isSelectedWorksheetCanceled" type="datetime-local" />
+              </view>
+              <view class="form-field">
+                <text class="form-label">完成时间</text>
+                <input v-model="processForm.finishTime" class="form-input" :disabled="isSelectedWorksheetCanceled || processForm.worksheetStatus !== 2" type="datetime-local" />
+              </view>
             </view>
             <view class="form-field">
               <text class="form-label">处理反馈</text>
               <textarea v-model="processForm.worksheetFeedback" class="form-textarea" :disabled="isSelectedWorksheetCanceled" placeholder="请输入处理反馈" placeholder-class="input-placeholder" />
+            </view>
+            <view class="form-field">
+              <text class="form-label">工单说明</text>
+              <textarea v-model="processForm.worksheetInstruction" class="form-textarea" :disabled="isSelectedWorksheetCanceled" placeholder="请输入工单说明" placeholder-class="input-placeholder" />
+            </view>
+            <view class="form-field">
+              <text class="form-label">工单地址</text>
+              <input v-model="processForm.address" class="form-input" :disabled="isSelectedWorksheetCanceled" placeholder="请输入工单地址" placeholder-class="input-placeholder" />
+            </view>
+            <view class="process-form-grid">
+              <view class="form-field">
+                <text class="form-label">工单坐标</text>
+                <input v-model="processForm.coordinate" class="form-input" :disabled="isSelectedWorksheetCanceled" placeholder="经度,纬度" placeholder-class="input-placeholder" />
+              </view>
+              <view class="form-field">
+                <text class="form-label">照片ID</text>
+                <input v-model="processForm.pictureIds" class="form-input" :disabled="isSelectedWorksheetCanceled" placeholder="文件 ID 列表" placeholder-class="input-placeholder" />
+              </view>
             </view>
             <view class="form-field">
               <text class="form-label">备注</text>
@@ -262,24 +376,6 @@
               </button>
               <button class="toolbar-button process-action process-action--finish" :disabled="submittingProcess || isSelectedWorksheetCanceled" hover-class="toolbar-button--hover" @click="markFinished">标记完成</button>
               <button class="toolbar-button toolbar-button--danger process-action process-action--cancel" :disabled="submittingProcess || isSelectedWorksheetCanceled" hover-class="toolbar-button--hover" @click="cancelWorksheet">取消工单</button>
-            </view>
-          </view>
-
-          <view v-if="mode === 'statistics'" class="breakdown-box">
-            <text class="process-box__title">分类统计</text>
-            <view class="breakdown-section">
-              <text class="breakdown-section__title">状态分布</text>
-              <view v-for="item in statusBreakdown" :key="item.label" class="breakdown-row">
-                <text>{{ item.label }}</text>
-                <text>{{ item.count }} 条</text>
-              </view>
-            </view>
-            <view class="breakdown-section">
-              <text class="breakdown-section__title">类型分布</text>
-              <view v-for="item in typeBreakdown" :key="item.label" class="breakdown-row">
-                <text>{{ item.label }}</text>
-                <text>{{ item.count }} 条</text>
-              </view>
             </view>
           </view>
         </view>
@@ -296,12 +392,33 @@ import { getWorksheetStatisticsPage } from "@/services/work-order/statistics";
 import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
 
 type WorkOrderMode = "create" | "processing" | "statistics";
-type DetailTab = "base" | "content" | "time";
+type DetailTab = "base" | "content" | "time" | "processing";
 type WorksheetRecord = Record<string, unknown>;
 type OptionValue = number | "";
+type SortOrder = "asc" | "desc";
+type SortField =
+  | "index"
+  | "worksheetNumber"
+  | "worksheetType"
+  | "worksheetStatus"
+  | "riseAccount"
+  | "executeAccount"
+  | "deviceReference"
+  | "urgencyLevel"
+  | "riseTime"
+  | "deadlineTime"
+  | "finishTime"
+  | "address"
+  | "remark";
 type SelectOption<T extends OptionValue = OptionValue> = {
   label: string;
   value: T;
+};
+type TableColumn = {
+  key: SortField;
+  label: string;
+  className: string;
+  sortable?: boolean;
 };
 
 interface ApiResponseLike {
@@ -352,10 +469,25 @@ const urgencyFilterOptions: SelectOption[] = [
   ...urgencyOptions,
 ];
 
-const detailTabs: Array<{ label: string; value: DetailTab }> = [
+const baseDetailTabs: Array<{ label: string; value: DetailTab }> = [
   { label: "工单详情", value: "base" },
   { label: "反馈说明", value: "content" },
-  { label: "时间地点", value: "time" },
+];
+
+const tableColumns: TableColumn[] = [
+  { key: "index", label: "序号", className: "data-cell--index" },
+  { key: "worksheetNumber", label: "工单编号", className: "data-cell--number", sortable: true },
+  { key: "worksheetType", label: "工单类型", className: "data-cell--type", sortable: true },
+  { key: "worksheetStatus", label: "工单状态", className: "data-cell--status", sortable: true },
+  { key: "riseAccount", label: "发起人", className: "data-cell--account", sortable: true },
+  { key: "executeAccount", label: "执行人", className: "data-cell--account", sortable: true },
+  { key: "deviceReference", label: "设备引用", className: "data-cell--device", sortable: true },
+  { key: "urgencyLevel", label: "紧急程度", className: "data-cell--level", sortable: true },
+  { key: "riseTime", label: "发起时间", className: "data-cell--time", sortable: true },
+  { key: "deadlineTime", label: "截止时间", className: "data-cell--time", sortable: true },
+  { key: "finishTime", label: "完成时间", className: "data-cell--time", sortable: true },
+  { key: "address", label: "地址", className: "data-cell--address", sortable: true },
+  { key: "remark", label: "备注", className: "data-cell--remark", sortable: true },
 ];
 
 const worksheetTypeOptionsWithoutAll = worksheetTypeOptions.filter((item) => item.value !== "") as Array<{ label: string; value: number }>;
@@ -381,10 +513,21 @@ const pagination = reactive({
 
 const processForm = reactive({
   worksheetStatus: 1,
+  urgencyLevel: 0,
   executeAccount: "",
+  deviceReference: "",
+  deadlineTime: "",
   finishTime: "",
   worksheetFeedback: "",
+  worksheetInstruction: "",
+  address: "",
+  coordinate: "",
+  pictureIds: "",
   remark: "",
+});
+const sortState = reactive({
+  field: "riseTime" as SortField,
+  order: "desc" as SortOrder,
 });
 
 const worksheets = ref<WorksheetRecord[]>([]);
@@ -404,9 +547,28 @@ const currentTypeIndex = computed(() => getOptionIndex(worksheetTypeOptions, fil
 const currentStatusIndex = computed(() => getOptionIndex(worksheetStatusOptions, filters.worksheetStatus));
 const currentUrgencyIndex = computed(() => getOptionIndex(urgencyFilterOptions, filters.urgencyLevel));
 const processStatusIndex = computed(() => getOptionIndex(processStatusOptions, processForm.worksheetStatus));
+const processUrgencyLabel = computed(() => getOptionLabel(urgencyOptions, processForm.urgencyLevel, "一般"));
+const processUrgencyIndex = computed(() => getOptionIndex(urgencyOptions, processForm.urgencyLevel));
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pagination.pageSize)));
 const selectedWorksheetStatus = computed(() => Number(getStableValue(selectedWorksheet.value || {}, ["worksheetStatus"])));
 const isSelectedWorksheetCanceled = computed(() => selectedWorksheetStatus.value === 3);
+const detailTabs = computed(() => {
+  if (props.mode === "statistics") {
+    return [
+      ...baseDetailTabs,
+      { label: "时间信息", value: "time" as DetailTab },
+    ];
+  }
+
+  if (props.mode === "processing") {
+    return [
+      ...baseDetailTabs,
+      { label: "工单处理", value: "processing" as DetailTab },
+    ];
+  }
+
+  return baseDetailTabs;
+});
 
 const baseDetailFields = computed(() => {
   const item = selectedWorksheet.value || {};
@@ -458,14 +620,14 @@ const timeDetailFields = computed(() => {
     { label: "创建时间", value: getCreatedAt(item) },
     { label: "更新时间", value: formatDateTime(getTextValue(item, ["updatedAt"], "-")) },
     { label: "地址", value: getAddress(item) },
-    { label: "坐标", value: getTextValue(item, ["coordinate"], "-") },
+    { label: "坐标", value: getCoordinate(item) },
   ];
 });
 const timeMomentFields = computed(() => timeDetailFields.value.filter((item) => item.label !== "地址" && item.label !== "坐标"));
 const locationDetailFields = computed(() => timeDetailFields.value.filter((item) => item.label === "地址" || item.label === "坐标"));
 
-const statusBreakdown = computed(() => countByOptions(worksheets.value, worksheetStatusOptionsWithoutAll, "worksheetStatus"));
-const typeBreakdown = computed(() => countByOptions(worksheets.value, worksheetTypeOptionsWithoutAll, "worksheetType"));
+const statusBreakdown = computed(() => countByOptions(worksheets.value, worksheetStatusOptionsWithoutAll, "worksheetStatus", getStatusTone));
+const typeBreakdown = computed(() => countByOptions(worksheets.value, worksheetTypeOptionsWithoutAll, "worksheetType", () => "type"));
 const statisticsCards = computed(() => {
   const visibleCount = worksheets.value.length;
   const doneCount = worksheets.value.filter((item) => Number(getStableValue(item, ["worksheetStatus"])) === 2).length;
@@ -494,6 +656,10 @@ watch(selectedWorksheet, (item) => {
   }
 });
 
+watch(() => props.mode, () => {
+  activeTab.value = "base";
+});
+
 function handleTypeChange(event: { detail: { value: number } }) {
   filters.worksheetType = worksheetTypeOptions[event.detail.value]?.value ?? "";
 }
@@ -516,6 +682,34 @@ function handleProcessStatusChange(event: { detail: { value: number } }) {
   if (processForm.worksheetStatus !== 2) {
     processForm.finishTime = "";
   }
+}
+
+function handleProcessUrgencyChange(event: { detail: { value: number } }) {
+  processForm.urgencyLevel = urgencyOptions[event.detail.value]?.value ?? 0;
+}
+
+function toggleSort(field: SortField) {
+  if (field === "index") {
+    return;
+  }
+
+  if (sortState.field === field) {
+    sortState.order = sortState.order === "asc" ? "desc" : "asc";
+  } else {
+    sortState.field = field;
+    sortState.order = isTimeSortField(field) ? "desc" : "asc";
+  }
+
+  worksheets.value = sortWorksheets(worksheets.value);
+  syncSelectedKeyAfterSort();
+}
+
+function getSortIndicatorClass(field: SortField) {
+  if (sortState.field !== field) {
+    return "sort-indicator--idle";
+  }
+
+  return sortState.order === "asc" ? "sort-indicator--asc" : "sort-indicator--desc";
 }
 
 function buildQueryParams() {
@@ -560,7 +754,7 @@ async function fetchWorksheets() {
     assertSuccessResponse(response);
     const parsed = parsePageResponse(response);
     const filteredRecords = applyLocalFilters(parsed.records);
-    worksheets.value = filteredRecords;
+    worksheets.value = sortWorksheets(filteredRecords);
     total.value = hasActiveFilters() && filteredRecords.length !== parsed.records.length ? filteredRecords.length : parsed.total;
     selectFirstRow();
   } catch (error) {
@@ -613,6 +807,95 @@ function parsePageResponse(response: ApiResponseLike) {
     records: finalRecords.map((item) => (isObject(item) ? item : { value: item })),
     total: resolvedTotal,
   };
+}
+
+function sortWorksheets(records: WorksheetRecord[]) {
+  return [...records].sort((left, right) => compareSortValues(getSortValue(left, sortState.field), getSortValue(right, sortState.field), sortState.order));
+}
+
+function getSortValue(item: WorksheetRecord, field: SortField) {
+  if (field === "worksheetNumber") {
+    return getWorksheetNumber(item);
+  }
+
+  if (field === "worksheetType" || field === "worksheetStatus" || field === "urgencyLevel") {
+    const numericValue = Number(getStableValue(item, [field]));
+    return Number.isNaN(numericValue) ? undefined : numericValue;
+  }
+
+  if (field === "riseAccount") {
+    return getRiseAccount(item);
+  }
+
+  if (field === "executeAccount") {
+    return getExecuteAccount(item);
+  }
+
+  if (field === "deviceReference") {
+    return getDeviceReference(item);
+  }
+
+  if (field === "riseTime") {
+    return getDatetimeTimestamp(getRiseTime(item));
+  }
+
+  if (field === "deadlineTime") {
+    return getDatetimeTimestamp(getDeadlineTime(item));
+  }
+
+  if (field === "finishTime") {
+    return getDatetimeTimestamp(getFinishTime(item));
+  }
+
+  if (field === "address") {
+    return getAddress(item);
+  }
+
+  if (field === "remark") {
+    return getRemark(item);
+  }
+
+  return "";
+}
+
+function compareSortValues(left: string | number | undefined, right: string | number | undefined, order: SortOrder) {
+  const leftEmpty = left === undefined || left === "" || left === "-";
+  const rightEmpty = right === undefined || right === "" || right === "-";
+
+  if (leftEmpty && rightEmpty) {
+    return 0;
+  }
+
+  if (leftEmpty) {
+    return 1;
+  }
+
+  if (rightEmpty) {
+    return -1;
+  }
+
+  const direction = order === "asc" ? 1 : -1;
+  if (typeof left === "number" && typeof right === "number") {
+    return (left - right) * direction;
+  }
+
+  return String(left).localeCompare(String(right), "zh-Hans-CN", { numeric: true, sensitivity: "base" }) * direction;
+}
+
+function isTimeSortField(field: SortField) {
+  return field === "riseTime" || field === "deadlineTime" || field === "finishTime";
+}
+
+function syncSelectedKeyAfterSort() {
+  if (!selectedWorksheet.value) {
+    return;
+  }
+
+  const selectedId = getRowId(selectedWorksheet.value);
+  const selectedIndex = worksheets.value.findIndex((item) => selectedId ? getRowId(item) === selectedId : item === selectedWorksheet.value);
+  if (selectedIndex >= 0) {
+    selectedKey.value = getRowKey(worksheets.value[selectedIndex], selectedIndex);
+  }
 }
 
 function findPageContainer(value: unknown): WorksheetRecord | null {
@@ -679,17 +962,31 @@ async function selectWorksheet(item: WorksheetRecord, index: number) {
 function fillProcessForm(item: WorksheetRecord | null) {
   if (!item) {
     processForm.worksheetStatus = 1;
+    processForm.urgencyLevel = 0;
     processForm.executeAccount = "";
+    processForm.deviceReference = "";
+    processForm.deadlineTime = "";
     processForm.finishTime = "";
     processForm.worksheetFeedback = "";
+    processForm.worksheetInstruction = "";
+    processForm.address = "";
+    processForm.coordinate = "";
+    processForm.pictureIds = "";
     processForm.remark = "";
     return;
   }
 
   processForm.worksheetStatus = Number(getStableValue(item, ["worksheetStatus"]) ?? 1);
+  processForm.urgencyLevel = Number(getStableValue(item, ["urgencyLevel"]) ?? 0);
   processForm.executeAccount = getTextValue(item, ["executeAccount"], "");
+  processForm.deviceReference = getTextValue(item, ["deviceReference"], "");
+  processForm.deadlineTime = toDatetimeMinuteLocal(getTextValue(item, ["deadlineTime"], ""));
   processForm.finishTime = toDatetimeMinuteLocal(getTextValue(item, ["finishTime"], ""));
   processForm.worksheetFeedback = getTextValue(item, ["worksheetFeedback"], "");
+  processForm.worksheetInstruction = getTextValue(item, ["worksheetInstruction"], "");
+  processForm.address = getTextValue(item, ["address"], "");
+  processForm.coordinate = getCoordinate(item, "");
+  processForm.pictureIds = getTextValue(item, ["pictureIds"], "");
   processForm.remark = getTextValue(item, ["remark"], "");
 }
 
@@ -729,9 +1026,16 @@ async function submitProcess() {
 function buildProcessPayload() {
   const payload = removeEmptyFields({
     worksheetStatus: processForm.worksheetStatus,
+    urgencyLevel: processForm.urgencyLevel,
     executeAccount: processForm.executeAccount.trim(),
+    deviceReference: processForm.deviceReference.trim(),
+    deadlineTime: normalizeDatetimeForApi(processForm.deadlineTime),
     finishTime: processForm.worksheetStatus === 2 ? normalizeDatetimeForApi(processForm.finishTime) : undefined,
     worksheetFeedback: processForm.worksheetFeedback.trim(),
+    worksheetInstruction: processForm.worksheetInstruction.trim(),
+    address: processForm.address.trim(),
+    coordinate: processForm.coordinate.trim(),
+    pictureIds: processForm.pictureIds.trim(),
     remark: processForm.remark.trim(),
   });
 
@@ -793,8 +1097,15 @@ async function cancelWorksheet() {
 
 function buildCancelPayload() {
   return removeEmptyFields({
+    urgencyLevel: processForm.urgencyLevel,
     executeAccount: processForm.executeAccount.trim(),
+    deviceReference: processForm.deviceReference.trim(),
+    deadlineTime: normalizeDatetimeForApi(processForm.deadlineTime),
     worksheetFeedback: processForm.worksheetFeedback.trim(),
+    worksheetInstruction: processForm.worksheetInstruction.trim(),
+    address: processForm.address.trim(),
+    coordinate: processForm.coordinate.trim(),
+    pictureIds: processForm.pictureIds.trim(),
     remark: processForm.remark.trim(),
   });
 }
@@ -1004,6 +1315,21 @@ function getAddress(item: WorksheetRecord) {
   return getTextValue(item, ["address"], "-");
 }
 
+function getCoordinate(item: WorksheetRecord, fallback = "-") {
+  const directValue = getTextValue(item, ["coordinate", "coordinates", "lngLat", "lnglat", "locationCoordinate"], "");
+  if (directValue) {
+    return directValue;
+  }
+
+  const longitude = getStableValue(item, ["longitude", "lng", "lon"]);
+  const latitude = getStableValue(item, ["latitude", "lat"]);
+  if (longitude !== undefined && longitude !== null && latitude !== undefined && latitude !== null) {
+    return `${longitude},${latitude}`;
+  }
+
+  return fallback;
+}
+
 function getStatusClass(item: WorksheetRecord) {
   const status = Number(getStableValue(item, ["worksheetStatus"]));
 
@@ -1053,11 +1379,41 @@ function getPercent(count: number, totalCount: number) {
   return totalCount > 0 ? Math.round((count / totalCount) * 100) : 0;
 }
 
-function countByOptions(records: WorksheetRecord[], options: Array<{ label: string; value: number }>, key: string) {
-  return options.map((option) => ({
-    label: option.label,
-    count: records.filter((item) => Number(getStableValue(item, [key])) === option.value).length,
-  }));
+function countByOptions(records: WorksheetRecord[], options: Array<{ label: string; value: number }>, key: string, getTone: (value: number) => string) {
+  const totalCount = records.length;
+
+  return options.map((option) => {
+    const count = records.filter((item) => Number(getStableValue(item, [key])) === option.value).length;
+    const percent = getPercent(count, totalCount);
+
+    return {
+      label: option.label,
+      count,
+      percent,
+      percentLabel: `${percent}%`,
+      tone: getTone(option.value),
+    };
+  });
+}
+
+function getStatusTone(value: number) {
+  if (value === 0) {
+    return "pending";
+  }
+
+  if (value === 1) {
+    return "processing";
+  }
+
+  if (value === 2) {
+    return "done";
+  }
+
+  if (value === 3) {
+    return "canceled";
+  }
+
+  return "type";
 }
 
 function getTextValue(item: WorksheetRecord, keys: string[], fallback = "") {
@@ -1217,6 +1573,7 @@ defineExpose({
 .worksheet-toolbar,
 .worksheet-table-panel,
 .worksheet-detail-panel,
+.global-breakdown,
 .stat-card {
   background: #ffffff;
   border: 1px solid #d8e5ef;
@@ -1299,7 +1656,73 @@ defineExpose({
   display: grid;
   grid-template-columns: repeat(6, minmax(120px, 1fr));
   gap: 10px;
+  margin-bottom: 10px;
+}
+
+.global-breakdown {
+  position: relative;
+  flex: none;
+  padding: 14px;
   margin-bottom: 14px;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 251, 255, 0.98)),
+    linear-gradient(90deg, rgba(13, 130, 238, 0.06), rgba(22, 163, 74, 0.04));
+}
+
+.global-breakdown__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.global-breakdown__title-group {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.global-breakdown__title {
+  color: #183755;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.global-breakdown__desc {
+  color: #7890a8;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.global-breakdown__summary {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #ffffff;
+  border: 1px solid #d9e9f8;
+  border-radius: 999px;
+}
+
+.global-breakdown__summary-label {
+  color: #7890a8;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.global-breakdown__summary-value {
+  color: #0d82ee;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.global-breakdown__content {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .stat-card {
@@ -1762,7 +2185,7 @@ defineExpose({
 
 .worksheet-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 380px;
+  grid-template-columns: minmax(0, 1fr) clamp(380px, 20vw, 420px);
   flex: 1;
   gap: 14px;
   margin-top: 14px;
@@ -1918,6 +2341,68 @@ defineExpose({
   letter-spacing: 0;
 }
 
+.data-header-cell {
+  gap: 5px;
+  user-select: none;
+}
+
+.data-header-cell--sortable {
+  cursor: pointer;
+  transition:
+    color 0.18s ease,
+    background 0.18s ease;
+}
+
+.data-header-cell--sortable:hover {
+  color: #0d82ee;
+  background: #edf7ff;
+}
+
+.data-header-cell--active {
+  color: #0d82ee !important;
+  background: #eaf5ff;
+}
+
+.sort-indicator {
+  position: relative;
+  flex: none;
+  width: 12px;
+  height: 14px;
+  color: #9cafc1;
+}
+
+.sort-indicator::before,
+.sort-indicator::after {
+  position: absolute;
+  left: 3px;
+  width: 0;
+  height: 0;
+  content: "";
+  border-right: 3px solid transparent;
+  border-left: 3px solid transparent;
+}
+
+.sort-indicator::before {
+  top: 1px;
+  border-bottom: 4px solid currentColor;
+}
+
+.sort-indicator::after {
+  bottom: 1px;
+  border-top: 4px solid currentColor;
+}
+
+.sort-indicator--asc::before,
+.sort-indicator--desc::after {
+  color: #0d82ee;
+}
+
+.sort-indicator--asc::after,
+.sort-indicator--desc::before,
+.sort-indicator--idle {
+  opacity: 0.46;
+}
+
 .data-cell:last-child {
   border-right: 0;
 }
@@ -2022,7 +2507,7 @@ defineExpose({
 .detail-tabs {
   flex: none;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   gap: 6px;
   height: 54px;
   padding: 8px;
@@ -2290,6 +2775,10 @@ defineExpose({
   gap: 12px;
 }
 
+.detail-time-panel--embedded {
+  margin-top: 14px;
+}
+
 .time-section {
   min-width: 0;
   padding: 14px;
@@ -2396,11 +2885,16 @@ defineExpose({
   word-break: break-all;
 }
 
-.process-box,
-.breakdown-box {
+.process-box {
   margin-top: 14px;
   padding-top: 14px;
   border-top: 1px solid #edf3f8;
+}
+
+.process-box--standalone {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
 }
 
 .process-box__title {
@@ -2411,9 +2905,14 @@ defineExpose({
   font-weight: 800;
 }
 
-.process-box .form-field,
-.breakdown-section {
+.process-box .form-field {
   margin-bottom: 12px;
+}
+
+.process-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .process-select {
@@ -2474,26 +2973,145 @@ defineExpose({
   border-color: #ffc9c0;
 }
 
+.breakdown-section {
+  position: relative;
+  min-width: 0;
+  padding: 12px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid #e4eef7;
+  border-radius: 6px;
+}
+
+.breakdown-section::before {
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: 0;
+  width: 3px;
+  content: "";
+  background: #0d82ee;
+  border-radius: 0 999px 999px 0;
+}
+
+.breakdown-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
 .breakdown-section__title {
-  display: block;
-  margin-bottom: 8px;
-  color: #64748b;
+  color: #183755;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.breakdown-section__count {
+  color: #7890a8;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.breakdown-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+}
+
+.breakdown-row {
+  --breakdown-color: #0d82ee;
+  --breakdown-soft: rgba(13, 130, 238, 0.14);
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 9px 10px;
+  background: linear-gradient(180deg, #ffffff, #f8fbfe);
+  border: 1px solid #edf3f8;
+  border-radius: 5px;
+}
+
+.breakdown-row--pending {
+  --breakdown-color: #f59e0b;
+  --breakdown-soft: rgba(245, 158, 11, 0.16);
+}
+
+.breakdown-row--processing,
+.breakdown-row--type {
+  --breakdown-color: #2563eb;
+  --breakdown-soft: rgba(37, 99, 235, 0.14);
+}
+
+.breakdown-row--done {
+  --breakdown-color: #16a34a;
+  --breakdown-soft: rgba(22, 163, 74, 0.14);
+}
+
+.breakdown-row--canceled {
+  --breakdown-color: #64748b;
+  --breakdown-soft: rgba(100, 116, 139, 0.16);
+}
+
+.breakdown-row__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.breakdown-row__label {
+  min-width: 0;
+  color: #24384d;
   font-size: 13px;
   font-weight: 800;
 }
 
-.breakdown-row {
+.breakdown-row__value {
+  flex: none;
   display: flex;
-  justify-content: space-between;
-  padding: 8px 0;
-  color: #24384d;
-  font-size: 14px;
-  border-bottom: 1px solid #edf3f8;
+  align-items: center;
+  gap: 8px;
+  color: #183755;
+  font-size: 13px;
+  font-weight: 800;
 }
 
-@media (max-width: 1280px) {
+.breakdown-row__percent {
+  min-width: 42px;
+  padding: 2px 7px;
+  color: var(--breakdown-color);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.2;
+  text-align: center;
+  background: #ffffff;
+  border: 1px solid var(--breakdown-soft);
+  border-radius: 999px;
+}
+
+.breakdown-row__track {
+  height: 5px;
+  overflow: hidden;
+  background: #e9f0f7;
+  border-radius: 999px;
+}
+
+.breakdown-row__bar {
+  height: 100%;
+  background: var(--breakdown-color);
+  border-radius: inherit;
+}
+
+@media (max-width: 980px) {
   .stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .global-breakdown__content,
+  .breakdown-list {
+    grid-template-columns: 1fr;
   }
 
   .worksheet-layout {
@@ -2502,6 +3120,338 @@ defineExpose({
 
   .worksheet-detail-panel {
     min-height: 360px;
+  }
+}
+
+@media (max-height: 960px) and (min-width: 981px) {
+  .worksheet-view {
+    padding: 0 10px 10px;
+  }
+
+  .stats-grid {
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .stat-card {
+    padding: 9px 12px 8px;
+  }
+
+  .stat-card::after {
+    right: -24px;
+    bottom: -30px;
+    width: 76px;
+    height: 76px;
+  }
+
+  .stat-card__body {
+    margin-top: 7px;
+  }
+
+  .stat-card__value {
+    font-size: 21px;
+  }
+
+  .stat-card__progress {
+    height: 5px;
+    margin-top: 8px;
+  }
+
+  .global-breakdown {
+    padding: 10px 12px;
+    margin-bottom: 10px;
+  }
+
+  .global-breakdown__head {
+    margin-bottom: 8px;
+  }
+
+  .global-breakdown__content {
+    gap: 10px;
+  }
+
+  .breakdown-section {
+    padding: 9px 10px;
+  }
+
+  .breakdown-section::before {
+    top: 9px;
+    bottom: 9px;
+  }
+
+  .breakdown-section__head {
+    margin-bottom: 7px;
+  }
+
+  .breakdown-list {
+    gap: 6px 10px;
+  }
+
+  .breakdown-row {
+    gap: 5px;
+    padding: 7px 9px;
+  }
+
+  .worksheet-toolbar {
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .toolbar-row--filters {
+    gap: 8px 10px;
+  }
+
+  .filter-group {
+    gap: 4px;
+  }
+
+  .filter-label {
+    font-size: 11px;
+  }
+
+  .filter-input,
+  .filter-select,
+  .toolbar-row--filters .filter-input,
+  .toolbar-row--filters .filter-select {
+    height: 27px;
+    font-size: 12px;
+    line-height: 27px;
+  }
+
+  .filter-datetime {
+    flex-basis: 184px;
+    width: 184px;
+  }
+
+  .filter-datetime :deep(.datetime-picker__control) {
+    height: 28px;
+    font-size: 12px;
+    line-height: 28px;
+  }
+
+  .toolbar-actions .toolbar-button,
+  .toolbar-actions .toolbar-icon-button {
+    height: 34px;
+  }
+
+  .worksheet-layout {
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .table-head {
+    height: 42px;
+    padding: 0 14px;
+    font-size: 15px;
+  }
+
+  .data-row {
+    min-height: 36px;
+  }
+
+  .data-row--header {
+    min-height: 38px;
+  }
+
+  .data-cell {
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  .status-pill,
+  .urgency-pill {
+    min-width: 50px;
+    height: 22px;
+    padding: 0 8px;
+    font-size: 11px;
+    line-height: 22px;
+  }
+
+  .pagination-bar {
+    height: 42px;
+  }
+
+  .detail-tabs {
+    gap: 4px;
+    height: 40px;
+    padding: 4px;
+  }
+
+  .detail-tab {
+    font-size: 12px;
+  }
+
+  .detail-body {
+    padding: 8px;
+  }
+
+  .detail-base-panel,
+  .detail-grid,
+  .detail-time-panel {
+    gap: 6px;
+  }
+
+  .detail-summary {
+    gap: 6px;
+    padding: 9px 12px;
+  }
+
+  .detail-summary__label {
+    font-size: 11px;
+  }
+
+  .detail-summary__number {
+    margin-top: 4px;
+    font-size: 15px;
+  }
+
+  .detail-summary__badges {
+    gap: 5px;
+  }
+
+  .detail-summary__badge {
+    min-width: 56px;
+    height: 22px;
+    line-height: 22px;
+  }
+
+  .detail-item--base {
+    grid-template-columns: 78px minmax(0, 1fr);
+    min-height: 34px;
+    padding: 5px 10px;
+  }
+
+  .detail-item__label {
+    font-size: 11px;
+  }
+
+  .detail-item__value {
+    font-size: 12px;
+    line-height: 1.28;
+  }
+
+  .detail-grid--content {
+    gap: 6px;
+  }
+
+  .detail-grid--content .detail-item {
+    grid-template-columns: 74px minmax(0, 1fr);
+  }
+
+  .detail-grid--content .detail-item__value {
+    min-height: 34px;
+    padding: 9px 10px;
+    font-size: 12px;
+    line-height: 1.32;
+  }
+
+  .detail-item--note .detail-item__label {
+    padding: 0 9px;
+  }
+
+  .time-section {
+    padding: 8px 10px;
+  }
+
+  .detail-section-title {
+    margin-bottom: 6px;
+    font-size: 13px;
+  }
+
+  .time-list::before {
+    top: 11px;
+    bottom: 11px;
+    left: 5px;
+  }
+
+  .time-row {
+    grid-template-columns: 15px minmax(0, 1fr);
+    gap: 6px;
+    padding: 4px 0;
+  }
+
+  .time-row__marker {
+    width: 8px;
+    height: 8px;
+    margin-top: 3px;
+    border-width: 2px;
+  }
+
+  .time-row__content {
+    grid-template-columns: 58px minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .time-row__label {
+    font-size: 11px;
+  }
+
+  .time-row__value {
+    font-size: 12px;
+    line-height: 1.28;
+  }
+
+  .location-row {
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 7px;
+    padding: 6px 0;
+  }
+
+  .location-row__label,
+  .location-row__value {
+    font-size: 12px;
+    line-height: 1.3;
+  }
+
+  .process-box__title {
+    margin-bottom: 7px;
+    font-size: 14px;
+  }
+
+  .process-box .form-field {
+    margin-bottom: 6px;
+  }
+
+  .process-form-grid {
+    gap: 6px;
+  }
+
+  .form-label {
+    margin-bottom: 3px;
+    font-size: 12px;
+  }
+
+  .form-input,
+  .form-select {
+    height: 28px;
+    padding: 0 8px;
+    font-size: 12px;
+    line-height: 28px;
+  }
+
+  .process-select {
+    min-height: 28px;
+  }
+
+  .form-textarea {
+    height: 44px;
+    padding: 6px 8px;
+    font-size: 12px;
+    line-height: 1.3;
+  }
+
+  .form-textarea--compact {
+    height: 34px;
+  }
+
+  .process-actions {
+    gap: 6px;
+  }
+
+  .process-action {
+    height: 28px;
+    font-size: 12px;
+    line-height: 28px;
   }
 }
 
