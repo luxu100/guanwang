@@ -43,7 +43,7 @@ const model = computed({
 const fields: Field[] = [
   {
     key: "leakStatus",
-    label: "维护类型",
+    label: "设备状态",
     type: "select",
     dict: "leakStatus"
   },

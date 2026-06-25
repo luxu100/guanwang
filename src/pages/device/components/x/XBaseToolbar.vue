@@ -79,8 +79,10 @@
       </view>
     </view>
 
-    <!-- collapse handle（永远可见） -->
-    <view class="collapse-handle" @click="toggleVisible">
+    <view
+        class="collapse-handle"
+        @click="toggleVisible"
+    >
       <text
           class="collapse-arrow"
           :class="{ 'is-collapsed': !visible }"
@@ -96,7 +98,7 @@ import XToolbarActions from "./XToolbarActions.vue";
 import XDatetimePicker from "./XDatetimePicker.vue";
 import type { Field, DictItem } from "@/pages/device/components/x/types";
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   modelValue: Record<string, any>;
   fields: Field[];
   dictMap: Record<string, DictItem[]>;
@@ -106,7 +108,12 @@ const props = defineProps<{
   showDelete?: boolean;
   showRefresh?: boolean;
   canDelete?: boolean;
-}>();
+}>(), {
+  showAdd: true,
+  showDelete: true,
+  showRefresh: true,
+  canDelete: true,
+});
 
 const emit = defineEmits([
   "update:modelValue",
@@ -118,7 +125,7 @@ const emit = defineEmits([
 ]);
 
 /** 折叠状态 */
-const visible = ref(true);
+const visible = ref(false);
 
 function toggleVisible() {
   visible.value = !visible.value;
@@ -171,7 +178,6 @@ function handleReset() {
 .toolbar-wrapper {
   position: relative;
   width: 100%;
-  margin-bottom: 12px;
 }
 
 /* =======================
@@ -183,11 +189,9 @@ function handleReset() {
   gap: 8px;
 
   padding: 12px;
+  padding-bottom: 15px;
   background: #fff;
   border: 1px solid #d8e5ef;
-  border-radius: 6px;
-  box-shadow: 0 12px 26px rgba(35, 72, 104, 0.09);
-
   overflow: hidden;
 
   max-height: 600px;

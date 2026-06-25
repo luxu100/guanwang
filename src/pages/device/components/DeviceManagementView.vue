@@ -69,7 +69,7 @@
       v-model:visible="dialogVisible"
       v-model="formData"
       :schema="addSchema"
-      title="新增维护记录"
+      title="新增设备"
       @submit="handleSubmit"
       @cancel="dialogVisible = false"
   />
@@ -488,7 +488,6 @@ const addSchema = computed<FormSection[]>(() => [
 
 function handleAdd() {
   selectedDevice.value = null;
-  currentDevice.value = null;
 
   formData.value = {
     deviceNumber: "",
