@@ -110,7 +110,7 @@
                     </view>
                     <view class="form-field">
                       <text class="form-label">工单完成时间</text>
-                      <WorkOrderDatetimePicker v-model="createForm.finishTime" title="选择工单完成时间" placeholder="未完成可不填" :min-value="createForm.riseTime" />
+                      <WorkOrderDatetimePicker v-model="createForm.finishTime" title="选择工单完成时间" :placeholder="finishTimePlaceholder" :min-value="createForm.riseTime" :disabled="!isCreateWorksheetFinished" />
                       <text v-if="validationErrors.finishTime" class="form-error">{{ validationErrors.finishTime }}</text>
                     </view>
                   </view>
@@ -122,13 +122,13 @@
                   </view>
                   <view class="form-grid form-grid--main">
                     <view class="form-field">
-                      <text class="form-label form-label--required">工单发起人账号</text>
-                      <input v-model="createForm.riseAccount" class="form-input" :class="{ 'form-control--error': validationErrors.riseAccount }" placeholder="请输入工单发起人账号" placeholder-class="input-placeholder" @input="clearCreateError('riseAccount')" />
+                      <text class="form-label form-label--required">工单发起人</text>
+                      <input v-model="createForm.riseAccount" class="form-input" :class="{ 'form-control--error': validationErrors.riseAccount }" placeholder="请输入工单发起人" placeholder-class="input-placeholder" @input="clearCreateError('riseAccount')" />
                       <text v-if="validationErrors.riseAccount" class="form-error">{{ validationErrors.riseAccount }}</text>
                     </view>
                     <view class="form-field">
-                      <text class="form-label form-label--required">工单执行人账号</text>
-                      <input v-model="createForm.executeAccount" class="form-input" :class="{ 'form-control--error': validationErrors.executeAccount }" placeholder="请输入工单执行人账号" placeholder-class="input-placeholder" @input="clearCreateError('executeAccount')" />
+                      <text class="form-label form-label--required">工单执行人</text>
+                      <input v-model="createForm.executeAccount" class="form-input" :class="{ 'form-control--error': validationErrors.executeAccount }" placeholder="请输入工单执行人" placeholder-class="input-placeholder" @input="clearCreateError('executeAccount')" />
                       <text v-if="validationErrors.executeAccount" class="form-error">{{ validationErrors.executeAccount }}</text>
                     </view>
                   </view>
@@ -272,6 +272,8 @@ const validationErrors = reactive<Record<CreateValidationKey, string>>(getEmptyV
 const currentTypeLabel = computed(() => getOptionLabel(worksheetTypeOptions, createForm.worksheetType, "请选择工单类型"));
 const currentStatusLabel = computed(() => getOptionLabel(worksheetStatusOptions, createForm.worksheetStatus, "请选择工单状态"));
 const currentUrgencyLabel = computed(() => getOptionLabel(urgencyOptions, createForm.urgencyLevel, "请选择紧急等级"));
+const isCreateWorksheetFinished = computed(() => createForm.worksheetStatus === 2);
+const finishTimePlaceholder = computed(() => isCreateWorksheetFinished.value ? "请选择工单完成时间" : "未完成状态不可填写");
 const firstCreateError = computed(() => Object.values(validationErrors).find(Boolean) || "");
 
 function getDefaultCreateForm(): CreateForm {
@@ -348,6 +350,10 @@ function selectWorksheetType(value: number) {
 function selectWorksheetStatus(value: number) {
   createForm.worksheetStatus = value;
   clearCreateError("worksheetStatus");
+  clearCreateError("finishTime");
+  if (createForm.worksheetStatus !== 2) {
+    createForm.finishTime = "";
+  }
   activeSelect.value = "";
 }
 
@@ -397,11 +403,11 @@ function validateCreateForm() {
   }
 
   if (!createForm.riseAccount.trim()) {
-    return setCreateError("riseAccount", "请输入工单发起人账号");
+    return setCreateError("riseAccount", "请输入工单发起人");
   }
 
   if (!createForm.executeAccount.trim()) {
-    return setCreateError("executeAccount", "请输入工单执行人账号");
+    return setCreateError("executeAccount", "请输入工单执行人");
   }
 
   if (!createForm.worksheetInstruction.trim()) {
@@ -410,6 +416,10 @@ function validateCreateForm() {
 
   if (createForm.deadlineTime && !isDeadlineAfterRiseTime()) {
     return setCreateError("deadlineTime", "截止时间必须大于发起时间");
+  }
+
+  if (!isCreateWorksheetFinished.value && createForm.finishTime) {
+    createForm.finishTime = "";
   }
 
   if (createForm.finishTime && !isFinishAfterRiseTime()) {
@@ -444,7 +454,7 @@ function buildCreatePayload() {
     deviceReference: createForm.deviceReference.trim(),
     urgencyLevel: createForm.urgencyLevel,
     riseTime: normalizeDatetimeForApi(createForm.riseTime),
-    finishTime: normalizeDatetimeForApi(createForm.finishTime),
+    finishTime: isCreateWorksheetFinished.value ? normalizeDatetimeForApi(createForm.finishTime) : undefined,
     deadlineTime: normalizeDatetimeForApi(createForm.deadlineTime),
     worksheetStatus: createForm.worksheetStatus,
     worksheetFeedback: createForm.worksheetFeedback.trim(),

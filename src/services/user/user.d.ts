@@ -109,6 +109,9 @@ export function deleteUser(id: number | string, isForce?: boolean): Promise<ApiR
 export function batchDeleteUser(data: Array<number | string>, isForce?: boolean): Promise<ApiResponse<void>>;
 export function assignUserRoles(id: number | string, data: Array<number | string>): Promise<ApiResponse<void>>;
 export function updateUserPassword(id: number | string, data: UpdatePasswordParams): Promise<ApiResponse<void>>;
+export function getUserDepts(id: number | string): Promise<ApiResponse<Array<Record<string, unknown>>>>;
+export function assignUserDepts(id: number | string, data: Array<number | string>): Promise<ApiResponse<void>>;
+
 
 declare const userService: {
   login: typeof login;

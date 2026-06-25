@@ -1,6 +1,6 @@
 <template>
   <view class="datetime-picker">
-    <view class="datetime-picker__control" :class="{ 'datetime-picker__control--empty': !displayValue }" @click="openPanel">
+    <view class="datetime-picker__control" :class="{ 'datetime-picker__control--empty': !displayValue, 'datetime-picker__control--disabled': disabled }" @click="openPanel">
       <text class="datetime-picker__icon" aria-hidden="true"></text>
       <text class="datetime-picker__value">{{ displayValue || placeholder }}</text>
     </view>
@@ -96,12 +96,14 @@ const props = withDefaults(defineProps<{
   title?: string;
   minValue?: string;
   clearable?: boolean;
+  disabled?: boolean;
 }>(), {
   modelValue: "",
   placeholder: "请选择时间",
   title: "选择时间",
   minValue: "",
   clearable: true,
+  disabled: false,
 });
 
 const emit = defineEmits<{
@@ -124,6 +126,10 @@ const displayValue = computed(() => formatDatetimeForDisplay(props.modelValue));
 const calendarDays = computed(() => buildCalendarDays());
 
 function openPanel() {
+  if (props.disabled) {
+    return;
+  }
+
   setDraftFromValue(props.modelValue || toDatetimeValue(new Date()));
   activeTab.value = "date";
   panelVisible.value = true;
@@ -288,6 +294,13 @@ function padNumber(value: number) {
 
 .datetime-picker__control--empty {
   color: #7f8fa3;
+}
+
+.datetime-picker__control--disabled {
+  color: #a8b4c2;
+  cursor: not-allowed;
+  background: #f1f5f9;
+  border-color: #d8e1ea;
 }
 
 .datetime-picker__value {

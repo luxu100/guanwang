@@ -305,11 +305,24 @@
           <view class="table-panel">
             <view class="table-head">
               <text>菜单资源列表</text>
-              <text class="table-head__meta">共 {{ total }} 条</text>
+              <view class="table-head__actions">
+                <text class="table-head__meta">共 {{ total }} 条</text>
+                <button
+                  class="toolbar-button toolbar-button--danger toolbar-button--compact"
+                  :disabled="saving || selectedMenuIds.length === 0"
+                  hover-class="toolbar-button--hover"
+                  @click="deleteSelectedMenus"
+                >
+                  批量删除{{ selectedMenuIds.length ? `(${selectedMenuIds.length})` : "" }}
+                </button>
+              </view>
             </view>
             <scroll-view class="table-scroll" scroll-x scroll-y>
               <view class="data-table data-table--menu">
                 <view class="data-row data-row--header">
+                  <text class="data-cell data-cell--select">
+                    <text class="check-box" :class="{ 'check-box--checked': areAllCurrentMenusSelected }" @click.stop="toggleAllCurrentMenus"></text>
+                  </text>
                   <text class="data-cell data-cell--name">菜单名称</text>
                   <text class="data-cell data-cell--code">权限编码</text>
                   <text class="data-cell data-cell--path">页面路径</text>
@@ -318,6 +331,13 @@
                 <view v-if="loading" class="table-state">加载中...</view>
                 <view v-else-if="!menus.length" class="table-state">暂无菜单数据</view>
                 <view v-for="item in menus" v-else :key="getId(item)" class="data-row" :class="{ 'data-row--active': getId(item) === getId(selectedMenu) }" @click="selectMenu(item)">
+                  <text class="data-cell data-cell--select">
+                    <text
+                      class="check-box"
+                      :class="{ 'check-box--checked': selectedMenuIds.includes(getId(item)), 'check-box--disabled': !canSelectMenuForBatch(item) }"
+                      @click.stop="toggleMenuSelection(item)"
+                    ></text>
+                  </text>
                   <text class="data-cell data-cell--name">{{ getPermissionName(item) }}</text>
                   <text class="data-cell data-cell--code">{{ getText(item, ['permissionCode'], '-') }}</text>
                   <text class="data-cell data-cell--path">{{ getText(item, ['path'], '-') }}</text>
@@ -367,6 +387,9 @@
             </view>
             <view class="form-actions">
               <button class="toolbar-button" hover-class="toolbar-button--hover" @click="cancelEdit">取消</button>
+              <button class="toolbar-button" :disabled="saving" hover-class="toolbar-button--hover" @click="syncDefaultMenusToBackend">
+                {{ saving ? "同步中..." : "同步默认菜单" }}
+              </button>
               <button class="toolbar-button toolbar-button--primary" :disabled="saving" hover-class="toolbar-button--hover" @click="saveMenu">
                 {{ saving ? "保存中..." : "保存菜单" }}
               </button>
@@ -480,7 +503,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
-import { assignUserRoles, deleteUser, getUserPage, register, updateUser, type RegisterParams } from "@/services/system/user";
+import { assignUserDepts, getUserDepts, assignUserRoles, deleteUser, getUserPage, register, updateUser, type RegisterParams } from "@/services/system/user";
 import { assignRolePermissions, createRole, deleteRole, getPermissionTree, getRoleList, getRolePage, updateRole } from "@/services/system/auth";
 import { createMenu, deleteMenu, getMenuPage, getMenuTree, updateMenu } from "@/services/system/menu";
 import { createDictItem, createDictType, deleteDictItem, deleteDictType, getDictItemPage, getDictTypePage, updateDictItem, updateDictType } from "@/services/system/dict";
@@ -519,7 +542,7 @@ const defaultMenuTree: RecordLike[] = [
     permissionName: "设备管理",
     permissionCode: "module:device",
     path: "/pages/device/info/info",
-    permissionType: 1,
+    permissionType: 0,
     status: 1,
     children: [
       { id: `${LOCAL_MENU_ID_PREFIX}device-info`, permissionName: "设备信息", permissionCode: "page:device:info", path: "/pages/device/info/info", parentId: `${LOCAL_MENU_ID_PREFIX}device`, permissionType: 1, status: 1 },
@@ -532,13 +555,82 @@ const defaultMenuTree: RecordLike[] = [
     permissionName: "系统设置",
     permissionCode: "module:system",
     path: "/pages/system/user/user",
-    permissionType: 1,
+    permissionType: 0,
     status: 1,
     children: [
       { id: `${LOCAL_MENU_ID_PREFIX}system-user`, permissionName: "用户配置", permissionCode: "page:system:user", path: "/pages/system/user/user", parentId: `${LOCAL_MENU_ID_PREFIX}system`, permissionType: 1, status: 1 },
       { id: `${LOCAL_MENU_ID_PREFIX}system-auth`, permissionName: "权限管理", permissionCode: "page:system:auth", path: "/pages/system/auth/auth", parentId: `${LOCAL_MENU_ID_PREFIX}system`, permissionType: 1, status: 1 },
       { id: `${LOCAL_MENU_ID_PREFIX}system-menu`, permissionName: "菜单管理", permissionCode: "page:system:menu", path: "/pages/system/menu/menu", parentId: `${LOCAL_MENU_ID_PREFIX}system`, permissionType: 1, status: 1 },
       { id: `${LOCAL_MENU_ID_PREFIX}system-dict`, permissionName: "数据字典", permissionCode: "page:system:dict", path: "/pages/system/dict/dict", parentId: `${LOCAL_MENU_ID_PREFIX}system`, permissionType: 1, status: 1 },
+    ],
+  },
+  {
+    id: `${LOCAL_MENU_ID_PREFIX}data-analysis`,
+    permissionName: "数据分析",
+    permissionCode: "module:data-analysis",
+    path: "/pages/data-analysis/overview/overview",
+    permissionType: 0,
+    status: 1,
+    children: [
+      { id: `${LOCAL_MENU_ID_PREFIX}data-analysis-overview`, permissionName: "系统总览", permissionCode: "page:data-analysis:overview", path: "/pages/data-analysis/overview/overview", parentId: `${LOCAL_MENU_ID_PREFIX}data-analysis`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}data-analysis-audio`, permissionName: "音频数据", permissionCode: "page:data-analysis:audio", path: "/pages/data-analysis/audio/audio", parentId: `${LOCAL_MENU_ID_PREFIX}data-analysis`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}data-analysis-device-params`, permissionName: "设备参数", permissionCode: "page:data-analysis:device-params", path: "/pages/data-analysis/device-params/device-params", parentId: `${LOCAL_MENU_ID_PREFIX}data-analysis`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}data-analysis-leakage`, permissionName: "渗漏数据", permissionCode: "page:data-analysis:leakage", path: "/pages/data-analysis/leakage/leakage", parentId: `${LOCAL_MENU_ID_PREFIX}data-analysis`, permissionType: 1, status: 1 },
+    ],
+  },
+  {
+    id: `${LOCAL_MENU_ID_PREFIX}leak-report`,
+    permissionName: "疑漏点上报",
+    permissionCode: "module:leak-report",
+    path: "/pages/leak-report/suspect-management/suspect-management",
+    permissionType: 0,
+    status: 1,
+    children: [
+      { id: `${LOCAL_MENU_ID_PREFIX}leak-report-suspect-management`, permissionName: "疑点管理", permissionCode: "page:leak-report:suspect-management", path: "/pages/leak-report/suspect-management/suspect-management", parentId: `${LOCAL_MENU_ID_PREFIX}leak-report`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}leak-report-suspect-processing`, permissionName: "疑点处理", permissionCode: "page:leak-report:suspect-processing", path: "/pages/leak-report/suspect-processing/suspect-processing", parentId: `${LOCAL_MENU_ID_PREFIX}leak-report`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}leak-report-leak-management`, permissionName: "漏点管理", permissionCode: "page:leak-report:leak-management", path: "/pages/leak-report/leak-management/leak-management", parentId: `${LOCAL_MENU_ID_PREFIX}leak-report`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}leak-report-leak-analysis`, permissionName: "漏点分析", permissionCode: "page:leak-report:leak-analysis", path: "/pages/leak-report/leak-analysis/leak-analysis", parentId: `${LOCAL_MENU_ID_PREFIX}leak-report`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}leak-report-history-overview`, permissionName: "历史总览", permissionCode: "page:leak-report:history-overview", path: "/pages/leak-report/history-overview/history-overview", parentId: `${LOCAL_MENU_ID_PREFIX}leak-report`, permissionType: 1, status: 1 },
+    ],
+  },
+  { id: `${LOCAL_MENU_ID_PREFIX}statistics`, permissionName: "统计分析", permissionCode: "page:statistics", path: "/pages/statistics/statistics", permissionType: 1, status: 1 },
+  {
+    id: `${LOCAL_MENU_ID_PREFIX}work-order`,
+    permissionName: "工单管理",
+    permissionCode: "module:work-order",
+    path: "/pages/work-order/create/create",
+    permissionType: 0,
+    status: 1,
+    children: [
+      { id: `${LOCAL_MENU_ID_PREFIX}work-order-create`, permissionName: "工单创建", permissionCode: "page:work-order:create", path: "/pages/work-order/create/create", parentId: `${LOCAL_MENU_ID_PREFIX}work-order`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}work-order-processing`, permissionName: "工单处理", permissionCode: "page:work-order:processing", path: "/pages/work-order/processing/processing", parentId: `${LOCAL_MENU_ID_PREFIX}work-order`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}work-order-statistics`, permissionName: "工单查询与统计", permissionCode: "page:work-order:statistics", path: "/pages/work-order/statistics/statistics", parentId: `${LOCAL_MENU_ID_PREFIX}work-order`, permissionType: 1, status: 1 },
+    ],
+  },
+  {
+    id: `${LOCAL_MENU_ID_PREFIX}alarm`,
+    permissionName: "实时报警",
+    permissionCode: "module:alarm",
+    path: "/pages/alarm/strategy/strategy",
+    permissionType: 0,
+    status: 1,
+    children: [
+      { id: `${LOCAL_MENU_ID_PREFIX}alarm-strategy`, permissionName: "报警策略", permissionCode: "page:alarm:strategy", path: "/pages/alarm/strategy/strategy", parentId: `${LOCAL_MENU_ID_PREFIX}alarm`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}alarm-processing`, permissionName: "报警处理", permissionCode: "page:alarm:processing", path: "/pages/alarm/processing/processing", parentId: `${LOCAL_MENU_ID_PREFIX}alarm`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}alarm-analysis`, permissionName: "报警分析", permissionCode: "page:alarm:analysis", path: "/pages/alarm/analysis/analysis", parentId: `${LOCAL_MENU_ID_PREFIX}alarm`, permissionType: 1, status: 1 },
+    ],
+  },
+  {
+    id: `${LOCAL_MENU_ID_PREFIX}report`,
+    permissionName: "统计报表",
+    permissionCode: "module:report",
+    path: "/pages/report/generate/generate",
+    permissionType: 0,
+    status: 1,
+    children: [
+      { id: `${LOCAL_MENU_ID_PREFIX}report-generate`, permissionName: "报表生成", permissionCode: "page:report:generate", path: "/pages/report/generate/generate", parentId: `${LOCAL_MENU_ID_PREFIX}report`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}report-operation`, permissionName: "报表操作", permissionCode: "page:report:operation", path: "/pages/report/operation/operation", parentId: `${LOCAL_MENU_ID_PREFIX}report`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}report-command`, permissionName: "指令管理", permissionCode: "page:report:command", path: "/pages/report/command/command", parentId: `${LOCAL_MENU_ID_PREFIX}report`, permissionType: 1, status: 1 },
     ],
   },
   {
@@ -658,6 +750,7 @@ const selectedRoleIds = ref<Array<string | number>>([]);
 const selectedPermissionIds = ref<Array<string | number>>([]);
 const selectedPartitionIds = ref<Array<string | number>>([]);
 const selectedUserPartitionIds = ref<Array<string | number>>([]);
+const selectedMenuIds = ref<Array<string | number>>([]);
 const userPartitionDraftIds = ref<Array<string | number>>([]);
 const selectedAlarmOptions = ref(["enabled", "web", "app"]);
 const activeOrg = ref("all");
@@ -719,6 +812,11 @@ const menuParentOptions = computed<Array<SelectOption<string>>>(() => [
     })),
 ]);
 const currentMenuParentLabel = computed(() => menuParentOptions.value.find((item) => item.value === String(menuForm.parentId || "0"))?.label || "根节点");
+const selectableMenuIds = computed(() => menus.value.map((item) => getId(item)).filter((id) => isValidId(id) && !isLocalMenuId(id)));
+const areAllCurrentMenusSelected = computed(() => {
+  const ids = selectableMenuIds.value;
+  return ids.length > 0 && ids.every((id) => selectedMenuIds.value.includes(id));
+});
 const availableUserPartitionOptions = computed(() =>
   partitionOptions.value.filter((item) => {
     const id = getId(item);
@@ -846,6 +944,20 @@ async function refreshCurrent() {
   await loadDictTypes();
 }
 
+async function loadUserDepts(userId: string | number) {
+  if (!userId) return;
+
+  try {
+    const response = await getUserDepts(userId);
+    assertSuccessResponse(response as ApiResponseLike);
+    selectedUserPartitionIds.value = parseListResponse(response as ApiResponseLike)
+      .map((item) => getId(item))
+      .filter(isValidId);
+  } catch {
+    // 查询失败时保留 /api/user/page 返回的部门兜底数据
+  }
+}
+
 async function loadUsers() {
   loading.value = true;
   try {
@@ -969,12 +1081,14 @@ async function loadMenus() {
     }
 
     selectMenu(menus.value[0] || null);
+    syncSelectedMenuIds();
   } catch (error) {
     const keyword = filters.keyword.trim();
     menus.value = getDefaultMenuResources(keyword);
     total.value = menus.value.length;
     menuSource.value = "local";
     selectMenu(menus.value[0] || null);
+    syncSelectedMenuIds();
     toastError(error, "菜单数据加载失败");
   } finally {
     loading.value = false;
@@ -1061,6 +1175,10 @@ function selectUser(item: RecordLike | null) {
     .filter(isValidId);
   userPartitionDraftIds.value = [];
   showUserPartitionDialog.value = false;
+
+  if (item) {
+    void loadUserDepts(getId(item));
+  }
 }
 
 function getUserRoleIdsFromPageRecord(item: RecordLike | null) {
@@ -1123,6 +1241,38 @@ function selectMenu(item: RecordLike | null) {
     permissionType: Number(getValue(item || {}, ["permissionType"]) ?? 1),
     status: Number(getValue(item || {}, ["status"]) ?? 1),
   });
+}
+
+function canSelectMenuForBatch(item: RecordLike) {
+  const id = getId(item);
+  return isValidId(id) && !isLocalMenuId(id);
+}
+
+function syncSelectedMenuIds() {
+  const availableIds = new Set(selectableMenuIds.value.map((id) => String(id)));
+  selectedMenuIds.value = selectedMenuIds.value.filter((id) => availableIds.has(String(id)));
+}
+
+function toggleMenuSelection(item: RecordLike) {
+  if (!canSelectMenuForBatch(item)) {
+    uni.showToast({ title: "本地菜单预览不能删除，请先同步到后端", icon: "none" });
+    return;
+  }
+
+  const id = getId(item);
+  selectedMenuIds.value = selectedMenuIds.value.includes(id)
+    ? selectedMenuIds.value.filter((itemId) => itemId !== id)
+    : [...selectedMenuIds.value, id];
+}
+
+function toggleAllCurrentMenus() {
+  const ids = selectableMenuIds.value;
+  if (!ids.length) {
+    uni.showToast({ title: "暂无可批量删除的后端菜单", icon: "none" });
+    return;
+  }
+
+  selectedMenuIds.value = areAllCurrentMenusSelected.value ? [] : ids;
 }
 
 function selectDictType(item: RecordLike | null) {
@@ -1220,7 +1370,6 @@ async function saveUser() {
             phone: userForm.phone.trim() || undefined,
             email: userForm.email.trim() || undefined,
             status: userForm.status,
-            deptIds: selectedUserPartitionIds.value,
           } satisfies RegisterParams)
         : await updateUser(userForm.id, payload);
     assertSuccessResponse(response as ApiResponseLike);
@@ -1232,7 +1381,13 @@ async function saveUser() {
       savedMessage = "用户已保存，后端未返回用户ID，请重新选择后绑定角色";
       savedIcon = "none";
     }
-
+    const savedUserId = roleAssignment?.userId || userForm.id;
+    if (savedUserId) {
+      await assignUserDepts(savedUserId, selectedUserPartitionIds.value);
+    } else if (selectedUserPartitionIds.value.length) {
+      savedMessage = "用户已保存，后端未返回用户ID，请重新选择后绑定分区";
+      savedIcon = "none";
+    }
     uni.showToast({ title: savedMessage, icon: savedIcon });
     await loadUsers();
   } catch (error) {
@@ -1298,11 +1453,13 @@ async function saveMenu() {
 
   saving.value = true;
   try {
+    const backendMenuMap = await loadBackendMenuCodeMap();
+    const parentId = await resolveMenuParentIdForSave(menuForm.parentId, backendMenuMap);
     const payload = removeEmptyFields({
       permissionName: menuForm.permissionName.trim(),
       permissionCode: menuForm.permissionCode.trim(),
       path: menuForm.path.trim(),
-      parentId: isLocalMenuId(menuForm.parentId) ? 0 : Number(menuForm.parentId) || 0,
+      parentId,
       permissionType: menuForm.permissionType,
       status: menuForm.status,
     });
@@ -1316,6 +1473,143 @@ async function saveMenu() {
   } finally {
     saving.value = false;
   }
+}
+
+async function syncDefaultMenusToBackend() {
+  if (saving.value) {
+    return;
+  }
+
+  saving.value = true;
+  try {
+    const backendMenuMap = await loadBackendMenuCodeMap();
+    const result = { created: 0, skipped: 0 };
+
+    for (const item of defaultMenuTree) {
+      await ensureDefaultMenuNode(item, 0, backendMenuMap, result);
+    }
+
+    uni.showToast({
+      title: `同步完成：新增${result.created}个，跳过${result.skipped}个`,
+      icon: "none",
+    });
+    await loadMenus();
+  } catch (error) {
+    toastError(error, "默认菜单同步失败");
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function resolveMenuParentIdForSave(parentId: string | number, backendMenuMap: Map<string, RecordLike>) {
+  if (!isLocalMenuId(parentId)) {
+    return Number(parentId) || 0;
+  }
+
+  const localParent = findDefaultMenuById(parentId);
+  if (!localParent) {
+    return 0;
+  }
+
+  return ensureDefaultMenuNode(localParent, 0, backendMenuMap, undefined, false);
+}
+
+async function ensureDefaultMenuNode(
+  item: RecordLike,
+  parentId: string | number,
+  backendMenuMap: Map<string, RecordLike>,
+  result?: { created: number; skipped: number },
+  includeChildren = true,
+) {
+  const permissionCode = getText(item, ["permissionCode"], "");
+  const existed = permissionCode ? backendMenuMap.get(permissionCode) : undefined;
+  let backendId = getId(existed);
+
+  if (backendId) {
+    result && (result.skipped += 1);
+  } else {
+    const payload = buildDefaultMenuPayload(item, parentId);
+    const response = await createMenu(payload);
+    assertSuccessResponse(response as ApiResponseLike);
+    backendId = getCreatedMenuId(response as ApiResponseLike);
+
+    if (!backendId && permissionCode) {
+      await refreshBackendMenuCodeMap(backendMenuMap);
+      backendId = getId(backendMenuMap.get(permissionCode));
+    }
+
+    if (backendId && permissionCode) {
+      backendMenuMap.set(permissionCode, { ...payload, id: backendId });
+    }
+    result && (result.created += 1);
+  }
+
+  if (includeChildren) {
+    const children = getArrayValue(item, ["children"]).filter(isObject);
+    for (const child of children) {
+      await ensureDefaultMenuNode(child, backendId || 0, backendMenuMap, result);
+    }
+  }
+
+  return Number(backendId) || 0;
+}
+
+function buildDefaultMenuPayload(item: RecordLike, parentId: string | number) {
+  return removeEmptyFields({
+    permissionName: getPermissionName(item),
+    permissionCode: getText(item, ["permissionCode"], ""),
+    path: getText(item, ["path"], ""),
+    parentId: Number(parentId) || 0,
+    permissionType: Number(getValue(item, ["permissionType"]) ?? 1),
+    status: Number(getValue(item, ["status"]) ?? 1),
+  });
+}
+
+function getCreatedMenuId(response: ApiResponseLike) {
+  const data = response.data;
+  if (isObject(data)) {
+    return getId(data);
+  }
+  return getId(response as RecordLike);
+}
+
+async function loadBackendMenuCodeMap() {
+  const map = new Map<string, RecordLike>();
+  const records = await loadBackendMenuRecords();
+  records.forEach((item) => {
+    const code = getText(item, ["permissionCode"], "");
+    if (code) {
+      map.set(code, item);
+    }
+  });
+  return map;
+}
+
+async function refreshBackendMenuCodeMap(map: Map<string, RecordLike>) {
+  map.clear();
+  const nextMap = await loadBackendMenuCodeMap();
+  nextMap.forEach((value, key) => map.set(key, value));
+}
+
+async function loadBackendMenuRecords() {
+  try {
+    const treeResponse = await getMenuTree({}) as ApiResponseLike;
+    assertSuccessResponse(treeResponse);
+    const treeRecords = flattenTree(parseListResponse(treeResponse));
+    if (treeRecords.length) {
+      return treeRecords;
+    }
+  } catch {
+    // tree接口不可用时降级使用分页接口。
+  }
+
+  const pageResponse = await getMenuPage({ pageNum: 1, pageSize: 500 }) as ApiResponseLike;
+  assertSuccessResponse(pageResponse);
+  return parsePageResponse(pageResponse).records;
+}
+
+function findDefaultMenuById(id: string | number) {
+  return flattenTree(defaultMenuTree).find((item) => getId(item) === id) || null;
 }
 
 async function saveDict() {
@@ -1367,6 +1661,43 @@ async function saveDict() {
     await loadDictItems();
   } catch (error) {
     toastError(error, "字典保存失败");
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function deleteSelectedMenus() {
+  const ids = selectedMenuIds.value.filter((id) => isValidId(id) && !isLocalMenuId(id));
+  if (!ids.length) {
+    uni.showToast({ title: "请先选择要删除的菜单", icon: "none" });
+    return;
+  }
+
+  const confirmed = await new Promise<boolean>((resolve) => {
+    uni.showModal({
+      title: "批量删除菜单",
+      content: `确定删除选中的 ${ids.length} 个菜单吗？`,
+      confirmText: "删除",
+      confirmColor: "#ef4444",
+      success: (result) => resolve(Boolean(result.confirm)),
+      fail: () => resolve(false),
+    });
+  });
+
+  if (!confirmed) {
+    return;
+  }
+
+  saving.value = true;
+  try {
+    for (const id of ids) {
+      await deleteMenu(id);
+    }
+    selectedMenuIds.value = [];
+    uni.showToast({ title: "批量删除成功", icon: "success" });
+    await loadMenus();
+  } catch (error) {
+    toastError(error, "批量删除失败");
   } finally {
     saving.value = false;
   }
@@ -1654,6 +1985,14 @@ function isValidId(value: unknown): value is string | number {
   font-weight: 500;
 }
 
+.table-head__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
 .org-tree,
 .side-list {
   flex: 1;
@@ -1922,6 +2261,14 @@ function isValidId(value: unknown): value is string | number {
   border-color: #ffc9c0;
 }
 
+.toolbar-button--compact {
+  min-width: 0;
+  height: 30px;
+  padding: 0 10px;
+  font-size: 13px;
+  line-height: 30px;
+}
+
 .toolbar-button[disabled] {
   color: #9aa9b8;
   background: #eef2f6;
@@ -2018,7 +2365,7 @@ function isValidId(value: unknown): value is string | number {
 }
 
 .data-table--menu {
-  min-width: 980px;
+  min-width: 1040px;
 }
 
 .data-table--dict {
@@ -2068,6 +2415,12 @@ function isValidId(value: unknown): value is string | number {
 
 .data-table--menu .data-cell--name {
   min-width: 180px;
+}
+
+.data-table--menu .data-cell--select {
+  width: 56px;
+  min-width: 56px;
+  text-align: center;
 }
 
 .data-table--menu .data-cell--code {
@@ -2423,6 +2776,17 @@ function isValidId(value: unknown): value is string | number {
   background: #ffffff;
   border: 1px solid #b8c9d9;
   border-radius: 3px;
+}
+
+.data-cell--select .check-box {
+  display: inline-block;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.check-box--disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .check-item--checked .check-box,

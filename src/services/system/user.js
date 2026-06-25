@@ -14,6 +14,8 @@ export {
   register,
   updateUser,
   updateUserPassword,
+  getUserDepts,
+  assignUserDepts,
 } from "@/services/user/user";
 
 export { default } from "@/services/user/user";

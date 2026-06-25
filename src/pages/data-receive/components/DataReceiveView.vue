@@ -58,6 +58,9 @@
           <text class="protocol-editor-subtitle">端口号使用协议ID，保存时会同步保存协议和字段列表</text>
         </view>
         <view class="protocol-editor-actions">
+
+          <button class="secondary-button" @click="saveProtocolFieldTemplate">保存模板</button>
+          <button class="secondary-button" @click="openProtocolTemplateDialog">导入模板</button>
           <button class="secondary-button" :disabled="importingProtocolJson" hover-class="secondary-button--hover" @click="openProtocolJsonDialog">
             {{ importingProtocolJson ? "导入中..." : "上传JSON" }}
           </button>
@@ -106,6 +109,28 @@
           />
         </view>
       </view>
+
+      <view class="protocol-field-common-grid">
+        <view class="form-field">
+          <text class="form-label form-label--required">协议ID</text>
+          <input v-model="fieldCommonForm.protocolId" class="form-input" type="number" />
+        </view>
+
+        <view class="form-field">
+          <text class="form-label form-label--required">AFN</text>
+          <input v-model="fieldCommonForm.afn" class="form-input" placeholder="请输入AFN" />
+        </view>
+
+        <view class="form-field">
+          <text class="form-label form-label--required">任务类型</text>
+          <picker :range="taskTypeOptions" range-key="label" @change="handleTaskTypeChange">
+            <view class="form-select">
+              <text>{{ getTaskTypeLabel(fieldCommonForm.taskType) }}</text>
+              <text class="select-arrow"></text>
+            </view>
+          </picker>
+        </view>
+      </view>
     </view>
 
     <view class="data-layout" :class="{ 'data-layout--field-editor': isProtocolFieldEditor }">
@@ -133,7 +158,7 @@
               :key="getRowKey(item, index)"
               class="data-row"
               :class="{ 'data-row--active': getRowKey(item, index) === selectedKey, 'data-row--dragging': draggingFieldIndex === index, 'data-row--drop-target': dropTargetFieldIndex === index }"
-              :draggable="isProtocolFieldEditor"
+              :draggable="isProtocolFieldEditor && ENABLE_PROTOCOL_FIELD_REORDER"
               @dragstart="handleFieldDragStart(index)"
               @dragover.prevent="handleFieldDragOver(index)"
               @drop="handleFieldDrop(index)"
@@ -479,9 +504,6 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     title: "协议字段定义",
     description: "维护协议字段位置、长度、格式、单位和输出类型",
     columns: [
-      { key: "protocolId", label: "协议ID", width: 90 },
-      { key: "afn", label: "AFN", width: 90 },
-      { key: "taskType", label: "任务类型", width: 110 },
       { key: "fieldName", label: "字段名", width: 140 },
       { key: "fieldCnName", label: "中文名", width: 140 },
       { key: "startPosition", label: "起始", width: 80 },
@@ -641,6 +663,7 @@ const modeSectionKeys: Record<DataReceiveMode, SectionKey[]> = {
   record: ["samplingRecord", "samplingDetail", "samplingDaily", "samplingPressure", "samplingCss"],
 };
 
+
 const activeSectionKey = ref<SectionKey>(modeSectionKeys[props.mode][0]);
 const records = ref<RecordLike[]>([]);
 const selectedRecord = ref<RecordLike | null>(null);
@@ -649,12 +672,33 @@ const total = ref(0);
 const loading = ref(false);
 const submitting = ref(false);
 const importingProtocolJson = ref(false);
+const ENABLE_PROTOCOL_FIELD_REORDER = false;
 const protocolJsonDialogInputRef = ref<HTMLInputElement | null>(null);
 const showProtocolJsonDialog = ref(false);
 const activeFieldProtocol = ref<RecordLike | null>(null);
 const draggingFieldIndex = ref<number | null>(null);
 const dropTargetFieldIndex = ref<number | null>(null);
 const fieldRecordBaselines = ref(new Map<string, string>());
+const PROTOCOL_FIELD_TEMPLATE_STORAGE_KEY = "protocolFieldTemplates";
+const taskTypeOptions = [
+  { label: "CLASS_ONE", value: "CLASS_ONE" },
+  { label: "CLASS_TWO", value: "CLASS_TWO" },
+  { label: "CLASS_THREE", value: "CLASS_THREE" },
+  { label: "CLASS_FOUR", value: "CLASS_FOUR" },
+  { label: "CLASS_FIVE", value: "CLASS_FIVE" },
+];
+type ProtocolFieldTemplate = {
+  id: string;
+  name: string;
+  createdAt: string;
+  common?: RecordLike;
+  fields?: RecordLike[];
+};
+const fieldCommonForm = reactive({
+  protocolId: "",
+  afn: "",
+  taskType: "CLASS_ONE",
+});
 const fieldProtocolForm = reactive({
   id: "",
   protocolCode: "",
@@ -1233,6 +1277,11 @@ function normalizeFieldRecordForSave(item: RecordLike, protocolId: string | numb
   if (protocolId) {
     payload.protocolId = Number(protocolId);
   }
+  
+  payload.protocolId = Number(fieldCommonForm.protocolId || protocolId);
+  payload.afn = fieldCommonForm.afn.trim();
+  payload.taskType = fieldCommonForm.taskType;
+  
   for (const key of inlineNumberFieldKeys) {
     payload[key] = normalizeInlineNumberValue(payload[key]);
   }
@@ -1294,6 +1343,96 @@ function buildChangedFieldRecordPayload(item: RecordLike, protocolId: string | n
   }
 
   return normalized;
+}
+
+function handleTaskTypeChange(event: { detail: { value: number } }) {
+  const option = taskTypeOptions[event.detail.value];
+  fieldCommonForm.taskType = option?.value || "CLASS_ONE";
+}
+
+function getTaskTypeLabel(value: string) {
+  const option = taskTypeOptions.find((item) => item.value === value);
+  return option?.label || value || "CLASS_ONE";
+}
+
+function getProtocolFieldTemplates() {
+  const value = uni.getStorageSync(PROTOCOL_FIELD_TEMPLATE_STORAGE_KEY);
+  return Array.isArray(value) ? value.filter(isObject) as ProtocolFieldTemplate[] : [];
+}
+
+function buildTemplateFieldRecord(item: RecordLike) {
+  const field: RecordLike = { ...item };
+  delete field.id;
+  delete field.protocolId;
+  delete field.afn;
+  delete field.taskType;
+  return field;
+}
+
+function saveProtocolFieldTemplate() {
+  if (!records.value.length) {
+    uni.showToast({ title: "暂无字段可保存为模板", icon: "none" });
+    return;
+  }
+
+  const templates = getProtocolFieldTemplates();
+  const template: ProtocolFieldTemplate = {
+    id: `template_${Date.now()}`,
+    name: fieldProtocolForm.protocolName || `协议字段模板${templates.length + 1}`,
+    createdAt: new Date().toISOString(),
+    common: {
+      afn: fieldCommonForm.afn,
+      taskType: fieldCommonForm.taskType,
+    },
+    fields: records.value.map(buildTemplateFieldRecord),
+  };
+
+  uni.setStorageSync(PROTOCOL_FIELD_TEMPLATE_STORAGE_KEY, [...templates, template]);
+  uni.showToast({ title: "模板已保存", icon: "success" });
+}
+
+function openProtocolTemplateDialog() {
+  const templates = getProtocolFieldTemplates();
+  if (!templates.length) {
+    uni.showToast({ title: "暂无可导入模板", icon: "none" });
+    return;
+  }
+
+  uni.showActionSheet({
+    itemList: templates.map((item) => item.name || "未命名模板"),
+    success: ({ tapIndex }) => {
+      applyProtocolFieldTemplate(templates[tapIndex]);
+    },
+  });
+}
+
+function applyProtocolFieldTemplate(template: ProtocolFieldTemplate | undefined) {
+  if (!template) {
+    return;
+  }
+
+  const protocolId = getActiveFieldProtocolId();
+  if (!protocolId) {
+    uni.showToast({ title: "请先进入协议字段编辑页", icon: "none" });
+    return;
+  }
+
+  const common = isObject(template.common) ? template.common : {};
+  fieldCommonForm.protocolId = String(protocolId);
+  fieldCommonForm.afn = getText(common, ["afn"], fieldCommonForm.afn);
+  fieldCommonForm.taskType = getText(common, ["taskType"], fieldCommonForm.taskType || "CLASS_ONE");
+
+  const fields = Array.isArray(template.fields) ? template.fields.filter(isObject) : [];
+  records.value = fields.map((field, index) => ({
+    ...field,
+    protocolId: Number(protocolId),
+    afn: fieldCommonForm.afn,
+    taskType: fieldCommonForm.taskType,
+    sortOrder: normalizeInlineNumberValue(getValue(field, ["sortOrder"])) ?? (index + 1) * 10,
+  }));
+  captureFieldRecordBaselines(records.value);
+  void selectRecord(records.value[0] || null, 0);
+  uni.showToast({ title: "模板已导入", icon: "success" });
 }
 
 async function saveProtocolFieldRecordsIndividually(payloads: RecordLike[]) {
