@@ -2185,7 +2185,7 @@ defineExpose({
 
 .worksheet-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 380px;
+  grid-template-columns: minmax(0, 1fr) clamp(380px, 20vw, 420px);
   flex: 1;
   gap: 14px;
   margin-top: 14px;
@@ -3104,7 +3104,7 @@ defineExpose({
   border-radius: inherit;
 }
 
-@media (max-width: 1280px) {
+@media (max-width: 980px) {
   .stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -3120,6 +3120,338 @@ defineExpose({
 
   .worksheet-detail-panel {
     min-height: 360px;
+  }
+}
+
+@media (max-height: 960px) and (min-width: 981px) {
+  .worksheet-view {
+    padding: 0 10px 10px;
+  }
+
+  .stats-grid {
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .stat-card {
+    padding: 9px 12px 8px;
+  }
+
+  .stat-card::after {
+    right: -24px;
+    bottom: -30px;
+    width: 76px;
+    height: 76px;
+  }
+
+  .stat-card__body {
+    margin-top: 7px;
+  }
+
+  .stat-card__value {
+    font-size: 21px;
+  }
+
+  .stat-card__progress {
+    height: 5px;
+    margin-top: 8px;
+  }
+
+  .global-breakdown {
+    padding: 10px 12px;
+    margin-bottom: 10px;
+  }
+
+  .global-breakdown__head {
+    margin-bottom: 8px;
+  }
+
+  .global-breakdown__content {
+    gap: 10px;
+  }
+
+  .breakdown-section {
+    padding: 9px 10px;
+  }
+
+  .breakdown-section::before {
+    top: 9px;
+    bottom: 9px;
+  }
+
+  .breakdown-section__head {
+    margin-bottom: 7px;
+  }
+
+  .breakdown-list {
+    gap: 6px 10px;
+  }
+
+  .breakdown-row {
+    gap: 5px;
+    padding: 7px 9px;
+  }
+
+  .worksheet-toolbar {
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .toolbar-row--filters {
+    gap: 8px 10px;
+  }
+
+  .filter-group {
+    gap: 4px;
+  }
+
+  .filter-label {
+    font-size: 11px;
+  }
+
+  .filter-input,
+  .filter-select,
+  .toolbar-row--filters .filter-input,
+  .toolbar-row--filters .filter-select {
+    height: 27px;
+    font-size: 12px;
+    line-height: 27px;
+  }
+
+  .filter-datetime {
+    flex-basis: 184px;
+    width: 184px;
+  }
+
+  .filter-datetime :deep(.datetime-picker__control) {
+    height: 28px;
+    font-size: 12px;
+    line-height: 28px;
+  }
+
+  .toolbar-actions .toolbar-button,
+  .toolbar-actions .toolbar-icon-button {
+    height: 34px;
+  }
+
+  .worksheet-layout {
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .table-head {
+    height: 42px;
+    padding: 0 14px;
+    font-size: 15px;
+  }
+
+  .data-row {
+    min-height: 36px;
+  }
+
+  .data-row--header {
+    min-height: 38px;
+  }
+
+  .data-cell {
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  .status-pill,
+  .urgency-pill {
+    min-width: 50px;
+    height: 22px;
+    padding: 0 8px;
+    font-size: 11px;
+    line-height: 22px;
+  }
+
+  .pagination-bar {
+    height: 42px;
+  }
+
+  .detail-tabs {
+    gap: 4px;
+    height: 40px;
+    padding: 4px;
+  }
+
+  .detail-tab {
+    font-size: 12px;
+  }
+
+  .detail-body {
+    padding: 8px;
+  }
+
+  .detail-base-panel,
+  .detail-grid,
+  .detail-time-panel {
+    gap: 6px;
+  }
+
+  .detail-summary {
+    gap: 6px;
+    padding: 9px 12px;
+  }
+
+  .detail-summary__label {
+    font-size: 11px;
+  }
+
+  .detail-summary__number {
+    margin-top: 4px;
+    font-size: 15px;
+  }
+
+  .detail-summary__badges {
+    gap: 5px;
+  }
+
+  .detail-summary__badge {
+    min-width: 56px;
+    height: 22px;
+    line-height: 22px;
+  }
+
+  .detail-item--base {
+    grid-template-columns: 78px minmax(0, 1fr);
+    min-height: 34px;
+    padding: 5px 10px;
+  }
+
+  .detail-item__label {
+    font-size: 11px;
+  }
+
+  .detail-item__value {
+    font-size: 12px;
+    line-height: 1.28;
+  }
+
+  .detail-grid--content {
+    gap: 6px;
+  }
+
+  .detail-grid--content .detail-item {
+    grid-template-columns: 74px minmax(0, 1fr);
+  }
+
+  .detail-grid--content .detail-item__value {
+    min-height: 34px;
+    padding: 9px 10px;
+    font-size: 12px;
+    line-height: 1.32;
+  }
+
+  .detail-item--note .detail-item__label {
+    padding: 0 9px;
+  }
+
+  .time-section {
+    padding: 8px 10px;
+  }
+
+  .detail-section-title {
+    margin-bottom: 6px;
+    font-size: 13px;
+  }
+
+  .time-list::before {
+    top: 11px;
+    bottom: 11px;
+    left: 5px;
+  }
+
+  .time-row {
+    grid-template-columns: 15px minmax(0, 1fr);
+    gap: 6px;
+    padding: 4px 0;
+  }
+
+  .time-row__marker {
+    width: 8px;
+    height: 8px;
+    margin-top: 3px;
+    border-width: 2px;
+  }
+
+  .time-row__content {
+    grid-template-columns: 58px minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .time-row__label {
+    font-size: 11px;
+  }
+
+  .time-row__value {
+    font-size: 12px;
+    line-height: 1.28;
+  }
+
+  .location-row {
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 7px;
+    padding: 6px 0;
+  }
+
+  .location-row__label,
+  .location-row__value {
+    font-size: 12px;
+    line-height: 1.3;
+  }
+
+  .process-box__title {
+    margin-bottom: 7px;
+    font-size: 14px;
+  }
+
+  .process-box .form-field {
+    margin-bottom: 6px;
+  }
+
+  .process-form-grid {
+    gap: 6px;
+  }
+
+  .form-label {
+    margin-bottom: 3px;
+    font-size: 12px;
+  }
+
+  .form-input,
+  .form-select {
+    height: 28px;
+    padding: 0 8px;
+    font-size: 12px;
+    line-height: 28px;
+  }
+
+  .process-select {
+    min-height: 28px;
+  }
+
+  .form-textarea {
+    height: 44px;
+    padding: 6px 8px;
+    font-size: 12px;
+    line-height: 1.3;
+  }
+
+  .form-textarea--compact {
+    height: 34px;
+  }
+
+  .process-actions {
+    gap: 6px;
+  }
+
+  .process-action {
+    height: 28px;
+    font-size: 12px;
+    line-height: 28px;
   }
 }
 
