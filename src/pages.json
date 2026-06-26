@@ -99,7 +99,7 @@
       }
     },
     {
-      "path": "pages/report/command/command",
+      "path": "pages/command/commandManage",
       "style": {
         "navigationBarTitleText": "指令管理",
         "navigationStyle": "custom"
@@ -221,6 +221,20 @@
       "path": "pages/system/menu/menu",
       "style": {
         "navigationBarTitleText": "菜单管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/system/search/search",
+      "style": {
+        "navigationBarTitleText": "查询模板",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/command/commandConfiguration",
+      "style": {
+        "navigationBarTitleText": "指令配置",
         "navigationStyle": "custom"
       }
     },

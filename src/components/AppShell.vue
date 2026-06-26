@@ -192,6 +192,9 @@ import TencentLeakMap from "@/pages/leak-monitor/components/TencentLeakMap.vue";
 import PartitionManagementView from "@/pages/partition/components/PartitionManagementView.vue";
 import DeviceManagementView from "@/pages/device/components/DeviceManagementView.vue";
 import SystemManagementView from "@/pages/system/components/SystemManagementView.vue";
+import SearchTemplatePage from "@/pages/system/search/search.vue";
+import CommandManagePage from "@/pages/command/commandManage.vue";
+import CommandConfigurationPage from "@/pages/command/commandConfiguration.vue";
 import DataReceiveView from "@/pages/data-receive/components/DataReceiveView.vue";
 import WorkOrderCreateView from "@/pages/work-order/components/WorkOrderCreateView.vue";
 import WorksheetTableView from "@/pages/work-order/components/WorksheetTableView.vue";
@@ -250,6 +253,17 @@ const menuItems: MenuItem[] = [
     ],
   },
   {
+    label: "指令管理",
+    path: "/pages/command/commandManage",
+    icon: "device",
+    permissionCode: "module:command",
+    keywords: ["指令"],
+    children: [
+      { label: "指令管理", path: "/pages/command/commandManage", icon: "device", permissionCode: "page:command:manage", keywords: ["指令", "管理"] },
+      { label: "指令配置", path: "/pages/command/commandConfiguration", icon: "device", permissionCode: "page:command:configuration", keywords: ["指令", "配置"] },
+    ],
+  },
+  {
     label: "数据分析",
     path: "/pages/data-analysis/overview/overview",
     icon: "chart",
@@ -305,7 +319,6 @@ const menuItems: MenuItem[] = [
     children: [
       { label: "报表生成", path: "/pages/report/generate/generate", icon: "report", keywords: ["生成"] },
       { label: "报表操作", path: "/pages/report/operation/operation", icon: "report", keywords: ["操作"] },
-      { label: "指令管理", path: "/pages/report/command/command", icon: "command", keywords: ["指令"] },
     ],
   },
   {
@@ -318,6 +331,7 @@ const menuItems: MenuItem[] = [
       { label: "权限管理", path: "/pages/system/auth/auth", icon: "setting", keywords: ["权限"] },
       { label: "菜单管理", path: "/pages/system/menu/menu", icon: "setting", keywords: ["菜单"] },
       { label: "数据字典", path: "/pages/system/dict/dict", icon: "setting", keywords: ["字典"] },
+      { label: "查询模板", path: "/pages/system/search/search", icon: "setting", keywords: ["模板"] },
     ],
   },
   {
@@ -340,6 +354,8 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/device/info/info": { component: DeviceManagementView, props: { mode: "info" } },
   "/pages/device/maintenance/maintenance": { component: DeviceManagementView, props: { mode: "maintenance" } },
   "/pages/device/status/status": { component: DeviceManagementView, props: { mode: "status" } },
+  "/pages/command/commandManage": { component: CommandManagePage },
+  "/pages/command/commandConfiguration": { component: CommandConfigurationPage },
   "/pages/data-analysis/overview/overview": createPlaceholderContent("/pages/data-analysis/overview/overview"),
   "/pages/data-analysis/audio/audio": createPlaceholderContent("/pages/data-analysis/audio/audio"),
   "/pages/data-analysis/device-params/device-params": createPlaceholderContent("/pages/data-analysis/device-params/device-params"),
@@ -362,6 +378,7 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/system/user/user": { component: SystemManagementView, props: { mode: "user" } },
   "/pages/system/auth/auth": { component: SystemManagementView, props: { mode: "auth" } },
   "/pages/system/menu/menu": { component: SystemManagementView, props: { mode: "menu" } },
+  "/pages/system/search/search": { component: SearchTemplatePage },
   "/pages/system/dict/dict": { component: SystemManagementView, props: { mode: "dict" } },
   "/pages/data-receive/access/access": { component: DataReceiveView, props: { mode: "access" } },
   "/pages/data-receive/parse/parse": { component: DataReceiveView, props: { mode: "parse" } },

@@ -247,22 +247,6 @@
                 <text class="form-label">说明</text>
                 <input v-model="roleForm.description" class="form-input" placeholder="角色说明" placeholder-class="input-placeholder" />
               </view>
-              <view class="form-field form-field--wide">
-                <text class="form-label">绑定分区（部门接口）</text>
-                <view class="check-grid check-grid--partition">
-                  <view
-                    v-for="item in partitionOptions"
-                    :key="getId(item)"
-                    class="check-item"
-                    :class="{ 'check-item--checked': selectedPartitionIds.includes(getId(item)) }"
-                    @click="togglePartition(getId(item))"
-                  >
-                    <text class="check-box"></text>
-                    <text>{{ getPartitionName(item) }}</text>
-                  </view>
-                  <text v-if="!partitionOptions.length" class="empty-inline">暂无分区数据</text>
-                </view>
-              </view>
             </view>
             <view class="form-actions">
               <button class="toolbar-button" hover-class="toolbar-button--hover" @click="copyRole">复制</button>
@@ -284,6 +268,7 @@
                 :key="getId(item)"
                 class="permission-node"
                 :class="`permission-node--level-${getTreeLevel(item)}`"
+                :style="{ paddingLeft: `${8 + (getTreeLevel(item) - 1) * 22}px` }"
                 @click="togglePermission(getId(item))"
               >
                 <text class="check-box" :class="{ 'check-box--checked': selectedPermissionIds.includes(getId(item)) }"></text>
@@ -338,7 +323,11 @@
                       @click.stop="toggleMenuSelection(item)"
                     ></text>
                   </text>
-                  <text class="data-cell data-cell--name">{{ getPermissionName(item) }}</text>
+                  <text class="data-cell data-cell--name">
+                    <text class="tree-cell-name" :style="{ paddingLeft: `${(getTreeLevel(item) - 1) * 20}px` }">
+                      <text>{{ getPermissionName(item) }}</text>
+                    </text>
+                  </text>
                   <text class="data-cell data-cell--code">{{ getText(item, ['permissionCode'], '-') }}</text>
                   <text class="data-cell data-cell--path">{{ getText(item, ['path'], '-') }}</text>
                   <text class="data-cell data-cell--status">
@@ -561,7 +550,20 @@ const defaultMenuTree: RecordLike[] = [
       { id: `${LOCAL_MENU_ID_PREFIX}system-user`, permissionName: "用户配置", permissionCode: "page:system:user", path: "/pages/system/user/user", parentId: `${LOCAL_MENU_ID_PREFIX}system`, permissionType: 1, status: 1 },
       { id: `${LOCAL_MENU_ID_PREFIX}system-auth`, permissionName: "权限管理", permissionCode: "page:system:auth", path: "/pages/system/auth/auth", parentId: `${LOCAL_MENU_ID_PREFIX}system`, permissionType: 1, status: 1 },
       { id: `${LOCAL_MENU_ID_PREFIX}system-menu`, permissionName: "菜单管理", permissionCode: "page:system:menu", path: "/pages/system/menu/menu", parentId: `${LOCAL_MENU_ID_PREFIX}system`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}system-search`, permissionName: "查询模板", permissionCode: "page:system:search", path: "/pages/system/search/search", parentId: `${LOCAL_MENU_ID_PREFIX}system`, permissionType: 1, status: 1 },
       { id: `${LOCAL_MENU_ID_PREFIX}system-dict`, permissionName: "数据字典", permissionCode: "page:system:dict", path: "/pages/system/dict/dict", parentId: `${LOCAL_MENU_ID_PREFIX}system`, permissionType: 1, status: 1 },
+    ],
+  },
+  {
+    id: `${LOCAL_MENU_ID_PREFIX}command`,
+    permissionName: "指令管理",
+    permissionCode: "module:command",
+    path: "/pages/command/commandManage",
+    permissionType: 0,
+    status: 1,
+    children: [
+      { id: `${LOCAL_MENU_ID_PREFIX}command-manage`, permissionName: "指令管理", permissionCode: "page:command:manage", path: "/pages/command/commandManage", parentId: `${LOCAL_MENU_ID_PREFIX}command`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}command-configuration`, permissionName: "指令配置", permissionCode: "page:command:configuration", path: "/pages/command/commandConfiguration", parentId: `${LOCAL_MENU_ID_PREFIX}command`, permissionType: 1, status: 1 },
     ],
   },
   {
@@ -630,7 +632,6 @@ const defaultMenuTree: RecordLike[] = [
     children: [
       { id: `${LOCAL_MENU_ID_PREFIX}report-generate`, permissionName: "报表生成", permissionCode: "page:report:generate", path: "/pages/report/generate/generate", parentId: `${LOCAL_MENU_ID_PREFIX}report`, permissionType: 1, status: 1 },
       { id: `${LOCAL_MENU_ID_PREFIX}report-operation`, permissionName: "报表操作", permissionCode: "page:report:operation", path: "/pages/report/operation/operation", parentId: `${LOCAL_MENU_ID_PREFIX}report`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}report-command`, permissionName: "指令管理", permissionCode: "page:report:command", path: "/pages/report/command/command", parentId: `${LOCAL_MENU_ID_PREFIX}report`, permissionType: 1, status: 1 },
     ],
   },
   {
@@ -748,7 +749,6 @@ const selectedDictType = ref<RecordLike | null>(null);
 const selectedDictItem = ref<RecordLike | null>(null);
 const selectedRoleIds = ref<Array<string | number>>([]);
 const selectedPermissionIds = ref<Array<string | number>>([]);
-const selectedPartitionIds = ref<Array<string | number>>([]);
 const selectedUserPartitionIds = ref<Array<string | number>>([]);
 const selectedMenuIds = ref<Array<string | number>>([]);
 const userPartitionDraftIds = ref<Array<string | number>>([]);
@@ -855,7 +855,7 @@ const metricCards = computed(() => {
       { label: "角色数量", value: String(total.value || roles.value.length) },
       { label: "权限节点", value: String(permissions.value.length) },
       { label: "已选权限", value: String(selectedPermissionIds.value.length) },
-      { label: "绑定分区", value: String(selectedPartitionIds.value.length) },
+      { label: "菜单资源", value: String(permissions.value.filter((item) => Number(getValue(item, ["permissionType"])) === 1).length) },
     ];
   }
 
@@ -932,7 +932,7 @@ async function refreshCurrent() {
   }
 
   if (props.mode === "auth") {
-    await Promise.all([loadRolesPage(), loadPermissions(), loadPartitions()]);
+    await Promise.all([loadRolesPage(), loadPermissions()]);
     return;
   }
 
@@ -1035,7 +1035,7 @@ async function loadPermissions() {
   try {
     const response = await getPermissionTree() as ApiResponseLike;
     assertSuccessResponse(response);
-    const records = flattenTree(parseListResponse(response));
+    const records = toTreeRows(parseListResponse(response));
     if (records.length) {
       permissions.value = records;
       permissionSource.value = "api";
@@ -1055,7 +1055,7 @@ async function loadMenus() {
     const keyword = filters.keyword.trim();
     const treeResponse = await getMenuTree({ keyword }) as ApiResponseLike;
     assertSuccessResponse(treeResponse);
-    const treeRecords = flattenTree(parseListResponse(treeResponse));
+    const treeRecords = toTreeRows(parseListResponse(treeResponse));
 
     if (treeRecords.length) {
       menus.value = treeRecords;
@@ -1070,7 +1070,7 @@ async function loadMenus() {
       assertSuccessResponse(pageResponse);
       const parsed = parsePageResponse(pageResponse);
       if (parsed.records.length) {
-        menus.value = parsed.records;
+        menus.value = toTreeRows(parsed.records);
         total.value = parsed.total;
         menuSource.value = "api";
       } else {
@@ -1224,9 +1224,6 @@ function selectRole(item: RecordLike | null) {
     sort: item ? getText(item, ["sort"], "0") : "0",
   });
   selectedPermissionIds.value = getArrayValue(item || {}, ["permissionIds", "permissions"]).map((value) => (isObject(value) ? getId(value) : value)).filter(isValidId);
-  selectedPartitionIds.value = getArrayValue(item || {}, ["deptIds", "departmentIds", "partitionIds", "depts", "departments", "partitions"])
-    .map((value) => (isObject(value) ? getId(value) : value))
-    .filter(isValidId);
 }
 
 function selectMenu(item: RecordLike | null) {
@@ -1410,7 +1407,6 @@ async function saveRole() {
       roleCode: roleForm.roleCode.trim(),
       description: roleForm.description.trim(),
       sort: Number(roleForm.sort) || 0,
-      deptIds: selectedPartitionIds.value,
     });
     const response = isCreating.value || !roleForm.id ? await createRole(payload) : await updateRole(roleForm.id, payload);
     assertSuccessResponse(response as ApiResponseLike);
@@ -1595,7 +1591,7 @@ async function loadBackendMenuRecords() {
   try {
     const treeResponse = await getMenuTree({}) as ApiResponseLike;
     assertSuccessResponse(treeResponse);
-    const treeRecords = flattenTree(parseListResponse(treeResponse));
+    const treeRecords = toTreeRows(parseListResponse(treeResponse));
     if (treeRecords.length) {
       return treeRecords;
     }
@@ -1609,7 +1605,7 @@ async function loadBackendMenuRecords() {
 }
 
 function findDefaultMenuById(id: string | number) {
-  return flattenTree(defaultMenuTree).find((item) => getId(item) === id) || null;
+  return toTreeRows(defaultMenuTree).find((item) => getId(item) === id) || null;
 }
 
 async function saveDict() {
@@ -1776,10 +1772,6 @@ function togglePermission(id: string | number) {
   toggleId(selectedPermissionIds.value, id);
 }
 
-function togglePartition(id: string | number) {
-  toggleId(selectedPartitionIds.value, id);
-}
-
 function toggleAlarm(value: string) {
   const index = selectedAlarmOptions.value.indexOf(value);
   if (index >= 0) {
@@ -1820,8 +1812,70 @@ function flattenTree(records: RecordLike[], level = 1): RecordLike[] {
   });
 }
 
+function toTreeRows(records: RecordLike[]) {
+  const source = records.filter(isObject);
+  if (source.some(hasTreeChildren)) {
+    return flattenTree(source);
+  }
+
+  return flattenByParentId(source);
+}
+
+function flattenByParentId(records: RecordLike[]) {
+  const idSet = new Set(records.map((item) => getTreeKey(getId(item))).filter(Boolean));
+  const childrenMap = new Map<string, RecordLike[]>();
+  const roots: RecordLike[] = [];
+
+  records.forEach((item) => {
+    const parentKey = getTreeKey(getValue(item, ["parentId", "parent_id", "pid"]));
+    if (!parentKey || parentKey === "0" || !idSet.has(parentKey)) {
+      roots.push(item);
+      return;
+    }
+
+    const siblings = childrenMap.get(parentKey) || [];
+    siblings.push(item);
+    childrenMap.set(parentKey, siblings);
+  });
+
+  const visited = new Set<string>();
+  const walk = (items: RecordLike[], level: number): RecordLike[] =>
+    items.flatMap((item) => {
+      const id = getId(item);
+      const key = getTreeKey(id);
+      if (key && visited.has(key)) {
+        return [];
+      }
+      if (key) {
+        visited.add(key);
+      }
+      const children = key ? childrenMap.get(key) || [] : [];
+      return [{ ...item, __level: level, children }, ...walk(children, level + 1)];
+    });
+
+  const rootRows = walk(roots, 1);
+  const orphanRows = records
+    .filter((item) => {
+      const key = getTreeKey(getId(item));
+      return key && !visited.has(key);
+    })
+    .map((item) => ({ ...item, __level: 1 }));
+  return [...rootRows, ...orphanRows];
+}
+
+function getTreeKey(value: unknown) {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? String(value) : "";
+  }
+  return typeof value === "string" && value.trim() ? value.trim() : "";
+}
+
+function hasTreeChildren(item: RecordLike) {
+  return getFirstArray(item, ["children", "childList", "nodes"]).length > 0 || getArrayValue(item, ["children"]).length > 0;
+}
+
 function getDefaultMenuResources(keyword = "") {
-  const records = flattenTree(defaultMenuTree).map((item) => ({ ...item, __localMenu: true }));
+  const records = toTreeRows(defaultMenuTree).map((item) => ({ ...item, __localMenu: true }));
   const normalizedKeyword = keyword.trim().toLowerCase();
   if (!normalizedKeyword) {
     return records;
@@ -1904,14 +1958,21 @@ function isValidId(value: unknown): value is string | number {
 
 <style scoped lang="scss">
 .system-view {
+  --system-panel-bg: #ffffff;
+  --system-panel-border: #cfe0ed;
+  --system-soft-bg: #f6fbff;
+  --system-soft-line: #edf3f8;
+  --system-active-bg: #eaf4ff;
+  --system-hover-bg: #f5faff;
+  --system-focus-ring: 0 0 0 3px rgba(13, 130, 238, 0.12);
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
   height: 100%;
   min-height: var(--shell-content-min-height);
-  padding: 14px;
+  padding: 10px;
   overflow: auto;
-  background: $color-admin-page-bg;
+  background: linear-gradient(180deg, #edf5fb 0%, #f4f8fb 100%);
 }
 
 .side-panel,
@@ -1919,27 +1980,27 @@ function isValidId(value: unknown): value is string | number {
 .table-panel,
 .detail-panel,
 .permission-panel {
-  background: #ffffff;
-  border: 1px solid $color-admin-panel-border;
+  background: var(--system-panel-bg);
+  border: 1px solid var(--system-panel-border);
   border-radius: 6px;
-  box-shadow: $shadow-admin-panel;
+  box-shadow: 0 6px 16px rgba(30, 61, 89, 0.07);
 }
 
 .workspace {
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
-  gap: 12px;
+  grid-template-columns: 216px minmax(0, 1fr);
+  gap: 10px;
   flex: 1;
   min-width: 0;
   min-height: 0;
 }
 
 .workspace--auth {
-  grid-template-columns: minmax(260px, 0.42fr) minmax(0, 1fr);
+  grid-template-columns: minmax(248px, 0.36fr) minmax(0, 1fr);
 }
 
 .workspace--dict {
-  grid-template-columns: 320px minmax(0, 1fr);
+  grid-template-columns: 300px minmax(0, 1fr);
 }
 
 .side-panel,
@@ -1951,6 +2012,10 @@ function isValidId(value: unknown): value is string | number {
   overflow: auto;
 }
 
+.side-panel {
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+}
+
 .panel-head,
 .table-head,
 .detail-head,
@@ -1959,16 +2024,16 @@ function isValidId(value: unknown): value is string | number {
   align-items: center;
   justify-content: space-between;
   flex: none;
-  min-height: 44px;
-  padding: 10px 12px;
-  border-bottom: 1px solid #edf3f8;
+  min-height: 40px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--system-soft-line);
 }
 
 .panel-title,
 .table-head,
 .detail-head {
   color: $color-admin-title;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 800;
 }
 
@@ -1981,7 +2046,7 @@ function isValidId(value: unknown): value is string | number {
 .detail-head__sub,
 .table-head__meta {
   color: $color-admin-muted;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
 }
 
@@ -1997,16 +2062,17 @@ function isValidId(value: unknown): value is string | number {
 .side-list {
   flex: 1;
   min-height: 0;
-  padding: 10px;
+  padding: 8px;
   overflow: auto;
 }
 
 .tree-node,
 .side-list__item {
+  position: relative;
   display: flex;
   align-items: center;
-  min-height: 38px;
-  padding: 8px 10px;
+  min-height: 34px;
+  padding: 7px 9px;
   color: #334155;
   border-radius: 4px;
   cursor: pointer;
@@ -2021,7 +2087,12 @@ function isValidId(value: unknown): value is string | number {
 .tree-node:hover,
 .side-list__item:hover {
   color: $color-admin-primary;
-  background: #f0f7ff;
+  background: var(--system-active-bg);
+}
+
+.tree-node--active,
+.side-list__item--active {
+  box-shadow: inset 3px 0 0 $color-admin-primary;
 }
 
 .tree-node__mark {
@@ -2046,20 +2117,21 @@ function isValidId(value: unknown): value is string | number {
 
 .side-list__title {
   color: inherit;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
 }
 
 .side-list__sub {
   color: #7b8fa5;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .toolbar {
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
   align-items: flex-start;
-  padding: 8px 12px;
+  padding: 8px 10px;
+  background: #fbfdff;
 }
 
 .toolbar__filters,
@@ -2095,7 +2167,7 @@ function isValidId(value: unknown): value is string | number {
 .form-label {
   flex: none;
   color: #34495e;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -2118,14 +2190,22 @@ function isValidId(value: unknown): value is string | number {
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  height: 34px;
+  height: 32px;
   padding: 0 10px;
   color: #172033;
-  font-size: 14px;
-  line-height: 34px;
+  font-size: 13px;
+  line-height: 32px;
   background: #f9fcff;
   border: 1px solid #cbdced;
   border-radius: 4px;
+}
+
+.filter-input:focus,
+.form-input:focus {
+  background: #ffffff;
+  border-color: #89c7ff;
+  box-shadow: var(--system-focus-ring);
+  outline: none;
 }
 
 .password-input-wrap {
@@ -2236,9 +2316,10 @@ function isValidId(value: unknown): value is string | number {
   box-sizing: border-box;
   height: 32px;
   margin: 0;
-  padding: 0 13px;
+  padding: 0 12px;
   color: #31506d;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 700;
   background: #f6fbff;
   border: 1px solid #cbdced;
   border-radius: 4px;
@@ -2284,6 +2365,7 @@ function isValidId(value: unknown): value is string | number {
 
 .icon-button {
   width: 30px;
+  height: 30px;
   padding: 0;
 }
 
@@ -2310,26 +2392,30 @@ function isValidId(value: unknown): value is string | number {
 
 .content-layout {
   display: grid;
-  grid-template-columns: minmax(320px, 0.7fr) minmax(360px, 1fr);
-  gap: 12px;
+  grid-template-columns: minmax(300px, 0.62fr) minmax(420px, 1fr);
+  gap: 10px;
   flex: 1;
   box-sizing: border-box;
   width: 100%;
   max-width: 100%;
   min-width: 0;
   min-height: 0;
-  padding: 12px;
+  padding: 10px;
   overflow: auto;
 }
 
-.content-layout--vertical,
+.content-layout--vertical {
+  grid-template-columns: 1fr;
+  grid-template-rows: minmax(250px, 0.9fr) minmax(240px, 0.72fr);
+}
+
 .content-layout--dict {
   grid-template-columns: 1fr;
-  grid-template-rows: minmax(190px, 0.9fr) minmax(220px, 1.1fr);
+  grid-template-rows: minmax(260px, 1fr) minmax(158px, 0.42fr);
 }
 
 .content-layout--user {
-  grid-template-rows: minmax(160px, 0.8fr) minmax(320px, 1.2fr);
+  grid-template-rows: minmax(240px, 0.85fr) minmax(280px, 0.75fr);
 }
 
 .table-panel,
@@ -2361,7 +2447,7 @@ function isValidId(value: unknown): value is string | number {
 }
 
 .data-table--user {
-  min-width: 1100px;
+  min-width: 1040px;
 }
 
 .data-table--menu {
@@ -2374,22 +2460,22 @@ function isValidId(value: unknown): value is string | number {
 
 .data-row {
   display: table-row;
-  min-height: 42px;
+  min-height: 38px;
   color: #24384d;
   cursor: pointer;
 }
 
 .data-row--header {
-  min-height: 40px;
+  min-height: 38px;
   color: #5d7188;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
   cursor: default;
 }
 
 .data-row--active .data-cell,
 .data-row:hover:not(.data-row--header) .data-cell {
-  background: #f4faff;
+  background: var(--system-hover-bg);
 }
 
 .data-table--user .data-cell--name {
@@ -2415,6 +2501,14 @@ function isValidId(value: unknown): value is string | number {
 
 .data-table--menu .data-cell--name {
   min-width: 180px;
+}
+
+.tree-cell-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .data-table--menu .data-cell--select {
@@ -2449,24 +2543,24 @@ function isValidId(value: unknown): value is string | number {
 
 .data-cell {
   display: table-cell;
-  height: 42px;
+  height: 38px;
   box-sizing: border-box;
   vertical-align: middle;
   min-width: 0;
-  padding: 0 12px;
+  padding: 0 10px;
   overflow: visible;
-  font-size: 14px;
+  font-size: 13px;
   white-space: nowrap;
-  border-right: 1px solid #edf1f5;
-  border-bottom: 1px solid #edf1f5;
+  border-right: 1px solid #edf2f7;
+  border-bottom: 1px solid #edf2f7;
 }
 
 .data-row--header .data-cell {
   position: sticky;
   top: 0;
   z-index: 1;
-  height: 40px;
-  background: #f4faff;
+  height: 38px;
+  background: #f2f7fc;
 }
 
 .data-cell > text:not(.status-pill) {
@@ -2513,12 +2607,12 @@ function isValidId(value: unknown): value is string | number {
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px 16px;
+  gap: 10px 14px;
   box-sizing: border-box;
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  padding: 14px;
+  padding: 12px;
   overflow: auto;
 }
 
@@ -2556,13 +2650,13 @@ function isValidId(value: unknown): value is string | number {
 .check-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 12px;
+  gap: 7px 10px;
   box-sizing: border-box;
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  padding: 10px;
-  overflow: hidden;
+  padding: 8px;
+  overflow: auto;
   background: #f8fbfe;
   border: 1px solid #d8e6f2;
   border-radius: 4px;
@@ -2616,11 +2710,11 @@ function isValidId(value: unknown): value is string | number {
 .bound-partition-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 7px;
   box-sizing: border-box;
   width: 100%;
-  min-height: 38px;
-  padding: 9px 10px;
+  min-height: 34px;
+  padding: 7px 8px;
   background: #f8fbfe;
   border: 1px solid #d8e6f2;
   border-radius: 4px;
@@ -2663,7 +2757,7 @@ function isValidId(value: unknown): value is string | number {
   max-width: 100%;
   min-width: 0;
   color: #34495e;
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
 }
 
@@ -2812,17 +2906,20 @@ function isValidId(value: unknown): value is string | number {
   display: flex;
   justify-content: flex-end;
   flex-wrap: wrap;
-  gap: 10px;
-  padding: 12px 14px;
-  border-top: 1px solid #edf3f8;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #fbfdff;
+  border-top: 1px solid var(--system-soft-line);
 }
 
 .permission-tree {
-  padding: 12px 14px;
+  padding: 10px 12px;
 }
 
 .permission-node {
-  min-height: 32px;
+  position: relative;
+  min-height: 30px;
+  padding: 0 8px;
   border-radius: 4px;
 }
 
@@ -2853,13 +2950,16 @@ function isValidId(value: unknown): value is string | number {
     grid-template-columns: 1fr;
   }
 
-  .content-layout--vertical,
+  .content-layout--vertical {
+    grid-template-rows: minmax(230px, 0.85fr) minmax(230px, 0.72fr);
+  }
+
   .content-layout--dict {
-    grid-template-rows: minmax(180px, 0.85fr) minmax(220px, 1fr);
+    grid-template-rows: minmax(240px, 1fr) minmax(150px, 0.42fr);
   }
 
   .content-layout--user {
-    grid-template-rows: minmax(160px, 0.8fr) minmax(320px, 1.2fr);
+    grid-template-rows: minmax(220px, 0.75fr) minmax(340px, 0.9fr);
   }
 
   .form-grid--user {

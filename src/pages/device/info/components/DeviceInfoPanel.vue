@@ -48,12 +48,11 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import type { Dept, Device, DeviceDept, DeviceProduct, TubeNetwork } from '@/services/device/types';
+import type { Dept, Device, DeviceProduct, TubeNetwork } from '@/services/device/types';
 import {
   getDeviceProductByIdT,
-  getTubeNetworkByTubeNameT,
-  getDeptByIdT,
-  getDeptDeviceByDeviceIdT
+  getTubeNetworkListT,
+  getDeptByIdT
 } from '@/services/device/info.typed';
 
 // ================= 1. 字典映射表 (基于数据库 DDL) =================
@@ -191,7 +190,6 @@ const emit = defineEmits<{
 const product = ref<DeviceProduct>();
 const tube = ref<TubeNetwork>();
 const dept = ref<Dept>();
-const deviceDept = ref<DeviceDept>();
 
 const activeTab = ref('base');
 
@@ -251,20 +249,20 @@ watch(
 async function loadRelationData(device: Partial<Device>) {
   if (!device?.id) return;
 
-  const [productRes, deviceDeptRes, tubeRes] = await Promise.all([
+  const deptId = device.deptId;
+
+  const [productRes, deptRes, tubeListRes] = await Promise.all([
     device.productId ? getDeviceProductByIdT(device.productId) : null,
-    getDeptDeviceByDeviceIdT(device.id),
-    device.tubeGroup ? getTubeNetworkByTubeNameT(device.tubeGroup) : null
+    deptId ? getDeptByIdT(deptId) : null,
+    device.tubeGroup ? getTubeNetworkListT() : null
   ]);
 
   product.value = productRes?.data as DeviceProduct;
-  deviceDept.value = deviceDeptRes?.data as DeviceDept;
-  tube.value = tubeRes?.data as TubeNetwork;
-
-  if (deviceDept.value?.deptId) {
-    const deptRes = await getDeptByIdT(deviceDept.value.deptId);
-    dept.value = deptRes?.data as Dept;
-  }
+  dept.value = deptRes?.data as Dept;
+  const tubeList = (tubeListRes?.data ?? []) as TubeNetwork[];
+  tube.value = tubeList.find((item) => {
+    return String(item.id) === String(device.tubeGroup) || String(item.tubeName) === String(device.tubeGroup);
+  });
 }
 </script>
 

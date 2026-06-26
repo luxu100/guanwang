@@ -16,6 +16,7 @@ export interface Device {
     installLatitude: number;
     tubeGroup: string;
     tubeOrder: number;
+    deptId?: number;
     hardwareVersion: string;
     softwareVersion: string;
     leakStatus: number;
