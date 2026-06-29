@@ -193,14 +193,10 @@
               <view class="form-section">
                 <view class="section-head">
                   <text class="section-title">音频附件</text>
-                  <text class="section-hint">支持录音或选择本地音频</text>
+                  <text class="section-hint">支持选择本地音频</text>
                 </view>
                 <view class="form-field">
                   <view v-if="!audioItem" class="audio-add-box">
-                    <button class="audio-action-btn" hover-class="audio-action-btn--hover" @click="handleRecordAudio">
-                      <text class="audio-action-btn__icon audio-action-btn__icon--record"></text>
-                      <text>录音</text>
-                    </button>
                     <button class="audio-action-btn" hover-class="audio-action-btn--hover" @click="handleChooseAudio">
                       <text class="audio-action-btn__icon audio-action-btn__icon--upload"></text>
                       <text>选择文件</text>
@@ -478,34 +474,7 @@ function removePhoto(idx: number) {
   photoIdListText.value = form.leakPicture;
 }
 
-/* ========== 音频上传（完整 UI 占位：本地录音/选择 + 预览/播放/删除，待后端上传接口对接） ========== */
-function handleRecordAudio() {
-  const recorderManager = uni.getRecorderManager();
-  recorderManager.start({
-    format: "mp3",
-    sampleRate: 16000,
-    numberOfChannels: 1,
-    encodeBitRate: 48000,
-  });
-  uni.showToast({ title: "开始录音，再次点击停止", icon: "none" });
-
-  recorderManager.onStop((res: { tempFilePath?: string; duration?: number }) => {
-    const duration = res.duration ?? 0;
-    audioItem.value = {
-      url: res.tempFilePath ?? "",
-      name: `录音_${formatDuration(duration)}`,
-      durationText: formatDuration(duration),
-      id: `audio_${Date.now()}`,
-    };
-    form.referenceAudio = audioItem.value.id;
-    uni.showToast({ title: "录音完成", icon: "success" });
-  });
-
-  recorderManager.onError(() => {
-    uni.showToast({ title: "录音失败", icon: "none" });
-  });
-}
-
+/* ========== 音频上传（本地选择 + 预览/播放/删除，待后端上传接口对接） ========== */
 function handleChooseAudio() {
   // #ifdef H5
   const input = document.createElement("input");
@@ -897,6 +866,7 @@ function normalizeDatetimeForApi(value: string) {
 .form-field {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   min-width: 0;
 }
 
@@ -1320,15 +1290,20 @@ function normalizeDatetimeForApi(value: string) {
 /* ========== 音频上传 ========== */
 .audio-add-box {
   display: flex;
+  justify-content: flex-start;
   gap: 10px;
 }
 
 .audio-action-btn {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  flex: 1;
+  flex: none;
+  min-width: 160px;
+  width: 160px;
   height: 60px;
+  padding: 0 16px;
   color: #0d82ee;
   font-size: 13px;
   font-weight: 700;
@@ -1347,10 +1322,6 @@ function normalizeDatetimeForApi(value: string) {
   display: inline-block;
   width: 16px;
   height: 16px;
-}
-
-.audio-action-btn__icon--record {
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230d82ee'%3E%3Cpath d='M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z'/%3E%3C/svg%3E") center/contain no-repeat;
 }
 
 .audio-action-btn__icon--upload {

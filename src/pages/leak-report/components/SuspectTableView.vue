@@ -7,6 +7,11 @@
           <input v-model="filters.detectAccount" class="filter-input" placeholder="请输入检出人" placeholder-class="input-placeholder" />
         </view>
 
+        <view class="filter-group">
+          <text class="filter-label">渗漏位置</text>
+          <input v-model="filters.leakAddress" class="filter-input" placeholder="请输入渗漏位置" placeholder-class="input-placeholder" />
+        </view>
+
         <view class="filter-group filter-group--date">
           <text class="filter-label">检出时间</text>
           <view class="date-range">
@@ -331,6 +336,7 @@ const filters = reactive({
   endTime: "",
   leakLevel: 3 as number | "",
   detectAccount: "",
+  leakAddress: "",
 });
 
 const pagination = reactive({
@@ -436,6 +442,7 @@ function buildQueryParams() {
     sortField: sortField.value || "createdAt",
     leakLevel: queryLeakLevel,
     detectAccount: filters.detectAccount.trim() || undefined,
+    leakAddress: filters.leakAddress.trim() || undefined,
   };
 }
 
@@ -627,6 +634,7 @@ function clearFilters() {
   filters.endTime = "";
   filters.leakLevel = "";
   filters.detectAccount = "";
+  filters.leakAddress = "";
 }
 
 const confirmLevelOptions: SelectOption<number>[] = [
