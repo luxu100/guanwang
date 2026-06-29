@@ -17,8 +17,9 @@
         <view class="data-row data-row--header">
 
           <text class="data-cell data-cell--index">序号</text>
-          <text class="data-cell data-cell--device">设备ID</text>
+<!--          <text class="data-cell data-cell&#45;&#45;device">设备ID</text>-->
           <text class="data-cell data-cell--device">设备编号</text>
+          <text class="data-cell data-cell--status">渗漏状态</text>
 
           <text class="data-cell data-cell--device">固件版本</text>
           <text class="data-cell data-cell--device">硬件版本</text>
@@ -36,8 +37,6 @@
           <text class="data-cell data-cell--text">ESA指标</text>
           <text class="data-cell data-cell--text">漏损强度</text>
           <text class="data-cell data-cell--text">漏损频率</text>
-
-          <text class="data-cell data-cell--status">渗漏状态</text>
 
           <text class="data-cell data-cell--time">上报时间</text>
         </view>
@@ -59,13 +58,25 @@
           </text>
 
           <!-- 设备ID -->
-          <text class="data-cell data-cell--device">
-            {{ record.deviceId ?? '-' }}
-          </text>
+<!--          <text class="data-cell data-cell&#45;&#45;device">-->
+<!--            {{ record.deviceId ?? '-' }}-->
+<!--          </text>-->
 
           <!-- 设备编号 -->
           <text class="data-cell data-cell--device">
             {{ record.deviceNumber || '-' }}
+          </text>
+
+          <!-- 渗漏状态 -->
+          <text
+              class="data-cell data-cell--status"
+              :class="getStatusClass('leak', record.leakStatus)"
+          >
+            {{
+              record.leakStatus === 0 ? '渗漏' :
+                  record.leakStatus === 1 ? '正常' :
+                      record.leakStatus === 2 ? '疑似' : '-'
+            }}
           </text>
 
           <!-- 固件版本 -->
@@ -121,18 +132,6 @@
           <!-- 漏损频率 -->
           <text class="data-cell data-cell--text">
             {{ record.leakFrequency ?? '-' }}
-          </text>
-
-          <!-- 渗漏状态 -->
-          <text
-              class="data-cell data-cell--status"
-              :class="getStatusClass('leak', record.leakStatus)"
-          >
-            {{
-              record.leakStatus === 0 ? '渗漏' :
-                  record.leakStatus === 1 ? '正常' :
-                      record.leakStatus === 2 ? '疑似' : '-'
-            }}
           </text>
 
           <!-- 上报时间 -->
@@ -487,8 +486,8 @@ const getStatusClass = (type: string, value: number) => {
 .data-cell--index {
   justify-content: center;
   color: #64748b;
+  width:50px;
 }
-
 .data-cell--number {
   color: #0f4c81;
   font-family: "DIN Alternate", "Arial", sans-serif;

@@ -21,12 +21,15 @@
         :online-status-options="onlineStatusOptions"
         :leak-status-options="leakStatusOptions"
         :maintain-type-options="maintainTypeOptions"
+        :receive-status-options="receiveStatusOptions"
         @search="handleSearch"
         @reset="handleReset"
         @refresh="fetchDevices"
         @delete="handleDelete"
         @add="handleAdd"
         @edit="handleEdit"
+        @on-export="handleExport"
+        @on-import="handleImport"
     />
 
     <!-- 主体 -->
@@ -78,7 +81,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
 
-import type {Device, DeviceCreateForm, MaintenanceCreateForm} from "@/services/device/types";
+import type {Device, DeviceCreateForm} from "@/services/device/types";
 import {
   createDeviceT,
   deleteDeviceT,
@@ -146,6 +149,8 @@ const deviceModuleConfig = {
       { key: "onlineStatus", label: "在线状态", type: "select", dict: "online" },
       { key: "enableState", label: "启用状态", type: "select", dict: "enable" },
       { key: "leakStatus", label: "渗漏状态", type: "select", dict: "leak" },
+      { key: "startTime", label: "开始时间", type: "date"},
+      { key: "endTime", label: "结束时间", type: "date"},
     ],
   },
 
@@ -168,6 +173,8 @@ const deviceModuleConfig = {
       { key: "onlineStatus", label: "在线状态", type: "select", dict: "online" },
       { key: "enableState", label: "启用状态", type: "select", dict: "enable" },
       { key: "leakStatus", label: "渗漏状态", type: "select", dict: "leak" },
+      { key: "startTime", label: "开始时间", type: "date"},
+      { key: "endTime", label: "结束时间", type: "date"},
     ],
   },
 
@@ -182,6 +189,8 @@ const deviceModuleConfig = {
       leakStatus: "",
       startTime: "",
       endTime: "",
+      receiveStatus: "",
+      maintainType: ""
     },
 
     toolbar: [
@@ -190,6 +199,10 @@ const deviceModuleConfig = {
       { key: "onlineStatus", label: "在线状态", type: "select", dict: "online" },
       { key: "enableState", label: "启用状态", type: "select", dict: "enable" },
       { key: "leakStatus", label: "渗漏状态", type: "select", dict: "leak" },
+      { key: "startTime", label: "开始时间", type: "date"},
+      { key: "endTime", label: "结束时间", type: "date"},
+      { key: "maintainType", label: "维护类型", type: "select", dict: "maintain"},
+      { key: "receiveStatus", label: "接受状态", type: "select",dict: "receive"},
     ],
   },
 } as const;
@@ -258,8 +271,8 @@ const enableStateOptions: SelectOption[] = [
 
 const maintainTypeOptions: SelectOption[] = [
   { label: "全部", value: "" },
-  { label: "拆", value: 0 },
-  { label: "装", value: 1 },
+  { label: "拆卸", value: 0 },
+  { label: "安装", value: 1 },
   { label: "维护", value: 2 },
   { label: "巡检", value: 3 },
 ];
@@ -276,12 +289,21 @@ const onlineStatusOptions: SelectOption[] = [
   { label: "离线", value: 0 },
 ];
 
-const leakStatusOptions = [
+const leakStatusOptions: SelectOption[] = [
   { label: "全部", value: "" },
   { label: "渗漏", value: 0 },
   { label: "正常", value: 1 },
   { label: "疑似", value: 2 },
   { label: "未知", value: 3 },
+];
+
+const receiveStatusOptions: SelectOption[] = [
+  { label: "全部", value: "" },
+  { label: '正常接收', value: 0 },
+  { label: '短暂中断', value: 1 },
+  { label: '长时间无接收', value: 2 },
+  { label: '通信异常', value: 3 },
+  { label: '未初始化', value: 4 }
 ];
 
 /**
@@ -654,6 +676,19 @@ async function handleDelete() {
       icon: 'error'
     });
   }
+}
+
+function handleExport() {
+  uni.showToast({
+    title: '导出功能暂未开放',
+    icon: 'none'
+  });
+}
+function handleImport() {
+  uni.showToast({
+    title: '导入功能暂未开放',
+    icon: 'none'
+  });
 }
 
 const layoutClass = computed(() => {

@@ -677,6 +677,7 @@ const getMaintainTypeMeta = (type: number) => {
 .data-cell--index {
   justify-content: center;
   color: #64748b;
+  width:50px;
 }
 
 .data-cell--number {

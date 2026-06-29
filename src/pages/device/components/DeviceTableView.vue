@@ -446,6 +446,7 @@ const getStatusClass = (type: string, value: number) => {
 .data-cell--index {
   justify-content: center;
   color: #64748b;
+  width:50px;
 }
 
 .data-cell--number {

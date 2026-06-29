@@ -73,7 +73,7 @@ import XToolbarActions from "@/pages/device/components/x/XToolbarActions.vue";
  */
 type Option = { label: string; value: string | number };
 
-type DictKey = "product" | "enable" | "install" | "online" | "leak" | "maintain";
+type DictKey = "product" | "enable" | "install" | "online" | "leak" | "maintain" | "receive";
 
 type Field =
     | { key: string; label: string; type: "input" }
@@ -97,6 +97,7 @@ const props = defineProps<{
   onlineStatusOptions: Option[];
   leakStatusOptions: Option[];
   maintainTypeOptions: Option[];
+  receiveStatusOptions: Option[];
 }>();
 
 const emit = defineEmits<{
@@ -142,6 +143,7 @@ const dictMap: Record<DictKey, Option[]> = {
   online: props.onlineStatusOptions,
   leak: props.leakStatusOptions,
   maintain: props.maintainTypeOptions,
+  receive: props.receiveStatusOptions
 };
 
 /**
