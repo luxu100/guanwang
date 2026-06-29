@@ -32,6 +32,8 @@
           <button class="toolbar-icon-button" hover-class="toolbar-icon-button--hover" aria-label="刷新" @click="fetchLeakPoints"><text class="icon-refresh"></text></button>
         </view>
         <view class="toolbar-actions toolbar-actions--right">
+          <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="handleExport">导出</button>
+          <button class="toolbar-button" hover-class="toolbar-button--hover" @click="handleImport">导入</button>
           <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="openCreateDialog">新增漏点</button>
           <button class="toolbar-button toolbar-button--danger" hover-class="toolbar-button--hover" :disabled="selectedIds.size === 0" @click="handleBatchDelete">批量删除</button>
         </view>
@@ -57,18 +59,24 @@
                 <view v-if="allSelectable" class="checkbox" :class="{ 'checkbox--checked': isAllSelected }" @click.stop="toggleSelectAll"><text v-if="isAllSelected" class="checkbox__mark"></text></view>
               </view>
               <text class="data-cell data-cell--index">序号</text>
-              <text class="data-cell data-cell--time">检出时间</text>
-              <text class="data-cell data-cell--level">渗漏级别</text>
+              <text class="data-cell data-cell--time data-cell--sortable" @click.stop="toggleSort('detectedTime')">检出时间<text class="sort-arrow sort-arrow--active" v-if="sortField === 'detectedTime'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
+              <text class="data-cell data-cell--level data-cell--sortable" @click.stop="toggleSort('leakLevel')">渗漏级别<text class="sort-arrow sort-arrow--active" v-if="sortField === 'leakLevel'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
               <text class="data-cell data-cell--address">漏点位置</text>
               <text class="data-cell data-cell--part">泄漏部位</text>
+              <text class="data-cell data-cell--coord">渗漏坐标</text>
               <text class="data-cell data-cell--account">检出人</text>
               <text class="data-cell data-cell--material">管道材质</text>
               <text class="data-cell data-cell--bore">管道口径</text>
               <text class="data-cell data-cell--depth">管道埋深</text>
+              <text class="data-cell data-cell--wsid">关联工单</text>
+              <text class="data-cell data-cell--devices">关联设备</text>
+              <text class="data-cell data-cell--distance">最近设备距离</text>
+              <text class="data-cell data-cell--remark">备注</text>
+              <text class="data-cell data-cell--created">创建时间</text>
             </view>
             <view v-if="loading" class="table-state">加载中...</view>
             <view v-else-if="records.length === 0" class="table-state">暂无漏点数据</view>
-            <view v-for="(item, index) in records" v-else :key="getRowKey(item, index)" class="data-row" :class="{ 'data-row--active': selectedRecordKey === getRowKey(item, index) }" @click="selectRecord(item, index)">
+            <view v-for="(item, index) in records" v-else :key="getRowKey(item, index)" class="data-row data-row--body" :class="{ 'data-row--active': selectedRecordKey === getRowKey(item, index) }" @click="selectRecord(item, index)">
               <view class="data-cell data-cell--checkbox" @click.stop="toggleSelectItem(item)">
                 <view v-if="allSelectable" class="checkbox" :class="{ 'checkbox--checked': isItemSelected(item) }"><text v-if="isItemSelected(item)" class="checkbox__mark"></text></view>
               </view>
@@ -77,10 +85,16 @@
               <text class="data-cell data-cell--level"><text class="level-pill" :class="getLeakLevelClass(item)">{{ getLeakLevelLabel(item) }}</text></text>
               <text class="data-cell data-cell--address">{{ getFieldValue(item, "leakAddress") || "-" }}</text>
               <text class="data-cell data-cell--part">{{ getFieldValue(item, "leakPart") || "-" }}</text>
+              <text class="data-cell data-cell--coord">{{ getFieldValue(item, "leakCoordinate") || "-" }}</text>
               <text class="data-cell data-cell--account">{{ getFieldValue(item, "detectAccount") || "-" }}</text>
               <text class="data-cell data-cell--material">{{ getFieldValue(item, "tubeMaterial") || "-" }}</text>
               <text class="data-cell data-cell--bore">{{ getFieldValue(item, "tubeBore") || "-" }}</text>
               <text class="data-cell data-cell--depth">{{ getFieldValue(item, "tubeDepth") || "-" }}</text>
+              <text class="data-cell data-cell--wsid">{{ getFieldValue(item, "referenceWorksheetId") || "-" }}</text>
+              <text class="data-cell data-cell--devices">{{ getFieldValue(item, "referenceDevices") || "-" }}</text>
+              <text class="data-cell data-cell--distance">{{ getFieldValue(item, "closestDeviceDistance") || "-" }}</text>
+              <text class="data-cell data-cell--remark">{{ getFieldValue(item, "remark") || "-" }}</text>
+              <text class="data-cell data-cell--created">{{ formatDateTime(getFieldValue(item, "createdAt")) }}</text>
             </view>
           </view>
         </scroll-view>
@@ -152,7 +166,8 @@
                 <text v-if="validationErrors.leakAddress" class="form-error">{{ validationErrors.leakAddress }}</text>
               </view>
               <view class="form-field">
-                <text class="form-label">泄漏部位</text><input v-model="form.leakPart" class="form-input" placeholder="请输入泄漏部位" placeholder-class="input-placeholder" />
+                <text class="form-label form-label--required">泄漏部位</text><input v-model="form.leakPart" class="form-input" :class="{ 'form-control--error': validationErrors.leakPart }" placeholder="请输入泄漏部位" placeholder-class="input-placeholder" />
+                <text v-if="validationErrors.leakPart" class="form-error">{{ validationErrors.leakPart }}</text>
               </view>
               <view class="form-field">
                 <text class="form-label">检出人</text><input v-model="form.detectAccount" class="form-input" placeholder="请输入检出人" placeholder-class="input-placeholder" />
@@ -194,9 +209,9 @@
           <view class="form-section">
             <view class="section-head"><text class="section-title">管道信息</text></view>
             <view class="form-grid form-grid--two">
-              <view class="form-field"><text class="form-label">管道材质</text><input v-model="form.tubeMaterial" class="form-input" placeholder="如 PE / 钢管 / 铸铁" placeholder-class="input-placeholder" /></view>
-              <view class="form-field"><text class="form-label">管道口径</text><input v-model="form.tubeBore" class="form-input" placeholder="如 DN200" placeholder-class="input-placeholder" /></view>
-              <view class="form-field"><text class="form-label">管道埋深</text><input v-model="form.tubeDepth" class="form-input" placeholder="单位: 米" placeholder-class="input-placeholder" /></view>
+              <view class="form-field"><text class="form-label form-label--required">管道材质</text><input v-model="form.tubeMaterial" class="form-input" :class="{ 'form-control--error': validationErrors.tubeMaterial }" placeholder="如 PE / 钢管 / 铸铁" placeholder-class="input-placeholder" /><text v-if="validationErrors.tubeMaterial" class="form-error">{{ validationErrors.tubeMaterial }}</text></view>
+              <view class="form-field"><text class="form-label form-label--required">管道口径</text><input v-model="form.tubeBore" class="form-input" :class="{ 'form-control--error': validationErrors.tubeBore }" placeholder="如 DN200" placeholder-class="input-placeholder" /><text v-if="validationErrors.tubeBore" class="form-error">{{ validationErrors.tubeBore }}</text></view>
+              <view class="form-field"><text class="form-label form-label--required">管道埋深</text><input v-model="form.tubeDepth" class="form-input" :class="{ 'form-control--error': validationErrors.tubeDepth }" placeholder="单位: 米" placeholder-class="input-placeholder" /><text v-if="validationErrors.tubeDepth" class="form-error">{{ validationErrors.tubeDepth }}</text></view>
             </view>
           </view>
           <!-- 关联数据 -->
@@ -291,6 +306,9 @@ const detailTabs: Array<{ label: string; value: DetailTab }> = [
   { label: "附件备注", value: "attach" },
 ];
 
+const sortField = ref("detectedTime");
+const sortOrder = ref("desc");
+
 const filters = reactive({ startTime: "", endTime: "", leakLevel: "" as number | "", detectAccount: "" });
 const pagination = reactive({ pageNum: 1, pageSize: 10 });
 const records = ref<RecordItem[]>([]);
@@ -315,6 +333,10 @@ const validationErrors = reactive({
   detectedTime: "",
   leakAddress: "",
   leakLevel: "",
+  leakPart: "",
+  tubeMaterial: "",
+  tubeBore: "",
+  tubeDepth: "",
 });
 
 const form = reactive({
@@ -403,14 +425,26 @@ function handleLeakLevelChange(ev: { detail: { value: number } }) {
   filters.leakLevel = (opt?.value as number | "") ?? "";
 }
 
+function toggleSort(field: string) {
+  if (sortField.value === field) {
+    if (sortOrder.value === "asc") { sortOrder.value = "desc"; }
+    else if (sortOrder.value === "desc") { sortField.value = ""; sortOrder.value = ""; return; }
+  } else {
+    sortField.value = field;
+    sortOrder.value = "asc";
+  }
+  pagination.pageNum = 1;
+  fetchLeakPoints();
+}
+
 function buildQuery(): Record<string, unknown> {
   return rmEmpty({
     pageNum: pagination.pageNum,
     pageSize: pagination.pageSize,
     startTime: normDate(filters.startTime, false),
     endTime: normDate(filters.endTime, true),
-    sortOrder: "desc",
-    sortField: "detectedTime",
+    sortOrder: sortOrder.value || "desc",
+    sortField: sortField.value || "detectedTime",
     leakLevel: filters.leakLevel === "" ? undefined : filters.leakLevel,
     detectAccount: filters.detectAccount.trim() || undefined,
   });
@@ -422,7 +456,7 @@ async function fetchLeakPoints() {
     const res = (await getLeakPointPage(buildQuery())) as Res;
     ok(res);
     const p = parsePage(res);
-    records.value = p.records;
+    records.value = applyLocalSort(p.records);
     total.value = p.total;
     selectedIds.value = new Set();
     selectFirstRow();
@@ -509,13 +543,17 @@ function handleFormLeakLevelChange(ev: { detail: { value: number } }) {
   form.leakLevel = leakLevelOptionsWithoutAll[ev.detail.value].value as LeakLevel;
 }
 
-function clearValidationErrors() { validationErrors.detectedTime = ""; validationErrors.leakAddress = ""; validationErrors.leakLevel = ""; }
+function clearValidationErrors() { validationErrors.detectedTime = ""; validationErrors.leakAddress = ""; validationErrors.leakLevel = ""; validationErrors.leakPart = ""; validationErrors.tubeMaterial = ""; validationErrors.tubeBore = ""; validationErrors.tubeDepth = ""; }
 
 function validateForm(): boolean {
   clearValidationErrors(); let valid = true;
   if (!form.detectedTime) { validationErrors.detectedTime = "请选择检出时间"; valid = false; }
   if (!form.leakAddress.trim()) { validationErrors.leakAddress = "请输入漏点位置"; valid = false; }
   if (formLeakLevelIndex.value < 0) { validationErrors.leakLevel = "请选择渗漏级别"; valid = false; }
+  if (!form.leakPart.trim()) { validationErrors.leakPart = "请输入泄漏部位"; valid = false; }
+  if (!form.tubeMaterial.trim()) { validationErrors.tubeMaterial = "请选择管道材质"; valid = false; }
+  if (!form.tubeBore.trim()) { validationErrors.tubeBore = "请输入管道口径"; valid = false; }
+  if (!form.tubeDepth.trim()) { validationErrors.tubeDepth = "请输入管道埋深"; valid = false; }
   return valid;
 }
 
@@ -534,6 +572,52 @@ function handleUploadPhoto() {
 }
 
 function removePhoto(idx: number) { photoList.value.splice(idx, 1); form.leakPicture = photoList.value.map((p) => p.id).join(","); photoIdListText.value = form.leakPicture; }
+function handleExport() {
+  if (!records.value.length) { uni.showToast({ title: "暂无数据可导出", icon: "none" }); return; }
+  // #ifdef H5
+  const headers = ["检出时间", "渗漏级别", "漏点位置", "泄漏部位", "检出人", "管道材质", "管道口径", "管道埋深", "渗漏坐标", "关联设备", "备注"];
+  const keys = ["detectedTime", "leakLevel", "leakAddress", "leakPart", "detectAccount", "tubeMaterial", "tubeBore", "tubeDepth", "leakCoordinate", "referenceDevices", "remark"];
+  const levelMap: Record<number, string> = { 0: "轻度", 1: "中度", 2: "重度" };
+  const rows = records.value.map((r) =>
+    keys.map((k) => {
+      let v = gv(r, k);
+      if (k === "leakLevel") return levelMap[Number(v)] ?? "";
+      if (v === undefined || v === null) return "";
+      return String(v).replace(/"/g, '""');
+    })
+  );
+  const csv = [headers.join(","), ...rows.map((row) => row.map((c) => `"${c}"`).join(","))].join("\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `漏点数据_${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+  uni.showToast({ title: "导出成功", icon: "success" });
+  // #endif
+  // #ifndef H5
+  uni.showToast({ title: "导出功能仅支持 H5 端", icon: "none" });
+  // #endif
+}
+
+function handleImport() {
+  // #ifdef H5
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".csv,.xlsx,.xls";
+  input.onchange = async (e: Event) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    uni.showToast({ title: "导入功能开发中，请使用新增功能", icon: "none" });
+  };
+  input.click();
+  // #endif
+  // #ifndef H5
+  uni.showToast({ title: "导入功能仅支持 H5 端", icon: "none" });
+  // #endif
+}
+
 function handleUploadAudio() { uni.showToast({ title: "音频上传功能开发中", icon: "none" }); }
 
 const mapPickerVisible = ref(false);
@@ -607,7 +691,7 @@ function buildPayload() {
 }
 
 async function submitForm() {
-  if (!validateForm()) { const fe = validationErrors.detectedTime || validationErrors.leakAddress || validationErrors.leakLevel; if (fe) uni.showToast({ title: fe, icon: "none" }); return; }
+  if (!validateForm()) { const fe = validationErrors.detectedTime || validationErrors.leakAddress || validationErrors.leakLevel || validationErrors.leakPart || validationErrors.tubeMaterial || validationErrors.tubeBore || validationErrors.tubeDepth; if (fe) uni.showToast({ title: fe, icon: "none" }); return; }
   submitting.value = true;
   try {
     const payload = buildPayload(); let res: Res;
@@ -668,6 +752,28 @@ function arr(v: unknown, ks: string[]): unknown[] { if (!isObj(v)) return []; fo
 function num(v: unknown, ks: string[]): number | undefined { if (!isObj(v)) return undefined; for (const k of ks) { const a = (v as RecordItem)[k]; if (typeof a === "number") return a; if (typeof a === "string" && a.trim() && !isNaN(Number(a))) return Number(a); } return undefined; }
 function isObj(v: unknown): v is RecordItem { return Boolean(v && typeof v === "object" && !Array.isArray(v)); }
 function rmEmpty(obj: RecordItem): RecordItem { return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== "" && v !== undefined && v !== null)); }
+function applyLocalSort(list: RecordItem[]): RecordItem[] {
+  if (!sortField.value || !sortOrder.value) return list;
+  const field = sortField.value;
+  const order = sortOrder.value;
+  return [...list].sort((a, b) => {
+    let va = gv(a, field);
+    let vb = gv(b, field);
+    if (field === "leakLevel") {
+      va = Number(va);
+      vb = Number(vb);
+    } else if (field === "detectedTime" || field === "createdAt") {
+      va = String(va ?? "");
+      vb = String(vb ?? "");
+    }
+    if (va === undefined || va === null) return 1;
+    if (vb === undefined || vb === null) return -1;
+    if (va < vb) return order === "asc" ? -1 : 1;
+    if (va > vb) return order === "asc" ? 1 : -1;
+    return 0;
+  });
+}
+
 function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || c === 0 || c === 200) return; throw { code: c, msg: res?.msg || "请求失败" }; }
 </script>
 
@@ -703,22 +809,26 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .table-head, .pagination-bar { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; }
 .table-head { flex: none; color: #183755; font-size: 15px; font-weight: 900; border-bottom: 1px solid #edf3f8; }
 .table-head__meta { color: #64748b; font-size: 13px; font-weight: 600; }
-.table-scroll { flex: 1; min-height: 0; overflow: auto; }
-.data-table { min-width: 860px; }
-.data-row { display: flex; align-items: center; height: 46px; border-bottom: 1px solid #f3f7fc; cursor: pointer; &--header { position: sticky; top: 0; z-index: 2; background: #f7fafd; cursor: default; } &--active { background: #edf5ff; } }
-.data-row:hover:not(.data-row--header) { background: #f7fafd; }
-.data-cell { flex: none; padding: 0 8px; overflow: hidden; color: #172033; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
-.data-row--header .data-cell { color: #183755; font-weight: 700; }
-.data-cell--checkbox { width: 40px; display: flex; align-items: center; justify-content: center; }
-.data-cell--index { width: 52px; text-align: center; }
-.data-cell--time { width: 150px; }
-.data-cell--level { width: 80px; }
-.data-cell--address { width: 160px; }
-.data-cell--part { width: 100px; }
-.data-cell--account { width: 100px; }
-.data-cell--material { width: 90px; }
-.data-cell--bore { width: 90px; }
-.data-cell--depth { width: 90px; }
+.table-scroll { flex: 1; min-height: 0; overflow: auto; background: #ffffff; }
+.data-table { display: flex; flex-direction: column; width: 1880px; min-width: 1880px; background: #ffffff; }
+.data-row { display: grid; grid-template-columns: 40px 58px 180px 110px 150px 120px 150px 90px 100px 100px 100px 100px 120px 140px 120px 202px; min-height: 42px; width: 1880px; border-bottom: 1px solid #edf1f5; cursor: pointer; transition: background 0.18s ease, box-shadow 0.18s ease; &--header { position: sticky; top: 0; z-index: 1; min-height: 44px; color: #20384f; font-weight: 800; background: #f6f9fc; cursor: default; box-shadow: 0 1px 0 #dbe7f0; } &--active { position: relative; background: #e7f3ff !important; box-shadow: inset 0 0 0 1px #b9dcff; } }
+.data-row:not(.data-row--header):nth-child(odd) { background: #fff; }
+.data-row:not(.data-row--header):nth-child(even) { background: #fbfdff; }
+.data-row:not(.data-row--header):hover { background: #f1f8ff; box-shadow: inset 0 0 0 1px #d7ebfb; }
+.data-row--active::before { position: absolute; top: 7px; bottom: 7px; left: 0; width: 3px; content: ""; background: #0d82ee; border-radius: 0 999px 999px 0; }
+.data-cell { display: flex; align-items: center; justify-content: center; min-width: 0; padding: 0 12px; overflow: hidden; color: #24384d; font-size: 13px; line-height: 1.35; text-align: center; text-overflow: ellipsis; white-space: nowrap; border-right: 1px solid #edf1f5; }
+.data-row--header .data-cell { color: #415a73; font-size: 12px; letter-spacing: 0; }
+.data-cell:last-child { border-right: 0; }
+.data-cell--sortable { cursor: pointer; user-select: none; }
+.data-cell--sortable:hover { color: #0d82ee; }
+.data-cell--checkbox { justify-content: center; }
+.data-cell--index { justify-content: center; color: #64748b; }
+.data-cell--time { color: #0f4c81; font-family: "DIN Alternate", "Arial", sans-serif; font-weight: 800; }
+.data-cell--address { justify-content: flex-start; text-align: left; }
+.data-cell--remark { justify-content: flex-start; text-align: left; }
+/* 排序箭头 */
+.sort-arrow { flex: none; font-size: 10px; line-height: 1; margin-left: 2px; color: #bcc7d6; transition: color 0.18s ease; &--active { color: #0d82ee; } &--idle { opacity: 0.4; } }
+.data-cell--sortable:hover .sort-arrow:not(.sort-arrow--active) { color: #7f8fa3; }
 .checkbox { display: flex; align-items: center; justify-content: center; width: 18px; height: 18px; border: 2px solid #cdd7e4; border-radius: 4px; cursor: pointer; &--checked { background: #0d82ee; border-color: #0d82ee; } }
 .checkbox__mark { display: block; width: 6px; height: 10px; border-right: 2px solid #fff; border-bottom: 2px solid #fff; transform: rotate(45deg) translate(-1px, -1px); }
 .level-pill { display: inline-block; padding: 2px 8px; font-size: 12px; font-weight: 700; border-radius: 10px; &--light { color: #16a34a; background: #dcfce7; } &--medium { color: #d97706; background: #fef3c7; } &--heavy { color: #dc2626; background: #fee2e2; } }

@@ -1,7 +1,6 @@
 <template>
   <AppShell>
-    <!-- 历史总览页面：后续用于汇总查看疑点和漏点历史数据。 -->
-    <view class="content-page"></view>
+    <HistoryOverviewView />
   </AppShell>
 </template>
 

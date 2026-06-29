@@ -1,6 +1,6 @@
 import {createCrudServiceTyped, getRequestT} from "@/services/shared/crud.typed";
 import { getRequest } from "@/services/shared/crud";
-import type {Dept, Device, DeviceDept, DeviceProduct, DeviceProtocol, TubeNetwork} from "./types";
+import type {Dept, Device, DeviceProduct, DeviceProtocol, TubeNetwork} from "./types";
 import type {ApiResponse} from "@/types/api";
 
 // ================= device =================
@@ -30,6 +30,8 @@ export const batchDeleteDeviceProductT = deviceProductApi.batchDelete;
 const deviceProtocolApi =
     createCrudServiceTyped<DeviceProtocol>("/api/device-protocol-relation");
 
+const tubeNetworkApi = createCrudServiceTyped<TubeNetwork>("/api/tube-network");
+
 export const getDeviceProtocolPageT = deviceProtocolApi.getPage;
 export const createDeviceProtocolT = deviceProtocolApi.create;
 
@@ -57,14 +59,8 @@ export function getDeviceProductByIdT(id: string | number) {
   return getRequestT<ApiResponse<DeviceProduct>>(`/api/device-product/${id}`);
 }
 
-export function getTubeNetworkByTubeNameT(tubeName: string | number) {
-  return getRequestT<ApiResponse<TubeNetwork>>(`/api/tube-network/by-tube-name/${tubeName}`);
-}
+export const getTubeNetworkListT = tubeNetworkApi.getList;
 
 export function getDeptByIdT(id: string | number) {
   return getRequestT<ApiResponse<Dept>>(`/api/dept/${id}`);
-}
-
-export function getDeptDeviceByDeviceIdT(id: string | number) {
-  return getRequestT<ApiResponse<DeviceDept>>(`/api/dept-device/${id}`);
 }

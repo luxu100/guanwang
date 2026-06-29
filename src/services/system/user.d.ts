@@ -9,6 +9,8 @@ export {
   register,
   updateUser,
   updateUserPassword,
+  getUserDepts,
+  assignUserDepts,
 } from "@/services/user/user";
 
 export type { RegisterParams } from "@/services/user/user";

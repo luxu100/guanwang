@@ -64,10 +64,10 @@
         <scroll-view class="table-scroll" scroll-x scroll-y>
           <view class="data-table">
             <!-- 渗漏记录列头 -->
-            <view v-if="activeDataTab === 'leakage'" class="data-row data-row--header">
+            <view v-if="activeDataTab === 'leakage'" class="data-row data-row--header data-row--leakage">
               <text class="data-cell data-cell--index">序号</text>
-              <text class="data-cell data-cell--time">检出时间</text>
-              <text class="data-cell data-cell--level">渗漏级别</text>
+              <text class="data-cell data-cell--time data-cell--sortable" @click.stop="toggleSort('detectedTime')">检出时间<text class="sort-arrow sort-arrow--active" v-if="sortField === 'detectedTime'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
+              <text class="data-cell data-cell--level data-cell--sortable" @click.stop="toggleSort('leakLevel')">渗漏级别<text class="sort-arrow sort-arrow--active" v-if="sortField === 'leakLevel'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
               <text class="data-cell data-cell--address">漏点位置</text>
               <text class="data-cell data-cell--account">检出人</text>
               <text class="data-cell data-cell--material">管道材质</text>
@@ -75,7 +75,7 @@
             </view>
 
             <!-- 设备上报列头 -->
-            <view v-else-if="activeDataTab === 'deviceUpload'" class="data-row data-row--header">
+            <view v-else-if="activeDataTab === 'deviceUpload'" class="data-row data-row--header data-row--deviceUpload">
               <text class="data-cell data-cell--index">序号</text>
               <text class="data-cell data-cell--time">上报时间</text>
               <text class="data-cell data-cell--device">设备编号</text>
@@ -86,7 +86,7 @@
             </view>
 
             <!-- 算法分析列头 -->
-            <view v-else-if="activeDataTab === 'algorithm'" class="data-row data-row--header">
+            <view v-else-if="activeDataTab === 'algorithm'" class="data-row data-row--header data-row--algorithm">
               <text class="data-cell data-cell--index">序号</text>
               <text class="data-cell data-cell--time">音频时间</text>
               <text class="data-cell data-cell--device">设备编号</text>
@@ -96,7 +96,7 @@
             </view>
 
             <!-- 采样记录列头 -->
-            <view v-else class="data-row data-row--header">
+            <view v-else class="data-row data-row--header data-row--sample">
               <text class="data-cell data-cell--index">序号</text>
               <text class="data-cell data-cell--time">采样时间</text>
               <text class="data-cell data-cell--device">设备编号</text>
@@ -114,7 +114,7 @@
               <view
                 v-for="(item, index) in records"
                 :key="getRowKey(item, index)"
-                class="data-row"
+                class="data-row data-row--leakage"
                 :class="{ 'data-row--active': selectedRecordKey === getRowKey(item, index) }"
                 @click="selectRecord(item, index)"
               >
@@ -135,7 +135,7 @@
               <view
                 v-for="(item, index) in records"
                 :key="getRowKey(item, index)"
-                class="data-row"
+                class="data-row data-row--deviceUpload"
                 :class="{ 'data-row--active': selectedRecordKey === getRowKey(item, index) }"
                 @click="selectRecord(item, index)"
               >
@@ -156,8 +156,7 @@
               <view
                 v-for="(item, index) in records"
                 :key="getRowKey(item, index)"
-                class="data-row"
-                :class="{ 'data-row--active': selectedRecordKey === getRowKey(item, index) }"
+                :class="['data-row', activeDataTab === 'algorithm' ? 'data-row--algorithm' : 'data-row--sample', { 'data-row--active': selectedRecordKey === getRowKey(item, index) }]"
                 @click="selectRecord(item, index)"
               >
                 <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
@@ -256,6 +255,9 @@ const tabLabelMap: Record<DataTab, string> = {
   algorithm: "算法分析",
   sampling: "采样记录",
 };
+
+const sortField = ref("createdAt");
+const sortOrder = ref("desc");
 
 const filters = reactive({
   startTime: "",
@@ -376,14 +378,27 @@ function getDetailFieldsForTab(r: HistoryRecord, fields: Array<{ label: string; 
   }));
 }
 
+function toggleSort(field: string) {
+  if (sortField.value === field) {
+    if (sortOrder.value === "asc") { sortOrder.value = "desc"; }
+    else if (sortOrder.value === "desc") { sortField.value = ""; sortOrder.value = ""; return; }
+  } else {
+    sortField.value = field;
+    sortOrder.value = "asc";
+  }
+  pagination.pageNum = 1;
+  fetchHistoryData();
+}
+
 function buildQueryParams() {
+  const defaultSortField = activeDataTab.value === "algorithm" ? "createdAt" : activeDataTab.value === "deviceUpload" ? "uploadTime" : "createdAt";
   const baseParams = removeEmptyFields({
     pageNum: pagination.pageNum,
     pageSize: pagination.pageSize,
     startTime: normalizeDateForApi(filters.startTime, false),
     endTime: normalizeDateForApi(filters.endTime, true),
-    sortOrder: "desc",
-    sortField: activeDataTab.value === "algorithm" ? "createdAt" : activeDataTab.value === "deviceUpload" ? "uploadTime" : "createdAt",
+    sortOrder: sortOrder.value || "desc",
+    sortField: sortField.value || defaultSortField,
   });
 
   if (filters.leakStatus !== "") {
@@ -413,7 +428,7 @@ async function fetchHistoryData() {
     const response = (await api.page(buildQueryParams())) as ApiResponseLike;
     assertSuccessResponse(response);
     const parsed = parsePageResponse(response);
-    records.value = parsed.records;
+    records.value = applyLocalSort(parsed.records);
     total.value = parsed.total;
     selectFirstRow();
   } catch (error) {
@@ -592,6 +607,26 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 function removeEmptyFields(data: Record<string, unknown>) {
   return Object.fromEntries(Object.entries(data).filter(([, v]) => v !== "" && v !== undefined && v !== null));
+}
+
+function applyLocalSort(list: HistoryRecord[]): HistoryRecord[] {
+  if (!sortField.value || !sortOrder.value) return list;
+  const field = sortField.value;
+  const order = sortOrder.value;
+  return [...list].sort((a, b) => {
+    let va: unknown = a[field];
+    let vb: unknown = b[field];
+    if (field === "leakLevel") {
+      va = Number(va); vb = Number(vb);
+    } else {
+      va = String(va ?? ""); vb = String(vb ?? "");
+    }
+    if (va === undefined || va === null) return 1;
+    if (vb === undefined || vb === null) return -1;
+    if (va < vb) return order === "asc" ? -1 : 1;
+    if (va > vb) return order === "asc" ? 1 : -1;
+    return 0;
+  });
 }
 
 function assertSuccessResponse(response: ApiResponseLike | undefined) {
@@ -846,66 +881,103 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   flex: 1;
   min-height: 0;
   overflow: auto;
+  background: #ffffff;
 }
 
 .data-table {
-  min-width: 720px;
+  display: flex;
+  flex-direction: column;
+  width: 1880px;
+  min-width: 1880px;
+  background: #ffffff;
 }
 
 .data-row {
-  display: flex;
-  align-items: center;
-  height: 46px;
-  border-bottom: 1px solid #f3f7fc;
+  display: grid;
+  grid-template-columns: 58px 340px 180px 360px 220px 300px 422px;
+  min-height: 42px;
+  width: 1880px;
+  border-bottom: 1px solid #edf1f5;
   cursor: pointer;
+  transition: background 0.18s ease, box-shadow 0.18s ease;
 }
+.data-row--deviceUpload {
+  grid-template-columns: 58px 340px 260px 220px 200px 350px 452px;
+}
+.data-row--algorithm {
+  grid-template-columns: 58px 320px 260px 360px 220px 662px;
+}
+.data-row--sample {
+  grid-template-columns: 58px 340px 260px 220px 200px 350px 452px;
+}
+.data-row:not(.data-row--header):nth-child(odd) { background: #fff; }
+.data-row:not(.data-row--header):nth-child(even) { background: #fbfdff; }
+.data-row:not(.data-row--header):hover { background: #f1f8ff; box-shadow: inset 0 0 0 1px #d7ebfb; }
 
 .data-row--header {
   position: sticky;
   top: 0;
-  z-index: 2;
-  background: #f7fafd;
+  z-index: 1;
+  min-height: 44px;
+  color: #20384f;
+  font-weight: 800;
+  background: #f6f9fc;
   cursor: default;
+  box-shadow: 0 1px 0 #dbe7f0;
 }
 
 .data-row--active {
-  background: #edf5ff;
+  position: relative;
+  background: #e7f3ff !important;
+  box-shadow: inset 0 0 0 1px #b9dcff;
 }
 
-.data-row:hover:not(.data-row--header) {
-  background: #f7fafd;
+.data-row--active::before {
+  position: absolute;
+  top: 7px;
+  bottom: 7px;
+  left: 0;
+  width: 3px;
+  content: "";
+  background: #0d82ee;
+  border-radius: 0 999px 999px 0;
 }
 
 .data-cell {
-  flex: none;
-  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 0 12px;
   overflow: hidden;
-  color: #172033;
+  color: #24384d;
   font-size: 13px;
+  line-height: 1.35;
+  text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
+  border-right: 1px solid #edf1f5;
 }
 
 .data-row--header .data-cell {
-  color: #183755;
-  font-weight: 700;
+  color: #415a73;
+  font-size: 12px;
+  letter-spacing: 0;
 }
 
-.data-cell--index { width: 52px; text-align: center; }
-.data-cell--time { width: 150px; }
-.data-cell--level { width: 80px; }
-.data-cell--address { width: 150px; }
-.data-cell--account { width: 90px; }
-.data-cell--material { width: 90px; }
-.data-cell--remark { width: 120px; }
-.data-cell--device { width: 120px; }
-.data-cell--status { width: 90px; }
-.data-cell--esa { width: 70px; text-align: center; }
-.data-cell--intensity { width: 70px; text-align: center; }
-.data-cell--frequency { width: 70px; text-align: center; }
-.data-cell--signal { width: 120px; }
-.data-cell--leakage { width: 100px; }
-.data-cell--created { width: 150px; }
+.data-cell:last-child { border-right: 0; }
+
+.data-cell--index { justify-content: center; color: #64748b; }
+.data-cell--time { color: #0f4c81; font-family: "DIN Alternate", "Arial", sans-serif; font-weight: 800; }
+.data-cell--address { justify-content: flex-start; text-align: left; }
+.data-cell--remark { justify-content: flex-start; text-align: left; }
+.data-cell--device { color: #0f4c81; font-family: "DIN Alternate", "Arial", sans-serif; font-weight: 800; }
+
+.data-cell--sortable { cursor: pointer; user-select: none; }
+.data-cell--sortable:hover { color: #0d82ee; }
+
+.sort-arrow { flex: none; font-size: 10px; line-height: 1; margin-left: 2px; color: #bcc7d6; transition: color 0.18s ease; &--active { color: #0d82ee; } }
+.data-cell--sortable:hover .sort-arrow:not(.sort-arrow--active) { color: #7f8fa3; }
 
 .level-pill {
   display: inline-block;

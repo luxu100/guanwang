@@ -152,6 +152,7 @@ const leakStatusMap: Record<number, string> = {
 const emit = defineEmits<{
   (e: 'view', device: Device): void;
   (e: 'select', device: Device): void;
+  (e: 'page-change', page: number): void;
 }>();
 
 const searchKeyword = ref('');

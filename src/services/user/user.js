@@ -95,6 +95,21 @@ export function updateUserPassword(id, data) {
   });
 }
 
+export function getUserDepts(id) {
+  return request({
+    url: `/api/user/${id}/depts`,
+    method: "get",
+  });
+}
+
+export function assignUserDepts(id, data) {
+  return request({
+    url: `/api/user/${id}/depts`,
+    method: "put",
+    data,
+  });
+}
+
 export default {
   login,
   register,
@@ -107,4 +122,6 @@ export default {
   batchDeleteUser,
   assignUserRoles,
   updateUserPassword,
+  getUserDepts,
+  assignUserDepts,
 };
