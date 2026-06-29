@@ -866,7 +866,7 @@ function normalizeDatetimeForApi(value: string) {
 .form-field {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  width: 100%;
   min-width: 0;
 }
 
@@ -966,6 +966,7 @@ function normalizeDatetimeForApi(value: string) {
 
 .select-field {
   position: relative;
+  width: 100%;
 }
 
 .select-menu {
