@@ -8,6 +8,9 @@
         @search="emit('search')"
         @reset="emit('reset')"
         @refresh="emit('refresh')"
+        :show-add="false"
+        :show-edit="false"
+        :show-delete="false"
     />
   </view>
 </template>

@@ -95,8 +95,6 @@ import DeviceToolbar from "./DeviceToolbar.vue";
 import DeviceTableView from "./DeviceTableView.vue";
 import XDynamicDialog from "@/pages/device/components/x/XDynamicDialog.vue";
 import type {FormSection} from "@/pages/device/components/x/types";
-import {createMaintenanceRecordT, updateMaintenanceRecordT} from "@/services/device/maintenance.typed";
-import {updateDevice} from "@/services/device/info";
 
 /**
  * =========================
@@ -135,9 +133,7 @@ const deviceModuleConfig = {
     searchForm: {
       deviceNumber: "",
       deviceType: "",
-      // installAddress: "",
       enableState: "",
-      // installState: "",
       onlineStatus: "",
       leakStatus: "",
       startTime: "",
@@ -147,9 +143,7 @@ const deviceModuleConfig = {
     toolbar: [
       { key: "deviceNumber", label: "设备编号", type: "input" },
       { key: "deviceType", label: "产品型号", type: "select", dict: "product" },
-      // { key: "installAddress", label: "安装位置", type: "input" },
       { key: "onlineStatus", label: "在线状态", type: "select", dict: "online" },
-      // { key: "installState", label: "安装状态", type: "select", dict: "install" },
       { key: "enableState", label: "启用状态", type: "select", dict: "enable" },
       { key: "leakStatus", label: "渗漏状态", type: "select", dict: "leak" },
     ],
@@ -160,24 +154,8 @@ const deviceModuleConfig = {
 
     searchForm: {
       deviceNumber: "",
-      maintainType: "",
-      startTime: "",
-      endTime: "",
-    },
-
-    toolbar: [
-      { key: "deviceNumber", label: "设备编号", type: "input" },
-      { key: "maintainType", label: "维护类型", type: "select", dict: "maintain" },
-      { key: "startTime", label: "开始时间", type: "date" },
-      { key: "endTime", label: "结束时间", type: "date" },
-    ],
-  },
-
-  status: {
-    panel: DeviceStatusPanel,
-
-    searchForm: {
-      deviceNumber: "",
+      deviceType: "",
+      enableState: "",
       onlineStatus: "",
       leakStatus: "",
       startTime: "",
@@ -186,7 +164,31 @@ const deviceModuleConfig = {
 
     toolbar: [
       { key: "deviceNumber", label: "设备编号", type: "input" },
+      { key: "deviceType", label: "产品型号", type: "select", dict: "product" },
       { key: "onlineStatus", label: "在线状态", type: "select", dict: "online" },
+      { key: "enableState", label: "启用状态", type: "select", dict: "enable" },
+      { key: "leakStatus", label: "渗漏状态", type: "select", dict: "leak" },
+    ],
+  },
+
+  status: {
+    panel: DeviceStatusPanel,
+
+    searchForm: {
+      deviceNumber: "",
+      deviceType: "",
+      enableState: "",
+      onlineStatus: "",
+      leakStatus: "",
+      startTime: "",
+      endTime: "",
+    },
+
+    toolbar: [
+      { key: "deviceNumber", label: "设备编号", type: "input" },
+      { key: "deviceType", label: "产品型号", type: "select", dict: "product" },
+      { key: "onlineStatus", label: "在线状态", type: "select", dict: "online" },
+      { key: "enableState", label: "启用状态", type: "select", dict: "enable" },
       { key: "leakStatus", label: "渗漏状态", type: "select", dict: "leak" },
     ],
   },
@@ -207,8 +209,7 @@ const CurrentPanel = computed(() => currentModule.value.panel);
 /**
  * toolbar config（核心）
  */
-// const toolbarConfig = computed(() => currentModule.value.toolbar);
-const toolbarConfig = computed(() => deviceModuleConfig['info'].toolbar);
+const toolbarConfig = computed(() => currentModule.value.toolbar);
 
 /**
  * search form（随 mode 切换）
@@ -537,7 +538,6 @@ function handleAdd() {
 
   dialogVisible.value = true;
 }
-
 
 async function handleSubmit(form: DeviceCreateForm) {
   try {
