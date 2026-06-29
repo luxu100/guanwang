@@ -14,5 +14,7 @@ import SuspectTableView from "./SuspectTableView.vue";
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  overflow: hidden;
+  overflow-x: hidden;
 }
 </style>

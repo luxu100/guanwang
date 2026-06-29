@@ -4,7 +4,7 @@
       <view class="toolbar-row toolbar-row--filters">
         <view class="filter-group">
           <text class="filter-label">检出人</text>
-          <input v-model="filters.detectAccount" class="filter-input filter-input--name" placeholder="请输入检出人" placeholder-class="input-placeholder" />
+          <input v-model="filters.detectAccount" class="filter-input" placeholder="请输入检出人" placeholder-class="input-placeholder" />
         </view>
 
         <view class="filter-group filter-group--date">
@@ -18,15 +18,16 @@
       </view>
 
       <view class="toolbar-row toolbar-row--bottom">
-        <view class="toolbar-spacer"></view>
-        <view class="toolbar-actions">
+        <view class="toolbar-actions toolbar-actions--left">
           <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="searchSuspects">查询</button>
           <button class="toolbar-button" hover-class="toolbar-button--hover" @click="resetFilters">重置</button>
           <button class="toolbar-icon-button" hover-class="toolbar-icon-button--hover" aria-label="刷新" @click="fetchSuspects">
             <text class="icon-refresh"></text>
           </button>
+        </view>
+        <view class="toolbar-spacer"></view>
+        <view v-if="mode === 'management'" class="toolbar-actions toolbar-actions--right">
           <button
-            v-if="mode === 'management'"
             class="toolbar-button toolbar-button--primary toolbar-button--create"
             hover-class="toolbar-button--hover"
             @click="emit('create')"
@@ -34,7 +35,6 @@
             新增疑点
           </button>
           <button
-            v-if="mode === 'management'"
             class="toolbar-button"
             :disabled="!selectedSuspect"
             hover-class="toolbar-button--hover"
@@ -43,7 +43,6 @@
             编辑疑点
           </button>
           <button
-            v-if="mode === 'management'"
             class="toolbar-button toolbar-button--danger"
             :disabled="!selectedSuspect"
             hover-class="toolbar-button--hover"
@@ -62,38 +61,33 @@
           <text class="table-head__meta">共 {{ total }} 条</text>
         </view>
 
-        <scroll-view class="table-scroll" scroll-x scroll-y>
+        <scroll-view class="table-scroll" scroll-y>
           <view class="data-table">
             <view class="data-row data-row--header">
-              <text class="data-cell data-cell--index">序号</text>
-              <text class="data-cell data-cell--time">检出时间</text>
-              <text class="data-cell data-cell--address">渗漏位置</text>
-              <text class="data-cell data-cell--part">渗漏部位</text>
-              <text class="data-cell data-cell--device">关联设备</text>
-              <text class="data-cell data-cell--account">检出人</text>
-              <text class="data-cell data-cell--worksheet">关联工单</text>
-              <text class="data-cell data-cell--remark">备注</text>
+              <text class="data-cell data-cell--index data-cell--sortable" @click="toggleSort('index')">序号<text class="sort-indicator" :class="getSortClass('index')"></text></text>
+              <text class="data-cell data-cell--time data-cell--sortable" @click="toggleSort('detectedTime')">检出时间<text class="sort-indicator" :class="getSortClass('detectedTime')"></text></text>
+              <text class="data-cell data-cell--address data-cell--sortable" @click="toggleSort('leakAddress')">渗漏位置<text class="sort-indicator" :class="getSortClass('leakAddress')"></text></text>
+              <text class="data-cell data-cell--account data-cell--sortable" @click="toggleSort('detectAccount')">检出人<text class="sort-indicator" :class="getSortClass('detectAccount')"></text></text>
+              <text class="data-cell data-cell--worksheet data-cell--sortable" @click="toggleSort('referenceWorksheetId')">关联工单<text class="sort-indicator" :class="getSortClass('referenceWorksheetId')"></text></text>
             </view>
 
             <view v-if="loading" class="table-state">加载中...</view>
             <view v-else-if="suspects.length === 0" class="table-state">暂无疑点数据</view>
 
-            <view
-              v-for="(item, index) in suspects"
-              v-else
-              :key="getRowKey(item, index)"
-              class="data-row"
-              :class="{ 'data-row--active': selectedKey === getRowKey(item, index) }"
-              @click="selectSuspect(item, index)"
-            >
-              <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
-              <text class="data-cell data-cell--time">{{ getDetectedTime(item) }}</text>
-              <text class="data-cell data-cell--address">{{ getLeakAddress(item) }}</text>
-              <text class="data-cell data-cell--part">{{ getLeakPart(item) }}</text>
-              <text class="data-cell data-cell--device">{{ getReferenceDevices(item) }}</text>
-              <text class="data-cell data-cell--account">{{ getDetectAccount(item) }}</text>
-              <text class="data-cell data-cell--worksheet">{{ getReferenceWorksheetId(item) }}</text>
-              <text class="data-cell data-cell--remark">{{ getRemark(item) }}</text>
+            <view v-else class="data-table-body" :class="{ 'data-table-body--loading': loading }">
+              <view
+                v-for="(item, index) in suspects"
+                :key="getRowKey(item, index)"
+                class="data-row"
+                :class="{ 'data-row--active': selectedKey === getRowKey(item, index) }"
+                @click="selectSuspect(item, index)"
+              >
+                <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
+                <text class="data-cell data-cell--time">{{ getDetectedTime(item) }}</text>
+                <text class="data-cell data-cell--address">{{ getLeakAddress(item) }}</text>
+                <text class="data-cell data-cell--account">{{ getDetectAccount(item) }}</text>
+                <text class="data-cell data-cell--worksheet">{{ getReferenceWorksheetId(item) }}</text>
+              </view>
             </view>
           </view>
         </scroll-view>
@@ -241,18 +235,28 @@
           </view>
           <view class="form-field">
             <text class="form-label form-label--required">工单类型</text>
-            <view class="option-group">
-              <button
-                v-for="item in worksheetTypeOptions"
-                :key="item.value"
-                class="option-button"
-                :class="{ 'option-button--active': worksheetForm.type === item.value }"
-                hover-class="option-button--hover"
-                @click="worksheetForm.type = item.value"
+            <view class="select-field">
+              <view
+                class="form-select form-select--dropdown"
+                :class="{ 'form-select--open': worksheetTypeSelectOpen, 'form-control--error': worksheetTypeError }"
+                @click.stop="worksheetTypeSelectOpen = !worksheetTypeSelectOpen"
               >
-                {{ item.label }}
-              </button>
+                <text :class="{ 'select-placeholder': worksheetForm.type === '' }">{{ worksheetTypeLabel }}</text>
+                <text class="select-arrow"></text>
+              </view>
+              <view v-if="worksheetTypeSelectOpen" class="select-menu">
+                <view
+                  v-for="item in worksheetTypeOptions"
+                  :key="item.value"
+                  class="select-option"
+                  :class="{ 'select-option--active': worksheetForm.type === item.value }"
+                  @click.stop="selectWorksheetType(item.value)"
+                >
+                  {{ item.label }}
+                </view>
+              </view>
             </view>
+            <text v-if="worksheetTypeError" class="form-error">{{ worksheetTypeError }}</text>
           </view>
           <view class="form-field">
             <text class="form-label">工单描述</text>
@@ -341,6 +345,9 @@ const total = ref(0);
 const loading = ref(false);
 const activeTab = ref<DetailTab>("base");
 
+const sortField = ref<string>("");
+const sortOrder = ref<"asc" | "desc" | "">("");
+
 const pageTitle = computed(() => pageTitleMap[props.mode]);
 const currentLevelLabel = computed(() => getOptionLabel(leakLevelOptions, filters.leakLevel, "不限"));
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pagination.pageSize)));
@@ -356,6 +363,7 @@ const baseDetailFields = computed(() => {
     { label: "关联音频", value: getReferenceAudio(item) },
     { label: "关联工单ID", value: getReferenceWorksheetId(item) },
     { label: "渗漏照片", value: getLeakPicture(item) },
+    { label: "备注", value: getRemark(item) },
   ];
 });
 
@@ -424,8 +432,8 @@ function buildQueryParams() {
     pageSize: pagination.pageSize,
     startTime: normalizeDateForApi(filters.startTime, false),
     endTime: normalizeDateForApi(filters.endTime, true),
-    sortOrder: "desc",
-    sortField: "createdAt",
+    sortOrder: sortOrder.value || "desc",
+    sortField: sortField.value || "createdAt",
     leakLevel: queryLeakLevel,
     detectAccount: filters.detectAccount.trim() || undefined,
   };
@@ -587,6 +595,28 @@ function searchSuspects() {
   void fetchSuspects();
 }
 
+function toggleSort(field: string) {
+  if (sortField.value === field) {
+    if (sortOrder.value === "asc") {
+      sortOrder.value = "desc";
+    } else if (sortOrder.value === "desc") {
+      sortField.value = "";
+      sortOrder.value = "";
+    } else {
+      sortOrder.value = "asc";
+    }
+  } else {
+    sortField.value = field;
+    sortOrder.value = "asc";
+  }
+  searchSuspects();
+}
+
+function getSortClass(field: string) {
+  if (sortField.value !== field) return "sort-indicator--default";
+  return sortOrder.value === "asc" ? "sort-indicator--asc" : "sort-indicator--desc";
+}
+
 function resetFilters() {
   clearFilters();
   searchSuspects();
@@ -606,9 +636,10 @@ const confirmLevelOptions: SelectOption<number>[] = [
 ];
 
 const worksheetTypeOptions: SelectOption<number>[] = [
-  { label: "巡检工单", value: 0 },
-  { label: "维修工单", value: 1 },
-  { label: "应急工单", value: 2 },
+  { label: "巡检", value: 0 },
+  { label: "检漏", value: 1 },
+  { label: "拆装", value: 2 },
+  { label: "维护", value: 3 },
 ];
 
 const processing = ref(false);
@@ -616,18 +647,25 @@ const confirmDialogVisible = ref(false);
 const confirmLevel = ref<number>(0);
 const confirmRemark = ref("");
 const worksheetDialogVisible = ref(false);
-const worksheetForm = reactive({ title: "", type: 0, description: "" });
+const worksheetTypeSelectOpen = ref(false);
+const worksheetTypeError = ref("");
+const worksheetForm = reactive({ title: "", type: "" as number | "", description: "" });
 
 const confirmLevelLabel = computed(() => confirmLevelOptions.find((item) => item.value === confirmLevel.value)?.label || "请选择");
-const worksheetTypeLabel = computed(() => worksheetTypeOptions.find((item) => item.value === worksheetForm.type)?.label || "请选择");
+const worksheetTypeLabel = computed(() => {
+  if (worksheetForm.type === "") return "请选择工单类型";
+  return worksheetTypeOptions.find((item) => item.value === worksheetForm.type)?.label || "请选择工单类型";
+});
 const worksheetSuspectId = computed(() => (selectedSuspect.value ? getRowId(selectedSuspect.value) : ""));
 
 function handleConfirmLevelChange(event: { detail: { value: number } }) {
   confirmLevel.value = confirmLevelOptions[event.detail.value]?.value ?? 0;
 }
 
-function handleWorksheetTypeChange(event: { detail: { value: number } }) {
-  worksheetForm.type = worksheetTypeOptions[event.detail.value]?.value ?? 0;
+function selectWorksheetType(value: number) {
+  worksheetForm.type = value;
+  worksheetTypeSelectOpen.value = false;
+  worksheetTypeError.value = "";
 }
 
 function openConfirmDialog() {
@@ -642,13 +680,17 @@ function closeConfirmDialog() {
 
 function openWorksheetDialog() {
   worksheetForm.title = "";
-  worksheetForm.type = 0;
+  worksheetForm.type = "";
   worksheetForm.description = "";
+  worksheetTypeSelectOpen.value = false;
+  worksheetTypeError.value = "";
   worksheetDialogVisible.value = true;
 }
 
 function closeWorksheetDialog() {
   worksheetDialogVisible.value = false;
+  worksheetTypeSelectOpen.value = false;
+  worksheetTypeError.value = "";
 }
 
 async function submitConfirm() {
@@ -722,6 +764,10 @@ async function submitWorksheet() {
   }
   if (!worksheetForm.title.trim()) {
     uni.showToast({ title: "请输入工单标题", icon: "none" });
+    return;
+  }
+  if (worksheetForm.type === "") {
+    worksheetTypeError.value = "请选择工单类型";
     return;
   }
 
@@ -972,6 +1018,7 @@ defineExpose({
   min-height: 0;
   padding: 0 14px 14px;
   overflow: hidden;
+  overflow-x: hidden;
   background: #eef4f8;
 }
 
@@ -982,6 +1029,8 @@ defineExpose({
   border: 1px solid #d8e5ef;
   border-radius: 6px;
   box-shadow: 0 12px 26px rgba(35, 72, 104, 0.09);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .pagination-bar,
@@ -1160,6 +1209,11 @@ defineExpose({
   margin-left: 0;
 }
 
+.toolbar-actions--right {
+  margin-left: auto;
+  justify-content: flex-end;
+}
+
 .toolbar-actions .toolbar-button,
 .toolbar-actions .toolbar-icon-button {
   height: 38px;
@@ -1247,6 +1301,8 @@ defineExpose({
   gap: 14px;
   margin-top: 14px;
   min-height: 0;
+  overflow: hidden;
+  overflow-x: hidden;
 }
 
 .suspect-table-panel,
@@ -1256,6 +1312,7 @@ defineExpose({
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+  overflow-x: hidden;
 }
 
 .table-head {
@@ -1283,6 +1340,8 @@ defineExpose({
   flex: 1;
   height: auto;
   min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
   background: #ffffff;
 }
 
@@ -1317,21 +1376,23 @@ defineExpose({
 }
 
 .data-table {
-  width: 1280px;
-  min-width: 1280px;
+  width: 100%;
+  min-width: 0;
   background: #ffffff;
 }
 
 .data-row {
   display: grid;
-  grid-template-columns: 58px 168px 220px 120px 150px 120px 130px 220px;
+  grid-template-columns: 52px 1fr 2fr 1fr 1fr;
   min-height: 42px;
-  width: 1280px;
+  width: 100%;
+  min-width: 0;
   border-bottom: 1px solid #edf1f5;
   cursor: pointer;
   transition:
     background 0.18s ease,
-    box-shadow 0.18s ease;
+    box-shadow 0.18s ease,
+    opacity 0.2s ease;
 }
 
 .data-row--header {
@@ -1346,6 +1407,15 @@ defineExpose({
   box-shadow: 0 1px 0 #dbe7f0;
 }
 
+.data-table-body {
+  transition: opacity 0.25s ease;
+}
+
+.data-table-body--loading {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 .data-row:not(.data-row--header):nth-child(odd) {
   background: #ffffff;
 }
@@ -1357,6 +1427,11 @@ defineExpose({
 .data-row:not(.data-row--header):hover {
   background: #f1f8ff;
   box-shadow: inset 0 0 0 1px #d7ebfb;
+  transform: translateY(-1px);
+  transition:
+    background 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
 }
 
 .data-row--active {
@@ -1398,6 +1473,40 @@ defineExpose({
   font-size: 12px;
   letter-spacing: 0;
   text-align: center;
+}
+
+.data-cell--sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.18s ease;
+}
+
+.data-cell--sortable:hover {
+  color: #0d82ee;
+}
+
+.sort-indicator {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-left: 4px;
+  vertical-align: middle;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+}
+
+.sort-indicator--default {
+  border-top: 5px solid #c5d2e0;
+  opacity: 0.4;
+}
+
+.sort-indicator--asc {
+  border-bottom: 5px solid #0d82ee;
+  border-top: 0;
+}
+
+.sort-indicator--desc {
+  border-top: 5px solid #0d82ee;
 }
 
 .data-cell:last-child {
@@ -1844,23 +1953,194 @@ defineExpose({
   word-break: break-all;
 }
 
+/* ============================================
+   响应式布局
+   ============================================ */
+
+/* 大屏（>= 1440px）：表格与详情面板并排 */
+@media (min-width: 1440px) {
+  .suspect-layout {
+    grid-template-columns: minmax(0, 1fr) 420px;
+  }
+
+  .data-row {
+    grid-template-columns: 52px 1fr 2.5fr 1fr 1fr;
+  }
+}
+
+/* 中屏（<= 1280px）：表格与详情面板上下堆叠 */
 @media (max-width: 1280px) {
   .suspect-layout {
     grid-template-columns: 1fr;
   }
 
   .suspect-detail-panel {
-    min-height: 360px;
+    min-height: 320px;
+  }
+
+  .data-row {
+    grid-template-columns: 52px 1fr 2fr 1fr 1fr;
   }
 }
 
-@media (max-width: 520px) {
-  .detail-grid--base {
+/* 小屏平板（<= 960px） */
+@media (max-width: 960px) {
+  .suspect-view {
+    padding: 0 8px 10px;
+  }
+
+  .suspect-layout {
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .toolbar-row--filters {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .filter-group {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .filter-group--date {
+    flex: 1 1 100%;
+  }
+
+  .date-range {
+    flex-wrap: wrap;
+  }
+
+  .filter-datetime {
+    flex: 1 1 140px;
+    width: auto;
+  }
+
+  .data-row {
+    grid-template-columns: 48px 1fr 2fr 1fr 1fr;
+    min-height: 40px;
+  }
+
+  .data-cell {
+    padding: 0 8px;
+    font-size: 12px;
+  }
+
+  .detail-tabs {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    height: 48px;
+    padding: 6px;
+  }
+
+  .detail-tab {
+    font-size: 12px;
+  }
+
+  .process-actions {
     grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+/* 手机（<= 640px） */
+@media (max-width: 640px) {
+  .suspect-view {
+    padding: 0 4px 8px;
+  }
+
+  .suspect-toolbar {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .toolbar-row--filters {
+    gap: 6px;
+  }
+
+  .toolbar-row--bottom {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .toolbar-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+
+  .toolbar-actions .toolbar-button {
+    min-width: 56px;
+    padding: 0 10px;
+    font-size: 12px;
+    height: 34px;
+  }
+
+  .toolbar-actions .toolbar-icon-button {
+    width: 34px;
+    height: 34px;
+  }
+
+  .suspect-layout {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .suspect-detail-panel {
+    min-height: 280px;
+  }
+
+  .table-head {
+    height: 42px;
+    padding: 0 10px;
+    font-size: 14px;
+  }
+
+  .table-head__meta {
+    font-size: 11px;
+    padding: 2px 8px;
+  }
+
+  .data-row {
+    grid-template-columns: 42px 1fr 2fr 1fr 1fr;
+    min-height: 38px;
+  }
+
+  .data-row--header {
+    min-height: 38px;
+  }
+
+  .data-cell {
+    padding: 0 6px;
+    font-size: 11px;
+  }
+
+  .data-row--header .data-cell {
+    font-size: 11px;
+  }
+
+  .detail-tabs {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 3px;
+    height: 44px;
+    padding: 4px;
+  }
+
+  .detail-tab {
+    font-size: 11px;
+  }
+
+  .detail-body {
+    padding: 10px;
   }
 
   .detail-item--base {
-    grid-template-columns: 78px minmax(0, 1fr);
+    grid-template-columns: 72px minmax(0, 1fr);
+    min-height: 40px;
+    padding: 6px 10px;
   }
 
   .detail-grid--content .detail-item {
@@ -1873,13 +2153,58 @@ defineExpose({
   }
 
   .detail-item--note .detail-item__label {
-    min-height: 38px;
+    min-height: 34px;
   }
 
   .time-row__content,
   .location-row {
     grid-template-columns: 1fr;
-    gap: 5px;
+    gap: 4px;
+  }
+
+  .pagination-bar {
+    height: 40px;
+    padding: 0 8px;
+    gap: 6px;
+  }
+
+  .page-button {
+    height: 28px;
+    padding: 0 8px;
+    font-size: 12px;
+    line-height: 28px;
+  }
+
+  .page-info {
+    font-size: 12px;
+  }
+}
+
+/* 极小屏（<= 400px） */
+@media (max-width: 400px) {
+  .data-row {
+    grid-template-columns: 36px 1fr 2fr 1fr 1fr;
+    min-height: 36px;
+  }
+
+  .data-cell {
+    padding: 0 4px;
+    font-size: 10px;
+  }
+
+  .data-row--header .data-cell {
+    font-size: 10px;
+  }
+
+  .detail-tabs {
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 2px;
+    height: 40px;
+    padding: 3px;
+  }
+
+  .detail-tab {
+    font-size: 10px;
   }
 }
 
@@ -2069,6 +2394,62 @@ defineExpose({
   border: solid #74879c;
   border-width: 0 2px 2px 0;
   transform: translateY(-2px) rotate(45deg);
+}
+
+.select-field {
+  position: relative;
+}
+
+.select-placeholder {
+  color: #9aa9b8;
+}
+
+.select-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 100;
+  max-height: 200px;
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1px solid #d5e2ee;
+  border-radius: 4px;
+  box-shadow: 0 8px 24px rgba(15, 35, 55, 0.12);
+}
+
+.select-option {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 12px;
+  color: #172033;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.14s ease;
+}
+
+.select-option:hover {
+  background: #edf7ff;
+}
+
+.select-option--active {
+  color: #0d82ee;
+  background: #e8f4ff;
+}
+
+.form-control--error {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
+}
+
+.form-error {
+  display: block;
+  margin-top: 4px;
+  color: #ef4444;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .form-textarea {

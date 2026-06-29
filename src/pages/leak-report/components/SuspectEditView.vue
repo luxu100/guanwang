@@ -80,8 +80,41 @@
                 </view>
                 <view class="form-grid form-grid--two">
                   <view class="form-field">
-                    <text class="form-label">管道材质</text>
-                    <input v-model="form.tubeMaterial" class="form-input" placeholder="如 PE / 钢管 / 铸铁" placeholder-class="input-placeholder" />
+                    <text class="form-label form-label--required">管道材质</text>
+                    <view class="select-field">
+                      <view
+                        class="form-select form-select--dropdown"
+                        :class="{ 'form-select--open': materialSelectOpen, 'form-control--error': materialError }"
+                        @click.stop="materialSelectOpen = !materialSelectOpen"
+                      >
+                        <text :class="{ 'select-placeholder': !form.tubeMaterial }">{{ form.tubeMaterial || "请选择管道材质" }}</text>
+                        <text class="select-arrow"></text>
+                      </view>
+                      <view v-if="materialSelectOpen" class="select-menu select-menu--material">
+                        <view class="select-search">
+                          <input
+                            v-model="materialSearch"
+                            class="select-search-input"
+                            placeholder="搜索材质..."
+                            placeholder-class="input-placeholder"
+                            @click.stop
+                          />
+                        </view>
+                        <scroll-view class="select-scroll" scroll-y>
+                          <view
+                            v-for="item in filteredMaterialOptions"
+                            :key="item"
+                            class="select-option"
+                            :class="{ 'select-option--active': form.tubeMaterial === item }"
+                            @click.stop="selectMaterial(item)"
+                          >
+                            <text v-html="highlightMatch(item)"></text>
+                          </view>
+                          <view v-if="filteredMaterialOptions.length === 0" class="select-option select-option--empty">无匹配结果</view>
+                        </scroll-view>
+                      </view>
+                    </view>
+                    <text v-if="materialError" class="form-error">{{ materialError }}</text>
                   </view>
                   <view class="form-field">
                     <text class="form-label">管道口径</text>
@@ -278,12 +311,67 @@ const audioItem = ref<AudioItem | null>(null);
 const audioPlaying = ref(false);
 let audioPlayerInstance: HTMLAudioElement | null = null;
 
+const materialSelectOpen = ref(false);
+const materialSearch = ref("");
+const materialError = ref("");
+
+const materialOptions = [
+  "镀锌钢", "PE", "铸铁", "球墨", "塑料", "钢管", "UPVC", "PVC", "自应力",
+  "PPR", "ABS", "复合", "玻璃钢", "水泥", "铅管", "PE 硬聚乙烯管",
+  "PE 软聚乙烯管", "PVC 聚氯乙烯", "低碳钢", "其他",
+];
+
+const filteredMaterialOptions = computed(() => {
+  if (!materialSearch.value) return materialOptions;
+  const keyword = materialSearch.value.toLowerCase();
+  return materialOptions.filter((item) => {
+    if (item.toLowerCase().includes(keyword)) return true;
+    const py = getPinyin(item);
+    if (py.includes(keyword)) return true;
+    const pyAbbr = getPinyinAbbr(item);
+    if (pyAbbr.includes(keyword)) return true;
+    return false;
+  });
+});
+
+function selectMaterial(value: string) {
+  form.tubeMaterial = value;
+  materialSelectOpen.value = false;
+  materialSearch.value = "";
+  materialError.value = "";
+}
+
+function highlightMatch(text: string): string {
+  if (!materialSearch.value) return text;
+  const keyword = materialSearch.value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return text.replace(new RegExp(`(${keyword})`, "gi"), '<span class="highlight">$1</span>');
+}
+
+const pinyinMap: Record<string, string> = {
+  镀: "du", 锌: "xin", 钢: "gang", 铸: "zhu", 铁: "tie", 球: "qiu", 墨: "mo",
+  塑: "su", 料: "liao", 管: "guan", 自: "zi", 应: "ying", 力: "li",
+  复: "fu", 合: "he", 玻: "bo", 璃: "li", 水: "shui", 泥: "ni",
+  铅: "qian", 硬: "ying", 聚: "ju", 乙: "yi", 烯: "xi", 软: "ruan",
+  低: "di", 碳: "tan", 其: "qi", 他: "ta",
+};
+
+function getPinyin(text: string): string {
+  return text.split("").map((ch) => pinyinMap[ch] || ch.toLowerCase()).join("");
+}
+
+function getPinyinAbbr(text: string): string {
+  return text.split("").map((ch) => (pinyinMap[ch] ? pinyinMap[ch][0] : ch.toLowerCase())).join("");
+}
+
 const dialogTitle = computed(() => (isEditMode.value ? "编辑疑点" : "新增疑点"));
 
 function openCreateDialog() {
   isEditMode.value = false;
   editingId.value = "";
   resetForm();
+  materialSelectOpen.value = false;
+  materialSearch.value = "";
+  materialError.value = "";
   dialogVisible.value = true;
 }
 
@@ -291,6 +379,9 @@ function openEditDialog(suspect: SuspectRecord) {
   isEditMode.value = true;
   editingId.value = String(suspect.id ?? "");
   fillForm(suspect);
+  materialSelectOpen.value = false;
+  materialSearch.value = "";
+  materialError.value = "";
   dialogVisible.value = true;
 }
 
@@ -343,7 +434,7 @@ function resetForm() {
   form.leakCoordinate = "";
   form.closestDeviceDistance = "";
   form.tubeDepth = "";
-  form.tubeMaterial = "";
+  form.tubeMaterial = "镀锌钢";
   form.tubeBore = "";
   form.referenceDevices = "";
   form.referenceAudio = "";
@@ -354,6 +445,9 @@ function resetForm() {
   photoIdListText.value = "";
   audioItem.value = null;
   audioPlaying.value = false;
+  materialSelectOpen.value = false;
+  materialSearch.value = "";
+  materialError.value = "";
 }
 
 /* ========== 图片上传（与漏点表单一致：本地选择 + 临时ID，待后端上传接口对接） ========== */
@@ -610,6 +704,10 @@ function validate() {
     uni.showToast({ title: "请输入检出人", icon: "none" });
     return false;
   }
+  if (!form.tubeMaterial) {
+    materialError.value = "请选择管道材质";
+    return false;
+  }
   return true;
 }
 
@@ -660,6 +758,8 @@ function normalizeDatetimeForApi(value: string) {
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  overflow: hidden;
+  overflow-x: hidden;
 }
 
 .dialog-mask {
@@ -852,6 +952,134 @@ function normalizeDatetimeForApi(value: string) {
 
 .input-placeholder {
   color: #9aa9b8;
+}
+
+.form-select--dropdown {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  color: #172033;
+  font-size: 14px;
+  background: #f9fcff;
+  border: 1px solid #cbdced;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.form-select--open {
+  border-color: #0d82ee;
+  box-shadow: 0 0 0 3px rgba(13, 130, 238, 0.1);
+}
+
+.select-arrow {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border: solid #74879c;
+  border-width: 0 2px 2px 0;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 0.18s ease;
+}
+
+.form-select--open .select-arrow {
+  transform: translateY(1px) rotate(-135deg);
+}
+
+.select-placeholder {
+  color: #9aa9b8;
+}
+
+.select-field {
+  position: relative;
+}
+
+.select-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 200;
+  max-height: 240px;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #d5e2ee;
+  border-radius: 4px;
+  box-shadow: 0 8px 24px rgba(15, 35, 55, 0.12);
+}
+
+.select-menu--material {
+  max-height: 280px;
+}
+
+.select-search {
+  padding: 6px 8px;
+  border-bottom: 1px solid #edf1f5;
+}
+
+.select-search-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  color: #172033;
+  font-size: 13px;
+  background: #f6fafe;
+  border: 1px solid #d5e2ee;
+  border-radius: 4px;
+}
+
+.select-scroll {
+  max-height: 200px;
+}
+
+.select-option {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 12px;
+  color: #172033;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.14s ease;
+}
+
+.select-option:hover {
+  background: #edf7ff;
+}
+
+.select-option--active {
+  color: #0d82ee;
+  background: #e8f4ff;
+}
+
+.select-option--empty {
+  color: #9aa9b8;
+  font-weight: 500;
+  cursor: default;
+}
+
+.form-control--error {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
+}
+
+.form-error {
+  display: block;
+  margin-top: 4px;
+  color: #ef4444;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.highlight {
+  color: #0d82ee;
+  font-weight: 800;
 }
 
 .form-row {
