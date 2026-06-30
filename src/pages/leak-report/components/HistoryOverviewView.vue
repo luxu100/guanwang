@@ -36,6 +36,15 @@
             <text class="icon-refresh"></text>
           </button>
         </view>
+        <view class="toolbar-actions toolbar-actions--right">
+          <view class="export-dropdown">
+            <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="exportMenuVisible = !exportMenuVisible">导出</button>
+            <view v-if="exportMenuVisible" class="export-menu">
+              <view class="export-menu__item" @click="handleExport('current')">导出当前页</view>
+              <view class="export-menu__item" @click="handleExport('all')">导出全部</view>
+            </view>
+          </view>
+        </view>
       </view>
     </view>
 
@@ -53,16 +62,17 @@
     </view>
 
     <!-- 主内容区 -->
-    <view class="main-layout">
-      <!-- 左侧表格 -->
-      <view class="table-panel">
-        <view class="table-head">
-          <text>{{ activeTabLabel }}历史</text>
-          <text class="table-head__meta">共 {{ total }} 条</text>
-        </view>
-
-        <scroll-view class="table-scroll" scroll-x scroll-y>
-          <view class="data-table">
+    <LeakTableView
+      :title="`${activeTabLabel}历史`"
+      :total="total"
+      :page-num="pagination.pageNum"
+      :total-pages="totalPages"
+      :has-detail="!!selectedRecord"
+      detail-empty-text="请选择左侧记录查看详情"
+      @prev-page="changePage(-1)"
+      @next-page="changePage(1)"
+    >
+      <view class="data-table">
             <!-- 渗漏记录列头 -->
             <view v-if="activeDataTab === 'leakage'" class="data-row data-row--header data-row--leakage">
               <text class="data-cell data-cell--index">序号</text>
@@ -160,7 +170,7 @@
                 @click="selectRecord(item, index)"
               >
                 <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
-                <text class="data-cell data-cell--time">{{ formatDateTime(activeDataTab === 'algorithm' ? getFieldValue(item, "audioTime") : getFieldValue(item, "createdAt")) }}</text>
+                <text class="data-cell data-cell--time">{{ formatDateTime(activeDataTab === 'algorithm' ? getFieldValue(item, "audioTime") : activeDataTab === 'sampling' ? getFieldValue(item, "samplingTime") : getFieldValue(item, "createdAt")) }}</text>
                 <text class="data-cell data-cell--device">{{ getFieldValue(item, "deviceNumber") || "-" }}</text>
                 <template v-if="activeDataTab === 'algorithm'">
                   <text class="data-cell data-cell--signal">{{ getFieldValue(item, "signalprocessingResult") || "-" }}</text>
@@ -182,30 +192,21 @@
               </view>
             </view>
           </view>
-        </scroll-view>
-
-        <view class="pagination-bar">
-          <button class="page-button" hover-class="page-button--hover" :disabled="pagination.pageNum <= 1" @click="changePage(-1)">上一页</button>
-          <text class="page-info">第 {{ pagination.pageNum }} / {{ totalPages }} 页</text>
-          <button class="page-button" hover-class="page-button--hover" :disabled="pagination.pageNum >= totalPages" @click="changePage(1)">下一页</button>
-        </view>
-      </view>
 
       <!-- 右侧详情 -->
-      <view class="detail-panel">
-        <view v-if="!selectedRecord" class="detail-empty">请选择左侧记录查看详情</view>
-        <view v-else class="detail-body">
+      <template #detail>
+        <view class="detail-body">
           <view class="detail-section">
             <view class="detail-grid">
-              <view v-for="item in currentDetailFields" :key="item.label" class="detail-item">
+              <view v-for="item in currentDetailFields" :key="item.label" class="detail-item" :class="getDetailItemClass(item)">
                 <text class="detail-item__label">{{ item.label }}</text>
                 <text class="detail-item__value">{{ item.value }}</text>
               </view>
             </view>
           </view>
         </view>
-      </view>
-    </view>
+      </template>
+    </LeakTableView>
   </view>
 </template>
 
@@ -222,6 +223,7 @@ import {
   getSamplingRecordHistoryDetail,
 } from "@/services/leak-report/history-overview";
 import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
+import LeakTableView from "@/pages/leak-report/components/LeakTableView.vue";
 
 type HistoryRecord = Record<string, unknown>;
 type DataTab = "leakage" | "deviceUpload" | "algorithm" | "sampling";
@@ -277,6 +279,7 @@ const selectedRecordKey = ref("");
 const total = ref(0);
 const loading = ref(false);
 const activeDataTab = ref<DataTab>("leakage");
+const exportMenuVisible = ref(false);
 
 const currentLeakStatusLabel = computed(() =>
   leakStatusOptions.find((o) => o.value === filters.leakStatus)?.label || "不限",
@@ -301,10 +304,8 @@ const currentDetailFields = computed(() => {
       { label: "最近设备距离", key: "closestDeviceDistance" },
       { label: "关联设备", key: "referenceDevices" },
       { label: "关联工单ID", key: "referenceWorksheetId" },
-      { label: "关联音频", key: "referenceAudio" },
       { label: "备注", key: "remark" },
       { label: "创建时间", key: "createdAt", format: true },
-      { label: "更新时间", key: "updatedAt", format: true },
     ]);
   }
   if (activeDataTab.value === "deviceUpload") {
@@ -346,6 +347,9 @@ const currentDetailFields = computed(() => {
     { label: "ID", key: "id" },
     { label: "设备ID", key: "deviceId" },
     { label: "设备编号", key: "deviceNumber" },
+    { label: "管组编号", key: "tubeGroup" },
+    { label: "采样时间", key: "samplingTime", format: true },
+    { label: "采样地址", key: "samplingAddress" },
     { label: "渗漏标志位", key: "leakStatus", as: getLeakStatusLabel(r) },
     { label: "特征值", key: "leakEsa" },
     { label: "强度", key: "leakIntensity" },
@@ -447,6 +451,75 @@ function searchHistory() {
   fetchHistoryData();
 }
 
+async function handleExport(scope: "current" | "all") {
+  exportMenuVisible.value = false;
+  let exportRecords = records.value;
+  if (scope === "all") {
+    try {
+      const api = getApiFunction();
+      const params = { ...buildQueryParams(), pageNum: 1, pageSize: 99999 };
+      const response = (await api.page(params)) as ApiResponseLike;
+      assertSuccessResponse(response);
+      const parsed = parsePageResponse(response);
+      exportRecords = parsed.records;
+    } catch {
+      uni.showToast({ title: "获取全部数据失败", icon: "none" });
+      return;
+    }
+  }
+  if (!exportRecords.length) {
+    uni.showToast({ title: "暂无数据可导出", icon: "none" });
+    return;
+  }
+  // #ifdef H5
+  const tab = activeDataTab.value;
+  let headers: string[] = [];
+  let keys: string[] = [];
+  if (tab === "leakage") {
+    headers = ["序号", "检出时间", "渗漏级别", "漏点位置", "检出人", "管道材质", "备注"];
+    keys = ["detectedTime", "leakLevel", "leakAddress", "detectAccount", "tubeMaterial", "remark"];
+  } else if (tab === "deviceUpload") {
+    headers = ["序号", "上报时间", "设备编号", "渗漏标志位", "特征值", "强度", "频率"];
+    keys = ["uploadTime", "deviceNumber", "leakStatus", "leakEsa", "leakIntensity", "leakFrequency"];
+  } else if (tab === "algorithm") {
+    headers = ["序号", "音频时间", "设备编号", "信号处理结果", "泄漏判定", "创建时间"];
+    keys = ["audioTime", "deviceNumber", "signalprocessingResult", "signalprocessingResult2", "createdAt"];
+  } else {
+    headers = ["序号", "采样时间", "设备编号", "渗漏标志位", "特征值", "强度", "频率"];
+    keys = ["samplingTime", "deviceNumber", "leakStatus", "leakEsa", "leakIntensity", "leakFrequency"];
+  }
+  const levelMap: Record<number, string> = { 0: "轻度", 1: "中度", 2: "重度" };
+  const rows = exportRecords.map((r, idx) => {
+    const row = [String(idx + 1)];
+    keys.forEach((k) => {
+      if (k === "leakLevel") {
+        row.push(levelMap[Number(getFieldValue(r, k))] ?? "");
+      } else if (k === "leakStatus") {
+        row.push(getLeakStatusLabel(r));
+      } else if (k === "audioTime" || k === "detectedTime" || k === "uploadTime" || k === "createdAt" || k === "samplingTime") {
+        row.push(formatDateTime(getFieldValue(r, k)));
+      } else {
+        const v = getFieldValue(r, k);
+        row.push(v === undefined || v === null ? "" : String(v).replace(/"/g, '""'));
+      }
+    });
+    return row;
+  });
+  const csv = [headers.join(","), ...rows.map((row) => row.map((c) => `"${c}"`).join(","))].join("\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${tabLabelMap[tab]}_${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+  uni.showToast({ title: "导出成功", icon: "success" });
+  // #endif
+  // #ifndef H5
+  uni.showToast({ title: "导出功能仅支持 H5 端", icon: "none" });
+  // #endif
+}
+
 function resetFilters() {
   filters.startTime = "";
   filters.endTime = "";
@@ -519,6 +592,15 @@ function getLeakLevelClass(item: HistoryRecord) {
   if (val === 0) return "level-pill--light";
   if (val === 1) return "level-pill--medium";
   if (val === 2) return "level-pill--heavy";
+  return "";
+}
+
+function getDetailItemClass(item: { label: string }) {
+  if (item.label !== "渗漏级别" || !selectedRecord.value) return "";
+  const v = Number(getFieldValue(selectedRecord.value, "leakLevel"));
+  if (v === 0) return "detail-item--level-light";
+  if (v === 1) return "detail-item--level-medium";
+  if (v === 2) return "detail-item--level-heavy";
   return "";
 }
 
@@ -662,8 +744,10 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   flex: none;
   display: flex;
   flex-direction: column;
-  padding: 14px 14px 10px;
+  gap: 12px;
+  padding: 14px;
   margin-bottom: 10px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
 }
 
 .toolbar-row {
@@ -674,7 +758,10 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 }
 
 .toolbar-row--filters {
-  margin-bottom: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px 12px;
 }
 
 .toolbar-row--bottom {
@@ -682,35 +769,37 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 }
 
 .filter-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  display: grid;
+  align-content: start;
+  gap: 6px;
 }
 
 .filter-label {
-  flex: none;
-  color: #183755;
-  font-size: 13px;
-  font-weight: 700;
+  color: #52677b;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
   white-space: nowrap;
 }
 
 .filter-input {
   box-sizing: border-box;
   width: 140px;
-  height: 38px;
-  padding: 0 12px;
+  height: 28px;
+  padding: 0 10px;
   color: #172033;
-  font-size: 14px;
-  background: #fbfdff;
-  border: 1px solid #d5e2ee;
+  font-size: 13px;
+  font-weight: 600;
+  background: #f9fcff;
+  border: 1px solid #cbdced;
   border-radius: 4px;
+  line-height: 28px;
 }
 
 .filter-input::placeholder,
 .input-placeholder {
-  color: #7f8fa3;
-  font-size: 14px;
+  color: #9aa9b8;
+  font-size: 13px;
 }
 
 .filter-select {
@@ -719,45 +808,100 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   justify-content: space-between;
   box-sizing: border-box;
   min-width: 100px;
-  height: 38px;
-  padding: 0 12px;
+  height: 28px;
+  padding: 0 10px;
   color: #172033;
-  font-size: 14px;
-  background: #fbfdff;
-  border: 1px solid #d5e2ee;
+  font-size: 13px;
+  font-weight: 600;
+  background: #f9fcff;
+  border: 1px solid #cbdced;
   border-radius: 4px;
   cursor: pointer;
+  line-height: 28px;
 }
 
 .filter-select__arrow {
-  width: 0;
-  height: 0;
+  width: 8px;
+  height: 8px;
   margin-left: 8px;
-  border-top: 5px solid #7f8fa3;
-  border-right: 5px solid transparent;
-  border-left: 5px solid transparent;
+  border: solid #74879c;
+  border-width: 0 2px 2px 0;
+  transform: translateY(-2px) rotate(45deg);
 }
 
 .date-range {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  flex-wrap: nowrap;
 }
 
 .filter-datetime {
-  width: 170px;
+  width: 200px;
+}
+
+.filter-datetime :deep(.datetime-picker__control) {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 28px;
+}
+
+.filter-datetime :deep(.datetime-picker__value) {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.filter-datetime :deep(.datetime-picker__icon) {
+  width: 15px;
+  height: 15px;
 }
 
 .filter-separator {
   flex: none;
-  color: #7f8fa3;
+  color: #8191a2;
   font-size: 13px;
 }
 
 .toolbar-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 7px;
+}
+
+.toolbar-actions--right {
+  margin-left: auto;
+}
+
+.export-dropdown {
+  position: relative;
+}
+
+.export-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 20;
+  margin-top: 4px;
+  background: #ffffff;
+  border: 1px solid #d5e2ee;
+  border-radius: 6px;
+  box-shadow: 0 8px 20px rgba(15, 35, 55, 0.12);
+  overflow: hidden;
+}
+
+.export-menu__item {
+  padding: 10px 18px;
+  color: #24384d;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.export-menu__item:hover {
+  background: #f1f8ff;
+  color: #0d82ee;
 }
 
 .toolbar-button {
@@ -768,13 +912,14 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   min-width: 64px;
   height: 38px;
   margin: 0;
-  padding: 0 16px;
-  color: #183755;
-  font-size: 14px;
+  padding: 0 15px;
+  color: #31506d;
+  font-size: 13px;
   font-weight: 700;
-  background: #ffffff;
-  border: 1px solid #d5e2ee;
-  border-radius: 6px;
+  line-height: 1.2;
+  background: #f6fbff;
+  border: 1px solid #cbdced;
+  border-radius: 5px;
   cursor: pointer;
 }
 
@@ -784,8 +929,9 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   border-color: #0d82ee;
 }
 
-.toolbar-button--hover { opacity: 0.85; }
-.toolbar-button:disabled { opacity: 0.45; cursor: not-allowed; }
+.toolbar-button--hover { color: #0d82ee; background: #edf7ff; border-color: #a9d7ff; }
+.toolbar-button--primary.toolbar-button--hover { color: #ffffff; background: #0674d8; border-color: #0674d8; }
+.toolbar-button:disabled { color: #9aa9b8; background: #eef2f6; border-color: #d7e0e8; cursor: not-allowed; }
 
 .toolbar-icon-button {
   display: flex;
@@ -795,13 +941,14 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   height: 38px;
   margin: 0;
   padding: 0;
-  background: #ffffff;
-  border: 1px solid #d5e2ee;
-  border-radius: 6px;
+  color: #31506d;
+  background: #f6fbff;
+  border: 1px solid #cbdced;
+  border-radius: 5px;
   cursor: pointer;
 }
 
-.toolbar-icon-button--hover { background: #edf5ff; }
+.toolbar-icon-button--hover { color: #0d82ee; background: #edf7ff; border-color: #a9d7ff; }
 
 .icon-refresh {
   display: block;
@@ -840,7 +987,8 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 }
 
 .main-layout {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(380px, 20vw, 420px);
   flex: 1;
   min-height: 0;
   gap: 12px;
@@ -860,21 +1008,27 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 14px;
+  padding: 0 16px;
 }
 
 .table-head {
   flex: none;
-  color: #183755;
-  font-size: 15px;
-  font-weight: 900;
+  height: 50px;
+  color: #24445f;
+  font-size: 16px;
+  font-weight: 800;
+  background: #ffffff;
   border-bottom: 1px solid #edf3f8;
 }
 
 .table-head__meta {
-  color: #64748b;
+  padding: 4px 10px;
+  color: #6a7f94;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 800;
+  background: #f7fafc;
+  border: 1px solid #e3ebf2;
+  border-radius: 999px;
 }
 
 .table-scroll {
@@ -882,6 +1036,30 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   min-height: 0;
   overflow: auto;
   background: #ffffff;
+}
+
+.table-scroll::-webkit-scrollbar,
+.detail-section::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+.table-scroll::-webkit-scrollbar-track,
+.detail-section::-webkit-scrollbar-track {
+  background: #edf3f8;
+  border-radius: 999px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb,
+.detail-section::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, #9fb4c8, #6f8ba8);
+  border: 2px solid #edf3f8;
+  border-radius: 999px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb:hover,
+.detail-section::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(90deg, #7f9ab4, #4d6f91);
 }
 
 .data-table {
@@ -1045,10 +1223,9 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 }
 
 .detail-panel {
-  width: 340px;
-  flex: none;
   display: flex;
   flex-direction: column;
+  min-width: 0;
   overflow: hidden;
 }
 
@@ -1069,37 +1246,23 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   overflow: hidden;
 }
 
-.detail-section {
-  flex: 1;
-  min-height: 0;
-  padding: 14px;
-  overflow-y: auto;
-}
+.detail-section { flex: 1; min-height: 0; padding: 16px; overflow-y: auto; background: linear-gradient(180deg, #f5faff 0, #ffffff 142px), #ffffff; }
 
-.detail-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
+.detail-grid { display: grid; gap: 0; overflow: hidden; background: #ffffff; border: 1px solid #dfebf5; border-radius: 6px; box-shadow: 0 8px 18px rgba(33, 72, 108, 0.045); }
 
-.detail-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
+.detail-item { display: grid; grid-template-columns: 92px minmax(0, 1fr); align-items: center; min-height: 48px; padding: 8px 14px; border-bottom: 1px solid #edf3f8; }
 
-.detail-item__label {
-  color: #64748b;
-  font-size: 12px;
-  font-weight: 600;
-}
+.detail-grid .detail-item:last-child { border-bottom: 0; }
 
-.detail-item__value {
-  color: #172033;
-  font-size: 14px;
-  font-weight: 600;
-  word-break: break-all;
-}
+.detail-item__label { display: flex; align-items: center; color: #71869b; font-size: 12px; font-weight: 800; line-height: 1.3; }
+
+.detail-item__value { color: #172033; font-size: 14px; font-weight: 700; line-height: 1.45; text-align: right; word-break: break-all; }
+
+.detail-item--level-light { border-left: 4px solid #16a34a; padding-left: 10px; background: #f0fdf4; }
+
+.detail-item--level-medium { border-left: 4px solid #d97706; padding-left: 10px; background: #fffbeb; }
+
+.detail-item--level-heavy { border-left: 4px solid #dc2626; padding-left: 10px; background: #fef2f2; }
 
 @media (max-width: 1024px) {
   .main-layout {

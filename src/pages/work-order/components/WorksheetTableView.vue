@@ -200,11 +200,6 @@
               <text class="data-cell data-cell--level">
                 <text class="urgency-pill" :class="getUrgencyClass(item)">{{ getUrgencyLabel(item) }}</text>
               </text>
-              <text class="data-cell data-cell--time">{{ getRiseTime(item) }}</text>
-              <text class="data-cell data-cell--time">{{ getDeadlineTime(item) }}</text>
-              <text class="data-cell data-cell--time">{{ getFinishTime(item) }}</text>
-              <text class="data-cell data-cell--address">{{ getAddress(item) }}</text>
-              <text class="data-cell data-cell--remark">{{ getRemark(item) }}</text>
             </view>
           </view>
         </scroll-view>
@@ -240,6 +235,12 @@
               <view class="detail-summary__badges">
                 <text class="detail-summary__badge status-pill" :class="baseSummary.statusClass">{{ baseSummary.status }}</text>
                 <text class="detail-summary__badge urgency-pill" :class="baseSummary.urgencyClass">{{ baseSummary.urgency }}</text>
+              </view>
+              <view class="detail-summary__meta">
+                <view v-for="item in baseSummaryMeta" :key="item.label" class="detail-summary__meta-item">
+                  <text class="detail-summary__meta-label">{{ item.label }}</text>
+                  <text class="detail-summary__meta-value">{{ item.value }}</text>
+                </view>
               </view>
             </view>
 
@@ -348,27 +349,34 @@
               <text class="form-label">处理反馈</text>
               <textarea v-model="processForm.worksheetFeedback" class="form-textarea" :disabled="isSelectedWorksheetCanceled" placeholder="请输入处理反馈" placeholder-class="input-placeholder" />
             </view>
-            <view class="form-field">
-              <text class="form-label">工单说明</text>
-              <textarea v-model="processForm.worksheetInstruction" class="form-textarea" :disabled="isSelectedWorksheetCanceled" placeholder="请输入工单说明" placeholder-class="input-placeholder" />
+            <view class="process-more-toggle" @click="processMoreExpanded = !processMoreExpanded">
+              <text>更多处理信息</text>
+              <text class="process-more-toggle__hint">{{ processMoreExpanded ? "收起" : "展开" }}</text>
+              <text class="process-more-toggle__arrow" :class="{ 'process-more-toggle__arrow--open': processMoreExpanded }"></text>
             </view>
-            <view class="form-field">
-              <text class="form-label">工单地址</text>
-              <input v-model="processForm.address" class="form-input" :disabled="isSelectedWorksheetCanceled" placeholder="请输入工单地址" placeholder-class="input-placeholder" />
-            </view>
-            <view class="process-form-grid">
+            <view v-if="processMoreExpanded" class="process-more-panel">
               <view class="form-field">
-                <text class="form-label">工单坐标</text>
-                <input v-model="processForm.coordinate" class="form-input" :disabled="isSelectedWorksheetCanceled" placeholder="经度,纬度" placeholder-class="input-placeholder" />
+                <text class="form-label">工单说明</text>
+                <textarea v-model="processForm.worksheetInstruction" class="form-textarea" :disabled="isSelectedWorksheetCanceled" placeholder="请输入工单说明" placeholder-class="input-placeholder" />
               </view>
               <view class="form-field">
-                <text class="form-label">照片ID</text>
-                <input v-model="processForm.pictureIds" class="form-input" :disabled="isSelectedWorksheetCanceled" placeholder="文件 ID 列表" placeholder-class="input-placeholder" />
+                <text class="form-label">工单地址</text>
+                <input v-model="processForm.address" class="form-input" :disabled="isSelectedWorksheetCanceled" placeholder="请输入工单地址" placeholder-class="input-placeholder" />
               </view>
-            </view>
-            <view class="form-field">
-              <text class="form-label">备注</text>
-              <textarea v-model="processForm.remark" class="form-textarea form-textarea--compact" :disabled="isSelectedWorksheetCanceled" placeholder="请输入备注" placeholder-class="input-placeholder" />
+              <view class="process-form-grid">
+                <view class="form-field">
+                  <text class="form-label">工单坐标</text>
+                  <input v-model="processForm.coordinate" class="form-input" :disabled="isSelectedWorksheetCanceled" placeholder="经度,纬度" placeholder-class="input-placeholder" />
+                </view>
+                <view class="form-field">
+                  <text class="form-label">照片ID</text>
+                  <input v-model="processForm.pictureIds" class="form-input" :disabled="isSelectedWorksheetCanceled" placeholder="文件 ID 列表" placeholder-class="input-placeholder" />
+                </view>
+              </view>
+              <view class="form-field">
+                <text class="form-label">备注</text>
+                <textarea v-model="processForm.remark" class="form-textarea form-textarea--compact" :disabled="isSelectedWorksheetCanceled" placeholder="请输入备注" placeholder-class="input-placeholder" />
+              </view>
             </view>
             <view class="process-actions">
               <button class="toolbar-button toolbar-button--primary process-action process-action--save" :disabled="submittingProcess || isSelectedWorksheetCanceled" hover-class="toolbar-button--hover" @click="submitProcess">
@@ -483,11 +491,6 @@ const tableColumns: TableColumn[] = [
   { key: "executeAccount", label: "执行人", className: "data-cell--account", sortable: true },
   { key: "deviceReference", label: "设备引用", className: "data-cell--device", sortable: true },
   { key: "urgencyLevel", label: "紧急程度", className: "data-cell--level", sortable: true },
-  { key: "riseTime", label: "发起时间", className: "data-cell--time", sortable: true },
-  { key: "deadlineTime", label: "截止时间", className: "data-cell--time", sortable: true },
-  { key: "finishTime", label: "完成时间", className: "data-cell--time", sortable: true },
-  { key: "address", label: "地址", className: "data-cell--address", sortable: true },
-  { key: "remark", label: "备注", className: "data-cell--remark", sortable: true },
 ];
 
 const worksheetTypeOptionsWithoutAll = worksheetTypeOptions.filter((item) => item.value !== "") as Array<{ label: string; value: number }>;
@@ -537,6 +540,7 @@ const total = ref(0);
 const loading = ref(false);
 const submittingProcess = ref(false);
 const activeTab = ref<DetailTab>("base");
+const processMoreExpanded = ref(false);
 
 const pageTitle = computed(() => pageTitleMap[props.mode]);
 const currentTypeLabel = computed(() => getOptionLabel(worksheetTypeOptions, filters.worksheetType, "不限"));
@@ -595,8 +599,16 @@ const baseSummary = computed(() => {
     urgencyClass: getUrgencyClass(item),
   };
 });
+const baseSummaryMeta = computed(() => {
+  const item = selectedWorksheet.value || {};
+
+  return [
+    { label: "类型", value: getWorksheetTypeLabel(item) },
+    { label: "执行人", value: getExecuteAccount(item) },
+  ];
+});
 const secondaryBaseDetailFields = computed(() =>
-  baseDetailFields.value.filter((item) => item.label !== "工单编号" && item.label !== "工单状态" && item.label !== "紧急程度"),
+  baseDetailFields.value.filter((item) => !["工单编号", "工单类型", "工单状态", "紧急程度", "执行人"].includes(item.label)),
 );
 
 const contentDetailFields = computed(() => {
@@ -933,12 +945,14 @@ function selectFirstRow() {
   selectedWorksheet.value = next;
   selectedKey.value = getRowKey(next, worksheets.value.indexOf(next));
   activeTab.value = "base";
+  processMoreExpanded.value = false;
 }
 
 async function selectWorksheet(item: WorksheetRecord, index: number) {
   selectedWorksheet.value = item;
   selectedKey.value = getRowKey(item, index);
   activeTab.value = "base";
+  processMoreExpanded.value = false;
 
   const id = getRowId(item);
   if (!id) {
@@ -2260,16 +2274,17 @@ defineExpose({
 }
 
 .data-table {
-  width: 1880px;
-  min-width: 1880px;
+  width: 100%;
+  min-width: 900px;
   background: #ffffff;
 }
 
 .data-row {
   display: grid;
-  grid-template-columns: 58px 190px 116px 110px 110px 110px 138px 104px 168px 168px 168px 220px 220px;
+  grid-template-columns: 54px minmax(150px, 1.5fr) minmax(92px, 0.82fr) minmax(92px, 0.82fr) minmax(84px, 0.78fr) minmax(84px, 0.78fr) minmax(118px, 1fr) minmax(88px, 0.78fr);
   min-height: 42px;
-  width: 1880px;
+  width: 100%;
+  min-width: 900px;
   border-bottom: 1px solid #edf1f5;
   cursor: pointer;
   transition:
@@ -2416,12 +2431,6 @@ defineExpose({
   color: #0f4c81;
   font-family: "DIN Alternate", "Arial", sans-serif;
   font-weight: 800;
-}
-
-.data-cell--address,
-.data-cell--remark {
-  justify-content: flex-start;
-  text-align: left;
 }
 
 .status-pill,
@@ -2617,6 +2626,37 @@ defineExpose({
   min-width: 64px;
   height: 26px;
   line-height: 26px;
+}
+
+.detail-summary__meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid #edf3f8;
+}
+
+.detail-summary__meta-item {
+  min-width: 0;
+}
+
+.detail-summary__meta-label {
+  display: block;
+  color: #71869b;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.detail-summary__meta-value {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  color: #172033;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .detail-grid--base {
@@ -2909,6 +2949,50 @@ defineExpose({
   margin-bottom: 12px;
 }
 
+.process-more-toggle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 10px;
+  margin: 2px 0 10px;
+  color: #24445f;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  background: #f7fbff;
+  border: 1px solid #d8e8f8;
+  border-radius: 4px;
+}
+
+.process-more-toggle__hint {
+  color: #6f849a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.process-more-toggle__arrow {
+  width: 7px;
+  height: 7px;
+  border: solid #5e7691;
+  border-width: 0 2px 2px 0;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 0.18s ease;
+}
+
+.process-more-toggle__arrow--open {
+  transform: translateY(2px) rotate(225deg);
+}
+
+.process-more-panel {
+  padding: 10px 10px 1px;
+  margin-bottom: 10px;
+  background: #fbfdff;
+  border: 1px solid #e5eef7;
+  border-radius: 5px;
+}
+
 .process-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2943,10 +3027,13 @@ defineExpose({
 }
 
 .process-actions {
+  position: sticky;
+  bottom: -8px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  padding-top: 2px;
+  padding: 10px 0 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0), #ffffff 28%);
 }
 
 .process-action {
@@ -3120,6 +3207,15 @@ defineExpose({
 
   .worksheet-detail-panel {
     min-height: 360px;
+  }
+
+  .data-table,
+  .data-row {
+    min-width: 760px;
+  }
+
+  .data-row {
+    grid-template-columns: 46px minmax(130px, 1.3fr) minmax(82px, 0.78fr) minmax(82px, 0.78fr) minmax(74px, 0.72fr) minmax(74px, 0.72fr) minmax(96px, 0.92fr) minmax(74px, 0.72fr);
   }
 }
 
@@ -3315,6 +3411,16 @@ defineExpose({
     line-height: 22px;
   }
 
+  .detail-summary__meta {
+    gap: 6px;
+    padding-top: 7px;
+  }
+
+  .detail-summary__meta-value {
+    margin-top: 2px;
+    font-size: 12px;
+  }
+
   .detail-item--base {
     grid-template-columns: 78px minmax(0, 1fr);
     min-height: 34px;
@@ -3416,6 +3522,17 @@ defineExpose({
     gap: 6px;
   }
 
+  .process-more-toggle {
+    min-height: 28px;
+    margin-bottom: 6px;
+    font-size: 12px;
+  }
+
+  .process-more-panel {
+    padding: 7px 7px 1px;
+    margin-bottom: 6px;
+  }
+
   .form-label {
     margin-bottom: 3px;
     font-size: 12px;
@@ -3456,6 +3573,11 @@ defineExpose({
 }
 
 @media (max-width: 520px) {
+  .data-table,
+  .data-row {
+    min-width: 700px;
+  }
+
   .detail-grid--base {
     grid-template-columns: 1fr;
   }
