@@ -85,10 +85,8 @@
         class="collapse-handle"
         @click="toggleVisible"
     >
-      <text
-          class="collapse-arrow"
-          :class="{ 'is-collapsed': !visible }"
-      ></text>
+      <view class="rope"></view>
+      <image class="bird-icon" src="/static/bird.svg" />
     </view>
 
   </view>
@@ -292,41 +290,88 @@ function handleReset() {
 }
 
 /* =======================
-   COLLAPSE HANDLE (关键)
+   COLLAPSE HANDLE（稳定版）
 ======================= */
+
 .collapse-handle {
   position: absolute;
-  right: 12px;
-  bottom: -10px;
+  right: -10px;
+  bottom: -100px;
 
-  width: 32px;
-  height: 16px;
+  width: 40px;
+  height: 100px;
+
+  cursor: pointer;
+  background: transparent;
+
+  overflow: visible;
 
   display: flex;
   justify-content: center;
-  align-items: center;
-
-  cursor: pointer;
-
-  background: transparent;
+  align-items: flex-start;
 }
 
-.collapse-arrow {
-  width: 8px;
-  height: 8px;
-  border: 2px solid #74879c;
-  border-top: none;
-  border-left: none;
-  transform: rotate(-135deg);
-  transition: transform 0.25s ease;
+/* =======================
+   ROPE（线）
+======================= */
+
+.rope {
+  position: absolute;
+  top: 0;
+
+  left: 50%;
+  transform: translateX(-50%);
+
+  width: 2px;
+  height: 25px;
+
+  background: #74879c;
+  border-radius: 2px;
 }
 
-/* 收起：箭头向上 */
-.is-collapsed {
-  transform: rotate(45deg);
+/* =======================
+   BIRD（稳定定位）
+======================= */
+
+.bird-icon {
+  position: absolute;
+
+  top: 18px;
+  left: 50%;
+
+  /* ❗关键：统一 transform 基准 */
+  transform: translateX(-50%) scale(1);
+
+  width: 22px;
+  height: 22px;
+
+  transform-origin: center;
+
+  /* 默认不动画 */
+  animation: none;
+
+  transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
-.toolbar:not(.collapsed) + .collapse-handle {
-  transform: translateY(-8px);
+/* =======================
+   COLLAPSED 状态
+======================= */
+
+.collapse-handle.collapsed .rope {
+  height: 10px;
+  background: #aab7c4;
+}
+
+.collapse-handle.collapsed .bird-icon {
+  opacity: 0.85;
+  transform: translateX(-50%) scale(0.95);
+}
+
+/* =======================
+   INTERACTION（点击反馈）
+======================= */
+
+.collapse-handle:active .bird-icon {
+  transform: translateX(-50%) scale(0.88);
 }
 </style>

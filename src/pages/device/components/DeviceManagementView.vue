@@ -33,7 +33,8 @@
     />
 
     <!-- 主体 -->
-    <view class="worksheet-layout" :class="layoutClass">
+    <view class="worksheet-layout"
+          :class="[layoutClass, { collapsed: isDetailCollapsed }]">
 
       <!-- 左侧 table（固定不变） -->
       <view class="table-panel">
@@ -43,6 +44,10 @@
             @view="handleView"
             @select="handleSelect"
         />
+      </view>
+
+      <view class="split-handle" @click="toggleDetailPanel">
+        {{ isDetailCollapsed ? '⟨' : '⟩' }}
       </view>
 
       <!-- 右侧 panel（随mode变化） -->
@@ -62,7 +67,6 @@
             @edit="handleEdit"
             :visible=true
         />
-
       </view>
 
     </view>
@@ -691,6 +695,14 @@ function handleImport() {
   });
 }
 
+/**
+ * 折叠详情面板收缩
+ */
+const isDetailCollapsed = ref(false)
+const toggleDetailPanel = () => {
+  isDetailCollapsed.value = !isDetailCollapsed.value
+}
+
 const layoutClass = computed(() => {
   return props.mode === "info"
       ? "layout-split"
@@ -723,7 +735,7 @@ onMounted(() => {
 
   display: grid;
 
-  gap: 14px;
+  gap: 0px;
   margin-top: 14px;
 
   min-height: 0;
@@ -732,12 +744,12 @@ onMounted(() => {
 
 /* 默认：左列表 + 右详情 */
 .layout-split {
-  grid-template-columns: minmax(0, 1fr) 380px;
+  grid-template-columns: minmax(0, 1fr) 24px 380px;
 }
 
 /* maintenance：左右等分 */
 .layout-equal {
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 24px 1fr;
 }
 
 .table-panel,
@@ -775,4 +787,47 @@ onMounted(() => {
   color: #999;
   font-size: 14px;
 }
+
+.worksheet-layout.collapsed {
+  grid-template-columns: minmax(0, 1fr) 24px 0;
+}
+
+.split-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: col-resize;
+  user-select: none;
+
+  background: transparent;
+
+  position: relative;
+
+  color: transparent; /* 默认不显示箭头 */
+}
+
+.split-handle:hover {
+  background: rgba(64, 158, 255, 0.06);
+  color: #409eff;
+}
+
+.split-handle::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: 50%;
+  width: 1px;
+  background: #e4e7ed;
+  transform: translateX(-50%);
+}
+
+.split-handle::after {
+  content: '⋮';
+  font-size: 10px;
+  color: #c0c4cc;
+  position: relative;
+}
+
 </style>
