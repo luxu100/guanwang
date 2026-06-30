@@ -69,8 +69,7 @@
           <text class="data-cell data-cell--address">{{ device.installAddress }}</text>
           <text
               class="data-cell data-cell--coord data-cell--link"
-              @click.stop="openCoord(device.installLongitude, device.installLatitude)"
-          >
+              @click.stop="handleCoordClick(device.installLongitude, device.installLatitude)"          >
             {{ device.installLongitude && device.installLatitude
               ? `${device.installLongitude}, ${device.installLatitude}`
               : '-' }}
@@ -234,6 +233,20 @@ const getStatusClass = (type: string, value: number) => {
   // 如果以后有其他类型的状态，可以在这里添加逻辑
   return '';
 };
+
+function handleCoordClick(longitude: number, latitude: number) {
+  if (longitude && latitude) {
+    // 有坐标，打开地图
+    openCoord(longitude, latitude);
+  } else {
+    // 没有坐标，弹出提示
+    uni.showToast({
+      title: '该设备暂无坐标信息,无法定位!',
+      icon: 'none',
+      duration: 2000
+    });
+  }
+}
 
 </script>
 
