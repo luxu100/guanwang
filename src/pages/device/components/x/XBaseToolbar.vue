@@ -2,7 +2,7 @@
   <view class="toolbar-wrapper">
 
     <!-- toolbar -->
-    <view class="toolbar" :class="{ collapsed: !visible }">
+    <view class="toolbar" :class="{ collapsed: !props.visible }">
 
       <view class="toolbar-row toolbar-row--filters">
 
@@ -80,15 +80,6 @@
 
       </view>
     </view>
-
-    <view
-        class="collapse-handle"
-        @click="toggleVisible"
-    >
-      <view class="rope"></view>
-      <image class="bird-icon" src="/static/bird.svg" />
-    </view>
-
   </view>
 </template>
 
@@ -109,11 +100,13 @@ const props = withDefaults(defineProps<{
   showRefresh?: boolean;
   canDelete?: boolean;
   showEdit?: boolean;
+  visible?: boolean;
 }>(), {
   showAdd: true,
   showDelete: true,
   showRefresh: true,
   canDelete: true,
+  visible: false,
 });
 
 const emit = defineEmits([
@@ -125,15 +118,6 @@ const emit = defineEmits([
   "refresh",
   "edit",
 ]);
-
-/** 折叠状态 */
-const visible = ref(false);
-
-function toggleVisible() {
-  visible.value = !visible.value;
-}
-
-defineExpose({ toggleVisible, visible });
 
 /** model */
 const model = reactive({ ...props.modelValue });
@@ -287,91 +271,5 @@ function handleReset() {
 .toolbar-actions-wrapper {
   margin-left: auto;
   align-self: flex-end;
-}
-
-/* =======================
-   COLLAPSE HANDLE（稳定版）
-======================= */
-
-.collapse-handle {
-  position: absolute;
-  right: -10px;
-  bottom: -100px;
-
-  width: 40px;
-  height: 100px;
-
-  cursor: pointer;
-  background: transparent;
-
-  overflow: visible;
-
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-}
-
-/* =======================
-   ROPE（线）
-======================= */
-
-.rope {
-  position: absolute;
-  top: 0;
-
-  left: 50%;
-  transform: translateX(-50%);
-
-  width: 2px;
-  height: 25px;
-
-  background: #74879c;
-  border-radius: 2px;
-}
-
-/* =======================
-   BIRD（稳定定位）
-======================= */
-
-.bird-icon {
-  position: absolute;
-
-  top: 18px;
-  left: 50%;
-
-  /* ❗关键：统一 transform 基准 */
-  transform: translateX(-50%) scale(1);
-
-  width: 22px;
-  height: 22px;
-
-  transform-origin: center;
-
-  /* 默认不动画 */
-  animation: none;
-
-  transition: transform 0.15s ease, opacity 0.15s ease;
-}
-
-/* =======================
-   COLLAPSED 状态
-======================= */
-
-.collapse-handle.collapsed .rope {
-  height: 10px;
-  background: #aab7c4;
-}
-
-.collapse-handle.collapsed .bird-icon {
-  opacity: 0.85;
-  transform: translateX(-50%) scale(0.95);
-}
-
-/* =======================
-   INTERACTION（点击反馈）
-======================= */
-
-.collapse-handle:active .bird-icon {
-  transform: translateX(-50%) scale(0.88);
 }
 </style>

@@ -5,6 +5,11 @@
         @search="handleSearch"
         @reset="handleSearch"
         @refresh="fetchDeviceStatuss"
+        :visible="isToolbarVisible"
+    />
+
+    <XFloatingCollapseHandle
+        v-model="isToolbarVisible"
     />
 
     <view class="table-head">
@@ -156,7 +161,10 @@ import type {Device, DeviceStatusVO, MaintenanceRecord} from '@/services/device/
 import type { Pagination } from '@/types/api';
 import DeviceStatusToolbar from "@/pages/device/status/components/DeviceStatusToolbar.vue";
 import {getDeviceStatusUploadPageT} from "@/services/device/status.typed";
+import XFloatingCollapseHandle from "@/pages/device/components/x/XFloatingCollapseHandle.vue";
+import MaintenanceRecordToolbar from "@/pages/device/maintenance/components/MaintenanceRecordToolbar.vue";
 
+const isToolbarVisible = ref(false);
 
 // ===== 数据 =====
 const loading = ref(false);

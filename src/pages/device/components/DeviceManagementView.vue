@@ -65,7 +65,7 @@
             :is="CurrentPanel"
             :device-data="currentDevice"
             @edit="handleEdit"
-            :visible=true
+            :visible="isDetailPanelVisible"
         />
       </view>
 
@@ -340,7 +340,6 @@ async function fetchProductOptions() {
     label: item.productName,   // 或 name，看你后端字段
     value: item.id
   }));
-  console.log("deviceProductOptions",deviceProductOptions);
 }
 
 /**
@@ -634,9 +633,6 @@ function handleEdit() {
 
   formData.value = { ...selectedDevice.value }
 
-  console.log("formData",formData.value);
-  console.log("selectedDevice",selectedDevice.value);
-
   dialogVisible.value = true;
 }
 
@@ -698,9 +694,11 @@ function handleImport() {
 /**
  * 折叠详情面板收缩
  */
+const isDetailPanelVisible = ref(true)
 const isDetailCollapsed = ref(false)
 const toggleDetailPanel = () => {
   isDetailCollapsed.value = !isDetailCollapsed.value
+  isDetailPanelVisible.value = !isDetailPanelVisible.value
 }
 
 const layoutClass = computed(() => {
@@ -805,6 +803,8 @@ onMounted(() => {
   position: relative;
 
   color: transparent; /* 默认不显示箭头 */
+
+  z-index: 999;
 }
 
 .split-handle:hover {
