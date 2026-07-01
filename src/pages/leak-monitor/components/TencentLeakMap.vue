@@ -13,8 +13,8 @@
 
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
-
-const TENCENT_MAP_KEY = "JCDBZ-Z2HLI-V26GX-UL7VO-LJFO2-TIFMZ";
+import { MAP_CONFIG } from "@/services/map/map";
+const TENCENT_MAP_KEY = MAP_CONFIG.tencentKey;
 const TENCENT_MAP_SCRIPT_ID = "tencent-map-gl-sdk";
 const TENCENT_MAP_SCRIPT_URL = `https://map.qq.com/api/gljs?v=1.exp&key=${TENCENT_MAP_KEY}`;
 const MAP_RESIZE_DELAY = 300;

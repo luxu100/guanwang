@@ -1,0 +1,117 @@
+import { computed, ref } from "vue";
+import enUS from "./locales/en-US";
+import zhCN from "./locales/zh-CN";
+import type { I18nParams, LocaleCode, LocaleOption } from "./types";
+
+export const LOCALE_STORAGE_KEY = "locale";
+
+export const DEFAULT_LOCALE: LocaleCode = "zh-CN";
+
+export const localeOptions: LocaleOption[] = [
+  { label: "简体中文", value: "zh-CN" },
+  { label: "English", value: "en-US" },
+];
+
+const messages = {
+  "zh-CN": zhCN,
+  "en-US": enUS,
+} as const;
+
+const currentLocale = ref<LocaleCode>(getInitialLocale());
+
+export function isLocaleCode(value: unknown): value is LocaleCode {
+  return value === "zh-CN" || value === "en-US";
+}
+
+export function normalizeLocale(value: unknown, fallback: LocaleCode = DEFAULT_LOCALE): LocaleCode {
+  return isLocaleCode(value) ? value : fallback;
+}
+
+export function getStoredLocale(): LocaleCode | null {
+  const locale = uni.getStorageSync(LOCALE_STORAGE_KEY);
+  return isLocaleCode(locale) ? locale : null;
+}
+
+export function getUserLocale(userInfo = uni.getStorageSync("userInfo")): LocaleCode | null {
+  const userLocale = userInfo?.locale || userInfo?.defaultLanguage || userInfo?.language;
+  return isLocaleCode(userLocale) ? userLocale : null;
+}
+
+export function getInitialLocale(): LocaleCode {
+  return getUserLocale() || getStoredLocale() || DEFAULT_LOCALE;
+}
+
+export function getLocale() {
+  return currentLocale.value;
+}
+
+export function setLocale(locale: LocaleCode) {
+  currentLocale.value = locale;
+  uni.setStorageSync(LOCALE_STORAGE_KEY, locale);
+}
+
+export function applyUserLocale(userInfo = uni.getStorageSync("userInfo")) {
+  const userLocale = getUserLocale(userInfo);
+  if (userLocale) {
+    setLocale(userLocale);
+  }
+  return userLocale;
+}
+
+function getByPath(source: unknown, key: string): unknown {
+  return key.split(".").reduce<unknown>((value, segment) => {
+    if (value && typeof value === "object" && segment in value) {
+      return (value as Record<string, unknown>)[segment];
+    }
+    return undefined;
+  }, source);
+}
+
+function formatMessage(message: string, params?: I18nParams) {
+  if (!params) return message;
+  return message.replace(/\{(\w+)\}/g, (full, key) => {
+    const value = params[key];
+    return value === null || value === undefined ? full : String(value);
+  });
+}
+
+export function t(key: string, paramsOrFallback?: I18nParams | string, fallback?: string): string {
+  const params = typeof paramsOrFallback === "string" ? undefined : paramsOrFallback;
+  const fallbackText = typeof paramsOrFallback === "string" ? paramsOrFallback : fallback;
+
+  const localeValue = getByPath(messages[currentLocale.value], key);
+  const defaultValue = getByPath(messages[DEFAULT_LOCALE], key);
+  const message = localeValue ?? defaultValue ?? fallbackText ?? key;
+
+  return formatMessage(String(message), params);
+}
+
+export function useI18n() {
+  const localeLabel = computed(() => {
+    return localeOptions.find((item) => item.value === currentLocale.value)?.label || "";
+  });
+
+  return {
+    locale: currentLocale,
+    localeLabel,
+    localeOptions,
+    t,
+    setLocale,
+    getLocale,
+    applyUserLocale,
+  };
+}
+
+export default {
+  applyUserLocale,
+  getInitialLocale,
+  getLocale,
+  getStoredLocale,
+  getUserLocale,
+  isLocaleCode,
+  localeOptions,
+  normalizeLocale,
+  setLocale,
+  t,
+  useI18n,
+};

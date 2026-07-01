@@ -28,6 +28,7 @@ export function deletePermission(id: number | string, isForce?: boolean): Promis
 export function batchDeletePermission(data: Array<number | string>): Promise<ApiResponse<void>>;
 export function getPermissionTree(data?: Record<string, unknown>): Promise<ApiResponse<PermissionItem[]>>;
 export function assignRolePermissions(roleId: number | string, data: Array<number | string>): Promise<ApiResponse<void>>;
+export function getRolePermissions(roleId: number | string): Promise<ApiResponse<PermissionItem[]>>;
 
 declare const authService: {
   getRolePage: typeof getRolePage;
@@ -46,6 +47,7 @@ declare const authService: {
   batchDeletePermission: typeof batchDeletePermission;
   getPermissionTree: typeof getPermissionTree;
   assignRolePermissions: typeof assignRolePermissions;
+  getRolePermissions: typeof getRolePermissions;
 };
 
 export default authService;

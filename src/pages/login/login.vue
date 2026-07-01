@@ -166,6 +166,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import logoImage from "@/assets/images/logo.webp";
+import { applyUserLocale } from "@/i18n";
 import { login, register } from "@/services/user/user";
 import type { LoginResult } from "@/services/user/user";
 import { MENU_COLLAPSED_KEY, OPENED_TABS_KEY } from "@/utils/appShellStorage";
@@ -380,6 +381,7 @@ function saveLoginData(data?: LoginResult) {
   uni.setStorageSync("userInfo", data?.userInfo || {});
   uni.setStorageSync("permissions", data?.permissions || []);
   uni.setStorageSync("roles", data?.roles || []);
+  applyUserLocale(data?.userInfo || {});
 }
 
 /**
