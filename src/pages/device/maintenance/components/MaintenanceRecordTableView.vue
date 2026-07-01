@@ -8,6 +8,11 @@
         @add="handleAdd"
         @delete="handleDelete"
         @edit="handleEdit"
+        :visible="isToolbarVisible"
+    />
+
+    <XFloatingCollapseHandle
+        v-model="isToolbarVisible"
     />
 
     <view class="table-head">
@@ -123,7 +128,9 @@ import {
 import MaintenanceRecordToolbar from "@/pages/device/maintenance/components/MaintenanceRecordToolbar.vue";
 import type {FormSection} from "@/pages/device/components/x/types";
 import XDynamicDialog from "@/pages/device/components/x/XDynamicDialog.vue";
+import XFloatingCollapseHandle from "@/pages/device/components/x/XFloatingCollapseHandle.vue";
 
+const isToolbarVisible = ref(false);
 
 // ===== 数据 =====
 const loading = ref(false);
@@ -677,6 +684,7 @@ const getMaintainTypeMeta = (type: number) => {
 .data-cell--index {
   justify-content: center;
   color: #64748b;
+  width:50px;
 }
 
 .data-cell--number {

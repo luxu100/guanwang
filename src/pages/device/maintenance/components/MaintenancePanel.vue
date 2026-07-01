@@ -1,6 +1,6 @@
 <template>
   <view class = "panel">
-    <MaintenanceRecordTableView
+    <MaintenanceRecordTableView v-if="props.visible"
         :device-data="props.deviceData"
     />
   </view>

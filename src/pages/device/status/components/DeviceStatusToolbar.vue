@@ -8,6 +8,10 @@
         @search="emit('search')"
         @reset="emit('reset')"
         @refresh="emit('refresh')"
+        :show-add="false"
+        :show-edit="false"
+        :show-delete="false"
+        :visible="visible"
     />
   </view>
 </template>
@@ -24,6 +28,7 @@ const props = defineProps<{
     startTime: string;
     endTime: string;
   };
+  visible: boolean;
 }>();
 
 const emit = defineEmits<{
