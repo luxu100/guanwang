@@ -20,7 +20,7 @@
 
       <!-- map -->
       <view class="map-popup__body">
-        <XTencentMap :lng="safeLng" :lat="safeLat" />
+        <LocaleCoordinateMap :lng="safeLng" :lat="safeLat" />
       </view>
 
     </view>
@@ -29,7 +29,7 @@
 
 
 <script setup lang="ts">
-import XTencentMap from "@/pages/device/components/x/XTencentMap.vue";
+import LocaleCoordinateMap from "@/components/map/LocaleCoordinateMap.vue";
 import { computed } from "vue";
 
 const props = defineProps<{
@@ -52,6 +52,9 @@ const close = () => {
 </script>
 
 <style scoped>
+.map-popup__body{
+  flex: 1;
+}
 .map-popup-mask {
   position: fixed;
   inset: 0;

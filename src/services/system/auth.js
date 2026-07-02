@@ -31,11 +31,15 @@ export function getPermissionTree(data) {
 export function assignRolePermissions(roleId, data) {
   return postRequest(`/api/role/${roleId}/permissions`, data);
 }
+export function getRolePermissions(roleId) {
+  return getRequest(`/api/role/${roleId}/permissions`);
+}
 
 export default {
   getRolePage,
   getRoleList,
   getRoleDetail,
+  getRolePermissions,
   createRole,
   updateRole,
   deleteRole,

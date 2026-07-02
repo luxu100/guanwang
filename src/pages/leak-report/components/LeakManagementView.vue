@@ -203,7 +203,14 @@
                 </view>
                 <view class="map-picker-body">
                   <!-- #ifdef H5 -->
-                  <div ref="mapPickerContainer" class="map-picker-canvas"></div>
+                  <view class="map-picker-body">
+                    <LocaleCoordinateMap
+                      :lng="mapPickerCenter.lng"
+                      :lat="mapPickerCenter.lat"
+                      selectable
+                      @pick="handleMapPick"
+                    />
+                  </view>
                   <!-- #endif -->
                   <!-- #ifndef H5 -->
                   <view class="map-picker-canvas map-picker-canvas--fallback">地图选点仅支持 H5 端</view>
@@ -270,6 +277,8 @@
 </template>
 
 <script setup lang="ts">
+import LocaleCoordinateMap from "@/components/map/LocaleCoordinateMap.vue";
+import { MAP_CONFIG } from "@/services/map/map";
 import { computed, reactive, ref, onMounted } from "vue";
 import type { LeakLevel, LeakLevelOption } from "@/types/LeakPoint";
 import type { DetailTab } from "@/types/LeakPoint";
@@ -634,48 +643,75 @@ function handleUploadAudio() { uni.showToast({ title: "音频上传功能开发�
 
 const mapPickerVisible = ref(false);
 const mapPickedCoord = ref("");
-const mapPickerContainer = ref<HTMLElement | null>(null);
-let mapPickerInstance: { destroy?: () => void; on?: (event: string, handler: (e: { latLng: { getLat?: () => number; getLng?: () => number } }) => void) => void } | null = null;
+// const mapPickerContainer = ref<HTMLElement | null>(null);
+// let mapPickerInstance: { destroy?: () => void; on?: (event: string, handler: (e: { latLng: { getLat?: () => number; getLng?: () => number } }) => void) => void } | null = null;
 
-const TENCENT_MAP_KEY = "JCDBZ-Z2HLI-V26GX-UL7VO-LJFO2-TIFMZ";
-const TENCENT_MAP_SCRIPT_ID = "tencent-map-sdk-picker";
-const TENCENT_MAP_SCRIPT_URL = `https://map.qq.com/api/gljs?v=1.exp&key=${TENCENT_MAP_KEY}`;
+// const TENCENT_MAP_KEY = MAP_CONFIG.tencentKey;
+// const TENCENT_MAP_SCRIPT_ID = "tencent-map-sdk-picker";
+// const TENCENT_MAP_SCRIPT_URL = `https://map.qq.com/api/gljs?v=1.exp&key=${TENCENT_MAP_KEY}`;
 
-function loadTencentMapSDK(): Promise<void> {
-  if (window.TMap) return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    const existing = document.getElementById(TENCENT_MAP_SCRIPT_ID) as HTMLScriptElement | null;
-    const script = existing || document.createElement("script");
-    script.id = TENCENT_MAP_SCRIPT_ID;
-    script.charset = "utf-8";
-    script.src = TENCENT_MAP_SCRIPT_URL;
-    script.onload = () => { if (window.TMap) resolve(); else reject(new Error("SDK load failed")); };
-    script.onerror = () => reject(new Error("SDK script failed"));
-    if (!existing) document.body.appendChild(script);
-  });
-}
+// function loadTencentMapSDK(): Promise<void> {
+//   if (window.TMap) return Promise.resolve();
+//   return new Promise((resolve, reject) => {
+//     const existing = document.getElementById(TENCENT_MAP_SCRIPT_ID) as HTMLScriptElement | null;
+//     const script = existing || document.createElement("script");
+//     script.id = TENCENT_MAP_SCRIPT_ID;
+//     script.charset = "utf-8";
+//     script.src = TENCENT_MAP_SCRIPT_URL;
+//     script.onload = () => { if (window.TMap) resolve(); else reject(new Error("SDK load failed")); };
+//     script.onerror = () => reject(new Error("SDK script failed"));
+//     if (!existing) document.body.appendChild(script);
+//   });
+// }
 
-function initMapPicker(lng: number, lat: number) {
-  if (!mapPickerContainer.value || !window.TMap) return;
-  const center = new window.TMap.LatLng(lat, lng);
-  const map = new window.TMap.Map(mapPickerContainer.value, { center, zoom: 15, pitch: 0, rotation: 0 });
-  mapPickerInstance = map;
-  map.on?.("click", (e: { latLng: { getLat?: () => number; getLng?: () => number } }) => {
-    const clng = e.latLng.getLng?.().toFixed(6);
-    const clat = e.latLng.getLat?.().toFixed(6);
-    if (!clng || !clat) return;
-    mapPickedCoord.value = `${clng},${clat}`;
-  });
-}
+// function initMapPicker(lng: number, lat: number) {
+//   if (!mapPickerContainer.value || !window.TMap) return;
+//   const center = new window.TMap.LatLng(lat, lng);
+//   const map = new window.TMap.Map(mapPickerContainer.value, { center, zoom: 15, pitch: 0, rotation: 0 });
+//   mapPickerInstance = map;
+//   map.on?.("click", (e: { latLng: { getLat?: () => number; getLng?: () => number } }) => {
+//     const clng = e.latLng.getLng?.().toFixed(6);
+//     const clat = e.latLng.getLat?.().toFixed(6);
+//     if (!clng || !clat) return;
+//     mapPickedCoord.value = `${clng},${clat}`;
+//   });
+// }
+
+const mapPickerCenter = ref({
+  lng: 121.4737,
+  lat: 31.2304,
+});
 
 function openMapPicker() {
-  mapPickerVisible.value = true;
   mapPickedCoord.value = "";
   uni.getLocation({
     type: "gcj02",
-    success: (res) => { loadTencentMapSDK().then(() => initMapPicker(res.longitude, res.latitude)).catch(() => {}); },
-    fail: () => { loadTencentMapSDK().then(() => initMapPicker(121.4737, 31.2304)).catch(() => {}); },
+    success: (result) => {
+      mapPickerCenter.value = {
+        lng: result.longitude,
+        lat: result.latitude,
+      };
+
+      mapPickerVisible.value = true;
+    },
+
+    fail: () => {
+      mapPickerCenter.value = {
+        lng: 121.4737,
+        lat: 31.2304,
+      };
+
+      mapPickerVisible.value = true;
+    },
   });
+}
+
+function handleMapPick(coordinate: {
+  lng: number;
+  lat: number;
+}) {
+  mapPickedCoord.value =
+    `${coordinate.lng.toFixed(6)},${coordinate.lat.toFixed(6)}`;
 }
 
 function confirmMapPick() {
@@ -686,8 +722,7 @@ function confirmMapPick() {
 function closeMapPicker() {
   mapPickerVisible.value = false;
   mapPickedCoord.value = "";
-  mapPickerInstance?.destroy?.();
-  mapPickerInstance = null;
+  
 }
 
 function buildPayload() {
