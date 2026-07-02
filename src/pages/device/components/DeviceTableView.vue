@@ -98,7 +98,7 @@
     <view class="pagination-bar">
       <button class="page-button" :disabled="pagination.current <= 1" @click="changePage(-1)">上一页</button>
       <text class="page-info">第 {{ pagination.current }} / {{  Math.ceil(pagination.total / pagination.size) || 1  }} 页</text>
-      <button class="page-button" :disabled="pagination.current >= 1" @click="changePage(1)">下一页</button>
+      <button class="page-button" :disabled="pagination.current >= Math.ceil(pagination.total / pagination.size)" @click="changePage(1)">下一页</button>
     </view>
   </view>
 

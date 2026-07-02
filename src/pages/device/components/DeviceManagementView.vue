@@ -43,6 +43,7 @@
             :pagination="pagination"
             @view="handleView"
             @select="handleSelect"
+            @page-change="handlePageChange"
         />
       </view>
 
@@ -691,6 +692,11 @@ function handleImport() {
   });
 }
 
+function handlePageChange(page:number){
+  pagination.value.current = page;
+  fetchDevices();
+}
+
 /**
  * 折叠详情面板收缩
  */
@@ -802,7 +808,7 @@ onMounted(() => {
 
   position: relative;
 
-  color: transparent; /* 默认不显示箭头 */
+  //color: transparent; /* 默认不显示箭头 */
 
   z-index: 999;
 }

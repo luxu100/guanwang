@@ -11,7 +11,7 @@
         :visible="isToolbarVisible"
     />
 
-    <XFloatingCollapseHandle
+    <XFloatingCollapseHandle v-if="isFloatingVisible"
         v-model="isToolbarVisible"
     />
 
@@ -103,7 +103,7 @@
     <view class="pagination-bar">
       <button class="page-button" :disabled="pagination.current <= 1" @click="changePage(-1)">上一页</button>
       <text class="page-info">第 {{ pagination.current }} / {{  Math.ceil(pagination.total / pagination.size) || 1  }} 页</text>
-      <button class="page-button" :disabled="pagination.current >= 1" @click="changePage(1)">下一页</button>
+      <button class="page-button" :disabled="pagination.current >= Math.ceil(pagination.total / pagination.size)" @click="changePage(1)">下一页</button>
     </view>
   </view>
 
@@ -130,7 +130,8 @@ import type {FormSection} from "@/pages/device/components/x/types";
 import XDynamicDialog from "@/pages/device/components/x/XDynamicDialog.vue";
 import XFloatingCollapseHandle from "@/pages/device/components/x/XFloatingCollapseHandle.vue";
 
-const isToolbarVisible = ref(false);
+const isToolbarVisible = ref(true);
+const isFloatingVisible = ref(false);
 
 // ===== 数据 =====
 const loading = ref(false);
@@ -460,7 +461,6 @@ async function refreshList({ resetPage = false } = {}) {
 
   await fetchMaintenanceRecords();
 }
-
 
 const maintainTypeMap = {
   0: { label: '拆卸', className: 'is-removed' },
