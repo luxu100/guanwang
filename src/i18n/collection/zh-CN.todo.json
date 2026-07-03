@@ -751,13 +751,13 @@
       {
         "keySuggestion": "appShell.item054",
         "module": "appShell",
-        "value": "设备状态",
+        "value": "设备参数",
         "refs": [
           {
             "file": "src/components/AppShell.vue",
             "line": 252,
             "kind": "string",
-            "context": "{ label: \"设备状态\", path: \"/pages/device/status/status\", icon: \"device\", keywords: [\"状态\"] },"
+            "context": "{ label: \"设备参数\", path: \"/pages/device/status/status\", icon: \"device\", keywords: [\"状态\"] },"
           }
         ]
       },
@@ -1384,7 +1384,7 @@
             "file": "src/components/AppShell.vue",
             "line": 252,
             "kind": "string",
-            "context": "{ label: \"设备状态\", path: \"/pages/device/status/status\", icon: \"device\", keywords: [\"状态\"] },"
+            "context": "{ label: \"设备参数\", path: \"/pages/device/status/status\", icon: \"device\", keywords: [\"状态\"] },"
           }
         ]
       },
@@ -6045,32 +6045,32 @@
       {
         "keySuggestion": "device.item083",
         "module": "device",
-        "value": "设备状态",
+        "value": "设备参数",
         "refs": [
           {
             "file": "src/pages/device/components/DeviceManagementView.vue",
             "line": 442,
             "kind": "string",
-            "context": "title: \"设备状态\","
+            "context": "title: \"设备参数\","
           },
           {
             "file": "src/pages/device/status/components/DeviceStatusToolbar.vue",
             "line": 46,
             "kind": "string",
-            "context": "label: \"设备状态\","
+            "context": "label: \"设备参数\","
           }
         ]
       },
       {
         "keySuggestion": "device.item084",
         "module": "device",
-        "value": "设备状态详情",
+        "value": "设备参数详情",
         "refs": [
           {
             "file": "src/pages/device/status/components/DeviceStatusTableView.vue",
             "line": 11,
             "kind": "templateText",
-            "context": "<text>设备状态详情</text>"
+            "context": "<text>设备参数详情</text>"
           }
         ]
       },
@@ -16420,13 +16420,13 @@
       {
         "keySuggestion": "system.item191",
         "module": "system",
-        "value": "permissionName: \"设备状态\", permissionCode: \"page:device:status\", path: \"/pages/device/status/status\", parentId",
+        "value": "permissionName: \"设备参数\", permissionCode: \"page:device:status\", path: \"/pages/device/status/status\", parentId",
         "refs": [
           {
             "file": "src/pages/system/components/SystemManagementView.vue",
             "line": 539,
             "kind": "string",
-            "context": "{ id: `${LOCAL_MENU_ID_PREFIX}device-status`, permissionName: \"设备状态\", permissionCode: \"page:device:status\", path: \"/pages/device/status/status\", parentId: `${LOCAL_MENU_ID_PREFIX}device`, permissionType: 1, status: 1 },"
+            "context": "{ id: `${LOCAL_MENU_ID_PREFIX}device-status`, permissionName: \"设备参数\", permissionCode: \"page:device:status\", path: \"/pages/device/status/status\", parentId: `${LOCAL_MENU_ID_PREFIX}device`, permissionType: 1, status: 1 },"
           }
         ]
       },

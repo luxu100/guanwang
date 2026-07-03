@@ -16,7 +16,7 @@ const samplingDailyApi = createCrudService("/api/sampling-daily");
 export const getLeakageHistoryPage = leakageRecordApi.getPage;
 export const getLeakageHistoryDetail = leakageRecordApi.getDetail;
 
-// 设备状态上报
+// 设备参数上报
 export const getDeviceStatusUploadPage = deviceStatusUploadApi.getPage;
 export const getDeviceStatusUploadDetail = deviceStatusUploadApi.getDetail;
 

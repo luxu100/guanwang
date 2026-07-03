@@ -13,7 +13,7 @@
     />
 
     <view class="table-head">
-      <text>设备状态详情</text>
+      <text>设备参数详情</text>
       <text class="table-head__meta">共 {{ pagination.total }} 条</text>
     </view>
 

@@ -554,7 +554,8 @@ const defaultMenuTree: RecordLike[] = [
     children: [
       { id: `${LOCAL_MENU_ID_PREFIX}device-info`, permissionName: "设备信息", permissionCode: "page:device:info", path: "/pages/device/info/info", parentId: `${LOCAL_MENU_ID_PREFIX}device`, permissionType: 1, status: 1 },
       { id: `${LOCAL_MENU_ID_PREFIX}device-maintenance`, permissionName: "拆装维护", permissionCode: "page:device:maintenance", path: "/pages/device/maintenance/maintenance", parentId: `${LOCAL_MENU_ID_PREFIX}device`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}device-status`, permissionName: "设备状态", permissionCode: "page:device:status", path: "/pages/device/status/status", parentId: `${LOCAL_MENU_ID_PREFIX}device`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}device-status`, permissionName: "设备参数", permissionCode: "page:device:status", path: "/pages/device/status/status", parentId: `${LOCAL_MENU_ID_PREFIX}device`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}device-valve`, permissionName: "????", permissionCode: "page:device:valve", path: "/pages/device/valve/valve", parentId: `${LOCAL_MENU_ID_PREFIX}device`, permissionType: 1, status: 1 },
     ],
   },
   {
@@ -588,13 +589,11 @@ const defaultMenuTree: RecordLike[] = [
     id: `${LOCAL_MENU_ID_PREFIX}data-analysis`,
     permissionName: "数据分析",
     permissionCode: "module:data-analysis",
-    path: "/pages/data-analysis/overview/overview",
+    path: "/pages/data-analysis/audio/audio",
     permissionType: 0,
     status: 1,
     children: [
-      { id: `${LOCAL_MENU_ID_PREFIX}data-analysis-overview`, permissionName: "系统总览", permissionCode: "page:data-analysis:overview", path: "/pages/data-analysis/overview/overview", parentId: `${LOCAL_MENU_ID_PREFIX}data-analysis`, permissionType: 1, status: 1 },
       { id: `${LOCAL_MENU_ID_PREFIX}data-analysis-audio`, permissionName: "音频数据", permissionCode: "page:data-analysis:audio", path: "/pages/data-analysis/audio/audio", parentId: `${LOCAL_MENU_ID_PREFIX}data-analysis`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}data-analysis-device-params`, permissionName: "设备参数", permissionCode: "page:data-analysis:device-params", path: "/pages/data-analysis/device-params/device-params", parentId: `${LOCAL_MENU_ID_PREFIX}data-analysis`, permissionType: 1, status: 1 },
       { id: `${LOCAL_MENU_ID_PREFIX}data-analysis-leakage`, permissionName: "渗漏数据", permissionCode: "page:data-analysis:leakage", path: "/pages/data-analysis/leakage/leakage", parentId: `${LOCAL_MENU_ID_PREFIX}data-analysis`, permissionType: 1, status: 1 },
     ],
   },
@@ -607,13 +606,23 @@ const defaultMenuTree: RecordLike[] = [
     status: 1,
     children: [
       { id: `${LOCAL_MENU_ID_PREFIX}leak-report-suspect-management`, permissionName: "疑点管理", permissionCode: "page:leak-report:suspect-management", path: "/pages/leak-report/suspect-management/suspect-management", parentId: `${LOCAL_MENU_ID_PREFIX}leak-report`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}leak-report-suspect-processing`, permissionName: "疑点处理", permissionCode: "page:leak-report:suspect-processing", path: "/pages/leak-report/suspect-processing/suspect-processing", parentId: `${LOCAL_MENU_ID_PREFIX}leak-report`, permissionType: 1, status: 1 },
+      // { id: `${LOCAL_MENU_ID_PREFIX}leak-report-suspect-processing`, permissionName: "疑点处理", permissionCode: "page:leak-report:suspect-processing", path: "/pages/leak-report/suspect-processing/suspect-processing", parentId: `${LOCAL_MENU_ID_PREFIX}leak-report`, permissionType: 1, status: 1 },
       { id: `${LOCAL_MENU_ID_PREFIX}leak-report-leak-management`, permissionName: "漏点管理", permissionCode: "page:leak-report:leak-management", path: "/pages/leak-report/leak-management/leak-management", parentId: `${LOCAL_MENU_ID_PREFIX}leak-report`, permissionType: 1, status: 1 },
       { id: `${LOCAL_MENU_ID_PREFIX}leak-report-leak-analysis`, permissionName: "漏点分析", permissionCode: "page:leak-report:leak-analysis", path: "/pages/leak-report/leak-analysis/leak-analysis", parentId: `${LOCAL_MENU_ID_PREFIX}leak-report`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}leak-report-history-overview`, permissionName: "历史总览", permissionCode: "page:leak-report:history-overview", path: "/pages/leak-report/history-overview/history-overview", parentId: `${LOCAL_MENU_ID_PREFIX}leak-report`, permissionType: 1, status: 1 },
     ],
   },
-  { id: `${LOCAL_MENU_ID_PREFIX}statistics`, permissionName: "统计分析", permissionCode: "page:statistics", path: "/pages/statistics/statistics", permissionType: 1, status: 1 },
+  {
+    id: `${LOCAL_MENU_ID_PREFIX}statistics`,
+    permissionName: "????",
+    permissionCode: "page:statistics",
+    path: "/pages/statistics/statistics",
+    permissionType: 0,
+    status: 1,
+    children: [
+      { id: `${LOCAL_MENU_ID_PREFIX}statistics-leak-report-overview`, permissionName: "??????", permissionCode: "page:leak-report:history-overview", path: "/pages/leak-report/history-overview/history-overview", parentId: `${LOCAL_MENU_ID_PREFIX}statistics`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}statistics-data-analysis-overview`, permissionName: "??????", permissionCode: "page:data-analysis:overview", path: "/pages/data-analysis/overview/overview", parentId: `${LOCAL_MENU_ID_PREFIX}statistics`, permissionType: 1, status: 1 },
+    ],
+  },
   {
     id: `${LOCAL_MENU_ID_PREFIX}work-order`,
     permissionName: "工单管理",
@@ -637,7 +646,6 @@ const defaultMenuTree: RecordLike[] = [
     children: [
       { id: `${LOCAL_MENU_ID_PREFIX}alarm-strategy`, permissionName: "报警策略", permissionCode: "page:alarm:strategy", path: "/pages/alarm/strategy/strategy", parentId: `${LOCAL_MENU_ID_PREFIX}alarm`, permissionType: 1, status: 1 },
       { id: `${LOCAL_MENU_ID_PREFIX}alarm-processing`, permissionName: "报警处理", permissionCode: "page:alarm:processing", path: "/pages/alarm/processing/processing", parentId: `${LOCAL_MENU_ID_PREFIX}alarm`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}alarm-analysis`, permissionName: "报警分析", permissionCode: "page:alarm:analysis", path: "/pages/alarm/analysis/analysis", parentId: `${LOCAL_MENU_ID_PREFIX}alarm`, permissionType: 1, status: 1 },
     ],
   },
   {
