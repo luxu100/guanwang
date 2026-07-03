@@ -491,7 +491,7 @@ const addSchema = computed<FormSection[]>(() => [
   },
 
   {
-    title: "设备状态",
+    title: "设备参数",
     fields: [
       {
         key: "enableState",

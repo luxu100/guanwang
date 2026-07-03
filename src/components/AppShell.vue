@@ -255,7 +255,7 @@ const menuItems: MenuItem[] = [
     children: [
       { label: "设备信息", path: "/pages/device/info/info", icon: "device", keywords: ["设备", "信息"] },
       { label: "拆装维护", path: "/pages/device/maintenance/maintenance", icon: "device", keywords: ["拆装", "维护"] },
-      { label: "设备状态", path: "/pages/device/status/status", icon: "device", keywords: ["状态"] },
+      { label: "设备参数", path: "/pages/device/status/status", icon: "device", keywords: ["状态"] },
       { label: "阀门管理", path: "/pages/device/valve/valve", icon: "device", keywords: ["阀门"] },
     ],
   },
@@ -288,7 +288,6 @@ const menuItems: MenuItem[] = [
     children: [
       // { label: "系统总览", path: "/pages/data-analysis/overview/overview", icon: "chart", keywords: ["系统", "总览"] },
       { label: "音频数据", path: "/pages/data-analysis/audio/audio", icon: "chart", keywords: ["音频"] },
-      { label: "设备参数", path: "/pages/data-analysis/device-params/device-params", icon: "chart", keywords: ["参数"] },
       { label: "渗漏数据", path: "/pages/data-analysis/leakage/leakage", icon: "chart", keywords: ["渗漏"] },
     ],
   },
@@ -324,7 +323,6 @@ const menuItems: MenuItem[] = [
     children: [
       { label: "报警策略", path: "/pages/alarm/strategy/strategy", icon: "alarm", keywords: ["策略"] },
       { label: "报警处理", path: "/pages/alarm/processing/processing", icon: "alarm", keywords: ["处理"] },
-      { label: "报警分析", path: "/pages/alarm/analysis/analysis", icon: "alarm", keywords: ["分析"] },
     ],
   },
   {
@@ -375,7 +373,6 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/command/commandConfiguration": { component: CommandConfigurationPage },
   "/pages/data-analysis/overview/overview": createPlaceholderContent("/pages/data-analysis/overview/overview"),
   "/pages/data-analysis/audio/audio": createPlaceholderContent("/pages/data-analysis/audio/audio"),
-  "/pages/data-analysis/device-params/device-params": createPlaceholderContent("/pages/data-analysis/device-params/device-params"),
   "/pages/data-analysis/leakage/leakage": createPlaceholderContent("/pages/data-analysis/leakage/leakage"),
   "/pages/leak-report/suspect-management/suspect-management": { component: SuspectEditView },
   "/pages/leak-report/suspect-processing/suspect-processing": { component: SuspectProcessView },
