@@ -1,4 +1,4 @@
-<!--
+﻿<!--
 注意：这个页面作为切换页面在AppShell中使用DeviceManagementView组件，传入不同的mode参数来切换不同的页面内容。
 -->
 <!--
@@ -97,6 +97,7 @@ import {
 import DeviceInfoPanel from "../info/components/DeviceInfoPanel.vue";
 import MaintenancePanel from "../maintenance/components/MaintenancePanel.vue";
 import DeviceStatusPanel from "../status/components/DeviceStatusPanel.vue";
+import ValvePanel from "../valve/components/ValvePanel.vue";
 
 import DeviceToolbar from "./DeviceToolbar.vue";
 import DeviceTableView from "./DeviceTableView.vue";
@@ -109,7 +110,7 @@ import type {FormSection} from "@/pages/device/components/x/types";
  * =========================
  */
 const props = defineProps<{
-  mode: "info" | "maintenance" | "status";
+  mode: "info" | "maintenance" | "status" | "valve";
 }>();
 
 /**
@@ -209,6 +210,31 @@ const deviceModuleConfig = {
       { key: "receiveStatus", label: "接受状态", type: "select",dict: "receive"},
     ],
   },
+
+    valve: {
+    panel: ValvePanel,
+
+    searchForm: {
+      deviceNumber: "",
+      deviceType: "",
+      enableState: "",
+      onlineStatus: "",
+      leakStatus: "",
+      startTime: "",
+      endTime: "",
+    },
+
+    toolbar: [
+      { key: "deviceNumber", label: "设备编号", type: "input" },
+      { key: "deviceType", label: "产品型号", type: "select", dict: "product" },
+      { key: "onlineStatus", label: "在线状态", type: "select", dict: "online" },
+      { key: "enableState", label: "启用状态", type: "select", dict: "enable" },
+      { key: "leakStatus", label: "漏损状态", type: "select", dict: "leak" },
+      { key: "startTime", label: "开始时间", type: "date" },
+      { key: "endTime", label: "结束时间", type: "date" },
+    ],
+  },
+
 } as const;
 
 /**
