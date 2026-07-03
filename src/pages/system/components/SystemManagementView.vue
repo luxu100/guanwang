@@ -41,11 +41,15 @@
           <view
             v-for="item in menus"
             :key="getId(item)"
-            class="side-list__item"
+            class="side-list__item side-list__item--tree"
             :class="{ 'side-list__item--active': getId(item) === getId(selectedMenu) }"
+            :style="{ paddingLeft: `${9 + (getTreeLevel(item) - 1) * 18}px` }"
             @click="selectMenu(item)"
           >
-            <text class="side-list__title">{{ getPermissionName(item) }}</text>
+            <view class="side-list__tree-title">
+              <text v-if="getTreeLevel(item) > 1" class="side-list__tree-branch"></text>
+              <text class="side-list__title">{{ getPermissionName(item) }}</text>
+            </view>
             <text class="side-list__sub">{{ getText(item, ['path'], '目录节点') }}</text>
           </view>
           <view v-if="!menus.length && !loading" class="empty-tip">暂无菜单数据</view>
@@ -93,7 +97,7 @@
           <view class="table-panel">
             <view class="table-head">
               <text>用户列表</text>
-              <text class="table-head__meta">共 {{ total }} 条</text>
+              <text class="table-head__meta">共 {{  userDisplayTotal  }} 条</text>
             </view>
             <scroll-view class="table-scroll" scroll-x scroll-y>
               <view class="data-table data-table--user">
@@ -102,6 +106,8 @@
                   <text class="data-cell data-cell--account">登录账号</text>
                   <text class="data-cell data-cell--phone">联系电话</text>
                   <text class="data-cell data-cell--email">邮箱</text>
+                  <text class="data-cell data-cell--roles">角色</text>
+                  <text class="data-cell data-cell--depts">分区</text>
                   <text class="data-cell data-cell--status">状态</text>
                   <text class="data-cell data-cell--time">创建时间</text>
                 </view>
@@ -119,6 +125,8 @@
                   <text class="data-cell data-cell--account">{{ getText(item, ['username'], '-') }}</text>
                   <text class="data-cell data-cell--phone">{{ getText(item, ['phone'], '-') }}</text>
                   <text class="data-cell data-cell--email">{{ getText(item, ['email'], '-') }}</text>
+                  <text class="data-cell data-cell--roles">{{ getUserRoleNames(item) }}</text>
+                  <text class="data-cell data-cell--depts">{{ getUserDeptNames(item) }}</text>
                   <text class="data-cell data-cell--status">
                     <text class="status-pill" :class="getStatusClass(item)">{{ getStatusLabel(getValue(item, ['status'])) }}</text>
                   </text>
@@ -269,20 +277,31 @@
                 class="permission-node"
                 :class="`permission-node--level-${getTreeLevel(item)}`"
                 :style="{ paddingLeft: `${8 + (getTreeLevel(item) - 1) * 22}px` }"
-                @click="togglePermission(getId(item))"
+                @click="togglePermission(item)"
               >
-                <text class="check-box" :class="{ 'check-box--checked': selectedPermissionIds.includes(getId(item)) }"></text>
+                <text
+                    class="check-box"
+                    :class="{
+                      'check-box--checked': isPermissionChecked(item),
+                      'check-box--partial': isPermissionPartialChecked(item),
+                    }"
+                  ></text>
                 <text>{{ getPermissionName(item) }}</text>
                 <text class="permission-node__code">{{ getText(item, ['permissionCode'], '') }}</text>
               </view>
               <view v-if="!permissions.length && !loading" class="empty-tip">暂无权限树数据</view>
             </scroll-view>
+
             <view class="form-actions">
-              <button class="toolbar-button" hover-class="toolbar-button--hover" @click="selectedPermissionIds = []">清空选择</button>
+              <button class="toolbar-button" hover-class="toolbar-button--hover" @click="toggleAllPermissions">
+                {{ areAllPermissionsChecked ? "取消全选" : "全选" }}
+              </button>
+              <button class="toolbar-button" hover-class="toolbar-button--hover" @click="clearPermissionSelection">清空选择</button>
               <button class="toolbar-button toolbar-button--primary" :disabled="saving || !getId(selectedRole)" hover-class="toolbar-button--hover" @click="saveRolePermissions">
                 {{ saving ? "保存中..." : "保存权限" }}
               </button>
             </view>
+          
           </view>
         </view>
 
@@ -324,9 +343,7 @@
                     ></text>
                   </text>
                   <text class="data-cell data-cell--name">
-                    <text class="tree-cell-name" :style="{ paddingLeft: `${(getTreeLevel(item) - 1) * 20}px` }">
-                      <text>{{ getPermissionName(item) }}</text>
-                    </text>
+                    <text>{{ getPermissionName(item) }}</text>
                   </text>
                   <text class="data-cell data-cell--code">{{ getText(item, ['permissionCode'], '-') }}</text>
                   <text class="data-cell data-cell--path">{{ getText(item, ['path'], '-') }}</text>
@@ -472,8 +489,8 @@
               v-for="item in availableUserPartitionOptions"
               :key="getId(item)"
               class="check-item partition-dialog-item"
-              :class="{ 'check-item--checked': userPartitionDraftIds.includes(getId(item)) }"
-              @click="toggleUserPartitionDraft(getId(item))"
+              :class="{ 'check-item--checked': userPartitionDraftIds.includes(String(getId(item))) }"
+              @click="toggleUserPartitionDraft(String(getId(item)))"
             >
               <text class="check-box"></text>
               <text>{{ getPartitionName(item) }}</text>
@@ -492,11 +509,11 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
-import { assignUserDepts, getUserDepts, assignUserRoles, deleteUser, getUserPage, register, updateUser, type RegisterParams } from "@/services/system/user";
-import { assignRolePermissions, createRole, deleteRole, getPermissionTree, getRoleList, getRolePage, updateRole } from "@/services/system/auth";
+import { assignUserDepts, getUserDepts,getUserList, assignUserRoles, deleteUser, getUserPage, register, updateUser, type RegisterParams } from "@/services/system/user";
+import { getRolePermissions,assignRolePermissions, createRole, deleteRole, getPermissionList, getPermissionTree, getRoleDetail, getRoleList, getRolePage, updateRole } from "@/services/system/auth";
 import { createMenu, deleteMenu, getMenuPage, getMenuTree, updateMenu } from "@/services/system/menu";
 import { createDictItem, createDictType, deleteDictItem, deleteDictType, getDictItemPage, getDictTypePage, updateDictItem, updateDictType } from "@/services/system/dict";
-import { getDeptList } from "@/services/partition/partition";
+import { getDeptList,getDeptDetail } from "@/services/partition/partition";
 import {
   type ApiResponseLike,
   type RecordLike,
@@ -514,6 +531,7 @@ import {
   toastError,
 } from "@/utils/adminData";
 import { buildUserRoleAssignment } from "@/utils/adminUserBinding";
+import { confirmAction, confirmDangerAction } from "@/utils/confirmAction";
 
 type AdminMode = "user" | "auth" | "menu" | "dict";
 type SelectOption<T extends string | number = string | number> = {
@@ -674,17 +692,23 @@ const alarmOptions = [
   { label: "紧急短信通知", value: "sms" },
 ];
 
-const orgOptions = computed(() => [
-  { label: "全部分区", value: "all", count: users.value.length },
+const orgOptions = computed(() =>{
+  
+  const statUsers = allUsersForPartitionStats.value.length
+    ? allUsersForPartitionStats.value
+    : users.value;
+
+  return[
+  { label: "全部用户", value: "all", count: statUsers.length },
   ...partitionOptions.value.map((item) => {
     const id = String(getId(item));
     return {
       label: getPartitionName(item),
       value: id,
-      count: users.value.filter((user) => userMatchesPartition(user, id, getPartitionName(item))).length,
+      count: statUsers.filter((user) => userMatchesPartition(user, id, getPartitionName(item))).length,
     };
   }),
-]);
+]});
 
 const filters = reactive({
   keyword: "",
@@ -736,6 +760,7 @@ const dictItemForm = reactive({
 });
 
 const users = ref<RecordLike[]>([]);
+const allUsersForPartitionStats = ref<RecordLike[]>([]);
 const roles = ref<RecordLike[]>([]);
 const permissions = ref<RecordLike[]>([]);
 const menus = ref<RecordLike[]>([]);
@@ -749,9 +774,9 @@ const selectedDictType = ref<RecordLike | null>(null);
 const selectedDictItem = ref<RecordLike | null>(null);
 const selectedRoleIds = ref<Array<string | number>>([]);
 const selectedPermissionIds = ref<Array<string | number>>([]);
-const selectedUserPartitionIds = ref<Array<string | number>>([]);
+const selectedUserPartitionIds = ref<string[]>([]);
 const selectedMenuIds = ref<Array<string | number>>([]);
-const userPartitionDraftIds = ref<Array<string | number>>([]);
+const userPartitionDraftIds = ref<string[]>([]);
 const selectedAlarmOptions = ref(["enabled", "web", "app"]);
 const activeOrg = ref("all");
 const permissionSource = ref<"api" | "local">("api");
@@ -763,7 +788,12 @@ const isCreating = ref(false);
 const showUserPassword = ref(false);
 const showUserPartitionDialog = ref(false);
 const dictCreateTarget = ref<"type" | "item">("item");
+let rolePermissionRequestToken = 0;
 
+const userDisplayTotal = computed(() => {
+  if (props.mode !== "user") return total.value;
+  return total.value > 0 ? total.value : users.value.length;
+});
 const mode = computed(() => props.mode);
 const sideTitle = computed(() => {
   const map: Record<AdminMode, string> = {
@@ -820,12 +850,12 @@ const areAllCurrentMenusSelected = computed(() => {
 const availableUserPartitionOptions = computed(() =>
   partitionOptions.value.filter((item) => {
     const id = getId(item);
-    return id && !selectedUserPartitionIds.value.includes(id);
+    return id && !selectedUserPartitionIds.value.includes(String(id));
   }),
 );
 const isAllUserPartitionDraftSelected = computed(() => {
   const ids = availableUserPartitionOptions.value.map((item) => getId(item)).filter(isValidId);
-  return ids.length > 0 && ids.every((id) => userPartitionDraftIds.value.includes(id));
+  return ids.length > 0 && ids.every((id) => userPartitionDraftIds.value.includes(String(id)));
 });
 const canDelete = computed(() => {
   if (props.mode === "user") {
@@ -846,7 +876,7 @@ const metricCards = computed(() => {
       { label: "用户总数", value: String(total.value || users.value.length) },
       { label: "启用账号", value: String(users.value.filter((item) => Number(getValue(item, ["status"]) ?? 1) === 1).length) },
       { label: "角色数量", value: String(roles.value.length) },
-      { label: "当前分区", value: orgOptions.value.find((item) => item.value === activeOrg.value)?.label || "全部分区" },
+      { label: "当前分区", value: orgOptions.value.find((item) => item.value === activeOrg.value)?.label || "全部用户" },
     ];
   }
 
@@ -925,9 +955,22 @@ function resetFilters() {
   pagination.pageNum = 1;
 }
 
+function normalizeId(value: unknown) {
+  const id = isObject(value) ? getId(value) : value;
+  return isValidId(id) ? String(id) : "";
+}
+
+function normalizeIds(values: unknown[]): string[] {
+  return values.map(normalizeId).filter(Boolean);
+}
 async function refreshCurrent() {
   if (props.mode === "user") {
-    await Promise.all([loadUsers(), loadRoles(), loadPartitions()]);
+    await Promise.all([
+      loadUsers(),
+      loadRoles(),
+      loadPartitions(),
+      loadAllUsersForPartitionStats(),
+    ]);
     return;
   }
 
@@ -950,18 +993,112 @@ async function loadUserDepts(userId: string | number) {
   try {
     const response = await getUserDepts(userId);
     assertSuccessResponse(response as ApiResponseLike);
-    selectedUserPartitionIds.value = parseListResponse(response as ApiResponseLike)
-      .map((item) => getId(item))
-      .filter(isValidId);
+    selectedUserPartitionIds.value = normalizeIds(parseListResponse(response as ApiResponseLike));
+  
   } catch {
     // 查询失败时保留 /api/user/page 返回的部门兜底数据
   }
 }
 
+function getDeptUsersFromDetail(response: ApiResponseLike, deptRecord: RecordLike) {
+  const data = isObject(response?.data) ? response.data : {};
+
+  const rawUsers = getFirstArray(data, [
+    "users",
+    "userList",
+    "userVOList",
+    "members",
+    "userRecords",
+  ]);
+  // console.log("rawUsers", rawUsers, deptRecord);
+  return rawUsers
+    .map((item) => (isObject(item) ? item : { value: item }))
+    .map((user) => {
+      const existingDepts = getArrayValue(user, ["depts", "departments", "partitions"]);
+      if (existingDepts.length) return user;
+
+      return {
+        ...user,
+        depts: [deptRecord],
+        deptId: getId(deptRecord),
+        deptName: getPartitionName(deptRecord),
+      };
+    });
+}
+function filterUsersByKeywordAndStatus(records: RecordLike[], keyword: string) {
+  return records.filter((user) => {
+    const keywordMatched = !keyword || [
+      getText(user, ["username"], ""),
+      getText(user, ["realName", "name"], ""),
+      getText(user, ["phone"], ""),
+      getText(user, ["email"], ""),
+      getUserRoleNames(user),
+      getUserDeptNames(user),
+    ].some((value) => value.includes(keyword));
+
+    const statusMatched = filters.status === "" || Number(getValue(user, ["status"]) ?? 1) === Number(filters.status);
+
+    return keywordMatched && statusMatched;
+  });
+}
+function getUserRoleNames(item: RecordLike | null) {
+  if (!item) return "-";
+
+  const roleNames = getArrayValue(item, ["roles"])
+    .map((role) => {
+      if (!isObject(role)) return "";
+      return getText(role, ["roleName", "name"], "");
+    })
+    .filter(Boolean);
+
+  if (roleNames.length) {
+    return roleNames[0];
+  }
+
+  return getText(item, ["roleName"], "-");
+}
+
+function getUserDeptNames(item: RecordLike | null) {
+  if (!item) return "-";
+
+  const deptNames = getArrayValue(item, ["depts", "departments", "partitions"])
+    .map((dept) => {
+      if (!isObject(dept)) return "";
+      return getText(dept, ["deptName", "departmentName", "partitionName", "name"], "");
+    })
+    .filter(Boolean);
+
+  if (deptNames.length) {
+    return deptNames.join("、");
+  }
+
+  return getText(item, ["deptName", "departmentName", "partitionName"], "-");
+}
 async function loadUsers() {
   loading.value = true;
   try {
     const keyword = filters.keyword.trim();
+
+    if (activeOrg.value !== "all") {
+      if (!allUsersForPartitionStats.value.length) {
+        await loadAllUsersForPartitionStats();
+      }
+
+      const partitionId = String(activeOrg.value);
+      const partitionName = getPartitionNameById(partitionId);
+
+      const deptUsers = allUsersForPartitionStats.value.filter((user) =>
+        userMatchesPartition(user, partitionId, partitionName),
+      );
+
+      const filteredUsers = filterUsersByKeywordAndStatus(deptUsers, keyword);
+
+      users.value = filteredUsers;
+      total.value = filteredUsers.length;
+      selectUser(users.value[0] || null);
+      return;
+    }
+
     const response = await getUserPage(removeEmptyFields({
       pageNum: pagination.pageNum,
       pageSize: pagination.pageSize,
@@ -969,12 +1106,13 @@ async function loadUsers() {
       realName: keyword || undefined,
       phone: keyword || undefined,
       status: filters.status === "" ? undefined : filters.status,
-      deptId: activeOrg.value === "all" ? undefined : activeOrg.value,
     })) as ApiResponseLike;
+
     assertSuccessResponse(response);
+
     const parsed = parsePageResponse(response);
     users.value = parsed.records;
-    total.value = parsed.total;
+    total.value = parsed.total > 0 ? parsed.total : parsed.records.length;
     selectUser(users.value[0] || null);
   } catch (error) {
     users.value = [];
@@ -985,7 +1123,6 @@ async function loadUsers() {
     loading.value = false;
   }
 }
-
 async function loadRoles() {
   try {
     const response = await getRoleList() as ApiResponseLike;
@@ -1001,8 +1138,20 @@ async function loadPartitions() {
     const response = await getDeptList() as ApiResponseLike;
     assertSuccessResponse(response);
     partitionOptions.value = parseListResponse(response);
+    // console.log("partitionOptions.value", partitionOptions.value);
   } catch {
     partitionOptions.value = [];
+  }
+}
+
+async function loadAllUsersForPartitionStats(keyword = "") {
+  try {
+    const response = await getUserList() as ApiResponseLike;
+    assertSuccessResponse(response);
+
+    allUsersForPartitionStats.value = parseListResponse(response);
+  } catch {
+    allUsersForPartitionStats.value = [];
   }
 }
 
@@ -1033,12 +1182,28 @@ async function loadRolesPage() {
 
 async function loadPermissions() {
   try {
-    const response = await getPermissionTree() as ApiResponseLike;
-    assertSuccessResponse(response);
-    const records = toTreeRows(parseListResponse(response));
+    let records = [] as RecordLike[];
+
+    try {
+      const treeResponse = await getPermissionTree() as ApiResponseLike;
+      assertSuccessResponse(treeResponse);
+      records = toTreeRows(parseListResponse(treeResponse));
+    } catch {
+      records = [];
+    }
+
+    if (!records.length) {
+      const listResponse = await getPermissionList() as ApiResponseLike;
+      assertSuccessResponse(listResponse);
+      records = toTreeRows(parseListResponse(listResponse));
+    }
+
     if (records.length) {
       permissions.value = records;
       permissionSource.value = "api";
+      if (selectedRole.value) {
+        applyRolePermissionSelection(selectedRole.value);
+      }
     } else {
       permissions.value = getDefaultMenuResources();
       permissionSource.value = "local";
@@ -1170,9 +1335,8 @@ function selectUser(item: RecordLike | null) {
     location: item ? getText(item, ["location", "address"], "") : "",
   });
   selectedRoleIds.value = getUserRoleIdsFromPageRecord(item);
-  selectedUserPartitionIds.value = getArrayValue(item || {}, ["deptIds", "departmentIds", "partitionIds", "depts", "departments", "partitions"])
-    .map((value) => (isObject(value) ? getId(value) : value))
-    .filter(isValidId);
+  selectedUserPartitionIds.value = normalizeIds(getArrayValue(item || {}, ["deptIds", "departmentIds", "partitionIds", "depts", "departments", "partitions"]));
+
   userPartitionDraftIds.value = [];
   showUserPartitionDialog.value = false;
 
@@ -1223,7 +1387,107 @@ function selectRole(item: RecordLike | null) {
     description: item ? getText(item, ["description"], "") : "",
     sort: item ? getText(item, ["sort"], "0") : "0",
   });
-  selectedPermissionIds.value = getArrayValue(item || {}, ["permissionIds", "permissions"]).map((value) => (isObject(value) ? getId(value) : value)).filter(isValidId);
+  applyRolePermissionSelection(selectedRole.value);
+
+  const roleId = item ? getId(item) : "";
+  if (isValidId(roleId)) {
+    void hydrateSelectedRolePermissions(roleId);
+  } else {
+    rolePermissionRequestToken += 1;
+  }
+}
+
+function extractRolePermissionIds(item: RecordLike | null) {
+  return getArrayValue(item || {}, ["permissionIds", "permissions"])
+    .map((value) => {
+      if (!isObject(value)) {
+        return value;
+      }
+
+      return (
+        getValue(value, ["id", "permissionId", "menuId", "resourceId", "authId"]) ??
+        getId(value)
+      );
+    })
+    .filter(isValidId);
+}
+
+function extractRolePermissionCodes(item: RecordLike | null) {
+  return getArrayValue(item || {}, ["permissions"])
+    .map((value) => (isObject(value) ? getText(value, ["permissionCode", "code"], "") : ""))
+    .filter(Boolean);
+}
+
+function resolveRolePermissionSelection(item: RecordLike | null) {
+  const directIds = extractRolePermissionIds(item);
+  const directIdSet = new Set(directIds.map((value) => String(value)));
+  const permissionCodeSet = new Set(extractRolePermissionCodes(item).map((value) => value.toLowerCase()));
+
+  if (!permissions.value.length) {
+    return directIds;
+  }
+
+  const matchedIds = permissions.value
+    .map((permission) => {
+      const permissionId = getId(permission);
+      const permissionCode = getText(permission, ["permissionCode", "code"], "").toLowerCase();
+      const matchesById = isValidId(permissionId) && directIdSet.has(String(permissionId));
+      const matchesByCode = permissionCode && permissionCodeSet.has(permissionCode);
+      return matchesById || matchesByCode ? permissionId : "";
+    })
+    .filter(isValidId);
+
+  return matchedIds.length ? matchedIds : directIds;
+}
+
+function applyRolePermissionSelection(
+    roleWithPermissions: RecordLike | null,
+  ): void {
+    const resolvedIds =
+      resolveRolePermissionSelection(roleWithPermissions);
+
+    // 权限树尚未加载时，先保留接口返回的原始 ID。
+    if (!permissions.value.length) {
+      selectedPermissionIds.value = resolvedIds;
+      return;
+    }
+
+    const selectedIdSet = new Set(
+      resolvedIds.map((id) => String(id)),
+    );
+
+    // 同步父节点：
+    syncParentPermissionSelection(selectedIdSet);
+
+    selectedPermissionIds.value =
+      normalizeSelectedPermissionIds(selectedIdSet);
+}
+
+async function hydrateSelectedRolePermissions(roleId: string | number): Promise<void> {
+  const requestToken = ++rolePermissionRequestToken;
+
+  try {
+    const response = await getRolePermissions(roleId) as ApiResponseLike;
+    assertSuccessResponse(response);
+
+    if (requestToken !== rolePermissionRequestToken || String(getId(selectedRole.value)) !== String(roleId)) {
+      return;
+    }
+
+    const rolePermissions = parseListResponse(response);
+    const roleWithPermissions: RecordLike = {
+      ...(selectedRole.value || {}),
+      permissions: rolePermissions,
+    };
+    
+    selectedRole.value = roleWithPermissions;
+    applyRolePermissionSelection(roleWithPermissions);
+  } catch (error){
+    if (requestToken === rolePermissionRequestToken &&String(getId(selectedRole.value)) === String(roleId)) {
+      selectedPermissionIds.value =[];
+      toastError(error, "加载角色权限失败");
+    }
+  }
 }
 
 function selectMenu(item: RecordLike | null) {
@@ -1380,7 +1644,10 @@ async function saveUser() {
     }
     const savedUserId = roleAssignment?.userId || userForm.id;
     if (savedUserId) {
-      await assignUserDepts(savedUserId, selectedUserPartitionIds.value);
+      await assignUserDepts(
+        savedUserId, 
+        selectedUserPartitionIds.value.map((id) => Number(id)).filter((id) => Number.isFinite(id)),
+      );
     } else if (selectedUserPartitionIds.value.length) {
       savedMessage = "用户已保存，后端未返回用户ID，请重新选择后绑定分区";
       savedIcon = "none";
@@ -1428,11 +1695,19 @@ async function saveRolePermissions() {
     uni.showToast({ title: "请先在菜单管理中保存后端菜单资源，再给角色授权", icon: "none" });
     return;
   }
+  const confirmed = await confirmAction({
+    title: "保存权限",
+    content: "保存后会覆盖当前角色可访问的菜单权限，确定继续吗？",
+    confirmText: "保存",
+  });
+  if (!confirmed) {
+    return;
+  }
 
   saving.value = true;
   try {
     await assignRolePermissions(getId(selectedRole.value), selectedPermissionIds.value);
-    uni.showToast({ title: "角色权限已保存", icon: "success" });
+    uni.showToast({ title: "角色权限已保存，请相关账号重新登录", icon: "none" });
     await loadRolesPage();
   } catch (error) {
     toastError(error, "权限保存失败");
@@ -1473,6 +1748,15 @@ async function saveMenu() {
 
 async function syncDefaultMenusToBackend() {
   if (saving.value) {
+    return;
+  }
+
+  const confirmed = await confirmAction({
+    title: "同步默认菜单",
+    content: "同步会将前端默认菜单资源写入后端，确定继续吗？",
+    confirmText: "同步",
+  });
+  if (!confirmed) {
     return;
   }
 
@@ -1669,15 +1953,9 @@ async function deleteSelectedMenus() {
     return;
   }
 
-  const confirmed = await new Promise<boolean>((resolve) => {
-    uni.showModal({
-      title: "批量删除菜单",
-      content: `确定删除选中的 ${ids.length} 个菜单吗？`,
-      confirmText: "删除",
-      confirmColor: "#ef4444",
-      success: (result) => resolve(Boolean(result.confirm)),
-      fail: () => resolve(false),
-    });
+  const confirmed = await confirmDangerAction({
+    title: "批量删除菜单",
+    content: `确定删除选中的 ${ids.length} 个菜单吗？`,
   });
 
   if (!confirmed) {
@@ -1700,6 +1978,14 @@ async function deleteSelectedMenus() {
 }
 
 async function deleteCurrent() {
+  const confirmed = await confirmDangerAction({
+    title: "删除确认",
+    content: "删除后数据可能无法恢复，确定继续吗？",
+  });
+  if (!confirmed) {
+    return;
+  }
+
   saving.value = true;
   try {
     if (props.mode === "user" && getId(selectedUser.value)) {
@@ -1731,6 +2017,21 @@ async function deleteCurrent() {
   }
 }
 
+async function clearPermissionSelection() {
+  if (!selectedPermissionIds.value.length) {
+    return;
+  }
+
+  const confirmed = await confirmAction({
+    title: "清空权限选择",
+    content: "确定清空当前已选择的权限吗？未保存的选择会丢失。",
+    confirmText: "清空",
+  });
+  if (confirmed) {
+    selectedPermissionIds.value = [];
+  }
+}
+
 function toggleUserRole(id: string | number) {
  selectedRoleIds.value = selectedRoleIds.value.includes(id) ? [] : [id];
 }
@@ -1740,6 +2041,7 @@ function openUserPartitionDialog() {
   showUserPartitionDialog.value = true;
   if (!partitionOptions.value.length) {
     void loadPartitions();
+
   }
 }
 
@@ -1749,29 +2051,129 @@ function closeUserPartitionDialog() {
 }
 
 function toggleUserPartitionDraft(id: string | number) {
-  toggleId(userPartitionDraftIds.value, id);
+  const normalizedId = normalizeId(id);
+  if (normalizedId) {
+    toggleId(userPartitionDraftIds.value, normalizedId);
+  }
 }
 
 function toggleAllUserPartitionDraft() {
-  const ids = availableUserPartitionOptions.value.map((item) => getId(item)).filter(isValidId);
+  const ids = availableUserPartitionOptions.value
+    .map((item) => normalizeId(item))
+    .filter(Boolean);
   userPartitionDraftIds.value = isAllUserPartitionDraftSelected.value ? [] : ids;
 }
 
 function confirmUserPartitionBinding() {
-  const merged = new Set<string | number>(selectedUserPartitionIds.value);
-  userPartitionDraftIds.value.forEach((id) => merged.add(id));
+  const merged = new Set<string >(selectedUserPartitionIds.value);
+  userPartitionDraftIds.value.forEach((id) => merged.add(String(id)));
   selectedUserPartitionIds.value = Array.from(merged);
   closeUserPartitionDialog();
 }
 
 function removeUserPartition(id: string | number) {
-  selectedUserPartitionIds.value = selectedUserPartitionIds.value.filter((item) => item !== id);
+  selectedUserPartitionIds.value = selectedUserPartitionIds.value.filter((item) => item !== String(id));
 }
 
-function togglePermission(id: string | number) {
-  toggleId(selectedPermissionIds.value, id);
+const selectedPermissionIdSet = computed<Set<string>>(() =>
+  new Set(selectedPermissionIds.value.map((id) => String(id))),
+);
+
+const areAllPermissionsChecked = computed<boolean>(() => {
+  const ids = getPermissionCascadeIds(permissions.value);
+  return ids.length > 0 && ids.every((id) => selectedPermissionIdSet.value.has(String(id)));
+});
+
+function togglePermission(item: RecordLike) :void{
+  const id = getId(item);
+  if (!isValidId(id)) return;
+
+  const ids = getPermissionCascadeIds([item]);
+  const nextIds = new Set(selectedPermissionIds.value.map((value) => String(value)));
+  const shouldCheck = !ids.every((value) => nextIds.has(String(value)));
+
+  ids.forEach((value) => {
+    const key = String(value);
+    if (shouldCheck) {
+      nextIds.add(key);
+    } else {
+      nextIds.delete(key);
+    }
+  });
+  syncParentPermissionSelection(nextIds);
+  selectedPermissionIds.value = normalizeSelectedPermissionIds(nextIds);
 }
 
+function toggleAllPermissions() :void{
+  const ids = getPermissionCascadeIds(permissions.value);
+  if (!ids.length) return;
+
+  const nextIds = new Set<string>(ids.map((id) => String(id)));
+  syncParentPermissionSelection(nextIds);
+
+  selectedPermissionIds.value = normalizeSelectedPermissionIds(nextIds);
+}
+
+function syncParentPermissionSelection(idSet: Set<string>): void {
+  const rootItems = permissions.value.filter((item) => getTreeLevel(item) === 1);
+
+  rootItems.forEach((item) => {
+    syncPermissionNodeSelection(item, idSet);
+  });
+}
+
+function syncPermissionNodeSelection(item: RecordLike, idSet: Set<string>): boolean {
+  const id = getId(item);
+  const children = getArrayValue(item, ["children"]).filter(isObject);
+
+  if (!children.length) {
+    return isValidId(id) && idSet.has(String(id));
+  }
+
+  const allChildrenChecked = children.every((child) => syncPermissionNodeSelection(child, idSet));
+
+  if (isValidId(id)) {
+    if (allChildrenChecked) {
+      idSet.add(String(id));
+    } else {
+      idSet.delete(String(id));
+    }
+  }
+
+  return allChildrenChecked;
+}
+
+function isPermissionChecked(item: RecordLike): boolean {
+  const ids = getPermissionCascadeIds([item]);
+  return ids.length > 0 && ids.every((id) => selectedPermissionIdSet.value.has(String(id)));
+}
+
+function isPermissionPartialChecked(item: RecordLike): boolean {
+  const ids = getPermissionCascadeIds([item]);
+  if (ids.length <= 1) return false;
+
+  const checkedCount = ids.filter((id) => selectedPermissionIdSet.value.has(String(id))).length;
+  return checkedCount > 0 && checkedCount < ids.length;
+}
+
+function getPermissionCascadeIds(items: RecordLike[]) : Array<string | number>{
+  return items.flatMap((item: RecordLike) => {
+    const id = getId(item);
+    const children = getArrayValue(item, ["children"])
+      .filter(isObject);
+
+    return [
+      ...(isValidId(id) ? [id] : []),
+      ...getPermissionCascadeIds(children),
+    ];
+  });
+}
+
+function normalizeSelectedPermissionIds(idSet: Set<string>) {
+  return permissions.value
+    .map((item) => getId(item))
+    .filter((id) => isValidId(id) && idSet.has(String(id)));
+}
 function toggleAlarm(value: string) {
   const index = selectedAlarmOptions.value.indexOf(value);
   if (index >= 0) {
@@ -1900,8 +2302,10 @@ function getPartitionName(item: RecordLike) {
 }
 
 function getPartitionNameById(id: string | number) {
-  const partition = partitionOptions.value.find((item) => getId(item) === id);
-  return partition ? getPartitionName(partition) : `分区 ${id}`;
+  const normalizedId = String(id);
+  const partition = partitionOptions.value.find((item) => String(getId(item)) === normalizedId);
+  // console.log("getPartitionNameById", normalizedId, partition);
+  return partition ? getPartitionName(partition) : `分区 ${normalizedId}`;
 }
 
 function userMatchesPartition(user: RecordLike, partitionId: string, partitionName: string) {
@@ -1912,6 +2316,18 @@ function userMatchesPartition(user: RecordLike, partitionId: string, partitionNa
 
   const ids = getArrayValue(user, ["deptIds", "departmentIds", "partitionIds"]).map(String);
   if (ids.includes(partitionId)) {
+    return true;
+  }
+
+  const depts = getArrayValue(user, ["depts", "departments", "partitions"]);
+  if (depts.some((dept) => {
+    if (!isObject(dept)) return false;
+
+    const deptId = getId(dept);
+    const deptName = getPartitionName(dept);
+
+    return String(deptId) === partitionId || Boolean(partitionName && deptName === partitionName);
+  })) {
     return true;
   }
 
@@ -1996,7 +2412,11 @@ function isValidId(value: unknown): value is string | number {
 }
 
 .workspace--auth {
-  grid-template-columns: minmax(248px, 0.36fr) minmax(0, 1fr);
+  grid-template-columns: minmax(216px, 0.28fr) minmax(0, 1fr);
+}
+
+.workspace--menu {
+  grid-template-columns: 324px minmax(0, 1fr);
 }
 
 .workspace--dict {
@@ -2115,10 +2535,34 @@ function isValidId(value: unknown): value is string | number {
   margin-bottom: 4px;
 }
 
+.side-list__item--tree {
+  box-sizing: border-box;
+}
+
+.side-list__tree-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.side-list__tree-branch {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  border-left: 1px solid #bfd3e6;
+  border-bottom: 1px solid #bfd3e6;
+}
+
 .side-list__title {
   color: inherit;
   font-size: 13px;
   font-weight: 800;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .side-list__sub {
@@ -2447,7 +2891,7 @@ function isValidId(value: unknown): value is string | number {
 }
 
 .data-table--user {
-  min-width: 1040px;
+  min-width: 1380px;
 }
 
 .data-table--menu {
@@ -2491,6 +2935,14 @@ function isValidId(value: unknown): value is string | number {
   min-width: 240px;
 }
 
+.data-table--user .data-cell--roles {
+  min-width: 180px;
+}
+
+.data-table--user .data-cell--depts {
+  min-width: 220px;
+}
+
 .data-cell.data-cell--status {
   min-width: 100px;
 }
@@ -2501,14 +2953,6 @@ function isValidId(value: unknown): value is string | number {
 
 .data-table--menu .data-cell--name {
   min-width: 180px;
-}
-
-.tree-cell-name {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  max-width: 100%;
-  box-sizing: border-box;
 }
 
 .data-table--menu .data-cell--select {
@@ -2547,6 +2991,7 @@ function isValidId(value: unknown): value is string | number {
   box-sizing: border-box;
   vertical-align: middle;
   min-width: 0;
+  text-align: center;
   padding: 0 10px;
   overflow: visible;
   font-size: 13px;
@@ -2666,7 +3111,23 @@ function isValidId(value: unknown): value is string | number {
   max-height: 118px;
   overflow-y: auto;
 }
+.check-box--partial {
+  position: relative;
+  background: #eaf4ff;
+  border-color: #0d82ee;
+}
 
+.check-box--partial::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 2px;
+  background: #0d82ee;
+  border-radius: 2px;
+  transform: translate(-50%, -50%);
+  content: "";
+}
 .binding-field-head {
   display: flex;
   align-items: center;

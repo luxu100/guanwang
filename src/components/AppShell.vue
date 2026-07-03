@@ -51,6 +51,7 @@
           </view>
           <text v-if="warningCount > 0" class="warning-entry__badge">{{ warningCountText }}</text>
         </view>
+        <LanguageSelect class="top-actions__lang" />
         <view class="user-chip">
           <text class="user-name">{{ userName }}</text>
         </view>
@@ -173,7 +174,12 @@
           data-fullscreen-target="shell-content"
         >
           <!-- AppShell 内部切换目录时真实页面不会立即卸载，内容必须跟随 currentPath 控制。 -->
-          <TencentLeakMap v-if="isLeakMonitorActive" />
+          <AdminPlaceholderView
+            v-if="showNoAccessState"
+            title="暂无页面权限"
+            path="请联系管理员为当前账号分配菜单权限"
+          />
+          <LocaleLeakMap v-else-if="isLeakMonitorActive" />
           <component v-else-if="shellContentComponent" :is="shellContentComponent" v-bind="shellContentProps" />
           <slot v-else-if="shouldRenderPageSlot"></slot>
           <view v-else class="shell-placeholder"></view>
@@ -188,7 +194,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import type { Component } from "vue";
 import logoImage from "@/assets/images/logo.webp";
 import AdminPlaceholderView from "@/components/admin/AdminPlaceholderView.vue";
-import TencentLeakMap from "@/pages/leak-monitor/components/TencentLeakMap.vue";
+import LanguageSelect from "@/components/common/LanguageSelect.vue";
 import PartitionManagementView from "@/pages/partition/components/PartitionManagementView.vue";
 import DeviceManagementView from "@/pages/device/components/DeviceManagementView.vue";
 import SystemManagementView from "@/pages/system/components/SystemManagementView.vue";
@@ -205,9 +211,9 @@ import LeakAnalysisView from "@/pages/leak-report/components/LeakAnalysisView.vu
 import HistoryOverviewView from "@/pages/leak-report/components/HistoryOverviewView.vue";
 import { MENU_COLLAPSED_KEY, OPENED_TABS_KEY } from "@/utils/appShellStorage";
 import { clearAuthStorage, createProtectedRouteDecision, LOGIN_PATH } from "@/utils/authGuard";
-import { filterMenuItemsByAccess, flattenMenuPaths, getFirstAccessiblePath } from "@/utils/menuAccess";
+import { filterMenuItemsByAccess, flattenMenuPaths, getMenuAccessSummary } from "@/utils/menuAccess";
 import { TOKEN_KEY } from "@/utils/request";
-
+import LocaleLeakMap from "@/pages/leak-monitor/components/LocaleLeakMap.vue";
 interface MenuItem {
   label: string;
   path: string;
@@ -418,11 +424,13 @@ const menuAccessState = computed(() => ({
   roles: uni.getStorageSync("roles") || [],
   userInfo: uni.getStorageSync("userInfo") || {},
 }));
+const menuAccessSummary = computed(() => getMenuAccessSummary(menuAccessState.value));
 const filteredMenuItems = computed(() => {
   return filterMenuItemsByAccess(menuItems, menuAccessState.value);
 });
 const accessibleMenuPathSet = computed(() => new Set(flattenMenuPaths(filteredMenuItems.value)));
-const firstAccessibleMenuPath = computed(() => getFirstAccessiblePath(filteredMenuItems.value, DEFAULT_PAGE_PATH));
+const firstAccessibleMenuPath = computed(() => flattenMenuPaths(filteredMenuItems.value)[0] || "");
+const showNoAccessState = computed(() => menuAccessSummary.value.hasAccessData && accessibleMenuPathSet.value.size === 0);
 
 const userName = computed(() => {
   const userInfo = uni.getStorageSync("userInfo");
@@ -489,6 +497,10 @@ function goPage(path: string, options: { keepCollapsedSubmenu?: boolean } = {}) 
     return;
   }
 
+  if (!path) {
+    return;
+  }
+
   if (currentPath.value === path) {
     ensureTab(path);
     scrollActiveTabIntoView(path);
@@ -550,7 +562,9 @@ function closeTab(path: string) {
   openedTabs.value.splice(index, 1);
   persistOpenedTabs();
   if (openedTabs.value.length === 0) {
-    goPage(firstAccessibleMenuPath.value);
+    if (firstAccessibleMenuPath.value) {
+      goPage(firstAccessibleMenuPath.value);
+    }
     return;
   }
 
@@ -787,7 +801,7 @@ function getBrowserPath() {
 
 function isMenuPathAccessible(path: string) {
   const paths = accessibleMenuPathSet.value;
-  return paths.size === 0 || paths.has(path);
+  return paths.size === 0 ? !menuAccessSummary.value.hasAccessData : paths.has(path);
 }
 
 function getAccessiblePathOrFallback(path: string) {
@@ -800,7 +814,7 @@ function getAccessiblePathOrFallback(path: string) {
 
 function ensureCurrentPathAccessible() {
   const nextPath = getAccessiblePathOrFallback(currentPath.value);
-  if (nextPath === currentPath.value) {
+  if (!nextPath || nextPath === currentPath.value) {
     return;
   }
 
@@ -937,9 +951,14 @@ function syncPathFromBrowser() {
   if (path) {
     const requestedPath = isDefaultAliasPath(path) ? DEFAULT_PAGE_PATH : path;
     const nextPath = getAccessiblePathOrFallback(requestedPath);
-    currentPath.value = nextPath;
-    if (nextPath !== requestedPath) {
+    currentPath.value = nextPath || requestedPath;
+    if (nextPath && nextPath !== requestedPath) {
       replaceBrowserPath(nextPath);
+    }
+    if (!nextPath) {
+      pruneOpenedTabsByAccess();
+      updateDocumentTitle(currentPath.value);
+      return;
     }
     ensureTab(nextPath);
     scrollActiveTabIntoView(nextPath);
@@ -954,7 +973,7 @@ onMounted(() => {
     return;
   }
 
-  if (isDefaultAliasPath(getBrowserPath() || routePath.value)) {
+  if (firstAccessibleMenuPath.value && isDefaultAliasPath(getBrowserPath() || routePath.value)) {
     replaceBrowserPath(firstAccessibleMenuPath.value);
   }
   ensureCurrentPathAccessible();
@@ -1246,6 +1265,19 @@ onMounted(() => {
   flex: 0 0 auto;
   gap: 18px;
   margin-left: auto;
+}
+
+.top-actions__lang {
+  flex: none;
+}
+
+.top-actions__lang :deep(.language-select) {
+  min-width: 88px;
+  height: 34px;
+  padding: 0 12px;
+  border-color: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 .warning-entry {
@@ -2283,6 +2315,13 @@ onMounted(() => {
     min-width: 0;
     height: 34px;
     padding: 0 16px 0 0;
+  }
+
+  .top-actions__lang :deep(.language-select) {
+    min-width: 78px;
+    height: 32px;
+    padding: 0 10px;
+    font-size: 13px;
   }
 
   .user-chip::before {

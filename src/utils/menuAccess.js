@@ -25,6 +25,15 @@ export function filterMenuItemsByAccess(menuItems, accessState = {}) {
     .filter(Boolean);
 }
 
+export function getMenuAccessSummary(accessState = {}) {
+  const context = createAccessContext(accessState);
+
+  return {
+    hasAccessData: context.hasAccessData,
+    isAdmin: context.isAdmin,
+  };
+}
+
 export function flattenMenuPaths(menuItems) {
   return menuItems.flatMap((item) => {
     if (item.children?.length) {

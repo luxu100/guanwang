@@ -15,11 +15,12 @@
         @delete="emit('delete')"
         @refresh="emit('refresh')"
         @edit="emit('edit')"
+        :visible="visible"
     />
   </view>
 </template>
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed,ref } from "vue";
 import XBaseToolbar from "@/pages/device/components/x/XBaseToolbar.vue";
 import type { Field } from "@/pages/device/components/x/types";
 
@@ -29,6 +30,7 @@ const props = defineProps<{
     startTime: string;
     endTime: string;
   };
+  visible: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -40,6 +42,16 @@ const emit = defineEmits<{
   (e: "delete"): void;
   (e: "edit"): void;
 }>();
+
+const toolbarRef = ref();
+
+function toggleVisible() {
+  toolbarRef.value?.toggleVisible();
+}
+
+defineExpose({
+  toggleVisible
+});
 
 // ===== 唯一数据源代理（正确写法）=====
 const model = computed({

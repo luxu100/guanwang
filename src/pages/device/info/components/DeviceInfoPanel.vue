@@ -228,14 +228,6 @@ const getDeviceTypeLabel = computed(() => {
   return props.deviceData.deviceType || '通用设备';
 });
 
-function closeDrawer() {
-  emit('update:visible', false);
-}
-
-function handleEdit() {
-  emit('edit', props.deviceData);
-}
-
 // 监听数据加载
 watch(
     () => props.deviceData.id,

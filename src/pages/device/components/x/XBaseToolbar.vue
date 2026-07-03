@@ -2,7 +2,7 @@
   <view class="toolbar-wrapper">
 
     <!-- toolbar -->
-    <view class="toolbar" :class="{ collapsed: !visible }">
+    <view class="toolbar" :class="{ collapsed: !props.visible }">
 
       <view class="toolbar-row toolbar-row--filters">
 
@@ -80,17 +80,6 @@
 
       </view>
     </view>
-
-    <view
-        class="collapse-handle"
-        @click="toggleVisible"
-    >
-      <text
-          class="collapse-arrow"
-          :class="{ 'is-collapsed': !visible }"
-      ></text>
-    </view>
-
   </view>
 </template>
 
@@ -111,11 +100,13 @@ const props = withDefaults(defineProps<{
   showRefresh?: boolean;
   canDelete?: boolean;
   showEdit?: boolean;
+  visible?: boolean;
 }>(), {
   showAdd: true,
   showDelete: true,
   showRefresh: true,
   canDelete: true,
+  visible: false,
 });
 
 const emit = defineEmits([
@@ -127,15 +118,6 @@ const emit = defineEmits([
   "refresh",
   "edit",
 ]);
-
-/** 折叠状态 */
-const visible = ref(false);
-
-function toggleVisible() {
-  visible.value = !visible.value;
-}
-
-defineExpose({ toggleVisible, visible });
 
 /** model */
 const model = reactive({ ...props.modelValue });
@@ -289,44 +271,5 @@ function handleReset() {
 .toolbar-actions-wrapper {
   margin-left: auto;
   align-self: flex-end;
-}
-
-/* =======================
-   COLLAPSE HANDLE (关键)
-======================= */
-.collapse-handle {
-  position: absolute;
-  right: 12px;
-  bottom: -10px;
-
-  width: 32px;
-  height: 16px;
-
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  cursor: pointer;
-
-  background: transparent;
-}
-
-.collapse-arrow {
-  width: 8px;
-  height: 8px;
-  border: 2px solid #74879c;
-  border-top: none;
-  border-left: none;
-  transform: rotate(-135deg);
-  transition: transform 0.25s ease;
-}
-
-/* 收起：箭头向上 */
-.is-collapsed {
-  transform: rotate(45deg);
-}
-
-.toolbar:not(.collapsed) + .collapse-handle {
-  transform: translateY(-8px);
 }
 </style>

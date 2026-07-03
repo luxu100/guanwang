@@ -58,7 +58,7 @@
           <text class="protocol-editor-subtitle">端口号使用协议ID，保存时会同步保存协议和字段列表</text>
         </view>
         <view class="protocol-editor-actions">
-
+          <button class="secondary-button" hover-class="secondary-button--hover" @click="openProtocolTemplateImportDialog">导入模板</button>
           <button class="secondary-button" @click="openSaveProtocolTemplateDialog">保存模板</button>
           <button class="secondary-button" :disabled="importingProtocolJson" hover-class="secondary-button--hover" @click="openProtocolJsonDialog">
             {{ importingProtocolJson ? "导入中..." : "上传JSON" }}
@@ -343,12 +343,15 @@
             </view>
             <view class="form-field">
               <text class="form-label form-label--required">字段模板</text>
-              <picker :range="protocolFieldTemplates" range-key="name" @change="handleProtocolTemplateSelectChange">
-                <view class="form-select">
-                  <text>{{ selectedProtocolTemplateName }}</text>
-                  <text class="select-arrow"></text>
-                </view>
-              </picker>
+              <view class="template-select-row">
+                <picker class="template-select-row__picker" :range="protocolFieldTemplates" range-key="name" @change="handleProtocolTemplateSelectChange">
+                  <view class="form-select">
+                    <text>{{ selectedProtocolTemplateName }}</text>
+                    <text class="select-arrow"></text>
+                  </view>
+                </picker>
+                <button class="danger-button template-delete-button" hover-class="danger-button--hover" @click="deleteSelectedProtocolTemplate">删除</button>
+              </view>
             </view>
           </view>
           <view class="modal-actions">
@@ -381,6 +384,7 @@ import {
   updateProtocolDefinition,
 } from "@/services/data-receive/access";
 import {
+  batchSaveProtocolFields,
   createProtocolField,
   deleteProtocolField,
   getFieldsByProtocol,
@@ -390,6 +394,10 @@ import {
   type ProtocolFieldDefinition,
   updateProtocolField,
 } from "@/services/data-receive/parse";
+import {
+  getAlgorithmResultDetail,
+  getAlgorithmResultPage,
+} from "@/services/data-receive/algorithm";
 import {
   getSamplingCssDataDetail,
   getSamplingCssDataPage,
@@ -416,6 +424,7 @@ import {
   type ApiResponseLike,
   type RecordLike,
 } from "@/utils/adminData";
+import { confirmAction, confirmDangerAction } from "@/utils/confirmAction";
 
 type DataReceiveMode = "access" | "parse" | "record";
 type FieldType = "text" | "number" | "textarea" | "boolean" | "datetime" | "status" | "json" | "select" | "actions";
@@ -424,6 +433,7 @@ type SectionKey =
   | "relation"
   | "field"
   | "parseRecord"
+  | "algorithmResult"
   | "samplingRecord"
   | "samplingDetail"
   | "samplingDaily"
@@ -659,6 +669,45 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     ],
     loadRecords: (query) => getProtocolParseRecordPage(query),
   },
+  algorithmResult: {
+    key: "algorithmResult",
+    mode: "parse",
+    title: "算法分析",
+    description: "查询算法输出结果、音频关联信息和多组信号处理结论",
+    columns: [
+      { key: "deviceNumber", label: "设备编号", width: 130 },
+      { key: "deviceId", label: "设备ID", width: 100 },
+      { key: "samplingId", label: "采样ID", width: 100 },
+      { key: "audioFileId", label: "音频文件ID", width: 120 },
+      { key: "audioTime", label: "音频时间", type: "datetime", width: 170 },
+      { key: "signalprocessingResult", label: "算法结果", width: 180 },
+      { key: "signalprocessingResult1", label: "结果1", width: 140 },
+      { key: "signalprocessingResult2", label: "结果2", width: 140 },
+      { key: "signalprocessingResult3", label: "结果3", width: 140 },
+      { key: "createdAt", label: "创建时间", type: "datetime", width: 170 },
+    ],
+    detailFields: [
+      { key: "id", label: "记录ID" },
+      { key: "deviceId", label: "设备ID" },
+      { key: "deviceNumber", label: "设备编号" },
+      { key: "samplingId", label: "采样ID" },
+      { key: "audioFileId", label: "音频文件ID" },
+      { key: "audioTime", label: "音频时间", type: "datetime" },
+      { key: "signalprocessingResult", label: "算法结果" },
+      { key: "signalprocessingResult1", label: "结果1" },
+      { key: "signalprocessingResult2", label: "结果2" },
+      { key: "signalprocessingResult3", label: "结果3" },
+      { key: "createdAt", label: "创建时间", type: "datetime" },
+    ],
+    filters: [
+      { key: "deviceNumber", label: "设备编号" },
+      { key: "deviceId", label: "设备ID", type: "number" },
+      { key: "samplingId", label: "采样ID", type: "number" },
+      ...baseTimeFilters,
+    ],
+    loadRecords: (query) => getAlgorithmResultPage(query),
+    getDetail: (id) => getAlgorithmResultDetail(id),
+  },
   samplingRecord: createRecordSection("samplingRecord", "record", "采样记录", "查询设备采样主记录和渗漏判断结果", getSamplingRecordPage, getSamplingRecordDetail, [
     { key: "deviceNumber", label: "设备编号", width: 130 },
     { key: "tubeGroup", label: "管组", width: 100 },
@@ -728,7 +777,7 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
 
 const modeSectionKeys: Record<DataReceiveMode, SectionKey[]> = {
   access: ["protocol", "relation"],
-  parse: ["field", "parseRecord"],
+  parse: ["field", "parseRecord", "algorithmResult"],
   record: ["samplingRecord", "samplingDetail", "samplingDaily", "samplingPressure", "samplingCss"],
 };
 
@@ -752,11 +801,11 @@ const dropTargetFieldIndex = ref<number | null>(null);
 const fieldRecordBaselines = ref(new Map<string, string>());
 const PROTOCOL_FIELD_TEMPLATE_STORAGE_KEY = "protocolFieldTemplates";
 const taskTypeOptions = [
-  { label: "CLASS_ONE", value: "CLASS_ONE" },
-  { label: "CLASS_TWO", value: "CLASS_TWO" },
-  { label: "CLASS_THREE", value: "CLASS_THREE" },
-  { label: "CLASS_FOUR", value: "CLASS_FOUR" },
-  { label: "CLASS_FIVE", value: "CLASS_FIVE" },
+  { label: "TASK_1", value: "TASK_1" },
+  { label: "TASK_2", value: "TASK_2" },
+  { label: "TASK_3", value: "TASK_3" },
+  { label: "TASK_4", value: "TASK_4" },
+  { label: "TASK_5", value: "TASK_5" },
 ];
 type ProtocolFieldTemplate = {
   id: string;
@@ -770,13 +819,13 @@ const protocolTemplateNameInput = ref("");
 const protocolTemplateImportForm = reactive({
   protocolId: "",
   afn: "",
-  taskType: "CLASS_ONE",
+  taskType: "TASK_1",
   templateId: "",
 });
 const fieldCommonForm = reactive({
   protocolId: "",
   afn: "",
-  taskType: "CLASS_ONE",
+  taskType: "TASK_1",
 });
 const fieldProtocolForm = reactive({
   id: "",
@@ -1070,6 +1119,14 @@ async function deleteSelectedRecord() {
     return;
   }
 
+  const confirmed = await confirmDangerAction({
+    title: "删除确认",
+    content: "确定删除当前选中的记录吗？删除后数据可能无法恢复。",
+  });
+  if (!confirmed) {
+    return;
+  }
+
   submitting.value = true;
 
   try {
@@ -1121,7 +1178,7 @@ function fillFieldCommonFormFromProtocol(item: RecordLike | null) {
   const protocolId = getValue(source, ["id"]) ?? getValue(source, ["port"]) ?? getId(source);
   fieldCommonForm.protocolId = protocolId === undefined || protocolId === null ? "" : String(protocolId);
   fieldCommonForm.afn = String(getValue(source, ["afn", "AFN"]) ?? fieldCommonForm.afn ?? "");
-  fieldCommonForm.taskType = String(getValue(source, ["taskType", "typeCode"]) ?? fieldCommonForm.taskType ?? "CLASS_ONE");
+  fieldCommonForm.taskType = String(getValue(source, ["taskType", "typeCode"]) ?? fieldCommonForm.taskType ?? "TASK_1");
 }
 
 function syncFieldCommonFormFromRecords(items: RecordLike[]) {
@@ -1177,6 +1234,15 @@ async function saveProtocolAndFields() {
     return;
   }
 
+  const confirmed = await confirmAction({
+    title: "保存协议和字段",
+    content: "保存后会同步更新当前协议信息和已修改字段，确定继续吗？",
+    confirmText: "保存",
+  });
+  if (!confirmed) {
+    return;
+  }
+
   submitting.value = true;
 
   try {
@@ -1210,6 +1276,14 @@ async function deleteTableRecord(item: RecordLike) {
     return;
   }
 
+  const confirmed = await confirmDangerAction({
+    title: "删除确认",
+    content: "确定删除这条记录吗？删除后数据可能无法恢复。",
+  });
+  if (!confirmed) {
+    return;
+  }
+
   submitting.value = true;
 
   try {
@@ -1227,6 +1301,15 @@ async function deleteTableRecord(item: RecordLike) {
 async function saveCurrentFieldList() {
   if (activeConfig.value.key !== "field" || records.value.length === 0) {
     uni.showToast({ title: "暂无字段可保存", icon: "none" });
+    return;
+  }
+
+  const confirmed = await confirmAction({
+    title: "批量保存字段",
+    content: "确定保存当前字段列表的变更吗？",
+    confirmText: "保存",
+  });
+  if (!confirmed) {
     return;
   }
 
@@ -1300,7 +1383,15 @@ function addInlineFieldRecord() {
   selectRecord(item, records.value.length - 1);
 }
 
-function deleteInlineFieldRecord(index: number) {
+async function deleteInlineFieldRecord(index: number) {
+  const confirmed = await confirmDangerAction({
+    title: "删除字段",
+    content: "确定删除当前字段行吗？未保存的字段会直接丢失。",
+  });
+  if (!confirmed) {
+    return;
+  }
+
   records.value.splice(index, 1);
   syncFieldSortOrder();
   selectRecord(records.value[Math.min(index, records.value.length - 1)] || null, Math.min(index, records.value.length - 1));
@@ -1460,12 +1551,12 @@ function buildChangedFieldRecordPayload(item: RecordLike, protocolId: string | n
 
 function handleTaskTypeChange(event: { detail: { value: number } }) {
   const option = taskTypeOptions[event.detail.value];
-  fieldCommonForm.taskType = option?.value || "CLASS_ONE";
+  fieldCommonForm.taskType = option?.value || "TASK_1";
 }
 
 function getTaskTypeLabel(value: string) {
   const option = taskTypeOptions.find((item) => item.value === value);
-  return option?.label || value || "CLASS_ONE";
+  return option?.label || value || "TASK_1";
 }
 
 function getProtocolFieldTemplates() {
@@ -1478,12 +1569,26 @@ function loadProtocolFieldTemplates() {
 }
 
 function buildTemplateFieldRecord(item: RecordLike) {
-  const field: RecordLike = { ...item };
-  delete field.id;
-  delete field.protocolId;
-  delete field.afn;
-  delete field.taskType;
-  return field;
+  return removeEmptyFields({
+    taskTypeName: getValue(item, ["taskTypeName"]),
+    contentPrefix: getValue(item, ["contentPrefix"]),
+    fieldName: getValue(item, ["fieldName"]),
+    fieldCnName: getValue(item, ["fieldCnName"]),
+    startPosition: normalizeInlineNumberValue(getValue(item, ["startPosition"])),
+    fieldLength: normalizeInlineNumberValue(getValue(item, ["fieldLength"])),
+    positionUnit: getValue(item, ["positionUnit"]),
+    format: getValue(item, ["format"]),
+    scale: getValue(item, ["scale"]),
+    outputType: getValue(item, ["outputType"]),
+    unit: getValue(item, ["unit"]),
+    required: getValue(item, ["required"]),
+    enabled: getValue(item, ["enabled"]),
+    defaultValue: getValue(item, ["defaultValue"]),
+    invalidValues: getValue(item, ["invalidValues"]),
+    enumMapping: getValue(item, ["enumMapping"]),
+    description: getValue(item, ["description"]),
+    sortOrder: normalizeInlineNumberValue(getValue(item, ["sortOrder"])),
+  });
 }
 
 function openSaveProtocolTemplateDialog() {
@@ -1540,7 +1645,7 @@ function openProtocolTemplateImportDialog() {
 
   protocolTemplateImportForm.protocolId = String(formModel.id || "");
   protocolTemplateImportForm.afn = "";
-  protocolTemplateImportForm.taskType = "CLASS_ONE";
+  protocolTemplateImportForm.taskType = "TASK_1";
   protocolTemplateImportForm.templateId = protocolFieldTemplates.value[0]?.id || "";
   showProtocolTemplateImportDialog.value = true;
 }
@@ -1551,11 +1656,75 @@ function closeProtocolTemplateImportDialog() {
 
 function handleTemplateImportTaskTypeChange(event: { detail: { value: number } }) {
   const option = taskTypeOptions[event.detail.value];
-  protocolTemplateImportForm.taskType = option?.value || "CLASS_ONE";
+  protocolTemplateImportForm.taskType = option?.value || "TASK_1";
 }
 
 function handleProtocolTemplateSelectChange(event: { detail: { value: number } }) {
   protocolTemplateImportForm.templateId = protocolFieldTemplates.value[event.detail.value]?.id || "";
+}
+
+async function deleteSelectedProtocolTemplate() {
+  const templateId = protocolTemplateImportForm.templateId;
+  if (!templateId) {
+    uni.showToast({ title: "请先选择模板", icon: "none" });
+    return;
+  }
+
+  const confirmed = await confirmDangerAction({
+    title: "删除字段模板",
+    content: "确定删除当前字段模板吗？删除后只能重新保存生成。",
+  });
+  if (!confirmed) {
+    return;
+  }
+
+  const nextTemplates = getProtocolFieldTemplates().filter((item) => item.id !== templateId);
+  uni.setStorageSync(PROTOCOL_FIELD_TEMPLATE_STORAGE_KEY, nextTemplates);
+  protocolFieldTemplates.value = nextTemplates;
+  protocolTemplateImportForm.templateId = nextTemplates[0]?.id || "";
+  uni.showToast({ title: "模板已删除", icon: "success" });
+
+  if (!nextTemplates.length) {
+    closeProtocolTemplateImportDialog();
+  }
+}
+
+function buildProtocolFieldPayloadFromTemplate(
+  field: RecordLike,
+  options: {
+    protocolId: string | number;
+    afn: string;
+    taskType: string;
+    sortOrder: number;
+  },
+) {
+  return removeEmptyFields({
+    protocolId: options.protocolId,
+    afn: options.afn,
+    taskType: options.taskType,
+    taskTypeName: getValue(field, ["taskTypeName"]),
+    contentPrefix: getValue(field, ["contentPrefix"]),
+    fieldName: getValue(field, ["fieldName"]),
+    fieldCnName: getValue(field, ["fieldCnName"]),
+    startPosition: normalizeInlineNumberValue(getValue(field, ["startPosition"])),
+    fieldLength: normalizeInlineNumberValue(getValue(field, ["fieldLength"])),
+    positionUnit: getValue(field, ["positionUnit"]),
+    format: getValue(field, ["format"]),
+    scale: getValue(field, ["scale"]),
+    outputType: getValue(field, ["outputType"]),
+    unit: getValue(field, ["unit"]),
+    required: getValue(field, ["required"]),
+    enabled: getValue(field, ["enabled"]),
+    defaultValue: getValue(field, ["defaultValue"]),
+    invalidValues: getValue(field, ["invalidValues"]),
+    enumMapping: getValue(field, ["enumMapping"]),
+    description: getValue(field, ["description"]),
+    sortOrder: normalizeInlineNumberValue(getValue(field, ["sortOrder"])) ?? options.sortOrder,
+  });
+}
+
+function getResponseDataId(response: ApiResponseLike) {
+  return isObject(response.data) ? getId(response.data) : "";
 }
 
 async function importProtocolFieldTemplateToNewProtocol() {
@@ -1565,7 +1734,7 @@ async function importProtocolFieldTemplateToNewProtocol() {
 
   const protocolId = protocolTemplateImportForm.protocolId.trim();
   const afn = protocolTemplateImportForm.afn.trim();
-  const taskType = protocolTemplateImportForm.taskType || "CLASS_ONE";
+  const taskType = protocolTemplateImportForm.taskType || "TASK_1";
   const template = protocolFieldTemplates.value.find((item) => item.id === protocolTemplateImportForm.templateId);
 
   if (!protocolId || !afn || !taskType || !template) {
@@ -1584,24 +1753,35 @@ async function importProtocolFieldTemplateToNewProtocol() {
     return;
   }
 
+  const confirmed = await confirmAction({
+    title: "导入字段模板",
+    content: "导入会先创建新协议，再批量创建模板字段，确定继续吗？",
+    confirmText: "导入",
+  });
+  if (!confirmed) {
+    return;
+  }
+
   submitting.value = true;
   try {
     const protocolPayload = buildPayload(sectionConfigs.protocol.formFields || []);
-    protocolPayload.id = normalizeImportNumber(protocolId);
+    const normalizedProtocolId = normalizeImportNumber(protocolId);
+    protocolPayload.id = normalizedProtocolId ?? protocolId;
+    protocolPayload.enabled = true;
     const protocolResponse = await createProtocolDefinition(protocolPayload);
     assertSuccessResponse(protocolResponse);
+    const createdProtocolId = getResponseDataId(protocolResponse) || (isValidProtocolId(protocolPayload.id) ? protocolPayload.id : protocolId);
 
     const fieldPayloads = templateFields.map((field, index) =>
-      removeEmptyFields({
-        ...field,
-        id: undefined,
-        protocolId: Number(protocolId),
+      buildProtocolFieldPayloadFromTemplate(field, {
+        protocolId: createdProtocolId,
         afn,
         taskType,
-        sortOrder: normalizeInlineNumberValue(getValue(field, ["sortOrder"])) ?? (index + 1) * 10,
+        sortOrder: (index + 1) * 10,
       }),
     );
-    await saveProtocolFieldRecordsIndividually(fieldPayloads);
+    const fieldResponse = await batchSaveProtocolFields(fieldPayloads as ProtocolFieldDefinition[]);
+    assertSuccessResponse(fieldResponse);
 
     closeProtocolTemplateImportDialog();
     uni.showToast({ title: "模板已导入到新协议", icon: "success" });
@@ -1635,8 +1815,17 @@ function closeProtocolJsonDialog() {
   showProtocolJsonDialog.value = false;
 }
 
-function triggerProtocolJsonDialogUpload() {
+async function triggerProtocolJsonDialogUpload() {
   if (importingProtocolJson.value) {
+    return;
+  }
+
+  const confirmed = await confirmAction({
+    title: "上传协议JSON",
+    content: "JSON 内容会写入当前协议或创建字段，确定选择文件并继续吗？",
+    confirmText: "选择文件",
+  });
+  if (!confirmed) {
     return;
   }
 
@@ -1858,6 +2047,10 @@ function normalizeImportBoolean(value: unknown) {
 function normalizeImportNumber(value: unknown) {
   const numberValue = Number(value);
   return Number.isFinite(numberValue) ? numberValue : undefined;
+}
+
+function isValidProtocolId(value: unknown): value is string | number {
+  return (typeof value === "string" && value.trim() !== "") || typeof value === "number";
 }
 
 function validateForm() {
@@ -2301,6 +2494,7 @@ function resetRuntimeState() {
   padding: 0 12px;
   overflow: visible;
   color: #24384d;
+  text-align: center;
   font-size: 13px;
   line-height: 1.35;
   white-space: nowrap;
@@ -2756,6 +2950,24 @@ function resetRuntimeState() {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.template-select-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.template-select-row__picker {
+  flex: 1;
+  min-width: 0;
+}
+
+.template-delete-button {
+  flex: none;
+  min-width: 64px;
+  height: 36px;
 }
 
 .modal-actions {

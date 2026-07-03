@@ -21,16 +21,20 @@
         :online-status-options="onlineStatusOptions"
         :leak-status-options="leakStatusOptions"
         :maintain-type-options="maintainTypeOptions"
+        :receive-status-options="receiveStatusOptions"
         @search="handleSearch"
         @reset="handleReset"
         @refresh="fetchDevices"
         @delete="handleDelete"
         @add="handleAdd"
         @edit="handleEdit"
+        @on-export="handleExport"
+        @on-import="handleImport"
     />
 
     <!-- 主体 -->
-    <view class="worksheet-layout" :class="layoutClass">
+    <view class="worksheet-layout"
+          :class="[layoutClass, { collapsed: isDetailCollapsed }]">
 
       <!-- 左侧 table（固定不变） -->
       <view class="table-panel">
@@ -40,6 +44,10 @@
             @view="handleView"
             @select="handleSelect"
         />
+      </view>
+
+      <view class="split-handle" @click="toggleDetailPanel">
+        {{ isDetailCollapsed ? '⟨' : '⟩' }}
       </view>
 
       <!-- 右侧 panel（随mode变化） -->
@@ -57,9 +65,8 @@
             :is="CurrentPanel"
             :device-data="currentDevice"
             @edit="handleEdit"
-            :visible=true
+            :visible="isDetailPanelVisible"
         />
-
       </view>
 
     </view>
@@ -78,7 +85,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
 
-import type {Device, DeviceCreateForm, MaintenanceCreateForm} from "@/services/device/types";
+import type {Device, DeviceCreateForm} from "@/services/device/types";
 import {
   createDeviceT,
   deleteDeviceT,
@@ -95,8 +102,6 @@ import DeviceToolbar from "./DeviceToolbar.vue";
 import DeviceTableView from "./DeviceTableView.vue";
 import XDynamicDialog from "@/pages/device/components/x/XDynamicDialog.vue";
 import type {FormSection} from "@/pages/device/components/x/types";
-import {createMaintenanceRecordT, updateMaintenanceRecordT} from "@/services/device/maintenance.typed";
-import {updateDevice} from "@/services/device/info";
 
 /**
  * =========================
@@ -135,9 +140,7 @@ const deviceModuleConfig = {
     searchForm: {
       deviceNumber: "",
       deviceType: "",
-      // installAddress: "",
       enableState: "",
-      // installState: "",
       onlineStatus: "",
       leakStatus: "",
       startTime: "",
@@ -147,11 +150,11 @@ const deviceModuleConfig = {
     toolbar: [
       { key: "deviceNumber", label: "设备编号", type: "input" },
       { key: "deviceType", label: "产品型号", type: "select", dict: "product" },
-      // { key: "installAddress", label: "安装位置", type: "input" },
       { key: "onlineStatus", label: "在线状态", type: "select", dict: "online" },
-      // { key: "installState", label: "安装状态", type: "select", dict: "install" },
       { key: "enableState", label: "启用状态", type: "select", dict: "enable" },
       { key: "leakStatus", label: "渗漏状态", type: "select", dict: "leak" },
+      { key: "startTime", label: "开始时间", type: "date"},
+      { key: "endTime", label: "结束时间", type: "date"},
     ],
   },
 
@@ -160,24 +163,8 @@ const deviceModuleConfig = {
 
     searchForm: {
       deviceNumber: "",
-      maintainType: "",
-      startTime: "",
-      endTime: "",
-    },
-
-    toolbar: [
-      { key: "deviceNumber", label: "设备编号", type: "input" },
-      { key: "maintainType", label: "维护类型", type: "select", dict: "maintain" },
-      { key: "startTime", label: "开始时间", type: "date" },
-      { key: "endTime", label: "结束时间", type: "date" },
-    ],
-  },
-
-  status: {
-    panel: DeviceStatusPanel,
-
-    searchForm: {
-      deviceNumber: "",
+      deviceType: "",
+      enableState: "",
       onlineStatus: "",
       leakStatus: "",
       startTime: "",
@@ -186,8 +173,40 @@ const deviceModuleConfig = {
 
     toolbar: [
       { key: "deviceNumber", label: "设备编号", type: "input" },
+      { key: "deviceType", label: "产品型号", type: "select", dict: "product" },
       { key: "onlineStatus", label: "在线状态", type: "select", dict: "online" },
+      { key: "enableState", label: "启用状态", type: "select", dict: "enable" },
       { key: "leakStatus", label: "渗漏状态", type: "select", dict: "leak" },
+      { key: "startTime", label: "开始时间", type: "date"},
+      { key: "endTime", label: "结束时间", type: "date"},
+    ],
+  },
+
+  status: {
+    panel: DeviceStatusPanel,
+
+    searchForm: {
+      deviceNumber: "",
+      deviceType: "",
+      enableState: "",
+      onlineStatus: "",
+      leakStatus: "",
+      startTime: "",
+      endTime: "",
+      receiveStatus: "",
+      maintainType: ""
+    },
+
+    toolbar: [
+      { key: "deviceNumber", label: "设备编号", type: "input" },
+      { key: "deviceType", label: "产品型号", type: "select", dict: "product" },
+      { key: "onlineStatus", label: "在线状态", type: "select", dict: "online" },
+      { key: "enableState", label: "启用状态", type: "select", dict: "enable" },
+      { key: "leakStatus", label: "渗漏状态", type: "select", dict: "leak" },
+      { key: "startTime", label: "开始时间", type: "date"},
+      { key: "endTime", label: "结束时间", type: "date"},
+      { key: "maintainType", label: "维护类型", type: "select", dict: "maintain"},
+      { key: "receiveStatus", label: "接受状态", type: "select",dict: "receive"},
     ],
   },
 } as const;
@@ -207,8 +226,7 @@ const CurrentPanel = computed(() => currentModule.value.panel);
 /**
  * toolbar config（核心）
  */
-// const toolbarConfig = computed(() => currentModule.value.toolbar);
-const toolbarConfig = computed(() => deviceModuleConfig['info'].toolbar);
+const toolbarConfig = computed(() => currentModule.value.toolbar);
 
 /**
  * search form（随 mode 切换）
@@ -257,8 +275,8 @@ const enableStateOptions: SelectOption[] = [
 
 const maintainTypeOptions: SelectOption[] = [
   { label: "全部", value: "" },
-  { label: "拆", value: 0 },
-  { label: "装", value: 1 },
+  { label: "拆卸", value: 0 },
+  { label: "安装", value: 1 },
   { label: "维护", value: 2 },
   { label: "巡检", value: 3 },
 ];
@@ -275,12 +293,21 @@ const onlineStatusOptions: SelectOption[] = [
   { label: "离线", value: 0 },
 ];
 
-const leakStatusOptions = [
+const leakStatusOptions: SelectOption[] = [
   { label: "全部", value: "" },
   { label: "渗漏", value: 0 },
   { label: "正常", value: 1 },
   { label: "疑似", value: 2 },
   { label: "未知", value: 3 },
+];
+
+const receiveStatusOptions: SelectOption[] = [
+  { label: "全部", value: "" },
+  { label: '正常接收', value: 0 },
+  { label: '短暂中断', value: 1 },
+  { label: '长时间无接收', value: 2 },
+  { label: '通信异常', value: 3 },
+  { label: '未初始化', value: 4 }
 ];
 
 /**
@@ -313,7 +340,6 @@ async function fetchProductOptions() {
     label: item.productName,   // 或 name，看你后端字段
     value: item.id
   }));
-  console.log("deviceProductOptions",deviceProductOptions);
 }
 
 /**
@@ -538,7 +564,6 @@ function handleAdd() {
   dialogVisible.value = true;
 }
 
-
 async function handleSubmit(form: DeviceCreateForm) {
   try {
     if (isEditMode.value) {
@@ -608,9 +633,6 @@ function handleEdit() {
 
   formData.value = { ...selectedDevice.value }
 
-  console.log("formData",formData.value);
-  console.log("selectedDevice",selectedDevice.value);
-
   dialogVisible.value = true;
 }
 
@@ -656,6 +678,29 @@ async function handleDelete() {
   }
 }
 
+function handleExport() {
+  uni.showToast({
+    title: '导出功能暂未开放',
+    icon: 'none'
+  });
+}
+function handleImport() {
+  uni.showToast({
+    title: '导入功能暂未开放',
+    icon: 'none'
+  });
+}
+
+/**
+ * 折叠详情面板收缩
+ */
+const isDetailPanelVisible = ref(true)
+const isDetailCollapsed = ref(false)
+const toggleDetailPanel = () => {
+  isDetailCollapsed.value = !isDetailCollapsed.value
+  isDetailPanelVisible.value = !isDetailPanelVisible.value
+}
+
 const layoutClass = computed(() => {
   return props.mode === "info"
       ? "layout-split"
@@ -688,7 +733,7 @@ onMounted(() => {
 
   display: grid;
 
-  gap: 14px;
+  gap: 0px;
   margin-top: 14px;
 
   min-height: 0;
@@ -697,12 +742,12 @@ onMounted(() => {
 
 /* 默认：左列表 + 右详情 */
 .layout-split {
-  grid-template-columns: minmax(0, 1fr) 380px;
+  grid-template-columns: minmax(0, 1fr) 24px 380px;
 }
 
 /* maintenance：左右等分 */
 .layout-equal {
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 24px 1fr;
 }
 
 .table-panel,
@@ -740,4 +785,49 @@ onMounted(() => {
   color: #999;
   font-size: 14px;
 }
+
+.worksheet-layout.collapsed {
+  grid-template-columns: minmax(0, 1fr) 24px 0;
+}
+
+.split-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: col-resize;
+  user-select: none;
+
+  background: transparent;
+
+  position: relative;
+
+  color: transparent; /* 默认不显示箭头 */
+
+  z-index: 999;
+}
+
+.split-handle:hover {
+  background: rgba(64, 158, 255, 0.06);
+  color: #409eff;
+}
+
+.split-handle::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: 50%;
+  width: 1px;
+  background: #e4e7ed;
+  transform: translateX(-50%);
+}
+
+.split-handle::after {
+  content: '⋮';
+  font-size: 10px;
+  color: #c0c4cc;
+  position: relative;
+}
+
 </style>

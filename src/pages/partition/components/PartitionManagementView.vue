@@ -8,7 +8,13 @@
 			<view class="tree-panel">
 				<!-- 分区搜索 -->
 				<view class="tree-search">
-					<input class="form-input" placeholder="输入节点名称模糊搜索" placeholder-class="input-placeholder"/>
+					<input v-model="partitionKeyword" class="form-input" placeholder="输入节点名称模糊搜索" placeholder-class="input-placeholder"/>
+<!-- 					<view
+					  v-for="item in filteredPartitionList"
+					  :key="item.id"
+					  class="tree-node"
+					></view> -->
+					
 				</view>
 				<!-- 树内容 -->
 				<view class="tree-content">
@@ -98,29 +104,35 @@
 				<view class="device-table">
 					<!-- 表头 -->
 					<view class="table-row table-row--header">
-						
-					  <view class="col-checkbox">
-						<checkbox-group>
-						  <checkbox
-						    :checked="isAllSelected"
-						    @click="handleSelectAll"
-						  />
-						</checkbox-group>
+					  <view
+					    v-for="column in tableColumns"
+					    :key="column.key"
+					    :class="[column.className, { 'table-header-cell': column.sortable, 'table-header-cell--active': sortState.field === column.key }]"
+						@click="column.sortable && toggleSort(column.key as SortField)"
+					  >
+					    <!-- 全选框 -->
+					    <checkbox-group v-if="column.key === 'checkbox'">
+					      <checkbox
+					        :checked="isAllSelected"
+					        @click.stop="handleSelectAll"
+					      />
+					    </checkbox-group>
+					
+					    <!-- 普通列 -->
+					    <template v-else>
+					      <text>{{ column.label }}</text>
+					
+					      <text
+					        v-if="column.sortable"
+					        class="sort-indicator"
+					        :class="getSortIndicatorClass(column.key as SortField)"
+					      />
+					    </template>
 					  </view>
-					  
-					  <view class="col-index">序号</view>
-					  <view class="col-device-number">设备编号</view>	  
-					  <view class="col-device-type">设备类型</view>
-					  <view class="col-status">启用状态</view>
-					  <view class="col-status">安装状态</view>
-					  <view class="col-status">安装模式</view>
-					  <view class="col-address">安装地址</view>
-					  <view class="col-group">管组编号</view>
-					  <view class="col-status">渗漏状态</view>
-					  <view class="col-time">最后采样时间</view>
-					  <view class="col-status">在线状态</view>
-					  <view class="col-action">操作</view>
 					</view>
+					
+					<view v-if="loading" class="table-state">加载中...</view>
+					<view v-else-if="deviceList.length === 0" class="table-state">暂无设备数据</view>
 					
 				    <!-- 数据 -->
 					<view
@@ -147,21 +159,21 @@
 					  <view class="col-device-type">
 						{{ item.deviceType }}
 					  </view>
-									
+					
 					  <view class="col-status">
-						{{ item.enableState == 1 ? '启用' : '禁用' }}
+					    {{ getEnableStateText(item.enableState) }}
 					  </view>
-									
+					  
 					  <view class="col-status">
-						{{ item.installState == 1 ? '已安装' : '未安装' }}
+					    {{ getInstallStateText(item.installState) }}
 					  </view>
-									
+
 					  <view class="col-status">
-						{{ item.installMode == 1 ? '地面' : '井下' }}
-					  </view>
-									
+					    {{ getInstallModeText(item.installMode) }}
+					  </view>		
+					
 					  <view class="col-address">
-						{{ item.installAddress }}
+					    {{ item.installAddress || '-' }}
 					  </view>
 									
 					  <view class="col-group">
@@ -171,13 +183,13 @@
 					  <view class="col-status">
 						{{ getLeakText(item.leakStatus) }}
 					  </view>
-									
+		
 					  <view class="col-time">
 						{{ item.lastSamplingTime || '-' }}
 					  </view>
-									
+	
 					  <view class="col-status">
-						{{ item.onlineStatus == 1 ? '在线' : '离线' }}
+					    {{ getOnlineStatusText(item.onlineStatus) }}
 					  </view>
 					  
 					  <view class="col-action">
@@ -187,13 +199,10 @@
 					      >
 					        编辑
 					      </button>
-					    </view>
-							  
+					    </view>		  
 					</view>
-					
-				    
 				</view>
-				
+			
 				<view class="pagination-bar">
 				  <button class="page-btn" :disabled="pagination.current <= 1" @click="handlePageChange(pagination.current - 1)">
 				    上一页
@@ -203,60 +212,65 @@
 				    下一页
 				  </button>
 				</view>
-
-				
 			</view>
+		</view> 
+		
+		<view v-if="partitionDialogVisible" class="dialog-mask" @click="closePartitionDialog">
+			<view class="dialog-panel" @click.stop>
+			 <view class="dialog-head">
+			   <view>
+				 <text class="dialog-title">
+				   {{ isPartitionCreating ? "新增分区" : "编辑分区" }}
+				 </text>
+				 <text class="dialog-subtitle">维护分区信息</text>
+			   </view>
+			   <button class="icon-button" hover-class="icon-button--hover" aria-label="关闭" @click="closePartitionDialog">
+				 <text class="close-icon"></text>
+			   </button>
+			 </view>
 
-			<!-- 分区管理 -->
-			<view class="area-panel">
-			  <view class="section-head">
-			    <text class="section-title">分区管理</text>
-			  </view>
-			
-			  <view class="partition-form ">
-			    <view class="form-field--name">
-			      <text class="form-label">分区名称</text>
-				  <input
-				    v-model="partitionForm.deptName"
-				    class="form-input"
-				    :disabled="!isPartitionEditing"
-				    placeholder="请输入分区"
-				    placeholder-class="input-placeholder"
-				  />
-			    </view>
-			
-			    <view class="form-field--admin">
-			      <text class="form-label">管理员</text>
-			      <input
-			        v-model="partitionForm.administrator"
-			        class="form-input"
-			        :disabled="!isPartitionEditing"
-			        placeholder="管理员"
-			        placeholder-class="input-placeholder"
-			      />
-			    </view>
+			 <view class="dialog-body">
+			   <view class="partition-dialog-form">
+				 <view class="form-field">
+				   <text class="form-label">分区名称</text>
+				   <input
+					 v-model="partitionForm.deptName"
+					 class="form-input"
+					 placeholder="请输入分区名称"
+					 placeholder-class="input-placeholder"
+				   />
+				 </view>
 
-			    <view class="form-field--desc">
-			        <text class="form-label">描述</text>
-				    <input
-				        v-model="partitionForm.description"
-				        class="form-input"
-				        :disabled="!isPartitionEditing"
-				        placeholder="请输入描述"
-				        placeholder-class="input-placeholder"
-				    />
-				</view>
-				
-				<button
-				  class="primary-button"
-				  :disabled="!isPartitionEditing"
-				  @click="handleSavePartition"
-				>
-				  保存
-				</button>
-			  </view>
+				 <view class="form-field">
+				   <text class="form-label">管理员</text>
+				   <input
+					 v-model="partitionForm.administrator"
+					 class="form-input"
+					 placeholder="请输入管理员"
+					 placeholder-class="input-placeholder"
+				   />
+				 </view>
+
+				 <view class="form-field form-field--wide">
+				   <text class="form-label">描述</text>
+				   <textarea
+					 v-model="partitionForm.description"
+					 class="form-textarea"
+					 placeholder="请输入描述"
+					 placeholder-class="input-placeholder"
+				   />
+				 </view>
+			   </view>
+			 </view>
+
+			 <view class="dialog-actions">
+			   <button class="secondary-button" @click="closePartitionDialog">取消</button>
+			   <button class="primary-button" @click="handleSavePartition">保存</button>
+			 </view>
 			</view>
-		</view>  
+		</view>
+		 
+		 
     </view>
 </template>
 
@@ -270,8 +284,24 @@ import {
 	deletePartition
 } from "@/services/partition/partition";
 
-
-
+type SortField =
+  | "deviceNumber"
+  | "deviceType"
+  | "enableState"
+  | "installState"
+  | "installMode"
+  | "installAddress"
+  | "tubeGroup"
+  | "leakStatus"
+  | "lastSamplingTime"
+  | "onlineStatus";
+  
+type TableColumn = {
+  key: SortField | "checkbox" | "index" | "operation";
+  label: string;
+  className: string;
+  sortable?: boolean;
+};
 
 interface PartitionItem {
   id: number;
@@ -308,42 +338,88 @@ interface DeviceItem {
 
 const partitionList = ref<PartitionItem[]>([]);
 const currentPartitionId = ref<number>();
+const pagination = reactive({
+  current: 1,
+  size: 10,
+  total: 0
+});
+const partitionDialogVisible = ref(false);
+const isPartitionCreating = ref(false);
+const loading = ref(false);
+
+const openPartitionDialog = () => {
+  partitionDialogVisible.value = true;
+};
+
+const closePartitionDialog = () => {
+  partitionDialogVisible.value = false;
+};
+
+const tableColumns: TableColumn[] = [
+  { key: "checkbox", label: "", className: "col-checkbox" },
+  { key: "index", label: "序号", className: "col-index" },
+  { key: "deviceNumber", label: "设备编号", className: "col-device-number", sortable: true },
+  { key: "deviceType", label: "设备类型", className: "col-device-type", sortable: true },
+  { key: "enableState", label: "启用状态", className: "col-status", sortable: true },
+  { key: "installState", label: "安装状态", className: "col-status", sortable: true },
+  { key: "installMode", label: "安装模式", className: "col-status", sortable: true },
+  { key: "installAddress", label: "安装地址", className: "col-address" },
+  { key: "tubeGroup", label: "管组编号", className: "col-group", sortable: true },
+  { key: "leakStatus", label: "渗漏状态", className: "col-status", sortable: true },
+  { key: "lastSamplingTime", label: "最后采样时间", className: "col-time", sortable: true },
+  { key: "onlineStatus", label: "在线状态", className: "col-status", sortable: true },
+  { key: "operation", label: "操作", className: "col-operation" },
+];
 
 const loadPartitionTree = async () => {
   try {
     const res = await getPartitionList();
 
-    console.log("分区列表", res);
+    // console.log("分区列表", res);
 
     partitionList.value = (res.data as PartitionItem[]) || [];
   } catch (e) {
     console.error(e);
   }
 };
- 
-const handlePartitionClick = async (item: PartitionItem) => {
-  fillPartitionForm(item);
-  currentPartitionId.value = item.id;
-  isPartitionEditing.value = false;
-  pagination.current = 1;
-  const res = await getPartitionDevicePage(item.id, {
-    pageNum:1,
-    pageSize:pagination.size
-  });
-  const pageData = res.data as DevicePageResult;
-  deviceList.value = pageData.records || [];
-  console.log(deviceList.value);
-  pagination.total = pageData.total || 0;
-};
-
 const loadPartitionList = async () => {
-	const res = await getPartitionList();
-	partitionList.value =(res.data as PartitionItem[]) || [];
+const res = await getPartitionList();
+partitionList.value =(res.data as PartitionItem[]) || [];
 };
-
+ 
 const deviceList = ref<DeviceItem[]>([]);
 const deviceKeyword = ref("");
 const selectedIds = ref<number[]>([]);
+const partitionKeyword = ref("");
+
+const filteredPartitionList = computed(() => {
+  const keyword = partitionKeyword.value.trim();
+  if (!keyword) return partitionList.value;
+  return partitionList.value.filter(item =>
+    item.deptName.includes(keyword)
+  );
+});
+ 
+ 
+const handlePartitionClick = async (item: PartitionItem) => {
+	fillPartitionForm(item);
+	currentPartitionId.value = item.id;
+	pagination.current = 1; //重置到第一页
+	deviceList.value = [];
+	loading.value = true;
+	try{
+		const res = await getPartitionDevicePage(item.id, {
+		  pageNum:1,
+		  pageSize:pagination.size
+		});
+		const pageData = res.data as DevicePageResult;
+		deviceList.value = pageData.records || [];
+		// console.log("设备列表",deviceList.value);
+		pagination.total = pageData.total || 0;
+	}finally{
+		loading.value = false;
+	}
+};
 
 const handleSelectDevice = (id: number) => {
   const index = selectedIds.value.indexOf(id);
@@ -360,18 +436,22 @@ const handleDeviceSearch = async () => {
     uni.showToast({ title: "请先选择分区", icon: "none" });
     return;
   }
-
   const keyword = deviceKeyword.value.trim();
-
-  const res = await getPartitionDevicePage(currentPartitionId.value, {
-    current: pagination.current,
-    size: pagination.size,
-    deviceNumber: keyword,
-  });
-
-  const pageData = res.data as DevicePageResult;
-  deviceList.value = pageData.records || [];
-  pagination.total = pageData.total || 0;
+  pagination.current = 1;
+  deviceList.value = [];
+  loading.value = true;
+  try{
+	const res = await getPartitionDevicePage(currentPartitionId.value, {
+	  pageNum: pagination.current,
+	  pageSize: pagination.size,
+	  deviceNumber: keyword,
+	});
+	const pageData = res.data as DevicePageResult;
+	deviceList.value = pageData.records || [];
+	pagination.total = pageData.total || 0;
+  }finally{
+	loading.value = false;
+  }
 };
 
 const handleDeviceRefresh = async () => {
@@ -379,20 +459,59 @@ const handleDeviceRefresh = async () => {
     uni.showToast({ title: "请先选择分区", icon: "none" });
     return;
   }
-
   deviceKeyword.value = "";
   selectedIds.value = [];
+  deviceList.value = [];
+  loading.value = true;
+  
+  try{
+	const res = await getPartitionDevicePage(currentPartitionId.value, {
+	  pageNum: pagination.current,
+	  pageSize: pagination.size,
+	});
+	
+	const pageData = res.data as DevicePageResult;
+	deviceList.value = pageData.records || [];
+	pagination.total = pageData.total || 0;
+	
+	uni.showToast({ title: "刷新成功", icon: "success" });
+	  
+  }finally{
+	loading.value = false;
+  }
+};
 
-  const res = await getPartitionDevicePage(currentPartitionId.value, {
-    current: pagination.current,
-    size: pagination.size,
-  });
+const getEnableStateText = (status: number): string => {
+  switch(status) {
+    case 0:
+      return '禁用';
+    case 1:
+      return '启用';
+    default:
+      return '-';
+  }
+};
 
-  const pageData = res.data as DevicePageResult;
-  deviceList.value = pageData.records || [];
-  pagination.total = pageData.total || 0;
+const getInstallStateText = (status: number): string => {
+  switch(status) {
+    case 0:
+      return '未安装';
+    case 1:
+      return '已安装';
+    default:
+      return '-';
+  }
+};
 
-  uni.showToast({ title: "刷新成功", icon: "success" });
+const getInstallModeText = (mode: number): string => {
+  switch(mode) {
+    case 0:
+      return '固定点';
+    case 1:
+      return '流动点';
+    default:
+      return '-';
+  }
 };
 
 const getLeakText = (status:number) => {
@@ -407,6 +526,17 @@ const getLeakText = (status:number) => {
       return "设备异常";
     default:
       return "-";
+  }
+};
+
+const getOnlineStatusText = (status: number): string => {
+  switch(status) {
+    case 0:
+      return '离线';
+    case 1:
+      return '在线';
+    default:
+      return '-';
   }
 };
 
@@ -425,36 +555,32 @@ const handleSelectAll = () => {
     selectedIds.value = deviceList.value.map(item => item.id);
   }
 };
- 
-const pagination = reactive({
-  current: 1,
-  size: 10,
-  total: 0
-});
+
 
 const handlePageChange = async (page:number) => {
 
   pagination.current = page;
   if (currentPartitionId.value === undefined) {
-      return;
-    }
-  const res = await getPartitionDevicePage(
-  currentPartitionId.value,
-    {
-      pageNum: page,
-      pageSize: pagination.size
-    }
-  );
+    return;
+  }
+  loading.value = true;
+  
+  try{
+	const res = await getPartitionDevicePage(currentPartitionId.value,{
+	  pageNum: page,
+	  pageSize: pagination.size
+	});
 
-  const pageData = res.data as any;
+	const pageData = res.data as any;
 
-  deviceList.value = pageData.records || [];
-  pagination.total = pageData.total || 0;
-
+	deviceList.value = pageData.records || [];
+	pagination.total = pageData.total || 0;
+  }finally{
+	loading.value = false;
+  }
 };
 
-const isPartitionEditing = ref(false);
-const isPartitionCreating = ref(false);
+
 
 const partitionForm = reactive({
   id: undefined as number | undefined,
@@ -489,12 +615,12 @@ const resetPartitionForm = () => {
 const handleCreatePartition = () => {
   currentPartitionId.value = undefined;
   isPartitionCreating.value = true;
-  isPartitionEditing.value = true;
   resetPartitionForm();
+  openPartitionDialog();
 };
 
 const handleEditDevice = (item: any) => {
-  console.log("编辑设备", item);
+  // console.log("编辑设备", item);
   uni.showToast({
     title: `编辑设备：${item.deviceNumber}`,
     icon: "none"
@@ -506,16 +632,11 @@ const handleEditPartition = () => {
     uni.showToast({ title: "请先选择分区", icon: "none" });
     return;
   }
-
-  isPartitionEditing.value = true;
+  isPartitionCreating.value = false;
+  openPartitionDialog();
 };
 
 const handleSavePartition = async () => {
-  if (!isPartitionEditing.value) {
-    uni.showToast({ title: "请先点击新增或编辑", icon: "none" });
-    return;
-  }
-
   if (!partitionForm.deptName.trim()) {
     uni.showToast({ title: "请输入分区名称", icon: "none" });
     return;
@@ -530,23 +651,30 @@ const handleSavePartition = async () => {
     status: partitionForm.status ?? 1,
   };
 
-  if (isPartitionCreating.value) {
-    await createPartition(payload);
-    uni.showToast({ title: "新增成功", icon: "success" });
-  } else {
-    if (!partitionForm.id) {
-      uni.showToast({ title: "请先选择分区", icon: "none" });
-      return;
+  try {
+      if (isPartitionCreating.value) {
+        await createPartition(payload);
+        uni.showToast({ title: "新增成功", icon: "success" });
+      } else {
+		if (!partitionForm.id) {
+		  uni.showToast({ title: "请先选择分区", icon: "none" });
+		  return;
+		}
+        await updatePartition(partitionForm.id, payload);
+  
+        uni.showToast({ title: "保存成功", icon: "success" });
+      }
+	  isPartitionCreating.value = false;
+      closePartitionDialog();
+	  resetPartitionForm();
+      await loadPartitionTree();
+  
+    } catch (e) {
+      uni.showToast({
+        title: "保存失败",
+        icon: "none"
+      });
     }
-
-    await updatePartition(partitionForm.id, payload);
-    uni.showToast({ title: "保存成功", icon: "success" });
-  }
-
-  isPartitionCreating.value = false;
-  isPartitionEditing.value = false;
-  resetPartitionForm();
-  await loadPartitionTree();
 };
 
 const handleDeletePartition = async () => {
@@ -554,14 +682,25 @@ const handleDeletePartition = async () => {
     uni.showToast({ title: "请先选择分区", icon: "none" });
     return;
   }
-
-  await deletePartition(currentPartitionId.value);
-  uni.showToast({ title: "删除成功", icon: "success" });
-
-  currentPartitionId.value = undefined;
-  isPartitionEditing.value = false;
-  resetPartitionForm();
-  await loadPartitionTree();
+  uni.showModal({
+      title: "删除确认",
+      content: "确认删除当前分区吗？",
+      success: async (res) => {
+        if (!res.confirm) return;
+		try{
+			await deletePartition(currentPartitionId.value!);
+			uni.showToast({ title: "删除成功", icon: "success" });
+			
+			currentPartitionId.value = undefined;
+			deviceList.value = [];
+			selectedIds.value = [];
+			resetPartitionForm();
+			await loadPartitionTree();
+		}catch{
+			uni.showToast({ title: "删除失败", icon: "none" });
+		}
+	  },
+  });
 };
 
 const handleBatchAction = () => {
@@ -618,6 +757,57 @@ const handleDeleteSelectedDevice = () => {
 };
 
 
+const sortState = reactive<{
+  field: SortField | "";
+  order: "" | "asc" | "desc";
+}>({
+  field: "",
+  order: "",
+});
+
+const toggleSort = (field: SortField) => {
+  if (sortState.field === field) {
+      sortState.order = sortState.order === "asc" ? "desc" : "asc";
+    } else {
+      sortState.field = field;
+      sortState.order = "asc";
+    }
+  sortDeviceList();
+};
+
+const getSortIndicatorClass = (field: SortField): string => {
+  if (sortState.field !== field) {
+    return "sort-indicator--idle";
+  }
+
+  return sortState.order === "asc"
+    ? "sort-indicator--asc"
+    : "sort-indicator--desc";
+};
+
+function sortDeviceList() {
+  const field = sortState.field;
+
+  if (!field || !sortState.order) {
+    return;
+  }
+
+  deviceList.value = [...deviceList.value].sort((a, b) => {
+    const aValue = a[field];
+    const bValue = b[field];
+
+    const aCompare = String(aValue);
+    const bCompare = String(bValue);
+
+    if (sortState.order === "asc") {
+      return aCompare.localeCompare(bCompare);
+    }
+
+    return bCompare.localeCompare(aCompare);
+  });
+}
+
+
 onMounted(async () => {
   await loadPartitionTree();
 });
@@ -641,7 +831,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-
+  flex: none;
   min-width: 50px;
   height: 36px;
   padding: 0 12px;
@@ -650,6 +840,7 @@ onMounted(async () => {
   font-size: 14px;
   font-weight: 700;
   border-radius: 4px;
+  max-width: 100px;
 }
 
 .primary-button::after,
@@ -666,7 +857,7 @@ onMounted(async () => {
   line-height: 36px;
   background: #0d82ee;
   border: 1px solid #0d82ee;
-  max-width: 100px;
+
 }
 
 .primary-button--hover {
@@ -859,18 +1050,21 @@ onMounted(async () => {
   border: 1px solid #d8e6f2;
   border-radius: 6px;
   justify-content: space-between;
+  flex-wrap: wrap;
 }
 
 .toolbar-left {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .toolbar-right {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .toolbar-input {
@@ -901,12 +1095,87 @@ onMounted(async () => {
   overflow: auto;
 }
 
+.sort-indicator {
+  position: relative;
+  flex: none;
+  width: 12px;
+  height: 14px;
+  color: #9cafc1;
+}
+
+.sort-indicator::before,
+.sort-indicator::after {
+  position: absolute;
+  left: 3px;
+  width: 0;
+  height: 0;
+  content: "";
+  border-right: 3px solid transparent;
+  border-left: 3px solid transparent;
+}
+
+.sort-indicator::before {
+  top: 1px;
+  border-bottom: 4px solid currentColor;
+}
+
+.sort-indicator::after {
+  bottom: 1px;
+  border-top: 4px solid currentColor;
+}
+
+.sort-indicator--asc::before,
+.sort-indicator--desc::after {
+  color: #0d82ee;
+}
+
+.sort-indicator--asc::after,
+.sort-indicator--desc::before,
+.sort-indicator--idle {
+  opacity: 0.46;
+}
+
+.table-header-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.table-header-cell:hover {
+	background: #edf7ff;
+	color: #0d82ee;
+}
+
+.table-header-cell--active {
+  color: #0d82ee !important;
+  background: #eaf5ff;
+}
+
+.table-header-cell text {
+  white-space: nowrap;
+}
+
 .table-row {
   display: flex;
   min-width: 1760px;
   min-height: 42px;
   width:max-content;
   border-bottom: 1px solid #edf1f5;
+}
+
+.table-row:not(.table-row--header):nth-child(odd) {
+  background: #ffffff;
+}
+
+.table-row:not(.table-row--header):nth-child(even) {
+  background: #fbfdff;
+}
+
+.table-row:not(.table-row--header):hover {
+  background: #edf7ff;
 }
 
 .table-row--header {
@@ -920,15 +1189,24 @@ onMounted(async () => {
   box-shadow: 0 1px 0 #dbe7f0;
 }
 
-.table-row:hover {
-  background: #f8fbff;
-}
-
 .table-row > view {
   display: flex;
   align-items: center;
   padding: 0 12px;
   box-sizing: border-box;
+}
+
+.table-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1750px;
+  height: 120px;
+  height: 180px;
+  color: #7c8da1;
+  font-size: 14px;
+  line-height: 180px;
+  text-align: center;
 }
 
 .table-action-btn {
@@ -1026,32 +1304,140 @@ onMounted(async () => {
   opacity: 0.5;
 }
 
-.area-panel {
-  min-height: 140px;
-  padding: 12px;
+.dialog-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  background: rgba(15, 35, 55, 0.36);
+}
+
+.dialog-panel {
+  width: 560px;
+  overflow: hidden;
   background: #ffffff;
   border: 1px solid #d8e6f2;
   border-radius: 6px;
-  overflow: hidden;
+  box-shadow: 0 18px 46px rgba(15, 35, 55, 0.2);
 }
 
-.partition-form {
+.dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  background: #f8fbfe;
+  border-bottom: 1px solid #edf3f8;
+}
+
+.dialog-title {
+  display: block;
+  color: #183755;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.dialog-subtitle {
+  display: block;
+  margin-top: 4px;
+  color: #5f7188;
+  font-size: 13px;
+}
+
+.dialog-body {
+  padding: 18px 24px;
+  background: #ffffff;
+}
+
+.partition-dialog-form {
   display: grid;
-  grid-template-columns: 220px 120px 400px 100px;
-  gap: 12px;
-  align-items: end;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 18px;
 }
 
-.partition-form .form-input {
+.form-field--wide {
+  grid-column: span 2;
+}
+
+.form-textarea {
+  box-sizing: border-box;
   width: 100%;
+  height: 90px;
+  padding: 9px 12px;
+  color: #172033;
+  font-size: 14px;
+  background: #fbfdff;
+  border: 1px solid #d5e2ee;
+  border-radius: 4px;
 }
 
-.form-field--name,
-.form-field--admin,
-.form-field--desc {
-  min-width: 0;
-  width: 100%
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 12px 22px;
+  background: #ffffff;
+  border-top: 1px solid #edf3f8;
 }
+
+.icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  margin: 0;
+  flex-shrink: 0;
+  color: #64748b;
+  background: #f6fbff;
+  border: 1px solid #d9e7f3;
+  border-radius: 4px;
+}
+
+.icon-button::after {
+	border: 0;
+}
+
+.icon-button--hover {
+  color: #0d82ee;
+  background: #edf7ff;
+}
+
+.close-icon {
+  position: relative;
+  width: 14px;
+  height: 14px;
+}
+
+.close-icon::before,
+.close-icon::after {
+  position: absolute;
+  top: 6px;
+  left: 0px;
+  width: 14px;
+  height: 2px;
+  content: "";
+  background: currentColor;
+  border-radius: 2px;
+}
+
+.close-icon::before {
+  transform: rotate(45deg);
+}
+
+.close-icon::after {
+  transform: rotate(-45deg);
+}
+
+
+
+
+
+
+
 </style>
