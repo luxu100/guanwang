@@ -449,14 +449,14 @@ const addSchema = computed<FormSection[]>(() => [
         ]
       },
       {
-        key: "installLocation",
-        label: "安装位置",
+        key: "installAddress",
+        label: "安装地址",
+        type: "input"
+      },
+      {
+        key: "coordinate",
+        label: "安装坐标(可手动输入或点击地图拾取)",
         type: "location",
-        bind: {
-          address: "installAddress",
-          lng: "installLongitude",
-          lat: "installLatitude"
-        },
         placeholder: "格式:经度,纬度 （如 121.4737,31.2304)"
       }
     ]
@@ -548,6 +548,7 @@ function handleAdd() {
     installAddress: "",
     installLongitude: undefined,
     installLatitude: undefined,
+    coordinate: "",
 
     tubeGroup: "",
     tubeOrder: undefined,

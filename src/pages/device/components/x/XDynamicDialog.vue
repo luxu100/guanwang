@@ -39,6 +39,10 @@
                     v-for="field in section.fields"
                     :key="field.key"
                     class="form-field"
+                    :class="{
+                        'form-field--full':
+                            field.type === 'location'
+                    }"
                 >
                   <text
                       class="form-label"
@@ -119,6 +123,77 @@
                       @input="clearError(field.key)"
                   />
 
+                  <!-- location（整行） -->
+                  <view v-else-if="field.type === 'location'" class="location-wrapper">
+                    <view class="form-row">
+                      <input
+                          v-model="formData[field.key]"
+                          class="form-input"
+                          placeholder="格式: 经度,纬度"
+                          @input="clearError(field.key)"
+                      />
+
+                      <button class="form-action-btn" hover-class="form-action-btn--hover" @click="openMapPicker">
+                        <text class="form-action-btn__icon form-action-btn__icon--map"></text><text>地图拾取</text>
+                      </button>
+                    </view>
+                    <!--  地图弹层 -->
+                    <view v-if="mapPickerVisible" class="map-picker-panel">
+
+                      <!-- 顶部提示 -->
+                      <view class="map-picker-head">
+                        <text class="map-picker-title">点击地图选取坐标</text>
+
+                        <text
+                            class="map-picker-coord"
+                            :class="{ 'map-picker-coord--active': mapPickedCoord }"
+                        >
+                          {{ mapPickedCoord || "请在地图上点击选择" }}
+                        </text>
+                      </view>
+
+                      <!-- 地图主体 -->
+                      <view class="map-picker-body">
+
+                        <!-- H5 地图 -->
+                        <!-- #ifdef H5 -->
+                        <XSelectCoordinateMap
+                            :lng="mapPickerCenter.lng"
+                            :lat="mapPickerCenter.lat"
+                            selectable
+                            @pick="handleMapPick"
+                        />
+                        <!-- #endif -->
+
+                        <!-- 非 H5 fallback -->
+                        <!-- #ifndef H5 -->
+                        <view class="map-picker-canvas">
+                          地图选点仅支持 H5 端
+                        </view>
+                        <!-- #endif -->
+
+                      </view>
+
+                      <!-- 操作按钮 -->
+                      <view class="map-picker-actions">
+                        <button
+                            class="dialog-btn dialog-btn--cancel"
+                            @click="closeMapPicker"
+                        >
+                          取消
+                        </button>
+
+                        <button
+                            class="dialog-btn dialog-btn--primary"
+                            :disabled="!mapPickedCoord"
+                            @click="confirmMapPick"
+                        >
+                          确认选点
+                        </button>
+                      </view>
+
+                    </view>
+                  </view>
                   <!-- error -->
                   <text
                       v-if="validationErrors[field.key]"
@@ -193,6 +268,7 @@
 import { computed, reactive, ref, watch } from "vue";
 import type {FieldOption, FormSection} from "@/pages/device/components/x/types";
 import XDatetimePicker from "@/pages/device/components/x/XDatetimePicker.vue";
+import XSelectCoordinateMap from "@/pages/device/components/x/XSelectCoordinateMap.vue";
 
 interface Props {
   modelValue: Record<string, any>;
@@ -374,10 +450,69 @@ defineExpose({
   openDialog,
   closeDialog
 });
+
+const mapPickerVisible = ref(false);
+const mapPickedCoord = ref("");
+const mapPickerCenter = ref({
+  lng: 121.4737,
+  lat: 31.2304,
+});
+const mapPickedLocation = ref<{
+  lng: number;
+  lat: number;
+}>({
+  lng: 121.4737,
+  lat: 31.2304,
+});
+
+function openMapPicker() {
+  mapPickedCoord.value = "";
+  uni.getLocation({
+    type: "gcj02",
+    success: (result) => {
+      mapPickerCenter.value = {
+        lng: result.longitude,
+        lat: result.latitude,
+      };
+
+      mapPickerVisible.value = true;
+    },
+
+    fail: () => {
+      mapPickerCenter.value = {
+        lng: 121.4737,
+        lat: 31.2304,
+      };
+
+      mapPickerVisible.value = true;
+    },
+  });
+}
+
+function handleMapPick(coordinate: {
+  lng: number;
+  lat: number;
+}) {
+  mapPickedLocation.value = coordinate;
+  mapPickedCoord.value =
+      `${coordinate.lng.toFixed(6)},${coordinate.lat.toFixed(6)}`;
+}
+
+function confirmMapPick() {
+  if (mapPickedCoord.value){
+    formData.value.coordinate = mapPickedCoord.value;
+    formData.value.installLatitude = mapPickedLocation.value.lat;
+    formData.value.installLongitude = mapPickedLocation.value.lng;
+  }
+  closeMapPicker();
+}
+
+function closeMapPicker() {
+  mapPickerVisible.value = false;
+  mapPickedCoord.value = "";
+}
 </script>
 <style scoped lang="scss">
-
-
 .datetime-wrapper {
   display: block;
   width: 100%;
@@ -548,6 +683,8 @@ defineExpose({
   border-radius: 4px;
 }
 
+/* ===================== layout ===================== */
+
 .form-layout {
   display: grid;
   grid-template-columns: 640px 360px;
@@ -606,6 +743,8 @@ defineExpose({
   transform: translateY(-50%);
 }
 
+/* ===================== grid ===================== */
+
 .form-grid {
   display: grid;
   gap: 12px 18px;
@@ -620,13 +759,17 @@ defineExpose({
   grid-template-columns: 1fr;
 }
 
+/* ===================== ⭐新增：跨整行支持 ===================== */
+
+.form-field--full {
+  grid-column: 1 / -1;
+}
+
+/* ===================== field ===================== */
+
 .form-field {
   position: relative;
   min-width: 0;
-}
-
-.form-field--wide {
-  grid-column: span 2;
 }
 
 .form-label {
@@ -643,38 +786,19 @@ defineExpose({
   content: "*";
 }
 
+/* ===================== inputs ===================== */
+
 .form-input,
 .form-select,
 .form-textarea {
   box-sizing: border-box;
-  min-width: 0;
   width: 100%;
-  max-width: 100%;
-  overflow: hidden;
   color: #172033;
   font-size: 14px;
-  text-overflow: ellipsis;
   background: #fbfdff;
   border: 1px solid #d5e2ee;
   border-radius: 4px;
-  transition:
-      border-color 0.16s ease,
-      box-shadow 0.16s ease,
-      background-color 0.16s ease;
-}
-
-.form-select {
-  max-width: 100%;
-}
-
-.form-grid--side .form-input,
-.form-grid--side .form-select,
-.form-grid--side .form-textarea {
-  max-width: 100%;
-}
-
-.form-textarea--large {
-  max-width: 100%;
+  transition: all 0.16s ease;
 }
 
 .form-input,
@@ -682,47 +806,6 @@ defineExpose({
   height: 38px;
   padding: 0 12px;
   line-height: 38px;
-}
-
-.form-select {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.form-select--dropdown {
-  background: #f7fbff;
-  box-shadow: inset 0 -1px 0 rgba(13, 130, 238, 0.03);
-  cursor: pointer;
-}
-
-.form-select--open {
-  background: #ffffff;
-  border-color: #8fc8f8;
-  box-shadow: 0 0 0 3px rgba(13, 130, 238, 0.1);
-}
-
-.form-input:focus,
-.form-textarea:focus {
-  background: #ffffff;
-  border-color: #8fc8f8;
-  box-shadow: 0 0 0 3px rgba(13, 130, 238, 0.1);
-}
-
-.form-control--error,
-.form-control--error:focus {
-  background: #fffafa;
-  border-color: #ef4444;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
-}
-
-.form-error {
-  display: block;
-  margin-top: 5px;
-  color: #d92d20;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.35;
 }
 
 .form-textarea {
@@ -735,6 +818,33 @@ defineExpose({
   height: 92px;
 }
 
+/* focus */
+.form-input:focus,
+.form-textarea:focus {
+  background: #ffffff;
+  border-color: #8fc8f8;
+  box-shadow: 0 0 0 3px rgba(13, 130, 238, 0.1);
+}
+
+/* ===================== select ===================== */
+
+.form-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.form-select--dropdown {
+  background: #f7fbff;
+  cursor: pointer;
+}
+
+.form-select--open {
+  background: #ffffff;
+  border-color: #8fc8f8;
+  box-shadow: 0 0 0 3px rgba(13, 130, 238, 0.1);
+}
+
 .select-arrow {
   width: 8px;
   height: 8px;
@@ -743,17 +853,12 @@ defineExpose({
   transform: translateY(-2px) rotate(45deg);
 }
 
-.select-field {
-  position: relative;
-}
-
 .select-menu {
   position: absolute;
   right: 0;
   left: 0;
   z-index: 20;
   margin-top: 4px;
-  overflow: hidden;
   background: #ffffff;
   border: 1px solid #cbdced;
   border-radius: 4px;
@@ -763,16 +868,11 @@ defineExpose({
 .select-option {
   min-height: 36px;
   padding: 0 12px;
-  color: #172033;
   font-size: 14px;
   font-weight: 700;
   line-height: 36px;
   cursor: pointer;
   border-bottom: 1px solid #edf3f8;
-}
-
-.select-option:last-child {
-  border-bottom: 0;
 }
 
 .select-option:hover,
@@ -785,20 +885,27 @@ defineExpose({
   color: #9aa9b8;
 }
 
-.input-placeholder {
-  color: #9aa9b8;
+/* ===================== error ===================== */
+
+.form-error {
+  margin-top: 5px;
+  color: #d92d20;
+  font-size: 12px;
+  font-weight: 700;
 }
+
+/* ===================== actions ===================== */
 
 .dialog-actions {
   display: flex;
-  flex: none;
   justify-content: flex-end;
   gap: 12px;
   padding: 12px 22px;
   background: #ffffff;
   border-top: 1px solid #edf3f8;
-  box-shadow: 0 -8px 18px rgba(24, 55, 85, 0.04);
 }
+
+/* ===================== responsive ===================== */
 
 @media (max-width: 980px) {
   .form-layout,
@@ -811,8 +918,154 @@ defineExpose({
     border-left: 0;
   }
 
-  .form-field--wide {
-    grid-column: span 1;
+  .form-field--full {
+    grid-column: auto;
   }
 }
+
+/* ===================== location button ===================== */
+
+.form-action-btn {
+  display: flex;
+  align-items: center;
+  height: 38px;
+  padding: 0 14px;
+  width: 120px;
+  color: #0d82ee;
+  font-size: 13px;
+  font-weight: 700;
+  background: #edf7ff;
+  border: 1px solid #b8ddf8;
+  border-radius: 4px;
+  gap: 4px;
+}
+
+.form-field--full {
+  grid-column: 1 / -1;
+}
+
+/* 让 location 内部更稳定 */
+.form-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* 小屏自动降级 */
+@media (max-width: 980px) {
+  .form-grid--main {
+    grid-template-columns: 1fr;
+  }
+
+  .form-field--full {
+    grid-column: auto;
+  }
+}
+
+.form-action-btn__icon--map {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230d82ee'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+.map-picker-panel {
+  margin-top: 12px;
+  border: 1px solid #d5e2ee;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.map-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #f8fbfe;
+  border-bottom: 1px solid #edf3f8;
+}
+
+.map-picker-title {
+  color: #183755;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.map-picker-coord {
+  color: #94a3b8;
+  font-size: 13px;
+
+  &--active {
+    color: #0d82ee;
+    font-weight: 700;
+  }
+}
+
+.map-picker-body {
+  position: relative;
+  width: 100%;
+  height: 300px;
+}
+
+.map-picker-canvas {
+  width: 100%;
+  height: 100%;
+
+  &--fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #7c8da1;
+    font-size: 14px;
+    background: #f8fafc;
+  }
+}
+
+.map-picker-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 10px 14px;
+  background: #fff;
+  border-top: 1px solid #edf3f8;
+}
+.dialog-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 80px;
+  height: 38px;
+  padding: 0 22px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: opacity 0.16s ease;
+
+  // 取消按钮样式
+  &--cancel {
+    color: #34495e;
+    background: #f1f5f9;
+    border: 1px solid #d5e2ee;
+  }
+
+  // 主要按钮样式
+  &--primary {
+    color: #fff;
+    background: #0d82ee;
+    border: 1px solid #0d82ee;
+  }
+
+  // 悬停状态
+  &--hover {
+    opacity: 0.85;
+  }
+
+  // 禁用状态
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
 </style>

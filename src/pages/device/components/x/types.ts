@@ -13,11 +13,6 @@ export interface FormField {
     placeholder?: string;
     options?: FieldOption[];
     large?: boolean;
-    bind?: {
-        address: string
-        lng: string
-        lat: string
-    }
 }
 
 export interface FormSection {
