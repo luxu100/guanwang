@@ -44,6 +44,7 @@
             @view="handleView"
             @select="handleSelect"
             @page-change="handlePageChange"
+            @page-size-change="handlePageSizeChange"
         />
       </view>
 
@@ -448,19 +449,15 @@ const addSchema = computed<FormSection[]>(() => [
         ]
       },
       {
-        key: "installAddress",
-        label: "安装地址",
-        type: "input"
-      },
-      {
-        key: "installLongitude",
-        label: "经度",
-        type: "input"
-      },
-      {
-        key: "installLatitude",
-        label: "纬度",
-        type: "input"
+        key: "installLocation",
+        label: "安装位置",
+        type: "location",
+        bind: {
+          address: "installAddress",
+          lng: "installLongitude",
+          lat: "installLatitude"
+        },
+        placeholder: "格式:经度,纬度 （如 121.4737,31.2304)"
       }
     ]
   },
@@ -694,6 +691,10 @@ function handleImport() {
 
 function handlePageChange(page:number){
   pagination.value.current = page;
+  fetchDevices();
+}
+function handlePageSizeChange(pageSize:number){
+  pagination.value.size = pageSize;
   fetchDevices();
 }
 
