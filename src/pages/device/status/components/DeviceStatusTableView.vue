@@ -263,6 +263,7 @@ function handlePageChange(page:number){
 }
 function handlePageSizeChange(pageSize:number){
   pagination.value.size = pageSize;
+  pagination.value.current = 1;
   fetchDeviceStatuss();
 }
 
