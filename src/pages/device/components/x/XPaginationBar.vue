@@ -1,5 +1,13 @@
 <template>
   <view class="pagination-bar">
+    <!-- page size -->
+    <view class="page-size">
+      每页
+      <picker :range="pageSizeOptions" :value="pageSizeIndex" @change="onSizeChange">
+        <text class="page-size-value">{{ size }}</text>
+      </picker>
+      条
+    </view>
 
     <button
         class="page-button"
@@ -29,15 +37,6 @@
       <button class="page-button jump-btn" @click="jumpToPage">
         确定
       </button>
-    </view>
-
-    <!-- page size -->
-    <view class="page-size">
-      每页
-      <picker :range="pageSizeOptions" :value="pageSizeIndex" @change="onSizeChange">
-        <text class="page-size-value">{{ size }}</text>
-      </picker>
-      条
     </view>
 
   </view>
