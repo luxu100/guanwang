@@ -43,13 +43,6 @@
       }
     },
     {
-      "path": "pages/data-analysis/device-params/device-params",
-      "style": {
-        "navigationBarTitleText": "设备参数",
-        "navigationStyle": "custom"
-      }
-    },
-    {
       "path": "pages/data-analysis/leakage/leakage",
       "style": {
         "navigationBarTitleText": "渗漏数据",
@@ -73,7 +66,14 @@
     {
       "path": "pages/device/status/status",
       "style": {
-        "navigationBarTitleText": "设备状态",
+        "navigationBarTitleText": "设备参数",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/device/valve/valve",
+      "style": {
+        "navigationBarTitleText": "阀门管理",
         "navigationStyle": "custom"
       }
     },
