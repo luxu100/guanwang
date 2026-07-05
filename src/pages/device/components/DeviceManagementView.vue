@@ -583,6 +583,15 @@ async function handleSubmit(form: DeviceCreateForm) {
 }
 
 async function submitCreate(form: DeviceCreateForm) {
+  if (form.coordinate) {
+    const [lng, lat] = form.coordinate.split(",").map(Number);
+
+    if (!Number.isNaN(lng) && !Number.isNaN(lat)) {
+      form.installLongitude = lng;
+      form.installLatitude = lat;
+    }
+  }
+
   const res = await createDeviceT(form);
 
   if (res.code !== 200) {
@@ -600,6 +609,15 @@ async function submitCreate(form: DeviceCreateForm) {
 }
 
 async function submitUpdate(form: DeviceCreateForm) {
+  if (form.coordinate) {
+    const [lng, lat] = form.coordinate.split(",").map(Number);
+
+    if (!Number.isNaN(lng) && !Number.isNaN(lat)) {
+      form.installLongitude = lng;
+      form.installLatitude = lat;
+    }
+  }
+
   if (!editingId.value) return;
 
   const res = await updateDeviceT(
@@ -623,14 +641,24 @@ async function submitUpdate(form: DeviceCreateForm) {
 
 function handleEdit() {
   if (!selectedDevice.value) {
-    uni.showToast({ title: '请选择记录', icon: 'none' });
+    uni.showToast({ title: "请选择记录", icon: "none" });
     return;
   }
 
   isEditMode.value = true;
   editingId.value = selectedDevice.value.id;
 
-  formData.value = { ...selectedDevice.value }
+  formData.value = { ...selectedDevice.value };
+
+  if (
+      formData.value.installLongitude != null &&
+      formData.value.installLatitude != null
+  ) {
+    formData.value.coordinate =
+        `${formData.value.installLongitude},${formData.value.installLatitude}`;
+  } else {
+    formData.value.coordinate = "";
+  }
 
   dialogVisible.value = true;
 }

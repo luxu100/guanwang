@@ -457,13 +457,6 @@ const mapPickerCenter = ref({
   lng: 121.4737,
   lat: 31.2304,
 });
-const mapPickedLocation = ref<{
-  lng: number;
-  lat: number;
-}>({
-  lng: 121.4737,
-  lat: 31.2304,
-});
 
 function openMapPicker() {
   mapPickedCoord.value = "";
@@ -493,7 +486,6 @@ function handleMapPick(coordinate: {
   lng: number;
   lat: number;
 }) {
-  mapPickedLocation.value = coordinate;
   mapPickedCoord.value =
       `${coordinate.lng.toFixed(6)},${coordinate.lat.toFixed(6)}`;
 }
@@ -501,8 +493,6 @@ function handleMapPick(coordinate: {
 function confirmMapPick() {
   if (mapPickedCoord.value){
     formData.value.coordinate = mapPickedCoord.value;
-    formData.value.installLatitude = mapPickedLocation.value.lat;
-    formData.value.installLongitude = mapPickedLocation.value.lng;
   }
   closeMapPicker();
 }
