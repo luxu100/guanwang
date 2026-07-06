@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <view class="history-overview-view">
     <!-- 筛选栏 -->
     <view class="toolbar">
@@ -12,20 +12,68 @@
           </view>
         </view>
 
-        <view class="filter-group">
-          <text class="filter-label">渗漏状态</text>
-          <picker :range="leakStatusOptions" range-key="label" @change="handleLeakStatusChange">
-            <view class="filter-select">
-              <text>{{ currentLeakStatusLabel }}</text>
-              <text class="filter-select__arrow"></text>
-            </view>
-          </picker>
-        </view>
+        <!-- 渗漏记录tab：渗漏级别 + 检出人 -->
+        <template v-if="activeDataTab === 'leakage'">
+          <view class="filter-group">
+            <text class="filter-label">渗漏级别</text>
+            <picker :range="leakLevelOptions" range-key="label" @change="handleLeakLevelChange">
+              <view class="filter-select">
+                <text>{{ currentLeakLevelLabel }}</text>
+                <text class="filter-select__arrow"></text>
+              </view>
+            </picker>
+          </view>
+          <view class="filter-group">
+            <text class="filter-label">检出人</text>
+            <input v-model="filters.detectAccount" class="filter-input" placeholder="请输入检出人" placeholder-class="input-placeholder" />
+          </view>
+        </template>
 
-        <view class="filter-group">
-          <text class="filter-label">设备编号</text>
-          <input v-model="filters.deviceNumber" class="filter-input" placeholder="请输入设备编号" placeholder-class="input-placeholder" />
-        </view>
+        <!-- 设备上报tab：渗漏状态 + 设备编号 -->
+        <template v-else-if="activeDataTab === 'deviceUpload'">
+          <view class="filter-group">
+            <text class="filter-label">渗漏状态</text>
+            <picker :range="leakStatusOptions" range-key="label" @change="handleLeakStatusChange">
+              <view class="filter-select">
+                <text>{{ currentLeakStatusLabel }}</text>
+                <text class="filter-select__arrow"></text>
+              </view>
+            </picker>
+          </view>
+          <view class="filter-group">
+            <text class="filter-label">设备编号</text>
+            <input v-model="filters.deviceNumber" class="filter-input" placeholder="请输入设备编号" placeholder-class="input-placeholder" />
+          </view>
+        </template>
+
+        <!-- 算法分析tab：设备编号 -->
+        <template v-else-if="activeDataTab === 'algorithm'">
+          <view class="filter-group">
+            <text class="filter-label">设备编号</text>
+            <input v-model="filters.deviceNumber" class="filter-input" placeholder="请输入设备编号" placeholder-class="input-placeholder" />
+          </view>
+        </template>
+
+        <!-- 采样记录tab：渗漏状态 + 设备编号 + 管组编号 -->
+        <template v-else>
+          <view class="filter-group">
+            <text class="filter-label">渗漏状态</text>
+            <picker :range="leakStatusOptions" range-key="label" @change="handleLeakStatusChange">
+              <view class="filter-select">
+                <text>{{ currentLeakStatusLabel }}</text>
+                <text class="filter-select__arrow"></text>
+              </view>
+            </picker>
+          </view>
+          <view class="filter-group">
+            <text class="filter-label">设备编号</text>
+            <input v-model="filters.deviceNumber" class="filter-input" placeholder="请输入设备编号" placeholder-class="input-placeholder" />
+          </view>
+          <view class="filter-group">
+            <text class="filter-label">管组编号</text>
+            <input v-model="filters.tubeGroup" class="filter-input" placeholder="请输入管组编号" placeholder-class="input-placeholder" />
+          </view>
+        </template>
       </view>
 
       <view class="toolbar-row toolbar-row--bottom">
@@ -93,6 +141,7 @@
               <text class="data-cell data-cell--esa">特征值</text>
               <text class="data-cell data-cell--intensity">强度</text>
               <text class="data-cell data-cell--frequency">频率</text>
+              <text class="data-cell data-cell--firmware">固件版本</text>
             </view>
 
             <!-- 算法分析列头 -->
@@ -101,6 +150,7 @@
               <text class="data-cell data-cell--time">音频时间</text>
               <text class="data-cell data-cell--device">设备编号</text>
               <text class="data-cell data-cell--signal">信号处理结果</text>
+              <text class="data-cell data-cell--noise">噪音计结果</text>
               <text class="data-cell data-cell--leakage">泄漏判定</text>
               <text class="data-cell data-cell--created">创建时间</text>
             </view>
@@ -114,6 +164,7 @@
               <text class="data-cell data-cell--esa">特征值</text>
               <text class="data-cell data-cell--intensity">强度</text>
               <text class="data-cell data-cell--frequency">频率</text>
+              <text class="data-cell data-cell--address">采样地址</text>
             </view>
 
             <view v-if="loading" class="table-state">加载中...</view>
@@ -158,6 +209,7 @@
                 <text class="data-cell data-cell--esa">{{ getFieldValue(item, "leakEsa") ?? "-" }}</text>
                 <text class="data-cell data-cell--intensity">{{ getFieldValue(item, "leakIntensity") ?? "-" }}</text>
                 <text class="data-cell data-cell--frequency">{{ getFieldValue(item, "leakFrequency") ?? "-" }}</text>
+                <text class="data-cell data-cell--firmware">{{ getFieldValue(item, "firmwareVersion") || "-" }}</text>
               </view>
             </view>
 
@@ -174,6 +226,7 @@
                 <text class="data-cell data-cell--device">{{ getFieldValue(item, "deviceNumber") || "-" }}</text>
                 <template v-if="activeDataTab === 'algorithm'">
                   <text class="data-cell data-cell--signal">{{ getFieldValue(item, "signalprocessingResult") || "-" }}</text>
+                  <text class="data-cell data-cell--noise">{{ getFieldValue(item, "signalprocessingResult1") || "-" }}</text>
                   <text class="data-cell data-cell--leakage">
                     <text class="status-tag" :class="getLeakStatusTagClass(item)">
                       {{ getFieldValue(item, "signalprocessingResult2") || "-" }}
@@ -188,6 +241,7 @@
                   <text class="data-cell data-cell--esa">{{ getFieldValue(item, "leakEsa") ?? "-" }}</text>
                   <text class="data-cell data-cell--intensity">{{ getFieldValue(item, "leakIntensity") ?? "-" }}</text>
                   <text class="data-cell data-cell--frequency">{{ getFieldValue(item, "leakFrequency") ?? "-" }}</text>
+                  <text class="data-cell data-cell--address">{{ getFieldValue(item, "samplingAddress") || "-" }}</text>
                 </template>
               </view>
             </view>
@@ -251,6 +305,14 @@ const leakStatusOptions: Array<{ label: string; value: number | "" }> = [
   { label: "疑似", value: 2 },
 ];
 
+const leakLevelOptions: Array<{ label: string; value: number | "" }> = [
+  { label: "不限", value: "" },
+  { label: "轻度", value: 0 },
+  { label: "中度", value: 1 },
+  { label: "重度", value: 2 },
+  { label: "疑点", value: 3 },
+];
+
 const tabLabelMap: Record<DataTab, string> = {
   leakage: "渗漏记录",
   deviceUpload: "设备上报",
@@ -266,6 +328,9 @@ const filters = reactive({
   endTime: "",
   leakStatus: "" as number | "",
   deviceNumber: "",
+  leakLevel: "" as number | "",
+  detectAccount: "",
+  tubeGroup: "",
 });
 
 const pagination = reactive({
@@ -283,6 +348,9 @@ const exportMenuVisible = ref(false);
 
 const currentLeakStatusLabel = computed(() =>
   leakStatusOptions.find((o) => o.value === filters.leakStatus)?.label || "不限",
+);
+const currentLeakLevelLabel = computed(() =>
+  leakLevelOptions.find((o) => o.value === filters.leakLevel)?.label || "不限",
 );
 const activeTabLabel = computed(() => tabLabelMap[activeDataTab.value]);
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pagination.pageSize)));
@@ -355,9 +423,9 @@ const currentDetailFields = computed(() => {
     { label: "强度", key: "leakIntensity" },
     { label: "频率", key: "leakFrequency" },
     { label: "压力", key: "pressure" },
-    { label: "创建时间", key: "createdAt", format: true },
-  ]);
-});
+      { label: "创建时间", key: "createdAt", format: true },
+    ]);
+  });
 
 onMounted(() => {
   fetchHistoryData();
@@ -365,6 +433,10 @@ onMounted(() => {
 
 function handleLeakStatusChange(event: { detail: { value: number } }) {
   filters.leakStatus = leakStatusOptions[event.detail.value]?.value ?? "";
+}
+
+function handleLeakLevelChange(event: { detail: { value: number } }) {
+  filters.leakLevel = leakLevelOptions[event.detail.value]?.value ?? "";
 }
 
 function switchDataTab(tab: DataTab) {
@@ -405,11 +477,19 @@ function buildQueryParams() {
     sortField: sortField.value || defaultSortField,
   });
 
-  if (filters.leakStatus !== "") {
-    (baseParams as Record<string, unknown>).leakStatus = filters.leakStatus;
-  }
-  if (activeDataTab.value !== "leakage" && filters.deviceNumber.trim()) {
-    (baseParams as Record<string, unknown>).deviceNumber = filters.deviceNumber.trim();
+  // 按 tab 传递对应的业务筛选参数
+  if (activeDataTab.value === "leakage") {
+    if (filters.leakLevel !== "") (baseParams as Record<string, unknown>).leakLevel = filters.leakLevel;
+    if (filters.detectAccount.trim()) (baseParams as Record<string, unknown>).detectAccount = filters.detectAccount.trim();
+  } else if (activeDataTab.value === "deviceUpload") {
+    if (filters.leakStatus !== "") (baseParams as Record<string, unknown>).leakStatus = filters.leakStatus;
+    if (filters.deviceNumber.trim()) (baseParams as Record<string, unknown>).deviceNumber = filters.deviceNumber.trim();
+  } else if (activeDataTab.value === "algorithm") {
+    if (filters.deviceNumber.trim()) (baseParams as Record<string, unknown>).deviceNumber = filters.deviceNumber.trim();
+  } else if (activeDataTab.value === "sampling") {
+    if (filters.leakStatus !== "") (baseParams as Record<string, unknown>).leakStatus = filters.leakStatus;
+    if (filters.deviceNumber.trim()) (baseParams as Record<string, unknown>).deviceNumber = filters.deviceNumber.trim();
+    if (filters.tubeGroup.trim()) (baseParams as Record<string, unknown>).tubeGroup = filters.tubeGroup.trim();
   }
 
   return baseParams;
@@ -432,6 +512,8 @@ async function fetchHistoryData() {
     const response = (await api.page(buildQueryParams())) as ApiResponseLike;
     assertSuccessResponse(response);
     const parsed = parsePageResponse(response);
+    if (parsed.pageNum && parsed.pageNum !== pagination.pageNum) pagination.pageNum = parsed.pageNum;
+    if (parsed.pageSize && parsed.pageSize !== pagination.pageSize) pagination.pageSize = parsed.pageSize;
     records.value = applyLocalSort(parsed.records);
     total.value = parsed.total;
     selectFirstRow();
@@ -525,6 +607,9 @@ function resetFilters() {
   filters.endTime = "";
   filters.leakStatus = "";
   filters.deviceNumber = "";
+  filters.leakLevel = "";
+  filters.detectAccount = "";
+  filters.tubeGroup = "";
   searchHistory();
 }
 
@@ -592,6 +677,7 @@ function getLeakLevelClass(item: HistoryRecord) {
   if (val === 0) return "level-pill--light";
   if (val === 1) return "level-pill--medium";
   if (val === 2) return "level-pill--heavy";
+  if (val === 3) return "level-pill--suspect";
   return "";
 }
 
@@ -645,11 +731,11 @@ function parsePageResponse(response: ApiResponseLike) {
     getFirstNumber(response, ["total", "count", "totalCount", "totalRow", "totalRows", "totalElements"]);
   const cur = getFirstNumber(pageData, ["current", "pageNum", "page", "pageNo"]);
   const sz = getFirstNumber(pageData, ["size", "pageSize", "limit"]);
-  if (cur) pagination.pageNum = cur;
-  if (sz) pagination.pageSize = sz;
-  const minVisibleTotal = (pagination.pageNum - 1) * pagination.pageSize + finalRecords.length;
+  const pageNum = cur || pagination.pageNum;
+  const pageSize = sz || pagination.pageSize;
+  const minVisibleTotal = (pageNum - 1) * pageSize + finalRecords.length;
   const resolved = totalVal === undefined ? finalRecords.length : Math.max(totalVal, minVisibleTotal);
-  return { records: finalRecords.map((r) => (isObject(r) ? r : { value: r })), total: resolved };
+  return { records: finalRecords.map((r) => (isObject(r) ? r : { value: r })), total: resolved, pageNum, pageSize };
 }
 
 function findPageContainer(value: unknown): HistoryRecord | null {
@@ -748,6 +834,8 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   padding: 14px;
   margin-bottom: 10px;
   background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .toolbar-row {
@@ -900,8 +988,8 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 }
 
 .export-menu__item:hover {
-  background: #f1f8ff;
-  color: #0d82ee;
+  background: #eff6ff;
+  color: #3b82f6;
 }
 
 .toolbar-button {
@@ -925,13 +1013,13 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 
 .toolbar-button--primary {
   color: #ffffff;
-  background: #0d82ee;
-  border-color: #0d82ee;
+  background: #3b82f6;
+  border-color: #3b82f6;
 }
 
-.toolbar-button--hover { color: #0d82ee; background: #edf7ff; border-color: #a9d7ff; }
-.toolbar-button--primary.toolbar-button--hover { color: #ffffff; background: #0674d8; border-color: #0674d8; }
-.toolbar-button:disabled { color: #9aa9b8; background: #eef2f6; border-color: #d7e0e8; cursor: not-allowed; }
+.toolbar-button--hover { color: #3b82f6; background: #eff6ff; border-color: #bfdbfe; }
+.toolbar-button--primary.toolbar-button--hover { color: #ffffff; background: #2563eb; border-color: #2563eb; }
+.toolbar-button:disabled { color: #9aa9b8; background: #eff6ff; border-color: #d7e0e8; cursor: not-allowed; }
 
 .toolbar-icon-button {
   display: flex;
@@ -948,7 +1036,7 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   cursor: pointer;
 }
 
-.toolbar-icon-button--hover { color: #0d82ee; background: #edf7ff; border-color: #a9d7ff; }
+.toolbar-icon-button--hover { color: #3b82f6; background: #eff6ff; border-color: #bfdbfe; }
 
 .icon-refresh {
   display: block;
@@ -981,8 +1069,8 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 }
 
 .tabs-bar__item--active {
-  color: #0d82ee;
-  border-bottom-color: #0d82ee;
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
   background: #f7faff;
 }
 
@@ -1065,49 +1153,46 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 .data-table {
   display: flex;
   flex-direction: column;
-  width: 1880px;
-  min-width: 1880px;
   background: #ffffff;
 }
 
 .data-row {
   display: grid;
-  grid-template-columns: 58px 340px 180px 360px 220px 300px 422px;
-  min-height: 42px;
-  width: 1880px;
+  grid-template-columns: 58px minmax(160px, 3.4fr) minmax(96px, 1.8fr) minmax(160px, 3.6fr) minmax(96px, 3fr) minmax(96px, 2.2fr) minmax(120px, 4.2fr);
+  min-height: 48px;
   border-bottom: 1px solid #edf1f5;
   cursor: pointer;
   transition: background 0.18s ease, box-shadow 0.18s ease;
 }
 .data-row--deviceUpload {
-  grid-template-columns: 58px 340px 260px 220px 200px 350px 452px;
+  grid-template-columns: 58px minmax(160px, 2.6fr) minmax(110px, 1.8fr) minmax(96px, 1.2fr) minmax(72px, 0.9fr) minmax(72px, 0.9fr) minmax(72px, 0.9fr) minmax(110px, 1.6fr);
 }
 .data-row--algorithm {
-  grid-template-columns: 58px 320px 260px 360px 220px 662px;
+  grid-template-columns: 58px minmax(160px, 2.6fr) minmax(110px, 1.8fr) minmax(150px, 2.4fr) minmax(110px, 1.8fr) minmax(96px, 1.2fr) minmax(160px, 2.4fr);
 }
 .data-row--sample {
-  grid-template-columns: 58px 340px 260px 220px 200px 350px 452px;
+  grid-template-columns: 58px minmax(160px, 2.6fr) minmax(110px, 1.8fr) minmax(96px, 1.2fr) minmax(72px, 0.9fr) minmax(72px, 0.9fr) minmax(72px, 0.9fr) minmax(120px, 2.4fr);
 }
 .data-row:not(.data-row--header):nth-child(odd) { background: #fff; }
 .data-row:not(.data-row--header):nth-child(even) { background: #fbfdff; }
-.data-row:not(.data-row--header):hover { background: #f1f8ff; box-shadow: inset 0 0 0 1px #d7ebfb; }
+.data-row:not(.data-row--header):hover { background: #eff6ff; box-shadow: inset 0 0 0 1px #cbd5e1; }
 
 .data-row--header {
   position: sticky;
   top: 0;
   z-index: 1;
-  min-height: 44px;
+  min-height: 50px;
   color: #20384f;
   font-weight: 800;
-  background: #f6f9fc;
+  background: #fafafa;
   cursor: default;
   box-shadow: 0 1px 0 #dbe7f0;
 }
 
 .data-row--active {
   position: relative;
-  background: #e7f3ff !important;
-  box-shadow: inset 0 0 0 1px #b9dcff;
+  background: #eff6ff !important;
+  box-shadow: inset 0 0 0 1px #bfdbfe;
 }
 
 .data-row--active::before {
@@ -1117,7 +1202,7 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   left: 0;
   width: 3px;
   content: "";
-  background: #0d82ee;
+  background: #3b82f6;
   border-radius: 0 999px 999px 0;
 }
 
@@ -1132,8 +1217,8 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   font-size: 13px;
   line-height: 1.35;
   text-align: center;
-  text-overflow: ellipsis;
   white-space: nowrap;
+  text-overflow: ellipsis;
   border-right: 1px solid #edf1f5;
 }
 
@@ -1147,31 +1232,32 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 
 .data-cell--index { justify-content: center; color: #64748b; }
 .data-cell--time { color: #0f4c81; font-family: "DIN Alternate", "Arial", sans-serif; font-weight: 800; }
-.data-cell--address { justify-content: flex-start; text-align: left; }
-.data-cell--remark { justify-content: flex-start; text-align: left; }
+.data-cell--address { justify-content: center; text-align: center; }
+.data-cell--remark { justify-content: center; text-align: center; }
 .data-cell--device { color: #0f4c81; font-family: "DIN Alternate", "Arial", sans-serif; font-weight: 800; }
 
 .data-cell--sortable { cursor: pointer; user-select: none; }
-.data-cell--sortable:hover { color: #0d82ee; }
+.data-cell--sortable:hover { color: #3b82f6; }
 
-.sort-arrow { flex: none; font-size: 10px; line-height: 1; margin-left: 2px; color: #bcc7d6; transition: color 0.18s ease; &--active { color: #0d82ee; } }
+.sort-arrow { flex: none; font-size: 10px; line-height: 1; margin-left: 2px; color: #bcc7d6; transition: color 0.18s ease; &--active { color: #3b82f6; } }
 .data-cell--sortable:hover .sort-arrow:not(.sort-arrow--active) { color: #7f8fa3; }
 
 .level-pill {
   display: inline-block;
-  padding: 2px 8px;
+  padding: 2px 10px;
   font-size: 12px;
   font-weight: 700;
   border-radius: 10px;
 }
 
-.level-pill--light { color: #16a34a; background: #dcfce7; }
-.level-pill--medium { color: #d97706; background: #fef3c7; }
-.level-pill--heavy { color: #dc2626; background: #fee2e2; }
+.level-pill--light { color: #22c55e; background: #f0fdf4; border: 1px solid #bbf7d0; }
+.level-pill--medium { color: #f59e0b; background: #fffbeb; border: 1px solid #fde68a; }
+.level-pill--heavy { color: #ef4444; background: #fef2f2; border: 1px solid #fecaca; }
+.level-pill--suspect { color: #8c8c8c; background: #fafafa; border: 1px solid #d9d9d9; }
 
 .status-tag {
   display: inline-block;
-  padding: 2px 8px;
+  padding: 2px 10px;
   font-size: 12px;
   font-weight: 700;
   border-radius: 10px;
@@ -1179,20 +1265,24 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   background: #f1f5f9;
 }
 
-.status-tag--leak { color: #dc2626; background: #fee2e2; }
-.status-tag--normal { color: #16a34a; background: #dcfce7; }
-.status-tag--suspect { color: #d97706; background: #fef3c7; }
+.status-tag--leak { color: #ef4444; background: #fef2f2; border: 1px solid #fecaca; }
+.status-tag--normal { color: #22c55e; background: #f0fdf4; border: 1px solid #bbf7d0; }
+.status-tag--suspect { color: #f59e0b; background: #fffbeb; border: 1px solid #fde68a; }
 .status-tag--unknown { color: #64748b; background: #f1f5f9; }
 
 .table-state {
-  padding: 32px;
-  color: #7c8da1;
+  padding: 48px 32px;
+  color: #a0aec0;
   font-size: 14px;
   text-align: center;
 }
 
 .pagination-bar {
   flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
   border-top: 1px solid #edf3f8;
 }
 
@@ -1213,7 +1303,7 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   cursor: pointer;
 }
 
-.page-button--hover { background: #edf5ff; }
+.page-button--hover { background: #eff6ff; }
 .page-button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .page-info {
@@ -1246,7 +1336,7 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   overflow: hidden;
 }
 
-.detail-section { flex: 1; min-height: 0; padding: 16px; overflow-y: auto; background: linear-gradient(180deg, #f5faff 0, #ffffff 142px), #ffffff; }
+.detail-section { flex: 1; min-height: 0; padding: 16px; overflow-y: auto; background: linear-gradient(180deg, #f8fafc 0, #ffffff 142px), #ffffff; }
 
 .detail-grid { display: grid; gap: 0; overflow: hidden; background: #ffffff; border: 1px solid #dfebf5; border-radius: 6px; box-shadow: 0 8px 18px rgba(33, 72, 108, 0.045); }
 
@@ -1258,11 +1348,11 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 
 .detail-item__value { color: #172033; font-size: 14px; font-weight: 700; line-height: 1.45; text-align: right; word-break: break-all; }
 
-.detail-item--level-light { border-left: 4px solid #16a34a; padding-left: 10px; background: #f0fdf4; }
+.detail-item--level-light { border-left: 4px solid #22c55e; padding-left: 10px; background: #f0fdf4; }
 
-.detail-item--level-medium { border-left: 4px solid #d97706; padding-left: 10px; background: #fffbeb; }
+.detail-item--level-medium { border-left: 4px solid #f59e0b; padding-left: 10px; background: #fffbeb; }
 
-.detail-item--level-heavy { border-left: 4px solid #dc2626; padding-left: 10px; background: #fef2f2; }
+.detail-item--level-heavy { border-left: 4px solid #ef4444; padding-left: 10px; background: #fef2f2; }
 
 @media (max-width: 1024px) {
   .main-layout {
