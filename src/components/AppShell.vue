@@ -197,6 +197,7 @@ import AdminPlaceholderView from "@/components/admin/AdminPlaceholderView.vue";
 import LanguageSelect from "@/components/common/LanguageSelect.vue";
 import PartitionManagementView from "@/pages/partition/components/PartitionManagementView.vue";
 import DeviceManagementView from "@/pages/device/components/DeviceManagementView.vue";
+import DeviceSettingsView from "@/pages/device/settings/components/DeviceSettingsView.vue";
 import SystemManagementView from "@/pages/system/components/SystemManagementView.vue";
 import SearchTemplatePage from "@/pages/system/search/search.vue";
 import CommandManagePage from "@/pages/command/commandManage.vue";
@@ -255,7 +256,7 @@ const menuItems: MenuItem[] = [
     children: [
       { label: "设备信息", path: "/pages/device/info/info", icon: "device", keywords: ["设备", "信息"] },
       { label: "拆装维护", path: "/pages/device/maintenance/maintenance", icon: "device", keywords: ["拆装", "维护"] },
-      { label: "设备参数", path: "/pages/device/status/status", icon: "device", keywords: ["状态"] },
+      { label: "设备参数", path: "/pages/device/settings/settings", icon: "device", keywords: ["参数"] },
       { label: "阀门管理", path: "/pages/device/valve/valve", icon: "device", keywords: ["阀门"] },
     ],
   },
@@ -367,7 +368,8 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/partition/partition": { component: PartitionManagementView },
   "/pages/device/info/info": { component: DeviceManagementView, props: { mode: "info" } },
   "/pages/device/maintenance/maintenance": { component: DeviceManagementView, props: { mode: "maintenance" } },
-  "/pages/device/status/status": { component: DeviceManagementView, props: { mode: "status" } },
+  // "/pages/device/status/status": { component: DeviceManagementView, props: { mode: "status" } },
+  "/pages/device/settings/settings": { component: DeviceSettingsView },
   "/pages/device/valve/valve": { component: DeviceManagementView, props: { mode: "valve" } },
   "/pages/command/commandManage": { component: CommandManagePage },
   "/pages/command/commandConfiguration": { component: CommandConfigurationPage },

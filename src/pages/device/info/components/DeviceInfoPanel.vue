@@ -184,7 +184,6 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   (e: 'update:visible', value: boolean): void;
-  (e: 'edit', data: Partial<Device>): void;
 }>();
 
 const product = ref<DeviceProduct>();
