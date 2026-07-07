@@ -30,6 +30,7 @@
         @edit="handleEdit"
         @on-export="handleExport"
         @on-import="handleImport"
+        @bind-dept="handleBindDept"
     />
 
     <!-- 主体 -->
@@ -83,14 +84,24 @@
       @submit="handleSubmit"
       @cancel="dialogVisible = false"
   />
+
+  <XTreeSelectDialog
+      v-model:visible="treeVisible"
+      v-model="deptId"
+      :tree-data="deptTree"
+      title="绑定部门"
+      subtitle="请选择想要绑定的部门"
+      @confirm="onDeptConfirm"
+  />
 </template>
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
 
-import type {Device, DeviceCreateForm} from "@/services/device/types";
+import type {DeptDevice, DeptTreeVO, Device, DeviceCreateForm} from "@/services/device/types";
 import {
+  createDeptDeviceT,
   createDeviceT,
-  deleteDeviceT,
+  deleteDeviceT, getDeptTreeT,
   getDevicePageT,
   getDeviceProductListT,
   updateDeviceT
@@ -104,8 +115,9 @@ import ValvePanel from "../valve/components/ValvePanel.vue";
 import DeviceToolbar from "./DeviceToolbar.vue";
 import DeviceTableView from "./DeviceTableView.vue";
 import XDynamicDialog from "@/pages/device/components/x/XDynamicDialog.vue";
+import XTreeSelectDialog from "@/pages/device/components/x/XTreeSelectDialog.vue";
 import type {FormSection} from "@/pages/device/components/x/types";
-
+import type {PartitionNode} from "@/pages/device/components/x/XTreeNode.vue";
 /**
  * =========================
  * mode
@@ -130,7 +142,6 @@ const pagination = ref({
 });
 const isEditMode = ref(false);
 const editingId = ref<number | null>(null);
-
 /**
  * =========================
  * module config（核心）
@@ -744,10 +755,93 @@ function handleImport() {
   });
 }
 
+/**
+ * 部门树形控件
+ */
+const treeVisible = ref(false);
+const deptId = ref<number | null>(null);
+const deptName = ref("");
+const deptTree = ref<PartitionNode[]>([]);
+
+function handleBindDept(){
+  fetchDeptTree();
+  treeVisible.value = true;
+}
+
+async function onDeptConfirm(node: PartitionNode | null) {
+  if (!node) return;
+  else if(node.id === currentDevice.value?.deptId){
+    uni.showToast({
+      title: '该设备已绑定此部门',
+      icon: 'none'
+    });
+    return;
+  }
+  if (!currentDevice.value) {
+    uni.showToast({
+      title: "请选择设备",
+      icon: "none"
+    });
+    return;
+  }
+  const deptDevice: DeptDevice = {
+    deviceId: currentDevice.value.id,
+    deptId: node.id,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  try {
+    const res = await createDeptDeviceT(deptDevice);
+    if (res.code === 200) {
+      uni.showToast({
+        title: res.msg || "绑定成功",
+        icon: "success"
+      });
+    } else {
+      uni.showToast({
+        title: res.msg || "绑定失败",
+        icon: "none"
+      });
+    }
+  } catch (e) {
+    console.error(e);
+    uni.showToast({
+      title:"请求异常",
+      icon:"none"
+    });
+  }
+  deptName.value = node.name;
+}
+
+function convertDeptTree(
+    list: DeptTreeVO[]
+): PartitionNode[] {
+  return list.map(item => ({
+    id:item.id,
+    name:item.deptName,
+    children:item.children
+        ? convertDeptTree(item.children)
+        : []
+  }));
+}
+
+async function fetchDeptTree() {
+  try {
+    const res = await getDeptTreeT();
+    deptTree.value = convertDeptTree(
+        res.data ?? []
+    );
+  } catch (e) {
+    deptTree.value = [];
+    console.error("获取部门树失败：", e);
+  }
+}
+
 function handlePageChange(page:number){
   pagination.value.current = page;
   fetchDevices();
 }
+
 function handlePageSizeChange(pageSize:number){
   pagination.value.size = pageSize;
   pagination.value.current = 1;

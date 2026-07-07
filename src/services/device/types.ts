@@ -320,3 +320,65 @@ export interface DeviceCreateForm {
     leakProperty?: number;
     leakStatus?: number;
 }
+
+/**
+ * 部门树节点
+ */
+export interface DeptTreeVO {
+    /** 部门ID */
+    id: number;
+
+    /** 部门名称 */
+    deptName: string;
+
+    /** 父部门ID */
+    parentId: number | null;
+
+    /** 部门描述 */
+    description?: string;
+
+    /** 部门负责人 */
+    administrator?: string;
+
+    /** 排序 */
+    sort?: number;
+
+    /** 状态：0-禁用 1-启用 */
+    status?: number;
+
+    /** 子部门 */
+    children: DeptTreeVO[];
+}
+
+export interface DeptDevice {
+    /**
+     * 主键ID
+     */
+    id?: number;
+
+    /**
+     * 部门ID
+     */
+    deptId: number | string;
+
+    /**
+     * 设备ID
+     */
+    deviceId: number | string;
+
+    /**
+     * 创建时间
+     */
+    createdAt?: string;
+
+    /**
+     * 更新时间
+     */
+    updatedAt?: string;
+
+    /**
+     * 删除标记 0-正常 1-删除
+     */
+    isDeleted?: boolean;
+}
+

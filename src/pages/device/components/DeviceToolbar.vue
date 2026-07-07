@@ -54,6 +54,8 @@
         :show-edit="true"
     >
       <template #left>
+        <button class = "toolbar-button" @click="emit('bindDept')">绑定分区</button>
+        <button class = "toolbar-button" @click="emit('onImport')">绑定阀门</button>
         <button class = "toolbar-button toolbar-button--green" @click="emit('onImport')">导入</button>
         <button class = "toolbar-button toolbar-button--green" @click="emit('onExport')">导出</button>
       </template>
@@ -110,6 +112,7 @@ const emit = defineEmits<{
   (e: "onExport"): void;
   (e: "delete"): void;
   (e: "edit"): void;
+  (e: "bindDept"): void;
 }>();
 
 /**
