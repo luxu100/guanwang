@@ -25,6 +25,14 @@ export function updateDept(id: ServiceId, data: ServicePayload): Promise<ApiResp
 export function deleteDept(id: ServiceId, isForce?: boolean): Promise<ApiResponse>;
 export function batchDeleteDept(data: ServicePayload): Promise<ApiResponse>;
 
+export function getDeptDevicePage(data: ServiceQuery): Promise<ApiResponse>;
+export function getDeptDeviceList(params?: ServiceQuery): Promise<ApiResponse>;
+export function getDeptDeviceDetail(id: ServiceId): Promise<ApiResponse>;
+export function createDeptDevice(data: ServicePayload): Promise<ApiResponse>;
+export function updateDeptDevice(id: ServiceId, data: ServicePayload): Promise<ApiResponse>;
+export function deleteDeptDevice(id: ServiceId, isForce?: boolean): Promise<ApiResponse>;
+export function batchDeleteDeptDevice(data: ServicePayload): Promise<ApiResponse>;
+
 export function getTubeNetworkPage(data: ServiceQuery): Promise<ApiResponse>;
 export function getTubeNetworkList(params?: ServiceQuery): Promise<ApiResponse>;
 export function getTubeNetworkDetail(id: ServiceId): Promise<ApiResponse>;
@@ -48,6 +56,14 @@ declare const service: {
   createDept: typeof createDept;
   updateDept: typeof updateDept;
   deleteDept: typeof deleteDept;
+  
+  getDeptDevicePage: typeof getDeptDevicePage;
+  getDeptDeviceList: typeof getDepDevicetList;
+  getDeptDeviceDetail: typeof getDeptDeviceDetail;
+  createDeptDevice: typeof createDeptDevice;
+  updateDeptDevice: typeof updateDeptDevice;
+  deleteDeptDevice: typeof deleteDeptDevice;
+  
   batchDeleteDept: typeof batchDeleteDept;
   getTubeNetworkPage: typeof getTubeNetworkPage;
   getTubeNetworkList: typeof getTubeNetworkList;

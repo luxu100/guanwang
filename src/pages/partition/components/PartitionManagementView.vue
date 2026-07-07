@@ -1,206 +1,85 @@
 <template>
-    <view class="partition">
-        <!-- 分区 -->
-		<view class="partition-layout">
-
-			
-			<!-- 分区树 -->
+    <view class="dept">
+        <!-- 分区树 -->
+		<view class="dept-layout">
 			<view class="tree-panel">
-				<!-- 分区搜索 -->
-				<view class="tree-search">
-					<input v-model="partitionKeyword" class="form-input" placeholder="输入节点名称模糊搜索" placeholder-class="input-placeholder"/>
-<!-- 					<view
-					  v-for="item in filteredPartitionList"
-					  :key="item.id"
-					  class="tree-node"
-					></view> -->
-					
+				<view class="section-head">
+				  <text class="section-title">分区结构</text>
+				  <button class="icon-button" hover-class="icon-button--hover" aria-label="刷新" @click="deptRefresh">
+				    <text class="icon-refresh"></text>
+				  </button>
 				</view>
 				<!-- 树内容 -->
 				<view class="tree-content">
 					<view 
-					  v-for="item in partitionList" 
+					  v-for="item in deptTreeList" 
 					  :key="item.id" 
 					  class="tree-node" 
-					  :class="{ 'tree-node--active': currentPartitionId === item.id }"
-					  @click="handlePartitionClick(item)"
+					  :class="{ 'tree-node--active': currentDeptId === item.id }"
+					  :title="item.deptName"
+					  @click="handleDeptClick(item)"
 					>
-						{{ item.deptName }}
+						<text class="text-hidden">{{ item.deptName }}</text>
 					</view>
 				</view>
-				<view class="tree-actions">
-				  <button class="secondary-button" @click="handleCreatePartition">
-				    新增
-				  </button>
-				  
-				  <button
-				    class="secondary-button"
-				    :disabled="!currentPartitionId"
-				    @click="handleEditPartition"
-				  >
-				    编辑
-				  </button>
 				
-				  <button
-				    class="danger-button"
-				    :disabled="!currentPartitionId"
-				    @click="handleDeletePartition"
-				  >
-				    删除
-				  </button>
-				</view>
 			</view>
 		</view>
 
-		<!-- 设备 -->
+		<!-- 分区信息 -->
 		<view class="dev-layout">
-			<!-- 设备查询区域 -->
-			<view class="toolbar-panel">
-				<!-- 左侧查询 -->
-				  <view class="toolbar-left">			
-				    <input
-				      v-model="deviceKeyword"
-				      class="toolbar-input"
-				      placeholder="请输入设备编号"
-				      placeholder-class="input-placeholder"
-				    />
-					<button class="primary-button" @click="handleDeviceSearch">
-					  查询
-					</button>
-					<button class="secondary-button" @click="handleDeviceRefresh">
-					  刷新
-					</button>
-				  </view>
-				
-				  <!-- 右侧功能按钮 -->
-				  <view class="toolbar-right">
-					<button class="secondary-button" @click="handleBatchAction">
-					  批量操作
-					</button>
-					<button class="secondary-button" @click="handleImportDevice">
-					  导入
-					</button>
-					<button class="secondary-button" @click="handleExportDevice">
-					  导出
-					</button>
-					<button class="primary-button" @click="handleCreateDevice">
-					  新增设备
-					</button>
-					<button class="danger-button" @click="handleDeleteSelectedDevice">
-					  删除
-					</button>
-				  </view>
-
-			</view>
-
-			<!-- 设备列表 -->
+			<!-- 分区信息 -->
 			<view class="table-panel">
 				<view class="section-head">
-					<text class="section-title">
-					设备列表
-					</text>
+					<text class="section-title"> 分区信息 </text>
+					<view class="toolbar-panel">
+						  <button class="secondary-button" @click="handleCreateDept"> 新增 </button>
+						  <button class="secondary-button" :disabled="!currentDeptId || currentDeptId === 0" @click="handleEditDept">
+						    编辑
+						  </button>
+
+						  <button
+						    class="danger-button"
+						    :disabled="!currentDeptId || currentDeptId === 0"
+						    @click="handleDeleteDept"
+						  >
+						    删除
+						  </button>
+					</view>
 				</view>
 
-				<view class="device-table">
+				<view class="table">
 					<!-- 表头 -->
-					<view class="table-row table-row--header">
+					<view class="table-row table-row--header dept-table-row">
 					  <view
-					    v-for="column in tableColumns"
+					    v-for="column in deptColumns" 
 					    :key="column.key"
-					    :class="[column.className, { 'table-header-cell': column.sortable, 'table-header-cell--active': sortState.field === column.key }]"
-						@click="column.sortable && toggleSort(column.key as SortField)"
-					  >
-					    <!-- 全选框 -->
-					    <checkbox-group v-if="column.key === 'checkbox'">
-					      <checkbox
-					        :checked="isAllSelected"
-					        @click.stop="handleSelectAll"
-					      />
-					    </checkbox-group>
-					
+						:class="[column.className, 'col-center']" >
 					    <!-- 普通列 -->
-					    <template v-else>
-					      <text>{{ column.label }}</text>
-					
-					      <text
-					        v-if="column.sortable"
-					        class="sort-indicator"
-					        :class="getSortIndicatorClass(column.key as SortField)"
-					      />
-					    </template>
+					    <text>{{ column.label }}</text>
 					  </view>
 					</view>
 					
-					<view v-if="loading" class="table-state">加载中...</view>
-					<view v-else-if="deviceList.length === 0" class="table-state">暂无设备数据</view>
+					<view v-if="loading" class="table-state col-center">加载中...</view>
+					<view v-else-if="deptTableList.length === 0" class="table-state">暂无分区信息</view>
 					
 				    <!-- 数据 -->
-					<view
-					  v-for="(item,index) in deviceList"
-					  :key="item.id"
-					  class="table-row"
-					>
-									
-					  <view class="col-checkbox">
-						<checkbox
-						  :checked="selectedIds.includes(item.id)"
-						  @click.stop="handleSelectDevice(item.id)"
-						/>
-					  </view>
-									
-					  <view class="col-index">
-						{{ index + 1 }}
-					  </view>
-									
-					  <view class="col-device-number">
-						{{ item.deviceNumber }}
-					  </view>
-									
-					  <view class="col-device-type">
-						{{ item.deviceType }}
-					  </view>
-					
-					  <view class="col-status">
-					    {{ getEnableStateText(item.enableState) }}
-					  </view>
-					  
-					  <view class="col-status">
-					    {{ getInstallStateText(item.installState) }}
-					  </view>
-
-					  <view class="col-status">
-					    {{ getInstallModeText(item.installMode) }}
-					  </view>		
-					
-					  <view class="col-address">
-					    {{ item.installAddress || '-' }}
-					  </view>
-									
-					  <view class="col-group">
-						{{ item.tubeGroup }}
-					  </view>
-									
-					  <view class="col-status">
-						{{ getLeakText(item.leakStatus) }}
-					  </view>
-		
-					  <view class="col-time">
-						{{ item.lastSamplingTime || '-' }}
-					  </view>
-	
-					  <view class="col-status">
-					    {{ getOnlineStatusText(item.onlineStatus) }}
-					  </view>
-					  
-					  <view class="col-action">
-					      <button
-					        class="table-action-btn"
-					        @click.stop="handleEditDevice(item)"
-					      >
-					        编辑
-					      </button>
-					    </view>		  
-					</view>
+					<view v-else>
+						<view v-for="(item,index) in deptTableList" 
+						:key="item.id" 
+						class="table-row dept-table-row"
+						:class="{ 'table-row--action': currentDeptId === item.id}"
+						@click="handleDeptTableRowClick(item)"
+						>
+						  <view class="col-index col-center" > {{ index + 1 }} </view>
+						  <view class="col-dept-name col-center" :title="item.deptName"> {{ item.deptName }} </view>
+						  <view class="col-dept-type col-center" :title="item.deptType"> {{ item.deptType || '-' }} </view>
+						  <view class="col-min-level col-center"> {{ item.gisMinLevel || '-' }} </view>
+						  <view class="col-max-level col-center"> {{ item.gisMaxLevel || '-' }} </view>
+						  <view class="col-dept-id col-center"> {{ item.id || '-' }} </view>
+						  <view class="col-sort col-center"> {{ item.sort || '-' }} </view>
+						</view>
+					</view>	
 				</view>
 			
 				<view class="pagination-bar">
@@ -215,103 +94,396 @@
 			</view>
 		</view> 
 		
-		<view v-if="partitionDialogVisible" class="dialog-mask" @click="closePartitionDialog">
+		<!-- 设备 -->
+		<view class="dev-layout">
+			<!-- 设备列表 -->
+			<view class="table-panel">
+				<view class="section-head">
+					<text class="section-title"> 设备列表 </text>
+					<view class="toolbar-panel">
+						<view class="toolbar-left">
+							<!-- 左侧查询 -->
+							<input
+							  v-model="deviceKeyword"
+							  class="toolbar-input"
+							  placeholder="请输入设备编号"
+							  placeholder-class="input-placeholder"
+							/>
+							<button class="primary-button" @click="handleDeviceSearch"> 查询 </button>
+							<button class="secondary-button" @click="handleDeviceRefresh"> 刷新 </button>
+						</view>
+								
+						<view class="toolbar-right">
+							<!-- 右侧功能按钮 -->
+							<button class="secondary-button" @click="handleBatchAction"> 批量移动 </button>
+							<button class="secondary-button" @click="handleImportDevice"> 导入 </button>
+							<button class="secondary-button" @click="handleExportDevice"> 导出 </button>
+							<button class="primary-button" @click="handleCreateDevice"> 新增设备 </button>
+							<button class="danger-button" @click="handleDeleteSelectedDevice"> 删除 </button>
+						</view>
+					</view>
+				</view>
+
+				<view class="table">
+					<!-- 表头 -->
+					<view class="table-row table-row--header device-table-row">
+<!-- 排序					  <view
+						:class="[column.className, { 'table-header-cell': column.sortable, 'table-header-cell--active': sortState.field === column.key }]"
+						@click="column.sortable && toggleSort(column.key as SortField)"
+					  > -->
+					  <view
+						v-for="column in deptDeviceColumns"
+						:key="column.key"
+						:class="[column.className, 'col-center']" >
+						<!-- 全选框 -->
+						<checkbox-group v-if="column.key === 'checkbox'">
+						  <checkbox
+						    :checked="isAllSelected"
+						    @click.stop="handleSelectAll"
+						  />
+						</checkbox-group>
+						<!-- 普通列 -->
+						<text>{{ column.label }}</text>
+					  </view>
+					</view>
+					
+					<view v-if="loading" class="table-state">加载中...</view>
+					<view v-else-if="deptDeviceList.length === 0" class="table-state">暂无设备数据</view>
+					
+					<!-- 数据 -->
+					<view v-else>
+						<view
+						  v-for="(item,index) in deptDeviceList" :key="item.id" class="table-row device-table-row" >	
+						  <view class="col-checkbox col-center">
+							<checkbox
+							  :checked="selectedIds.includes(item.id)"
+							  @click.stop="handleSelectDevice(item.id)"
+							/>
+						  </view>			
+						  <view class="col-index col-center"> {{ index + 1 }} </view>			
+						  <view class="col-dept-name col-center"> {{ getDeptName(item.deptId) }} </view>
+						  <view class="col-device-id col-center"> {{ item.deviceId }} </view>
+						  <view class="col-min-level col-center"> {{ item.gisMinLevel || '-' }} </view>
+						  <view class="col-max-level col-center"> {{ item.gisMaxLevel || '-' }} </view>
+						  <view class="col-action col-center">
+							  <button class="table-action-btn" @click.stop="handleCheckDevice(item)" >
+								设备详情
+							  </button>
+							</view>		  
+						</view>
+					</view>
+					
+				</view>
+			
+				<view class="pagination-bar">
+				  <button class="page-btn" :disabled="pagination.current <= 1" @click="handlePageChange(pagination.current - 1)">
+					上一页
+				  </button>
+				  <text class="page-info">第 {{ pagination.current }}  /  {{ Math.ceil(pagination.total / pagination.size) || 1 }} 页</text>
+				  <button class="page-btn" :disabled="pagination.current >= Math.ceil(pagination.total / pagination.size)" @click="handlePageChange(pagination.current + 1)">
+					下一页
+				  </button>
+				</view>
+			</view>
+		</view>
+		
+		<view v-if="deptDialogVisible" class="dialog-mask" @click="closeDeptDialog">
 			<view class="dialog-panel" @click.stop>
 			 <view class="dialog-head">
 			   <view>
 				 <text class="dialog-title">
-				   {{ isPartitionCreating ? "新增分区" : "编辑分区" }}
+				   {{ isDeptCreating ? "新增分区" : "编辑分区" }}
 				 </text>
 				 <text class="dialog-subtitle">维护分区信息</text>
 			   </view>
-			   <button class="icon-button" hover-class="icon-button--hover" aria-label="关闭" @click="closePartitionDialog">
+			   <button class="icon-button" hover-class="icon-button--hover" aria-label="关闭" @click="closeDeptDialog">
 				 <text class="close-icon"></text>
 			   </button>
 			 </view>
-
+		
 			 <view class="dialog-body">
-			   <view class="partition-dialog-form">
+			   <view class="dept-dialog-form">
 				 <view class="form-field">
-				   <text class="form-label">分区名称</text>
-				   <input
-					 v-model="partitionForm.deptName"
-					 class="form-input"
-					 placeholder="请输入分区名称"
-					 placeholder-class="input-placeholder"
-				   />
+				   <text class="form-label">分区类型</text>
+				   <picker class="form-picker" mode="selector" :range="deptTypeOptions" range-key="label"
+				     :value="deptTypeIndex" @change="handleDeptTypeChange">
+				     <view class="form-input picker-input">
+				 		<text class="picker-text">{{ getDeptTypeLabel() }}</text>
+				        <text class="picker-arrow"></text>
+				     </view>
+				   </picker>
 				 </view>
-
+				 
 				 <view class="form-field">
-				   <text class="form-label">管理员</text>
-				   <input
-					 v-model="partitionForm.administrator"
-					 class="form-input"
-					 placeholder="请输入管理员"
-					 placeholder-class="input-placeholder"
-				   />
-				 </view>
-
-				 <view class="form-field form-field--wide">
-				   <text class="form-label">描述</text>
-				   <textarea
-					 v-model="partitionForm.description"
-					 class="form-textarea"
-					 placeholder="请输入描述"
-					 placeholder-class="input-placeholder"
-				   />
-				 </view>
+				     <text class="form-label">分区名称</text>
+				     <input v-model="deptForm.deptName" class="form-input" placeholder="请输入分区名称" />
+				   </view>
+				 		 
+				   <view class="form-field">
+				     <text class="form-label">分区代码</text>
+				     <input v-model="deptForm.deptCode" class="form-input" placeholder="请输入分区代码" />
+				   </view>
+				 		 
+				   <view class="form-field">
+				     <text class="form-label">所属组织</text>
+				     <input v-model="deptForm.orgId" class="form-input" placeholder="请输入所属组织" />
+				   </view>
+				 		 
+				   <view class="form-field form-field--wide">
+				     <text class="form-label">分区范围</text>
+				     <textarea v-model="deptForm.deptRange" class="form-textarea" placeholder="请输入分区范围" />
+				   </view>
+				 		 
+				   <view class="form-field">
+				     <text class="form-label">排序</text>
+				     <input v-model="deptForm.sort" type="number" class="form-input" placeholder="请输入排序" />
+				   </view>
+				 		 
+				   <view class="form-field">
+				     <text class="form-label">分区颜色</text>
+				     <input v-model="deptForm.deptColor" class="form-input" placeholder="请输入分区颜色" />
+				   </view>
+				 		 
+				   <view class="form-field">
+				     <text class="form-label">分区中心</text>
+				     <input v-model="deptForm.deptCenter" class="form-input" placeholder="请输入分区中心" />
+				   </view>
+				 		 
+				   <view class="form-field">
+				     <text class="form-label">缩放层级</text>
+				     <input v-model="deptForm.zoomLevel" type="number" class="form-input" placeholder="请输入缩放层级" />
+				   </view>
+				 		 
+				   <view class="form-field">
+				     <text class="form-label">GIS显示</text>
+				     <input v-model="deptForm.gisVisible" class="form-input" placeholder="请输入GIS显示" />
+				   </view>
+				 		 
+				   <view class="form-field">
+				     <text class="form-label">GIS最小级别</text>
+				     <input v-model="deptForm.gisMinLevel" type="number" class="form-input" placeholder="请输入GIS最小级别" />
+				   </view>
+				 		 
+				   <view class="form-field">
+				     <text class="form-label">GIS最大级别</text>
+				     <input v-model="deptForm.gisMaxLevel" type="number" class="form-input" placeholder="请输入GIS最大级别" />
+				   </view>
+				 		 
+				   <view class="form-field">
+				     <text class="form-label">分区图标</text>
+				     <input v-model="deptForm.deptIcon" class="form-input" placeholder="请输入分区图标" />
+				   </view>
+				 
 			   </view>
 			 </view>
-
+		
 			 <view class="dialog-actions">
-			   <button class="secondary-button" @click="closePartitionDialog">取消</button>
-			   <button class="primary-button" @click="handleSavePartition">保存</button>
+			   <button class="secondary-button" @click="closeDeptDialog">取消</button>
+			   <button class="primary-button" @click="handleSaveDept">保存</button>
 			 </view>
 			</view>
-		</view>
-		 
-		 
+		</view> 
     </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, reactive } from "vue";
 import { 
-	getPartitionList, 
+	getDeptList, 
+	getDeptDetail,
+	getDeptPage,
+	createDept,
+	updateDept,
+	deleteDept,
 	getPartitionDevicePage,
-	createPartition,
-	updatePartition,
-	deletePartition
+	getDeptDeviceList,
+	getDeptDevicePage,
+	getDeptDeviceDetail,
 } from "@/services/partition/partition";
 
-type SortField =
-  | "deviceNumber"
-  | "deviceType"
-  | "enableState"
-  | "installState"
-  | "installMode"
-  | "installAddress"
-  | "tubeGroup"
-  | "leakStatus"
-  | "lastSamplingTime"
-  | "onlineStatus";
-  
-type TableColumn = {
-  key: SortField | "checkbox" | "index" | "operation";
-  label: string;
-  className: string;
-  sortable?: boolean;
-};
-
-interface PartitionItem {
+interface DeptApiItem {
   id: number;
   deptName: string;
-  administrator?: string;
-  description?: string;
-  createdAt?: string;
-  parentId: number;
+  deptType?: string;
+  deptCode?: number;
+  deptRange?: string;
   sort?: number;
-  status?: number;
+  deptColor?: string;
+  deptCenter?: string;
+  zoomLevel?: number;
+  gisVisible: number;
+  gisMinLevel?: number;
+  gisMaxLevel?: number;
+  deptIcon?: string;
+  orgId?: number;
+  created?: string;
+  updatedAt?: string
+  parentId?: number;
+}
+
+type DeptTableItem = Pick<
+	DeptApiItem,
+	| "id"
+	| "deptName"
+	| "deptType"
+	| "gisMinLevel"
+	| "gisMaxLevel"
+	| "sort"
+	>;
+
+type DeptKey =
+	| "index"
+	| "id"
+	| "deptName"
+	| "deptType"
+	| "gisMinLevel"
+	| "gisMaxLevel"
+	| "sort";
+
+type DeptForm = Pick<
+	DeptApiItem,
+	| "deptName"
+	| "deptType"
+	| "deptCode"
+	| "deptRange"
+	| "sort"
+	| "deptColor"
+	| "deptCenter"
+	| "zoomLevel"
+	| "gisVisible"
+	| "gisMinLevel"
+	| "gisMaxLevel"
+	| "deptIcon"
+	| "orgId"
+  > & {
+	id?: number;
+  };
+
+interface DeptTreeItem {
+  id: number;
+  deptName: string;
+  parentId?: number;
+  isAll?: boolean;
+}
+
+const deptList = ref<DeptApiItem[]>([]);
+const allDeptTableList =  computed<DeptTableItem[]>(() =>
+  deptList.value.map(item => ({
+    id: item.id,
+    deptName: item.deptName,
+    deptType: item.deptType,
+    gisMinLevel: item.gisMinLevel,
+    gisMaxLevel: item.gisMaxLevel,
+    sort: item.sort,
+  }))
+);
+
+const deptTableList = computed<DeptTableItem[]>(() => {
+  if (currentDeptId.value === undefined || currentDeptId.value === 0) {
+    return allDeptTableList.value;
+  }
+
+  return allDeptTableList.value.filter(item => item.id === currentDeptId.value);
+});
+
+const deptTreeList = computed<DeptTreeItem[]>(() => [
+  {
+    id: 0,
+    deptName: "所有分区",
+    parentId: 0,
+    isAll: true,
+  },
+  ...deptList.value.map(item => ({
+    id: item.id,
+    deptName: item.deptName,
+    parentId: item.parentId,
+  })),
+]);
+
+const loadDeptList = async () => {
+  try {
+    const res = await getDeptList();
+    deptList.value = (res.data as DeptApiItem[]) || [];
+	// console.log("分区列表", deptList.value);
+  } catch (e:any) {
+    console.error("获取分区列表失败",e);
+  }
+};
+
+const loadDeptDeviceList = async (page = 1) => {
+  loading.value = true;
+
+  try {
+    const params: any = {
+      pageNum: page,
+      pageSize: pagination.size,
+    };
+
+    if (currentDeptId.value !== undefined && currentDeptId.value !== 0) {
+      params.deptId = currentDeptId.value;
+    }
+	
+    const res = await getDeptDevicePage(params);
+	// console.log("设备列表", res)
+    const pageData = res.data as {
+      records: DeptDeviceItem[];
+      total: number;
+    };
+
+    deptDeviceList.value = pageData.records || [];
+    pagination.total = pageData.total || 0;
+    pagination.current = page;
+  } finally {
+    loading.value = false;
+  }
+};
+
+const deptRefresh = async () => {
+  const currentId = currentDeptId.value;
+  await loadDeptList();
+  await loadDeptDeviceList(1);
+  if (currentId != undefined) {
+    const current = deptTreeList.value.find(item => item.id === currentId);
+
+    if (current) {
+      await handleDeptClick(current);
+    }
+  }
+}; 
+
+onMounted(async () => {
+  currentDeptId.value = 0;
+  await deptRefresh();
+});
+
+type DeptColumn = {
+  key: DeptKey;
+  label: string;
+  className: string;
+};
+
+type DeptDeviceKey =
+	| "checkbox"
+	| "index"
+	| "deptId"
+	| "deviceId"
+	| "gisMinLevel"
+	| "gisMaxLevel"
+	| "detail"
+	| "operation";
+
+type DeptDeviceColumn = {
+  key: DeptDeviceKey;
+  label: string;
+  className: string;
+};
+
+interface DeptDeviceItem {
+  id: number;
+  deptId: number;
+  deviceId: string;
+  gisMinLevel?: number;
+  gisMaxLevel?: number;
 }
 
 interface DevicePageResult {
@@ -322,103 +494,90 @@ interface DevicePageResult {
   records: any[];
 }
 
-interface DeviceItem {
-  id: number;
-  deviceNumber: string;
-  deviceType: string;
-  enableState: number;
-  installState: number;
-  installMode: number;
-  installAddress: string;
-  tubeGroup: string;
-  leakStatus: number;
-  onlineStatus: number;
-  lastSamplingTime: string | null;
-}
+const fillDeptForm = (item: DeptApiItem) => {
+  Object.assign(deptForm,{
+	deptTypt: item.deptType,
+	deptName: item.deptName,
+	deptCode: item.deptCode,
+	deptRange: item.deptRange,
+	sort: item.sort,
+	deptColor: item.deptColor,
+	deptCenter: item.deptCenter,
+	zoomLevel: item.zoomLevel,
+	gisVisible: item.gisVisible,
+	gisMinLevel: item.gisMinLevel,
+	gisMaxLevel: item.gisMaxLevel,
+	deptIcon: item.deptIcon,
+	orgId: item.orgId,
+  });
+};
 
-const partitionList = ref<PartitionItem[]>([]);
-const currentPartitionId = ref<number>();
+const currentDeptId = ref<number>();
 const pagination = reactive({
   current: 1,
   size: 10,
   total: 0
 });
-const partitionDialogVisible = ref(false);
-const isPartitionCreating = ref(false);
+const deptDialogVisible = ref(false);
+const isDeptCreating = ref(false);
 const loading = ref(false);
-
-const openPartitionDialog = () => {
-  partitionDialogVisible.value = true;
-};
-
-const closePartitionDialog = () => {
-  partitionDialogVisible.value = false;
-};
-
-const tableColumns: TableColumn[] = [
-  { key: "checkbox", label: "", className: "col-checkbox" },
-  { key: "index", label: "序号", className: "col-index" },
-  { key: "deviceNumber", label: "设备编号", className: "col-device-number", sortable: true },
-  { key: "deviceType", label: "设备类型", className: "col-device-type", sortable: true },
-  { key: "enableState", label: "启用状态", className: "col-status", sortable: true },
-  { key: "installState", label: "安装状态", className: "col-status", sortable: true },
-  { key: "installMode", label: "安装模式", className: "col-status", sortable: true },
-  { key: "installAddress", label: "安装地址", className: "col-address" },
-  { key: "tubeGroup", label: "管组编号", className: "col-group", sortable: true },
-  { key: "leakStatus", label: "渗漏状态", className: "col-status", sortable: true },
-  { key: "lastSamplingTime", label: "最后采样时间", className: "col-time", sortable: true },
-  { key: "onlineStatus", label: "在线状态", className: "col-status", sortable: true },
-  { key: "operation", label: "操作", className: "col-operation" },
-];
-
-const loadPartitionTree = async () => {
-  try {
-    const res = await getPartitionList();
-
-    // console.log("分区列表", res);
-
-    partitionList.value = (res.data as PartitionItem[]) || [];
-  } catch (e) {
-    console.error(e);
-  }
-};
-const loadPartitionList = async () => {
-const res = await getPartitionList();
-partitionList.value =(res.data as PartitionItem[]) || [];
-};
- 
-const deviceList = ref<DeviceItem[]>([]);
+const deptDeviceList = ref<DeptDeviceItem[]>([]);
 const deviceKeyword = ref("");
 const selectedIds = ref<number[]>([]);
-const partitionKeyword = ref("");
+const DeptKeyword = ref("");
 
-const filteredPartitionList = computed(() => {
-  const keyword = partitionKeyword.value.trim();
-  if (!keyword) return partitionList.value;
-  return partitionList.value.filter(item =>
-    item.deptName.includes(keyword)
-  );
-});
- 
- 
-const handlePartitionClick = async (item: PartitionItem) => {
-	fillPartitionForm(item);
-	currentPartitionId.value = item.id;
-	pagination.current = 1; //重置到第一页
-	deviceList.value = [];
-	loading.value = true;
-	try{
-		const res = await getPartitionDevicePage(item.id, {
-		  pageNum:1,
-		  pageSize:pagination.size
-		});
-		const pageData = res.data as DevicePageResult;
-		deviceList.value = pageData.records || [];
-		// console.log("设备列表",deviceList.value);
-		pagination.total = pageData.total || 0;
-	}finally{
-		loading.value = false;
+const openDeptDialog = () => {
+  deptDialogVisible.value = true;
+};
+
+const deptColumns: DeptColumn[] = [
+  { key: "index", label: "序号", className: "col-index" },
+  { key: "deptName", label: "分区名称", className: "col-dept-name" },
+  { key: "deptType", label: "分区类型", className: "col-dept-type" },
+  { key: "gisMinLevel", label: "GIS最小级别", className: "col-min-level" },
+  { key: "gisMaxLevel", label: "GIS最大级别", className: "col-max-level" },
+  { key: "id", label: "分区ID", className: "col-dept-id" },
+  { key: "sort", label: "排序", className: "col-sort" },
+];
+
+const deptDeviceColumns: DeptDeviceColumn[] = [
+  { key: "checkbox", label: "", className: "col-checkbox" },
+  { key: "index", label: "序号", className: "col-index" },
+  { key: "deptId", label: "所属分区", className: "col-dept-name" },
+  { key: "deviceId", label: "设备编号", className: "col-device-id" },
+  { key: "gisMinLevel", label: "GIS最小级别", className: "col-min-level" },
+  { key: "gisMaxLevel", label: "GIS最大级别", className: "col-max-level" },
+  { key: "detail", label: "详细信息", className: "col-detail" },
+];
+
+const handleDeptClick = async (item: DeptTreeItem) => {
+	if(!item.isAll){
+		fillDeptForm(item as DeptApiItem);
+	}else{
+		resetDeptForm(); //所有分区
 	}
+	selectedIds.value = [];
+	currentDeptId.value = item.id;
+	pagination.current = 1; //重置到第一页
+	deptDeviceList.value = [];
+	await loadDeptDeviceList(1);
+};
+
+const getDeptById = (id: number): DeptApiItem | undefined => {
+  return deptList.value.find(item => item.id === id);
+};
+
+const handleDeptTableRowClick = async (item: DeptTableItem) => {
+  currentDeptId.value = item.id;
+  selectedIds.value = [];
+  pagination.current = 1;
+  deptDeviceList.value = [];
+
+  const dept = getDeptById(item.id);
+  if (dept) {
+    fillDeptForm(dept);
+  }
+  await loadDeptDeviceList(1);
 };
 
 const handleSelectDevice = (id: number) => {
@@ -432,22 +591,22 @@ const handleSelectDevice = (id: number) => {
 };
 
 const handleDeviceSearch = async () => {
-  if (currentPartitionId.value === undefined) {
+  if (currentDeptId.value === undefined) {
     uni.showToast({ title: "请先选择分区", icon: "none" });
     return;
   }
   const keyword = deviceKeyword.value.trim();
   pagination.current = 1;
-  deviceList.value = [];
+  deptDeviceList.value = [];
   loading.value = true;
   try{
-	const res = await getPartitionDevicePage(currentPartitionId.value, {
+	const res = await getPartitionDevicePage(currentDeptId.value, {
 	  pageNum: pagination.current,
 	  pageSize: pagination.size,
 	  deviceNumber: keyword,
 	});
 	const pageData = res.data as DevicePageResult;
-	deviceList.value = pageData.records || [];
+	deptDeviceList.value = pageData.records || [];
 	pagination.total = pageData.total || 0;
   }finally{
 	loading.value = false;
@@ -455,23 +614,23 @@ const handleDeviceSearch = async () => {
 };
 
 const handleDeviceRefresh = async () => {
-  if (currentPartitionId.value === undefined) {
+  if (currentDeptId.value === undefined) {
     uni.showToast({ title: "请先选择分区", icon: "none" });
     return;
   }
   deviceKeyword.value = "";
   selectedIds.value = [];
-  deviceList.value = [];
+  deptDeviceList.value = [];
   loading.value = true;
   
   try{
-	const res = await getPartitionDevicePage(currentPartitionId.value, {
+	const res = await getPartitionDevicePage(currentDeptId.value, {
 	  pageNum: pagination.current,
 	  pageSize: pagination.size,
 	});
 	
 	const pageData = res.data as DevicePageResult;
-	deviceList.value = pageData.records || [];
+	deptDeviceList.value = pageData.records || [];
 	pagination.total = pageData.total || 0;
 	
 	uni.showToast({ title: "刷新成功", icon: "success" });
@@ -481,78 +640,24 @@ const handleDeviceRefresh = async () => {
   }
 };
 
-const getEnableStateText = (status: number): string => {
-  switch(status) {
-    case 0:
-      return '禁用';
-    case 1:
-      return '启用';
-    default:
-      return '-';
-  }
-};
-
-const getInstallStateText = (status: number): string => {
-  switch(status) {
-    case 0:
-      return '未安装';
-    case 1:
-      return '已安装';
-    default:
-      return '-';
-  }
-};
-
-const getInstallModeText = (mode: number): string => {
-  switch(mode) {
-    case 0:
-      return '固定点';
-    case 1:
-      return '流动点';
-    default:
-      return '-';
-  }
-};
-
-const getLeakText = (status:number) => {
-  switch(status){
-    case 0:
-      return "正常";
-    case 1:
-      return "疑似渗漏";
-    case 2:
-      return "确认渗漏";
-    case 3:
-      return "设备异常";
-    default:
-      return "-";
-  }
-};
-
-const getOnlineStatusText = (status: number): string => {
-  switch(status) {
-    case 0:
-      return '离线';
-    case 1:
-      return '在线';
-    default:
-      return '-';
-  }
+const getDeptName = (deptId: number): string => {
+  const dept = deptList.value.find(item => item.id === deptId);
+  return dept ? dept.deptName : "-";
 };
 
 const isAllSelected = computed(() => {
-  if (deviceList.value.length === 0) {
+  if (deptDeviceList.value.length === 0) {
     return false;
   }
 
-  return deviceList.value.every(item => selectedIds.value.includes(item.id));
+  return deptDeviceList.value.every(item => selectedIds.value.includes(item.id));
 });
 
 const handleSelectAll = () => {
   if (isAllSelected.value) {
     selectedIds.value = [];
   } else {
-    selectedIds.value = deviceList.value.map(item => item.id);
+    selectedIds.value = deptDeviceList.value.map(item => item.id);
   }
 };
 
@@ -560,114 +665,132 @@ const handleSelectAll = () => {
 const handlePageChange = async (page:number) => {
 
   pagination.current = page;
-  if (currentPartitionId.value === undefined) {
+  if (currentDeptId.value === undefined) {
     return;
   }
-  loading.value = true;
-  
-  try{
-	const res = await getPartitionDevicePage(currentPartitionId.value,{
-	  pageNum: page,
-	  pageSize: pagination.size
-	});
-
-	const pageData = res.data as any;
-
-	deviceList.value = pageData.records || [];
-	pagination.total = pageData.total || 0;
-  }finally{
-	loading.value = false;
-  }
+  await loadDeptDeviceList(1);
 };
 
-
-
-const partitionForm = reactive({
-  id: undefined as number | undefined,
+const deptForm = reactive<DeptForm>({
+  deptType: "",
   deptName: "",
-  administrator: "",
-  description: "",
-  parentId: 0,
-  sort: 10,
-  status: 1,
+  deptCode: undefined,
+  deptRange: "",
+  sort: undefined,
+  deptColor: "",
+  deptCenter: "",
+  zoomLevel: undefined,
+  gisVisible: 1,
+  gisMinLevel: undefined,
+  gisMaxLevel: undefined,
+  deptIcon: "",
+  orgId: undefined,
 });
 
-const fillPartitionForm = (item: PartitionItem) => {
-  partitionForm.id = item.id;
-  partitionForm.deptName = item.deptName || "";
-  partitionForm.administrator = item.administrator || "";
-  partitionForm.description = item.description || "";
-  partitionForm.parentId = item.parentId ?? 0;
-  partitionForm.sort = item.sort ?? 10;
-  partitionForm.status = item.status ?? 1;
+const resetDeptForm = () => {
+  Object.assign(deptForm,{
+	deptType: "",
+	deptName: "",
+	deptCode: undefined,
+	deptRange: "",
+	sort: undefined,
+	deptColor: "",
+	deptCenter: "",
+	zoomLevel: undefined,
+	gisVisible: 1,
+	gisMinLevel: undefined,
+	gisMaxLevel: undefined,
+	deptIcon: "",
+	orgId: undefined,
+  });
 };
 
-const resetPartitionForm = () => {
-  partitionForm.id = undefined;
-  partitionForm.deptName = "";
-  partitionForm.administrator = "";
-  partitionForm.description = "";
-  partitionForm.parentId = 0;
-  partitionForm.sort = 10;
-  partitionForm.status = 1;
+const handleCreateDept = () => {
+  currentDeptId.value = undefined;
+  isDeptCreating.value = true;
+  resetDeptForm();
+  openDeptDialog();
 };
 
-const handleCreatePartition = () => {
-  currentPartitionId.value = undefined;
-  isPartitionCreating.value = true;
-  resetPartitionForm();
-  openPartitionDialog();
-};
-
-const handleEditDevice = (item: any) => {
+const handleCheckDevice = (item: any) => {
   // console.log("编辑设备", item);
   uni.showToast({
-    title: `编辑设备：${item.deviceNumber}`,
+    title: `编辑设备：${item.deviceId}`,
     icon: "none"
   });
 };
 
-const handleEditPartition = () => {
-  if (currentPartitionId.value === undefined) {
+const handleEditDept = () => {
+  if (currentDeptId.value === undefined) {
     uni.showToast({ title: "请先选择分区", icon: "none" });
     return;
   }
-  isPartitionCreating.value = false;
-  openPartitionDialog();
+  isDeptCreating.value = false;
+  openDeptDialog();
 };
 
-const handleSavePartition = async () => {
-  if (!partitionForm.deptName.trim()) {
+const closeDeptDialog = () => {
+  deptDialogVisible.value = false;
+};
+
+const deptTypeOptions = [
+  { label: "漏水噪音监测终端", value: "0" },
+  { label: "测压点", value: "1" },
+  { label: "测流点", value: "2" },
+  { label: "消火栓", value: "3" },
+  { label: "水锤", value: "4" },
+  { label: "温振", value: "5" },
+  { label: "取水栓", value: "6" },
+  { label: "远控蝶阀", value: "7" },
+  { label: "智能井盖", value: "8" },
+  { label: "电子界桩", value: "9" },
+  { label: "超级水表", value: "10" },
+  { label: "H86Q", value: "11" },
+];
+
+const deptTypeIndex = computed(() => {
+	const index = deptTypeOptions.findIndex(
+		item => item.value === deptForm.deptType);
+    return index === -1 ? 0 : index;
+});
+
+const handleDeptTypeChange = (e: any) => {
+  const index = Number(e.detail.value);
+  deptForm.deptType = deptTypeOptions[index].value;
+};
+
+const getDeptTypeLabel = () => {
+  const item = deptTypeOptions.find(item => item.value === deptForm.deptType);
+  return item?.label || "请选择分区类型";
+};
+
+const handleSaveDept = async () => {
+  if (!deptForm.deptName.trim()) {
     uni.showToast({ title: "请输入分区名称", icon: "none" });
     return;
   }
 
   const payload = {
-    deptName: partitionForm.deptName.trim(),
-    administrator: partitionForm.administrator?.trim(),
-    description: partitionForm.description?.trim(),
-    parentId: partitionForm.parentId ?? 0,
-    sort: partitionForm.sort ?? 10,
-    status: partitionForm.status ?? 1,
+    ...deptForm,
   };
 
   try {
-      if (isPartitionCreating.value) {
-        await createPartition(payload);
+      if (isDeptCreating.value) {
+        await createDept(payload);
         uni.showToast({ title: "新增成功", icon: "success" });
       } else {
-		if (!partitionForm.id) {
+		if (!deptForm.id) {
 		  uni.showToast({ title: "请先选择分区", icon: "none" });
 		  return;
 		}
-        await updatePartition(partitionForm.id, payload);
+        await updateDept(deptForm.id, payload);
   
         uni.showToast({ title: "保存成功", icon: "success" });
       }
-	  isPartitionCreating.value = false;
-      closePartitionDialog();
-	  resetPartitionForm();
-      await loadPartitionTree();
+	  isDeptCreating.value = false;
+      closeDeptDialog();
+	  resetDeptForm();
+      await loadDeptList();
   
     } catch (e) {
       uni.showToast({
@@ -677,8 +800,8 @@ const handleSavePartition = async () => {
     }
 };
 
-const handleDeletePartition = async () => {
-  if (currentPartitionId.value === undefined) {
+const handleDeleteDept = async () => {
+  if (currentDeptId.value === undefined) {
     uni.showToast({ title: "请先选择分区", icon: "none" });
     return;
   }
@@ -688,14 +811,14 @@ const handleDeletePartition = async () => {
       success: async (res) => {
         if (!res.confirm) return;
 		try{
-			await deletePartition(currentPartitionId.value!);
+			await deleteDept(currentDeptId.value!);
 			uni.showToast({ title: "删除成功", icon: "success" });
 			
-			currentPartitionId.value = undefined;
-			deviceList.value = [];
+			currentDeptId.value = undefined;
+			deptDeviceList.value = [];
 			selectedIds.value = [];
-			resetPartitionForm();
-			await loadPartitionTree();
+			resetDeptForm();
+			await loadDeptList();
 		}catch{
 			uni.showToast({ title: "删除失败", icon: "none" });
 		}
@@ -713,11 +836,15 @@ const handleBatchAction = () => {
 };
 
 const handleImportDevice = () => {
+  if (currentDeptId.value === undefined || currentDeptId.value === 0) {
+    uni.showToast({ title: "请先选择分区", icon: "none" });
+    return;
+  }
   uni.showToast({ title: "导入功能待接入", icon: "none" });
 };
 
 const handleExportDevice = () => {
-  if (currentPartitionId.value === undefined) {
+  if (currentDeptId.value === undefined || currentDeptId.value === 0) {
     uni.showToast({ title: "请先选择分区", icon: "none" });
     return;
   }
@@ -726,7 +853,7 @@ const handleExportDevice = () => {
 };
 
 const handleCreateDevice = () => {
-  if (currentPartitionId.value === undefined) {
+  if (currentDeptId.value === undefined || currentDeptId.value === 0) {
     uni.showToast({ title: "请先选择分区", icon: "none" });
     return;
   }
@@ -756,67 +883,11 @@ const handleDeleteSelectedDevice = () => {
   });
 };
 
-
-const sortState = reactive<{
-  field: SortField | "";
-  order: "" | "asc" | "desc";
-}>({
-  field: "",
-  order: "",
-});
-
-const toggleSort = (field: SortField) => {
-  if (sortState.field === field) {
-      sortState.order = sortState.order === "asc" ? "desc" : "asc";
-    } else {
-      sortState.field = field;
-      sortState.order = "asc";
-    }
-  sortDeviceList();
-};
-
-const getSortIndicatorClass = (field: SortField): string => {
-  if (sortState.field !== field) {
-    return "sort-indicator--idle";
-  }
-
-  return sortState.order === "asc"
-    ? "sort-indicator--asc"
-    : "sort-indicator--desc";
-};
-
-function sortDeviceList() {
-  const field = sortState.field;
-
-  if (!field || !sortState.order) {
-    return;
-  }
-
-  deviceList.value = [...deviceList.value].sort((a, b) => {
-    const aValue = a[field];
-    const bValue = b[field];
-
-    const aCompare = String(aValue);
-    const bCompare = String(bValue);
-
-    if (sortState.order === "asc") {
-      return aCompare.localeCompare(bCompare);
-    }
-
-    return bCompare.localeCompare(aCompare);
-  });
-}
-
-
-onMounted(async () => {
-  await loadPartitionTree();
-});
-
 </script>
 
 
 <style scoped lang="scss">
-.partition {
+.dept {
   position: relative;
   display: flex;
   height: 100%;
@@ -832,12 +903,12 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   flex: none;
-  min-width: 50px;
-  height: 36px;
-  padding: 0 12px;
+  min-width: 40px;
+  height: 30px;
+  padding: 0 5px;
   margin: 0;
 
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 700;
   border-radius: 4px;
   max-width: 100px;
@@ -906,7 +977,7 @@ onMounted(async () => {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 11px;
   padding-bottom: 9px;
   border-bottom: 1px solid #eef4fa;
@@ -919,6 +990,7 @@ onMounted(async () => {
   color: #183755;
   font-size: 16px;
   font-weight: 900;
+  flex-shrink: 0;
 }
 
 .section-title::before {
@@ -933,28 +1005,11 @@ onMounted(async () => {
   transform: translateY(-50%);
 }
 
-/* 输入框 */
-.form-input {
-  box-sizing: border-box;
-  // width: 100%;
-  height: 38px;
-  padding: 0 12px;
-  color: #172033;
-  font-size: 14px;
-  line-height: 38px;
-  background: #fbfdff;
-  border: 1px solid #d5e2ee;
-  border-radius: 4px;
-  transition:
-    border-color 0.16s ease,
-    box-shadow 0.16s ease,
-    background-color 0.16s ease;
-}
-
-.form-input:focus {
-  background: #ffffff;
-  border-color: #8fc8f8;
-  box-shadow: 0 0 0 3px rgba(13, 130, 238, 0.1);
+.text-hidden{
+	flex: 1;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
 }
 
 /* placeholder */
@@ -962,17 +1017,8 @@ onMounted(async () => {
   color: #9aa9b8;
 }
 
-.form-label {
-  display: block;
-  margin-bottom: 5px;
-  color: #34495e;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.partition-layout {
-  width: 260px;
-  min-width: 260px;
+.dept-layout {
+  min-width: 200px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -987,6 +1033,29 @@ onMounted(async () => {
   min-width: 0;
   min-height: 0;
   padding: 12px 12px 12px 0;
+  justify-content: space-between;
+}
+
+// 分区刷新
+.icon-refresh {
+  position: relative;
+  width: 15px;
+  height: 15px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+}
+
+.icon-refresh::after {
+  position: absolute;
+  top: -4px;
+  right: -2px;
+  width: 6px;
+  height: 6px;
+  content: "";
+  border-top: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  transform: rotate(25deg);
 }
 
 .tree-panel {
@@ -1011,24 +1080,16 @@ onMounted(async () => {
   overflow-y: auto;
 }
 
-.tree-actions {
-  display: flex;
-  gap: 10px;
-  padding: 12px;
-  border-top: 1px solid #eef4fa;
-}
-
-.form-input[disabled]{
-  color: #64748b;
-  background: #f3f7fb;
-}
-
 .tree-node {
-  height: 36px;
-  line-height: 36px;
+  display: flex;
+  align-items: center;
+  min-height: 36px;
   padding: 0 12px;
   cursor: pointer;
   border-radius: 4px;
+  font-size: 13px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .tree-node:hover {
@@ -1044,11 +1105,7 @@ onMounted(async () => {
 .toolbar-panel {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
-  background: #ffffff;
-  border: 1px solid #d8e6f2;
-  border-radius: 6px;
+  gap: 10px;
   justify-content: space-between;
   flex-wrap: wrap;
 }
@@ -1056,43 +1113,25 @@ onMounted(async () => {
 .toolbar-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 5px;
   flex-wrap: wrap;
 }
 
 .toolbar-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 5px;
   flex-wrap: wrap;
 }
 
 .toolbar-input {
-  width: 260px;
-  height: 38px;
+  width: 120px;
+  height: 30px;
   padding: 0 12px;
-  font-size: 14px;
+  font-size: 12px;
   background: #fbfdff;
   border: 1px solid #d5e2ee;
   border-radius: 4px;
-}
-
-.table-panel {
-  flex: 1;
-  min-height: 0px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  background: #fff;
-  border: 1px solid #d8e6f2;
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.device-table {
-  flex: 1;
-  min-height: 0px;
-  overflow: auto;
 }
 
 .sort-indicator {
@@ -1135,6 +1174,26 @@ onMounted(async () => {
   opacity: 0.46;
 }
 
+.table {
+  flex: 1;
+  width: 100%;
+  min-height: 0px;
+  font-size: 12px;
+  overflow: auto;
+}
+
+.table-panel {
+  flex: 1;
+  min-height: 0px;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid #d8e6f2;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
 .table-header-cell {
   display: flex;
   align-items: center;
@@ -1159,11 +1218,19 @@ onMounted(async () => {
 }
 
 .table-row {
-  display: flex;
-  min-width: 1760px;
+  display: grid;
+  min-width: 700px;
+  width: 100%;
   min-height: 42px;
-  width:max-content;
   border-bottom: 1px solid #edf1f5;
+}
+
+.dept-table-row{
+	grid-template-columns: 50px 180px 100px 110px 110px 180fr 60px;
+}
+
+.device-table-row{
+	grid-template-columns: 50px 50px 180px 80px 110px 110px 100px;
 }
 
 .table-row:not(.table-row--header):nth-child(odd) {
@@ -1181,10 +1248,10 @@ onMounted(async () => {
 .table-row--header {
   position: sticky;
   top: 0;
-  z-index: 20;
+  z-index: 1;
   min-height: 44px;
   background: #f6f9fc;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 800;
   box-shadow: 0 1px 0 #dbe7f0;
 }
@@ -1192,7 +1259,7 @@ onMounted(async () => {
 .table-row > view {
   display: flex;
   align-items: center;
-  padding: 0 12px;
+  padding: 0 5px;
   box-sizing: border-box;
 }
 
@@ -1200,7 +1267,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 1750px;
+  min-width: 100%;
   height: 120px;
   height: 180px;
   color: #7c8da1;
@@ -1215,7 +1282,7 @@ onMounted(async () => {
   padding: 0 10px;
   margin: 0;
   color: #0d82ee;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 28px;
   background: #edf7ff;
   border: 1px solid #b9dcfb;
@@ -1226,50 +1293,9 @@ onMounted(async () => {
   border: 0;
 }
 
-.col-checkbox {
-  width: 60px;
-  flex-shrink: 0;
-}
-
-.col-index {
-  width: 80px;
-  flex-shrink: 0;
-}
-
-.col-device-number {
-  width: 180px;
-  flex-shrink: 0;
-}
-
-.col-device-type {
-  width: 180px;
-  flex-shrink: 0;
-}
-
-.col-status {
-  width: 120px;
-  flex-shrink: 0;
-}
-
-.col-group {
-  width: 120px;
-  flex-shrink: 0;
-}
-
-.col-address {
-  width: 260px;
-  flex-shrink: 0;
-}
-
-.col-time {
-  width: 180px;
-  flex-shrink: 0;
-}
-
-.col-action {
-  width: 100px;
-  flex-shrink: 0;
-  justify-content: center;
+.col-center{
+	justify-content: center;
+	flex-shrink: 0;
 }
 
 .pagination-bar {
@@ -1282,6 +1308,7 @@ onMounted(async () => {
 .page-info {
   color: #64748b;
   font-size: 13px;
+  padding: 10px;
 }
 
 .page-btn {
@@ -1304,10 +1331,16 @@ onMounted(async () => {
   opacity: 0.5;
 }
 
+.dept-dialog-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 18px;
+}
+
 .dialog-mask {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1352,10 +1385,9 @@ onMounted(async () => {
   background: #ffffff;
 }
 
-.partition-dialog-form {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px 18px;
+.form-field {
+  align-items: center;
+  margin-bottom: 16px;
 }
 
 .form-field--wide {
@@ -1434,10 +1466,73 @@ onMounted(async () => {
   transform: rotate(-45deg);
 }
 
+/* 输入框 */
+.form-input {
+  box-sizing: border-box;
+  height: 38px;
+  padding: 0 12px;
+  color: #172033;
+  font-size: 12px;
+  line-height: 38px;
+  background: #fbfdff;
+  border: 1px solid #d5e2ee;
+  border-radius: 4px;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    background-color 0.16s ease;
+}
+.form-picker{
+	flex: 1;
+	width: 100%;
+	display: block;
+}
+.form-input:focus {
+  background: #ffffff;
+  border-color: #8fc8f8;
+  box-shadow: 0 0 0 3px rgba(13, 130, 238, 0.1);
+}
 
+.form-label {
+  display: block;
+  margin-bottom: 5px;
+  color: #34495e;
+  font-size: 12px;
+  font-weight: 700;
+}
 
+.form-input[disabled]{
+  color: #64748b;
+  background: #f3f7fb;
+}
 
+.picker-input {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
 
+.picker-text {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  width: 100%;
+  color: #172033;
+  font-size: 14px;
+  background: #f9fcff;
+  border-radius: 4px;
+  height: 27px;
+  line-height: 27px;
+}
 
+.picker-arrow {
+  width: 8px;
+  height: 8px;
+  border: solid #74879c;
+  border-width: 0 2px 2px 0;
+  transform: translateY(-2px) rotate(45deg);
+}
 
 </style>

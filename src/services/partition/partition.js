@@ -7,7 +7,8 @@
 import { createCrudService } from "@/services/shared/crud";
 
 const deptApi = createCrudService("/api/dept");
-const deviceApi = createCrudService("/api/device");
+const deviceApi = createCrudService("/api/dept");
+const deptdeviceApi = createCrudService("/api/dept-device");
 const tubeNetworkApi = createCrudService("/api/tube-network");
 
 export const getPartitionPage = deptApi.getPage;
@@ -18,6 +19,14 @@ export const updatePartition = deptApi.update;
 export const deletePartition = deptApi.delete;
 export const batchDeletePartition = deptApi.batchDelete;
 
+export const getDeptDevicePage = deptdeviceApi.getPage;
+export const getDeptDeviceList = deptdeviceApi.getList;
+export const getDeptDeviceDetail = deptdeviceApi.getDetail;
+export const createDeptDevice = deptdeviceApi.create;
+export const updateDeptDevice = deptdeviceApi.update;
+export const deleteDeptDevice = deptdeviceApi.delete;
+export const batchDeleteDeptDevice = deptdeviceApi.batchDelete;
+
 export const getDeptPage = getPartitionPage;
 export const getDeptList = getPartitionList;
 export const getDeptDetail = getPartitionDetail;
@@ -27,7 +36,7 @@ export const deleteDept = deletePartition;
 export const batchDeleteDept = batchDeletePartition;
 
 export function getPartitionDevicePage(partitionId, data = {}) {
-  return deviceApi.getPage({
+  return deptdeviceApi.getPage({
     ...data,
     deptId: partitionId,
   });
@@ -56,6 +65,15 @@ export default {
   updateDept,
   deleteDept,
   batchDeleteDept,
+  
+  getDeptDevicePage,
+  getDeptDeviceList,
+  getDeptDeviceDetail,
+  createDeptDevice,
+  updateDeptDevice,
+  deleteDeptDevice,
+  batchDeleteDeptDevice,
+  
   getPartitionDevicePage,
   getTubeNetworkPage,
   getTubeNetworkList,
