@@ -67,7 +67,6 @@
             v-else
             :is="CurrentPanel"
             :device-data="currentDevice"
-            @edit="handleEdit"
             :visible="isDetailPanelVisible"
         />
       </view>
@@ -859,9 +858,13 @@ const toggleDetailPanel = () => {
 }
 
 const layoutClass = computed(() => {
-  return props.mode === "info"
-      ? "layout-split"
-      : "layout-equal";
+  if(props.mode === "info"){
+    return "layout-split";
+  }else if(props.mode === "maintenance"){
+    return "layout-one-two";
+  }else{
+    return "layout-equal";
+  }
 });
 
 onMounted(() => {
@@ -902,9 +905,12 @@ onMounted(() => {
   grid-template-columns: minmax(0, 1fr) 24px 380px;
 }
 
-/* maintenance：左右等分 */
 .layout-equal {
   grid-template-columns: 1fr 24px 1fr;
+}
+
+.layout-one-two {
+  grid-template-columns: 1fr 24px 2fr;
 }
 
 .table-panel,
