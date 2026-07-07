@@ -194,7 +194,7 @@ VITE_DEV_PROXY_TARGET=http://127.0.0.1:28082 npm run dev:h5
 | `index` | 首页入口 | 我的收藏或后台首页入口 |
 | `leak-monitor` | 渗漏监测 | 地图监测页面和腾讯地图组件 |
 | `station` | 分区管理 | 管网分区、部门等基础资源 |
-| `device` | 设备管理 | 设备信息、拆装维护、设备状态 |
+| `device` | 设备管理 | 设备信息、拆装维护、设备参数 |
 | `data-analysis` | 数据分析 | 系统总览、音频、设备参数、渗漏数据 |
 | `leak-report` | 疑漏点上报 | 疑点、漏点、处理、分析和历史 |
 | `statistics` | 统计分析 | 设备、渗漏、工单、报警等统计 |
@@ -254,7 +254,7 @@ VITE_DEV_PROXY_TARGET=http://127.0.0.1:28082 npm run dev:h5
 | --- | --- | --- | --- |
 | 设备信息 | `/pages/device/info/info` | `src/pages/device/info/info.vue` | 设备档案、设备产品、设备协议绑定 |
 | 拆装维护 | `/pages/device/maintenance/maintenance` | `src/pages/device/maintenance/maintenance.vue` | 设备安装、拆除、维修、保养等维护记录 |
-| 设备状态 | `/pages/device/status/status` | `src/pages/device/status/status.vue` | 设备状态、状态上报、设备日数据 |
+| 设备参数 | `/pages/device/status/status` | `src/pages/device/status/status.vue` | 设备参数、状态上报、设备日数据 |
 
 ### 数据分析
 
@@ -262,7 +262,7 @@ VITE_DEV_PROXY_TARGET=http://127.0.0.1:28082 npm run dev:h5
 | --- | --- | --- | --- |
 | 系统总览 | `/pages/data-analysis/overview/overview` | `src/pages/data-analysis/overview/overview.vue` | 系统、设备、渗漏、工单、报警等总览数据 |
 | 音频数据 | `/pages/data-analysis/audio/audio` | `src/pages/data-analysis/audio/audio.vue` | 采样音频和采样明细分析 |
-| 设备参数 | `/pages/data-analysis/device-params/device-params` | `src/pages/data-analysis/device-params/device-params.vue` | 设备设置、设备日数据、设备状态上报 |
+| 设备参数 | `/pages/data-analysis/device-params/device-params` | `src/pages/data-analysis/device-params/device-params.vue` | 设备设置、设备日数据、设备参数上报 |
 | 渗漏数据 | `/pages/data-analysis/leakage/leakage` | `src/pages/data-analysis/leakage/leakage.vue` | 渗漏记录和算法结果分析 |
 
 ### 疑漏点上报
@@ -352,7 +352,7 @@ VITE_DEV_PROXY_TARGET=http://127.0.0.1:28082 npm run dev:h5
 | 分区管理 | `services/partition/partition.js` | `/api/dept`、`/api/device`、`/api/tube-network` | 分区语义统一对应部门接口；分区下设备通过设备分页的 `deptId` 查询；管网接口使用 `getTubeNetwork*` 显式命名 |
 | 设备信息 | `services/device/info.js` | `/api/device`、`/api/device-product`、`/api/device-protocol-relation` | 设备、产品、协议绑定、按设备/协议查询 |
 | 拆装维护 | `services/device/maintenance.js` | `/api/maintenance-record` | 维护记录 CRUD |
-| 设备状态 | `services/device/status.js` | `/api/device`、`/api/device-status-upload`、`/api/device-daily-data` | 设备状态、状态上报、设备日数据 |
+| 设备参数 | `services/device/status.js` | `/api/device`、`/api/device-status-upload`、`/api/device-daily-data` | 设备参数、状态上报、设备日数据 |
 | 系统总览 | `services/data-analysis/overview.js` | 暂无 | `jiekou` 暂未提供总览统计接口，service 暂不封装请求 |
 | 音频数据 | `services/data-analysis/audio.js` | `/api/sampling-audio`、`/api/sampling-detail` | 采样音频和明细 |
 | 设备参数 | `services/data-analysis/device-params.js` | `/api/device-setting`、`/api/device-daily-data`、`/api/device-status-upload` | 设备设置、日数据、状态上报 |

@@ -11,7 +11,7 @@
         :visible="isToolbarVisible"
     />
 
-    <XFloatingCollapseHandle
+    <XFloatingCollapseHandle v-if="isFloatingVisible"
         v-model="isToolbarVisible"
     />
 
@@ -100,11 +100,13 @@
       </view>
     </scroll-view>
 
-    <view class="pagination-bar">
-      <button class="page-button" :disabled="pagination.current <= 1" @click="changePage(-1)">上一页</button>
-      <text class="page-info">第 {{ pagination.current }} / {{  Math.ceil(pagination.total / pagination.size) || 1  }} 页</text>
-      <button class="page-button" :disabled="pagination.current >= 1" @click="changePage(1)">下一页</button>
-    </view>
+    <XPaginationBar
+        :current="pagination.current"
+        :size="pagination.size"
+        :total="pagination.total"
+        @change-page="handlePageChange"
+        @change-size="handlePageSizeChange"
+    />
   </view>
 
   <XDynamicDialog
@@ -129,8 +131,10 @@ import MaintenanceRecordToolbar from "@/pages/device/maintenance/components/Main
 import type {FormSection} from "@/pages/device/components/x/types";
 import XDynamicDialog from "@/pages/device/components/x/XDynamicDialog.vue";
 import XFloatingCollapseHandle from "@/pages/device/components/x/XFloatingCollapseHandle.vue";
+import XPaginationBar from "@/pages/device/components/x/XPaginationBar.vue";
 
-const isToolbarVisible = ref(false);
+const isToolbarVisible = ref(true);
+const isFloatingVisible = ref(false);
 
 // ===== 数据 =====
 const loading = ref(false);
@@ -310,14 +314,13 @@ async function fetchMaintenanceRecords(requestId?: number) {
 }
 
 // ===== 分页 =====
-function changePage(step: number) {
-  const maxPage = Math.ceil(pagination.value.total / pagination.value.size);
-
-  const next = pagination.value.current + step;
-
-  if (next < 1 || next > maxPage) return;
-
-  pagination.value.current = next;
+function handlePageChange(page:number){
+  pagination.value.current = page;
+  fetchMaintenanceRecords();
+}
+function handlePageSizeChange(pageSize:number){
+  pagination.value.size = pageSize;
+  pagination.value.current = 1;
   fetchMaintenanceRecords();
 }
 
@@ -461,7 +464,6 @@ async function refreshList({ resetPage = false } = {}) {
   await fetchMaintenanceRecords();
 }
 
-
 const maintainTypeMap = {
   0: { label: '拆卸', className: 'is-removed' },
   1: { label: '安装', className: 'is-installed' },
@@ -476,8 +478,6 @@ const getMaintainTypeMeta = (type: number) => {
 
 </script>
 <style scoped lang="scss">
-
-
 .loading-mask {
   position: absolute;
   top: 0;
@@ -497,38 +497,6 @@ const getMaintainTypeMeta = (type: number) => {
   font-size: 14px;
 
   backdrop-filter: blur(1px);
-}
-
-.pagination-bar{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.page-info {
-  color: #64748b;
-  font-size: 13px;
-}
-
-.page-button::after {
-  border: 0;
-}
-
-.page-button {
-  height: 30px;
-  margin: 0;
-  padding: 0 12px;
-  color: #31506d;
-  font-size: 13px;
-  line-height: 30px;
-  background: #f6fbff;
-  border: 1px solid #cbdced;
-  border-radius: 4px;
-}
-
-.page-button[disabled] {
-  color: #a9b4c1;
-  background: #f4f7fa;
 }
 
 .worksheet-table-panel {
@@ -597,7 +565,6 @@ const getMaintainTypeMeta = (type: number) => {
   background: #ffffff;
 }
 
-
 .data-row {
   display: flex;
   grid-template-columns: 58px 190px 116px 110px 110px 110px 138px 104px 168px 168px 168px 220px 220px;
@@ -652,7 +619,6 @@ const getMaintainTypeMeta = (type: number) => {
   border-radius: 0 999px 999px 0;
 }
 
-
 .data-cell {
   display: flex !important;
   flex: 0 0 auto;
@@ -698,16 +664,6 @@ const getMaintainTypeMeta = (type: number) => {
   justify-content: flex-start;
   text-align: left;
 }
-
-.pagination-bar {
-  flex: none;
-  justify-content: flex-end;
-  gap: 10px;
-  height: 48px;
-  padding: 0 14px;
-  border-top: 1px solid #edf3f8;
-}
-
 
 /* 设备编号：通常由字母和数字组成，使用等宽字体更清晰，颜色适中 */
 .data-cell--device {

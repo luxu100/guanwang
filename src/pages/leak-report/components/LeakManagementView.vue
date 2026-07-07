@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <view class="leak-management-view">
     <!-- 筛选栏 -->
     <view class="toolbar">
@@ -23,18 +23,6 @@
         <view class="filter-group">
           <text class="filter-label">检出人</text>
           <input v-model="filters.detectAccount" class="filter-input" placeholder="请输入检出人" placeholder-class="input-placeholder" />
-        </view>
-        <view class="filter-group">
-          <text class="filter-label">管道材质</text>
-          <input v-model="filters.tubeMaterial" class="filter-input" placeholder="请输入管道材质" placeholder-class="input-placeholder" />
-        </view>
-        <view class="filter-group">
-          <text class="filter-label">关联工单</text>
-          <input v-model="filters.referenceWorksheetId" class="filter-input" placeholder="请输入关联工单" placeholder-class="input-placeholder" />
-        </view>
-        <view class="filter-group">
-          <text class="filter-label">关联设备</text>
-          <input v-model="filters.referenceDevices" class="filter-input" placeholder="请输入关联设备" placeholder-class="input-placeholder" />
         </view>
       </view>
       <view class="toolbar-row toolbar-row--bottom">
@@ -80,17 +68,9 @@
           <text class="data-cell data-cell--time data-cell--sortable" @click.stop="toggleSort('detectedTime')">检出时间<text class="sort-arrow sort-arrow--active" v-if="sortField === 'detectedTime'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
           <text class="data-cell data-cell--level data-cell--sortable" @click.stop="toggleSort('leakLevel')">渗漏级别<text class="sort-arrow sort-arrow--active" v-if="sortField === 'leakLevel'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
           <text class="data-cell data-cell--address">漏点位置</text>
-          <text class="data-cell data-cell--part">泄漏部位</text>
-          <text class="data-cell data-cell--coord">渗漏坐标</text>
           <text class="data-cell data-cell--account">检出人</text>
-          <text class="data-cell data-cell--material">管道材质</text>
-          <text class="data-cell data-cell--bore">管道口径</text>
-          <text class="data-cell data-cell--depth">管道埋深</text>
           <text class="data-cell data-cell--wsid">关联工单</text>
           <text class="data-cell data-cell--devices">关联设备</text>
-          <text class="data-cell data-cell--distance">最近设备距离</text>
-          <text class="data-cell data-cell--remark">备注</text>
-          <text class="data-cell data-cell--created">创建时间</text>
         </view>
         <view v-if="loading" class="table-state">加载中...</view>
         <view v-else-if="records.length === 0" class="table-state">暂无漏点数据</view>
@@ -102,17 +82,9 @@
           <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "detectedTime")) }}</text>
           <text class="data-cell data-cell--level"><text class="level-pill" :class="getLeakLevelClass(item)">{{ getLeakLevelLabel(item) }}</text></text>
           <text class="data-cell data-cell--address">{{ getFieldValue(item, "leakAddress") || "-" }}</text>
-          <text class="data-cell data-cell--part">{{ getFieldValue(item, "leakPart") || "-" }}</text>
-          <text class="data-cell data-cell--coord">{{ getFieldValue(item, "leakCoordinate") || "-" }}</text>
           <text class="data-cell data-cell--account">{{ getFieldValue(item, "detectAccount") || "-" }}</text>
-          <text class="data-cell data-cell--material">{{ getFieldValue(item, "tubeMaterial") || "-" }}</text>
-          <text class="data-cell data-cell--bore">{{ getFieldValue(item, "tubeBore") || "-" }}</text>
-          <text class="data-cell data-cell--depth">{{ getFieldValue(item, "tubeDepth") || "-" }}</text>
           <text class="data-cell data-cell--wsid">{{ getFieldValue(item, "referenceWorksheetId") || "-" }}</text>
           <text class="data-cell data-cell--devices">{{ getFieldValue(item, "referenceDevices") || "-" }}</text>
-          <text class="data-cell data-cell--distance">{{ getFieldValue(item, "closestDeviceDistance") || "-" }}</text>
-          <text class="data-cell data-cell--remark">{{ getFieldValue(item, "remark") || "-" }}</text>
-          <text class="data-cell data-cell--created">{{ formatDateTime(getFieldValue(item, "createdAt")) }}</text>
         </view>
       </view>
 
@@ -129,10 +101,10 @@
             <view class="detail-grid"><view v-for="item in baseDetailFields" :key="item.label" class="detail-item" :class="getDetailItemClass(item)"><text class="detail-item__label">{{ item.label }}</text><text class="detail-item__value">{{ item.value }}</text></view></view>
           </view>
           <view v-if="activeDetailTab === 'pipe'" class="detail-section">
-            <view class="detail-grid detail-grid--pipe"><view v-for="item in pipeDetailFields" :key="item.label" class="detail-item"><text class="detail-item__label">{{ item.label }}</text><text class="detail-item__value">{{ item.value }}</text></view></view>
+            <view class="detail-grid detail-grid--pipe"><view v-for="item in pipeDetailFields" :key="item.label" class="detail-item" :class="getItemAccentClass(item.label)"><text class="detail-item__label">{{ item.label }}</text><text class="detail-item__value">{{ item.value }}</text></view></view>
           </view>
           <view v-if="activeDetailTab === 'attach'" class="detail-section">
-            <view class="detail-grid detail-grid--attach"><view v-for="item in attachDetailFields" :key="item.label" class="detail-item detail-item--note"><text class="detail-item__label">{{ item.label }}</text><text class="detail-item__value">{{ item.value }}</text></view></view>
+            <view class="detail-grid detail-grid--attach"><view v-for="item in attachDetailFields" :key="item.label" class="detail-item detail-item--note" :class="getItemAccentClass(item.label)"><text class="detail-item__label">{{ item.label }}</text><text class="detail-item__value">{{ item.value }}</text></view></view>
           </view>
           <view class="detail-actions">
             <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="openEditDialog">编辑</button>
@@ -330,7 +302,7 @@ const detailTabs: Array<{ label: string; value: DetailTab }> = [
 const sortField = ref("detectedTime");
 const sortOrder = ref("desc");
 
-const filters = reactive({ startTime: "", endTime: "", leakLevel: "" as number | "", detectAccount: "", tubeMaterial: "", referenceWorksheetId: "", referenceDevices: "" });
+const filters = reactive({ startTime: "", endTime: "", leakLevel: "" as number | "", detectAccount: "" });
 const pagination = reactive({ pageNum: 1, pageSize: 10 });
 const records = ref<RecordItem[]>([]);
 const selectedRecord = ref<RecordItem | null>(null);
@@ -412,13 +384,28 @@ function mkFields(r: RecordItem | null, defs: Array<[string, string, boolean?, s
 const baseDetailFields = computed(() => mkFields(selectedRecord.value, [
   ["检出时间", "detectedTime", true],
   ["渗漏级别", "", false, getLeakLevelLabel(selectedRecord.value)],
+  ["设备编号", "deviceNumber"],
+  ["检出类型", "detectType"],
+  ["检出难度", "detectDifficulty"],
+  ["漏点类型", "leakType"],
   ["漏点位置", "leakAddress"],
   ["渗漏坐标", "leakCoordinate"],
   ["泄漏部位", "leakPart"],
+  ["漏点距离", "leakDistance"],
+  ["漏量", "leakAmount"],
+  ["漏点区域", "leakArea"],
   ["检出人", "detectAccount"],
+  ["巡检人员", "inspectPerson"],
+  ["定漏人员", "confirmPerson"],
+  ["产生漏点原因", "leakCause"],
+  ["费用", "cost"],
+  ["人工复核次数", "manualReviewCount"],
+  ["维修处理方式", "repairMethod"],
+  ["描述", "description"],
   ["最近设备距离", "closestDeviceDistance"],
   ["关联工单ID", "referenceWorksheetId"],
   ["关联设备", "referenceDevices"],
+  ["修复时间", "repairTime", true],
   ["创建时间", "createdAt", true],
   ["更新时间", "updatedAt", true],
 ]));
@@ -427,11 +414,19 @@ const pipeDetailFields = computed(() => mkFields(selectedRecord.value, [
   ["管道材质", "tubeMaterial"],
   ["管道口径", "tubeBore"],
   ["管道埋深", "tubeDepth"],
+  ["管道年限", "tubeAge"],
 ]));
 
 const attachDetailFields = computed(() => mkFields(selectedRecord.value, [
   ["关联音频", "referenceAudio"],
+  ["音频文件", "audioFile"],
   ["渗漏照片", "leakPicture"],
+  ["现场照片", "sitePhoto"],
+  ["现场视频", "siteVideo"],
+  ["噪声时间", "noiseTime", true],
+  ["渗漏状态", "leakStatus"],
+  ["特征值", "featureValue"],
+  ["噪音样本", "noiseSample"],
   ["备注", "remark"],
 ]));
 
@@ -477,6 +472,8 @@ async function fetchLeakPoints() {
     const res = (await getLeakPointPage(buildQuery())) as Res;
     ok(res);
     const p = parsePage(res);
+    if (p.pageNum && p.pageNum !== pagination.pageNum) pagination.pageNum = p.pageNum;
+    if (p.pageSize && p.pageSize !== pagination.pageSize) pagination.pageSize = p.pageSize;
     records.value = applyLocalSort(p.records);
     total.value = p.total;
     selectedIds.value = new Set();
@@ -488,7 +485,7 @@ async function fetchLeakPoints() {
 }
 
 function searchLeakPoints() { pagination.pageNum = 1; fetchLeakPoints(); }
-function resetFilters() { filters.startTime = ""; filters.endTime = ""; filters.leakLevel = ""; filters.detectAccount = ""; filters.tubeMaterial = ""; filters.referenceWorksheetId = ""; filters.referenceDevices = ""; searchLeakPoints(); }
+function resetFilters() { filters.startTime = ""; filters.endTime = ""; filters.leakLevel = ""; filters.detectAccount = ""; searchLeakPoints(); }
 function changePage(s: number) { const n = pagination.pageNum + s; if (n < 1 || n > totalPages.value) return; pagination.pageNum = n; fetchLeakPoints(); }
 
 function selectFirstRow() {
@@ -771,9 +768,25 @@ function getLeakLevelLabel(item: RecordItem | null): string {
   if (!item) return "-"; const v = Number(gv(item, "leakLevel"));
   if (v === 0) return "轻度"; if (v === 1) return "中度"; if (v === 2) return "重度"; return "未知";
 }
-function getLeakLevelClass(item: RecordItem): string { const v = Number(gv(item, "leakLevel")); if (v === 0) return "level-pill--light"; if (v === 1) return "level-pill--medium"; if (v === 2) return "level-pill--heavy"; return ""; }
+function getLeakLevelClass(item: RecordItem): string { const v = Number(gv(item, "leakLevel")); if (v === 0) return "level-pill--light"; if (v === 1) return "level-pill--medium"; if (v === 2) return "level-pill--heavy"; if (v === 3) return "level-pill--suspect"; return ""; }
 function getLeakLevelBadgeClass(item: RecordItem | null): string { if (!item) return ""; const v = Number(gv(item, "leakLevel")); if (v === 0) return "detail-summary__badge--light"; if (v === 1) return "detail-summary__badge--medium"; if (v === 2) return "detail-summary__badge--heavy"; return ""; }
 function getDetailItemClass(item: { label: string }): string { if (item.label !== "渗漏级别" || !selectedRecord.value) return ""; const v = Number(gv(selectedRecord.value, "leakLevel")); if (v === 0) return "detail-item--level-light"; if (v === 1) return "detail-item--level-medium"; if (v === 2) return "detail-item--level-heavy"; return ""; }
+
+function getItemAccentClass(label: string): string {
+  // 管道属性类（蓝）
+  if (["管道材质", "管道口径"].includes(label)) return "detail-item--accent-blue";
+  // 管道状态类（青）
+  if (["管道埋深", "管道年限"].includes(label)) return "detail-item--accent-cyan";
+  // 音频类（紫）
+  if (["关联音频", "音频文件", "噪声时间", "噪音样本"].includes(label)) return "detail-item--accent-purple";
+  // 媒体类（粉）
+  if (["渗漏照片", "现场照片", "现场视频"].includes(label)) return "detail-item--accent-pink";
+  // 状态类（橙）
+  if (["渗漏状态", "特征值"].includes(label)) return "detail-item--accent-orange";
+  // 其他（灰）
+  if (["备注"].includes(label)) return "detail-item--accent-gray";
+  return "";
+}
 
 function fmtDt(v: unknown): string { if (!v || v === "-") return String(v || "-"); return String(v).replace("T", " ").replace(/\.\d+/, "").replace(/(?:Z|[+-]\d{2}:?\d{2})$/, ""); }
 function toLocal(v: unknown): string { if (!v) return ""; const d = typeof v === "string" ? new Date(String(v).replace(" ", "T")) : new Date(v as number); if (isNaN(d.getTime())) return ""; return `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}T${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`; }
@@ -786,9 +799,10 @@ function parsePage(res: Res) {
   const recs = arr(pg, ["records","rows","list","items"]) || arr(res, ["records","rows","list","items"]);
   const t = num(pg, ["total","count","totalCount"]) ?? num(res, ["total","count","totalCount"]);
   const c = num(pg, ["current","pageNum","page","pageNo"]); const s = num(pg, ["size","pageSize","limit"]);
-  if (c) pagination.pageNum = c; if (s) pagination.pageSize = s;
-  const mt = (pagination.pageNum - 1) * pagination.pageSize + recs.length;
-  return { records: recs.map((r: unknown) => (isObj(r) ? r : { value: r })), total: t === undefined ? recs.length : Math.max(t, mt) };
+  const pageNum = c || pagination.pageNum;
+  const pageSize = s || pagination.pageSize;
+  const mt = (pageNum - 1) * pageSize + recs.length;
+  return { records: recs.map((r: unknown) => (isObj(r) ? r : { value: r })), total: t === undefined ? recs.length : Math.max(t, mt), pageNum, pageSize };
 }
 function findPg(v: unknown): RecordItem | null {
   if (!isObj(v)) return null;
@@ -829,7 +843,7 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .leak-management-view { display: flex; flex-direction: column; box-sizing: border-box; height: 100%; min-height: 0; padding: 0 14px 14px; overflow: hidden; background: #eef4f8; }
 
 .toolbar, .table-panel, .detail-panel, .stat-card { background: #fff; border: 1px solid #d8e5ef; border-radius: 6px; box-shadow: 0 12px 26px rgba(35,72,104,0.09); }
-.toolbar { flex: none; display: flex; flex-direction: column; gap: 12px; padding: 14px; margin-bottom: 12px; background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%); }
+.toolbar { flex: none; display: flex; flex-direction: column; gap: 12px; padding: 14px; margin-bottom: 12px; background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%); border-radius: 6px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06); }
 .toolbar-row { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
 .toolbar-row--filters { display: flex; flex-wrap: wrap; align-items: end; gap: 10px 12px; }
 .toolbar-row--bottom { justify-content: space-between; }
@@ -846,8 +860,8 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .filter-datetime :deep(.datetime-picker__icon) { width: 15px; height: 15px; }
 .filter-separator { flex: none; color: #8191a2; font-size: 13px; }
 .toolbar-actions { display: flex; align-items: center; gap: 7px; &--right { margin-left: auto; } }
-.toolbar-button { display: flex; align-items: center; justify-content: center; box-sizing: border-box; min-width: 64px; height: 38px; margin: 0; padding: 0 15px; color: #31506d; font-size: 13px; font-weight: 700; line-height: 1.2; background: #f6fbff; border: 1px solid #cbdced; border-radius: 5px; cursor: pointer; &--primary { color: #fff; background: #0d82ee; border-color: #0d82ee; } &--danger { color: #b42318; background: #fff5f3; border-color: #ffc9c0; } &--hover { color: #0d82ee; background: #edf7ff; border-color: #a9d7ff; } &--primary.toolbar-button--hover { color: #fff; background: #0674d8; border-color: #0674d8; } &:disabled { color: #9aa9b8; background: #eef2f6; border-color: #d7e0e8; cursor: not-allowed; } }
-.toolbar-icon-button { display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; margin: 0; padding: 0; color: #31506d; background: #f6fbff; border: 1px solid #cbdced; border-radius: 5px; cursor: pointer; &--hover { color: #0d82ee; background: #edf7ff; border-color: #a9d7ff; } }
+.toolbar-button { display: flex; align-items: center; justify-content: center; box-sizing: border-box; min-width: 64px; height: 38px; margin: 0; padding: 0 15px; color: #31506d; font-size: 13px; font-weight: 700; line-height: 1.2; background: #f6fbff; border: 1px solid #cbdced; border-radius: 5px; cursor: pointer; &--primary { color: #fff; background: #3b82f6; border-color: #3b82f6; } &--danger { color: #dc2626; background: #fef2f2; border-color: #fecaca; } &--hover { color: #3b82f6; background: #eff6ff; border-color: #bfdbfe; } &--primary.toolbar-button--hover { color: #fff; background: #2563eb; border-color: #2563eb; } &:disabled { color: #9aa9b8; background: #eff6ff; border-color: #d7e0e8; cursor: not-allowed; } }
+.toolbar-icon-button { display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; margin: 0; padding: 0; color: #31506d; background: #f6fbff; border: 1px solid #cbdced; border-radius: 5px; cursor: pointer; &--hover { color: #3b82f6; background: #eff6ff; border-color: #bfdbfe; } }
 .icon-refresh { display: block; width: 18px; height: 18px; border: 2px solid #7f8fa3; border-top-color: transparent; border-radius: 50%; }
 
 .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; flex: none; margin-bottom: 12px; }
@@ -865,45 +879,46 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .table-scroll::-webkit-scrollbar-track, .detail-section::-webkit-scrollbar-track { background: #edf3f8; border-radius: 999px; }
 .table-scroll::-webkit-scrollbar-thumb, .detail-section::-webkit-scrollbar-thumb { background: linear-gradient(90deg, #9fb4c8, #6f8ba8); border: 2px solid #edf3f8; border-radius: 999px; }
 .table-scroll::-webkit-scrollbar-thumb:hover, .detail-section::-webkit-scrollbar-thumb:hover { background: linear-gradient(90deg, #7f9ab4, #4d6f91); }
-.data-table { display: flex; flex-direction: column; width: 1880px; min-width: 1880px; background: #ffffff; }
-.data-row { display: grid; grid-template-columns: 40px 58px 180px 110px 150px 120px 150px 90px 100px 100px 100px 100px 120px 140px 120px 202px; min-height: 42px; width: 1880px; border-bottom: 1px solid #edf1f5; cursor: pointer; transition: background 0.18s ease, box-shadow 0.18s ease; &--header { position: sticky; top: 0; z-index: 1; min-height: 44px; color: #20384f; font-weight: 800; background: #f6f9fc; cursor: default; box-shadow: 0 1px 0 #dbe7f0; } &--active { position: relative; background: #e7f3ff !important; box-shadow: inset 0 0 0 1px #b9dcff; } }
+.data-table { display: flex; flex-direction: column; background: #ffffff; }
+.data-row { display: grid; grid-template-columns: 40px 56px minmax(160px, 1.6fr) minmax(96px, 1fr) minmax(160px, 1.8fr) minmax(96px, 1fr) minmax(130px, 1fr) minmax(120px, 1fr); min-height: 48px; border-bottom: 1px solid #edf1f5; cursor: pointer; transition: background 0.18s ease, box-shadow 0.18s ease; &--header { position: sticky; top: 0; z-index: 1; min-height: 50px; color: #20384f; font-weight: 800; background: #fafafa; cursor: default; box-shadow: 0 1px 0 #dbe7f0; } &--active { position: relative; background: #eff6ff !important; box-shadow: inset 0 0 0 1px #bfdbfe; } }
+.data-row:not(.data-row--header):hover { background: #eff6ff !important; }
 .data-row:not(.data-row--header):nth-child(odd) { background: #fff; }
 .data-row:not(.data-row--header):nth-child(even) { background: #fbfdff; }
-.data-row:not(.data-row--header):hover { background: #f1f8ff; box-shadow: inset 0 0 0 1px #d7ebfb; }
-.data-row--active::before { position: absolute; top: 7px; bottom: 7px; left: 0; width: 3px; content: ""; background: #0d82ee; border-radius: 0 999px 999px 0; }
-.data-cell { display: flex; align-items: center; justify-content: center; min-width: 0; padding: 0 12px; overflow: hidden; color: #24384d; font-size: 13px; line-height: 1.35; text-align: center; text-overflow: ellipsis; white-space: nowrap; border-right: 1px solid #edf1f5; }
+.data-row:not(.data-row--header):hover { background: #eff6ff; box-shadow: inset 0 0 0 1px #cbd5e1; }
+.data-row--active::before { position: absolute; top: 7px; bottom: 7px; left: 0; width: 3px; content: ""; background: #3b82f6; border-radius: 0 999px 999px 0; }
+.data-cell { display: flex; align-items: center; justify-content: center; min-width: 0; padding: 0 12px; overflow: hidden; color: #24384d; font-size: 13px; line-height: 1.35; text-align: center; white-space: nowrap; text-overflow: ellipsis; border-right: 1px solid #edf1f5; }
 .data-row--header .data-cell { color: #415a73; font-size: 12px; letter-spacing: 0; }
 .data-cell:last-child { border-right: 0; }
 .data-cell--sortable { cursor: pointer; user-select: none; }
-.data-cell--sortable:hover { color: #0d82ee; }
+.data-cell--sortable:hover { color: #3b82f6; }
 .data-cell--checkbox { justify-content: center; }
 .data-cell--index { justify-content: center; color: #64748b; }
 .data-cell--time { color: #0f4c81; font-family: "DIN Alternate", "Arial", sans-serif; font-weight: 800; }
-.data-cell--address { justify-content: flex-start; text-align: left; }
-.data-cell--remark { justify-content: flex-start; text-align: left; }
+.data-cell--address { justify-content: center; text-align: center; }
+.data-cell--remark { justify-content: center; text-align: center; }
 /* 排序箭头 */
-.sort-arrow { flex: none; font-size: 10px; line-height: 1; margin-left: 2px; color: #bcc7d6; transition: color 0.18s ease; &--active { color: #0d82ee; } &--idle { opacity: 0.4; } }
+.sort-arrow { flex: none; font-size: 10px; line-height: 1; margin-left: 2px; color: #bcc7d6; transition: color 0.18s ease; &--active { color: #3b82f6; } &--idle { opacity: 0.4; } }
 .data-cell--sortable:hover .sort-arrow:not(.sort-arrow--active) { color: #7f8fa3; }
-.checkbox { display: flex; align-items: center; justify-content: center; width: 18px; height: 18px; border: 2px solid #cdd7e4; border-radius: 4px; cursor: pointer; &--checked { background: #0d82ee; border-color: #0d82ee; } }
+.checkbox { display: flex; align-items: center; justify-content: center; width: 18px; height: 18px; border: 2px solid #cdd7e4; border-radius: 4px; cursor: pointer; &--checked { background: #3b82f6; border-color: #3b82f6; } }
 .checkbox__mark { display: block; width: 6px; height: 10px; border-right: 2px solid #fff; border-bottom: 2px solid #fff; transform: rotate(45deg) translate(-1px, -1px); }
-.level-pill { display: inline-block; padding: 2px 8px; font-size: 12px; font-weight: 700; border-radius: 10px; &--light { color: #16a34a; background: #dcfce7; } &--medium { color: #d97706; background: #fef3c7; } &--heavy { color: #dc2626; background: #fee2e2; } }
-.table-state { padding: 32px; color: #7c8da1; font-size: 14px; text-align: center; }
-.pagination-bar { flex: none; border-top: 1px solid #edf3f8; }
-.page-button { display: flex; align-items: center; justify-content: center; min-width: 64px; height: 34px; margin: 0; padding: 0 14px; color: #183755; font-size: 13px; font-weight: 700; background: #fff; border: 1px solid #d5e2ee; border-radius: 6px; cursor: pointer; &--hover { background: #edf5ff; } &:disabled { opacity: 0.4; cursor: not-allowed; } }
+.level-pill { display: inline-block; padding: 2px 10px; font-size: 12px; font-weight: 700; border-radius: 10px; &--light { color: #22c55e; background: #f0fdf4; border: 1px solid #bbf7d0; } &--medium { color: #f59e0b; background: #fffbeb; border: 1px solid #fde68a; } &--heavy { color: #ef4444; background: #fef2f2; border: 1px solid #fecaca; } &--suspect { color: #8c8c8c; background: #fafafa; border: 1px solid #d9d9d9; } }
+.table-state { padding: 48px 32px; color: #a0aec0; font-size: 14px; text-align: center; }
+.pagination-bar { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-top: 1px solid #edf3f8; }
+.page-button { display: flex; align-items: center; justify-content: center; min-width: 64px; height: 34px; margin: 0; padding: 0 14px; color: #183755; font-size: 13px; font-weight: 700; background: #fff; border: 1px solid #d5e2ee; border-radius: 6px; cursor: pointer; &--hover { background: #eff6ff; } &:disabled { opacity: 0.4; cursor: not-allowed; } }
 .page-info { color: #64748b; font-size: 13px; font-weight: 600; }
 
 .detail-panel { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
 .detail-empty { flex: 1; display: flex; align-items: center; justify-content: center; color: #7c8da1; font-size: 14px; }
 .detail-body { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
 .detail-tabs { display: flex; flex: none; border-bottom: 1px solid #edf3f8; }
-.detail-tab { flex: 1; display: flex; align-items: center; justify-content: center; height: 42px; color: #64748b; font-size: 13px; font-weight: 700; cursor: pointer; border-bottom: 2px solid transparent; &--active { color: #0d82ee; border-bottom-color: #0d82ee; } }
-.detail-section { flex: 1; min-height: 0; padding: 16px; overflow-y: auto; background: linear-gradient(180deg, #f5faff 0, #ffffff 142px), #ffffff; }
-.detail-summary { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; margin-bottom: 12px; background: #ffffff; border: 1px solid #dce9f4; border-left: 4px solid #0d82ee; border-radius: 6px; box-shadow: 0 8px 18px rgba(33, 72, 108, 0.045); }
+.detail-tab { flex: 1; display: flex; align-items: center; justify-content: center; height: 42px; color: #64748b; font-size: 13px; font-weight: 700; cursor: pointer; border-bottom: 2px solid transparent; &--active { color: #3b82f6; border-bottom-color: #3b82f6; } }
+.detail-section { flex: 1; min-height: 0; padding: 16px; overflow-y: auto; background: linear-gradient(180deg, #f8fafc 0, #ffffff 142px), #ffffff; }
+.detail-summary { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; margin-bottom: 12px; background: #ffffff; border: 1px solid #e2e8f0; border-left: 4px solid #3b82f6; border-radius: 6px; box-shadow: 0 8px 18px rgba(33, 72, 108, 0.045); }
 .detail-summary__main { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
 .detail-summary__label { color: #6b7f94; font-size: 12px; font-weight: 800; }
 .detail-summary__value { color: #0f4c81; font-family: "DIN Alternate", "Arial", sans-serif; font-size: 17px; font-weight: 900; line-height: 1.25; word-break: normal; overflow-wrap: anywhere; }
 .detail-summary__badges { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
-.detail-summary__badge { display: inline-block; min-width: 64px; height: 26px; line-height: 26px; text-align: center; padding: 0 10px; font-size: 12px; font-weight: 700; border-radius: 10px; background: #edf5ff; color: #0d82ee; &--light { color: #16a34a; background: #dcfce7; } &--medium { color: #d97706; background: #fef3c7; } &--heavy { color: #dc2626; background: #fee2e2; } }
+.detail-summary__badge { display: inline-block; min-width: 64px; height: 26px; line-height: 26px; text-align: center; padding: 0 10px; font-size: 12px; font-weight: 700; border-radius: 10px; background: #eff6ff; color: #3b82f6; &--light { color: #22c55e; background: #dcfce7; } &--medium { color: #f59e0b; background: #fef3c7; } &--heavy { color: #ef4444; background: #fee2e2; } }
 .detail-grid { display: grid; gap: 0; overflow: hidden; background: #ffffff; border: 1px solid #dfebf5; border-radius: 6px; box-shadow: 0 8px 18px rgba(33, 72, 108, 0.045); }
 .detail-item { display: grid; grid-template-columns: 92px minmax(0, 1fr); align-items: center; min-height: 48px; padding: 8px 14px; border-bottom: 1px solid #edf3f8; &--note { display: flex; flex-direction: column; gap: 4px; min-height: 0; padding: 12px 14px; border-bottom: 1px solid #edf3f8; } }
 .detail-grid .detail-item:last-child { border-bottom: 0; }
@@ -911,16 +926,22 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .detail-grid--attach { gap: 8px; overflow: visible; background: transparent; border: 0; border-radius: 0; box-shadow: none; }
 .detail-grid--pipe .detail-item,
 .detail-grid--attach .detail-item { border: 1px solid #dfebf5; border-bottom: 1px solid #dfebf5; border-radius: 6px; box-shadow: 0 8px 18px rgba(33, 72, 108, 0.055); }
-.detail-grid--pipe .detail-item { border-left: 4px solid #16a34a; }
-.detail-grid--attach .detail-item { border-left: 4px solid #d97706; }
+.detail-grid--pipe .detail-item { border-left: 4px solid #60a5fa; }
+.detail-grid--attach .detail-item { border-left: 4px solid #f59e0b; }
+.detail-item--accent-blue { border-left-color: #60a5fa !important; }
+.detail-item--accent-cyan { border-left-color: #06b6d4 !important; }
+.detail-item--accent-purple { border-left-color: #8b5cf6 !important; }
+.detail-item--accent-pink { border-left-color: #ec4899 !important; }
+.detail-item--accent-orange { border-left-color: #f59e0b !important; }
+.detail-item--accent-gray { border-left-color: #8c8c8c !important; }
 .detail-grid--pipe .detail-item:last-child,
 .detail-grid--attach .detail-item:last-child { border-bottom: 1px solid #dfebf5; }
 .detail-item__label { display: flex; align-items: center; color: #71869b; font-size: 12px; font-weight: 800; line-height: 1.3; }
 .detail-item__value { color: #172033; font-size: 14px; font-weight: 700; line-height: 1.45; text-align: right; word-break: break-all; }
 .detail-item--note .detail-item__value { text-align: left; }
-.detail-item--level-light { border-left: 4px solid #16a34a; padding-left: 10px; background: #f0fdf4; }
-.detail-item--level-medium { border-left: 4px solid #d97706; padding-left: 10px; background: #fffbeb; }
-.detail-item--level-heavy { border-left: 4px solid #dc2626; padding-left: 10px; background: #fef2f2; }
+.detail-item--level-light { border-left: 4px solid #22c55e; padding-left: 10px; background: #f0fdf4; }
+.detail-item--level-medium { border-left: 4px solid #f59e0b; padding-left: 10px; background: #fffbeb; }
+.detail-item--level-heavy { border-left: 4px solid #ef4444; padding-left: 10px; background: #fef2f2; }
 .detail-actions { display: flex; gap: 10px; flex: none; padding: 12px 14px; border-top: 1px solid #edf3f8; }
 
 .dialog-mask { position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center; background: rgba(15,35,55,0.22); }
@@ -928,13 +949,13 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .dialog-head { display: flex; align-items: center; justify-content: space-between; flex: none; padding: 18px 24px; background: #f8fbfe; border-bottom: 1px solid #edf3f8; }
 .dialog-title { display: block; color: #183755; font-size: 22px; font-weight: 900; }
 .dialog-subtitle { display: block; margin-top: 4px; color: #5f7188; font-size: 13px; }
-.icon-button { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; margin: 0; background: #f6fbff; border: 1px solid #d9e7f3; border-radius: 6px; cursor: pointer; &--hover { background: #edf7ff; border-color: #0d82ee; } }
+.icon-button { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; margin: 0; background: #f6fbff; border: 1px solid #d9e7f3; border-radius: 6px; cursor: pointer; &--hover { background: #eff6ff; border-color: #3b82f6; } }
 .close-icon { position: relative; width: 14px; height: 14px; &::before, &::after { position: absolute; top: 6px; left: 0; width: 14px; height: 2px; content: ""; background: #64748b; border-radius: 2px; } &::before { transform: rotate(45deg); } &::after { transform: rotate(-45deg); } }
 .dialog-body { flex: 1; min-height: 0; max-height: none; overflow-y: auto; padding: 18px 24px 16px; background: #fff; }
 
 .form-section { margin-bottom: 14px; padding: 0; background: #fff; border: 0; border-radius: 0; &:last-child { margin-bottom: 0; } }
 .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 11px; padding-bottom: 9px; border-bottom: 1px solid #eef4fa; }
-.section-title { position: relative; padding-left: 10px; color: #183755; font-size: 16px; font-weight: 900; &::before { position: absolute; top: 50%; left: 0; width: 3px; height: 16px; content: ""; background: #0d82ee; border-radius: 999px; transform: translateY(-50%); } }
+.section-title { position: relative; padding-left: 10px; color: #183755; font-size: 16px; font-weight: 900; &::before { position: absolute; top: 50%; left: 0; width: 3px; height: 16px; content: ""; background: #3b82f6; border-radius: 999px; transform: translateY(-50%); } }
 .section-hint { color: #94a3b8; font-size: 12px; }
 
 .form-grid { display: grid; gap: 12px 18px; &--two { grid-template-columns: repeat(2, 1fr); } }
@@ -952,13 +973,13 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .custom-select { display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; width: 100%; height: 38px; padding: 0 12px; color: #172033; font-size: 14px; background: #fbfdff; border: 1px solid #d5e2ee; border-radius: 4px; cursor: pointer; transition: border-color 0.16s ease, box-shadow 0.16s ease; &--open { border-color: #8fc8f8; box-shadow: 0 0 0 3px rgba(13,130,238,0.1); } }
 .custom-select__placeholder { color: #9aa9b8; }
 .custom-select-dropdown { position: absolute; top: 100%; left: 0; z-index: 10; width: 100%; margin-top: 4px; background: #fff; border: 1px solid #d5e2ee; border-radius: 4px; box-shadow: 0 8px 24px rgba(15,35,55,0.12); overflow: hidden; }
-.custom-select-option { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; font-size: 14px; color: #172033; cursor: pointer; &:hover { background: #edf5ff; } &--active { color: #0d82ee; font-weight: 700; } }
-.custom-select-check { color: #0d82ee; font-size: 14px; }
+.custom-select-option { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; font-size: 14px; color: #172033; cursor: pointer; &:hover { background: #eff6ff; } &--active { color: #3b82f6; font-weight: 700; } }
+.custom-select-check { color: #3b82f6; font-size: 14px; }
 .select-backdrop { position: fixed; inset: 0; z-index: 5; }
 
 .form-row { display: flex; gap: 10px; align-items: center; }
-.form-action-btn { display: flex; align-items: center; gap: 4px; flex: none; height: 38px; padding: 0 14px; color: #0d82ee; font-size: 13px; font-weight: 700; white-space: nowrap; background: #edf7ff; border: 1px solid #b8ddf8; border-radius: 4px; cursor: pointer; &--small { height: 38px; padding: 0 12px; font-size: 12px; } &--hover { background: #d6edfc; border-color: #0d82ee; } }
-.form-action-btn__icon--map { display: inline-block; width: 14px; height: 14px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230d82ee'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z'/%3E%3C/svg%3E") center/contain no-repeat; }
+.form-action-btn { display: flex; align-items: center; gap: 4px; flex: none; height: 38px; padding: 0 14px; color: #3b82f6; font-size: 13px; font-weight: 700; white-space: nowrap; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px; cursor: pointer; &--small { height: 38px; padding: 0 12px; font-size: 12px; } &--hover { background: #dbeafe; border-color: #3b82f6; } }
+.form-action-btn__icon--map { display: inline-block; width: 14px; height: 14px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233b82f6'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z'/%3E%3C/svg%3E") center/contain no-repeat; }
 
 .form-photo-area { display: flex; flex-wrap: wrap; gap: 10px; }
 .photo-preview-list { display: flex; flex-wrap: wrap; gap: 10px; }
@@ -966,13 +987,13 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .photo-thumb { width: 100%; height: 100%; }
 .photo-remove-btn { position: absolute; top: 2px; right: 2px; display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; padding: 0; margin: 0; background: rgba(0,0,0,0.55); border: 0; border-radius: 50%; cursor: pointer; &--hover { background: rgba(0,0,0,0.75); } }
 .photo-remove-icon { position: relative; width: 10px; height: 10px; &::before, &::after { position: absolute; top: 4px; left: 0; width: 10px; height: 2px; content: ""; background: #fff; border-radius: 1px; } &::before { transform: rotate(45deg); } &::after { transform: rotate(-45deg); } }
-.photo-add-box { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; width: 88px; height: 88px; border: 2px dashed #c5d2e2; border-radius: 6px; background: #fbfdff; cursor: pointer; transition: border-color 0.16s ease, background 0.16s ease; &:hover { border-color: #0d82ee; background: #edf7ff; } }
+.photo-add-box { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; width: 88px; height: 88px; border: 2px dashed #c5d2e2; border-radius: 6px; background: #fbfdff; cursor: pointer; transition: border-color 0.16s ease, background 0.16s ease; &:hover { border-color: #3b82f6; background: #eff6ff; } }
 .photo-add-icon { font-size: 26px; font-weight: 300; color: #94a3b8; line-height: 1; }
 .photo-add-label { font-size: 11px; color: #94a3b8; }
 .form-input--hidden-id { margin-top: 10px; height: 32px; font-size: 12px; color: #94a3b8; background: #f9fafb; }
 
 .dialog-actions { display: flex; flex: none; justify-content: flex-end; gap: 12px; padding: 12px 22px; padding-bottom: calc(12px + env(safe-area-inset-bottom)); background: #fff; border-top: 1px solid #edf3f8; box-shadow: 0 -4px 16px rgba(24,55,85,0.06); }
-.dialog-btn { display: flex; align-items: center; justify-content: center; min-width: 80px; height: 38px; padding: 0 22px; font-size: 14px; font-weight: 700; border-radius: 6px; cursor: pointer; transition: opacity 0.16s ease; &--cancel { color: #34495e; background: #f1f5f9; border: 1px solid #d5e2ee; } &--primary { color: #fff; background: #0d82ee; border: 1px solid #0d82ee; } &--hover { opacity: 0.85; } &:disabled { opacity: 0.45; cursor: not-allowed; } }
+.dialog-btn { display: flex; align-items: center; justify-content: center; min-width: 80px; height: 38px; padding: 0 22px; font-size: 14px; font-weight: 700; border-radius: 6px; cursor: pointer; transition: opacity 0.16s ease; &--cancel { color: #34495e; background: #f1f5f9; border: 1px solid #d5e2ee; } &--primary { color: #fff; background: #3b82f6; border: 1px solid #3b82f6; } &--hover { opacity: 0.85; } &:disabled { opacity: 0.45; cursor: not-allowed; } }
 
 /* ========== 地图选点面板 ========== */
 .map-picker-panel {
@@ -1002,7 +1023,7 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
   font-size: 13px;
 
   &--active {
-    color: #0d82ee;
+    color: #3b82f6;
     font-weight: 700;
   }
 }

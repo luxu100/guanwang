@@ -79,7 +79,7 @@ const zhCN = {
     device: "设备管理",
     deviceInfo: "设备信息",
     deviceMaintenance: "拆装维护",
-    deviceStatus: "设备状态",
+    deviceStatus: "设备参数",
     command: "指令管理",
     commandManage: "指令管理",
     commandConfiguration: "指令配置",
@@ -276,7 +276,7 @@ const zhCN = {
     title: "设备管理",
     info: "设备信息",
     maintenance: "拆装维护",
-    status: "设备状态",
+    status: "设备参数",
     fields: {
       deviceNumber: "设备编号",
       productModel: "产品型号",

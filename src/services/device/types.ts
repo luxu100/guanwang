@@ -303,6 +303,7 @@ export interface DeviceCreateForm {
     installAddress?: string;
     installLongitude?: number;
     installLatitude?: number;
+    coordinate?:string;
 
     // ===== 启用状态 =====
     enableState?: number;

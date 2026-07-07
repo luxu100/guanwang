@@ -1,4 +1,4 @@
-<!--
+﻿<!--
 注意：这个页面作为切换页面在AppShell中使用DeviceManagementView组件，传入不同的mode参数来切换不同的页面内容。
 -->
 <!--
@@ -43,6 +43,8 @@
             :pagination="pagination"
             @view="handleView"
             @select="handleSelect"
+            @page-change="handlePageChange"
+            @page-size-change="handlePageSizeChange"
         />
       </view>
 
@@ -97,6 +99,7 @@ import {
 import DeviceInfoPanel from "../info/components/DeviceInfoPanel.vue";
 import MaintenancePanel from "../maintenance/components/MaintenancePanel.vue";
 import DeviceStatusPanel from "../status/components/DeviceStatusPanel.vue";
+import ValvePanel from "../valve/components/ValvePanel.vue";
 
 import DeviceToolbar from "./DeviceToolbar.vue";
 import DeviceTableView from "./DeviceTableView.vue";
@@ -109,7 +112,7 @@ import type {FormSection} from "@/pages/device/components/x/types";
  * =========================
  */
 const props = defineProps<{
-  mode: "info" | "maintenance" | "status";
+  mode: "info" | "maintenance" | "status" | "valve";
 }>();
 
 /**
@@ -209,6 +212,31 @@ const deviceModuleConfig = {
       { key: "receiveStatus", label: "接受状态", type: "select",dict: "receive"},
     ],
   },
+
+    valve: {
+    panel: ValvePanel,
+
+    searchForm: {
+      deviceNumber: "",
+      deviceType: "",
+      enableState: "",
+      onlineStatus: "",
+      leakStatus: "",
+      startTime: "",
+      endTime: "",
+    },
+
+    toolbar: [
+      { key: "deviceNumber", label: "设备编号", type: "input" },
+      { key: "deviceType", label: "产品型号", type: "select", dict: "product" },
+      { key: "onlineStatus", label: "在线状态", type: "select", dict: "online" },
+      { key: "enableState", label: "启用状态", type: "select", dict: "enable" },
+      { key: "leakStatus", label: "漏损状态", type: "select", dict: "leak" },
+      { key: "startTime", label: "开始时间", type: "date" },
+      { key: "endTime", label: "结束时间", type: "date" },
+    ],
+  },
+
 } as const;
 
 /**
@@ -452,20 +480,16 @@ const addSchema = computed<FormSection[]>(() => [
         type: "input"
       },
       {
-        key: "installLongitude",
-        label: "经度",
-        type: "input"
-      },
-      {
-        key: "installLatitude",
-        label: "纬度",
-        type: "input"
+        key: "coordinate",
+        label: "安装坐标(可手动输入或点击地图拾取)",
+        type: "location",
+        placeholder: "格式:经度,纬度 （如 121.4737,31.2304)"
       }
     ]
   },
 
   {
-    title: "设备状态",
+    title: "设备参数",
     fields: [
       {
         key: "enableState",
@@ -550,6 +574,7 @@ function handleAdd() {
     installAddress: "",
     installLongitude: undefined,
     installLatitude: undefined,
+    coordinate: "",
 
     tubeGroup: "",
     tubeOrder: undefined,
@@ -584,6 +609,15 @@ async function handleSubmit(form: DeviceCreateForm) {
 }
 
 async function submitCreate(form: DeviceCreateForm) {
+  if (form.coordinate) {
+    const [lng, lat] = form.coordinate.split(",").map(Number);
+
+    if (!Number.isNaN(lng) && !Number.isNaN(lat)) {
+      form.installLongitude = lng;
+      form.installLatitude = lat;
+    }
+  }
+
   const res = await createDeviceT(form);
 
   if (res.code !== 200) {
@@ -601,6 +635,15 @@ async function submitCreate(form: DeviceCreateForm) {
 }
 
 async function submitUpdate(form: DeviceCreateForm) {
+  if (form.coordinate) {
+    const [lng, lat] = form.coordinate.split(",").map(Number);
+
+    if (!Number.isNaN(lng) && !Number.isNaN(lat)) {
+      form.installLongitude = lng;
+      form.installLatitude = lat;
+    }
+  }
+
   if (!editingId.value) return;
 
   const res = await updateDeviceT(
@@ -624,14 +667,24 @@ async function submitUpdate(form: DeviceCreateForm) {
 
 function handleEdit() {
   if (!selectedDevice.value) {
-    uni.showToast({ title: '请选择记录', icon: 'none' });
+    uni.showToast({ title: "请选择记录", icon: "none" });
     return;
   }
 
   isEditMode.value = true;
   editingId.value = selectedDevice.value.id;
 
-  formData.value = { ...selectedDevice.value }
+  formData.value = { ...selectedDevice.value };
+
+  if (
+      formData.value.installLongitude != null &&
+      formData.value.installLatitude != null
+  ) {
+    formData.value.coordinate =
+        `${formData.value.installLongitude},${formData.value.installLatitude}`;
+  } else {
+    formData.value.coordinate = "";
+  }
 
   dialogVisible.value = true;
 }
@@ -689,6 +742,16 @@ function handleImport() {
     title: '导入功能暂未开放',
     icon: 'none'
   });
+}
+
+function handlePageChange(page:number){
+  pagination.value.current = page;
+  fetchDevices();
+}
+function handlePageSizeChange(pageSize:number){
+  pagination.value.size = pageSize;
+  pagination.value.current = 1;
+  fetchDevices();
 }
 
 /**
@@ -802,7 +865,7 @@ onMounted(() => {
 
   position: relative;
 
-  color: transparent; /* 默认不显示箭头 */
+  //color: transparent; /* 默认不显示箭头 */
 
   z-index: 999;
 }

@@ -8,12 +8,12 @@
         :visible="isToolbarVisible"
     />
 
-    <XFloatingCollapseHandle
+    <XFloatingCollapseHandle v-if="isFloatingVisible"
         v-model="isToolbarVisible"
     />
 
     <view class="table-head">
-      <text>设备状态详情</text>
+      <text>设备参数详情</text>
       <text class="table-head__meta">共 {{ pagination.total }} 条</text>
     </view>
 
@@ -148,11 +148,13 @@
       </view>
     </scroll-view>
 
-    <view class="pagination-bar">
-      <button class="page-button" :disabled="pagination.current <= 1" @click="changePage(-1)">上一页</button>
-      <text class="page-info">第 {{ pagination.current }} / {{  Math.ceil(pagination.total / pagination.size) || 1  }} 页</text>
-      <button class="page-button" :disabled="pagination.current >= 1" @click="changePage(1)">下一页</button>
-    </view>
+    <XPaginationBar
+        :current="pagination.current"
+        :size="pagination.size"
+        :total="pagination.total"
+        @change-page="handlePageChange"
+        @change-size="handlePageSizeChange"
+    />
   </view>
 </template>
 <script setup lang="ts">
@@ -163,8 +165,10 @@ import DeviceStatusToolbar from "@/pages/device/status/components/DeviceStatusTo
 import {getDeviceStatusUploadPageT} from "@/services/device/status.typed";
 import XFloatingCollapseHandle from "@/pages/device/components/x/XFloatingCollapseHandle.vue";
 import MaintenanceRecordToolbar from "@/pages/device/maintenance/components/MaintenanceRecordToolbar.vue";
+import XPaginationBar from "@/pages/device/components/x/XPaginationBar.vue";
 
-const isToolbarVisible = ref(false);
+const isToolbarVisible = ref(true);
+const isFloatingVisible = ref(false);
 
 // ===== 数据 =====
 const loading = ref(false);
@@ -253,14 +257,13 @@ async function fetchDeviceStatuss(requestId?: number) {
 }
 
 // ===== 分页 =====
-function changePage(step: number) {
-  const maxPage = Math.ceil(pagination.value.total / pagination.value.size);
-
-  const next = pagination.value.current + step;
-
-  if (next < 1 || next > maxPage) return;
-
-  pagination.value.current = next;
+function handlePageChange(page:number){
+  pagination.value.current = page;
+  fetchDeviceStatuss();
+}
+function handlePageSizeChange(pageSize:number){
+  pagination.value.size = pageSize;
+  pagination.value.current = 1;
   fetchDeviceStatuss();
 }
 
@@ -286,8 +289,6 @@ const getStatusClass = (type: string, value: number) => {
 };
 </script>
 <style scoped lang="scss">
-
-
 .loading-mask {
   position: absolute;
   top: 0;
@@ -307,38 +308,6 @@ const getStatusClass = (type: string, value: number) => {
   font-size: 14px;
 
   backdrop-filter: blur(1px);
-}
-
-.pagination-bar{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.page-info {
-  color: #64748b;
-  font-size: 13px;
-}
-
-.page-button::after {
-  border: 0;
-}
-
-.page-button {
-  height: 30px;
-  margin: 0;
-  padding: 0 12px;
-  color: #31506d;
-  font-size: 13px;
-  line-height: 30px;
-  background: #f6fbff;
-  border: 1px solid #cbdced;
-  border-radius: 4px;
-}
-
-.page-button[disabled] {
-  color: #a9b4c1;
-  background: #f4f7fa;
 }
 
 .worksheet-table-panel {
@@ -370,6 +339,7 @@ const getStatusClass = (type: string, value: number) => {
   align-items: center;
   justify-content: space-between;
 }
+
 .table-head {
   flex: none;
   height: 50px;
@@ -406,7 +376,6 @@ const getStatusClass = (type: string, value: number) => {
   width: max-content;
   background: #ffffff;
 }
-
 
 .data-row {
   display: flex;
@@ -462,7 +431,6 @@ const getStatusClass = (type: string, value: number) => {
   border-radius: 0 999px 999px 0;
 }
 
-
 .data-cell {
   display: flex !important;
   flex: 0 0 auto;
@@ -507,16 +475,6 @@ const getStatusClass = (type: string, value: number) => {
   justify-content: flex-start;
   text-align: left;
 }
-
-.pagination-bar {
-  flex: none;
-  justify-content: flex-end;
-  gap: 10px;
-  height: 48px;
-  padding: 0 14px;
-  border-top: 1px solid #edf3f8;
-}
-
 
 /* 设备编号：通常由字母和数字组成，使用等宽字体更清晰，颜色适中 */
 .data-cell--device {
