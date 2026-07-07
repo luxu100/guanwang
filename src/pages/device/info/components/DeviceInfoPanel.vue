@@ -4,7 +4,7 @@
     <view class="detail-summary-panel">
       <view class="detail-summary">
         <view class="detail-summary__main">
-          <text class="detail-summary__label">设备详情</text>
+          <text class="detail-summary__label">  {{ ti('title') }}</text>
           <text class="detail-summary__number">
             {{ deviceData.deviceNumber || '未知编号' }}
           </text>
@@ -41,7 +41,7 @@
           <text class="detail-item__value">{{ f.value }}</text>
         </view>
       </view>
-      <view v-else class="detail-empty">暂无数据</view>
+      <view v-else class="detail-empty">{{ ti('empty') }}</view>
     </view>
   </view>
 </template>
@@ -54,15 +54,44 @@ import {
   getTubeNetworkListT,
   getDeptByIdT
 } from '@/services/device/info.typed';
+import {createScopedT} from "@/i18n";
+const ti = createScopedT("devicePage.info");
+const ts = createScopedT("devicePage.status");
 
 // ================= 1. 字典映射表 (基于数据库 DDL) =================
 const DICT_MAPS: Record<string, Record<number, string>> = {
-  enableState: { 0: '停用', 1: '启用' },
-  onlineStatus: { 0: '离线', 1: '在线' },
-  installState: { 0: '未安装', 1: '已安装' },
-  installMode: { 0: '固定点', 1: '流动点' },
-  leakStatus: { 0: '渗漏', 1: '正常', 2: '疑似', 3: '未知' },
-  tubeType: { 1: '主线', 2: '二级支线', 3: '三级支线' }
+  enableState: {
+    0: 'status.disabled',
+    1: 'status.enabled'
+  },
+
+  onlineStatus: {
+    0: 'online.offline',
+    1: 'online.online'
+  },
+
+  installState: {
+    0: 'install.uninstalled',
+    1: 'install.installed'
+  },
+
+  installMode: {
+    0: 'installMode.fixed',
+    1: 'installMode.mobile'
+  },
+
+  leakStatus: {
+    0: 'leak.leak',
+    1: 'leak.normal',
+    2: 'leak.suspected',
+    3: 'leak.unknown'
+  },
+
+  tubeType: {
+    1: 'tubeType.1',
+    2: 'tubeType.2',
+    3: 'tubeType.3'
+  }
 };
 
 // ================= 2. 字段配置 (配置驱动) =================
@@ -75,43 +104,41 @@ interface FieldConfig {
 
 // 基础信息
 const baseFieldsConfig: FieldConfig[] = [
-  { key: 'deviceNumber', label: '设备编号', type: 'text' },
-  { key: 'productName', label: '产品型号', type: 'text' }, // 注意：这个值来自关联数据
-  { key: 'deviceImei', label: 'IMEI', type: 'text' },
-  { key: 'deviceImsi', label: 'IMSI', type: 'text' },
-  { key: 'serialNumber', label: '序列号', type: 'text' },
-  { key: 'hardwareVersion', label: '硬件版本', type: 'text' },
-  { key: 'softwareVersion', label: '软件版本', type: 'text' },
-  { key: 'factoryTime', label: '出厂时间', type: 'date' }
+  { key: 'deviceNumber', label: ti('fields.base.deviceNumber'), type: 'text' },
+  { key: 'productName', label: ti('fields.base.productName'), type: 'text' },
+  { key: 'deviceImei', label: ti('fields.base.deviceImei'), type: 'text' },
+  { key: 'deviceImsi', label: ti('fields.base.deviceImsi'), type: 'text' },
+  { key: 'serialNumber', label: ti('fields.base.serialNumber'), type: 'text' },
+  { key: 'hardwareVersion', label: ti('fields.base.hardwareVersion'), type: 'text' },
+  { key: 'softwareVersion', label: ti('fields.base.softwareVersion'), type: 'text' },
+  { key: 'factoryTime', label: ti('fields.base.factoryTime'), type: 'date' }
 ];
-
 // 安装信息
 const installFieldsConfig: FieldConfig[] = [
-  { key: 'installState', label: '安装状态', type: 'dict', dict: 'installState' },
-  { key: 'installMode', label: '安装模式', type: 'dict', dict: 'installMode' },
-  { key: 'installAddress', label: '安装地址', type: 'text' },
-  { key: 'installLongitude', label: '经度', type: 'text' },
-  { key: 'installLatitude', label: '纬度', type: 'text' },
-  { key: 'tubeGroup', label: '管组编号', type: 'text' },
-  { key: 'tubeOrder', label: '管线排序', type: 'text' }
+  { key: 'installState', label: ti('fields.install.installState'), type: 'dict', dict: 'installState' },
+  { key: 'installMode', label: ti('fields.install.installMode'), type: 'dict', dict: 'installMode' },
+  { key: 'installAddress', label: ti('fields.install.installAddress'), type: 'text' },
+  { key: 'installLongitude', label: ti('fields.install.installLongitude'), type: 'text' },
+  { key: 'installLatitude', label: ti('fields.install.installLatitude'), type: 'text' },
+  { key: 'tubeGroup', label: ti('fields.install.tubeGroup'), type: 'text' },
+  { key: 'tubeOrder', label: ti('fields.install.tubeOrder'), type: 'text' }
 ];
-
 // 运行状态
 const statusFieldsConfig: FieldConfig[] = [
-  { key: 'enableState', label: '启用状态', type: 'dict', dict: 'enableState' },
-  { key: 'onlineStatus', label: '在线状态', type: 'dict', dict: 'onlineStatus' },
-  { key: 'leakStatus', label: '渗漏状态', type: 'dict', dict: 'leakStatus' },
-  { key: 'leakProperty', label: '特征值', type: 'text' },
-  { key: 'lastSamplingTime', label: '最后采样时间', type: 'text' },
-  { key: 'observeDay', label: '观测天数', type: 'date' }
+  { key: 'enableState', label: ti('fields.status.enableState'), type: 'dict', dict: 'enableState' },
+  { key: 'onlineStatus', label: ti('fields.status.onlineStatus'), type: 'dict', dict: 'onlineStatus' },
+  { key: 'leakStatus', label: ti('fields.status.leakStatus'), type: 'dict', dict: 'leakStatus' },
+  { key: 'leakProperty', label: ti('fields.status.leakProperty'), type: 'text' },
+  { key: 'lastSamplingTime', label: ti('fields.status.lastSamplingTime'), type: 'text' },
+  { key: 'observeDay', label: ti('fields.status.observeDay'), type: 'date' }
 ];
 
 // 管线信息
 const tubeFieldsConfig: FieldConfig[] = [
-  { key: 'tubeGroup', label: '管组编号', type: 'text' },
-  { key: 'tubeName', label: '管线名称', type: 'text' }, // 来自关联数据
-  { key: 'tubeType', label: '管线类型', type: 'dict', dict: 'tubeType' },
-  { key: 'deptName', label: '分区信息', type: 'text' }   // 来自关联数据
+  { key: 'tubeGroup', label: ti('fields.tube.tubeGroup'), type: 'text' },
+  { key: 'tubeName', label: ti('fields.tube.tubeName'), type: 'text' },
+  { key: 'tubeType', label: ti('fields.tube.tubeType'), type: 'dict', dict: 'tubeType' },
+  { key: 'deptName', label: ti('fields.tube.deptName'), type: 'text' }
 ];
 
 // ================= 3. 核心解析逻辑 =================
@@ -133,7 +160,7 @@ const resolveFields = (configs: FieldConfig[]): { key: string; label: string; va
       value = formatDate(value);
     } else if (config.type === 'dict' && config.dict) {
       const map = DICT_MAPS[config.dict as keyof typeof DICT_MAPS];
-      value = map?.[value] ?? '未知';
+      value = map?.[value] ? ts(map[value]) : '--';
     } else {
       // 普通文本处理空值
       value = value !== undefined && value !== null && value !== '' ? value : '--';
@@ -184,6 +211,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   (e: 'update:visible', value: boolean): void;
+  (e: 'edit', data: Partial<Device>): void;
 }>();
 
 const product = ref<DeviceProduct>();
@@ -193,10 +221,10 @@ const dept = ref<Dept>();
 const activeTab = ref('base');
 
 const detailTabs = [
-  { label: '基础信息', value: 'base' },
-  { label: '安装信息', value: 'install' },
-  { label: '运行状态', value: 'status' },
-  { label: '管线信息', value: 'tube' }
+  { label: ti('tabs.base'), value: 'base' },
+  { label: ti('tabs.install'), value: 'install' },
+  { label: ti('tabs.status'), value: 'status' },
+  { label: ti('tabs.tube'), value: 'tube' }
 ];
 
 // 根据当前激活的 Tab，动态返回对应的字段列表
@@ -219,13 +247,25 @@ const statusClass = computed(() => {
 });
 
 const getDeviceStatusLabel = computed(() => {
-  const status = props.deviceData.onlineStatus ?? -1;
-  return { 1: '在线', 0: '离线', [-1]: '未知' }[status] || '未知';
+  const status = props.deviceData.onlineStatus;
+
+  if (status === 1) return ts('online.online');
+  if (status === 0) return ts('online.offline');
+
+  return ts('online.unknown');
 });
 
 const getDeviceTypeLabel = computed(() => {
-  return props.deviceData.deviceType || '通用设备';
+  return props.deviceData.deviceType;
 });
+
+function closeDrawer() {
+  emit('update:visible', false);
+}
+
+function handleEdit() {
+  emit('edit', props.deviceData);
+}
 
 // 监听数据加载
 watch(

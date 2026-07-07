@@ -104,7 +104,9 @@
     "page": {
       "selectDevice": "请选择左侧设备查看详情",
       "addDevice": "新增设备",
-      "editDevice": "编辑设备"
+      "editDevice": "编辑设备",
+      "bindDeptTitle": "绑定部门",
+      "bindDeptSubtitle": "请选择想要绑定的部门"
     },
     "fields": {
       "deviceNumber": "设备编号",
@@ -128,9 +130,15 @@
       "selectDevice": "请先选择设备",
       "exportNotReady": "导出功能暂未开放",
       "importNotReady": "导入功能暂未开放",
+      "bindValveNotReady": "绑定阀门功能暂未开放",
       "confirmDeleteTitle": "提示",
       "confirmDeleteContent": "确定要删除设备 {deviceNumber} 吗？",
-      "operationFailed": "操作失败"
+      "operationFailed": "操作失败",
+      "alreadyBoundToThisDept": "该设备已绑定此部门",
+      "bindSuccess": "绑定成功",
+      "bindFailed": "绑定失败",
+      "requestError": "请求异常",
+      "fetchDeptTreeFailed": "获取部门树失败"
     },
     "status": {
       "product": {
@@ -216,7 +224,7 @@
         "installMode": "安装模式",
         "address": "安装地址",
         "coordinate": "安装坐标(可手动输入或点击地图拾取)",
-        "coordinatePlaceholder": "格式:经度,纬度 （如 121.4737,31.2304)",
+        "coordinatePlaceholder": "格式:经度,纬度 （如 121.4737,31.2304)"
       },
       "status": {
         "title": "设备状态",

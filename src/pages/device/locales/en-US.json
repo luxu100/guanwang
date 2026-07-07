@@ -104,7 +104,9 @@
     "page": {
       "selectDevice": "Please select a device from the left to view its details.",
       "addDevice": "Add Device",
-      "editDevice": "Edit Device"
+      "editDevice": "Edit Device",
+      "bindDeptTitle": "Bind Department",
+      "bindDeptSubtitle": "Please select the department to bind"
     },
     "fields": {
       "deviceNumber": "Device No.",
@@ -128,9 +130,15 @@
       "selectDevice": "Please select a device first",
       "exportNotReady": "Export not available yet",
       "importNotReady": "Import not available yet",
+      "bindValveNotReady": "Bind Valve not available yet",
       "confirmDeleteTitle": "Confirm",
       "confirmDeleteContent": "Are you sure you want to delete device {deviceNumber}?",
-      "operationFailed": "Operation failed"
+      "operationFailed": "Operation failed",
+      "alreadyBoundToThisDept": "Device is already bound to this department",
+      "bindSuccess": "Bound successfully",
+      "bindFailed": "Binding failed",
+      "requestError": "Request error",
+      "fetchDeptTreeFailed": "Failed to fetch department tree"
     },
     "status": {
       "product": {

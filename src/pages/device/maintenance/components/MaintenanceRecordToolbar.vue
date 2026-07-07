@@ -23,6 +23,8 @@
 import { computed,ref } from "vue";
 import XBaseToolbar from "@/pages/device/components/x/XBaseToolbar.vue";
 import type { Field } from "@/pages/device/components/x/types";
+import {createScopedT} from "@/i18n";
+const t = createScopedT("devicePage");
 
 const props = defineProps<{
   modelValue: {
@@ -63,18 +65,18 @@ const model = computed({
 const fields: Field[] = [
   {
     key: "maintainType",
-    label: "维护类型",
+    label: t('maintain.fields.type'),
     type: "select",
     dict: "maintainType"
   },
   {
     key: "startTime",
-    label: "开始时间",
+    label: t('maintain.fields.startTime'),
     type: "date"
   },
   {
     key: "endTime",
-    label: "结束时间",
+    label: t('maintain.fields.endTime'),
     type: "date"
   }
 ];
@@ -82,11 +84,11 @@ const fields: Field[] = [
 // ===== 字典 =====
 const dictMap = {
   maintainType: [
-    { label: "全部", value: null },
-    { label: "拆卸", value: 0 },
-    { label: "安装", value: 1 },
-    { label: "维护", value: 2 },
-    { label: "巡检", value: 3 }
+    { label: t('common.all'), value: '' },
+    { label: t('status.maintain.remove'), value: 0},
+    { label: t('status.maintain.install'), value: 1},
+    { label: t('status.maintain.maintenance'), value: 2},
+    { label: t('status.maintain.inspect'), value: 3 }
   ]
 };
 </script>

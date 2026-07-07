@@ -89,8 +89,8 @@
       v-model:visible="treeVisible"
       v-model="deptId"
       :tree-data="deptTree"
-      title="绑定部门"
-      subtitle="请选择想要绑定的部门"
+      :title="t('page.bindDeptTitle')"
+      :subtitle="t('page.bindDeptSubtitle')"
       @confirm="onDeptConfirm"
   />
 </template>
@@ -631,7 +631,7 @@ async function handleSubmit(form: DeviceCreateForm) {
 
   } catch (e: any) {
     uni.showToast({
-      title: e?.message || "操作失败",
+      title: e?.message || t('message.operationFailed'),
       icon: "error"
     });
   }
@@ -651,14 +651,14 @@ async function submitCreate(form: DeviceCreateForm) {
 
   if (res.code !== 200) {
     uni.showToast({
-      title: res.msg || "新增失败",
+      title: res.msg || t('message.addFail'),
       icon: "error"
     });
     throw new Error(res.msg);
   }
 
   uni.showToast({
-    title: "新增成功",
+    title: t('message.addSuccess'),
     icon: "success"
   });
 }
@@ -682,21 +682,21 @@ async function submitUpdate(form: DeviceCreateForm) {
 
   if (res.code !== 200) {
     uni.showToast({
-      title: res.msg || "更新失败",
+      title: res.msg || t('message.updateFail'),
       icon: "error"
     });
     throw new Error(res.msg);
   }
 
   uni.showToast({
-    title: "更新成功",
+    title: t('message.updateSuccess'),
     icon: "success"
   });
 }
 
 function handleEdit() {
   if (!selectedDevice.value) {
-    uni.showToast({ title: "请选择记录", icon: "none" });
+    uni.showToast({ title: t('message.selectRecord'), icon: 'none' });
     return;
   }
 
@@ -722,7 +722,7 @@ async function handleDelete() {
   try {
     if (!selectedDevice.value) {
       uni.showToast({
-        title: '请先选择设备',
+        title: t('message.selectDevice'),
         icon: 'none'
       });
       return;
@@ -731,8 +731,12 @@ async function handleDelete() {
     const device = selectedDevice.value;
 
     uni.showModal({
-      title: '提示',
-      content: `确定要删除设备 ${device.deviceNumber} 吗？`,
+      title: t('message.confirmDeleteTitle'),
+      content: t('message.confirmDeleteContent', {
+        deviceNumber: device.deviceNumber
+      }),
+      cancelText: t('common.cancel'),
+      confirmText: t('common.confirm'),
       success: async (res) => {
         if (!res.confirm) return;
 
@@ -741,7 +745,7 @@ async function handleDelete() {
         await fetchDevices();
 
         uni.showToast({
-          title: '删除成功',
+          title: t('message.deleteSuccess'),
           icon: 'success'
         });
 
@@ -754,7 +758,7 @@ async function handleDelete() {
 
   } catch (e: any) {
     uni.showToast({
-      title: e?.message || '删除失败',
+      title: e?.message || t('message.deleteFail'),
       icon: 'error'
     });
   }
@@ -762,21 +766,21 @@ async function handleDelete() {
 
 function handleExport() {
   uni.showToast({
-    title: '导出功能暂未开放',
+    title: t('message.exportNotReady'),
     icon: 'none'
   });
 }
 
 function handleImport() {
   uni.showToast({
-    title: '导入功能暂未开放',
+    title: t('message.importNotReady'),
     icon: 'none'
   });
 }
 
 function handleBindValve() {
   uni.showToast({
-    title: '绑定阀门功能暂未开放',
+    title: t('message.bindValveNotReady'),
     icon: 'none'
   });
 }
@@ -798,14 +802,14 @@ async function onDeptConfirm(node: PartitionNode | null) {
   if (!node) return;
   else if(node.id === currentDevice.value?.deptId){
     uni.showToast({
-      title: '该设备已绑定此部门',
+      title: t('message.alreadyBoundToThisDept'),
       icon: 'none'
     });
     return;
   }
   if (!currentDevice.value) {
     uni.showToast({
-      title: "请选择设备",
+      title: t('message.pleaseSelectDevice'),
       icon: "none"
     });
     return;
@@ -820,19 +824,19 @@ async function onDeptConfirm(node: PartitionNode | null) {
     const res = await createDeptDeviceT(deptDevice);
     if (res.code === 200) {
       uni.showToast({
-        title: res.msg || "绑定成功",
+        title: res.msg || t('message.bindSuccess'),
         icon: "success"
       });
     } else {
       uni.showToast({
-        title: res.msg || "绑定失败",
+        title: res.msg || t('message.bindFailed'),
         icon: "none"
       });
     }
   } catch (e) {
     console.error(e);
     uni.showToast({
-      title:"请求异常",
+      title: t('message.requestError'),
       icon:"none"
     });
   }
@@ -859,7 +863,7 @@ async function fetchDeptTree() {
     );
   } catch (e) {
     deptTree.value = [];
-    console.error("获取部门树失败：", e);
+    console.error(t('message.fetchDeptTreeFailed'), e);
   }
 }
 
