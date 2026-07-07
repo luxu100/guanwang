@@ -1,0 +1,397 @@
+{
+  "devicePage": {
+    "common": {
+      "all": "全部",
+      "cancel": "取消",
+      "confirm": "确定",
+      "close": "关闭",
+      "table": {
+        "index": "序号",
+        "loading": "加载中...",
+        "empty": "暂无数据"
+      },
+      "pagination": {
+        "pageSizePrefix": "每页",
+        "pageSizeSuffix": "条",
+        "prevPage": "上一页",
+        "nextPage": "下一页",
+        "jumpPrefix": "到第",
+        "jumpSuffix": "页",
+        "jumpConfirm": "确定",
+        "page": "第 {current} / {total} 页"
+      }
+    },
+    "toolbar": {
+      "add": "新增",
+      "edit": "编辑",
+      "search": "查询",
+      "reset": "重置",
+      "delete": "删除",
+      "refresh": "刷新",
+      "import": "导入",
+      "export": "导出",
+      "filter": {
+        "placeholder": "请输入"
+      }
+    },
+    "formDialog": {
+      "title": "新增信息",
+      "cancel": "取消",
+      "reset": "清空表单",
+      "submit": "确认提交",
+      "submitting": "提交中...",
+      "close": "关闭",
+      "location": {
+        "placeholder": "格式: 经度,纬度",
+        "pickMap": "地图拾取",
+        "title": "点击地图选取坐标",
+        "selectHint": "请在地图上点击选择",
+        "onlyH5": "地图仅支持 H5 端",
+        "confirm": "确认选点"
+      }
+    },
+    "form": {
+      "inputPlaceholder": "请输入{label}",
+      "selectPlaceholder": "请选择{label}"
+    },
+    "map": {
+      "loadFailed": "腾讯地图加载失败，请检查 Key 的 Web 端域名白名单是否包含当前访问域名",
+      "containerInitFailed": "地图容器初始化失败",
+      "sdkUnavailable": "脚本加载完成但腾讯地图 SDK 不可用",
+      "scriptLoadFailed": "腾讯地图 SDK 脚本加载失败",
+      "onlyH5": "地图仅支持 H5 端",
+      "mapKeyEmpty": "腾讯地图 Key 为空",
+      "apiUnavailable": "腾讯地图 API 不可用"
+    },
+    "datetimePicker": {
+      "placeholder": "请选择时间",
+      "title": "选择时间",
+
+      "tabs": {
+        "date": "日期",
+        "time": "时间"
+      },
+
+      "timePanelTitle": "选择时间",
+
+      "week": ["日", "一", "二", "三", "四", "五", "六"],
+
+      "actions": {
+        "clear": "清除",
+        "cancel": "取消",
+        "confirm": "确定"
+      },
+
+      "toast": {
+        "minError": "截止时间必须大于发起时间"
+      },
+
+      "calendarTitle": "{year}/{month}"
+    },
+    "coordinates": {
+      "lng": "经度",
+      "lat": "纬度"
+    },
+    "leakMap": {
+      "unsupported": "当前地图 SDK 仅支持 H5 端展示",
+      "loadFailed": "腾讯地图加载失败，请检查 Key 的 Web 端域名白名单是否包含当前访问域名",
+      "initFailed": "地图容器初始化失败"
+    },
+    "page": {
+      "selectDevice": "请选择左侧设备查看详情",
+      "addDevice": "新增设备",
+      "editDevice": "编辑设备"
+    },
+    "fields": {
+      "deviceNumber": "设备编号",
+      "deviceType": "产品型号",
+      "onlineStatus": "在线状态",
+      "enableState": "启用状态",
+      "leakStatus": "渗漏状态",
+      "startTime": "开始时间",
+      "endTime": "结束时间",
+      "maintainType": "维护类型",
+      "receiveStatus": "接受状态"
+    },
+    "message": {
+      "addSuccess": "创建成功",
+      "addFail": "创建失败",
+      "updateSuccess": "更新成功",
+      "updateFail": "更新失败",
+      "deleteSuccess": "删除成功",
+      "deleteFail": "删除失败",
+      "selectRecord": "请选择记录",
+      "selectDevice": "请先选择设备",
+      "exportNotReady": "导出功能暂未开放",
+      "importNotReady": "导入功能暂未开放",
+      "confirmDeleteTitle": "提示",
+      "confirmDeleteContent": "确定要删除设备 {deviceNumber} 吗？",
+      "operationFailed": "操作失败"
+    },
+    "status": {
+      "product": {
+        "LD18": "LD18",
+        "LD18E_FM": "LD18E-FM",
+        "LD18HE_FM": "LD18HE-FM"
+      },
+      "status": {
+        "enabled": "启用",
+        "disabled": "停用"
+      },
+      "install": {
+        "installed": "已安装",
+        "uninstalled": "未安装"
+      },
+      "online": {
+        "online": "在线",
+        "offline": "离线",
+        "unknown": "未知"
+      },
+      "leak": {
+        "normal": "正常",
+        "leak": "渗漏",
+        "suspected": "疑似",
+        "unknown": "未知"
+      },
+      "receive": {
+        "normal": "正常接收",
+        "short": "短时中断",
+        "long": "长时间无信号",
+        "error": "通信异常",
+        "uninit": "未初始化"
+      },
+      "maintain": {
+        "remove": "拆卸",
+        "install": "安装",
+        "maintenance": "维护",
+        "inspect": "巡检"
+      },
+      "installMode": {
+        "fixed": "固定点",
+        "mobile": "流动点"
+      },
+      "tubeType": {
+        "1": "主线",
+        "2": "二级支线",
+        "3": "三级支线"
+      }
+    },
+    "deviceTable": {
+      "title": "设备创建记录",
+      "deviceNumber": "设备编号",
+      "deviceType": "设备类型",
+      "enableState": "启用状态",
+      "installState": "安装状态",
+      "installMode": "安装模式",
+      "installAddress": "安装地址",
+      "coordinate": "设备坐标",
+      "tubeGroup": "管组编号",
+      "leakStatus": "渗漏状态",
+      "lastSamplingTime": "最后采样时间",
+      "onlineStatus": "在线状态",
+      "mapTitle": "设备坐标"
+    },
+    "addSchema": {
+      "basicInfo": {
+        "title": "基础信息",
+        "deviceNumber": "设备编号",
+        "deviceNumberPlaceholder": "请输入设备编号",
+        "productModel": "产品型号",
+        "deviceType": "设备类型"
+      },
+      "identification": {
+        "title": "设备标识",
+        "nbNumber": "NB编号",
+        "imei": "IMEI",
+        "imsi": "IMSI",
+        "serialNumber": "序列号"
+      },
+      "install": {
+        "title": "安装信息",
+        "installState": "安装状态",
+        "installMode": "安装模式",
+        "address": "安装地址",
+        "longitude": "经度",
+        "latitude": "纬度"
+      },
+      "status": {
+        "title": "设备状态",
+        "enableState": "启用状态",
+        "leakStatus": "渗漏状态",
+        "leakValue": "渗漏值"
+      },
+      "tube": {
+        "title": "管网信息",
+        "group": "管组编号",
+        "order": "管序号"
+      },
+      "system": {
+        "title": "系统信息（可选）",
+        "hardwareVersion": "硬件版本",
+        "softwareVersion": "软件版本"
+      },
+
+      "option": {
+        "product": {
+          "LD18": "LD18",
+          "LD18E_FM": "LD18E-FM",
+          "LD18HE_FM": "LD18HE-FM"
+        },
+        "install": {
+          "installed": "已安装",
+          "uninstalled": "未安装"
+        },
+        "installMode": {
+          "fixed": "固定点",
+          "mobile": "流动点"
+        },
+        "status": {
+          "enabled": "启用",
+          "disabled": "停用"
+        },
+        "leak": {
+          "normal": "正常",
+          "leak": "渗漏",
+          "suspected": "疑似",
+          "unknown": "未知"
+        }
+      }
+    },
+    "info": {
+      "title": "设备详情",
+
+      "tabs": {
+        "base": "基础信息",
+        "install": "安装信息",
+        "status": "运行状态",
+        "tube": "管线信息"
+      },
+
+      "empty": "暂无数据",
+
+      "fields": {
+        "base": {
+          "deviceNumber": "设备编号",
+          "productName": "产品型号",
+          "deviceImei": "IMEI",
+          "deviceImsi": "IMSI",
+          "serialNumber": "序列号",
+          "hardwareVersion": "硬件版本",
+          "softwareVersion": "软件版本",
+          "factoryTime": "出厂时间"
+        },
+
+        "install": {
+          "installState": "安装状态",
+          "installMode": "安装模式",
+          "installAddress": "安装地址",
+          "installLongitude": "经度",
+          "installLatitude": "纬度",
+          "tubeGroup": "管组编号",
+          "tubeOrder": "管线排序"
+        },
+
+        "status": {
+          "enableState": "启用状态",
+          "onlineStatus": "在线状态",
+          "leakStatus": "渗漏状态",
+          "leakProperty": "特征值",
+          "lastSamplingTime": "最后采样时间",
+          "observeDay": "观测天数"
+        },
+
+        "tube": {
+          "tubeGroup": "管组编号",
+          "tubeName": "管线名称",
+          "tubeType": "管线类型",
+          "deptName": "分区信息"
+        }
+      }
+    },
+    "maintain": {
+      "fields" : {
+        "type" : "维护类型",
+        "startTime" : "开始时间",
+        "endTime" : "结束时间"
+      },
+      "maintainTable": {
+        "title": "拆装维护详情",
+        "deviceNumber": "设备编号",
+        "type": "维护类型",
+        "time": "维护时间",
+        "address": "维护地址",
+        "installMode": "安装模式",
+        "tubeGroup": "管组编号",
+        "tubeMaterial": "管材",
+        "tubeBore": "管径",
+        "remark": "备注"
+      },
+      "page": {
+        "addMaintenance": "新增维护记录",
+        "editMaintenance": "编辑维护记录"
+      },
+      "addSchema": {
+        "basicInfo": {
+          "title": "基础信息",
+          "deviceNumber": "设备编号",
+          "maintainType": "维护类型",
+          "maintainTime": "维护时间",
+          "maintainAddress": "维护地址",
+          "installMode": "安装模式",
+          "tubeGroup": "管组编号",
+          "tubeMaterial": "管材",
+          "tubeBore": "管径",
+          "remark": "备注"
+        },
+        "extendInfo": {
+          "title": "扩展信息（可选）",
+          "maintainAccount": "维护人员",
+          "maintainFeedback": "维护反馈",
+          "maintainCoordinate": "坐标"
+        },
+        "option": {
+          "maintainType": {
+            "remove": "拆卸",
+            "install": "安装",
+            "maintenance": "维护",
+            "inspect": "巡检"
+          },
+          "installMode": {
+            "fixed": "固定点",
+            "mobile": "流动点"
+          }
+        }
+      },
+      "message": {
+        "confirmDeleteContent": "确定删除该维护记录吗？"
+      }
+    },
+    "device-status":{
+      "statusTable": {
+        "title": "设备状态列表",
+
+        "deviceNumber": "设备编号",
+        "leakStatus": "渗漏状态",
+
+        "firmwareVersion": "固件版本",
+        "hardwareVersion": "硬件版本",
+
+        "workMode": "工作模式",
+
+        "batteryVoltage": "电池电压",
+        "deviceTemperature": "设备温度",
+
+        "signalIntensity": "信号强度",
+        "signalQuality": "信号质量",
+
+        "coordinateLocation": "坐标位置",
+
+        "leakEsa": "ESA指标",
+        "leakIntensity": "漏损强度",
+        "leakFrequency": "漏损频率",
+
+        "uploadTime": "上报时间"
+      }
+    }
+  }
+}

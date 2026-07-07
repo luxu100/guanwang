@@ -60,7 +60,7 @@
             v-if="!currentDevice?.id"
             class="detail-empty"
         >
-          请选择左侧设备查看详情
+          {{ t("page.selectDevice") }}
         </view>
 
         <component
@@ -79,7 +79,7 @@
       v-model:visible="dialogVisible"
       v-model="formData"
       :schema="addSchema"
-      :title="isEditMode ? '编辑设备' : '新增设备'"
+      :title="isEditMode ? t('page.editDevice') : t('page.addDevice')"
       @submit="handleSubmit"
       @cancel="dialogVisible = false"
   />
@@ -117,6 +117,10 @@ import XDynamicDialog from "@/pages/device/components/x/XDynamicDialog.vue";
 import XTreeSelectDialog from "@/pages/device/components/x/XTreeSelectDialog.vue";
 import type {FormSection} from "@/pages/device/components/x/types";
 import type {PartitionNode} from "@/pages/device/components/x/XTreeNode.vue";
+
+import {createScopedT} from "@/i18n";
+const t = createScopedT("devicePage");
+
 /**
  * =========================
  * mode

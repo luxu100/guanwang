@@ -6,7 +6,7 @@
       <view class="dialog-head">
         <view class="dialog-head-content">
           <view class="dialog-title">
-            {{ title || "选择项目" }}
+            {{ title }}
           </view>
           <view v-if="subtitle" class="dialog-subtitle">
             {{ subtitle }}
@@ -25,7 +25,7 @@
             v-if="!treeData || treeData.length === 0"
             class="empty-state"
         >
-          暂无数据
+          {{t('common.table.empty') }}
         </view>
         <XTreeNode
             v-for="node in treeData"
@@ -42,13 +42,13 @@
             class="secondary-button"
             @click="closeDialog"
         >
-          取消
+          {{t('common.cancel') }}
         </button>
         <button
             class="primary-button"
             @click="confirm"
         >
-          确认
+          {{t('common.confirm') }}
         </button>
       </view>
     </view>
@@ -59,6 +59,8 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import XTreeNode, { type PartitionNode } from "./XTreeNode.vue";
+import {createScopedT} from "@/i18n";
+const t = createScopedT("devicePage");
 
 const props = defineProps<{
   visible: boolean;
