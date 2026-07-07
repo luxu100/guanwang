@@ -18,7 +18,8 @@
         "jumpPrefix": "到第",
         "jumpSuffix": "页",
         "jumpConfirm": "确定",
-        "page": "第 {current} / {total} 页"
+        "page": "第 {current} / {total} 页",
+        "totalRecords": "共 {total} 条"
       }
     },
     "toolbar": {
@@ -32,7 +33,9 @@
       "export": "导出",
       "filter": {
         "placeholder": "请输入"
-      }
+      },
+      "bindValve": "绑定阀门",
+      "bindDept": "绑定部门"
     },
     "formDialog": {
       "title": "新增信息",
@@ -61,7 +64,8 @@
       "scriptLoadFailed": "腾讯地图 SDK 脚本加载失败",
       "onlyH5": "地图仅支持 H5 端",
       "mapKeyEmpty": "腾讯地图 Key 为空",
-      "apiUnavailable": "腾讯地图 API 不可用"
+      "apiUnavailable": "腾讯地图 API 不可用",
+      "noCoordinate": "该设备暂无坐标信息,无法定位!"
     },
     "datetimePicker": {
       "placeholder": "请选择时间",
@@ -211,8 +215,8 @@
         "installState": "安装状态",
         "installMode": "安装模式",
         "address": "安装地址",
-        "longitude": "经度",
-        "latitude": "纬度"
+        "coordinate": "安装坐标(可手动输入或点击地图拾取)",
+        "coordinatePlaceholder": "格式:经度,纬度 （如 121.4737,31.2304)",
       },
       "status": {
         "title": "设备状态",

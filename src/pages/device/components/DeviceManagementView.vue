@@ -31,6 +31,7 @@
         @on-export="handleExport"
         @on-import="handleImport"
         @bind-dept="handleBindDept"
+        @bind-valve="handleBindValve"
     />
 
     <!-- 主体 -->
@@ -109,7 +110,6 @@ import {
 import DeviceInfoPanel from "../info/components/DeviceInfoPanel.vue";
 import MaintenancePanel from "../maintenance/components/MaintenancePanel.vue";
 import DeviceStatusPanel from "../status/components/DeviceStatusPanel.vue";
-import ValvePanel from "../valve/components/ValvePanel.vue";
 
 import DeviceToolbar from "./DeviceToolbar.vue";
 import DeviceTableView from "./DeviceTableView.vue";
@@ -127,7 +127,7 @@ const t = createScopedT("devicePage");
  * =========================
  */
 const props = defineProps<{
-  mode: "info" | "maintenance" | "status" | "valve";
+  mode: "info" | "maintenance" | "status" ;
 }>();
 
 /**
@@ -165,14 +165,14 @@ const deviceModuleConfig = {
     },
 
     toolbar: [
-      { key: "deviceNumber", label: "设备编号", type: "input" },
-      { key: "deviceType", label: "产品型号", type: "select", dict: "product" },
-      { key: "onlineStatus", label: "在线状态", type: "select", dict: "online" },
-      { key: "enableState", label: "启用状态", type: "select", dict: "enable" },
-      { key: "leakStatus", label: "渗漏状态", type: "select", dict: "leak" },
-      { key: "startTime", label: "开始时间", type: "date"},
-      { key: "endTime", label: "结束时间", type: "date"},
-    ],
+      { key: "deviceNumber", labelKey: "fields.deviceNumber", type: "input" },
+      { key: "deviceType", labelKey: "fields.deviceType", type: "select", dict: "product" },
+      { key: "onlineStatus", labelKey: "fields.onlineStatus", type: "select", dict: "online" },
+      { key: "enableState", labelKey: "fields.enableState", type: "select", dict: "enable" },
+      { key: "leakStatus", labelKey: "fields.leakStatus", type: "select", dict: "leak" },
+      { key: "startTime", labelKey: "fields.startTime", type: "date" },
+      { key: "endTime", labelKey: "fields.endTime", type: "date" },
+    ]
   },
 
   maintenance: {
@@ -189,14 +189,14 @@ const deviceModuleConfig = {
     },
 
     toolbar: [
-      { key: "deviceNumber", label: "设备编号", type: "input" },
-      { key: "deviceType", label: "产品型号", type: "select", dict: "product" },
-      { key: "onlineStatus", label: "在线状态", type: "select", dict: "online" },
-      { key: "enableState", label: "启用状态", type: "select", dict: "enable" },
-      { key: "leakStatus", label: "渗漏状态", type: "select", dict: "leak" },
-      { key: "startTime", label: "开始时间", type: "date"},
-      { key: "endTime", label: "结束时间", type: "date"},
-    ],
+      { key: "deviceNumber", labelKey: "fields.deviceNumber", type: "input" },
+      { key: "deviceType", labelKey: "fields.deviceType", type: "select", dict: "product" },
+      { key: "onlineStatus", labelKey: "fields.onlineStatus", type: "select", dict: "online" },
+      { key: "enableState", labelKey: "fields.enableState", type: "select", dict: "enable" },
+      { key: "leakStatus", labelKey: "fields.leakStatus", type: "select", dict: "leak" },
+      { key: "startTime", labelKey: "fields.startTime", type: "date" },
+      { key: "endTime", labelKey: "fields.endTime", type: "date" },
+    ]
   },
 
   status: {
@@ -215,42 +215,17 @@ const deviceModuleConfig = {
     },
 
     toolbar: [
-      { key: "deviceNumber", label: "设备编号", type: "input" },
-      { key: "deviceType", label: "产品型号", type: "select", dict: "product" },
-      { key: "onlineStatus", label: "在线状态", type: "select", dict: "online" },
-      { key: "enableState", label: "启用状态", type: "select", dict: "enable" },
-      { key: "leakStatus", label: "渗漏状态", type: "select", dict: "leak" },
-      { key: "startTime", label: "开始时间", type: "date"},
-      { key: "endTime", label: "结束时间", type: "date"},
-      { key: "maintainType", label: "维护类型", type: "select", dict: "maintain"},
-      { key: "receiveStatus", label: "接受状态", type: "select",dict: "receive"},
-    ],
+      { key: "deviceNumber", labelKey: "fields.deviceNumber", type: "input" },
+      { key: "deviceType", labelKey: "fields.deviceType", type: "select", dict: "product" },
+      { key: "onlineStatus", labelKey: "fields.onlineStatus", type: "select", dict: "online" },
+      { key: "enableState", labelKey: "fields.enableState", type: "select", dict: "enable" },
+      { key: "leakStatus", labelKey: "fields.leakStatus", type: "select", dict: "leak" },
+      { key: "startTime", labelKey: "fields.startTime", type: "date" },
+      { key: "endTime", labelKey: "fields.endTime", type: "date" },
+      { key: "maintainType", labelKey: "fields.maintainType", type: "select", dict: "maintain" },
+      { key: "receiveStatus", labelKey: "fields.receiveStatus", type: "select", dict: "receive" }
+    ]
   },
-
-    valve: {
-    panel: ValvePanel,
-
-    searchForm: {
-      deviceNumber: "",
-      deviceType: "",
-      enableState: "",
-      onlineStatus: "",
-      leakStatus: "",
-      startTime: "",
-      endTime: "",
-    },
-
-    toolbar: [
-      { key: "deviceNumber", label: "设备编号", type: "input" },
-      { key: "deviceType", label: "产品型号", type: "select", dict: "product" },
-      { key: "onlineStatus", label: "在线状态", type: "select", dict: "online" },
-      { key: "enableState", label: "启用状态", type: "select", dict: "enable" },
-      { key: "leakStatus", label: "漏损状态", type: "select", dict: "leak" },
-      { key: "startTime", label: "开始时间", type: "date" },
-      { key: "endTime", label: "结束时间", type: "date" },
-    ],
-  },
-
 } as const;
 
 /**
@@ -302,56 +277,56 @@ type SelectOption = {
   value: string | number;
 };
 
-const productOptions = ref<SelectOption[]>([
-  { label: "全部型号", value: "" },
-  { label: "LD18", value: "LD18" },
-  { label: "LD18E-FM", value: "LD18E-FM" },
-  { label: "LD18HE-FM", value: "LD18HE-FM" },
+
+const productOptions = ref([
+  { labelKey: "common.all", value: "" },
+  { labelKey: "status.product.LD18", value: "LD18" },
+  { labelKey: "status.product.LD18E_FM", value: "LD18E-FM" },
+  { labelKey: "status.product.LD18HE_FM", value: "LD18HE-FM" },
 ]);
 
-const enableStateOptions: SelectOption[] = [
-  { label: "全部", value: "" },
-  { label: "启用", value: 1 },
-  { label: "禁用", value: 0 },
+const enableStateOptions = [
+  { labelKey: "common.all", value: "" },
+  { labelKey: "status.status.enabled", value: 1 },
+  { labelKey: "status.status.disabled", value: 0 },
 ];
 
-const maintainTypeOptions: SelectOption[] = [
-  { label: "全部", value: "" },
-  { label: "拆卸", value: 0 },
-  { label: "安装", value: 1 },
-  { label: "维护", value: 2 },
-  { label: "巡检", value: 3 },
+const maintainTypeOptions = [
+  { labelKey: "common.all", value: "" },
+  { labelKey: "status.maintain.remove", value: 0 },
+  { labelKey: "status.maintain.install", value: 1 },
+  { labelKey: "status.maintain.maintenance", value: 2 },
+  { labelKey: "status.maintain.inspect", value: 3 },
 ];
 
-const installStateOptions: SelectOption[] = [
-  { label: "全部", value: "" },
-  { label: "已安装", value: 1 },
-  { label: "未安装", value: 0 },
+const installStateOptions = [
+  { labelKey: "common.all", value: "" },
+  { labelKey: "status.install.installed", value: 1 },
+  { labelKey: "status.install.uninstalled", value: 0 },
 ];
 
-const onlineStatusOptions: SelectOption[] = [
-  { label: "全部", value: "" },
-  { label: "在线", value: 1 },
-  { label: "离线", value: 0 },
+const onlineStatusOptions = [
+  { labelKey: "common.all", value: "" },
+  { labelKey: "status.online.online", value: 1 },
+  { labelKey: "status.online.offline", value: 0 },
 ];
 
-const leakStatusOptions: SelectOption[] = [
-  { label: "全部", value: "" },
-  { label: "渗漏", value: 0 },
-  { label: "正常", value: 1 },
-  { label: "疑似", value: 2 },
-  { label: "未知", value: 3 },
+const leakStatusOptions = [
+  { labelKey: "common.all", value: "" },
+  { labelKey: "status.leak.normal", value: 1 },
+  { labelKey: "status.leak.leak", value: 0 },
+  { labelKey: "status.leak.suspected", value: 2 },
+  { labelKey: "status.leak.unknown", value: 3 },
 ];
 
-const receiveStatusOptions: SelectOption[] = [
-  { label: "全部", value: "" },
-  { label: '正常接收', value: 0 },
-  { label: '短暂中断', value: 1 },
-  { label: '长时间无接收', value: 2 },
-  { label: '通信异常', value: 3 },
-  { label: '未初始化', value: 4 }
+const receiveStatusOptions = [
+  { labelKey: "common.all", value: "" },
+  { labelKey: "status.receive.normal", value: 0 },
+  { labelKey: "status.receive.short", value: 1 },
+  { labelKey: "status.receive.long", value: 2 },
+  { labelKey: "status.receive.error", value: 3 },
+  { labelKey: "status.receive.uninit", value: 4 }
 ];
-
 /**
  * =========================
  * api
@@ -413,89 +388,110 @@ const dialogVisible = ref(false);
 const formData = ref<DeviceCreateForm>({})
 const addSchema = computed<FormSection[]>(() => [
   {
-    title: "基础信息",
+    title: t("addSchema.basicInfo.title"),
     fields: [
       {
         key: "deviceNumber",
-        label: "设备编号",
+        label: t("addSchema.basicInfo.deviceNumber"),
         type: "input",
         required: true,
-        placeholder: "请输入设备编号"
+        placeholder: t("addSchema.basicInfo.deviceNumberPlaceholder")
       },
       {
         key: "productId",
-        label: "产品型号",
+        label: t("addSchema.basicInfo.productModel"),
         type: "select",
         options: deviceProductOptions.value
       },
       {
         key: "deviceType",
-        label: "设备类型",
+        label: t("addSchema.basicInfo.deviceType"),
         type: "select",
         options: [
-          { label: "LD18", value: "LD18" },
-          { label: "LD18E-FM", value: "LD18E-FM" },
-          { label: "LD18HE-FM", value: "LD18HE-FM" }
+          {
+            label: t("addSchema.option.product.LD18"),
+            value: "LD18"
+          },
+          {
+            label: t("addSchema.option.product.LD18E_FM"),
+            value: "LD18E-FM"
+          },
+          {
+            label: t("addSchema.option.product.LD18HE_FM"),
+            value: "LD18HE-FM"
+          }
         ]
-      },
+      }
     ]
   },
 
   {
-    title: "设备标识",
+    title: t("addSchema.identification.title"),
     fields: [
       {
         key: "nbNumber",
-        label: "NB编号",
+        label: t("addSchema.identification.nbNumber"),
         type: "input"
       },
       {
         key: "deviceImei",
-        label: "IMEI",
+        label: t("addSchema.identification.imei"),
         type: "input"
       },
       {
         key: "deviceImsi",
-        label: "IMSI",
+        label: t("addSchema.identification.imsi"),
         type: "input"
       },
       {
         key: "serialNumber",
-        label: "序列号",
+        label: t("addSchema.identification.serialNumber"),
         type: "input"
       }
     ]
   },
 
   {
-    title: "安装信息",
+    title: t("addSchema.install.title"),
     fields: [
       {
         key: "installState",
-        label: "安装状态",
+        label: t("addSchema.install.installState"),
         type: "select",
         options: [
-          { label: "未安装", value: 0 },
-          { label: "已安装", value: 1 }
+          {
+            label: t("addSchema.option.install.uninstalled"),
+            value: 0
+          },
+          {
+            label: t("addSchema.option.install.installed"),
+            value: 1
+          }
         ]
       },
       {
         key: "installMode",
-        label: "安装模式",
+        label: t("addSchema.install.installMode"),
         type: "select",
         options: [
-          { label: "固定点", value: 0 },
-          { label: "流动点", value: 1 }
+          {
+            label: t("addSchema.option.installMode.fixed"),
+            value: 0
+          },
+          {
+            label: t("addSchema.option.installMode.mobile"),
+            value: 1
+          }
         ]
       },
       {
         key: "installAddress",
-        label: "安装地址",
+        label: t("addSchema.install.address"),
         type: "input"
       },
       {
         key: "coordinate",
-        label: "安装坐标(可手动输入或点击地图拾取)",
+        label: t("addSchema.install.coordinate"),
         type: "location",
         placeholder: "格式:经度,纬度 （如 121.4737,31.2304)"
       }
@@ -503,68 +499,87 @@ const addSchema = computed<FormSection[]>(() => [
   },
 
   {
-    title: "设备参数",
+    title: t("addSchema.status.title"),
     fields: [
       {
         key: "enableState",
-        label: "启用状态",
+        label: t("addSchema.status.enableState"),
         type: "select",
         options: [
-          { label: "启用", value: 1 },
-          { label: "禁用", value: 0 }
+          {
+            label: t("addSchema.option.status.enabled"),
+            value: 1
+          },
+          {
+            label: t("addSchema.option.status.disabled"),
+            value: 0
+          }
         ]
       },
       {
         key: "leakStatus",
-        label: "渗漏状态",
+        label: t("addSchema.status.leakStatus"),
         type: "select",
         options: [
-          { label: "正常", value: 1 },
-          { label: "渗漏", value: 0 },
-          { label: "疑似", value: 2 },
-          { label: "未知", value: 3 }
+          {
+            label: t("addSchema.option.leak.normal"),
+            value: 1
+          },
+          {
+            label: t("addSchema.option.leak.leak"),
+            value: 0
+          },
+          {
+            label: t("addSchema.option.leak.suspected"),
+            value: 2
+          },
+          {
+            label: t("addSchema.option.leak.unknown"),
+            value: 3
+          }
         ]
       },
       {
         key: "leakProperty",
-        label: "渗漏值",
-        type: "input"
-      },
-    ]
-  },
-
-  {
-    title: "管网信息",
-    fields: [
-      {
-        key: "tubeGroup",
-        label: "管组编号",
-        type: "input"
-      },
-      {
-        key: "tubeOrder",
-        label: "管序号",
+        label: t("addSchema.status.leakValue"),
         type: "input"
       }
     ]
   },
 
   {
-    title: "系统信息（可选）",
+    title: t("addSchema.tube.title"),
+    fields: [
+      {
+        key: "tubeGroup",
+        label: t("addSchema.tube.group"),
+        type: "input"
+      },
+      {
+        key: "tubeOrder",
+        label: t("addSchema.tube.order"),
+        type: "input"
+      }
+    ]
+  },
+
+  {
+    title: t("addSchema.system.title"),
     fields: [
       {
         key: "hardwareVersion",
-        label: "硬件版本",
+        label: t("addSchema.system.hardwareVersion"),
         type: "input"
       },
       {
         key: "softwareVersion",
-        label: "软件版本",
+        label: t("addSchema.system.softwareVersion"),
         type: "input"
       }
     ]
   }
 ]);
+
 
 function handleAdd() {
   selectedDevice.value = null;
@@ -751,9 +766,17 @@ function handleExport() {
     icon: 'none'
   });
 }
+
 function handleImport() {
   uni.showToast({
     title: '导入功能暂未开放',
+    icon: 'none'
+  });
+}
+
+function handleBindValve() {
+  uni.showToast({
+    title: '绑定阀门功能暂未开放',
     icon: 'none'
   });
 }

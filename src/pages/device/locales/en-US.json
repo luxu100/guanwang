@@ -18,7 +18,8 @@
         "jumpPrefix": "Go to page",
         "jumpSuffix": "",
         "jumpConfirm": "Go",
-        "page": "Page {current} / {total}"
+        "page": "Page {current} / {total}",
+        "totalRecords": "Total: {total}"
       }
     },
     "toolbar": {
@@ -32,7 +33,9 @@
       "export": "Export",
       "filter": {
         "placeholder": "Please enter"
-      }
+      },
+      "bindValve": "bindValve",
+      "bindDept": "bindDept"
     },
     "formDialog": {
       "title": "Add New Record",
@@ -91,6 +94,7 @@
       "onlyH5": "Map is only supported on H5",
       "mapKeyEmpty": "Tencent Map key is empty",
       "apiUnavailable": "Tencent Maps API unavailable",
+      "noCoordinate": "No coordinate data available. Unable to locate."
     },
     "leakMap": {
       "unsupported": "The map SDK is available only on the H5 platform.",
@@ -211,8 +215,8 @@
         "installState": "Install State",
         "installMode": "Install Mode",
         "address": "Install Address",
-        "longitude": "Longitude",
-        "latitude": "Latitude"
+        "coordinate": "Installation Coordinates (Enter manually or pick on map)",
+        "coordinatePlaceholder": "Format: Longitude, Latitude (e.g., 121.4737, 31.2304)"
       },
       "status": {
         "title": "Device Status",
