@@ -1,28 +1,28 @@
 <template>
   <view class="worksheet-table-panel">
     <view class="table-head">
-      <text>设备参数记录</text>
-      <text class="table-head__meta">共 {{ pagination.total }} 条</text>
+      <text>{{ t('deviceSetting.settingTable.title') }}</text>
+      <text class="table-head__meta">  {{ t('common.pagination.totalRecords', { total: pagination.total }) }}</text>
     </view>
 
     <scroll-view class="table-scroll" scroll-x scroll-y>
       <view class="data-table">
         <view class="data-row data-row--header">
-          <text class="data-cell data-cell--index">序号</text>
-          <text class="data-cell data-cell--device">设备编号</text>
-          <text class="data-cell data-cell--status">启用控制</text>
-          <text class="data-cell data-cell--status">巡检控制</text>
-          <text class="data-cell data-cell--status">工作模式</text>
-          <text class="data-cell data-cell--number">测量长度</text>
-          <text class="data-cell data-cell--status">增益模式</text>
-          <text class="data-cell data-cell--number">增益值</text>
-          <text class="data-cell data-cell--number">泄漏阈值</text>
-          <text class="data-cell data-cell--number">上报间隔</text>
-          <text class="data-cell data-cell--time">指令时间</text>
+          <text class="data-cell data-cell--index">{{ t('deviceSetting.settingTable.index') }}</text>
+          <text class="data-cell data-cell--device">{{ t('deviceSetting.settingTable.deviceNumber') }}</text>
+          <text class="data-cell data-cell--status">{{ t('deviceSetting.fields.enabledControl') }}</text>
+          <text class="data-cell data-cell--status">{{ t('deviceSetting.fields.inspectionControl') }}</text>
+          <text class="data-cell data-cell--status">{{ t('deviceSetting.fields.workMode') }}</text>
+          <text class="data-cell data-cell--number">{{ t('deviceSetting.fields.measureLength') }}</text>
+          <text class="data-cell data-cell--status">{{ t('deviceSetting.fields.gainMode') }}</text>
+          <text class="data-cell data-cell--number">{{ t('deviceSetting.fields.gainValue') }}</text>
+          <text class="data-cell data-cell--number">{{ t('deviceSetting.fields.leakThreshold') }}</text>
+          <text class="data-cell data-cell--number">{{ t('deviceSetting.fields.reportInterval') }}</text>
+          <text class="data-cell data-cell--time">{{ t('deviceSetting.fields.orderTime') }}</text>
         </view>
 
-        <view v-if="loading" class="table-state">加载中...</view>
-        <view v-else-if="filteredDeviceSettings.length === 0" class="table-state">暂无工单数据</view>
+        <view v-if="loading" class="table-state">{{ t('deviceSetting.settingTable.loading') }}</view>
+        <view v-else-if="filteredDeviceSettings.length === 0" class="table-state">{{ t('deviceSetting.settingTable.noData') }}</view>
 
         <view
             v-for="(deviceSetting, index) in filteredDeviceSettings"
@@ -31,76 +31,58 @@
             :class="{ 'data-row--active': selectedId === deviceSetting.id }"
             @click="selectRow(deviceSetting)"
         >
-
           <text class="data-cell data-cell--index">
             {{ (pagination.current - 1) * pagination.size + index + 1 }}
           </text>
 
           <text class="data-cell data-cell--device">{{ deviceSetting.deviceNumber }}</text>
+
+          <!-- 启用控制 -->
           <text class="data-cell data-cell--status"
                 :class="{
-                'is-enabled': deviceSetting.enabledControl === true,
-                'is-disabled': deviceSetting.enabledControl === false
-              }"
-          >
+                  'is-enabled': deviceSetting.enabledControl === true,
+                  'is-disabled': deviceSetting.enabledControl === false
+                }">
             {{
               deviceSetting.enabledControl === true
-                  ? '启用'
+                  ? t('deviceSetting.settingTable.enabled')
                   : deviceSetting.enabledControl === false
-                      ? '停用'
+                      ? t('deviceSetting.settingTable.disabled')
                       : '-'
             }}
           </text>
 
-          <text
-              class="data-cell data-cell--status"
-              :class="{
-                'is-inspection-enabled': deviceSetting.inspectionControl === true,
-                'is-inspection-disabled': deviceSetting.inspectionControl === false
-              }"
-          >
+          <!-- 巡检控制 -->
+          <text class="data-cell data-cell--status"
+                :class="{
+                  'is-inspection-enabled': deviceSetting.inspectionControl === true,
+                  'is-inspection-disabled': deviceSetting.inspectionControl === false
+                }">
             {{
               deviceSetting.inspectionControl === true
-                  ? '启用'
+                  ? t('deviceSetting.settingTable.enabled')
                   : deviceSetting.inspectionControl === false
-                      ? '停用'
+                      ? t('deviceSetting.settingTable.disabled')
                       : '-'
             }}
           </text>
 
-          <text
-              class="data-cell data-cell--status"
-              :class="getWorkModeClass(deviceSetting.workMode)"
-          >
+          <!-- 工作模式 -->
+          <text class="data-cell data-cell--status" :class="getWorkModeClass(deviceSetting.workMode)">
             {{ workModeMap[deviceSetting.workMode ?? -1] || '-' }}
           </text>
 
-          <text class="data-cell data-cell--number">
-            {{ deviceSetting.onceMeasureLength ?? '-' }}
+          <text class="data-cell data-cell--number">{{ deviceSetting.onceMeasureLength ?? '-' }}</text>
+
+          <!-- 增益模式 -->
+          <text class="data-cell data-cell--status" :class="getGainModeClass(deviceSetting.measureGainMode)">
+            {{ gainModeMap[deviceSetting.measureGainMode ?? -1] || '-' }}
           </text>
 
-          <text
-              class="data-cell data-cell--status"
-              :class="getGainModeClass(deviceSetting.measureGainMode)"
-          >
-            {{ measureGainModeMap[deviceSetting.measureGainMode ?? -1] || '-' }}
-          </text>
-
-          <text class="data-cell data-cell--number">
-            {{ deviceSetting.gainValue ?? '-' }}
-          </text>
-
-          <text class="data-cell data-cell--number">
-            {{ deviceSetting.leakThreshold ?? '-' }}
-          </text>
-
-          <text class="data-cell data-cell--number">
-            {{ deviceSetting.reportInterval ?? '-' }}
-          </text>
-
-          <text class="data-cell data-cell--time">
-            {{ formatDate(deviceSetting.orderTime) }}
-          </text>
+          <text class="data-cell data-cell--number">{{ deviceSetting.gainValue ?? '-' }}</text>
+          <text class="data-cell data-cell--number">{{ deviceSetting.leakThreshold ?? '-' }}</text>
+          <text class="data-cell data-cell--number">{{ deviceSetting.reportInterval ?? '-' }}</text>
+          <text class="data-cell data-cell--time">{{ formatDate(deviceSetting.orderTime) }}</text>
         </view>
       </view>
     </scroll-view>
@@ -109,17 +91,19 @@
         :current="pagination.current"
         :size="pagination.size"
         :total="pagination.total"
-        @change-page="(page:number) => emit('page-change', page)"
-        @change-size="(size:number) => emit('page-size-change', size)"
+        @change-page="(page: number) => emit('page-change', page)"
+        @change-size="(size: number) => emit('page-size-change', size)"
     />
   </view>
 </template>
 <script setup lang="ts">
-import {ref, computed, reactive} from 'vue';
-import type {Device, DeviceSetting} from '@/services/device/types';
+import {ref, computed} from 'vue';
+import type {DeviceSetting} from '@/services/device/types';
 import type {Pagination} from "@/types/api";
-import XMapPopup from "@/pages/device/components/x/XMapPopup.vue";
 import XPaginationBar from "@/pages/device/components/x/XPaginationBar.vue";
+
+import {createScopedT} from "@/i18n";
+const t = createScopedT("devicePage");
 
 const props = defineProps<{
   deviceSettings: DeviceSetting[];
@@ -128,17 +112,17 @@ const props = defineProps<{
 
 const loading = ref(false);
 
-const workModeMap: Record<number, string> = {
-  0: '待启用',
-  1: '网络模式',
-  2: '现场模式',
-  3: '网络巡检模式',
-};
+const workModeMap = computed<Record<number, string>>(() => ({
+  0: t('deviceSetting.addSchema.option.workMode.0'),
+  1: t('deviceSetting.addSchema.option.workMode.1'),
+  2: t('deviceSetting.addSchema.option.workMode.2'),
+  3: t('deviceSetting.addSchema.option.workMode.3'),
+}));
 
-const measureGainModeMap: Record<number, string> = {
-  0: '自动',
-  1: '手动',
-};
+const gainModeMap = computed<Record<number, string>>(() => ({
+  0: t('deviceSetting.addSchema.option.gainMode.0'),
+  1: t('deviceSetting.addSchema.option.gainMode.1'),
+}));
 
 const emit = defineEmits<{
   (e: 'view', deviceSetting: DeviceSetting): void;

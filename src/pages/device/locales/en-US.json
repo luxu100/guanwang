@@ -35,7 +35,10 @@
         "placeholder": "Please enter"
       },
       "bindValve": "bindValve",
-      "bindDept": "bindDept"
+      "bindDept": "bindDept",
+      "deviceNumber": "deviceNumber",
+      "startTime": "startTime",
+      "endTime": "endTime"
     },
     "formDialog": {
       "title": "Add New Record",
@@ -403,6 +406,154 @@
         "leakFrequency": "Leak Frequency",
 
         "uploadTime": "Upload Time"
+      }
+    },
+    "deviceSetting": {
+      "fields": {
+        "enabledControl": "Enabled Control",
+        "inspectionControl": "Inspection Control",
+        "workMode": "Work Mode",
+        "measureLength": "Measure Length",
+        "gainMode": "Gain Mode",
+        "gainValue": "Gain Value",
+        "leakThreshold": "Leak Threshold",
+        "reportInterval": "Report Interval",
+        "orderTime": "Command Time"
+      },
+      "settingTable": {
+        "title": "Device Parameter Records",
+        "deviceNumber": "Device No.",
+        "index": "No.",
+        "loading": "Loading...",
+        "noData": "No worksheet data",
+        "enabled": "Enabled",
+        "disabled": "Disabled"
+      },
+      "page": {
+        "addSetting": "Add Parameter Record",
+        "editSetting": "Edit Parameter Record"
+      },
+      "addSchema": {
+        "basicInfo": {
+          "title": "Basic Information",
+          "deviceNumber": "Device No.",
+          "enabledControl": "Enabled Control",
+          "inspectionControl": "Inspection Control",
+          "workMode": "Work Mode",
+          "measureLength": "Measure Length",
+          "gainMode": "Gain Mode",
+          "gainValue": "Gain Value",
+          "leakThreshold": "Leak Threshold",
+          "reportInterval": "Report Interval"
+        },
+        "option": {
+          "workMode": {
+            "0": "Pending",
+            "1": "Network Mode",
+            "2": "On-site Mode",
+            "3": "Network Inspection"
+          },
+          "gainMode": {
+            "0": "Auto",
+            "1": "Manual"
+          }
+        }
+      },
+      "message": {
+        "confirmDeleteContent": "Are you sure you want to delete this parameter record?"
+      },
+      "settingInfo": {
+        "title": "Device Parameter Details",
+        "unknownNumber": "Unknown No.",
+        "tabs": {
+          "basic": "Basic Control",
+          "measure": "Measurement",
+          "filter": "Filter",
+          "communication": "Communication",
+          "system": "System Info"
+        },
+        "empty": "No data",
+        "dict": {
+          "enabledControl": {
+            "true": "Enabled",
+            "false": "Disabled"
+          },
+          "inspectionControl": {
+            "true": "Enabled",
+            "false": "Disabled"
+          },
+          "workMode": {
+            "0": "Pending",
+            "1": "Network Mode",
+            "2": "On-site Mode",
+            "3": "Network Inspection"
+          },
+          "filterMethod": {
+            "0": "No Filter",
+            "1": "Low-pass Filter",
+            "2": "High-pass Filter",
+            "3": "Band-pass Filter"
+          },
+          "measureGainMode": {
+            "0": "Auto Gain",
+            "1": "Fixed Gain"
+          },
+          "audioRule": {
+            "0": "Off",
+            "1": "On"
+          },
+          "isDeleted": {
+            "true": "Deleted",
+            "false": "Normal"
+          }
+        },
+        "fields": {
+          "basic": {
+            "deviceNumber": "Device No.",
+            "enabledControl": "Enabled Control",
+            "inspectionControl": "Inspection Control",
+            "workMode": "Work Mode",
+            "onceMeasureLength": "Single Measure Length",
+            "signalLevel": "Signal Level",
+            "signalChannel": "Signal Channel"
+          },
+          "measure": {
+            "measureGainMode": "Measure Gain Mode",
+            "benchmarkValue": "Benchmark Value",
+            "noiseBenchmarkValue": "Noise Benchmark",
+            "gainValue": "Gain Value",
+            "samplingWeekday": "Sampling Weekday",
+            "samplingTime": "Sampling Time",
+            "syncSamplingNumber": "Sync Sampling Count",
+            "syncSamplingTime": "Sync Sampling Time",
+            "samplingPeriodTime": "Sampling Period",
+            "samplingCount": "Sampling Count",
+            "leakThreshold": "Leak Threshold"
+          },
+          "filter": {
+            "filterMethod": "Filter Method",
+            "filterLowFrequency": "Filter Low Frequency",
+            "filterHighFrequency": "Filter High Frequency",
+            "audioRule": "Audio Rule"
+          },
+          "communication": {
+            "loraPower": "LoRa Power",
+            "loraSignalFrequency": "LoRa Signal Frequency",
+            "loraOpenDay": "LoRa Open Day",
+            "loraOpenDate": "LoRa Open Date Config",
+            "nb4gTrigger": "NB4G Trigger Config",
+            "nb4gTransferSet": "NB4G Transfer Config",
+            "nb4gOpenTimeSet": "NB4G Open Time Config",
+            "reportInterval": "Report Interval"
+          },
+          "system": {
+            "commandAccount": "Command Account",
+            "orderTime": "Command Time",
+            "createdAt": "Created At",
+            "updatedAt": "Updated At",
+            "isDeleted": "Deleted Status"
+          }
+        }
       }
     }
   }

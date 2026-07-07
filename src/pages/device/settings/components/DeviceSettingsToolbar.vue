@@ -16,7 +16,7 @@
             v-if="item.type === 'input'"
             v-model="model[item.key]"
             class="filter-input"
-            placeholder="请输入"
+            :placeholder="t('toolbar.filter.placeholder')"
         />
 
         <!-- select -->
@@ -62,6 +62,9 @@
 import { computed, reactive, watch } from "vue";
 import XDatetimePicker from "@/pages/device/components/x/XDatetimePicker.vue";
 import XToolbarActions from "@/pages/device/components/x/XToolbarActions.vue";
+
+import {createScopedT} from "@/i18n";
+const t = createScopedT("devicePage");
 
 /**
  * =========================
@@ -162,7 +165,7 @@ function getLabel(item: Field) {
   const list = dictMap[item.dict];
   const hit = list.find(i => i.value === value);
 
-  return hit?.label || "全部";
+  return hit?.label;
 }
 </script>
 <style scoped lang="scss">

@@ -3,9 +3,9 @@
     <view class="detail-summary-panel">
       <view class="detail-summary">
         <view class="detail-summary__main">
-          <text class="detail-summary__label">设备参数详情</text>
+          <text class="detail-summary__label">{{ t('deviceSetting.settingInfo.title') }}</text>
           <text class="detail-summary__number">
-            {{ settingData.deviceNumber || '未知编号' }}
+            {{ settingData.deviceNumber || t('deviceSetting.settingInfo.unknownNumber') }}
           </text>
         </view>
         <view class="detail-summary__badges">
@@ -13,7 +13,7 @@
               class="detail-summary__badge"
               :class="settingData.enabledControl ? 'detail-summary__badge--success' : 'detail-summary__badge--muted'"
           >
-            {{ settingData.enabledControl ? '启用' : '停用' }}
+            {{ settingData.enabledControl ? t('deviceSetting.settingTable.enabled') : t('deviceSetting.settingTable.disabled') }}
           </text>
           <text class="detail-summary__badge detail-summary__badge--type">
             {{ workModeLabel }}
@@ -37,11 +37,11 @@
     <view class="detail-body">
       <view v-if="currentFields.length" class="detail-grid">
         <view v-for="item in currentFields" :key="item.key" class="detail-item detail-item--base">
-          <text class="detail-item__label">{{ item.label }}</text>
+          <text class="detail-item__label">{{ t(item.labelKey) }}</text>
           <text class="detail-item__value">{{ item.value }}</text>
         </view>
       </view>
-      <view v-else class="detail-empty">暂无数据</view>
+      <view v-else class="detail-empty">{{ t('deviceSetting.settingInfo.empty') }}</view>
     </view>
   </view>
 </template>
@@ -49,126 +49,137 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import type { DeviceSetting } from '@/services/device/types';
-
-const DICT_MAPS: Record<string, Record<string | number, string>> = {
-  enabledControl: { true: '启用', false: '停用' },
-  inspectionControl: { true: '启用', false: '停用' },
-  workMode: {
-    0: '待启用',
-    1: '网络模式',
-    2: '现场模式',
-    3: '网络巡检模式'
-  },
-  filterMethod: {
-    0: '无滤波',
-    1: '低通滤波',
-    2: '高通滤波',
-    3: '带通滤波'
-  },
-  measureGainMode: {
-    0: '自动增益',
-    1: '固定增益'
-  },
-  audioRule: {
-    0: '关闭',
-    1: '开启'
-  },
-  isDeleted: {
-    true: '已删除',
-    false: '正常'
-  }
-};
-
-interface FieldConfig {
-  key: keyof DeviceSetting;
-  label: string;
-  type: 'text' | 'dict' | 'date';
-  dict?: string;
-}
-
-const basicFieldsConfig: FieldConfig[] = [
-  { key:'deviceNumber', label:'设备编号', type:'text' },
-  { key:'enabledControl', label:'启用控制', type:'dict', dict:'enabledControl' },
-  { key:'inspectionControl', label:'巡检控制', type:'dict', dict:'inspectionControl' },
-  { key:'workMode', label:'工作模式', type:'dict', dict:'workMode' },
-  { key:'onceMeasureLength', label:'单次测量长度', type:'text' },
-  { key:'signalLevel', label:'信号等级', type:'text' },
-  { key:'signalChannel', label:'信号通道', type:'text' }
-];
-
-const measureFieldsConfig: FieldConfig[] = [
-  { key:'measureGainMode', label:'测量增益模式', type:'dict', dict:'measureGainMode' },
-  { key:'benchmarkValue', label:'基准值', type:'text' },
-  { key:'noiseBenchmarkValue', label:'噪声基准值', type:'text' },
-  { key:'gainValue', label:'增益值', type:'text' },
-  { key:'samplingWeekday', label:'采样星期', type:'text' },
-  { key:'samplingTime', label:'采样时间', type:'text' },
-  { key:'syncSamplingNumber', label:'同步采样次数', type:'text' },
-  { key:'syncSamplingTime', label:'同步采样时间', type:'text' },
-  { key:'samplingPeriodTime', label:'采样周期', type:'text' },
-  { key:'samplingCount', label:'采样次数', type:'text' },
-  { key:'leakThreshold', label:'泄漏阈值', type:'text' }
-];
-
-const filterFieldsConfig: FieldConfig[] = [
-  { key:'filterMethod', label:'滤波方式', type:'dict', dict:'filterMethod' },
-  { key:'filterLowFrequency', label:'滤波低频', type:'text' },
-  { key:'filterHighFrequency', label:'滤波高频', type:'text' },
-  { key:'audioRule', label:'音频规则', type:'dict', dict:'audioRule' }
-];
-
-const communicationFieldsConfig: FieldConfig[] = [
-  { key:'loraPower', label:'LoRa功率', type:'text' },
-  { key:'loraSignalFrequency', label:'LoRa信号频率', type:'text' },
-  { key:'loraOpenDay', label:'LoRa开启日期', type:'text' },
-  { key:'loraOpenDate', label:'LoRa开启日期配置', type:'text' },
-  { key:'nb4gTrigger', label:'NB4G触发配置', type:'text' },
-  { key:'nb4gTransferSet', label:'NB4G传输配置', type:'text' },
-  { key:'nb4gOpenTimeSet', label:'NB4G开启时间配置', type:'text' },
-  { key:'reportInterval', label:'上报间隔', type:'text' }
-];
-
-const systemFieldsConfig: FieldConfig[] = [
-  { key:'commandAccount', label:'指令账号', type:'text' },
-  { key:'orderTime', label:'指令时间', type:'date' },
-  { key:'createdAt', label:'创建时间', type:'date' },
-  { key:'updatedAt', label:'更新时间', type:'date' },
-  { key:'isDeleted', label:'删除状态', type:'dict', dict:'isDeleted' }
-];
+import { createScopedT } from "@/i18n";
+const t = createScopedT("devicePage");
 
 interface Props {
-  visible:boolean;
-  settingData:Partial<DeviceSetting>;
+  visible: boolean;
+  settingData: Partial<DeviceSetting>;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  visible:false,
-  settingData:()=>({})
+  visible: false,
+  settingData: () => ({})
 });
 
 const emit = defineEmits<{
-  (e:'update:visible', value:boolean):void;
-  (e:'edit', data:Partial<DeviceSetting>):void;
+  (e: 'update:visible', value: boolean): void;
+  (e: 'edit', data: Partial<DeviceSetting>): void;
 }>();
 
 const activeTab = ref('basic');
 
-const detailTabs = [
-  { label:'基础控制', value:'basic' },
-  { label:'测量参数', value:'measure' },
-  { label:'滤波参数', value:'filter' },
-  { label:'通信参数', value:'communication' },
-  { label:'系统信息', value:'system' }
+const DICT_MAPS = computed<Record<string, Record<string | number, string>>>(() => ({
+  enabledControl: {
+    true: t('deviceSetting.settingInfo.dict.enabledControl.true'),
+    false: t('deviceSetting.settingInfo.dict.enabledControl.false')
+  },
+  inspectionControl: {
+    true: t('deviceSetting.settingInfo.dict.inspectionControl.true'),
+    false: t('deviceSetting.settingInfo.dict.inspectionControl.false')
+  },
+  workMode: {
+    0: t('deviceSetting.settingInfo.dict.workMode.0'),
+    1: t('deviceSetting.settingInfo.dict.workMode.1'),
+    2: t('deviceSetting.settingInfo.dict.workMode.2'),
+    3: t('deviceSetting.settingInfo.dict.workMode.3')
+  },
+  filterMethod: {
+    0: t('deviceSetting.settingInfo.dict.filterMethod.0'),
+    1: t('deviceSetting.settingInfo.dict.filterMethod.1'),
+    2: t('deviceSetting.settingInfo.dict.filterMethod.2'),
+    3: t('deviceSetting.settingInfo.dict.filterMethod.3')
+  },
+  measureGainMode: {
+    0: t('deviceSetting.settingInfo.dict.measureGainMode.0'),
+    1: t('deviceSetting.settingInfo.dict.measureGainMode.1')
+  },
+  audioRule: {
+    0: t('deviceSetting.settingInfo.dict.audioRule.0'),
+    1: t('deviceSetting.settingInfo.dict.audioRule.1')
+  },
+  isDeleted: {
+    true: t('deviceSetting.settingInfo.dict.isDeleted.true'),
+    false: t('deviceSetting.settingInfo.dict.isDeleted.false')
+  }
+}));
+
+// ✅ 3. 修改 FieldConfig 接口，将 label 改为 labelKey（i18n 路径）
+interface FieldConfig {
+  key: keyof DeviceSetting;
+  labelKey: string; // 存储 i18n 路径
+  type: 'text' | 'dict' | 'date';
+  dict?: string;
+}
+
+// ✅ 4. 字段配置表，label 替换为对应的 JSON 路径
+const basicFieldsConfig: FieldConfig[] = [
+  { key: 'deviceNumber', labelKey: 'deviceSetting.settingInfo.fields.basic.deviceNumber', type: 'text' },
+  { key: 'enabledControl', labelKey: 'deviceSetting.settingInfo.fields.basic.enabledControl', type: 'dict', dict: 'enabledControl' },
+  { key: 'inspectionControl', labelKey: 'deviceSetting.settingInfo.fields.basic.inspectionControl', type: 'dict', dict: 'inspectionControl' },
+  { key: 'workMode', labelKey: 'deviceSetting.settingInfo.fields.basic.workMode', type: 'dict', dict: 'workMode' },
+  { key: 'onceMeasureLength', labelKey: 'deviceSetting.settingInfo.fields.basic.onceMeasureLength', type: 'text' },
+  { key: 'signalLevel', labelKey: 'deviceSetting.settingInfo.fields.basic.signalLevel', type: 'text' },
+  { key: 'signalChannel', labelKey: 'deviceSetting.settingInfo.fields.basic.signalChannel', type: 'text' }
 ];
 
-const resolveFields = (configs:FieldConfig[]) => {
+const measureFieldsConfig: FieldConfig[] = [
+  { key: 'measureGainMode', labelKey: 'deviceSetting.settingInfo.fields.measure.measureGainMode', type: 'dict', dict: 'measureGainMode' },
+  { key: 'benchmarkValue', labelKey: 'deviceSetting.settingInfo.fields.measure.benchmarkValue', type: 'text' },
+  { key: 'noiseBenchmarkValue', labelKey: 'deviceSetting.settingInfo.fields.measure.noiseBenchmarkValue', type: 'text' },
+  { key: 'gainValue', labelKey: 'deviceSetting.settingInfo.fields.measure.gainValue', type: 'text' },
+  { key: 'samplingWeekday', labelKey: 'deviceSetting.settingInfo.fields.measure.samplingWeekday', type: 'text' },
+  { key: 'samplingTime', labelKey: 'deviceSetting.settingInfo.fields.measure.samplingTime', type: 'text' },
+  { key: 'syncSamplingNumber', labelKey: 'deviceSetting.settingInfo.fields.measure.syncSamplingNumber', type: 'text' },
+  { key: 'syncSamplingTime', labelKey: 'deviceSetting.settingInfo.fields.measure.syncSamplingTime', type: 'text' },
+  { key: 'samplingPeriodTime', labelKey: 'deviceSetting.settingInfo.fields.measure.samplingPeriodTime', type: 'text' },
+  { key: 'samplingCount', labelKey: 'deviceSetting.settingInfo.fields.measure.samplingCount', type: 'text' },
+  { key: 'leakThreshold', labelKey: 'deviceSetting.settingInfo.fields.measure.leakThreshold', type: 'text' }
+];
+
+const filterFieldsConfig: FieldConfig[] = [
+  { key: 'filterMethod', labelKey: 'deviceSetting.settingInfo.fields.filter.filterMethod', type: 'dict', dict: 'filterMethod' },
+  { key: 'filterLowFrequency', labelKey: 'deviceSetting.settingInfo.fields.filter.filterLowFrequency', type: 'text' },
+  { key: 'filterHighFrequency', labelKey: 'deviceSetting.settingInfo.fields.filter.filterHighFrequency', type: 'text' },
+  { key: 'audioRule', labelKey: 'deviceSetting.settingInfo.fields.filter.audioRule', type: 'dict', dict: 'audioRule' }
+];
+
+const communicationFieldsConfig: FieldConfig[] = [
+  { key: 'loraPower', labelKey: 'deviceSetting.settingInfo.fields.communication.loraPower', type: 'text' },
+  { key: 'loraSignalFrequency', labelKey: 'deviceSetting.settingInfo.fields.communication.loraSignalFrequency', type: 'text' },
+  { key: 'loraOpenDay', labelKey: 'deviceSetting.settingInfo.fields.communication.loraOpenDay', type: 'text' },
+  { key: 'loraOpenDate', labelKey: 'deviceSetting.settingInfo.fields.communication.loraOpenDate', type: 'text' },
+  { key: 'nb4gTrigger', labelKey: 'deviceSetting.settingInfo.fields.communication.nb4gTrigger', type: 'text' },
+  { key: 'nb4gTransferSet', labelKey: 'deviceSetting.settingInfo.fields.communication.nb4gTransferSet', type: 'text' },
+  { key: 'nb4gOpenTimeSet', labelKey: 'deviceSetting.settingInfo.fields.communication.nb4gOpenTimeSet', type: 'text' },
+  { key: 'reportInterval', labelKey: 'deviceSetting.settingInfo.fields.communication.reportInterval', type: 'text' }
+];
+
+const systemFieldsConfig: FieldConfig[] = [
+  { key: 'commandAccount', labelKey: 'deviceSetting.settingInfo.fields.system.commandAccount', type: 'text' },
+  { key: 'orderTime', labelKey: 'deviceSetting.settingInfo.fields.system.orderTime', type: 'date' },
+  { key: 'createdAt', labelKey: 'deviceSetting.settingInfo.fields.system.createdAt', type: 'date' },
+  { key: 'updatedAt', labelKey: 'deviceSetting.settingInfo.fields.system.updatedAt', type: 'date' },
+  { key: 'isDeleted', labelKey: 'deviceSetting.settingInfo.fields.system.isDeleted', type: 'dict', dict: 'isDeleted' }
+];
+
+const detailTabs = computed(() => [
+  { label: t('deviceSetting.settingInfo.tabs.basic'), value: 'basic' },
+  { label: t('deviceSetting.settingInfo.tabs.measure'), value: 'measure' },
+  { label: t('deviceSetting.settingInfo.tabs.filter'), value: 'filter' },
+  { label: t('deviceSetting.settingInfo.tabs.communication'), value: 'communication' },
+  { label: t('deviceSetting.settingInfo.tabs.system'), value: 'system' }
+]);
+
+const resolveFields = (configs: FieldConfig[]) => {
   return configs.map(config => {
     let value = props.settingData[config.key];
 
     if (config.type === 'date') {
       value = formatDate(value as string);
     } else if (config.type === 'dict' && config.dict) {
-      value = DICT_MAPS[config.dict]?.[String(value)] ?? '--';
+      // 注意：从 computed 中获取字典
+      value = DICT_MAPS.value[config.dict]?.[String(value)] ?? '--';
     } else {
       value = value !== undefined && value !== null && value !== ''
           ? value
@@ -176,8 +187,8 @@ const resolveFields = (configs:FieldConfig[]) => {
     }
 
     return {
-      key:config.key,
-      label:config.label,
+      key: config.key,
+      labelKey: config.labelKey, // 返回 labelKey 供模板使用
       value
     };
   });
@@ -201,12 +212,12 @@ const currentFields = computed(() => {
 });
 
 const workModeLabel = computed(() => {
-  return DICT_MAPS.workMode[
-  props.settingData.workMode ?? -1
-      ] ?? '未知模式';
+  const mode = props.settingData.workMode;
+  if (mode === undefined || mode === null) return '--';
+  return DICT_MAPS.value.workMode[mode] ?? t('deviceSetting.settingInfo.unknownNumber');
 });
 
-function formatDate(dateStr?:string) {
+function formatDate(dateStr?: string) {
   if (!dateStr) return '--';
 
   const date = new Date(dateStr);
@@ -214,18 +225,15 @@ function formatDate(dateStr?:string) {
   if (isNaN(date.getTime())) return '--';
 
   const y = date.getFullYear();
-  const m = String(date.getMonth()+1).padStart(2,'0');
-  const d = String(date.getDate()).padStart(2,'0');
-  const h = String(date.getHours()).padStart(2,'0');
-  const mm = String(date.getMinutes()).padStart(2,'0');
-  const s = String(date.getSeconds()).padStart(2,'0');
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  const h = String(date.getHours()).padStart(2, '0');
+  const mm = String(date.getMinutes()).padStart(2, '0');
+  const s = String(date.getSeconds()).padStart(2, '0');
 
   return `${y}-${m}-${d} ${h}:${mm}:${s}`;
 }
-
 </script>
-
-
 <style scoped lang="scss">
 .detail-panel {
   display: flex;

@@ -37,7 +37,7 @@
             v-if="!currentDeviceSetting?.id"
             class="detail-empty"
         >
-          请选择左侧设备参数查看详情
+          {{ t('deviceSetting.emptyTip') }}
         </view>
 
         <DeviceSettingsPanel
@@ -56,9 +56,11 @@
 import {computed, onMounted, ref} from "vue";
 import DeviceSettingsToolbar from "@/pages/device/settings/components/DeviceSettingsToolbar.vue";
 import {getDeviceSettingPageT} from "@/services/device/device-setting.typed";
-import type {Device, DeviceSetting} from "@/services/device/types";
+import type {DeviceSetting} from "@/services/device/types";
 import DeviceSettingsTableView from "@/pages/device/settings/components/DeviceSettingsTableView.vue";
 import DeviceSettingsPanel from "@/pages/device/settings/components/DeviceSettingsPanel.vue";
+import { createScopedT } from "@/i18n";
+const t = createScopedT("devicePage");
 
 const deviceSettingsConfig = {
   searchForm: {
@@ -68,9 +70,9 @@ const deviceSettingsConfig = {
   },
 
   toolbar: [
-    { key: "deviceNumber", label: "设备编号", type: "input" },
-    { key: "startTime", label: "开始时间", type: "date"},
-    { key: "endTime", label: "结束时间", type: "date"},
+    { key: "deviceNumber", label: t('toolbar.deviceNumber'), type: "input" },
+    { key: "startTime", label: t('toolbar.startTime'), type: "date" },
+    { key: "endTime", label: t('toolbar.endTime'), type: "date" }
   ]
 }as const;
 
@@ -186,7 +188,7 @@ onMounted(() => {
 
 /* 默认：左列表 + 右详情 */
 .layout-split {
-  grid-template-columns: minmax(0, 1fr) 24px 380px;
+  grid-template-columns: minmax(0, 1fr) 24px 400px;
 }
 
 .layout-equal {
