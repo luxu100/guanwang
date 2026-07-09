@@ -19,11 +19,11 @@ test("default permission resources include partition management", () => {
   assert.doesNotMatch(systemSource, /permissionName: "站点管理"/);
 });
 
-test("system settings binds roles to partitions from department service", () => {
-  assert.match(systemSource, /import \{ getDeptList \} from "@\/services\/partition\/partition"/);
-  assert.match(systemSource, /绑定分区（部门接口）/);
+test("system settings binds users to partitions from region service", () => {
+  assert.match(systemSource, /import \{ getRegionList \} from "@\/services\/partition\/partition"/);
+  assert.match(systemSource, /绑定分区（Region接口）/);
   assert.match(systemSource, /function loadPartitions/);
-  assert.match(systemSource, /deptIds: selectedPartitionIds\.value/);
+  assert.match(systemSource, /getRegionList\(\)/);
   assert.doesNotMatch(systemSource, /站点绑定范围|用户-站点绑定/);
 });
 

@@ -1,0 +1,560 @@
+{
+  "devicePage": {
+    "common": {
+      "all": "All",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "close": "Close",
+      "table": {
+        "index": "No.",
+        "loading": "Loading...",
+        "empty": "No data available"
+      },
+      "pagination": {
+        "pageSizePrefix": "Show",
+        "pageSizeSuffix": "per page",
+        "prevPage": "Prev",
+        "nextPage": "Next",
+        "jumpPrefix": "Go to page",
+        "jumpSuffix": "",
+        "jumpConfirm": "Go",
+        "page": "Page {current} / {total}",
+        "totalRecords": "Total: {total}"
+      }
+    },
+    "toolbar": {
+      "add": "Add",
+      "edit": "Edit",
+      "search": "Search",
+      "reset": "Reset",
+      "delete": "Delete",
+      "refresh": "Refresh",
+      "import": "Import",
+      "export": "Export",
+      "filter": {
+        "placeholder": "Please enter"
+      },
+      "bindValve": "bindValve",
+      "bindDept": "bindDept",
+      "deviceNumber": "deviceNumber",
+      "startTime": "startTime",
+      "endTime": "endTime"
+    },
+    "formDialog": {
+      "title": "Add New Record",
+      "cancel": "Cancel",
+      "reset": "Clear Form",
+      "submit": "Confirm",
+      "submitting": "Submitting...",
+      "close": "Close",
+      "location": {
+        "placeholder": "Format: longitude,latitude",
+        "pickMap": "Pick on Map",
+        "title": "Click the map to select coordinates",
+        "selectHint": "Please click on the map to select",
+        "onlyH5": "Map is only supported on H5",
+        "confirm": "Confirm Selection"
+      }
+    },
+    "form": {
+      "inputPlaceholder": "Please enter {label}",
+      "selectPlaceholder": "Please select {label}"
+    },
+    "datetimePicker": {
+      "placeholder": "Please select a time",
+      "title": "Select Time",
+
+      "tabs": {
+        "date": "Date",
+        "time": "Time"
+      },
+
+      "timePanelTitle": "Select Time",
+
+      "week": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+
+      "actions": {
+        "clear": "Clear",
+        "cancel": "Cancel",
+        "confirm": "Confirm"
+      },
+
+      "toast": {
+        "minError": "End time must be later than start time"
+      },
+
+      "calendarTitle": "{month}/{year}"
+    },
+    "coordinates": {
+      "lng": "Longitude",
+      "lat": "Latitude"
+    },
+    "map": {
+      "loadFailed": "Failed to load Tencent Map. Please check if the current domain is included in the Web API Key's domain whitelist.",
+      "containerInitFailed": "Failed to initialize map container",
+      "sdkUnavailable": "Tencent Map SDK is unavailable after script loaded",
+      "scriptLoadFailed": "Tencent Map SDK script failed to load",
+      "onlyH5": "Map is only supported on H5",
+      "mapKeyEmpty": "Tencent Map key is empty",
+      "apiUnavailable": "Tencent Maps API unavailable",
+      "noCoordinate": "No coordinate data available. Unable to locate."
+    },
+    "leakMap": {
+      "unsupported": "The map SDK is available only on the H5 platform.",
+      "loadFailed": "Failed to load Tencent Maps. Please verify that the current domain is included in the Web domain whitelist for your API key.",
+      "initFailed": "Failed to initialize the map container."
+    },
+    "page": {
+      "selectDevice": "Please select a device from the left to view its details.",
+      "addDevice": "Add Device",
+      "editDevice": "Edit Device",
+      "bindDeptTitle": "Bind Department",
+      "bindDeptSubtitle": "Please select the department to bind"
+    },
+    "fields": {
+      "deviceNumber": "Device No.",
+      "deviceType": "Product Model",
+      "onlineStatus": "Online Status",
+      "enableState": "Enable Status",
+      "leakStatus": "Leak Status",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "maintainType": "Maintenance Type",
+      "receiveStatus": "Receive Status"
+    },
+    "message": {
+      "addSuccess": "Created successfully",
+      "addFail": "Creation failed",
+      "updateSuccess": "Updated successfully",
+      "updateFail": "Update failed",
+      "deleteSuccess": "Deleted successfully",
+      "deleteFail": "Delete failed",
+      "selectRecord": "Please select a record",
+      "selectDevice": "Please select a device first",
+      "exportNotReady": "Export not available yet",
+      "importNotReady": "Import not available yet",
+      "bindValveNotReady": "Bind Valve not available yet",
+      "confirmDeleteTitle": "Confirm",
+      "confirmDeleteContent": "Are you sure you want to delete device {deviceNumber}?",
+      "operationFailed": "Operation failed",
+      "alreadyBoundToThisDept": "Device is already bound to this department",
+      "bindSuccess": "Bound successfully",
+      "bindFailed": "Binding failed",
+      "requestError": "Request error",
+      "fetchDeptTreeFailed": "Failed to fetch department tree"
+    },
+    "status": {
+      "product": {
+        "LD18": "LD18",
+        "LD18E_FM": "LD18E-FM",
+        "LD18HE_FM": "LD18HE-FM"
+      },
+      "status": {
+        "enabled": "Enabled",
+        "disabled": "Disabled"
+      },
+      "install": {
+        "installed": "Installed",
+        "uninstalled": "Not Installed"
+      },
+      "online": {
+        "online": "Online",
+        "offline": "Offline",
+        "unknown": "Unknown"
+      },
+      "leak": {
+        "normal": "Normal",
+        "leak": "Leak",
+        "suspected": "Suspected",
+        "unknown": "Unknown"
+      },
+      "receive": {
+        "normal": "Normal Receive",
+        "short": "Short Interruption",
+        "long": "Long No Signal",
+        "error": "Communication Error",
+        "uninit": "Uninitialized"
+      },
+      "maintain": {
+        "remove": "Remove",
+        "install": "Install",
+        "maintenance": "Maintenance",
+        "inspect": "Inspection"
+      },
+      "installMode": {
+        "fixed" : "Fixed Point",
+        "mobile" : "Mobile Point"
+      },
+      "tubeType": {
+        "1": "Main Line",
+        "2": "Secondary Branch",
+        "3": "Tertiary Branch"
+      }
+    },
+    "deviceTable": {
+      "title": "Device Creation Records",
+      "deviceNumber": "Device No.",
+      "deviceType": "Device Type",
+      "enableState": "Enabled State",
+      "installState": "Install State",
+      "installMode": "Install Mode",
+      "installAddress": "Install Address",
+      "coordinate": "Coordinates",
+      "tubeGroup": "Tube Group",
+      "leakStatus": "Leak Status",
+      "lastSamplingTime": "Last Sampling Time",
+      "onlineStatus": "Online Status",
+      "mapTitle": "Device Location"
+    },
+    "addSchema": {
+      "basicInfo": {
+        "title": "Basic Information",
+        "deviceNumber": "Device Number",
+        "deviceNumberPlaceholder": "Please enter device number",
+        "productModel": "Product Model",
+        "deviceType": "Device Type"
+      },
+      "identification": {
+        "title": "Device Identification",
+        "nbNumber": "NB Number",
+        "imei": "IMEI",
+        "imsi": "IMSI",
+        "serialNumber": "Serial Number"
+      },
+      "install": {
+        "title": "Installation Information",
+        "installState": "Install State",
+        "installMode": "Install Mode",
+        "address": "Install Address",
+        "coordinate": "Installation Coordinates (Enter manually or pick on map)",
+        "coordinatePlaceholder": "Format: Longitude, Latitude (e.g., 121.4737, 31.2304)"
+      },
+      "status": {
+        "title": "Device Status",
+        "enableState": "Enable State",
+        "leakStatus": "Leak Status",
+        "leakValue": "Leak Value"
+      },
+      "tube": {
+        "title": "Pipeline Information",
+        "group": "Tube Group",
+        "order": "Tube Order"
+      },
+      "system": {
+        "title": "System Information (Optional)",
+        "hardwareVersion": "Hardware Version",
+        "softwareVersion": "Software Version"
+      },
+
+      "option": {
+        "product": {
+          "LD18": "LD18",
+          "LD18E_FM": "LD18E-FM",
+          "LD18HE_FM": "LD18HE-FM"
+        },
+        "install": {
+          "installed": "Installed",
+          "uninstalled": "Not Installed"
+        },
+        "installMode": {
+          "fixed": "Fixed Point",
+          "mobile": "Mobile Point"
+        },
+        "status": {
+          "enabled": "Enabled",
+          "disabled": "Disabled"
+        },
+        "leak": {
+          "normal": "Normal",
+          "leak": "Leak",
+          "suspected": "Suspected",
+          "unknown": "Unknown"
+        }
+      }
+    },
+    "info": {
+      "title": "Device Details",
+
+      "tabs": {
+        "base": "Basic Info",
+        "install": "Installation",
+        "status": "Status",
+        "tube": "Pipeline"
+      },
+
+      "empty": "No data available",
+
+      "fields": {
+        "base": {
+          "deviceNumber": "Device Number",
+          "productName": "Product Model",
+          "deviceImei": "IMEI",
+          "deviceImsi": "IMSI",
+          "serialNumber": "Serial Number",
+          "hardwareVersion": "Hardware Version",
+          "softwareVersion": "Software Version",
+          "factoryTime": "Factory Time"
+        },
+
+        "install": {
+          "installState": "Install State",
+          "installMode": "Install Mode",
+          "installAddress": "Address",
+          "installLongitude": "Longitude",
+          "installLatitude": "Latitude",
+          "tubeGroup": "Tube Group",
+          "tubeOrder": "Tube Order"
+        },
+
+        "status": {
+          "enableState": "Enable State",
+          "onlineStatus": "Online Status",
+          "leakStatus": "Leak Status",
+          "leakProperty": "Feature Value",
+          "lastSamplingTime": "Last Sampling Time",
+          "observeDay": "Observation Days"
+        },
+
+        "tube": {
+          "tubeGroup": "Tube Group",
+          "tubeName": "Pipeline Name",
+          "tubeType": "Pipeline Type",
+          "deptName": "Region"
+        }
+      }
+    },
+    "maintain": {
+      "fields": {
+        "type": "Maintenance Type",
+        "startTime": "Start Time",
+        "endTime": "End Time"
+      },
+      "maintainTable": {
+        "title": "Maintenance Records",
+        "deviceNumber": "Device No.",
+        "type": "Maintenance Type",
+        "time": "Maintenance Time",
+        "address": "Address",
+        "installMode": "Install Mode",
+        "tubeGroup": "Tube Group",
+        "tubeMaterial": "Material",
+        "tubeBore": "Diameter",
+        "remark": "Remark"
+      },
+      "page": {
+        "addMaintenance": "Add Maintenance",
+        "editMaintenance": "Edit Maintenance"
+      },
+      "addSchema": {
+        "basicInfo": {
+          "title": "Basic Information",
+          "deviceNumber": "Device Number",
+          "maintainType": "Maintenance Type",
+          "maintainTime": "Maintenance Time",
+          "maintainAddress": "Maintenance Address",
+          "installMode": "Installation Mode",
+          "tubeGroup": "Tube Group",
+          "tubeMaterial": "Pipe Material",
+          "tubeBore": "Pipe Diameter",
+          "remark": "Remark"
+        },
+        "extendInfo": {
+          "title": "Extended Information (Optional)",
+          "maintainAccount": "Maintenance Personnel",
+          "maintainFeedback": "Maintenance Feedback",
+          "maintainCoordinate": "Coordinate"
+        },
+        "option": {
+          "maintainType": {
+            "remove": "Removal",
+            "install": "Installation",
+            "maintenance": "Maintenance",
+            "inspect": "Inspection"
+          },
+          "installMode": {
+            "fixed": "Fixed Point",
+            "mobile": "Mobile Point"
+          }
+        }
+      },
+      "message": {
+        "confirmDeleteContent": "Are you sure to delete this maintenance record?"
+      }
+    },
+    "device-status":{
+      "statusTable": {
+        "title": "Device Status List",
+
+        "deviceNumber": "Device Number",
+        "leakStatus": "Leak Status",
+
+        "firmwareVersion": "Firmware Version",
+        "hardwareVersion": "Hardware Version",
+
+        "workMode": "Work Mode",
+
+        "batteryVoltage": "Battery Voltage",
+        "deviceTemperature": "Device Temperature",
+
+        "signalIntensity": "Signal Strength",
+        "signalQuality": "Signal Quality",
+
+        "coordinateLocation": "Coordinate Location",
+
+        "leakEsa": "ESA Index",
+        "leakIntensity": "Leak Intensity",
+        "leakFrequency": "Leak Frequency",
+
+        "uploadTime": "Upload Time"
+      }
+    },
+    "deviceSetting": {
+      "fields": {
+        "enabledControl": "Enabled Control",
+        "inspectionControl": "Inspection Control",
+        "workMode": "Work Mode",
+        "measureLength": "Measure Length",
+        "gainMode": "Gain Mode",
+        "gainValue": "Gain Value",
+        "leakThreshold": "Leak Threshold",
+        "reportInterval": "Report Interval",
+        "orderTime": "Command Time"
+      },
+      "settingTable": {
+        "title": "Device Parameter Records",
+        "deviceNumber": "Device No.",
+        "index": "No.",
+        "loading": "Loading...",
+        "noData": "No worksheet data",
+        "enabled": "Enabled",
+        "disabled": "Disabled"
+      },
+      "page": {
+        "addSetting": "Add Parameter Record",
+        "editSetting": "Edit Parameter Record"
+      },
+      "addSchema": {
+        "basicInfo": {
+          "title": "Basic Information",
+          "deviceNumber": "Device No.",
+          "enabledControl": "Enabled Control",
+          "inspectionControl": "Inspection Control",
+          "workMode": "Work Mode",
+          "measureLength": "Measure Length",
+          "gainMode": "Gain Mode",
+          "gainValue": "Gain Value",
+          "leakThreshold": "Leak Threshold",
+          "reportInterval": "Report Interval"
+        },
+        "option": {
+          "workMode": {
+            "0": "Pending",
+            "1": "Network Mode",
+            "2": "On-site Mode",
+            "3": "Network Inspection"
+          },
+          "gainMode": {
+            "0": "Auto",
+            "1": "Manual"
+          }
+        }
+      },
+      "message": {
+        "confirmDeleteContent": "Are you sure you want to delete this parameter record?"
+      },
+      "settingInfo": {
+        "title": "Device Parameter Details",
+        "unknownNumber": "Unknown No.",
+        "tabs": {
+          "basic": "Basic Control",
+          "measure": "Measurement",
+          "filter": "Filter",
+          "communication": "Communication",
+          "system": "System Info"
+        },
+        "empty": "No data",
+        "dict": {
+          "enabledControl": {
+            "true": "Enabled",
+            "false": "Disabled"
+          },
+          "inspectionControl": {
+            "true": "Enabled",
+            "false": "Disabled"
+          },
+          "workMode": {
+            "0": "Pending",
+            "1": "Network Mode",
+            "2": "On-site Mode",
+            "3": "Network Inspection"
+          },
+          "filterMethod": {
+            "0": "No Filter",
+            "1": "Low-pass Filter",
+            "2": "High-pass Filter",
+            "3": "Band-pass Filter"
+          },
+          "measureGainMode": {
+            "0": "Auto Gain",
+            "1": "Fixed Gain"
+          },
+          "audioRule": {
+            "0": "Off",
+            "1": "On"
+          },
+          "isDeleted": {
+            "true": "Deleted",
+            "false": "Normal"
+          }
+        },
+        "fields": {
+          "basic": {
+            "deviceNumber": "Device No.",
+            "enabledControl": "Enabled Control",
+            "inspectionControl": "Inspection Control",
+            "workMode": "Work Mode",
+            "onceMeasureLength": "Single Measure Length",
+            "signalLevel": "Signal Level",
+            "signalChannel": "Signal Channel"
+          },
+          "measure": {
+            "measureGainMode": "Measure Gain Mode",
+            "benchmarkValue": "Benchmark Value",
+            "noiseBenchmarkValue": "Noise Benchmark",
+            "gainValue": "Gain Value",
+            "samplingWeekday": "Sampling Weekday",
+            "samplingTime": "Sampling Time",
+            "syncSamplingNumber": "Sync Sampling Count",
+            "syncSamplingTime": "Sync Sampling Time",
+            "samplingPeriodTime": "Sampling Period",
+            "samplingCount": "Sampling Count",
+            "leakThreshold": "Leak Threshold"
+          },
+          "filter": {
+            "filterMethod": "Filter Method",
+            "filterLowFrequency": "Filter Low Frequency",
+            "filterHighFrequency": "Filter High Frequency",
+            "audioRule": "Audio Rule"
+          },
+          "communication": {
+            "loraPower": "LoRa Power",
+            "loraSignalFrequency": "LoRa Signal Frequency",
+            "loraOpenDay": "LoRa Open Day",
+            "loraOpenDate": "LoRa Open Date Config",
+            "nb4gTrigger": "NB4G Trigger Config",
+            "nb4gTransferSet": "NB4G Transfer Config",
+            "nb4gOpenTimeSet": "NB4G Open Time Config",
+            "reportInterval": "Report Interval"
+          },
+          "system": {
+            "commandAccount": "Command Account",
+            "orderTime": "Command Time",
+            "createdAt": "Created At",
+            "updatedAt": "Updated At",
+            "isDeleted": "Deleted Status"
+          }
+        }
+      }
+    }
+  }
+}

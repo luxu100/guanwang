@@ -1,45 +1,74 @@
 /**
  * 分区管理接口封装。
  *
- * 当前业务里的“分区”对应后端部门接口 /api/dept；管网接口保留为显式的
- * getTubeNetwork* 方法，避免分区和管网概念混用。
+ * 当前业务里的“分区”对应后端 region 接口 /api/region；历史部门接口
+ * 保留为显式的 getDept* 方法，避免新旧分区接口混用。
  */
-import { createCrudService } from "@/services/shared/crud";
+import { createCrudService, getRequest, postRequest } from "@/services/shared/crud";
 
 const deptApi = createCrudService("/api/dept");
-const deviceApi = createCrudService("/api/device");
 const deptDeviceApi = createCrudService("/api/dept-device");
+const regionApi = createCrudService("/api/region");
 const tubeNetworkApi = createCrudService("/api/tube-network");
 
-export const getPartitionPage = deptApi.getPage;
-export const getPartitionList = deptApi.getList;
-export const getPartitionDetail = deptApi.getDetail;
-export const createPartition = deptApi.create;
-export const updatePartition = deptApi.update;
-export const deletePartition = deptApi.delete;
-export const batchDeletePartition = deptApi.batchDelete;
+export const getPartitionPage = regionApi.getPage;
+export const getPartitionList = regionApi.getList;
+export const getPartitionDetail = regionApi.getDetail;
+export const createPartition = regionApi.create;
+export const updatePartition = regionApi.update;
+export const deletePartition = regionApi.delete;
+export const batchDeletePartition = regionApi.batchDelete;
 
-export const getDeptDevicePage = deptDeviceApi.getPage;
-export const getDeptDeviceList = deptDeviceApi.getList;
-export const getDeptDeviceDetail = deptDeviceApi.getDetail;
-export const createDeptDevice = deptDeviceApi.create;
-export const updateDeptDevice = deptDeviceApi.update;
-export const deleteDeptDevice = deptDeviceApi.delete;
-export const batchDeleteDeptDevice = deptDeviceApi.batchDelete;
+export const getDeptPage = deptApi.getPage;
+export const getDeptList = deptApi.getList;
+export const getDeptDetail = deptApi.getDetail;
+export const createDept = deptApi.create;
+export const updateDept = deptApi.update;
+export const deleteDept = deptApi.delete;
+export const batchDeleteDept = deptApi.batchDelete;
 
-export const getDeptPage = getPartitionPage;
-export const getDeptList = getPartitionList;
-export const getDeptDetail = getPartitionDetail;
-export const createDept = createPartition;
-export const updateDept = updatePartition;
-export const deleteDept = deletePartition;
-export const batchDeleteDept = batchDeletePartition;
+export function createDeptDirect(data) {
+  return postRequest("/api/dept", data);
+}
 
 export function getPartitionDevicePage(partitionId, data = {}) {
-  return deviceApi.getPage({
-    ...data,
-    deptId: partitionId,
-  });
+  return postRequest(`/api/region/${partitionId}/devices/page`, data);
+}
+
+export function getPartitionDeviceList(partitionId, params) {
+  return getRequest(`/api/region/${partitionId}/devices`, params);
+}
+
+export function getPartitionTree(params) {
+  return getRequest("/api/region/tree", params);
+}
+
+export function getDeptDevicePage(deptId, data = {}) {
+  return postRequest(`/api/dept/${deptId}/devices/page`, data);
+}
+
+export function getDeptDeviceList(deptId, params) {
+  return getRequest(`/api/dept/${deptId}/devices`, params);
+}
+
+export function getDeptTree(params) {
+  return getRequest("/api/dept/tree", params);
+}
+
+export const getRegionPage = regionApi.getPage;
+export const getRegionList = regionApi.getList;
+export const getRegionDetail = regionApi.getDetail;
+export const createRegion = regionApi.create;
+export const updateRegion = regionApi.update;
+export const deleteRegion = regionApi.delete;
+export const batchDeleteRegion = regionApi.batchDelete;
+
+export function createRegionDirect(data) {
+  return postRequest("/api/region", data);
+}
+
+export function getRegionTree(params) {
+  return getRequest("/api/region/tree", params);
 }
 
 export const getTubeNetworkPage = tubeNetworkApi.getPage;
@@ -49,6 +78,14 @@ export const createTubeNetwork = tubeNetworkApi.create;
 export const updateTubeNetwork = tubeNetworkApi.update;
 export const deleteTubeNetwork = tubeNetworkApi.delete;
 export const batchDeleteTubeNetwork = tubeNetworkApi.batchDelete;
+
+export const getDeptDeviceBindingPage = deptDeviceApi.getPage;
+export const getDeptDeviceBindingList = deptDeviceApi.getList;
+export const getDeptDeviceBindingDetail = deptDeviceApi.getDetail;
+export const createDeptDeviceBinding = deptDeviceApi.create;
+export const updateDeptDeviceBinding = deptDeviceApi.update;
+export const deleteDeptDeviceBinding = deptDeviceApi.delete;
+export const batchDeleteDeptDeviceBinding = deptDeviceApi.batchDelete;
 
 export default {
   getPartitionPage,
@@ -62,6 +99,7 @@ export default {
   getDeptList,
   getDeptDetail,
   createDept,
+  createDeptDirect,
   updateDept,
   deleteDept,
   batchDeleteDept,
@@ -75,6 +113,20 @@ export default {
   batchDeleteDeptDevice,
   
   getPartitionDevicePage,
+  getPartitionDeviceList,
+  getPartitionTree,
+  getDeptDevicePage,
+  getDeptDeviceList,
+  getDeptTree,
+  getRegionPage,
+  getRegionList,
+  getRegionDetail,
+  createRegion,
+  createRegionDirect,
+  updateRegion,
+  deleteRegion,
+  batchDeleteRegion,
+  getRegionTree,
   getTubeNetworkPage,
   getTubeNetworkList,
   getTubeNetworkDetail,
@@ -82,4 +134,11 @@ export default {
   updateTubeNetwork,
   deleteTubeNetwork,
   batchDeleteTubeNetwork,
+  getDeptDeviceBindingPage,
+  getDeptDeviceBindingList,
+  getDeptDeviceBindingDetail,
+  createDeptDeviceBinding,
+  updateDeptDeviceBinding,
+  deleteDeptDeviceBinding,
+  batchDeleteDeptDeviceBinding,
 };

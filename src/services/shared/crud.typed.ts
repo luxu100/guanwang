@@ -38,8 +38,8 @@ export function createCrudServiceTyped<
       return api.update(id, data);
     },
 
-    delete(id: ID): Promise<ApiResponse<DeleteReturn>> {
-      return api.delete(id);
+    delete(id: ID, isForce?: boolean): Promise<ApiResponse<DeleteReturn>> {
+      return api.delete(id, isForce);
     },
 
     getList(params?: Query): Promise<ApiResponse<ListItem[]>> {
@@ -50,8 +50,8 @@ export function createCrudServiceTyped<
       return api.getPage(data);
     },
 
-    batchDelete(data: any): Promise<ApiResponse<DeleteReturn>> {
-      return api.batchDelete(data);
+    batchDelete(data: any, isForce?: boolean): Promise<ApiResponse<DeleteReturn>> {
+      return api.batchDelete(data, isForce);
     },
   };
 }

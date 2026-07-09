@@ -15,6 +15,8 @@ export function createMaintenanceRecord(data: ServicePayload): Promise<ApiRespon
 export function updateMaintenanceRecord(id: ServiceId, data: ServicePayload): Promise<ApiResponse>;
 export function deleteMaintenanceRecord(id: ServiceId, isForce?: boolean): Promise<ApiResponse>;
 export function batchDeleteMaintenanceRecord(data: ServicePayload): Promise<ApiResponse>;
+export function getMaintenanceRecordManagePage(data: ServiceQuery): Promise<ApiResponse>;
+export function getMaintenanceRecordManageDetail(id: ServiceId): Promise<ApiResponse>;
 
 declare const service: {
   getMaintenanceRecordPage: typeof getMaintenanceRecordPage;
@@ -24,6 +26,8 @@ declare const service: {
   updateMaintenanceRecord: typeof updateMaintenanceRecord;
   deleteMaintenanceRecord: typeof deleteMaintenanceRecord;
   batchDeleteMaintenanceRecord: typeof batchDeleteMaintenanceRecord;
+  getMaintenanceRecordManagePage: typeof getMaintenanceRecordManagePage;
+  getMaintenanceRecordManageDetail: typeof getMaintenanceRecordManageDetail;
 };
 
 export default service;

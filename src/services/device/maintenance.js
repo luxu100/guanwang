@@ -3,7 +3,7 @@
  *
  * 页面层应优先调用这里导出的语义化函数，避免在 .vue 文件中直接拼接接口地址。
  */
-import { createCrudService } from "@/services/shared/crud";
+import { createCrudService, getRequest, postRequest } from "@/services/shared/crud";
 
 const maintenanceRecordApi = createCrudService("/api/maintenance-record");
 
@@ -15,6 +15,14 @@ export const updateMaintenanceRecord = maintenanceRecordApi.update;
 export const deleteMaintenanceRecord = maintenanceRecordApi.delete;
 export const batchDeleteMaintenanceRecord = maintenanceRecordApi.batchDelete;
 
+export function getMaintenanceRecordManagePage(data) {
+  return postRequest("/api/maintenance-record/manage/page", data);
+}
+
+export function getMaintenanceRecordManageDetail(id) {
+  return getRequest(`/api/maintenance-record/manage/${id}`);
+}
+
 export default {
   getMaintenanceRecordPage,
   getMaintenanceRecordList,
@@ -23,4 +31,6 @@ export default {
   updateMaintenanceRecord,
   deleteMaintenanceRecord,
   batchDeleteMaintenanceRecord,
+  getMaintenanceRecordManagePage,
+  getMaintenanceRecordManageDetail,
 };

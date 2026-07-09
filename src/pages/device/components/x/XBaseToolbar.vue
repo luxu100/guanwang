@@ -23,7 +23,7 @@
                 v-if="item.type === 'input'"
                 v-model="model[item.key]"
                 class="filter-input"
-                placeholder="请输入"
+                :placeholder="t('filter.placeholder')"
             />
 
             <!-- select -->
@@ -89,6 +89,9 @@ import XToolbarActions from "./XToolbarActions.vue";
 import XDatetimePicker from "./XDatetimePicker.vue";
 import type { Field, DictItem } from "@/pages/device/components/x/types";
 
+import {createScopedT} from "@/i18n";
+const t = createScopedT("devicePage.toolbar");
+
 const props = withDefaults(defineProps<{
   modelValue: Record<string, any>;
   fields: Field[];
@@ -138,7 +141,7 @@ watch(
 function getSelectLabel(item: Extract<Field, { type: "select" }>) {
   const list = props.dictMap[item.dict] || [];
   const val = model[item.key];
-  return list.find(i => i.value === val)?.label || "全部";
+  return list.find(i => i.value === val)?.label;
 }
 
 /** select change */

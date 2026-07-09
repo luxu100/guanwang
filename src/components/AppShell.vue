@@ -197,15 +197,16 @@ import AdminPlaceholderView from "@/components/admin/AdminPlaceholderView.vue";
 import LanguageSelect from "@/components/common/LanguageSelect.vue";
 import PartitionManagementView from "@/pages/partition/components/PartitionManagementView.vue";
 import DeviceManagementView from "@/pages/device/components/DeviceManagementView.vue";
+import DeviceSettingsView from "@/pages/device/settings/components/DeviceSettingsView.vue";
 import SystemManagementView from "@/pages/system/components/SystemManagementView.vue";
-import SearchTemplatePage from "@/pages/system/search/search.vue";
+import SearchTemplateView from "@/pages/system/search/components/SearchTemplateView.vue";
 import CommandManagePage from "@/pages/command/commandManage.vue";
 import CommandConfigurationPage from "@/pages/command/commandConfiguration.vue";
 import DataReceiveView from "@/pages/data-receive/components/DataReceiveView.vue";
 import WorkOrderCreateView from "@/pages/work-order/components/WorkOrderCreateView.vue";
 import WorksheetTableView from "@/pages/work-order/components/WorksheetTableView.vue";
-import SuspectEditView from "@/pages/leak-report/components/SuspectEditView.vue";
-import SuspectProcessView from "@/pages/leak-report/components/SuspectProcessView.vue";
+import SuspectTableView from "@/pages/leak-report/components/SuspectTableView.vue";
+import SuspectManagementView from "@/pages/leak-report/components/SuspectManagementView.vue";
 import LeakManagementView from "@/pages/leak-report/components/LeakManagementView.vue";
 import LeakAnalysisView from "@/pages/leak-report/components/LeakAnalysisView.vue";
 import HistoryOverviewView from "@/pages/leak-report/components/HistoryOverviewView.vue";
@@ -214,6 +215,7 @@ import { clearAuthStorage, createProtectedRouteDecision, LOGIN_PATH } from "@/ut
 import { filterMenuItemsByAccess, flattenMenuPaths, getMenuAccessSummary } from "@/utils/menuAccess";
 import { TOKEN_KEY } from "@/utils/request";
 import LocaleLeakMap from "@/pages/leak-monitor/components/LocaleLeakMap.vue";
+import { applyUserLocale } from "@/i18n";
 interface MenuItem {
   label: string;
   path: string;
@@ -255,7 +257,7 @@ const menuItems: MenuItem[] = [
     children: [
       { label: "设备信息", path: "/pages/device/info/info", icon: "device", keywords: ["设备", "信息"] },
       { label: "拆装维护", path: "/pages/device/maintenance/maintenance", icon: "device", keywords: ["拆装", "维护"] },
-      { label: "设备参数", path: "/pages/device/status/status", icon: "device", keywords: ["状态"] },
+      { label: "设备参数", path: "/pages/device/settings/settings", icon: "device", keywords: ["参数"] },
       { label: "阀门管理", path: "/pages/device/valve/valve", icon: "device", keywords: ["阀门"] },
     ],
   },
@@ -367,15 +369,16 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/partition/partition": { component: PartitionManagementView },
   "/pages/device/info/info": { component: DeviceManagementView, props: { mode: "info" } },
   "/pages/device/maintenance/maintenance": { component: DeviceManagementView, props: { mode: "maintenance" } },
-  "/pages/device/status/status": { component: DeviceManagementView, props: { mode: "status" } },
+  // "/pages/device/status/status": { component: DeviceManagementView, props: { mode: "status" } },
+  "/pages/device/settings/settings": { component: DeviceSettingsView },
   "/pages/device/valve/valve": { component: DeviceManagementView, props: { mode: "valve" } },
   "/pages/command/commandManage": { component: CommandManagePage },
   "/pages/command/commandConfiguration": { component: CommandConfigurationPage },
   "/pages/data-analysis/overview/overview": createPlaceholderContent("/pages/data-analysis/overview/overview"),
   "/pages/data-analysis/audio/audio": createPlaceholderContent("/pages/data-analysis/audio/audio"),
   "/pages/data-analysis/leakage/leakage": createPlaceholderContent("/pages/data-analysis/leakage/leakage"),
-  "/pages/leak-report/suspect-management/suspect-management": { component: SuspectEditView },
-  "/pages/leak-report/suspect-processing/suspect-processing": { component: SuspectProcessView },
+  "/pages/leak-report/suspect-management/suspect-management": { component: SuspectManagementView },
+  "/pages/leak-report/suspect-processing/suspect-processing": { component: SuspectTableView, props: { mode: "processing" } },
   "/pages/leak-report/leak-management/leak-management": { component: LeakManagementView },
   "/pages/leak-report/leak-analysis/leak-analysis": { component: LeakAnalysisView },
   "/pages/leak-report/history-overview/history-overview": { component: HistoryOverviewView },
@@ -392,7 +395,7 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/system/user/user": { component: SystemManagementView, props: { mode: "user" } },
   "/pages/system/auth/auth": { component: SystemManagementView, props: { mode: "auth" } },
   "/pages/system/menu/menu": { component: SystemManagementView, props: { mode: "menu" } },
-  "/pages/system/search/search": { component: SearchTemplatePage },
+  "/pages/system/search/search": { component: SearchTemplateView },
   "/pages/system/dict/dict": { component: SystemManagementView, props: { mode: "dict" } },
   "/pages/data-receive/access/access": { component: DataReceiveView, props: { mode: "access" } },
   "/pages/data-receive/parse/parse": { component: DataReceiveView, props: { mode: "parse" } },
@@ -981,6 +984,7 @@ onMounted(() => {
     return;
   }
 
+  applyUserLocale();
   if (firstAccessibleMenuPath.value && isDefaultAliasPath(getBrowserPath() || routePath.value)) {
     replaceBrowserPath(firstAccessibleMenuPath.value);
   }
@@ -1009,7 +1013,9 @@ onUnmounted(() => {
 
 // #ifndef H5
 onMounted(() => {
-  ensureAuthenticatedRoute();
+  if (ensureAuthenticatedRoute()) {
+    applyUserLocale();
+  }
 });
 // #endif
 </script>

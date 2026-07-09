@@ -6,13 +6,15 @@
     <!-- #endif -->
 
     <!-- #ifndef H5 -->
-    <view class="leak-map__error">当前地图 SDK 仅支持 H5 端展示</view>
+    <view class="leak-map__error">{{t("formDialog.location.onlyH5")}}</view>
     <!-- #endif -->
   </view>
 </template>
 
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
+import {createScopedT} from "@/i18n";
+const t = createScopedT("devicePage");
 
 const TENCENT_MAP_KEY = "JCDBZ-Z2HLI-V26GX-UL7VO-LJFO2-TIFMZ";
 const TENCENT_MAP_SCRIPT_ID = "tencent-map-gl-sdk";
@@ -92,7 +94,7 @@ onMounted(() => {
     loadTencentMap()
       .then(initMap)
       .catch(() => {
-        mapError.value = "腾讯地图加载失败，请检查 Key 的 Web 端域名白名单是否包含当前访问域名";
+        mapError.value = t('map.loadFailed');
       });
   });
   // #endif
@@ -137,10 +139,10 @@ function loadTencentMap() {
       if (window.TMap) {
         resolve();
       } else {
-        reject(new Error("Tencent map SDK is unavailable after script loaded"));
+        reject(new Error(t('map.sdkUnavailable')));
       }
     };
-    script.onerror = () => reject(new Error("Tencent map SDK script failed to load"));
+    script.onerror = () => reject(new Error(t('map.scriptLoadFailed')));
 
     if (!existingScript) {
       document.body.appendChild(script);
@@ -159,7 +161,7 @@ function initMap() {
   mapError.value = "";
 
   if (!mapContainer.value || !window.TMap) {
-    mapError.value = "地图容器初始化失败";
+    mapError.value = t('map.containerInitFailed');
     return;
   }
 

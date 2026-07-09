@@ -260,7 +260,6 @@ import {
   createLeakPoint,
   updateLeakPoint,
   deleteLeakPoint,
-  batchDeleteLeakPoint,
 } from "@/services/leak-report/leak-management";
 import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
 import LeakTableView from "@/pages/leak-report/components/LeakTableView.vue";
@@ -757,7 +756,7 @@ async function handleBatchDelete() {
   if (!selectedIds.value.size) return;
   const ids = Array.from(selectedIds.value).map((k) => { const i = records.value.findIndex((r, idx) => getRowKey(r, idx) === k); return i >= 0 ? getRowId(records.value[i]) : ""; }).filter(Boolean);
   if (!ids.length) return;
-  try { ok((await batchDeleteLeakPoint(ids)) as Res); uni.showToast({ title: `已删除${ids.length}条`, icon: "success" }); selectedIds.value = new Set(); fetchLeakPoints(); }
+  try { await Promise.all(ids.map((id) => deleteLeakPoint(id))); uni.showToast({ title: `已删除${ids.length}条`, icon: "success" }); selectedIds.value = new Set(); fetchLeakPoints(); }
   catch (e: unknown) { uni.showToast({ title: (e as { msg?: string }).msg || "批量删除失败", icon: "none" }); }
 }
 

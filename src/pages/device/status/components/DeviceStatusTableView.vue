@@ -13,41 +13,40 @@
     />
 
     <view class="table-head">
-      <text>设备参数详情</text>
-      <text class="table-head__meta">共 {{ pagination.total }} 条</text>
+      <text>{{ t("device-status.statusTable.title") }}</text>
+      <text class="table-head__meta">  {{ t('common.pagination.totalRecords', { total: pagination.total }) }}</text>
     </view>
 
     <scroll-view class="table-scroll" scroll-x scroll-y>
       <view class="data-table">
         <view class="data-row data-row--header">
 
-          <text class="data-cell data-cell--index">序号</text>
-<!--          <text class="data-cell data-cell&#45;&#45;device">设备ID</text>-->
-          <text class="data-cell data-cell--device">设备编号</text>
-          <text class="data-cell data-cell--status">渗漏状态</text>
+          <text class="data-cell data-cell--index">{{ t("common.table.index") }}</text>
+          <text class="data-cell data-cell--device">{{ t("device-status.statusTable.deviceNumber") }}</text>
+          <text class="data-cell data-cell--status">{{ t("device-status.statusTable.leakStatus") }}</text>
 
-          <text class="data-cell data-cell--device">固件版本</text>
-          <text class="data-cell data-cell--device">硬件版本</text>
+          <text class="data-cell data-cell--device">{{ t("device-status.statusTable.firmwareVersion") }}</text>
+          <text class="data-cell data-cell--device">{{ t("device-status.statusTable.hardwareVersion") }}</text>
 
-          <text class="data-cell data-cell--status">工作模式</text>
+          <text class="data-cell data-cell--status">{{ t("device-status.statusTable.workMode") }}</text>
 
-          <text class="data-cell data-cell--text">电池电压</text>
-          <text class="data-cell data-cell--text">设备温度</text>
+          <text class="data-cell data-cell--text">{{ t("device-status.statusTable.batteryVoltage") }}</text>
+          <text class="data-cell data-cell--text">{{ t("device-status.statusTable.deviceTemperature") }}</text>
 
-          <text class="data-cell data-cell--text">信号强度</text>
-          <text class="data-cell data-cell--text">信号质量</text>
+          <text class="data-cell data-cell--text">{{ t("device-status.statusTable.signalIntensity") }}</text>
+          <text class="data-cell data-cell--text">{{ t("device-status.statusTable.signalQuality") }}</text>
 
-          <text class="data-cell data-cell--text">坐标位置</text>
+          <text class="data-cell data-cell--text">{{ t("device-status.statusTable.coordinateLocation") }}</text>
 
-          <text class="data-cell data-cell--text">ESA指标</text>
-          <text class="data-cell data-cell--text">漏损强度</text>
-          <text class="data-cell data-cell--text">漏损频率</text>
+          <text class="data-cell data-cell--text">{{ t("device-status.statusTable.leakEsa") }}</text>
+          <text class="data-cell data-cell--text">{{ t("device-status.statusTable.leakIntensity") }}</text>
+          <text class="data-cell data-cell--text">{{ t("device-status.statusTable.leakFrequency") }}</text>
 
-          <text class="data-cell data-cell--time">上报时间</text>
+          <text class="data-cell data-cell--time">{{ t("device-status.statusTable.uploadTime") }}</text>
         </view>
 
-        <view v-if="loading" class="loading-mask">加载中...</view>
-        <view v-else-if="deviceList.length === 0" class="table-state">暂无工单数据</view>
+        <view v-if="loading" class="loading-mask">{{ t('common.table.loading') }}</view>
+        <view v-else-if="deviceList.length === 0" class="table-state">{{ t('common.table.empty') }}</view>
 
         <view
             v-for="(record, index) in deviceList"
@@ -62,11 +61,6 @@
             {{ (pagination.current - 1) * pagination.size + index + 1 }}
           </text>
 
-          <!-- 设备ID -->
-<!--          <text class="data-cell data-cell&#45;&#45;device">-->
-<!--            {{ record.deviceId ?? '-' }}-->
-<!--          </text>-->
-
           <!-- 设备编号 -->
           <text class="data-cell data-cell--device">
             {{ record.deviceNumber || '-' }}
@@ -78,9 +72,15 @@
               :class="getStatusClass('leak', record.leakStatus)"
           >
             {{
-              record.leakStatus === 0 ? '渗漏' :
-                  record.leakStatus === 1 ? '正常' :
-                      record.leakStatus === 2 ? '疑似' : '-'
+              record.leakStatus === 0
+                  ? t("status.leak.leak")
+                  : record.leakStatus === 1
+                      ? t("status.leak.normal")
+                      : record.leakStatus === 2
+                          ? t("status.leak.suspected")
+                          : record.leakStatus === 3
+                              ? t("status.leak.unknown")
+                              : "-"
             }}
           </text>
 
@@ -166,6 +166,8 @@ import {getDeviceStatusUploadPageT} from "@/services/device/status.typed";
 import XFloatingCollapseHandle from "@/pages/device/components/x/XFloatingCollapseHandle.vue";
 import MaintenanceRecordToolbar from "@/pages/device/maintenance/components/MaintenanceRecordToolbar.vue";
 import XPaginationBar from "@/pages/device/components/x/XPaginationBar.vue";
+import {createScopedT} from "@/i18n";
+const t = createScopedT("devicePage");
 
 const isToolbarVisible = ref(true);
 const isFloatingVisible = ref(false);
