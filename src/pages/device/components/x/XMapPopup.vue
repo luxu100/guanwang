@@ -9,8 +9,8 @@
           <text class="title">{{ title }}</text>
 
           <view class="coord">
-            <text class="coord-item">经度：{{ safeLng.toFixed(6) }}</text>
-            <text class="coord-item">纬度：{{ safeLat.toFixed(6) }}</text>
+            <text class="coord-item">{{ t("coordinates.lng") }}：{{ safeLng.toFixed(6) }}</text>
+            <text class="coord-item">{{ t("coordinates.lat") }}：{{ safeLat.toFixed(6) }}</text>
           </view>
         </view>
 
@@ -31,6 +31,9 @@
 <script setup lang="ts">
 import LocaleCoordinateMap from "@/components/map/LocaleCoordinateMap.vue";
 import { computed } from "vue";
+
+import {createScopedT} from "@/i18n";
+const t = createScopedT("devicePage");
 
 const props = defineProps<{
   title?: string;

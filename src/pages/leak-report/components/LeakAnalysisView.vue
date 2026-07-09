@@ -17,6 +17,25 @@
           <input v-model="filters.deviceNumber" class="filter-input" placeholder="请输入设备编号" placeholder-class="input-placeholder" />
         </view>
 
+        <!-- 算法分析tab无需额外筛选 -->
+
+        <!-- 渗漏记录tab：渗漏级别 + 检出人 -->
+        <template v-if="dataType === 'leakage'">
+          <view class="filter-group">
+            <text class="filter-label">渗漏级别</text>
+            <picker :range="leakLevelOptions" range-key="label" @change="handleLeakLevelChange">
+              <view class="filter-select">
+                <text>{{ currentLeakLevelLabel }}</text>
+                <text class="filter-select__arrow"></text>
+              </view>
+            </picker>
+          </view>
+          <view class="filter-group">
+            <text class="filter-label">检出人</text>
+            <input v-model="filters.detectAccount" class="filter-input" placeholder="请输入检出人" placeholder-class="input-placeholder" />
+          </view>
+        </template>
+
         <view class="filter-group">
           <text class="filter-label">数据类型</text>
           <picker :range="dataTypeOptions" range-key="label" @change="handleDataTypeChange">
@@ -85,9 +104,10 @@
           <text class="data-cell data-cell--time data-cell--sortable" @click.stop="toggleSort('detectedTime')">检出时间<text class="sort-arrow sort-arrow--active" v-if="sortField === 'detectedTime'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
           <text class="data-cell data-cell--level data-cell--sortable" @click.stop="toggleSort('leakLevel')">渗漏级别<text class="sort-arrow sort-arrow--active" v-if="sortField === 'leakLevel'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
           <text class="data-cell data-cell--address">漏点位置</text>
-          <text class="data-cell data-cell--part">泄漏部位</text>
+          <text class="data-cell data-cell--coord">渗漏坐标</text>
+          <text class="data-cell data-cell--part">渗漏部位</text>
+          <text class="data-cell data-cell--material">管道材质</text>
           <text class="data-cell data-cell--account">检出人</text>
-          <text class="data-cell data-cell--count">渗漏次数</text>
         </view>
 
         <view v-if="loading" class="table-state">加载中...</view>
@@ -120,9 +140,10 @@
               <text class="level-pill" :class="getLeakLevelClass(item)">{{ getLeakLevelLabel(item) }}</text>
             </text>
             <text class="data-cell data-cell--address">{{ getFieldValue(item, "leakAddress") || "-" }}</text>
+            <text class="data-cell data-cell--coord">{{ getFieldValue(item, "leakCoordinate") || "-" }}</text>
             <text class="data-cell data-cell--part">{{ getFieldValue(item, "leakPart") || "-" }}</text>
+            <text class="data-cell data-cell--material">{{ getFieldValue(item, "tubeMaterial") || "-" }}</text>
             <text class="data-cell data-cell--account">{{ getFieldValue(item, "detectAccount") || "-" }}</text>
-            <text class="data-cell data-cell--count">-</text>
           </template>
         </view>
       </view>
@@ -185,6 +206,14 @@ const dataTypeOptions: Array<{ label: string; value: DataType }> = [
   { label: "渗漏记录", value: "leakage" },
 ];
 
+const leakLevelOptions: Array<{ label: string; value: number | "" }> = [
+  { label: "不限", value: "" },
+  { label: "轻度", value: 0 },
+  { label: "中度", value: 1 },
+  { label: "重度", value: 2 },
+  { label: "疑点", value: 3 },
+];
+
 const detailTabs: Array<{ label: string; value: DetailTab }> = [
   { label: "详情", value: "detail" },
 ];
@@ -197,6 +226,8 @@ const filters = reactive({
   endTime: "",
   deviceNumber: "",
   dataType: "algorithm" as DataType,
+  leakLevel: "" as number | "",
+  detectAccount: "",
 });
 
 const pagination = reactive({
@@ -215,6 +246,10 @@ const exportMenuVisible = ref(false);
 
 const currentDataTypeLabel = computed(() =>
   dataTypeOptions.find((o) => o.value === filters.dataType)?.label || "算法分析",
+);
+
+const currentLeakLevelLabel = computed(() =>
+  leakLevelOptions.find((o) => o.value === filters.leakLevel)?.label || "不限",
 );
 
 const dataTypeLabel = computed(() =>
@@ -259,6 +294,24 @@ const currentDetailFields = computed(() => {
       { label: "泄漏判定", value: String(getFieldValue(r, "signalprocessingResult2") || "-") },
       { label: "浙大算法结果", value: String(getFieldValue(r, "signalprocessingResult3") || "-") },
       { label: "信号处理结果", value: String(getFieldValue(r, "signalprocessingResult") || "-") },
+      { label: "状态", value: String(getFieldValue(r, "leakStatus") || "-") },
+      { label: "算法类型", value: String(getFieldValue(r, "algorithmType") || "-") },
+      { label: "泄漏带宽", value: String(getFieldValue(r, "leakBandwidth") || "-") },
+      { label: "泄漏能量", value: String(getFieldValue(r, "leakEnergy") || "-") },
+      { label: "泄漏频率", value: String(getFieldValue(r, "leakFrequency") || "-") },
+      { label: "特征值", value: String(getFieldValue(r, "featureValue") || "-") },
+      { label: "增益", value: String(getFieldValue(r, "gain") || "-") },
+      { label: "天气", value: String(getFieldValue(r, "weather") || "-") },
+      { label: "蓝鲸分析", value: String(getFieldValue(r, "blueWhaleAnalysis") || "-") },
+      { label: "人工分析", value: String(getFieldValue(r, "manualAnalysis") || "-") },
+      { label: "原因分析", value: String(getFieldValue(r, "causeAnalysis") || "-") },
+      { label: "排查反馈", value: String(getFieldValue(r, "checkFeedback") || "-") },
+      { label: "阀门编号", value: String(getFieldValue(r, "valveNumber") || "-") },
+      { label: "所属片区", value: String(getFieldValue(r, "areaName") || "-") },
+      { label: "安装人员", value: String(getFieldValue(r, "installPerson") || "-") },
+      { label: "安装地址", value: String(getFieldValue(r, "installAddress") || "-") },
+      { label: "坐标位置", value: String(getFieldValue(r, "coordinate") || "-") },
+      { label: "拆装", value: String(getFieldValue(r, "installStatus") || "-") },
       { label: "创建时间", value: formatDateTime(getFieldValue(r, "createdAt") || "-") },
     ];
   }
@@ -266,16 +319,35 @@ const currentDetailFields = computed(() => {
     { label: "ID", value: String(getFieldValue(r, "id") || "-") },
     { label: "检出时间", value: formatDateTime(getFieldValue(r, "detectedTime") || "-") },
     { label: "渗漏级别", value: getLeakLevelLabel(r) },
+    { label: "状态", value: String(getFieldValue(r, "leakStatus") || "-") },
     { label: "漏点位置", value: String(getFieldValue(r, "leakAddress") || "-") },
     { label: "渗漏坐标", value: String(getFieldValue(r, "leakCoordinate") || "-") },
     { label: "泄漏部位", value: String(getFieldValue(r, "leakPart") || "-") },
     { label: "管道材质", value: String(getFieldValue(r, "tubeMaterial") || "-") },
     { label: "管道口径", value: String(getFieldValue(r, "tubeBore") || "-") },
     { label: "管道埋深", value: String(getFieldValue(r, "tubeDepth") || "-") },
+    { label: "管道年限", value: String(getFieldValue(r, "tubeAge") || "-") },
     { label: "检出人", value: String(getFieldValue(r, "detectAccount") || "-") },
     { label: "最近设备距离", value: String(getFieldValue(r, "closestDeviceDistance") || "-") },
     { label: "关联设备", value: String(getFieldValue(r, "referenceDevices") || "-") },
     { label: "关联工单ID", value: String(getFieldValue(r, "referenceWorksheetId") || "-") },
+    { label: "天气", value: String(getFieldValue(r, "weather") || "-") },
+    { label: "增益", value: String(getFieldValue(r, "gain") || "-") },
+    { label: "特征值", value: String(getFieldValue(r, "featureValue") || "-") },
+    { label: "蓝鲸分析", value: String(getFieldValue(r, "blueWhaleAnalysis") || "-") },
+    { label: "人工分析", value: String(getFieldValue(r, "manualAnalysis") || "-") },
+    { label: "原因分析", value: String(getFieldValue(r, "causeAnalysis") || "-") },
+    { label: "排查反馈", value: String(getFieldValue(r, "checkFeedback") || "-") },
+    { label: "算法类型", value: String(getFieldValue(r, "algorithmType") || "-") },
+    { label: "泄漏带宽", value: String(getFieldValue(r, "leakBandwidth") || "-") },
+    { label: "泄漏能量", value: String(getFieldValue(r, "leakEnergy") || "-") },
+    { label: "泄漏频率", value: String(getFieldValue(r, "leakFrequency") || "-") },
+    { label: "阀门编号", value: String(getFieldValue(r, "valveNumber") || "-") },
+    { label: "所属片区", value: String(getFieldValue(r, "areaName") || "-") },
+    { label: "安装人员", value: String(getFieldValue(r, "installPerson") || "-") },
+    { label: "安装地址", value: String(getFieldValue(r, "installAddress") || "-") },
+    { label: "坐标位置", value: String(getFieldValue(r, "coordinate") || "-") },
+    { label: "拆装", value: String(getFieldValue(r, "installStatus") || "-") },
     { label: "备注", value: String(getFieldValue(r, "remark") || "-") },
     { label: "创建时间", value: formatDateTime(getFieldValue(r, "createdAt") || "-") },
   ];
@@ -287,6 +359,11 @@ onMounted(() => {
 
 function handleDataTypeChange(event: { detail: { value: number } }) {
   filters.dataType = dataTypeOptions[event.detail.value]?.value ?? "algorithm";
+  searchAnalysis();
+}
+
+function handleLeakLevelChange(event: { detail: { value: number } }) {
+  filters.leakLevel = leakLevelOptions[event.detail.value]?.value ?? "";
 }
 
 function toggleSort(field: string) {
@@ -314,6 +391,11 @@ function buildQueryParams() {
   if (filters.deviceNumber.trim()) {
     (baseParams as Record<string, unknown>).deviceNumber = filters.deviceNumber.trim();
   }
+  // 渗漏记录tab补充筛选
+  if (dataType.value === "leakage") {
+    if (filters.leakLevel !== "") (baseParams as Record<string, unknown>).leakLevel = filters.leakLevel;
+    if (filters.detectAccount.trim()) (baseParams as Record<string, unknown>).detectAccount = filters.detectAccount.trim();
+  }
 
   return baseParams;
 }
@@ -326,6 +408,8 @@ async function fetchAnalysisData() {
     const response = (await apiFn(buildQueryParams())) as ApiResponseLike;
     assertSuccessResponse(response);
     const parsed = parsePageResponse(response);
+    if (parsed.pageNum && parsed.pageNum !== pagination.pageNum) pagination.pageNum = parsed.pageNum;
+    if (parsed.pageSize && parsed.pageSize !== pagination.pageSize) pagination.pageSize = parsed.pageSize;
     records.value = applyLocalSort(parsed.records);
     total.value = parsed.total;
     selectFirstRow();
@@ -410,6 +494,8 @@ function resetFilters() {
   filters.endTime = "";
   filters.deviceNumber = "";
   filters.dataType = "algorithm";
+  filters.leakLevel = "";
+  filters.detectAccount = "";
   searchAnalysis();
 }
 
@@ -480,6 +566,7 @@ function getLeakLevelClass(item: AnalysisRecord) {
   if (val === 0) return "level-pill--light";
   if (val === 1) return "level-pill--medium";
   if (val === 2) return "level-pill--heavy";
+  if (val === 3) return "level-pill--suspect";
   return "";
 }
 
@@ -522,11 +609,11 @@ function parsePageResponse(response: ApiResponseLike) {
     getFirstNumber(response, ["total", "count", "totalCount", "totalRow", "totalRows", "totalElements"]);
   const cur = getFirstNumber(pageData, ["current", "pageNum", "page", "pageNo"]);
   const sz = getFirstNumber(pageData, ["size", "pageSize", "limit"]);
-  if (cur) pagination.pageNum = cur;
-  if (sz) pagination.pageSize = sz;
-  const minVisibleTotal = (pagination.pageNum - 1) * pagination.pageSize + finalRecords.length;
+  const pageNum = cur || pagination.pageNum;
+  const pageSize = sz || pagination.pageSize;
+  const minVisibleTotal = (pageNum - 1) * pageSize + finalRecords.length;
   const resolved = totalVal === undefined ? finalRecords.length : Math.max(totalVal, minVisibleTotal);
-  return { records: finalRecords.map((r) => (isObject(r) ? r : { value: r })), total: resolved };
+  return { records: finalRecords.map((r) => (isObject(r) ? r : { value: r })), total: resolved, pageNum, pageSize };
 }
 
 function findPageContainer(value: unknown): AnalysisRecord | null {
@@ -625,6 +712,8 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   padding: 14px;
   margin-bottom: 12px;
   background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .toolbar-row {
@@ -777,8 +866,8 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 }
 
 .export-menu__item:hover {
-  background: #f1f8ff;
-  color: #0d82ee;
+  background: #eff6ff;
+  color: #3b82f6;
 }
 
 .toolbar-button {
@@ -802,25 +891,25 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 
 .toolbar-button--primary {
   color: #ffffff;
-  background: #0d82ee;
-  border-color: #0d82ee;
+  background: #3b82f6;
+  border-color: #3b82f6;
 }
 
 .toolbar-button--hover {
-  color: #0d82ee;
-  background: #edf7ff;
-  border-color: #a9d7ff;
+  color: #3b82f6;
+  background: #eff6ff;
+  border-color: #bfdbfe;
 }
 
 .toolbar-button--primary.toolbar-button--hover {
   color: #ffffff;
-  background: #0674d8;
-  border-color: #0674d8;
+  background: #2563eb;
+  border-color: #2563eb;
 }
 
 .toolbar-button:disabled {
   color: #9aa9b8;
-  background: #eef2f6;
+  background: #eff6ff;
   border-color: #d7e0e8;
   cursor: not-allowed;
 }
@@ -841,7 +930,7 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 }
 
 .toolbar-icon-button--hover {
-  background: #edf5ff;
+  background: #eff6ff;
 }
 
 .icon-refresh {
@@ -958,37 +1047,36 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 }
 
 .data-table {
-  width: 1880px;
-  min-width: 1880px;
+  display: flex;
+  flex-direction: column;
   background: #ffffff;
 }
 
 .data-row {
   display: grid;
-  grid-template-columns: 58px 242px 340px 440px 360px 240px 200px;
-  min-height: 42px;
-  width: 1880px;
+  grid-template-columns: 58px minmax(110px, 2.2fr) minmax(160px, 3fr) minmax(160px, 3.8fr) minmax(110px, 2.2fr) minmax(96px, 1.6fr) minmax(110px, 2fr);
+  min-height: 48px;
   border-bottom: 1px solid #edf1f5;
   cursor: pointer;
   transition: background 0.18s ease, box-shadow 0.18s ease;
 }
 
 .data-row--algorithm {
-  grid-template-columns: 58px 242px 340px 440px 360px 240px 200px;
+  grid-template-columns: 58px minmax(110px, 2.2fr) minmax(160px, 3fr) minmax(160px, 3.8fr) minmax(110px, 2.2fr) minmax(96px, 1.6fr) minmax(110px, 2fr);
 }
 
 .data-row--leakage {
-  grid-template-columns: 58px 340px 180px 360px 300px 220px 422px;
+  grid-template-columns: 58px minmax(160px, 2.6fr) minmax(80px, 1fr) minmax(160px, 3fr) minmax(120px, 2fr) minmax(96px, 1.6fr) minmax(96px, 1.4fr) minmax(80px, 1fr);
 }
 
 .data-row--header {
   position: sticky;
   top: 0;
   z-index: 1;
-  min-height: 44px;
+  min-height: 50px;
   color: #20384f;
   font-weight: 800;
-  background: #f6f9fc;
+  background: #fafafa;
   cursor: default;
   box-shadow: 0 1px 0 #dbe7f0;
 }
@@ -1002,14 +1090,14 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 }
 
 .data-row:not(.data-row--header):hover {
-  background: #f1f8ff;
-  box-shadow: inset 0 0 0 1px #d7ebfb;
+  background: #eff6ff;
+  box-shadow: inset 0 0 0 1px #cbd5e1;
 }
 
 .data-row--active {
   position: relative;
-  background: #e7f3ff !important;
-  box-shadow: inset 0 0 0 1px #b9dcff;
+  background: #eff6ff !important;
+  box-shadow: inset 0 0 0 1px #bfdbfe;
 }
 
 .data-row--active::before {
@@ -1019,7 +1107,7 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   left: 0;
   width: 3px;
   content: "";
-  background: #0d82ee;
+  background: #3b82f6;
   border-radius: 0 999px 999px 0;
 }
 
@@ -1034,8 +1122,8 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   font-size: 13px;
   line-height: 1.35;
   text-align: center;
-  text-overflow: ellipsis;
   white-space: nowrap;
+  text-overflow: ellipsis;
   border-right: 1px solid #edf1f5;
 }
 
@@ -1050,40 +1138,49 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 .data-cell--index { justify-content: center; color: #64748b; }
 .data-cell--device { color: #0f4c81; font-family: "DIN Alternate", "Arial", sans-serif; font-weight: 800; }
 .data-cell--time { color: #0f4c81; font-family: "DIN Alternate", "Arial", sans-serif; font-weight: 800; }
-.data-cell--address { justify-content: flex-start; text-align: left; }
+.data-cell--address { justify-content: center; text-align: center; }
 
 .data-cell--sortable { cursor: pointer; user-select: none; }
-.data-cell--sortable:hover { color: #0d82ee; }
+.data-cell--sortable:hover { color: #3b82f6; }
 
-.sort-arrow { flex: none; font-size: 10px; line-height: 1; margin-left: 2px; color: #bcc7d6; transition: color 0.18s ease; &--active { color: #0d82ee; } }
+.sort-arrow { flex: none; font-size: 10px; line-height: 1; margin-left: 2px; color: #bcc7d6; transition: color 0.18s ease; &--active { color: #3b82f6; } }
 .data-cell--sortable:hover .sort-arrow:not(.sort-arrow--active) { color: #7f8fa3; }
 
 .level-pill {
   display: inline-block;
-  padding: 2px 8px;
+  padding: 2px 10px;
   font-size: 12px;
   font-weight: 700;
   border-radius: 10px;
 }
 
 .level-pill--light {
-  color: #16a34a;
-  background: #dcfce7;
+  color: #22c55e;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
 }
 
 .level-pill--medium {
-  color: #d97706;
-  background: #fef3c7;
+  color: #f59e0b;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
 }
 
 .level-pill--heavy {
-  color: #dc2626;
-  background: #fee2e2;
+  color: #ef4444;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.level-pill--suspect {
+  color: #8c8c8c;
+  background: #fafafa;
+  border: 1px solid #d9d9d9;
 }
 
 .status-tag {
   display: inline-block;
-  padding: 2px 8px;
+  padding: 2px 10px;
   font-size: 12px;
   font-weight: 700;
   border-radius: 10px;
@@ -1092,29 +1189,36 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 }
 
 .status-tag--leak {
-  color: #dc2626;
-  background: #fee2e2;
+  color: #ef4444;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
 }
 
 .status-tag--normal {
-  color: #16a34a;
-  background: #dcfce7;
+  color: #22c55e;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
 }
 
 .status-tag--unknown {
-  color: #d97706;
-  background: #fef3c7;
+  color: #f59e0b;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
 }
 
 .table-state {
-  padding: 32px;
-  color: #7c8da1;
+  padding: 48px 32px;
+  color: #a0aec0;
   font-size: 14px;
   text-align: center;
 }
 
 .pagination-bar {
   flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
   border-top: 1px solid #edf3f8;
 }
 
@@ -1135,7 +1239,7 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   cursor: pointer;
 }
 
-.page-button--hover { background: #edf5ff; }
+.page-button--hover { background: #eff6ff; }
 .page-button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .page-info {
@@ -1188,11 +1292,11 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 }
 
 .detail-tab--active {
-  color: #0d82ee;
-  border-bottom-color: #0d82ee;
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
 }
 
-.detail-section { flex: 1; min-height: 0; padding: 16px; overflow-y: auto; background: linear-gradient(180deg, #f5faff 0, #ffffff 142px), #ffffff; }
+.detail-section { flex: 1; min-height: 0; padding: 16px; overflow-y: auto; background: linear-gradient(180deg, #f8fafc 0, #ffffff 142px), #ffffff; }
 
 .detail-grid { display: grid; gap: 0; overflow: hidden; background: #ffffff; border: 1px solid #dfebf5; border-radius: 6px; box-shadow: 0 8px 18px rgba(33, 72, 108, 0.045); }
 
@@ -1204,11 +1308,11 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 
 .detail-item__value { color: #172033; font-size: 14px; font-weight: 700; line-height: 1.45; text-align: right; word-break: break-all; }
 
-.detail-item--level-light { border-left: 4px solid #16a34a; padding-left: 10px; background: #f0fdf4; }
+.detail-item--level-light { border-left: 4px solid #22c55e; padding-left: 10px; background: #f0fdf4; }
 
-.detail-item--level-medium { border-left: 4px solid #d97706; padding-left: 10px; background: #fffbeb; }
+.detail-item--level-medium { border-left: 4px solid #f59e0b; padding-left: 10px; background: #fffbeb; }
 
-.detail-item--level-heavy { border-left: 4px solid #dc2626; padding-left: 10px; background: #fef2f2; }
+.detail-item--level-heavy { border-left: 4px solid #ef4444; padding-left: 10px; background: #fef2f2; }
 
 @media (max-width: 1024px) {
   .main-layout {

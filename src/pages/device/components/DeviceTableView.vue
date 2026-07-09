@@ -1,29 +1,29 @@
 <template>
   <view class="worksheet-table-panel">
     <view class="table-head">
-      <text>设备创建记录</text>
-      <text class="table-head__meta">共 {{ pagination.total }} 条</text>
+      <text>{{ t('deviceTable.title') }}</text>
+      <text class="table-head__meta">  {{ t('common.pagination.totalRecords', { total: pagination.total }) }}</text>
     </view>
 
     <scroll-view class="table-scroll" scroll-x scroll-y>
       <view class="data-table">
         <view class="data-row data-row--header">
-          <text class="data-cell data-cell--index">序号</text>
-          <text class="data-cell data-cell--device">设备编号</text>
-          <text class="data-cell data-cell--type">设备类型</text>
-          <text class="data-cell data-cell--status">启用状态</text>
-          <text class="data-cell data-cell--status">安装状态</text>
-          <text class="data-cell data-cell--status">安装模式</text>
-          <text class="data-cell data-cell--address">安装地址</text>
-          <text class="data-cell data-cell--coord">设备坐标</text>
-          <text class="data-cell data-cell--number">管组编号</text>
-          <text class="data-cell data-cell--status">渗漏状态</text>
-          <text class="data-cell data-cell--time">最后采样时间</text>
-          <text class="data-cell data-cell--status">在线状态</text>
+          <text class="data-cell data-cell--index">{{ tc('table.index') }}</text>
+          <text class="data-cell data-cell--device">{{ t('deviceTable.deviceNumber') }}</text>
+          <text class="data-cell data-cell--type">{{ t('deviceTable.deviceType') }}</text>
+          <text class="data-cell data-cell--status">{{ t('deviceTable.enableState') }}</text>
+          <text class="data-cell data-cell--status">{{ t('deviceTable.installState') }}</text>
+          <text class="data-cell data-cell--status">{{ t('deviceTable.installMode') }}</text>
+          <text class="data-cell data-cell--address">{{ t('deviceTable.installAddress') }}</text>
+          <text class="data-cell data-cell--coord">{{ t('deviceTable.coordinate') }}</text>
+          <text class="data-cell data-cell--number">{{ t('deviceTable.tubeGroup') }}</text>
+          <text class="data-cell data-cell--status">{{ t('deviceTable.leakStatus') }}</text>
+          <text class="data-cell data-cell--time">{{ t('deviceTable.lastSamplingTime') }}</text>
+          <text class="data-cell data-cell--status">{{ t('deviceTable.onlineStatus') }}</text>
         </view>
 
-        <view v-if="loading" class="table-state">加载中...</view>
-        <view v-else-if="filteredDevices.length === 0" class="table-state">暂无工单数据</view>
+        <view v-if="loading" class="table-state">{{ tc('table.loading') }}</view>
+        <view v-else-if="filteredDevices.length === 0" class="table-state">{{ tc('table.empty') }}</view>
 
         <view
             v-for="(device, index) in filteredDevices"
@@ -95,11 +95,13 @@
       </view>
     </scroll-view>
 
-    <view class="pagination-bar">
-      <button class="page-button" :disabled="pagination.current <= 1" @click="changePage(-1)">上一页</button>
-      <text class="page-info">第 {{ pagination.current }} / {{  Math.ceil(pagination.total / pagination.size) || 1  }} 页</text>
-      <button class="page-button" :disabled="pagination.current >= 1" @click="changePage(1)">下一页</button>
-    </view>
+    <XPaginationBar
+        :current="pagination.current"
+        :size="pagination.size"
+        :total="pagination.total"
+        @change-page="(page:number) => emit('page-change', page)"
+        @change-size="(size:number) => emit('page-size-change', size)"
+    />
   </view>
 
   <XMapPopup
@@ -114,6 +116,10 @@ import {ref, computed, reactive} from 'vue';
 import type { Device } from '@/services/device/types';
 import type {Pagination} from "@/types/api";
 import XMapPopup from "@/pages/device/components/x/XMapPopup.vue";
+import XPaginationBar from "@/pages/device/components/x/XPaginationBar.vue";
+import {createScopedT} from "@/i18n";
+const t = createScopedT("devicePage");
+const tc = createScopedT("devicePage.common");
 
 const props = defineProps<{
   devices: Device[];
@@ -121,37 +127,39 @@ const props = defineProps<{
 }>();
 
 const loading = ref(false);
-const enableStateMap: Record<number, string> = {
-  0: '停用',
-  1: '启用'
-}
+const enableStateMap = computed<Record<number, string>>(() => ({
+  0: t('status.status.disabled'),
+  1: t('status.status.enabled')
+}));
 
-const installStateMap: Record<number, string> = {
-  0: '未安装',
-  1: '已安装'
-}
+const installStateMap = computed<Record<number, string>>(() => ({
+  0: t('status.install.uninstalled'),
+  1: t('status.install.installed')
+}));
 
-const installModeMap: Record<number, string> = {
-  0: '固定点',
-  1: '流动点'
-}
+const installModeMap = computed<Record<number, string>>(() => ({
+  0: t('status.installMode.fixed'),
+  1: t('status.installMode.mobile')
+}));
 
-const onlineStatusMap: Record<number, string> = {
-  0: '离线',
-  1: '在线'
-}
+const onlineStatusMap = computed<Record<number, string>>(() => ({
+  0: t('status.online.offline'),
+  1: t('status.online.online')
+}));
 
-const leakStatusMap: Record<number, string> = {
-  0: '渗漏',
-  1: '正常',
-  2: '疑似',
-  3: '未知'
-}
+const leakStatusMap = computed<Record<number, string>>(() => ({
+  0: t('status.leak.leak'),
+  1: t('status.leak.normal'),
+  2: t('status.leak.suspected'),
+  3: t('status.leak.unknown')
+}));
+
 
 const emit = defineEmits<{
   (e: 'view', device: Device): void;
   (e: 'select', device: Device): void;
   (e: 'page-change', page: number): void;
+  (e: 'page-size-change', size: number): void;
 }>();
 
 const searchKeyword = ref('');
@@ -199,16 +207,6 @@ const filteredDevices = computed(() => {
   );
 });
 
-function changePage(step: number) {
-  const maxPage = Math.ceil(props.pagination.total / props.pagination.size);
-
-  const next = props.pagination.current + step;
-
-  if (next < 1 || next > maxPage) return;
-
-  emit('page-change', next);
-}
-
 const showMap = ref(false);
 const lng = ref(0);
 const lat = ref(0);
@@ -241,7 +239,7 @@ function handleCoordClick(longitude: number, latitude: number) {
   } else {
     // 没有坐标，弹出提示
     uni.showToast({
-      title: '该设备暂无坐标信息,无法定位!',
+      title: t('map.noCoordinate'),
       icon: 'none',
       duration: 2000
     });
@@ -272,38 +270,6 @@ function handleCoordClick(longitude: number, latitude: number) {
 
 .data-cell--link:active {
   opacity: 0.7;
-}
-
-.pagination-bar{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.page-info {
-  color: #64748b;
-  font-size: 13px;
-}
-
-.page-button::after {
-  border: 0;
-}
-
-.page-button {
-  height: 30px;
-  margin: 0;
-  padding: 0 12px;
-  color: #31506d;
-  font-size: 13px;
-  line-height: 30px;
-  background: #f6fbff;
-  border: 1px solid #cbdced;
-  border-radius: 4px;
-}
-
-.page-button[disabled] {
-  color: #a9b4c1;
-  background: #f4f7fa;
 }
 
 .worksheet-table-panel {
@@ -472,15 +438,6 @@ function handleCoordClick(longitude: number, latitude: number) {
 .data-cell--remark {
   justify-content: flex-start;
   text-align: left;
-}
-
-.pagination-bar {
-  flex: none;
-  justify-content: flex-end;
-  gap: 10px;
-  height: 48px;
-  padding: 0 14px;
-  border-top: 1px solid #edf3f8;
 }
 
 /* 设备编号：通常由字母和数字组成，使用等宽字体更清晰，颜色适中 */

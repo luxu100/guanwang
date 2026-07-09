@@ -8,46 +8,45 @@
         :visible="isToolbarVisible"
     />
 
-    <XFloatingCollapseHandle
+    <XFloatingCollapseHandle v-if="isFloatingVisible"
         v-model="isToolbarVisible"
     />
 
     <view class="table-head">
-      <text>设备参数详情</text>
-      <text class="table-head__meta">共 {{ pagination.total }} 条</text>
+      <text>{{ t("device-status.statusTable.title") }}</text>
+      <text class="table-head__meta">  {{ t('common.pagination.totalRecords', { total: pagination.total }) }}</text>
     </view>
 
     <scroll-view class="table-scroll" scroll-x scroll-y>
       <view class="data-table">
         <view class="data-row data-row--header">
 
-          <text class="data-cell data-cell--index">序号</text>
-<!--          <text class="data-cell data-cell&#45;&#45;device">设备ID</text>-->
-          <text class="data-cell data-cell--device">设备编号</text>
-          <text class="data-cell data-cell--status">渗漏状态</text>
+          <text class="data-cell data-cell--index">{{ t("common.table.index") }}</text>
+          <text class="data-cell data-cell--device">{{ t("device-status.statusTable.deviceNumber") }}</text>
+          <text class="data-cell data-cell--status">{{ t("device-status.statusTable.leakStatus") }}</text>
 
-          <text class="data-cell data-cell--device">固件版本</text>
-          <text class="data-cell data-cell--device">硬件版本</text>
+          <text class="data-cell data-cell--device">{{ t("device-status.statusTable.firmwareVersion") }}</text>
+          <text class="data-cell data-cell--device">{{ t("device-status.statusTable.hardwareVersion") }}</text>
 
-          <text class="data-cell data-cell--status">工作模式</text>
+          <text class="data-cell data-cell--status">{{ t("device-status.statusTable.workMode") }}</text>
 
-          <text class="data-cell data-cell--text">电池电压</text>
-          <text class="data-cell data-cell--text">设备温度</text>
+          <text class="data-cell data-cell--text">{{ t("device-status.statusTable.batteryVoltage") }}</text>
+          <text class="data-cell data-cell--text">{{ t("device-status.statusTable.deviceTemperature") }}</text>
 
-          <text class="data-cell data-cell--text">信号强度</text>
-          <text class="data-cell data-cell--text">信号质量</text>
+          <text class="data-cell data-cell--text">{{ t("device-status.statusTable.signalIntensity") }}</text>
+          <text class="data-cell data-cell--text">{{ t("device-status.statusTable.signalQuality") }}</text>
 
-          <text class="data-cell data-cell--text">坐标位置</text>
+          <text class="data-cell data-cell--text">{{ t("device-status.statusTable.coordinateLocation") }}</text>
 
-          <text class="data-cell data-cell--text">ESA指标</text>
-          <text class="data-cell data-cell--text">漏损强度</text>
-          <text class="data-cell data-cell--text">漏损频率</text>
+          <text class="data-cell data-cell--text">{{ t("device-status.statusTable.leakEsa") }}</text>
+          <text class="data-cell data-cell--text">{{ t("device-status.statusTable.leakIntensity") }}</text>
+          <text class="data-cell data-cell--text">{{ t("device-status.statusTable.leakFrequency") }}</text>
 
-          <text class="data-cell data-cell--time">上报时间</text>
+          <text class="data-cell data-cell--time">{{ t("device-status.statusTable.uploadTime") }}</text>
         </view>
 
-        <view v-if="loading" class="loading-mask">加载中...</view>
-        <view v-else-if="deviceList.length === 0" class="table-state">暂无工单数据</view>
+        <view v-if="loading" class="loading-mask">{{ t('common.table.loading') }}</view>
+        <view v-else-if="deviceList.length === 0" class="table-state">{{ t('common.table.empty') }}</view>
 
         <view
             v-for="(record, index) in deviceList"
@@ -62,11 +61,6 @@
             {{ (pagination.current - 1) * pagination.size + index + 1 }}
           </text>
 
-          <!-- 设备ID -->
-<!--          <text class="data-cell data-cell&#45;&#45;device">-->
-<!--            {{ record.deviceId ?? '-' }}-->
-<!--          </text>-->
-
           <!-- 设备编号 -->
           <text class="data-cell data-cell--device">
             {{ record.deviceNumber || '-' }}
@@ -78,9 +72,15 @@
               :class="getStatusClass('leak', record.leakStatus)"
           >
             {{
-              record.leakStatus === 0 ? '渗漏' :
-                  record.leakStatus === 1 ? '正常' :
-                      record.leakStatus === 2 ? '疑似' : '-'
+              record.leakStatus === 0
+                  ? t("status.leak.leak")
+                  : record.leakStatus === 1
+                      ? t("status.leak.normal")
+                      : record.leakStatus === 2
+                          ? t("status.leak.suspected")
+                          : record.leakStatus === 3
+                              ? t("status.leak.unknown")
+                              : "-"
             }}
           </text>
 
@@ -148,11 +148,13 @@
       </view>
     </scroll-view>
 
-    <view class="pagination-bar">
-      <button class="page-button" :disabled="pagination.current <= 1" @click="changePage(-1)">上一页</button>
-      <text class="page-info">第 {{ pagination.current }} / {{  Math.ceil(pagination.total / pagination.size) || 1  }} 页</text>
-      <button class="page-button" :disabled="pagination.current >= 1" @click="changePage(1)">下一页</button>
-    </view>
+    <XPaginationBar
+        :current="pagination.current"
+        :size="pagination.size"
+        :total="pagination.total"
+        @change-page="handlePageChange"
+        @change-size="handlePageSizeChange"
+    />
   </view>
 </template>
 <script setup lang="ts">
@@ -163,8 +165,12 @@ import DeviceStatusToolbar from "@/pages/device/status/components/DeviceStatusTo
 import {getDeviceStatusUploadPageT} from "@/services/device/status.typed";
 import XFloatingCollapseHandle from "@/pages/device/components/x/XFloatingCollapseHandle.vue";
 import MaintenanceRecordToolbar from "@/pages/device/maintenance/components/MaintenanceRecordToolbar.vue";
+import XPaginationBar from "@/pages/device/components/x/XPaginationBar.vue";
+import {createScopedT} from "@/i18n";
+const t = createScopedT("devicePage");
 
-const isToolbarVisible = ref(false);
+const isToolbarVisible = ref(true);
+const isFloatingVisible = ref(false);
 
 // ===== 数据 =====
 const loading = ref(false);
@@ -253,14 +259,13 @@ async function fetchDeviceStatuss(requestId?: number) {
 }
 
 // ===== 分页 =====
-function changePage(step: number) {
-  const maxPage = Math.ceil(pagination.value.total / pagination.value.size);
-
-  const next = pagination.value.current + step;
-
-  if (next < 1 || next > maxPage) return;
-
-  pagination.value.current = next;
+function handlePageChange(page:number){
+  pagination.value.current = page;
+  fetchDeviceStatuss();
+}
+function handlePageSizeChange(pageSize:number){
+  pagination.value.size = pageSize;
+  pagination.value.current = 1;
   fetchDeviceStatuss();
 }
 
@@ -286,8 +291,6 @@ const getStatusClass = (type: string, value: number) => {
 };
 </script>
 <style scoped lang="scss">
-
-
 .loading-mask {
   position: absolute;
   top: 0;
@@ -307,38 +310,6 @@ const getStatusClass = (type: string, value: number) => {
   font-size: 14px;
 
   backdrop-filter: blur(1px);
-}
-
-.pagination-bar{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.page-info {
-  color: #64748b;
-  font-size: 13px;
-}
-
-.page-button::after {
-  border: 0;
-}
-
-.page-button {
-  height: 30px;
-  margin: 0;
-  padding: 0 12px;
-  color: #31506d;
-  font-size: 13px;
-  line-height: 30px;
-  background: #f6fbff;
-  border: 1px solid #cbdced;
-  border-radius: 4px;
-}
-
-.page-button[disabled] {
-  color: #a9b4c1;
-  background: #f4f7fa;
 }
 
 .worksheet-table-panel {
@@ -370,6 +341,7 @@ const getStatusClass = (type: string, value: number) => {
   align-items: center;
   justify-content: space-between;
 }
+
 .table-head {
   flex: none;
   height: 50px;
@@ -406,7 +378,6 @@ const getStatusClass = (type: string, value: number) => {
   width: max-content;
   background: #ffffff;
 }
-
 
 .data-row {
   display: flex;
@@ -462,7 +433,6 @@ const getStatusClass = (type: string, value: number) => {
   border-radius: 0 999px 999px 0;
 }
 
-
 .data-cell {
   display: flex !important;
   flex: 0 0 auto;
@@ -507,16 +477,6 @@ const getStatusClass = (type: string, value: number) => {
   justify-content: flex-start;
   text-align: left;
 }
-
-.pagination-bar {
-  flex: none;
-  justify-content: flex-end;
-  gap: 10px;
-  height: 48px;
-  padding: 0 14px;
-  border-top: 1px solid #edf3f8;
-}
-
 
 /* 设备编号：通常由字母和数字组成，使用等宽字体更清晰，颜色适中 */
 .data-cell--device {

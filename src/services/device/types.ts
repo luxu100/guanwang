@@ -303,6 +303,7 @@ export interface DeviceCreateForm {
     installAddress?: string;
     installLongitude?: number;
     installLatitude?: number;
+    coordinate?:string;
 
     // ===== 启用状态 =====
     enableState?: number;
@@ -318,4 +319,269 @@ export interface DeviceCreateForm {
     // ===== 设备属性 =====
     leakProperty?: number;
     leakStatus?: number;
+}
+
+/**
+ * 部门树节点
+ */
+export interface DeptTreeVO {
+    /** 部门ID */
+    id: number;
+
+    /** 部门名称 */
+    deptName: string;
+
+    /** 父部门ID */
+    parentId: number | null;
+
+    /** 部门描述 */
+    description?: string;
+
+    /** 部门负责人 */
+    administrator?: string;
+
+    /** 排序 */
+    sort?: number;
+
+    /** 状态：0-禁用 1-启用 */
+    status?: number;
+
+    /** 子部门 */
+    children: DeptTreeVO[];
+}
+
+export interface DeptDevice {
+    /**
+     * 主键ID
+     */
+    id?: number;
+
+    /**
+     * 部门ID
+     */
+    deptId: number | string;
+
+    /**
+     * 设备ID
+     */
+    deviceId: number | string;
+
+    /**
+     * 创建时间
+     */
+    createdAt?: string;
+
+    /**
+     * 更新时间
+     */
+    updatedAt?: string;
+
+    /**
+     * 删除标记 0-正常 1-删除
+     */
+    isDeleted?: boolean;
+}
+
+/**
+ * 设备运行参数设置
+ */
+export interface DeviceSetting {
+    /**
+     * 主键ID
+     */
+    id?: number;
+
+    /**
+     * 设备编号
+     */
+    deviceNumber?: string;
+
+    /**
+     * 设备编号集合
+     */
+    deviceNumbers?: string;
+
+    /**
+     * 启用控制 true-启用 false-停用
+     */
+    enabledControl?: boolean;
+
+    /**
+     * 巡检控制 true-启用 false-停用
+     */
+    inspectionControl?: boolean;
+
+    /**
+     * 工作模式
+     * 0-待启用
+     * 1-网络模式
+     * 2-现场模式
+     * 3-网络巡检模式
+     */
+    workMode?: number;
+
+    /**
+     * 单次测量长度
+     */
+    onceMeasureLength?: number;
+
+    /**
+     * 滤波方式
+     */
+    filterMethod?: number;
+
+    /**
+     * 滤波低频
+     */
+    filterLowFrequency?: number;
+
+    /**
+     * 滤波高频
+     */
+    filterHighFrequency?: number;
+
+    /**
+     * 信号等级
+     */
+    signalLevel?: number;
+
+    /**
+     * 信号通道
+     */
+    signalChannel?: number;
+
+    /**
+     * 测量增益模式
+     */
+    measureGainMode?: number;
+
+    /**
+     * 基准值
+     */
+    benchmarkValue?: number;
+
+    /**
+     * 噪声基准值
+     */
+    noiseBenchmarkValue?: number;
+
+    /**
+     * 采样星期
+     */
+    samplingWeekday?: string;
+
+    /**
+     * 采样时间
+     */
+    samplingTime?: string;
+
+    /**
+     * 同步采样次数
+     */
+    syncSamplingNumber?: number;
+
+    /**
+     * 同步采样时间
+     */
+    syncSamplingTime?: string;
+
+    /**
+     * 采样周期
+     */
+    samplingPeriodTime?: string;
+
+    /**
+     * 音频规则
+     */
+    audioRule?: number;
+
+    /**
+     * 采样次数
+     */
+    samplingCount?: number;
+
+    /**
+     * 泄漏阈值
+     */
+    leakThreshold?: number;
+
+    /**
+     * LoRa功率
+     */
+    loraPower?: number;
+
+    /**
+     * 增益值
+     */
+    gainValue?: number;
+
+    /**
+     * 巡检延迟
+     */
+    inspectDelay?: number;
+
+    /**
+     * 上报间隔
+     */
+    reportInterval?: number;
+
+    /**
+     * 日测量数据组
+     */
+    dayMeasureDataGroup?: number;
+
+    /**
+     * NB 4G触发配置
+     */
+    nb4gTrigger?: string;
+
+    /**
+     * NB 4G传输配置
+     */
+    nb4gTransferSet?: string;
+
+    /**
+     * NB 4G开启时间配置
+     */
+    nb4gOpenTimeSet?: string;
+
+    /**
+     * LoRa开启日期
+     */
+    loraOpenDay?: string;
+
+    /**
+     * LoRa信号频率
+     */
+    loraSignalFrequency?: string;
+
+    /**
+     * LoRa开启日期配置
+     */
+    loraOpenDate?: string;
+
+    /**
+     * 指令时间
+     */
+    orderTime?: string;
+
+    /**
+     * 指令账号
+     */
+    commandAccount?: string;
+
+    /**
+     * 创建时间
+     */
+    createdAt?: string;
+
+    /**
+     * 更新时间
+     */
+    updatedAt?: string;
+
+    /**
+     * 是否删除
+     */
+    isDeleted?: boolean;
 }

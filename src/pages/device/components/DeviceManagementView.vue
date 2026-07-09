@@ -30,6 +30,8 @@
         @edit="handleEdit"
         @on-export="handleExport"
         @on-import="handleImport"
+        @bind-dept="handleBindDept"
+        @bind-valve="handleBindValve"
     />
 
     <!-- 主体 -->
@@ -43,6 +45,8 @@
             :pagination="pagination"
             @view="handleView"
             @select="handleSelect"
+            @page-change="handlePageChange"
+            @page-size-change="handlePageSizeChange"
         />
       </view>
 
@@ -57,14 +61,13 @@
             v-if="!currentDevice?.id"
             class="detail-empty"
         >
-          请选择左侧设备查看详情
+          {{ t("page.selectDevice") }}
         </view>
 
         <component
             v-else
             :is="CurrentPanel"
             :device-data="currentDevice"
-            @edit="handleEdit"
             :visible="isDetailPanelVisible"
         />
       </view>
@@ -77,18 +80,28 @@
       v-model:visible="dialogVisible"
       v-model="formData"
       :schema="addSchema"
-      :title="isEditMode ? '编辑设备' : '新增设备'"
+      :title="isEditMode ? t('page.editDevice') : t('page.addDevice')"
       @submit="handleSubmit"
       @cancel="dialogVisible = false"
+  />
+
+  <XTreeSelectDialog
+      v-model:visible="treeVisible"
+      v-model="deptId"
+      :tree-data="deptTree"
+      :title="t('page.bindDeptTitle')"
+      :subtitle="t('page.bindDeptSubtitle')"
+      @confirm="onDeptConfirm"
   />
 </template>
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
 
-import type {Device, DeviceCreateForm} from "@/services/device/types";
+import type {DeptDevice, DeptTreeVO, Device, DeviceCreateForm} from "@/services/device/types";
 import {
+  createDeptDeviceT,
   createDeviceT,
-  deleteDeviceT,
+  deleteDeviceT, getDeptTreeT,
   getDevicePageT,
   getDeviceProductListT,
   updateDeviceT
@@ -97,12 +110,16 @@ import {
 import DeviceInfoPanel from "../info/components/DeviceInfoPanel.vue";
 import MaintenancePanel from "../maintenance/components/MaintenancePanel.vue";
 import DeviceStatusPanel from "../status/components/DeviceStatusPanel.vue";
-import ValvePanel from "../valve/components/ValvePanel.vue";
 
 import DeviceToolbar from "./DeviceToolbar.vue";
 import DeviceTableView from "./DeviceTableView.vue";
 import XDynamicDialog from "@/pages/device/components/x/XDynamicDialog.vue";
+import XTreeSelectDialog from "@/pages/device/components/x/XTreeSelectDialog.vue";
 import type {FormSection} from "@/pages/device/components/x/types";
+import type {PartitionNode} from "@/pages/device/components/x/XTreeNode.vue";
+
+import {createScopedT} from "@/i18n";
+const t = createScopedT("devicePage");
 
 /**
  * =========================
@@ -110,7 +127,7 @@ import type {FormSection} from "@/pages/device/components/x/types";
  * =========================
  */
 const props = defineProps<{
-  mode: "info" | "maintenance" | "status" | "valve";
+  mode: "info" | "maintenance" | "status" ;
 }>();
 
 /**
@@ -128,7 +145,6 @@ const pagination = ref({
 });
 const isEditMode = ref(false);
 const editingId = ref<number | null>(null);
-
 /**
  * =========================
  * module config（核心）
@@ -149,14 +165,14 @@ const deviceModuleConfig = {
     },
 
     toolbar: [
-      { key: "deviceNumber", label: "设备编号", type: "input" },
-      { key: "deviceType", label: "产品型号", type: "select", dict: "product" },
-      { key: "onlineStatus", label: "在线状态", type: "select", dict: "online" },
-      { key: "enableState", label: "启用状态", type: "select", dict: "enable" },
-      { key: "leakStatus", label: "渗漏状态", type: "select", dict: "leak" },
-      { key: "startTime", label: "开始时间", type: "date"},
-      { key: "endTime", label: "结束时间", type: "date"},
-    ],
+      { key: "deviceNumber", labelKey: "fields.deviceNumber", type: "input" },
+      { key: "deviceType", labelKey: "fields.deviceType", type: "select", dict: "product" },
+      { key: "onlineStatus", labelKey: "fields.onlineStatus", type: "select", dict: "online" },
+      { key: "enableState", labelKey: "fields.enableState", type: "select", dict: "enable" },
+      { key: "leakStatus", labelKey: "fields.leakStatus", type: "select", dict: "leak" },
+      { key: "startTime", labelKey: "fields.startTime", type: "date" },
+      { key: "endTime", labelKey: "fields.endTime", type: "date" },
+    ]
   },
 
   maintenance: {
@@ -173,14 +189,14 @@ const deviceModuleConfig = {
     },
 
     toolbar: [
-      { key: "deviceNumber", label: "设备编号", type: "input" },
-      { key: "deviceType", label: "产品型号", type: "select", dict: "product" },
-      { key: "onlineStatus", label: "在线状态", type: "select", dict: "online" },
-      { key: "enableState", label: "启用状态", type: "select", dict: "enable" },
-      { key: "leakStatus", label: "渗漏状态", type: "select", dict: "leak" },
-      { key: "startTime", label: "开始时间", type: "date"},
-      { key: "endTime", label: "结束时间", type: "date"},
-    ],
+      { key: "deviceNumber", labelKey: "fields.deviceNumber", type: "input" },
+      { key: "deviceType", labelKey: "fields.deviceType", type: "select", dict: "product" },
+      { key: "onlineStatus", labelKey: "fields.onlineStatus", type: "select", dict: "online" },
+      { key: "enableState", labelKey: "fields.enableState", type: "select", dict: "enable" },
+      { key: "leakStatus", labelKey: "fields.leakStatus", type: "select", dict: "leak" },
+      { key: "startTime", labelKey: "fields.startTime", type: "date" },
+      { key: "endTime", labelKey: "fields.endTime", type: "date" },
+    ]
   },
 
   status: {
@@ -199,42 +215,17 @@ const deviceModuleConfig = {
     },
 
     toolbar: [
-      { key: "deviceNumber", label: "设备编号", type: "input" },
-      { key: "deviceType", label: "产品型号", type: "select", dict: "product" },
-      { key: "onlineStatus", label: "在线状态", type: "select", dict: "online" },
-      { key: "enableState", label: "启用状态", type: "select", dict: "enable" },
-      { key: "leakStatus", label: "渗漏状态", type: "select", dict: "leak" },
-      { key: "startTime", label: "开始时间", type: "date"},
-      { key: "endTime", label: "结束时间", type: "date"},
-      { key: "maintainType", label: "维护类型", type: "select", dict: "maintain"},
-      { key: "receiveStatus", label: "接受状态", type: "select",dict: "receive"},
-    ],
+      { key: "deviceNumber", labelKey: "fields.deviceNumber", type: "input" },
+      { key: "deviceType", labelKey: "fields.deviceType", type: "select", dict: "product" },
+      { key: "onlineStatus", labelKey: "fields.onlineStatus", type: "select", dict: "online" },
+      { key: "enableState", labelKey: "fields.enableState", type: "select", dict: "enable" },
+      { key: "leakStatus", labelKey: "fields.leakStatus", type: "select", dict: "leak" },
+      { key: "startTime", labelKey: "fields.startTime", type: "date" },
+      { key: "endTime", labelKey: "fields.endTime", type: "date" },
+      { key: "maintainType", labelKey: "fields.maintainType", type: "select", dict: "maintain" },
+      { key: "receiveStatus", labelKey: "fields.receiveStatus", type: "select", dict: "receive" }
+    ]
   },
-
-    valve: {
-    panel: ValvePanel,
-
-    searchForm: {
-      deviceNumber: "",
-      deviceType: "",
-      enableState: "",
-      onlineStatus: "",
-      leakStatus: "",
-      startTime: "",
-      endTime: "",
-    },
-
-    toolbar: [
-      { key: "deviceNumber", label: "设备编号", type: "input" },
-      { key: "deviceType", label: "产品型号", type: "select", dict: "product" },
-      { key: "onlineStatus", label: "在线状态", type: "select", dict: "online" },
-      { key: "enableState", label: "启用状态", type: "select", dict: "enable" },
-      { key: "leakStatus", label: "漏损状态", type: "select", dict: "leak" },
-      { key: "startTime", label: "开始时间", type: "date" },
-      { key: "endTime", label: "结束时间", type: "date" },
-    ],
-  },
-
 } as const;
 
 /**
@@ -286,56 +277,56 @@ type SelectOption = {
   value: string | number;
 };
 
-const productOptions = ref<SelectOption[]>([
-  { label: "全部型号", value: "" },
-  { label: "LD18", value: "LD18" },
-  { label: "LD18E-FM", value: "LD18E-FM" },
-  { label: "LD18HE-FM", value: "LD18HE-FM" },
+
+const productOptions = ref([
+  { labelKey: "common.all", value: "" },
+  { labelKey: "status.product.LD18", value: "LD18" },
+  { labelKey: "status.product.LD18E_FM", value: "LD18E-FM" },
+  { labelKey: "status.product.LD18HE_FM", value: "LD18HE-FM" },
 ]);
 
-const enableStateOptions: SelectOption[] = [
-  { label: "全部", value: "" },
-  { label: "启用", value: 1 },
-  { label: "禁用", value: 0 },
+const enableStateOptions = [
+  { labelKey: "common.all", value: "" },
+  { labelKey: "status.status.enabled", value: 1 },
+  { labelKey: "status.status.disabled", value: 0 },
 ];
 
-const maintainTypeOptions: SelectOption[] = [
-  { label: "全部", value: "" },
-  { label: "拆卸", value: 0 },
-  { label: "安装", value: 1 },
-  { label: "维护", value: 2 },
-  { label: "巡检", value: 3 },
+const maintainTypeOptions = [
+  { labelKey: "common.all", value: "" },
+  { labelKey: "status.maintain.remove", value: 0 },
+  { labelKey: "status.maintain.install", value: 1 },
+  { labelKey: "status.maintain.maintenance", value: 2 },
+  { labelKey: "status.maintain.inspect", value: 3 },
 ];
 
-const installStateOptions: SelectOption[] = [
-  { label: "全部", value: "" },
-  { label: "已安装", value: 1 },
-  { label: "未安装", value: 0 },
+const installStateOptions = [
+  { labelKey: "common.all", value: "" },
+  { labelKey: "status.install.installed", value: 1 },
+  { labelKey: "status.install.uninstalled", value: 0 },
 ];
 
-const onlineStatusOptions: SelectOption[] = [
-  { label: "全部", value: "" },
-  { label: "在线", value: 1 },
-  { label: "离线", value: 0 },
+const onlineStatusOptions = [
+  { labelKey: "common.all", value: "" },
+  { labelKey: "status.online.online", value: 1 },
+  { labelKey: "status.online.offline", value: 0 },
 ];
 
-const leakStatusOptions: SelectOption[] = [
-  { label: "全部", value: "" },
-  { label: "渗漏", value: 0 },
-  { label: "正常", value: 1 },
-  { label: "疑似", value: 2 },
-  { label: "未知", value: 3 },
+const leakStatusOptions = [
+  { labelKey: "common.all", value: "" },
+  { labelKey: "status.leak.normal", value: 1 },
+  { labelKey: "status.leak.leak", value: 0 },
+  { labelKey: "status.leak.suspected", value: 2 },
+  { labelKey: "status.leak.unknown", value: 3 },
 ];
 
-const receiveStatusOptions: SelectOption[] = [
-  { label: "全部", value: "" },
-  { label: '正常接收', value: 0 },
-  { label: '短暂中断', value: 1 },
-  { label: '长时间无接收', value: 2 },
-  { label: '通信异常', value: 3 },
-  { label: '未初始化', value: 4 }
+const receiveStatusOptions = [
+  { labelKey: "common.all", value: "" },
+  { labelKey: "status.receive.normal", value: 0 },
+  { labelKey: "status.receive.short", value: 1 },
+  { labelKey: "status.receive.long", value: 2 },
+  { labelKey: "status.receive.error", value: 3 },
+  { labelKey: "status.receive.uninit", value: 4 }
 ];
-
 /**
  * =========================
  * api
@@ -397,162 +388,198 @@ const dialogVisible = ref(false);
 const formData = ref<DeviceCreateForm>({})
 const addSchema = computed<FormSection[]>(() => [
   {
-    title: "基础信息",
+    title: t("addSchema.basicInfo.title"),
     fields: [
       {
         key: "deviceNumber",
-        label: "设备编号",
+        label: t("addSchema.basicInfo.deviceNumber"),
         type: "input",
         required: true,
-        placeholder: "请输入设备编号"
+        placeholder: t("addSchema.basicInfo.deviceNumberPlaceholder")
       },
       {
         key: "productId",
-        label: "产品型号",
+        label: t("addSchema.basicInfo.productModel"),
         type: "select",
         options: deviceProductOptions.value
       },
       {
         key: "deviceType",
-        label: "设备类型",
+        label: t("addSchema.basicInfo.deviceType"),
         type: "select",
         options: [
-          { label: "LD18", value: "LD18" },
-          { label: "LD18E-FM", value: "LD18E-FM" },
-          { label: "LD18HE-FM", value: "LD18HE-FM" }
+          {
+            label: t("addSchema.option.product.LD18"),
+            value: "LD18"
+          },
+          {
+            label: t("addSchema.option.product.LD18E_FM"),
+            value: "LD18E-FM"
+          },
+          {
+            label: t("addSchema.option.product.LD18HE_FM"),
+            value: "LD18HE-FM"
+          }
         ]
-      },
+      }
     ]
   },
 
   {
-    title: "设备标识",
+    title: t("addSchema.identification.title"),
     fields: [
       {
         key: "nbNumber",
-        label: "NB编号",
+        label: t("addSchema.identification.nbNumber"),
         type: "input"
       },
       {
         key: "deviceImei",
-        label: "IMEI",
+        label: t("addSchema.identification.imei"),
         type: "input"
       },
       {
         key: "deviceImsi",
-        label: "IMSI",
+        label: t("addSchema.identification.imsi"),
         type: "input"
       },
       {
         key: "serialNumber",
-        label: "序列号",
+        label: t("addSchema.identification.serialNumber"),
         type: "input"
       }
     ]
   },
 
   {
-    title: "安装信息",
+    title: t("addSchema.install.title"),
     fields: [
       {
         key: "installState",
-        label: "安装状态",
+        label: t("addSchema.install.installState"),
         type: "select",
         options: [
-          { label: "未安装", value: 0 },
-          { label: "已安装", value: 1 }
+          {
+            label: t("addSchema.option.install.uninstalled"),
+            value: 0
+          },
+          {
+            label: t("addSchema.option.install.installed"),
+            value: 1
+          }
         ]
       },
       {
         key: "installMode",
-        label: "安装模式",
+        label: t("addSchema.install.installMode"),
         type: "select",
         options: [
-          { label: "固定点", value: 0 },
-          { label: "流动点", value: 1 }
+          {
+            label: t("addSchema.option.installMode.fixed"),
+            value: 0
+          },
+          {
+            label: t("addSchema.option.installMode.mobile"),
+            value: 1
+          }
         ]
       },
       {
         key: "installAddress",
-        label: "安装地址",
+        label: t("addSchema.install.address"),
         type: "input"
       },
       {
-        key: "installLongitude",
-        label: "经度",
-        type: "input"
-      },
-      {
-        key: "installLatitude",
-        label: "纬度",
-        type: "input"
+        key: "coordinate",
+        label: t("addSchema.install.coordinate"),
+        type: "location",
+        placeholder: "格式:经度,纬度 （如 121.4737,31.2304)"
       }
     ]
   },
 
   {
-    title: "设备参数",
+    title: t("addSchema.status.title"),
     fields: [
       {
         key: "enableState",
-        label: "启用状态",
+        label: t("addSchema.status.enableState"),
         type: "select",
         options: [
-          { label: "启用", value: 1 },
-          { label: "禁用", value: 0 }
+          {
+            label: t("addSchema.option.status.enabled"),
+            value: 1
+          },
+          {
+            label: t("addSchema.option.status.disabled"),
+            value: 0
+          }
         ]
       },
       {
         key: "leakStatus",
-        label: "渗漏状态",
+        label: t("addSchema.status.leakStatus"),
         type: "select",
         options: [
-          { label: "正常", value: 1 },
-          { label: "渗漏", value: 0 },
-          { label: "疑似", value: 2 },
-          { label: "未知", value: 3 }
+          {
+            label: t("addSchema.option.leak.normal"),
+            value: 1
+          },
+          {
+            label: t("addSchema.option.leak.leak"),
+            value: 0
+          },
+          {
+            label: t("addSchema.option.leak.suspected"),
+            value: 2
+          },
+          {
+            label: t("addSchema.option.leak.unknown"),
+            value: 3
+          }
         ]
       },
       {
         key: "leakProperty",
-        label: "渗漏值",
-        type: "input"
-      },
-    ]
-  },
-
-  {
-    title: "管网信息",
-    fields: [
-      {
-        key: "tubeGroup",
-        label: "管组编号",
-        type: "input"
-      },
-      {
-        key: "tubeOrder",
-        label: "管序号",
+        label: t("addSchema.status.leakValue"),
         type: "input"
       }
     ]
   },
 
   {
-    title: "系统信息（可选）",
+    title: t("addSchema.tube.title"),
+    fields: [
+      {
+        key: "tubeGroup",
+        label: t("addSchema.tube.group"),
+        type: "input"
+      },
+      {
+        key: "tubeOrder",
+        label: t("addSchema.tube.order"),
+        type: "input"
+      }
+    ]
+  },
+
+  {
+    title: t("addSchema.system.title"),
     fields: [
       {
         key: "hardwareVersion",
-        label: "硬件版本",
+        label: t("addSchema.system.hardwareVersion"),
         type: "input"
       },
       {
         key: "softwareVersion",
-        label: "软件版本",
+        label: t("addSchema.system.softwareVersion"),
         type: "input"
       }
     ]
   }
 ]);
+
 
 function handleAdd() {
   selectedDevice.value = null;
@@ -576,6 +603,7 @@ function handleAdd() {
     installAddress: "",
     installLongitude: undefined,
     installLatitude: undefined,
+    coordinate: "",
 
     tubeGroup: "",
     tubeOrder: undefined,
@@ -603,30 +631,48 @@ async function handleSubmit(form: DeviceCreateForm) {
 
   } catch (e: any) {
     uni.showToast({
-      title: e?.message || "操作失败",
+      title: e?.message || t('message.operationFailed'),
       icon: "error"
     });
   }
 }
 
 async function submitCreate(form: DeviceCreateForm) {
+  if (form.coordinate) {
+    const [lng, lat] = form.coordinate.split(",").map(Number);
+
+    if (!Number.isNaN(lng) && !Number.isNaN(lat)) {
+      form.installLongitude = lng;
+      form.installLatitude = lat;
+    }
+  }
+
   const res = await createDeviceT(form);
 
   if (res.code !== 200) {
     uni.showToast({
-      title: res.msg || "新增失败",
+      title: res.msg || t('message.addFail'),
       icon: "error"
     });
     throw new Error(res.msg);
   }
 
   uni.showToast({
-    title: "新增成功",
+    title: t('message.addSuccess'),
     icon: "success"
   });
 }
 
 async function submitUpdate(form: DeviceCreateForm) {
+  if (form.coordinate) {
+    const [lng, lat] = form.coordinate.split(",").map(Number);
+
+    if (!Number.isNaN(lng) && !Number.isNaN(lat)) {
+      form.installLongitude = lng;
+      form.installLatitude = lat;
+    }
+  }
+
   if (!editingId.value) return;
 
   const res = await updateDeviceT(
@@ -636,28 +682,38 @@ async function submitUpdate(form: DeviceCreateForm) {
 
   if (res.code !== 200) {
     uni.showToast({
-      title: res.msg || "更新失败",
+      title: res.msg || t('message.updateFail'),
       icon: "error"
     });
     throw new Error(res.msg);
   }
 
   uni.showToast({
-    title: "更新成功",
+    title: t('message.updateSuccess'),
     icon: "success"
   });
 }
 
 function handleEdit() {
   if (!selectedDevice.value) {
-    uni.showToast({ title: '请选择记录', icon: 'none' });
+    uni.showToast({ title: t('message.selectRecord'), icon: 'none' });
     return;
   }
 
   isEditMode.value = true;
   editingId.value = selectedDevice.value.id;
 
-  formData.value = { ...selectedDevice.value }
+  formData.value = { ...selectedDevice.value };
+
+  if (
+      formData.value.installLongitude != null &&
+      formData.value.installLatitude != null
+  ) {
+    formData.value.coordinate =
+        `${formData.value.installLongitude},${formData.value.installLatitude}`;
+  } else {
+    formData.value.coordinate = "";
+  }
 
   dialogVisible.value = true;
 }
@@ -666,7 +722,7 @@ async function handleDelete() {
   try {
     if (!selectedDevice.value) {
       uni.showToast({
-        title: '请先选择设备',
+        title: t('message.selectDevice'),
         icon: 'none'
       });
       return;
@@ -675,8 +731,12 @@ async function handleDelete() {
     const device = selectedDevice.value;
 
     uni.showModal({
-      title: '提示',
-      content: `确定要删除设备 ${device.deviceNumber} 吗？`,
+      title: t('message.confirmDeleteTitle'),
+      content: t('message.confirmDeleteContent', {
+        deviceNumber: device.deviceNumber
+      }),
+      cancelText: t('common.cancel'),
+      confirmText: t('common.confirm'),
       success: async (res) => {
         if (!res.confirm) return;
 
@@ -685,7 +745,7 @@ async function handleDelete() {
         await fetchDevices();
 
         uni.showToast({
-          title: '删除成功',
+          title: t('message.deleteSuccess'),
           icon: 'success'
         });
 
@@ -698,7 +758,7 @@ async function handleDelete() {
 
   } catch (e: any) {
     uni.showToast({
-      title: e?.message || '删除失败',
+      title: e?.message || t('message.deleteFail'),
       icon: 'error'
     });
   }
@@ -706,15 +766,116 @@ async function handleDelete() {
 
 function handleExport() {
   uni.showToast({
-    title: '导出功能暂未开放',
+    title: t('message.exportNotReady'),
     icon: 'none'
   });
 }
+
 function handleImport() {
   uni.showToast({
-    title: '导入功能暂未开放',
+    title: t('message.importNotReady'),
     icon: 'none'
   });
+}
+
+function handleBindValve() {
+  uni.showToast({
+    title: t('message.bindValveNotReady'),
+    icon: 'none'
+  });
+}
+
+/**
+ * 部门树形控件
+ */
+const treeVisible = ref(false);
+const deptId = ref<number | null>(null);
+const deptName = ref("");
+const deptTree = ref<PartitionNode[]>([]);
+
+function handleBindDept(){
+  fetchDeptTree();
+  treeVisible.value = true;
+}
+
+async function onDeptConfirm(node: PartitionNode | null) {
+  if (!node) return;
+  else if(node.id === currentDevice.value?.deptId){
+    uni.showToast({
+      title: t('message.alreadyBoundToThisDept'),
+      icon: 'none'
+    });
+    return;
+  }
+  if (!currentDevice.value) {
+    uni.showToast({
+      title: t('message.pleaseSelectDevice'),
+      icon: "none"
+    });
+    return;
+  }
+  const deptDevice: DeptDevice = {
+    deviceId: currentDevice.value.id,
+    deptId: node.id,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  try {
+    const res = await createDeptDeviceT(deptDevice);
+    if (res.code === 200) {
+      uni.showToast({
+        title: res.msg || t('message.bindSuccess'),
+        icon: "success"
+      });
+    } else {
+      uni.showToast({
+        title: res.msg || t('message.bindFailed'),
+        icon: "none"
+      });
+    }
+  } catch (e) {
+    console.error(e);
+    uni.showToast({
+      title: t('message.requestError'),
+      icon:"none"
+    });
+  }
+  deptName.value = node.name;
+}
+
+function convertDeptTree(
+    list: DeptTreeVO[]
+): PartitionNode[] {
+  return list.map(item => ({
+    id:item.id,
+    name:item.deptName,
+    children:item.children
+        ? convertDeptTree(item.children)
+        : []
+  }));
+}
+
+async function fetchDeptTree() {
+  try {
+    const res = await getDeptTreeT();
+    deptTree.value = convertDeptTree(
+        res.data ?? []
+    );
+  } catch (e) {
+    deptTree.value = [];
+    console.error(t('message.fetchDeptTreeFailed'), e);
+  }
+}
+
+function handlePageChange(page:number){
+  pagination.value.current = page;
+  fetchDevices();
+}
+
+function handlePageSizeChange(pageSize:number){
+  pagination.value.size = pageSize;
+  pagination.value.current = 1;
+  fetchDevices();
 }
 
 /**
@@ -728,9 +889,13 @@ const toggleDetailPanel = () => {
 }
 
 const layoutClass = computed(() => {
-  return props.mode === "info"
-      ? "layout-split"
-      : "layout-equal";
+  if(props.mode === "info"){
+    return "layout-split";
+  }else if(props.mode === "maintenance"){
+    return "layout-one-two";
+  }else{
+    return "layout-equal";
+  }
 });
 
 onMounted(() => {
@@ -771,9 +936,12 @@ onMounted(() => {
   grid-template-columns: minmax(0, 1fr) 24px 380px;
 }
 
-/* maintenance：左右等分 */
 .layout-equal {
   grid-template-columns: 1fr 24px 1fr;
+}
+
+.layout-one-two {
+  grid-template-columns: 1fr 24px 2fr;
 }
 
 .table-panel,
@@ -828,7 +996,7 @@ onMounted(() => {
 
   position: relative;
 
-  color: transparent; /* 默认不显示箭头 */
+  //color: transparent; /* 默认不显示箭头 */
 
   z-index: 999;
 }

@@ -1,6 +1,6 @@
 import {createCrudServiceTyped, getRequestT} from "@/services/shared/crud.typed";
 import { getRequest } from "@/services/shared/crud";
-import type {Dept, Device, DeviceProduct, DeviceProtocol, TubeNetwork} from "./types";
+import type {Dept, DeptDevice, DeptTreeVO, Device, DeviceProduct, DeviceProtocol, TubeNetwork} from "./types";
 import type {ApiResponse} from "@/types/api";
 
 // ================= device =================
@@ -64,3 +64,30 @@ export const getTubeNetworkListT = tubeNetworkApi.getList;
 export function getDeptByIdT(id: string | number) {
   return getRequestT<ApiResponse<Dept>>(`/api/dept/${id}`);
 }
+
+const deptApi = createCrudServiceTyped<Dept>("/api/dept");
+
+export const getDeptPageT = deptApi.getPage;
+export const getDeptListT = deptApi.getList;
+export const getDeptDetailT = deptApi.getDetail;
+export const createDeptT = deptApi.create;
+export const updateDeptT = deptApi.update;
+export const deleteDeptT = deptApi.delete;
+export const batchDeleteDeptT = deptApi.batchDelete;
+
+export function getDeptTreeT() {
+  return getRequestT<DeptTreeVO[]>(
+      "/api/dept/tree"
+  );
+}
+
+const deptDeviceApi = createCrudServiceTyped<DeptDevice>("/api/dept-device");
+
+export const getDeptDevicePageT = deptDeviceApi.getPage;
+export const getDeptDeviceListT = deptDeviceApi.getList;
+export const getDeptDeviceDetailT = deptDeviceApi.getDetail;
+export const createDeptDeviceT = deptDeviceApi.create;
+export const updateDeptDeviceT = deptDeviceApi.update;
+export const deleteDeptDeviceT = deptDeviceApi.delete;
+export const batchDeleteDeptDeviceT = deptDeviceApi.batchDelete;
+
