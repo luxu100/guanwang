@@ -113,7 +113,6 @@ async function fetchValve() {
   });
 
   const pageData = res.data;
-  console.log(pageData);
 
   valveList.value = pageData?.records ?? [];
   pagination.value.total = pageData?.total ?? 0;

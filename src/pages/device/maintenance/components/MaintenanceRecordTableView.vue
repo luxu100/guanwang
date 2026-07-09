@@ -343,6 +343,7 @@ function handlePageChange(page:number){
   pagination.value.current = page;
   fetchMaintenanceRecords();
 }
+
 function handlePageSizeChange(pageSize:number){
   pagination.value.size = pageSize;
   pagination.value.current = 1;

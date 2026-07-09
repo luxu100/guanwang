@@ -37,7 +37,7 @@
             v-if="!currentDeviceSetting?.id"
             class="detail-empty"
         >
-          {{ t('deviceSetting.emptyTip') }}
+          {{ t('common.table.empty') }}
         </view>
 
         <DeviceSettingsPanel

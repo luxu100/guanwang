@@ -16,7 +16,6 @@ export interface Device {
     installLatitude: number;
     tubeGroup: string;
     tubeOrder: number;
-    deptId?: number;
     hardwareVersion: string;
     softwareVersion: string;
     leakStatus: number;
@@ -633,4 +632,8 @@ export interface Valve {
     yCoordinate: number;
 
     coordinate?:string;
+}
+
+export interface ValveBindDeviceDTO {
+    deviceIds: number[];
 }

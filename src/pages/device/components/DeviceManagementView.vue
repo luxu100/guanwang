@@ -93,15 +93,33 @@
       :subtitle="t('page.bindDeptSubtitle')"
       @confirm="onDeptConfirm"
   />
+
+  <ValveTableDialog
+      v-model:visible="valveDialogVisible"
+      v-model="valveId"
+      :dept-id="currentDeptId"
+      :dept-name="currentDeptName"
+      title="绑定阀门"
+      subtitle="请选择当前分区下的可用阀门"
+      @confirm="handleValveConfirm"
+  />
+
 </template>
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
 
-import type {DeptDevice, DeptTreeVO, Device, DeviceCreateForm} from "@/services/device/types";
+import type {
+  DeptDevice,
+  DeptTreeVO,
+  Device,
+  DeviceCreateForm,
+  Valve,
+  ValveBindDeviceDTO
+} from "@/services/device/types";
 import {
   createDeptDeviceT,
   createDeviceT,
-  deleteDeviceT, getDeptTreeT,
+  deleteDeviceT, getDeptByIdT, getDeptTreeT,
   getDevicePageT,
   getDeviceProductListT,
   updateDeviceT
@@ -119,6 +137,10 @@ import type {FormSection} from "@/pages/device/components/x/types";
 import type {PartitionNode} from "@/pages/device/components/x/XTreeNode.vue";
 
 import {createScopedT} from "@/i18n";
+import {getValvePageT} from "@/services/device/valve.typed";
+import {bindValveDevices, getDeptIdByDeviceId} from "@/services/device/dept-device.typed";
+import ValveTableDialog from "@/pages/device/valve/components/ValveTableDialog.vue";
+import XPaginationBar from "@/pages/device/components/x/XPaginationBar.vue";
 const t = createScopedT("devicePage");
 
 /**
@@ -338,7 +360,6 @@ async function fetchDevices() {
     pageNum: pagination.value.current,
     pageSize: pagination.value.size,
   });
-
   const pageData = res.data;
 
   deviceList.value = pageData?.records ?? [];
@@ -580,7 +601,6 @@ const addSchema = computed<FormSection[]>(() => [
   }
 ]);
 
-
 function handleAdd() {
   selectedDevice.value = null;
   isEditMode.value = false;
@@ -778,13 +798,69 @@ function handleImport() {
   });
 }
 
-function handleBindValve() {
-  uni.showToast({
-    title: t('message.bindValveNotReady'),
-    icon: 'none'
-  });
+/**
+ * 绑定阀门
+ */
+const valveDialogVisible = ref(false);
+const valveId = ref<number|null>(null);
+const currentDeptId = ref<number|null>(null);
+const currentDeptName = ref<string|null>(null);
+async function handleBindValve() {
+  if (!currentDevice.value) {
+    uni.showToast({
+      title: t("message.pleaseSelectDevice"),
+      icon: "none"
+    });
+    return;
+  }
+
+  // 1. 获取当前设备所在分区
+  const res = await getDeptIdByDeviceId(currentDevice.value.id);
+
+  if (res.code !== 200) {
+    uni.showToast({ title: res.msg, icon: "none" });
+    return;
+  }
+
+  const deptId = res.data;
+
+  if (!deptId) {
+    uni.showToast({ title: "当前设备没有分区", icon: "none" });
+    return;
+  }
+
+  // 2. 将分区 ID 存入响应式变量，并打开弹窗
+  // 弹窗内部的 watch 监听到 deptId 变化且 visible 为 true 时，会自动请求数据
+  const deptRes = await getDeptByIdT(deptId)
+  currentDeptId.value = deptId;
+  currentDeptName.value = deptRes.data?.deptName || null;
+  valveDialogVisible.value = true;
 }
 
+// ===== 弹窗确认回调 =====
+async function handleValveConfirm(valve: any) {
+  if (!valve || !currentDevice.value) {
+    uni.showToast({ title: "未选择有效阀门", icon: "none" });
+    return;
+  }
+
+  const valveBindDeviceDTO: ValveBindDeviceDTO = {
+    deviceIds: [currentDevice.value.id]
+  };
+
+  const res = await bindValveDevices(valve.id, valveBindDeviceDTO)
+  if(res.code === 200){
+    uni.showToast({
+      title: res.msg || t('message.bindSuccess'),
+      icon: "success"
+    });
+  }else {
+    uni.showToast({
+      title: res.msg || t('message.bindFailed'),
+      icon: "none"
+    });
+  }
+}
 /**
  * 部门树形控件
  */
@@ -800,13 +876,6 @@ function handleBindDept(){
 
 async function onDeptConfirm(node: PartitionNode | null) {
   if (!node) return;
-  else if(node.id === currentDevice.value?.deptId){
-    uni.showToast({
-      title: t('message.alreadyBoundToThisDept'),
-      icon: 'none'
-    });
-    return;
-  }
   if (!currentDevice.value) {
     uni.showToast({
       title: t('message.pleaseSelectDevice'),
