@@ -1,26 +1,29 @@
 /**
- * 漏点管理接口封装，围绕 leakage-record 资源提供 CRUD 能力。
+ * Leak point management API wrappers.
  *
- * 页面层应优先调用这里导出的语义化函数，避免在 .vue 文件中直接拼接接口地址。
+ * All paths are present in jiekou/leak point docs: /api/leak-point.
  */
-import { createCrudService } from "@/services/shared/crud";
+import { createCrudService, postRequest } from "@/services/shared/crud";
 
-const leakageRecordApi = createCrudService("/api/leakage-record");
+const leakPointApi = createCrudService("/api/leak-point");
 
-export const getLeakPointPage = leakageRecordApi.getPage;
-export const getLeakPointList = leakageRecordApi.getList;
-export const getLeakPointDetail = leakageRecordApi.getDetail;
-export const createLeakPoint = leakageRecordApi.create;
-export const updateLeakPoint = leakageRecordApi.update;
-export const deleteLeakPoint = leakageRecordApi.delete;
-export const batchDeleteLeakPoint = leakageRecordApi.batchDelete;
+export const getLeakPointPage = leakPointApi.getPage;
+export const getLeakPointList = leakPointApi.getList;
+export const getLeakPointDetail = leakPointApi.getDetail;
+export const createLeakPoint = leakPointApi.create;
+export const updateLeakPoint = leakPointApi.update;
+export const deleteLeakPoint = leakPointApi.delete;
+
+export function createLeakPointDirect(data) {
+  return postRequest("/api/leak-point", data);
+}
 
 export default {
   getLeakPointPage,
   getLeakPointList,
   getLeakPointDetail,
   createLeakPoint,
+  createLeakPointDirect,
   updateLeakPoint,
   deleteLeakPoint,
-  batchDeleteLeakPoint,
 };

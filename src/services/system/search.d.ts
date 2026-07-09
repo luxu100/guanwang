@@ -27,6 +27,11 @@ export function createSearchTemplate(data: SearchTemplatePayload): Promise<ApiRe
 export function updateSearchTemplate(id: number | string, data: SearchTemplatePayload): Promise<ApiResponse<boolean>>;
 export function deleteSearchTemplate(id: number | string, isForce?: boolean): Promise<ApiResponse<void>>;
 export function batchDeleteSearchTemplate(data: Array<number | string>, isForce?: boolean): Promise<ApiResponse<void>>;
+export function resolveSearchTemplate(params: {
+  protocolId?: number | string;
+  deviceId?: number | string;
+  templateCode?: string;
+}): Promise<ApiResponse<SearchTemplateItem>>;
 
 declare const searchTemplateService: {
   getSearchTemplatePage: typeof getSearchTemplatePage;
@@ -36,6 +41,7 @@ declare const searchTemplateService: {
   updateSearchTemplate: typeof updateSearchTemplate;
   deleteSearchTemplate: typeof deleteSearchTemplate;
   batchDeleteSearchTemplate: typeof batchDeleteSearchTemplate;
+  resolveSearchTemplate: typeof resolveSearchTemplate;
 };
 
 export default searchTemplateService;

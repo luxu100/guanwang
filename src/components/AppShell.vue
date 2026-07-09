@@ -215,6 +215,7 @@ import { clearAuthStorage, createProtectedRouteDecision, LOGIN_PATH } from "@/ut
 import { filterMenuItemsByAccess, flattenMenuPaths, getMenuAccessSummary } from "@/utils/menuAccess";
 import { TOKEN_KEY } from "@/utils/request";
 import LocaleLeakMap from "@/pages/leak-monitor/components/LocaleLeakMap.vue";
+import { applyUserLocale } from "@/i18n";
 interface MenuItem {
   label: string;
   path: string;
@@ -983,6 +984,7 @@ onMounted(() => {
     return;
   }
 
+  applyUserLocale();
   if (firstAccessibleMenuPath.value && isDefaultAliasPath(getBrowserPath() || routePath.value)) {
     replaceBrowserPath(firstAccessibleMenuPath.value);
   }
@@ -1011,7 +1013,9 @@ onUnmounted(() => {
 
 // #ifndef H5
 onMounted(() => {
-  ensureAuthenticatedRoute();
+  if (ensureAuthenticatedRoute()) {
+    applyUserLocale();
+  }
 });
 // #endif
 </script>

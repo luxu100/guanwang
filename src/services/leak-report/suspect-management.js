@@ -1,29 +1,39 @@
 /**
- * 疑点管理接口封装，围绕 leakage-record 资源提供 CRUD 能力。
+ * Suspected leak management API wrappers.
  *
- * 后端暂未提供专门的疑点接口，疑点与漏点共用 /api/leakage-record 资源，
- * 业务上通过页面语义区分：疑点管理负责疑似漏点的录入与基础信息维护。
- *
- * 页面层应优先调用这里导出的语义化函数，避免在 .vue 文件中直接拼接接口地址。
+ * All paths are present in jiekou/suspected leak docs: /api/suspected-leak.
  */
-import { createCrudService } from "@/services/shared/crud";
+import { createCrudService, postRequest } from "@/services/shared/crud";
 
-const leakageRecordApi = createCrudService("/api/leakage-record");
+const suspectedLeakApi = createCrudService("/api/suspected-leak");
 
-export const getSuspectPage = leakageRecordApi.getPage;
-export const getSuspectList = leakageRecordApi.getList;
-export const getSuspectDetail = leakageRecordApi.getDetail;
-export const createSuspect = leakageRecordApi.create;
-export const updateSuspect = leakageRecordApi.update;
-export const deleteSuspect = leakageRecordApi.delete;
-export const batchDeleteSuspect = leakageRecordApi.batchDelete;
+export const getSuspectPage = suspectedLeakApi.getPage;
+export const getSuspectList = suspectedLeakApi.getList;
+export const getSuspectDetail = suspectedLeakApi.getDetail;
+export const createSuspect = suspectedLeakApi.create;
+export const updateSuspect = suspectedLeakApi.update;
+export const deleteSuspect = suspectedLeakApi.delete;
+
+export function createSuspectDirect(data) {
+  return postRequest("/api/suspected-leak", data);
+}
+
+export function dispatchSuspect(id, data) {
+  return postRequest(`/api/suspected-leak/${id}/dispatch`, data);
+}
+
+export function confirmSuspectAsLeakPoint(id, data) {
+  return postRequest(`/api/suspected-leak/${id}/confirm-leak-point`, data);
+}
 
 export default {
   getSuspectPage,
   getSuspectList,
   getSuspectDetail,
   createSuspect,
+  createSuspectDirect,
   updateSuspect,
   deleteSuspect,
-  batchDeleteSuspect,
+  dispatchSuspect,
+  confirmSuspectAsLeakPoint,
 };

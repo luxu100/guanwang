@@ -33,6 +33,7 @@ export interface UserInfo {
   phone: string;
   avatar: string;
   status: number;
+  region?: string;
   roles?: RoleItem[];
 }
 
@@ -63,6 +64,7 @@ export interface RegisterParams {
   realName?: string;
   email?: string;
   phone?: string;
+  region?: string;
   status?: number;
   deptIds?: Array<number | string>;
   roleIds?: Array<number | string>;
@@ -88,6 +90,7 @@ export interface UserPageParams {
   email?: string;
   phone?: string;
   status?: number;
+  region?: string;
 }
 
 export interface PageResult<T> {
@@ -111,6 +114,8 @@ export function assignUserRoles(id: number | string, data: Array<number | string
 export function updateUserPassword(id: number | string, data: UpdatePasswordParams): Promise<ApiResponse<void>>;
 export function getUserDepts(id: number | string): Promise<ApiResponse<Array<Record<string, unknown>>>>;
 export function assignUserDepts(id: number | string, data: Array<number | string>): Promise<ApiResponse<void>>;
+export function appendUserDepts(id: number | string, data: Array<number | string>): Promise<ApiResponse<void>>;
+export function removeUserDept(id: number | string, deptId: number | string): Promise<ApiResponse<void>>;
 
 
 declare const userService: {
@@ -125,6 +130,10 @@ declare const userService: {
   batchDeleteUser: typeof batchDeleteUser;
   assignUserRoles: typeof assignUserRoles;
   updateUserPassword: typeof updateUserPassword;
+  getUserDepts: typeof getUserDepts;
+  assignUserDepts: typeof assignUserDepts;
+  appendUserDepts: typeof appendUserDepts;
+  removeUserDept: typeof removeUserDept;
 };
 
 export default userService;

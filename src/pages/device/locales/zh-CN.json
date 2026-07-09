@@ -39,7 +39,7 @@
       "deviceNumber": "设备编号",
       "startTime": "开始时间",
       "endTime": "结束时间"
-      }
+      
     },
     "formDialog": {
       "title": "新增信息",

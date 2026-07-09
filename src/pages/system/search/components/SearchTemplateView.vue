@@ -127,6 +127,35 @@
             </view>
           </view>
         </scroll-view>
+
+        <view class="pqt-pagination">
+          <view class="pqt-page-size">
+            <text class="pqt-page-info">每页</text>
+            <input
+              v-model="pageSizeInputValue"
+              class="pqt-page-size__input"
+              type="number"
+              confirm-type="done"
+              @confirm="commitPageSizeInput"
+              @blur="commitPageSizeInput"
+            />
+            <text class="pqt-page-info">条</text>
+          </view>
+          <button class="pqt-page-button" :disabled="pagination.pageNum <= 1" hover-class="pqt-page-button--hover" @click="changePage(-1)">上一页</button>
+          <view class="pqt-page-jump">
+            <text class="pqt-page-info">第</text>
+            <input
+              v-model="pageInputValue"
+              class="pqt-page-input"
+              type="number"
+              confirm-type="done"
+              @confirm="commitPageInput"
+              @blur="commitPageInput"
+            />
+            <text class="pqt-page-info">/ {{ totalPages }} 页</text>
+          </view>
+          <button class="pqt-page-button" :disabled="pagination.pageNum >= totalPages" hover-class="pqt-page-button--hover" @click="changePage(1)">下一页</button>
+        </view>
       </view>
 
       <view class="pqt-card pqt-card--detail">
@@ -285,7 +314,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import { getProtocolDefinitionList } from "@/services/data-receive/access";
 import { getFieldsByProtocol } from "@/services/data-receive/parse";
 import {
@@ -329,7 +358,6 @@ const recordEnabledOptions: Option<boolean>[] = [
   { label: "启用", value: true },
   { label: "停用", value: false },
 ];
-
 const templates = ref<SearchTemplateItem[]>([]);
 const protocols = ref<RecordLike[]>([]);
 const protocolFields = ref<RecordLike[]>([]);
@@ -355,6 +383,8 @@ const pagination = reactive({
   pageNum: 1,
   pageSize: 20,
 });
+const pageInputValue = ref("1");
+const pageSizeInputValue = ref("20");
 
 const form = reactive({
   id: "",
@@ -375,6 +405,7 @@ const selectedRowKey = computed(() =>
   selectedTemplate.value ? getRowKey(selectedTemplate.value, selectedIndex.value) : "",
 );
 const displayTotal = computed(() => total.value || templates.value.length);
+const totalPages = computed(() => Math.max(1, Math.ceil(displayTotal.value / pagination.pageSize)));
 
 const currentScopeFilterLabel = computed(
   () => scopeFilterOptions.find((item) => item.value === filters.scopeType)?.label || "全部",
@@ -413,6 +444,20 @@ onMounted(() => {
   void loadProtocols();
   void refreshCurrent();
 });
+
+watch(
+  () => pagination.pageNum,
+  (pageNum) => {
+    pageInputValue.value = String(pageNum);
+  },
+);
+
+watch(
+  () => pagination.pageSize,
+  (pageSize) => {
+    pageSizeInputValue.value = String(pageSize);
+  },
+);
 
 function isObject(value: unknown): value is RecordLike {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
@@ -667,6 +712,54 @@ function resetFilters() {
   void refreshCurrent();
 }
 
+function commitPageSizeInput() {
+  const nextPageSize = normalizePageSize(pageSizeInputValue.value, pagination.pageSize);
+  pageSizeInputValue.value = String(nextPageSize);
+  if (nextPageSize === pagination.pageSize) {
+    return;
+  }
+
+  pagination.pageSize = nextPageSize;
+  pagination.pageNum = 1;
+  pageInputValue.value = "1";
+  void refreshCurrent();
+}
+
+function normalizePageSize(value: unknown, fallback: number) {
+  const numberValue = Number(value);
+  if (!Number.isFinite(numberValue)) {
+    return fallback;
+  }
+
+  return Math.min(Math.max(Math.trunc(numberValue), 1), 500);
+}
+
+function changePage(step: number) {
+  jumpToPage(pagination.pageNum + step);
+}
+
+function commitPageInput() {
+  const inputPage = Number(pageInputValue.value);
+  if (!Number.isFinite(inputPage)) {
+    pageInputValue.value = String(pagination.pageNum);
+    return;
+  }
+
+  jumpToPage(inputPage);
+}
+
+function jumpToPage(page: number) {
+  const nextPage = Math.min(Math.max(Math.trunc(page), 1), totalPages.value);
+  pageInputValue.value = String(nextPage);
+
+  if (nextPage === pagination.pageNum) {
+    return;
+  }
+
+  pagination.pageNum = nextPage;
+  void refreshCurrent();
+}
+
 async function loadProtocols() {
   try {
     const response = (await getProtocolDefinitionList()) as ApiResponseLike;
@@ -722,6 +815,11 @@ async function refreshCurrent() {
     total.value = parseTotalResponse(response, records);
 
     if (!records.length) {
+      if (pagination.pageNum > 1 && total.value > 0) {
+        jumpToPage(pagination.pageNum - 1);
+        return;
+      }
+
       selectedTemplate.value = null;
       selectedIndex.value = -1;
       if (!isCreating.value) {
@@ -939,12 +1037,24 @@ async function deleteCurrent() {
 .pqt-form__control--picker {
   display: flex;
   align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  white-space: normal;
+  word-break: break-all;
 }
 
 .pqt-form__control {
-  height: 36px;
+  min-height: 36px;
   padding: 0 10px;
-  line-height: 36px;
+  line-height: 1.45;
+}
+
+.pqt-form__control--picker {
+  height: auto;
+  max-height: 78px;
+  padding-top: 7px;
+  padding-bottom: 7px;
+  overflow-y: auto;
 }
 
 .pqt-form__textarea {
@@ -1031,7 +1141,7 @@ async function deleteCurrent() {
   min-width: 0;
   min-height: 0;
   margin-top: 14px;
-  overflow: auto;
+  overflow: hidden;
 }
 
 .pqt-card {
@@ -1087,9 +1197,87 @@ async function deleteCurrent() {
 
 .pqt-table-scroll,
 .pqt-detail-scroll {
-  flex: 1;
+  flex: 1 1 0;
   width: 100%;
+  height: 0;
   min-height: 0;
+  overflow: auto;
+}
+
+.pqt-detail-scroll {
+  height: auto;
+}
+
+.pqt-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex: none;
+  min-height: 52px;
+  padding: 8px 14px;
+  box-sizing: border-box;
+  border-top: 1px solid #edf3f8;
+  background: #ffffff;
+}
+
+.pqt-page-size,
+.pqt-page-jump {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pqt-page-size__input,
+.pqt-page-button,
+.pqt-page-input {
+  box-sizing: border-box;
+  height: 32px;
+  color: #34495e;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 32px;
+  border: 1px solid #d4e2f0;
+  border-radius: 4px;
+  background: #f8fbff;
+}
+
+.pqt-page-size__input {
+  width: 64px;
+  padding: 0 6px;
+  text-align: center;
+}
+
+.pqt-page-button {
+  min-width: 72px;
+  margin: 0;
+  padding: 0 12px;
+}
+
+.pqt-page-button::after {
+  border: 0;
+}
+
+.pqt-page-button--hover {
+  background: #edf7ff;
+}
+
+.pqt-page-button[disabled] {
+  color: #a0aec0;
+  background: #f2f5f8;
+}
+
+.pqt-page-info {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pqt-page-input {
+  width: 54px;
+  padding: 0 6px;
+  text-align: center;
 }
 
 .pqt-table {

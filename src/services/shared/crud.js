@@ -38,6 +38,14 @@ export function putRequest(url, data) {
 }
 
 /** DELETE 请求封装，通常用于删除或批量删除资源。 */
+export function patchRequest(url, data) {
+  return request({
+    url,
+    method: "patch",
+    data,
+  });
+}
+
 export function deleteRequest(url, data, isForce = true) {
   return request({
     url: appendForceDeleteParam(url, isForce),

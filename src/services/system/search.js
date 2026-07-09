@@ -3,7 +3,7 @@
  *
  * 后端资源路径：/api/protocol-query-template。
  */
-import { createCrudService } from "@/services/shared/crud";
+import { createCrudService, getRequest } from "@/services/shared/crud";
 
 const searchTemplateApi = createCrudService("/api/protocol-query-template");
 
@@ -15,6 +15,10 @@ export const updateSearchTemplate = searchTemplateApi.update;
 export const deleteSearchTemplate = searchTemplateApi.delete;
 export const batchDeleteSearchTemplate = searchTemplateApi.batchDelete;
 
+export function resolveSearchTemplate(params) {
+  return getRequest("/api/protocol-query-template/resolve", params);
+}
+
 export default {
   getSearchTemplatePage,
   getSearchTemplateList,
@@ -23,4 +27,5 @@ export default {
   updateSearchTemplate,
   deleteSearchTemplate,
   batchDeleteSearchTemplate,
+  resolveSearchTemplate,
 };

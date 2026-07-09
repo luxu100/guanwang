@@ -10,6 +10,7 @@ export interface RolePageParams {
 
 export type RolePayload = Partial<RoleItem> & Record<string, unknown>;
 export type PermissionPayload = Partial<PermissionItem> & Record<string, unknown>;
+export type OperationLogPayload = Record<string, unknown>;
 
 export function getRolePage(data: RolePageParams): Promise<ApiResponse<PageResult<RoleItem>>>;
 export function getRoleList(params?: RolePageParams): Promise<ApiResponse<RoleItem[]>>;
@@ -30,6 +31,14 @@ export function getPermissionTree(data?: Record<string, unknown>): Promise<ApiRe
 export function assignRolePermissions(roleId: number | string, data: Array<number | string>): Promise<ApiResponse<void>>;
 export function getRolePermissions(roleId: number | string): Promise<ApiResponse<PermissionItem[]>>;
 
+export function getOperationLogPage(data: Record<string, unknown>): Promise<ApiResponse<PageResult<Record<string, unknown>>>>;
+export function getOperationLogList(params?: Record<string, unknown>): Promise<ApiResponse<Record<string, unknown>[]>>;
+export function getOperationLogDetail(id: number | string): Promise<ApiResponse<Record<string, unknown>>>;
+export function createOperationLog(data: OperationLogPayload): Promise<ApiResponse<Record<string, unknown>>>;
+export function updateOperationLog(id: number | string, data: OperationLogPayload): Promise<ApiResponse<boolean>>;
+export function deleteOperationLog(id: number | string, isForce?: boolean): Promise<ApiResponse<void>>;
+export function batchDeleteOperationLog(data: Array<number | string>): Promise<ApiResponse<void>>;
+
 declare const authService: {
   getRolePage: typeof getRolePage;
   getRoleList: typeof getRoleList;
@@ -48,6 +57,13 @@ declare const authService: {
   getPermissionTree: typeof getPermissionTree;
   assignRolePermissions: typeof assignRolePermissions;
   getRolePermissions: typeof getRolePermissions;
+  getOperationLogPage: typeof getOperationLogPage;
+  getOperationLogList: typeof getOperationLogList;
+  getOperationLogDetail: typeof getOperationLogDetail;
+  createOperationLog: typeof createOperationLog;
+  updateOperationLog: typeof updateOperationLog;
+  deleteOperationLog: typeof deleteOperationLog;
+  batchDeleteOperationLog: typeof batchDeleteOperationLog;
 };
 
 export default authService;

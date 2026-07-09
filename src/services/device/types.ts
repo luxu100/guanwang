@@ -37,6 +37,24 @@ export interface Device {
     updatedAt?: string;
 }
 
+export interface Valve {
+    id?: number;
+    pipelineName?: string;
+    valveNumber?: string;
+    valveName?: string;
+    coordinatePosition?: string;
+    branchCompany?: string;
+    region?: string;
+    tubeBore?: string;
+    tubeMaterial?: string;
+    deptId?: number;
+    xcoordinate?: number;
+    ycoordinate?: number;
+    createdAt?: string;
+    updatedAt?: string;
+    isDeleted?: boolean;
+}
+
 export interface DeviceCreateDTO {
     deviceNumber: string;
     productId: number;

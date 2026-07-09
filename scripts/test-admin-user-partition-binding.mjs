@@ -5,7 +5,7 @@ import test from "node:test";
 const source = readFileSync(new URL("../src/pages/system/components/SystemManagementView.vue", import.meta.url), "utf8");
 
 test("user configuration displays existing partition bindings", () => {
-  assert.match(source, /用户绑定分区（部门接口）/);
+  assert.match(source, /用户绑定分区（Region接口）/);
   assert.match(source, /selectedUserPartitionIds/);
   assert.match(source, /bound-partition-list/);
   assert.match(source, /getPartitionNameById/);
@@ -24,6 +24,12 @@ test("user partition binding dialog starts empty and supports select all", () =>
 test("user save payload carries multiple department partition ids", () => {
   assert.match(source, /deptIds: selectedUserPartitionIds\.value/);
   assert.match(source, /getArrayValue\(item \|\| \{\}, \["deptIds", "departmentIds", "partitionIds", "depts", "departments", "partitions"\]\)/);
+});
+
+test("user form includes region field from current API", () => {
+  assert.match(source, /userRegionOptions/);
+  assert.match(source, /region: userForm\.region/);
+  assert.match(source, /getText\(item, \["region"\], "国内"\)/);
 });
 
 test("new users are submitted through register instead of create", () => {

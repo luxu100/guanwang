@@ -1,6 +1,6 @@
 import {createCrudServiceTyped, getRequestT} from "@/services/shared/crud.typed";
-import { getRequest } from "@/services/shared/crud";
-import type {Dept, DeptDevice, DeptTreeVO, Device, DeviceProduct, DeviceProtocol, TubeNetwork} from "./types";
+import { getRequest, postRequest } from "@/services/shared/crud";
+import type {Dept, DeptDevice, DeptTreeVO, Device, DeviceProduct, DeviceProtocol, TubeNetwork, Valve} from "./types";
 import type {ApiResponse} from "@/types/api";
 
 // ================= device =================
@@ -90,4 +90,30 @@ export const createDeptDeviceT = deptDeviceApi.create;
 export const updateDeptDeviceT = deptDeviceApi.update;
 export const deleteDeptDeviceT = deptDeviceApi.delete;
 export const batchDeleteDeptDeviceT = deptDeviceApi.batchDelete;
+
+const valveApi = createCrudServiceTyped<Valve>("/api/valve");
+
+export const getValvePageT = valveApi.getPage;
+export const getValveListT = valveApi.getList;
+export const getValveDetailT = valveApi.getDetail;
+export const createValveT = valveApi.create;
+export const updateValveT = valveApi.update;
+export const deleteValveT = valveApi.delete;
+export const batchDeleteValveT = valveApi.batchDelete;
+
+export function bindValveDevicesT(valveId: string | number, data: Record<string, any>) {
+  return postRequest(`/api/valve/${valveId}/bind-devices`, data);
+}
+
+export function unbindValveDevicesT(valveId: string | number, data: Record<string, any>) {
+  return postRequest(`/api/valve/${valveId}/unbind-devices`, data);
+}
+
+export function getValveDeviceListT(valveId: string | number, params?: Record<string, any>) {
+  return getRequestT<Device[]>(`/api/valve/${valveId}/devices`, params);
+}
+
+export function getValveDevicePageT(valveId: string | number, data: Record<string, any> = {}) {
+  return postRequest(`/api/valve/${valveId}/devices/page`, data);
+}
 
