@@ -2,11 +2,11 @@
   <view class="pagination-bar">
     <!-- page size -->
     <view class="page-size">
-      每页
+      {{t('common.pagination.pageSizePrefix') }}
       <picker :range="pageSizeOptions" :value="pageSizeIndex" @change="onSizeChange">
         <text class="page-size-value">{{ size }}</text>
       </picker>
-      条
+      {{ t('common.pagination.pageSizeSuffix') }}
     </view>
 
     <button
@@ -14,28 +14,29 @@
         :disabled="current <= 1"
         @click="changePage(-1)"
     >
-      上一页
+      {{ t('common.pagination.prevPage') }}
     </button>
 
-    <text class="page-info">
-      第 {{ current }} / {{ totalPages }} 页
-    </text>
+    <text class="page-info">{{ t('common.pagination.page', {
+      current:current,
+      total:totalPages
+    }) }}</text>
 
     <button
         class="page-button"
         :disabled="current >= totalPages"
         @click="changePage(1)"
     >
-      下一页
+      {{ t('common.pagination.nextPage') }}
     </button>
 
     <!-- jump -->
     <view class="jump-box">
-      到第
+      {{ t('common.pagination.jumpPrefix') }}
       <input class="page-input" type="number" v-model.number="jumpPage" />
-      页
+      {{ t('common.pagination.jumpSuffix') }}
       <button class="page-button jump-btn" @click="jumpToPage">
-        确定
+        {{ t('common.pagination.jumpConfirm') }}
       </button>
     </view>
 
@@ -44,6 +45,8 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import {createScopedT} from "@/i18n";
+const t = createScopedT("devicePage");
 
 const props = defineProps({
   current: { type: Number, default: 1 },
@@ -54,11 +57,11 @@ const props = defineProps({
     default: () => [10, 20, 50, 100]
   }
 })
+
 const emit = defineEmits<{
   (e: 'change-page', page: number): void
   (e: 'change-size', size: number): void
 }>()
-
 
 const jumpPage = ref(null)
 

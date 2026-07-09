@@ -9,7 +9,7 @@
 
     <!-- #ifndef H5 -->
     <view class="locale-coordinate-map__error">
-      地图仅支持 H5 端展示
+      {{t('map.onlyH5')}}
     </view>
     <!-- #endif -->
   </view>
@@ -27,6 +27,8 @@ import {
 import { useI18n } from "@/i18n";
 import { getMapProvider, MAP_CONFIG } from "@/services/map/map";
 import { loadGoogleMaps } from "@/utils/googleMapsLoader";
+import {createScopedT} from "@/i18n";
+const t = createScopedT("devicePage");
 
 /* ================= types ================= */
 
@@ -153,7 +155,7 @@ async function renderMap() {
     mapError.value = "";
   } catch (e) {
     console.error(e);
-    mapError.value = "地图加载失败，请检查 Key、域名限制和网络";
+    mapError.value = t('map.loadFailed');
   }
 }
 
@@ -187,7 +189,7 @@ function loadTencentMaps(): Promise<TencentMapApi> {
   if (tencentLoadingPromise) return tencentLoadingPromise;
 
   if (!MAP_CONFIG.tencentKey) {
-    return Promise.reject(new Error("Tencent Map key empty"));
+    return Promise.reject(new Error(t("mapKeyEmpty")));
   }
 
   tencentLoadingPromise = new Promise((resolve, reject) => {
@@ -195,14 +197,14 @@ function loadTencentMaps(): Promise<TencentMapApi> {
 
     const done = () => {
       if (runtimeWindow.TMap) resolve(runtimeWindow.TMap);
-      else reject(new Error("Tencent Maps API unavailable"));
+      else reject(new Error(t("apiUnavailable")));
     };
 
     const existing = document.getElementById(scriptId) as HTMLScriptElement | null;
 
     if (existing) {
       existing.addEventListener("load", done, { once: true });
-      existing.addEventListener("error", () => reject(new Error("load failed")), {
+      existing.addEventListener("error", () => reject(new Error(t("scriptLoadFailed"))), {
         once: true,
       });
       return;
@@ -212,7 +214,7 @@ function loadTencentMaps(): Promise<TencentMapApi> {
     script.id = scriptId;
     script.src = `https://map.qq.com/api/gljs?v=1.exp&key=${MAP_CONFIG.tencentKey}`;
     script.addEventListener("load", done, { once: true });
-    script.addEventListener("error", () => reject(new Error("load failed")), {
+    script.addEventListener("error", () => reject(new Error(t("scriptLoadFailed"))), {
       once: true,
     });
 

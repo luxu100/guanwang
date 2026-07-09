@@ -12,6 +12,7 @@ export interface ProtocolFieldDefinition {
   contentPrefix?: string;
   fieldName?: string;
   fieldCnName?: string;
+  startBit?: number;
   startPosition?: number;
   fieldLength?: number;
   positionUnit?: string;
@@ -52,6 +53,21 @@ export interface ProtocolParseRecord {
   values?: unknown;
 }
 
+export interface ProtocolParseRecordJson extends Omit<ProtocolParseRecord, "contentBytes" | "values"> {
+  contentBytes?: number;
+  parsedJson?: string;
+}
+
+export interface FieldFormatMetadata {
+  code?: string;
+  name?: string;
+  category?: string;
+  description?: string;
+  outputType?: string;
+  dynamicLength?: boolean;
+  supportedLengthBytes?: number[];
+}
+
 export interface ProtocolParseRecordQuery extends ServiceQuery {
   deviceNumber?: string;
   protocolId?: ServiceId;
@@ -67,9 +83,15 @@ export function getProtocolFieldDetail(id: ServiceId): Promise<ApiResponse<Proto
 export function createProtocolField(data: ProtocolFieldDefinition): Promise<ApiResponse<ProtocolFieldDefinition>>;
 export function updateProtocolField(id: ServiceId, data: ProtocolFieldDefinition): Promise<ApiResponse<boolean>>;
 export function deleteProtocolField(id: ServiceId, isForce?: boolean): Promise<ApiResponse<boolean>>;
+export function getProtocolFieldList(params?: ServiceQuery): Promise<ApiResponse<ProtocolFieldDefinition[]>>;
+export function batchDeleteProtocolField(data: ServiceId[], isForce?: boolean): Promise<ApiResponse<boolean>>;
 export function batchSaveProtocolFields(data: ProtocolFieldDefinition[]): Promise<ApiResponse<boolean>>;
 export function getProtocolParseRecordPage(data: ProtocolParseRecordQuery): Promise<ApiResponse<PageResult<ProtocolParseRecord>>>;
+export function getProtocolParseRecordList(params?: ServiceQuery): Promise<ApiResponse<ProtocolParseRecord[]>>;
+export function getProtocolParseRecordDetail(id: ServiceId): Promise<ApiResponse<ProtocolParseRecord>>;
+export function getProtocolParsedJsonPage(data: ProtocolParseRecordQuery): Promise<ApiResponse<PageResult<ProtocolParseRecordJson>>>;
 export function getFieldsByProtocol(protocolId: ServiceId, params?: ServiceQuery): Promise<ApiResponse<ProtocolFieldDefinition[]>>;
+export function getProtocolFieldFormats(params?: ServiceQuery): Promise<ApiResponse<FieldFormatMetadata[]>>;
 
 declare const service: {
   getProtocolFieldPage: typeof getProtocolFieldPage;
@@ -77,9 +99,15 @@ declare const service: {
   createProtocolField: typeof createProtocolField;
   updateProtocolField: typeof updateProtocolField;
   deleteProtocolField: typeof deleteProtocolField;
+  getProtocolFieldList: typeof getProtocolFieldList;
+  batchDeleteProtocolField: typeof batchDeleteProtocolField;
   batchSaveProtocolFields: typeof batchSaveProtocolFields;
   getProtocolParseRecordPage: typeof getProtocolParseRecordPage;
+  getProtocolParseRecordList: typeof getProtocolParseRecordList;
+  getProtocolParseRecordDetail: typeof getProtocolParseRecordDetail;
+  getProtocolParsedJsonPage: typeof getProtocolParsedJsonPage;
   getFieldsByProtocol: typeof getFieldsByProtocol;
+  getProtocolFieldFormats: typeof getProtocolFieldFormats;
 };
 
 export default service;

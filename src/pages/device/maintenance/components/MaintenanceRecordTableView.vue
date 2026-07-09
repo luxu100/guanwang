@@ -16,28 +16,27 @@
     />
 
     <view class="table-head">
-      <text>拆装维护详情</text>
-      <text class="table-head__meta">共 {{ pagination.total }} 条</text>
+      <text>{{ t("maintain.maintainTable.title") }}</text>
+      <text class="table-head__meta">  {{ t('common.pagination.totalRecords', { total: pagination.total }) }}</text>
     </view>
 
     <scroll-view class="table-scroll" scroll-x scroll-y>
       <view class="data-table">
         <view class="data-row data-row--header">
-
-          <text class="data-cell data-cell--index">序号</text>
-          <text class="data-cell data-cell--device">设备编号</text>
-          <text class="data-cell data-cell--type">维护类型</text>
-          <text class="data-cell data-cell--time">维护时间</text>
-          <text class="data-cell data-cell--address">维护地址</text>
-          <text class="data-cell data-cell--status">安装模式</text>
-          <text class="data-cell data-cell--number">管组编号</text>
-          <text class="data-cell data-cell--text">管材</text>
-          <text class="data-cell data-cell--text">管径</text>
-          <text class="data-cell data-cell--text">备注</text>
+          <text class="data-cell data-cell--index">{{ t("common.table.index") }}</text>
+          <text class="data-cell data-cell--device">{{ t("maintain.maintainTable.deviceNumber") }}</text>
+          <text class="data-cell data-cell--type">{{ t("maintain.maintainTable.type") }}</text>
+          <text class="data-cell data-cell--time">{{ t("maintain.maintainTable.time") }}</text>
+          <text class="data-cell data-cell--address">{{ t("maintain.maintainTable.address") }}</text>
+          <text class="data-cell data-cell--status">{{ t("maintain.maintainTable.installMode") }}</text>
+          <text class="data-cell data-cell--number">{{ t("maintain.maintainTable.tubeGroup") }}</text>
+          <text class="data-cell data-cell--text">{{ t("maintain.maintainTable.tubeMaterial") }}</text>
+          <text class="data-cell data-cell--text">{{ t("maintain.maintainTable.tubeBore") }}</text>
+          <text class="data-cell data-cell--text">{{ t("maintain.maintainTable.remark") }}</text>
         </view>
 
-        <view v-if="loading" class="loading-mask">加载中...</view>
-        <view v-else-if="deviceList.length === 0" class="table-state">暂无工单数据</view>
+        <view v-if="loading" class="loading-mask">{{ t('common.table.loading') }}</view>
+        <view v-else-if="deviceList.length === 0" class="table-state">{{ t('common.table.empty') }}</view>
 
         <view
             v-for="(record, index) in deviceList"
@@ -77,7 +76,13 @@
               'is-mobile': record.installMode === 1
             }"
           >
-            {{ record.installMode === 0 ? '固定点' : record.installMode === 1 ? '流动点' : '-' }}
+            {{
+              record.installMode === 0
+                  ? t("status.installMode.fixed")
+                  : record.installMode === 1
+                      ? t("status.installMode.mobile")
+                      : '-'
+            }}
           </text>
 
           <text class="data-cell data-cell--number">
@@ -113,7 +118,7 @@
       v-model:visible="dialogVisible"
       v-model="formData"
       :schema="addSchema"
-      :title="isEditMode ? '编辑维护记录' : '新增维护记录'"
+      :title="isEditMode ? t('maintain.page.edit.Maintenance') : t('maintain.page.addMaintenance')"
       @submit="handleSubmit"
       @cancel="dialogVisible = false"
   />
@@ -132,7 +137,9 @@ import type {FormSection} from "@/pages/device/components/x/types";
 import XDynamicDialog from "@/pages/device/components/x/XDynamicDialog.vue";
 import XFloatingCollapseHandle from "@/pages/device/components/x/XFloatingCollapseHandle.vue";
 import XPaginationBar from "@/pages/device/components/x/XPaginationBar.vue";
+import {createScopedT} from "@/i18n";
 
+const t = createScopedT("devicePage");
 const isToolbarVisible = ref(true);
 const isFloatingVisible = ref(false);
 
@@ -166,85 +173,103 @@ const isEditMode = ref(false);
 const editingId = ref<number | null>(null);
 const addSchema: FormSection[] = [
   {
-    title: "基础信息",
+    title: t("maintain.addSchema.basicInfo.title"),
     fields: [
       {
         key: "deviceNumber",
-        label: "设备编号",
+        label: t("maintain.addSchema.basicInfo.deviceNumber"),
         type: "input",
         required: true
       },
       {
         key: "maintainType",
-        label: "维护类型",
+        label: t("maintain.addSchema.basicInfo.maintainType"),
         type: "select",
         required: true,
         options: [
-          { label: "拆卸", value: 0 },
-          { label: "安装", value: 1 },
-          { label: "维护", value: 2 },
-          { label: "巡检", value: 3 }
+          {
+            label: t("maintain.addSchema.option.maintainType.remove"),
+            value: 0
+          },
+          {
+            label: t("maintain.addSchema.option.maintainType.install"),
+            value: 1
+          },
+          {
+            label: t("maintain.addSchema.option.maintainType.maintenance"),
+            value: 2
+          },
+          {
+            label: t("maintain.addSchema.option.maintainType.inspect"),
+            value: 3
+          }
         ]
       },
       {
         key: "maintainTime",
-        label: "维护时间",
+        label: t("maintain.addSchema.basicInfo.maintainTime"),
         type: "datetime",
         required: true
       },
       {
         key: "maintainAddress",
-        label: "维护地址",
+        label: t("maintain.addSchema.basicInfo.maintainAddress"),
         type: "input"
       },
       {
         key: "installMode",
-        label: "安装模式",
+        label: t("maintain.addSchema.basicInfo.installMode"),
         type: "select",
         options: [
-          { label: "固定点", value: 0 },
-          { label: "流动点", value: 1 }
+          {
+            label: t("maintain.addSchema.option.installMode.fixed"),
+            value: 0
+          },
+          {
+            label: t("maintain.addSchema.option.installMode.mobile"),
+            value: 1
+          }
         ]
       },
       {
         key: "tubeGroup",
-        label: "管组编号",
+        label: t("maintain.addSchema.basicInfo.tubeGroup"),
         type: "input"
       },
       {
         key: "tubeMaterial",
-        label: "管材",
+        label: t("maintain.addSchema.basicInfo.tubeMaterial"),
         type: "input"
       },
       {
         key: "tubeBore",
-        label: "管径",
+        label: t("maintain.addSchema.basicInfo.tubeBore"),
         type: "input"
       },
       {
         key: "remark",
-        label: "备注",
+        label: t("maintain.addSchema.basicInfo.remark"),
         type: "textarea"
       }
     ]
   },
   {
-    title: "扩展信息（可选）",
+    title: t("maintain.addSchema.extendInfo.title"),
     fields: [
       {
         key: "maintainAccount",
-        label: "维护人员",
+        label: t("maintain.addSchema.extendInfo.maintainAccount"),
         type: "input"
       },
       {
         key: "maintainFeedback",
-        label: "维护反馈",
+        label: t("maintain.addSchema.extendInfo.maintainFeedback"),
         type: "textarea",
         large: true
       },
       {
         key: "maintainCoordinate",
-        label: "坐标",
+        label: t("maintain.addSchema.extendInfo.maintainCoordinate"),
         type: "input"
       }
     ]
@@ -368,7 +393,7 @@ async function handleSubmit(form: MaintenanceCreateForm) {
 
   } catch (e: any) {
     uni.showToast({
-      title: e?.message || "操作失败",
+      title: e?.message || t("message.operationFailed"),
       icon: "error"
     });
   }
@@ -379,14 +404,14 @@ async function submitCreate(form: MaintenanceCreateForm) {
 
   if (res.code !== 200) {
     uni.showToast({
-      title: res.msg || "新增失败",
+      title: res.msg || t("message.addFail"),
       icon: "error"
     });
     throw new Error(res.msg);
   }
 
   uni.showToast({
-    title: "新增成功",
+    title: t("message.addSuccess"),
     icon: "success"
   });
 }
@@ -401,14 +426,14 @@ async function submitUpdate(form: MaintenanceCreateForm) {
 
   if (res.code !== 200) {
     uni.showToast({
-      title: res.msg || "更新失败",
+      title: res.msg || t("message.updateFail"),
       icon: "error"
     });
     throw new Error(res.msg);
   }
 
   uni.showToast({
-    title: "更新成功",
+    title: t("message.updateSuccess"),
     icon: "success"
   });
 }
@@ -418,8 +443,8 @@ async function handleDelete() {
     if (!selectedRecord.value?.id) return;
 
     uni.showModal({
-      title: '提示',
-      content: '确定要删除该记录吗？',
+      title: t("message.confirmDeleteTitle"),
+      content: t("maintain.message.confirmDeleteTitle"),
       success: async (res) => {
         if (!res.confirm) return;
 
@@ -428,7 +453,7 @@ async function handleDelete() {
         await refreshList();
 
         uni.showToast({
-          title: '删除成功',
+          title: t("message.deleteSuccess"),
           icon: 'success'
         });
 
@@ -438,7 +463,7 @@ async function handleDelete() {
 
   } catch (e: any) {
     uni.showToast({
-      title: e?.message || '删除失败',
+      title: e?.message || t("message.deleteFail"),
       icon: 'error'
     });
   }
@@ -446,7 +471,7 @@ async function handleDelete() {
 
 async function handleEdit() {
   if (!selectedRecord.value) {
-    uni.showToast({ title: '请选择记录', icon: 'none' });
+    uni.showToast({ title: t("message.selectRecord"), icon: 'none' });
     return;
   }
 
@@ -465,10 +490,10 @@ async function refreshList({ resetPage = false } = {}) {
 }
 
 const maintainTypeMap = {
-  0: { label: '拆卸', className: 'is-removed' },
-  1: { label: '安装', className: 'is-installed' },
-  2: { label: '维护', className: 'is-warning' },
-  3: { label: '巡检', className: 'is-info' }
+  0: { label: t("status.maintain.remove"), className: 'is-removed' },
+  1: { label: t("status.maintain.install"), className: 'is-installed' },
+  2: { label: t("status.maintain.maintenance"), className: 'is-warning' },
+  3: { label: t("status.maintain.inspect"), className: 'is-info' }
 } as Record<number, { label: string; className: string }>;
 
 // 获取维护类型元数据

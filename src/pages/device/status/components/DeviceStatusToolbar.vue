@@ -20,6 +20,8 @@
 import { computed } from "vue";
 import XBaseToolbar from "@/pages/device/components/x/XBaseToolbar.vue";
 import type { Field } from "@/pages/device/components/x/types";
+import {createScopedT} from "@/i18n";
+const t = createScopedT("devicePage");
 
 // ===== 1. 定义 Props 和 Emits =====
 const props = defineProps<{
@@ -48,18 +50,18 @@ const model = computed({
 const fields: Field[] = [
   {
     key: "leakStatus",
-    label: "设备参数",
+    label: t("deviceTable.leakStatus"),
     type: "select",
     dict: "leakStatus"
   },
   {
     key: "startTime",
-    label: "开始时间",
+    label: t("maintain.fields.startTime"),
     type: "date"
   },
   {
     key: "endTime",
-    label: "结束时间",
+    label: t("maintain.fields.endTime"),
     type: "date"
   }
 ];
@@ -67,10 +69,11 @@ const fields: Field[] = [
 // ===== 4. 字典映射 =====
 const dictMap = {
   leakStatus: [
-    { label: "全部", value: null },
-    { label: "渗漏", value: 0 },
-    { label: "正常", value: 1 },
-    { label: "疑似", value: 2 }
+    { label: t("common.all"), value: null },
+    { label: t("status.leak.leak"), value: 0 },
+    { label: t("status.leak.normal"), value: 1 },
+    { label: t("status.leak.suspected"), value: 2 },
+    { label: t("status.leak.unknown"), value: 3 }
   ]
 };
 </script>

@@ -1,29 +1,29 @@
 <template>
   <view class="worksheet-table-panel">
     <view class="table-head">
-      <text>设备创建记录</text>
-      <text class="table-head__meta">共 {{ pagination.total }} 条</text>
+      <text>{{ t('deviceTable.title') }}</text>
+      <text class="table-head__meta">  {{ t('common.pagination.totalRecords', { total: pagination.total }) }}</text>
     </view>
 
     <scroll-view class="table-scroll" scroll-x scroll-y>
       <view class="data-table">
         <view class="data-row data-row--header">
-          <text class="data-cell data-cell--index">序号</text>
-          <text class="data-cell data-cell--device">设备编号</text>
-          <text class="data-cell data-cell--type">设备类型</text>
-          <text class="data-cell data-cell--status">启用状态</text>
-          <text class="data-cell data-cell--status">安装状态</text>
-          <text class="data-cell data-cell--status">安装模式</text>
-          <text class="data-cell data-cell--address">安装地址</text>
-          <text class="data-cell data-cell--coord">设备坐标</text>
-          <text class="data-cell data-cell--number">管组编号</text>
-          <text class="data-cell data-cell--status">渗漏状态</text>
-          <text class="data-cell data-cell--time">最后采样时间</text>
-          <text class="data-cell data-cell--status">在线状态</text>
+          <text class="data-cell data-cell--index">{{ tc('table.index') }}</text>
+          <text class="data-cell data-cell--device">{{ t('deviceTable.deviceNumber') }}</text>
+          <text class="data-cell data-cell--type">{{ t('deviceTable.deviceType') }}</text>
+          <text class="data-cell data-cell--status">{{ t('deviceTable.enableState') }}</text>
+          <text class="data-cell data-cell--status">{{ t('deviceTable.installState') }}</text>
+          <text class="data-cell data-cell--status">{{ t('deviceTable.installMode') }}</text>
+          <text class="data-cell data-cell--address">{{ t('deviceTable.installAddress') }}</text>
+          <text class="data-cell data-cell--coord">{{ t('deviceTable.coordinate') }}</text>
+          <text class="data-cell data-cell--number">{{ t('deviceTable.tubeGroup') }}</text>
+          <text class="data-cell data-cell--status">{{ t('deviceTable.leakStatus') }}</text>
+          <text class="data-cell data-cell--time">{{ t('deviceTable.lastSamplingTime') }}</text>
+          <text class="data-cell data-cell--status">{{ t('deviceTable.onlineStatus') }}</text>
         </view>
 
-        <view v-if="loading" class="table-state">加载中...</view>
-        <view v-else-if="filteredDevices.length === 0" class="table-state">暂无工单数据</view>
+        <view v-if="loading" class="table-state">{{ tc('table.loading') }}</view>
+        <view v-else-if="filteredDevices.length === 0" class="table-state">{{ tc('table.empty') }}</view>
 
         <view
             v-for="(device, index) in filteredDevices"
@@ -117,6 +117,9 @@ import type { Device } from '@/services/device/types';
 import type {Pagination} from "@/types/api";
 import XMapPopup from "@/pages/device/components/x/XMapPopup.vue";
 import XPaginationBar from "@/pages/device/components/x/XPaginationBar.vue";
+import {createScopedT} from "@/i18n";
+const t = createScopedT("devicePage");
+const tc = createScopedT("devicePage.common");
 
 const props = defineProps<{
   devices: Device[];
@@ -124,32 +127,33 @@ const props = defineProps<{
 }>();
 
 const loading = ref(false);
-const enableStateMap: Record<number, string> = {
-  0: '停用',
-  1: '启用'
-}
+const enableStateMap = computed<Record<number, string>>(() => ({
+  0: t('status.status.disabled'),
+  1: t('status.status.enabled')
+}));
 
-const installStateMap: Record<number, string> = {
-  0: '未安装',
-  1: '已安装'
-}
+const installStateMap = computed<Record<number, string>>(() => ({
+  0: t('status.install.uninstalled'),
+  1: t('status.install.installed')
+}));
 
-const installModeMap: Record<number, string> = {
-  0: '固定点',
-  1: '流动点'
-}
+const installModeMap = computed<Record<number, string>>(() => ({
+  0: t('status.installMode.fixed'),
+  1: t('status.installMode.mobile')
+}));
 
-const onlineStatusMap: Record<number, string> = {
-  0: '离线',
-  1: '在线'
-}
+const onlineStatusMap = computed<Record<number, string>>(() => ({
+  0: t('status.online.offline'),
+  1: t('status.online.online')
+}));
 
-const leakStatusMap: Record<number, string> = {
-  0: '渗漏',
-  1: '正常',
-  2: '疑似',
-  3: '未知'
-}
+const leakStatusMap = computed<Record<number, string>>(() => ({
+  0: t('status.leak.leak'),
+  1: t('status.leak.normal'),
+  2: t('status.leak.suspected'),
+  3: t('status.leak.unknown')
+}));
+
 
 const emit = defineEmits<{
   (e: 'view', device: Device): void;
@@ -235,7 +239,7 @@ function handleCoordClick(longitude: number, latitude: number) {
   } else {
     // 没有坐标，弹出提示
     uni.showToast({
-      title: '该设备暂无坐标信息,无法定位!',
+      title: t('map.noCoordinate'),
       icon: 'none',
       duration: 2000
     });

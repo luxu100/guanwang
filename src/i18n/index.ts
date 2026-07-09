@@ -1,6 +1,8 @@
 import { computed, ref } from "vue";
 import enUS from "./locales/en-US";
 import zhCN from "./locales/zh-CN";
+import deviceZhCN from "@/pages/device/locales/zh-CN.json";
+import deviceEnUS from "@/pages/device/locales/en-US.json";
 import type { I18nParams, LocaleCode, LocaleOption } from "./types";
 
 export const LOCALE_STORAGE_KEY = "locale";
@@ -11,6 +13,9 @@ export const localeOptions: LocaleOption[] = [
   { label: "简体中文", value: "zh-CN" },
   { label: "English", value: "en-US" },
 ];
+
+Object.assign(zhCN, deviceZhCN);
+Object.assign(enUS, deviceEnUS);
 
 const messages = {
   "zh-CN": zhCN,
@@ -34,7 +39,28 @@ export function getStoredLocale(): LocaleCode | null {
 
 export function getUserLocale(userInfo = uni.getStorageSync("userInfo")): LocaleCode | null {
   const userLocale = userInfo?.locale || userInfo?.defaultLanguage || userInfo?.language;
-  return isLocaleCode(userLocale) ? userLocale : null;
+  if (isLocaleCode(userLocale)) {
+    return userLocale;
+  }
+
+  return getLocaleByRegion(userInfo?.region);
+}
+
+export function getLocaleByRegion(region: unknown): LocaleCode | null {
+  if (typeof region !== "string") {
+    return null;
+  }
+
+  const normalizedRegion = region.trim().toLowerCase();
+  if (normalizedRegion === "国内" || normalizedRegion === "china" || normalizedRegion === "cn") {
+    return "zh-CN";
+  }
+
+  if (normalizedRegion === "国外" || normalizedRegion === "overseas" || normalizedRegion === "foreign" || normalizedRegion === "en") {
+    return "en-US";
+  }
+
+  return null;
 }
 
 export function getInitialLocale(): LocaleCode {
@@ -102,10 +128,34 @@ export function useI18n() {
   };
 }
 
+export function createScopedT(prefix: string) {
+  return (
+      key: string,
+      paramsOrFallback?: I18nParams | string,
+      fallback?: string,
+  ) => {
+    return t(`${prefix}.${key}`, paramsOrFallback, fallback);
+  };
+}
+
+export function createScopedTm(prefix: string) {
+  return <T = unknown>(key: string, fallback?: T): T => {
+    return tm<T>(`${prefix}.${key}`, fallback);
+  };
+}
+
+export function tm<T = unknown>(key: string, fallback?: T): T {
+  const localeValue = getByPath(messages[currentLocale.value], key);
+  const defaultValue = getByPath(messages[DEFAULT_LOCALE], key);
+
+  return (localeValue ?? defaultValue ?? fallback) as T;
+}
+
 export default {
   applyUserLocale,
   getInitialLocale,
   getLocale,
+  getLocaleByRegion,
   getStoredLocale,
   getUserLocale,
   isLocaleCode,
@@ -114,4 +164,7 @@ export default {
   setLocale,
   t,
   useI18n,
+  createScopedT,
+  createScopedTm,
+  tm,
 };

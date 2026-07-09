@@ -11,10 +11,20 @@ export type ServiceId = string | number;
 export function getDevicePage(data: ServiceQuery): Promise<ApiResponse>;
 export function getDeviceList(params?: ServiceQuery): Promise<ApiResponse>;
 export function getDeviceDetail(id: ServiceId): Promise<ApiResponse>;
+export function getDeviceFullDetail(id: ServiceId): Promise<ApiResponse>;
+export function getVisibleDeviceList(params?: ServiceQuery): Promise<ApiResponse>;
 export function createDevice(data: ServicePayload): Promise<ApiResponse>;
 export function updateDevice(id: ServiceId, data: ServicePayload): Promise<ApiResponse>;
 export function deleteDevice(id: ServiceId, isForce?: boolean): Promise<ApiResponse>;
 export function batchDeleteDevice(data: ServicePayload): Promise<ApiResponse>;
+export function getDeviceQuerySidebar(data: ServiceQuery): Promise<ApiResponse>;
+export function getDeviceQueryTodayOnlineRate(data: ServiceQuery): Promise<ApiResponse>;
+export function getDeviceQueryTcpTodayOnlineRate(data: ServiceQuery): Promise<ApiResponse>;
+export function getDeviceQueryCommunicationSuccessRate(data: ServiceQuery): Promise<ApiResponse>;
+export function getDeviceQueryParameterPage(data: ServiceQuery): Promise<ApiResponse>;
+export function getDeviceQueryInfoPage(data: ServiceQuery): Promise<ApiResponse>;
+export function getDeviceQueryParameterDetail(id: ServiceId): Promise<ApiResponse>;
+export function getDeviceQueryInfoDetail(id: ServiceId): Promise<ApiResponse>;
 
 export function getDeviceProductPage(data: ServiceQuery): Promise<ApiResponse>;
 export function getDeviceProductList(params?: ServiceQuery): Promise<ApiResponse>;
@@ -29,14 +39,37 @@ export function createDeviceProtocol(data: ServicePayload): Promise<ApiResponse>
 export function getDeviceProtocolByDevice(deviceId: ServiceId, params?: ServiceQuery): Promise<ApiResponse>;
 export function getDeviceProtocolByProtocol(protocolId: ServiceId, params?: ServiceQuery): Promise<ApiResponse>;
 
+export function getValvePage(data: ServiceQuery): Promise<ApiResponse>;
+export function getValveList(params?: ServiceQuery): Promise<ApiResponse>;
+export function getValveDetail(id: ServiceId): Promise<ApiResponse>;
+export function createValve(data: ServicePayload): Promise<ApiResponse>;
+export function createValveDirect(data: ServicePayload): Promise<ApiResponse>;
+export function updateValve(id: ServiceId, data: ServicePayload): Promise<ApiResponse>;
+export function deleteValve(id: ServiceId, isForce?: boolean): Promise<ApiResponse>;
+export function batchDeleteValve(data: ServicePayload, isForce?: boolean): Promise<ApiResponse>;
+export function bindValveDevices(valveId: ServiceId, data: ServicePayload): Promise<ApiResponse>;
+export function unbindValveDevices(valveId: ServiceId, data: ServicePayload): Promise<ApiResponse>;
+export function getValveDeviceList(valveId: ServiceId, params?: ServiceQuery): Promise<ApiResponse>;
+export function getValveDevicePage(valveId: ServiceId, data?: ServiceQuery): Promise<ApiResponse>;
+
 declare const service: {
   getDevicePage: typeof getDevicePage;
   getDeviceList: typeof getDeviceList;
   getDeviceDetail: typeof getDeviceDetail;
+  getDeviceFullDetail: typeof getDeviceFullDetail;
+  getVisibleDeviceList: typeof getVisibleDeviceList;
   createDevice: typeof createDevice;
   updateDevice: typeof updateDevice;
   deleteDevice: typeof deleteDevice;
   batchDeleteDevice: typeof batchDeleteDevice;
+  getDeviceQuerySidebar: typeof getDeviceQuerySidebar;
+  getDeviceQueryTodayOnlineRate: typeof getDeviceQueryTodayOnlineRate;
+  getDeviceQueryTcpTodayOnlineRate: typeof getDeviceQueryTcpTodayOnlineRate;
+  getDeviceQueryCommunicationSuccessRate: typeof getDeviceQueryCommunicationSuccessRate;
+  getDeviceQueryParameterPage: typeof getDeviceQueryParameterPage;
+  getDeviceQueryInfoPage: typeof getDeviceQueryInfoPage;
+  getDeviceQueryParameterDetail: typeof getDeviceQueryParameterDetail;
+  getDeviceQueryInfoDetail: typeof getDeviceQueryInfoDetail;
   getDeviceProductPage: typeof getDeviceProductPage;
   getDeviceProductList: typeof getDeviceProductList;
   getDeviceProductDetail: typeof getDeviceProductDetail;
@@ -48,6 +81,18 @@ declare const service: {
   createDeviceProtocol: typeof createDeviceProtocol;
   getDeviceProtocolByDevice: typeof getDeviceProtocolByDevice;
   getDeviceProtocolByProtocol: typeof getDeviceProtocolByProtocol;
+  getValvePage: typeof getValvePage;
+  getValveList: typeof getValveList;
+  getValveDetail: typeof getValveDetail;
+  createValve: typeof createValve;
+  createValveDirect: typeof createValveDirect;
+  updateValve: typeof updateValve;
+  deleteValve: typeof deleteValve;
+  batchDeleteValve: typeof batchDeleteValve;
+  bindValveDevices: typeof bindValveDevices;
+  unbindValveDevices: typeof unbindValveDevices;
+  getValveDeviceList: typeof getValveDeviceList;
+  getValveDevicePage: typeof getValveDevicePage;
 };
 
 export default service;

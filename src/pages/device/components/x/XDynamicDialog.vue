@@ -10,7 +10,7 @@
         <button
             class="icon-button"
             hover-class="icon-button--hover"
-            aria-label="关闭"
+            :aria-label="t('common.close')"
             @click="closeDialog"
         >
           <text class="close-icon"></text>
@@ -56,7 +56,7 @@
                       v-if="field.type === 'input'"
                       v-model="formData[field.key]"
                       class="form-input"
-                      :placeholder="field.placeholder || `请输入${field.label}`"
+                      :placeholder="field.placeholder || t('form.inputPlaceholder', { label: field.label })"
                       placeholder-class="input-placeholder"
                       @input="clearError(field.key)"
                   />
@@ -80,7 +80,7 @@
                           getSelectLabel(
                               field.options,
                               formData[field.key],
-                              field.placeholder || `请选择${field.label}`
+                              field.placeholder ||  t('form.selectPlaceholder', { label: field.label })
                           )
                         }}
                       </text>
@@ -118,7 +118,7 @@
                       v-model="formData[field.key]"
                       class="form-textarea"
                       :class="{ 'form-textarea--large': field.large }"
-                      :placeholder="field.placeholder || `请输入${field.label}`"
+                      :placeholder="field.placeholder || t('form.inputPlaceholder', { label: field.label })"
                       placeholder-class="input-placeholder"
                       @input="clearError(field.key)"
                   />
@@ -129,12 +129,12 @@
                       <input
                           v-model="formData[field.key]"
                           class="form-input"
-                          placeholder="格式: 经度,纬度"
+                          :placeholder="t('formDialog.location.placeholder')"
                           @input="clearError(field.key)"
                       />
 
                       <button class="form-action-btn" hover-class="form-action-btn--hover" @click="openMapPicker">
-                        <text class="form-action-btn__icon form-action-btn__icon--map"></text><text>地图拾取</text>
+                        <text class="form-action-btn__icon form-action-btn__icon--map"></text><text>{{t('formDialog.location.pickMap')}}</text>
                       </button>
                     </view>
                     <!--  地图弹层 -->
@@ -142,13 +142,13 @@
 
                       <!-- 顶部提示 -->
                       <view class="map-picker-head">
-                        <text class="map-picker-title">点击地图选取坐标</text>
+                        <text class="map-picker-title">{{t('formDialog.location.title')}}</text>
 
                         <text
                             class="map-picker-coord"
                             :class="{ 'map-picker-coord--active': mapPickedCoord }"
                         >
-                          {{ mapPickedCoord || "请在地图上点击选择" }}
+                          {{ mapPickedCoord || t('formDialog.location.selectHint') }}
                         </text>
                       </view>
 
@@ -168,7 +168,7 @@
                         <!-- 非 H5 fallback -->
                         <!-- #ifndef H5 -->
                         <view class="map-picker-canvas">
-                          地图选点仅支持 H5 端
+                          {{t('formDialog.location.onlyH5')}}
                         </view>
                         <!-- #endif -->
 
@@ -180,7 +180,7 @@
                             class="dialog-btn dialog-btn--cancel"
                             @click="closeMapPicker"
                         >
-                          取消
+                          {{t('formDialog.cancel')}}
                         </button>
 
                         <button
@@ -188,7 +188,7 @@
                             :disabled="!mapPickedCoord"
                             @click="confirmMapPick"
                         >
-                          确认选点
+                          {{t('formDialog.location.confirm')}}
                         </button>
                       </view>
 
@@ -240,7 +240,7 @@
             hover-class="secondary-button--hover"
             @click="handleCancel"
         >
-          取消
+          {{t('formDialog.cancel')}}
         </button>
 
         <button
@@ -248,7 +248,7 @@
             hover-class="secondary-button--hover"
             @click="resetForm"
         >
-          清空表单
+          {{t('formDialog.reset')}}
         </button>
 
         <button
@@ -257,7 +257,7 @@
             hover-class="primary-button--hover"
             @click="handleSubmit"
         >
-          {{ submitting ? "提交中..." : "确认提交" }}
+          {{ submitting ? t('formDialog.submitting') : t('formDialog.submit') }}
         </button>
       </view>
     </view>
@@ -269,6 +269,9 @@ import { computed, reactive, ref, watch } from "vue";
 import type {FieldOption, FormSection} from "@/pages/device/components/x/types";
 import XDatetimePicker from "@/pages/device/components/x/XDatetimePicker.vue";
 import XSelectCoordinateMap from "@/pages/device/components/x/XSelectCoordinateMap.vue";
+
+import {createScopedT} from "@/i18n";
+const t = createScopedT("devicePage");
 
 interface Props {
   modelValue: Record<string, any>;
@@ -289,7 +292,7 @@ interface Emits {
 /* ===================== props ===================== */
 
 const props = withDefaults(defineProps<Props>(), {
-  title: "新增信息",
+  title: "",
   subtitle: "",
   asideSchema: undefined
 });
@@ -401,7 +404,9 @@ function validateForm() {
       if (field.required) {
         const value = formData.value[field.key];
         if (value === undefined || value === null || value.toString().trim() === "") {
-          validationErrors[field.key] = `请输入${field.label}`;
+          validationErrors[field.key] = t('form.inputPlaceholder', {
+            label: field.label
+          });
           isValid = false;
         }
       }
@@ -920,7 +925,7 @@ function closeMapPicker() {
   align-items: center;
   height: 38px;
   padding: 0 14px;
-  width: 120px;
+  width: 160px;
   color: #0d82ee;
   font-size: 13px;
   font-weight: 700;

@@ -8,7 +8,7 @@
         hover-class="toolbar-button--hover"
         @click="emit('add')"
     >
-      新增
+      {{ t('add') }}
     </button>
 
     <button
@@ -17,7 +17,7 @@
         hover-class="toolbar-button--hover"
         @click="emit('edit')"
     >
-      编辑
+      {{ t('edit') }}
     </button>
 
     <button
@@ -26,7 +26,7 @@
         :disabled="loading"
         @click="emit('search')"
     >
-      查询
+      {{ t('search') }}
     </button>
 
     <button
@@ -35,7 +35,7 @@
         :disabled="loading"
         @click="emit('reset')"
     >
-      重置
+      {{ t('reset') }}
     </button>
 
     <button
@@ -45,14 +45,14 @@
         :disabled="!canDelete"
         @click="emit('delete')"
     >
-      删除
+      {{ t('delete') }}
     </button>
 
     <button
         v-if="showRefresh"
         class="toolbar-icon-button"
         hover-class="toolbar-icon-button--hover"
-        aria-label="刷新"
+        aria-label="t('refresh')"
         :disabled="loading"
         @click="emit('refresh')"
     >
@@ -64,9 +64,9 @@
 </template>
 
 <script setup lang="ts">
-/**
- * 只补类型，不改结构
- */
+import {createScopedT} from "@/i18n";
+const t = createScopedT("devicePage.toolbar");
+
 defineProps({
   loading: {
     type: Boolean,

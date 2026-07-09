@@ -3,7 +3,7 @@
  *
  * 页面层应优先调用这里导出的语义化函数，避免在 .vue 文件中直接拼接接口地址。
  */
-import { createCrudService } from "@/services/shared/crud";
+import { createCrudService, postRequest } from "@/services/shared/crud";
 
 const commandDictApi = createCrudService("/api/command-dict");
 const commandParamApi = createCrudService("/api/command-param");
@@ -43,6 +43,18 @@ export const getFirmwareUpgradeLogPage = firmwareUpgradeLogApi.getPage;
 export const getFirmwareUpgradeLogList = firmwareUpgradeLogApi.getList;
 export const getFirmwareUpgradeLogDetail = firmwareUpgradeLogApi.getDetail;
 
+export function startFirmwareUpgrade(data) {
+  return postRequest("/api/firmware-upgrade/start", data);
+}
+
+export function checkFirmwareUpdatable(data) {
+  return postRequest("/api/firmware-upgrade/check-updatable", data);
+}
+
+export function cancelFirmwareUpgrade(data) {
+  return postRequest("/api/firmware-upgrade/cancel", data);
+}
+
 export default {
   getCommandDictPage,
   getCommandDictList,
@@ -71,4 +83,7 @@ export default {
   getFirmwareUpgradeLogPage,
   getFirmwareUpgradeLogList,
   getFirmwareUpgradeLogDetail,
+  startFirmwareUpgrade,
+  checkFirmwareUpdatable,
+  cancelFirmwareUpgrade,
 };

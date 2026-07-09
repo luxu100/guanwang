@@ -106,6 +106,7 @@
                   <text class="data-cell data-cell--account">登录账号</text>
                   <text class="data-cell data-cell--phone">联系电话</text>
                   <text class="data-cell data-cell--email">邮箱</text>
+                  <text class="data-cell data-cell--region">地区</text>
                   <text class="data-cell data-cell--roles">角色</text>
                   <text class="data-cell data-cell--depts">分区</text>
                   <text class="data-cell data-cell--status">状态</text>
@@ -125,6 +126,7 @@
                   <text class="data-cell data-cell--account">{{ getText(item, ['username'], '-') }}</text>
                   <text class="data-cell data-cell--phone">{{ getText(item, ['phone'], '-') }}</text>
                   <text class="data-cell data-cell--email">{{ getText(item, ['email'], '-') }}</text>
+                  <text class="data-cell data-cell--region">{{ getText(item, ['region'], '-') }}</text>
                   <text class="data-cell data-cell--roles">{{ getUserRoleNames(item) }}</text>
                   <text class="data-cell data-cell--depts">{{ getUserDeptNames(item) }}</text>
                   <text class="data-cell data-cell--status">
@@ -185,6 +187,12 @@
                   <view class="form-select">{{ getStatusLabel(userForm.status) }}</view>
                 </picker>
               </view>
+              <view class="form-field">
+                <text class="form-label">地区</text>
+                <picker :range="userRegionOptions" range-key="label" @change="handleUserRegionChange">
+                  <view class="form-select">{{ currentUserRegionLabel }}</view>
+                </picker>
+              </view>
               <view class="form-field form-field--wide">
                 <text class="form-label">分配权限角色（决定可访问菜单）</text>
                 <view class="check-grid">
@@ -211,7 +219,7 @@
               </view>
               <view class="form-field form-field--wide">
                 <view class="binding-field-head">
-                  <text class="form-label">用户绑定分区（部门接口）</text>
+                  <text class="form-label">用户绑定分区（Region接口）</text>
                   <button class="mini-button" hover-class="mini-button--hover" @click="openUserPartitionDialog">新增绑定</button>
                 </view>
                 <view class="bound-partition-list">
@@ -510,10 +518,11 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { assignUserDepts, getUserDepts,getUserList, assignUserRoles, deleteUser, getUserPage, register, updateUser, type RegisterParams } from "@/services/system/user";
+import { applyUserLocale } from "@/i18n";
 import { getRolePermissions,assignRolePermissions, createRole, deleteRole, getPermissionList, getPermissionTree, getRoleDetail, getRoleList, getRolePage, updateRole } from "@/services/system/auth";
 import { createMenu, deleteMenu, getMenuPage, getMenuTree, updateMenu } from "@/services/system/menu";
 import { createDictItem, createDictType, deleteDictItem, deleteDictType, getDictItemPage, getDictTypePage, updateDictItem, updateDictType } from "@/services/system/dict";
-import { getDeptList,getDeptDetail } from "@/services/partition/partition";
+import { getRegionList } from "@/services/partition/partition";
 import {
   type ApiResponseLike,
   type RecordLike,
@@ -538,8 +547,19 @@ type SelectOption<T extends string | number = string | number> = {
   label: string;
   value: T;
 };
+type DefaultMenuSyncResult = {
+  created: number;
+  updated: number;
+  deleted: number;
+  skipped: number;
+};
 
 const LOCAL_MENU_ID_PREFIX = "local-menu:";
+const STALE_DEFAULT_MENU_CODES = new Set([
+  "page:device:status",
+  "page:work-order:statistics",
+]);
+
 const defaultMenuTree: RecordLike[] = [
   { id: `${LOCAL_MENU_ID_PREFIX}favorite`, permissionName: "我的收藏", permissionCode: "page:favorite", path: "/pages/index/index", permissionType: 1, status: 1 },
   { id: `${LOCAL_MENU_ID_PREFIX}leak-monitor`, permissionName: "渗漏监测", permissionCode: "page:leak-monitor", path: "/pages/leak-monitor/leak-monitor", permissionType: 1, status: 1 },
@@ -554,8 +574,8 @@ const defaultMenuTree: RecordLike[] = [
     children: [
       { id: `${LOCAL_MENU_ID_PREFIX}device-info`, permissionName: "设备信息", permissionCode: "page:device:info", path: "/pages/device/info/info", parentId: `${LOCAL_MENU_ID_PREFIX}device`, permissionType: 1, status: 1 },
       { id: `${LOCAL_MENU_ID_PREFIX}device-maintenance`, permissionName: "拆装维护", permissionCode: "page:device:maintenance", path: "/pages/device/maintenance/maintenance", parentId: `${LOCAL_MENU_ID_PREFIX}device`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}device-status`, permissionName: "设备参数", permissionCode: "page:device:status", path: "/pages/device/status/status", parentId: `${LOCAL_MENU_ID_PREFIX}device`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}device-valve`, permissionName: "????", permissionCode: "page:device:valve", path: "/pages/device/valve/valve", parentId: `${LOCAL_MENU_ID_PREFIX}device`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}device-settings`, permissionName: "设备参数", permissionCode: "page:device:settings", path: "/pages/device/settings/settings", parentId: `${LOCAL_MENU_ID_PREFIX}device`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}device-valve`, permissionName: "阀门管理", permissionCode: "page:device:valve", path: "/pages/device/valve/valve", parentId: `${LOCAL_MENU_ID_PREFIX}device`, permissionType: 1, status: 1 },
     ],
   },
   {
@@ -589,7 +609,7 @@ const defaultMenuTree: RecordLike[] = [
     id: `${LOCAL_MENU_ID_PREFIX}data-analysis`,
     permissionName: "数据分析",
     permissionCode: "module:data-analysis",
-    path: "/pages/data-analysis/audio/audio",
+    path: "/pages/data-analysis/overview/overview",
     permissionType: 0,
     status: 1,
     children: [
@@ -606,21 +626,21 @@ const defaultMenuTree: RecordLike[] = [
     status: 1,
     children: [
       { id: `${LOCAL_MENU_ID_PREFIX}leak-report-suspect-management`, permissionName: "疑点管理", permissionCode: "page:leak-report:suspect-management", path: "/pages/leak-report/suspect-management/suspect-management", parentId: `${LOCAL_MENU_ID_PREFIX}leak-report`, permissionType: 1, status: 1 },
-      // { id: `${LOCAL_MENU_ID_PREFIX}leak-report-suspect-processing`, permissionName: "疑点处理", permissionCode: "page:leak-report:suspect-processing", path: "/pages/leak-report/suspect-processing/suspect-processing", parentId: `${LOCAL_MENU_ID_PREFIX}leak-report`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}leak-report-suspect-processing`, permissionName: "疑点处理", permissionCode: "page:leak-report:suspect-processing", path: "/pages/leak-report/suspect-processing/suspect-processing", parentId: `${LOCAL_MENU_ID_PREFIX}leak-report`, permissionType: 1, status: 1 },
       { id: `${LOCAL_MENU_ID_PREFIX}leak-report-leak-management`, permissionName: "漏点管理", permissionCode: "page:leak-report:leak-management", path: "/pages/leak-report/leak-management/leak-management", parentId: `${LOCAL_MENU_ID_PREFIX}leak-report`, permissionType: 1, status: 1 },
       { id: `${LOCAL_MENU_ID_PREFIX}leak-report-leak-analysis`, permissionName: "漏点分析", permissionCode: "page:leak-report:leak-analysis", path: "/pages/leak-report/leak-analysis/leak-analysis", parentId: `${LOCAL_MENU_ID_PREFIX}leak-report`, permissionType: 1, status: 1 },
     ],
   },
   {
     id: `${LOCAL_MENU_ID_PREFIX}statistics`,
-    permissionName: "????",
+    permissionName: "统计分析",
     permissionCode: "page:statistics",
     path: "/pages/statistics/statistics",
     permissionType: 0,
     status: 1,
     children: [
-      { id: `${LOCAL_MENU_ID_PREFIX}statistics-leak-report-overview`, permissionName: "??????", permissionCode: "page:leak-report:history-overview", path: "/pages/leak-report/history-overview/history-overview", parentId: `${LOCAL_MENU_ID_PREFIX}statistics`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}statistics-data-analysis-overview`, permissionName: "??????", permissionCode: "page:data-analysis:overview", path: "/pages/data-analysis/overview/overview", parentId: `${LOCAL_MENU_ID_PREFIX}statistics`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}statistics-leak-report-overview`, permissionName: "疑漏模块总览", permissionCode: "page:leak-report:history-overview", path: "/pages/leak-report/history-overview/history-overview", parentId: `${LOCAL_MENU_ID_PREFIX}statistics`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}statistics-data-analysis-overview`, permissionName: "数据系统总览", permissionCode: "page:data-analysis:overview", path: "/pages/data-analysis/overview/overview", parentId: `${LOCAL_MENU_ID_PREFIX}statistics`, permissionType: 1, status: 1 },
     ],
   },
   {
@@ -633,7 +653,6 @@ const defaultMenuTree: RecordLike[] = [
     children: [
       { id: `${LOCAL_MENU_ID_PREFIX}work-order-create`, permissionName: "工单创建", permissionCode: "page:work-order:create", path: "/pages/work-order/create/create", parentId: `${LOCAL_MENU_ID_PREFIX}work-order`, permissionType: 1, status: 1 },
       { id: `${LOCAL_MENU_ID_PREFIX}work-order-processing`, permissionName: "工单处理", permissionCode: "page:work-order:processing", path: "/pages/work-order/processing/processing", parentId: `${LOCAL_MENU_ID_PREFIX}work-order`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}work-order-statistics`, permissionName: "工单查询与统计", permissionCode: "page:work-order:statistics", path: "/pages/work-order/statistics/statistics", parentId: `${LOCAL_MENU_ID_PREFIX}work-order`, permissionType: 1, status: 1 },
     ],
   },
   {
@@ -688,6 +707,10 @@ const recordStatusOptions: Array<SelectOption<number>> = [
   { label: "启用", value: 1 },
   { label: "禁用", value: 0 },
 ];
+const userRegionOptions: Array<SelectOption<string>> = [
+  { label: "国内", value: "国内" },
+  { label: "国外", value: "国外" },
+];
 const permissionTypeOptions: Array<SelectOption<number>> = [
   { label: "目录", value: 0 },
   { label: "菜单", value: 1 },
@@ -734,8 +757,7 @@ const userForm = reactive({
   email: "",
   password: "",
   status: 1,
-  scope: "company",
-  location: "",
+  region: "国内",
 });
 const roleForm = reactive({
   id: "",
@@ -836,6 +858,7 @@ const createButtonText = computed(() => {
   return map[props.mode];
 });
 const currentStatusLabel = computed(() => statusOptions.find((item) => item.value === filters.status)?.label || "全部");
+const currentUserRegionLabel = computed(() => userRegionOptions.find((item) => item.value === userForm.region)?.label || "国内");
 const currentMenuTypeLabel = computed(() => permissionTypeOptions.find((item) => item.value === menuForm.permissionType)?.label || "菜单");
 const menuParentOptions = computed<Array<SelectOption<string>>>(() => [
   { label: "根节点", value: "0" },
@@ -932,6 +955,10 @@ function handleStatusChange(event: { detail: { value: number } }) {
 
 function handleUserFormStatusChange(event: { detail: { value: number } }) {
   userForm.status = recordStatusOptions[event.detail.value]?.value ?? 1;
+}
+
+function handleUserRegionChange(event: { detail: { value: number } }) {
+  userForm.region = userRegionOptions[event.detail.value]?.value || "国内";
 }
 
 function handleMenuStatusChange(event: { detail: { value: number } }) {
@@ -1143,7 +1170,7 @@ async function loadRoles() {
 
 async function loadPartitions() {
   try {
-    const response = await getDeptList() as ApiResponseLike;
+    const response = await getRegionList() as ApiResponseLike;
     assertSuccessResponse(response);
     partitionOptions.value = parseListResponse(response);
     // console.log("partitionOptions.value", partitionOptions.value);
@@ -1339,10 +1366,13 @@ function selectUser(item: RecordLike | null) {
     email: item ? getText(item, ["email"], "") : "",
     password: "",
     status: Number(getValue(item || {}, ["status"]) ?? 1),
-    scope: "company",
-    location: item ? getText(item, ["location", "address"], "") : "",
+    region: item ? getText(item, ["region"], "国内") : "国内",
   });
-  selectedRoleIds.value = getUserRoleIdsFromPageRecord(item);
+  if (item) {
+    selectedRoleIds.value = getUserRoleIdsFromPageRecord(item);
+  } else {
+    selectedRoleIds.value = [];
+  }
   selectedUserPartitionIds.value = normalizeIds(getArrayValue(item || {}, ["deptIds", "departmentIds", "partitionIds", "depts", "departments", "partitions"]));
 
   userPartitionDraftIds.value = [];
@@ -1628,6 +1658,7 @@ async function saveUser() {
       email: userForm.email.trim(),
       password: userForm.password.trim(),
       status: userForm.status,
+      region: userForm.region,
       deptIds: selectedUserPartitionIds.value,
     });
     const response =
@@ -1639,6 +1670,7 @@ async function saveUser() {
             phone: userForm.phone.trim() || undefined,
             email: userForm.email.trim() || undefined,
             status: userForm.status,
+            region: userForm.region,
           } satisfies RegisterParams)
         : await updateUser(userForm.id, payload);
     assertSuccessResponse(response as ApiResponseLike);
@@ -1661,12 +1693,27 @@ async function saveUser() {
       savedIcon = "none";
     }
     uni.showToast({ title: savedMessage, icon: savedIcon });
+    syncCachedUserRegion(savedUserId);
     await loadUsers();
   } catch (error) {
     toastError(error, "用户保存失败");
   } finally {
     saving.value = false;
   }
+}
+
+function syncCachedUserRegion(savedUserId: string | number) {
+  const cachedUserInfo = uni.getStorageSync("userInfo");
+  if (!isObject(cachedUserInfo) || String(getId(cachedUserInfo)) !== String(savedUserId)) {
+    return;
+  }
+
+  const nextUserInfo = {
+    ...cachedUserInfo,
+    region: userForm.region,
+  };
+  uni.setStorageSync("userInfo", nextUserInfo);
+  applyUserLocale(nextUserInfo);
 }
 
 async function saveRole() {
@@ -1761,7 +1808,7 @@ async function syncDefaultMenusToBackend() {
 
   const confirmed = await confirmAction({
     title: "同步默认菜单",
-    content: "同步会将前端默认菜单资源写入后端，确定继续吗？",
+    content: "同步会新增、更新前端默认菜单，并清理已移除的默认菜单，确定继续吗？",
     confirmText: "同步",
   });
   if (!confirmed) {
@@ -1770,15 +1817,17 @@ async function syncDefaultMenusToBackend() {
 
   saving.value = true;
   try {
-    const backendMenuMap = await loadBackendMenuCodeMap();
-    const result = { created: 0, skipped: 0 };
+    const backendRecords = await loadBackendMenuRecords();
+    const backendMenuMap = createBackendMenuCodeMap(backendRecords);
+    const result = { created: 0, updated: 0, deleted: 0, skipped: 0 };
 
     for (const item of defaultMenuTree) {
       await ensureDefaultMenuNode(item, 0, backendMenuMap, result);
     }
+    await pruneStaleDefaultMenus(backendRecords, backendMenuMap, result);
 
     uni.showToast({
-      title: `同步完成：新增${result.created}个，跳过${result.skipped}个`,
+      title: `同步完成：新增${result.created}个，更新${result.updated}个，删除${result.deleted}个`,
       icon: "none",
     });
     await loadMenus();
@@ -1806,17 +1855,26 @@ async function ensureDefaultMenuNode(
   item: RecordLike,
   parentId: string | number,
   backendMenuMap: Map<string, RecordLike>,
-  result?: { created: number; skipped: number },
+  result?: DefaultMenuSyncResult,
   includeChildren = true,
 ) {
   const permissionCode = getText(item, ["permissionCode"], "");
   const existed = permissionCode ? backendMenuMap.get(permissionCode) : undefined;
   let backendId = getId(existed);
+  const payload = buildDefaultMenuPayload(item, parentId);
 
   if (backendId) {
-    result && (result.skipped += 1);
+    if (shouldUpdateDefaultMenu(existed, payload)) {
+      const response = await updateMenu(backendId, payload);
+      assertSuccessResponse(response as ApiResponseLike);
+      if (permissionCode) {
+        backendMenuMap.set(permissionCode, { ...existed, ...payload, id: backendId });
+      }
+      result && (result.updated += 1);
+    } else {
+      result && (result.skipped += 1);
+    }
   } else {
-    const payload = buildDefaultMenuPayload(item, parentId);
     const response = await createMenu(payload);
     assertSuccessResponse(response as ApiResponseLike);
     backendId = getCreatedMenuId(response as ApiResponseLike);
@@ -1842,6 +1900,72 @@ async function ensureDefaultMenuNode(
   return Number(backendId) || 0;
 }
 
+async function pruneStaleDefaultMenus(
+  backendRecords: RecordLike[],
+  backendMenuMap: Map<string, RecordLike>,
+  result: DefaultMenuSyncResult,
+) {
+  const defaultCodes = new Set(toTreeRows(defaultMenuTree).map((item) => getText(item, ["permissionCode"], "")).filter(Boolean));
+  const grouped = new Map<string, RecordLike[]>();
+
+  backendRecords.forEach((item) => {
+    const code = getText(item, ["permissionCode"], "");
+    if (!code) {
+      return;
+    }
+    grouped.set(code, [...(grouped.get(code) || []), item]);
+  });
+
+  for (const [code, records] of grouped) {
+    if (STALE_DEFAULT_MENU_CODES.has(code)) {
+      for (const item of records) {
+        await deleteDefaultMenuRecord(item, result);
+      }
+      backendMenuMap.delete(code);
+      continue;
+    }
+
+    if (!defaultCodes.has(code) || records.length <= 1) {
+      continue;
+    }
+
+    const keptId = getId(backendMenuMap.get(code));
+    const duplicates = records.filter((item, index) => {
+      const id = getId(item);
+      return keptId ? String(id) !== String(keptId) : index > 0;
+    });
+
+    for (const item of duplicates) {
+      await deleteDefaultMenuRecord(item, result);
+    }
+  }
+}
+
+async function deleteDefaultMenuRecord(item: RecordLike, result: { deleted: number }) {
+  const id = getId(item);
+  if (!isValidId(id) || isLocalMenuId(id)) {
+    return;
+  }
+  const response = await deleteMenu(id);
+  assertSuccessResponse(response as ApiResponseLike);
+  result.deleted += 1;
+}
+
+function shouldUpdateDefaultMenu(existed: RecordLike | undefined, payload: RecordLike) {
+  if (!existed) {
+    return false;
+  }
+
+  return ["permissionName", "permissionCode", "path", "parentId", "permissionType", "status"].some((key) => {
+    const current = getValue(existed, [key]);
+    const next = getValue(payload, [key]);
+    if (["parentId", "permissionType", "status"].includes(key)) {
+      return Number(current || 0) !== Number(next || 0);
+    }
+    return String(current || "") !== String(next || "");
+  });
+}
+
 function buildDefaultMenuPayload(item: RecordLike, parentId: string | number) {
   return removeEmptyFields({
     permissionName: getPermissionName(item),
@@ -1862,11 +1986,15 @@ function getCreatedMenuId(response: ApiResponseLike) {
 }
 
 async function loadBackendMenuCodeMap() {
-  const map = new Map<string, RecordLike>();
   const records = await loadBackendMenuRecords();
+  return createBackendMenuCodeMap(records);
+}
+
+function createBackendMenuCodeMap(records: RecordLike[]) {
+  const map = new Map<string, RecordLike>();
   records.forEach((item) => {
     const code = getText(item, ["permissionCode"], "");
-    if (code) {
+    if (code && !map.has(code)) {
       map.set(code, item);
     }
   });
@@ -2941,6 +3069,10 @@ function isValidId(value: unknown): value is string | number {
 
 .data-table--user .data-cell--email {
   min-width: 240px;
+}
+
+.data-table--user .data-cell--region {
+  min-width: 100px;
 }
 
 .data-table--user .data-cell--roles {

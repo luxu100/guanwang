@@ -110,6 +110,21 @@ export function assignUserDepts(id, data) {
   });
 }
 
+export function appendUserDepts(id, data) {
+  return request({
+    url: `/api/user/${id}/depts`,
+    method: "post",
+    data,
+  });
+}
+
+export function removeUserDept(id, deptId) {
+  return request({
+    url: `/api/user/${id}/depts/${deptId}`,
+    method: "delete",
+  });
+}
+
 export default {
   login,
   register,
@@ -124,4 +139,6 @@ export default {
   updateUserPassword,
   getUserDepts,
   assignUserDepts,
+  appendUserDepts,
+  removeUserDept,
 };

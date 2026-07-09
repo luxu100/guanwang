@@ -9,21 +9,21 @@
           class="filter-group"
       >
 
-        <text class="filter-label">{{ item.label }}</text>
+        <text class="filter-label">{{ t(item.labelKey) }}</text>
 
         <!-- input -->
         <input
             v-if="item.type === 'input'"
             v-model="model[item.key]"
             class="filter-input"
-            placeholder="请输入"
+            :placeholder="t('toolbar.filter.placeholder')"
         />
 
         <!-- select -->
         <picker
             v-else-if="item.type === 'select'"
             :range="dictMap[item.dict]"
-            range-key="label"
+            range-key="labelKey"
             @change="handleSelect(item, $event)"
         >
           <view class="filter-select">
@@ -37,8 +37,8 @@
             v-else-if="item.type === 'date'"
             :model-value="String(model[item.key] ?? '')"
             class="filter-datetime"
-            :title="item.label"
-            :placeholder="item.label"
+            :title="t(item.labelKey)"
+            :placeholder="t(item.labelKey)"
         />
       </view>
 
@@ -54,8 +54,10 @@
         :show-edit="true"
     >
       <template #left>
-        <button class = "toolbar-button toolbar-button--green" @click="emit('onImport')">导入</button>
-        <button class = "toolbar-button toolbar-button--green" @click="emit('onExport')">导出</button>
+        <button class = "toolbar-button" @click="emit('bindDept')">{{t("toolbar.bindDept")}}</button>
+        <button class="toolbar-button" @click="emit('bindValve')">{{t("toolbar.bindValve")}}</button>
+        <button class = "toolbar-button toolbar-button--green" @click="emit('onImport')">{{t("toolbar.import")}}</button>
+        <button class = "toolbar-button toolbar-button--green" @click="emit('onExport')">{{t("toolbar.export")}}</button>
       </template>
     </XToolbarActions>
 
@@ -65,20 +67,22 @@
 import { computed, reactive, watch } from "vue";
 import XDatetimePicker from "@/pages/device/components/x/XDatetimePicker.vue";
 import XToolbarActions from "@/pages/device/components/x/XToolbarActions.vue";
+import {createScopedT} from "@/i18n";
+const t = createScopedT("devicePage");
 
 /**
  * =========================
  * types
  * =========================
  */
-type Option = { label: string; value: string | number };
+type Option = { labelKey: string; value: string | number };
 
 type DictKey = "product" | "enable" | "install" | "online" | "leak" | "maintain" | "receive";
 
 type Field =
-    | { key: string; label: string; type: "input" }
-    | { key: string; label: string; type: "date" }
-    | { key: string; label: string; type: "select"; dict: DictKey };
+    | { key: string; labelKey: string; type: "input" }
+    | { key: string; labelKey: string; type: "date" }
+    | { key: string; labelKey: string; type: "select"; dict: DictKey };
 
 type DeviceForm = Record<string, string | number>;
 
@@ -110,6 +114,8 @@ const emit = defineEmits<{
   (e: "onExport"): void;
   (e: "delete"): void;
   (e: "edit"): void;
+  (e: "bindDept"): void;
+  (e: "bindValve"): void;
 }>();
 
 /**
@@ -136,15 +142,24 @@ watch(
  * dict map
  * =========================
  */
-const dictMap: Record<DictKey, Option[]> = {
-  product: props.productOptions,
-  enable: props.enableStateOptions,
-  install: props.installStateOptions,
-  online: props.onlineStatusOptions,
-  leak: props.leakStatusOptions,
-  maintain: props.maintainTypeOptions,
-  receive: props.receiveStatusOptions
-};
+const dictMap = computed(() => {
+  // 封装一个翻译转换函数
+  const translateOptions = (options: Option[]) =>
+      options.map(opt => ({
+        ...opt,
+        labelKey: t(opt.labelKey) // 覆盖原有的 labelKey，变成翻译后的文本
+      }));
+
+  return {
+    product: translateOptions(props.productOptions),
+    enable: translateOptions(props.enableStateOptions),
+    install: translateOptions(props.installStateOptions),
+    online: translateOptions(props.onlineStatusOptions),
+    leak: translateOptions(props.leakStatusOptions),
+    maintain: translateOptions(props.maintainTypeOptions),
+    receive: translateOptions(props.receiveStatusOptions)
+  };
+});
 
 /**
  * =========================
@@ -167,7 +182,7 @@ type PickerEvent = {
 function handleSelect(item: Field, e: PickerEvent) {
   if (item.type !== "select") return;
 
-  const list = dictMap[item.dict];
+  const list = dictMap.value[item.dict];
   const index = e.detail.value;
 
   model[item.key] = list[index]?.value ?? "";
@@ -183,10 +198,9 @@ function getLabel(item: Field) {
 
   if (item.type !== "select") return String(value ?? "");
 
-  const list = dictMap[item.dict];
+  const list = dictMap.value[item.dict];
   const hit = list.find(i => i.value === value);
-
-  return hit?.label || "全部";
+  return hit ? hit.labelKey : "";
 }
 </script>
 <style scoped lang="scss">
