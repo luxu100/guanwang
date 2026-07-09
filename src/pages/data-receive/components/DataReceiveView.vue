@@ -189,7 +189,8 @@
                     :value="getInlineFieldValue(item, column.key)"
                     placeholder="-"
                     placeholder-class="input-placeholder"
-                    @input="handleInlineFieldInput(item, column.key, $event)"
+                    :disabled="isLockedProtocolField(item)"
+                    @input="!isLockedProtocolField(item) && handleInlineFieldInput(item, column.key, $event)"
                   />
                 </template>
                 <text v-else-if="column.type === 'status'" class="status-pill" :class="getStatusClass(item, column)">{{ getColumnText(item, column) }}</text>
@@ -585,7 +586,7 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     columns: [
       { key: "fieldName", label: "字段名", width: 140 },
       { key: "fieldCnName", label: "中文名", width: 140 },
-      { key: "startPosition", label: "起始", width: 80 },
+      // { key: "startPosition", label: "起始", width: 80 },
       { key: "fieldLength", label: "长度", width: 80 },
       { key: "format", label: "格式", width: 100 },
       { key: "outputType", label: "输出类型", width: 110 },
@@ -1181,6 +1182,12 @@ function fillFieldCommonFormFromProtocol(item: RecordLike | null) {
   fieldCommonForm.taskType = String(getValue(source, ["taskType", "typeCode"]) ?? fieldCommonForm.taskType ?? "TASK_1");
 }
 
+const LOCKED_PROTOCOL_FIELD_NAMES = new Set(["esaIntensityFrequency"]);
+
+function isLockedProtocolField(item: RecordLike) {
+  return LOCKED_PROTOCOL_FIELD_NAMES.has(String(getValue(item, ["fieldName"]) || ""));
+}
+
 function syncFieldCommonFormFromRecords(items: RecordLike[]) {
   const protocolId = getActiveFieldProtocolId();
   fieldCommonForm.protocolId = protocolId ? String(protocolId) : fieldCommonForm.protocolId;
@@ -1512,6 +1519,9 @@ function buildChangedFieldRecordsPayload(protocolId: string | number | null | un
 }
 
 function buildChangedFieldRecordPayload(item: RecordLike, protocolId: string | number | null | undefined) {
+  if (isLockedProtocolField(item)) {
+    return null;
+  }
   const normalized = normalizeFieldRecordForSave(item, protocolId);
   const id = getId(item);
   if (!id) {

@@ -198,7 +198,7 @@ import LanguageSelect from "@/components/common/LanguageSelect.vue";
 import PartitionManagementView from "@/pages/partition/components/PartitionManagementView.vue";
 import DeviceManagementView from "@/pages/device/components/DeviceManagementView.vue";
 import SystemManagementView from "@/pages/system/components/SystemManagementView.vue";
-import SearchTemplatePage from "@/pages/system/search/search.vue";
+import SearchTemplateView from "@/pages/system/search/components/SearchTemplateView.vue";
 import CommandManagePage from "@/pages/command/commandManage.vue";
 import CommandConfigurationPage from "@/pages/command/commandConfiguration.vue";
 import DataReceiveView from "@/pages/data-receive/components/DataReceiveView.vue";
@@ -392,7 +392,7 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/system/user/user": { component: SystemManagementView, props: { mode: "user" } },
   "/pages/system/auth/auth": { component: SystemManagementView, props: { mode: "auth" } },
   "/pages/system/menu/menu": { component: SystemManagementView, props: { mode: "menu" } },
-  "/pages/system/search/search": { component: SearchTemplatePage },
+  "/pages/system/search/search": { component: SearchTemplateView },
   "/pages/system/dict/dict": { component: SystemManagementView, props: { mode: "dict" } },
   "/pages/data-receive/access/access": { component: DataReceiveView, props: { mode: "access" } },
   "/pages/data-receive/parse/parse": { component: DataReceiveView, props: { mode: "parse" } },
