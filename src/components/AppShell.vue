@@ -205,8 +205,8 @@ import CommandConfigurationPage from "@/pages/command/commandConfiguration.vue";
 import DataReceiveView from "@/pages/data-receive/components/DataReceiveView.vue";
 import WorkOrderCreateView from "@/pages/work-order/components/WorkOrderCreateView.vue";
 import WorksheetTableView from "@/pages/work-order/components/WorksheetTableView.vue";
-import SuspectEditView from "@/pages/leak-report/components/SuspectEditView.vue";
-import SuspectProcessView from "@/pages/leak-report/components/SuspectProcessView.vue";
+import SuspectTableView from "@/pages/leak-report/components/SuspectTableView.vue";
+import SuspectManagementView from "@/pages/leak-report/components/SuspectManagementView.vue";
 import LeakManagementView from "@/pages/leak-report/components/LeakManagementView.vue";
 import LeakAnalysisView from "@/pages/leak-report/components/LeakAnalysisView.vue";
 import HistoryOverviewView from "@/pages/leak-report/components/HistoryOverviewView.vue";
@@ -377,8 +377,8 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/data-analysis/overview/overview": createPlaceholderContent("/pages/data-analysis/overview/overview"),
   "/pages/data-analysis/audio/audio": createPlaceholderContent("/pages/data-analysis/audio/audio"),
   "/pages/data-analysis/leakage/leakage": createPlaceholderContent("/pages/data-analysis/leakage/leakage"),
-  "/pages/leak-report/suspect-management/suspect-management": { component: SuspectEditView },
-  "/pages/leak-report/suspect-processing/suspect-processing": { component: SuspectProcessView },
+  "/pages/leak-report/suspect-management/suspect-management": { component: SuspectManagementView },
+  "/pages/leak-report/suspect-processing/suspect-processing": { component: SuspectTableView, props: { mode: "processing" } },
   "/pages/leak-report/leak-management/leak-management": { component: LeakManagementView },
   "/pages/leak-report/leak-analysis/leak-analysis": { component: LeakAnalysisView },
   "/pages/leak-report/history-overview/history-overview": { component: HistoryOverviewView },

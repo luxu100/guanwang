@@ -1,213 +1,436 @@
 <template>
   <view class="suspect-edit-view">
-    <SuspectTableView ref="tableViewRef" mode="management" @create="openCreateDialog" @edit="openEditDialog" />
-
-    <view v-if="dialogVisible" class="dialog-mask" @click.self="closeDialog">
+    <view class="dialog-mask" @click.self="handleClose">
       <view class="dialog-panel" @click.stop>
         <view class="dialog-header">
           <view>
-            <text class="dialog-title">{{ dialogTitle }}</text>
-            <text class="dialog-subtitle">填写疑点记录的基本信息、位置坐标、管道数据与附件</text>
+            <text class="dialog-title">{{ isEditMode ? "编辑疑点" : "新增疑点" }}</text>
+            <text class="dialog-subtitle">填写疑点记录的基本信息、管道数据与附件</text>
           </view>
-          <button class="dialog-close" hover-class="dialog-close--hover" aria-label="关闭" @click="closeDialog">×</button>
+          <button class="dialog-close" hover-class="dialog-close--hover" aria-label="关闭" @click="handleClose">×</button>
+        </view>
+
+        <view v-if="validationBannerMessage" class="validation-banner">
+          <text class="validation-banner__icon">⚠</text>
+          <text class="validation-banner__text">{{ validationBannerMessage }}</text>
         </view>
 
         <scroll-view class="dialog-body" scroll-y>
-          <view class="form-layout">
-            <!-- 左侧主表单 -->
-            <view class="form-main">
-              <!-- 基础信息 -->
-              <view class="form-section">
-                <view class="section-head">
-                  <text class="section-title">基础信息</text>
-                </view>
-                <view class="form-grid form-grid--two">
-                  <view class="form-field">
-                    <text class="form-label form-label--required">检出时间</text>
-                    <WorkOrderDatetimePicker v-model="form.detectedTime" placeholder="请选择检出时间" title="选择检出时间" />
+          <!-- 基础信息 -->
+          <view class="form-section">
+            <view class="section-head">
+              <text class="section-title">基础信息</text>
+            </view>
+            <view class="form-grid form-grid--two">
+              <view class="form-field">
+                <text class="form-label form-label--required">检出类型</text>
+                <view class="select-field">
+                  <view
+                    class="form-select form-select--dropdown"
+                    :class="{ 'form-select--open': detectTypeSelectOpen }"
+                    @click.stop="detectTypeSelectOpen = !detectTypeSelectOpen"
+                  >
+                    <text :class="{ 'select-placeholder': !form.detectType }">{{ form.detectType || "请选择检出类型" }}</text>
+                    <text class="select-arrow"></text>
                   </view>
-                  <view class="form-field">
-                    <text class="form-label form-label--required">检出人</text>
-                    <input v-model="form.detectAccount" class="form-input" placeholder="请输入检出人账号" placeholder-class="input-placeholder" />
-                  </view>
-                  <view class="form-field">
-                    <text class="form-label">渗漏部位</text>
-                    <input v-model="form.leakPart" class="form-input" placeholder="请输入渗漏部位" placeholder-class="input-placeholder" />
+                  <view v-if="detectTypeSelectOpen" class="select-menu">
+                    <scroll-view class="select-scroll" scroll-y>
+                      <view
+                        v-for="item in detectTypeOptions"
+                        :key="item"
+                        class="select-option"
+                        :class="{ 'select-option--active': form.detectType === item }"
+                        @click.stop="selectDetectType(item)"
+                      >
+                        <text>{{ item }}</text>
+                      </view>
+                    </scroll-view>
                   </view>
                 </view>
               </view>
-
-              <!-- 渗漏坐标 -->
-              <view class="form-section">
-                <view class="section-head">
-                  <text class="section-title">渗漏坐标</text>
-                  <text class="section-hint">可手动输入或点击地图拾取</text>
-                </view>
-                <view class="form-field">
-                  <view class="form-row">
-                    <input v-model="form.leakCoordinate" class="form-input form-input--flex" placeholder="格式: 经度,纬度 (如 121.4737,31.2304)" placeholder-class="input-placeholder" />
-                    <button class="form-action-btn" hover-class="form-action-btn--hover" @click="openMapPicker">
-                      <text class="form-action-btn__icon form-action-btn__icon--map"></text>
-                      <text>地图拾取</text>
-                    </button>
+              <view class="form-field">
+                <text class="form-label form-label--required">上报时间</text>
+                <WorkOrderDatetimePicker v-model="form.reportTime" placeholder="请选择上报时间" title="选择上报时间" />
+              </view>
+              <view class="form-field">
+                <text class="form-label">上报人员</text>
+                <input v-model="form.reporter" class="form-input" placeholder="请输入上报人员" placeholder-class="input-placeholder" />
+              </view>
+              <view class="form-field">
+                <text class="form-label">巡查编号</text>
+                <input v-model="form.patrolNo" class="form-input" placeholder="请输入巡查编号" placeholder-class="input-placeholder" />
+              </view>
+              <view class="form-field">
+                <text class="form-label">所属分区</text>
+                <view class="select-field">
+                  <view
+                    class="form-select form-select--dropdown"
+                    :class="{ 'form-select--open': regionSelectOpen }"
+                    @click.stop="regionSelectOpen = !regionSelectOpen"
+                  >
+                    <text :class="{ 'select-placeholder': !selectedRegionName }">{{ selectedRegionName || "请选择所属分区" }}</text>
+                    <text class="select-arrow"></text>
                   </view>
-                  <!-- 地图选点面板 -->
-                  <view v-if="mapPickerVisible" class="map-picker-panel">
-                    <view class="map-picker-head">
-                      <text class="map-picker-title">点击地图选取坐标</text>
-                      <text class="map-picker-coord" :class="{ 'map-picker-coord--active': mapPickedCoord }">{{ mapPickedCoord || "请在地图上点击选择" }}</text>
+                  <view v-if="regionSelectOpen" class="select-menu">
+                    <view class="select-search">
+                      <input
+                        v-model="regionSearch"
+                        class="select-search-input"
+                        placeholder="搜索分区..."
+                        placeholder-class="input-placeholder"
+                        @click.stop
+                      />
                     </view>
+                    <scroll-view class="select-scroll" scroll-y>
+                      <view
+                        v-for="item in filteredRegionOptions"
+                        :key="item.id"
+                        class="select-option"
+                        :class="{ 'select-option--active': form.deptId === item.id }"
+                        @click.stop="selectRegion(item)"
+                      >
+                        <text v-html="highlightMatch(item.deptName, regionSearch)"></text>
+                      </view>
+                      <view v-if="filteredRegionOptions.length === 0" class="select-option select-option--empty">暂无匹配分区</view>
+                    </scroll-view>
+                  </view>
+                </view>
+              </view>
+              <view class="form-field">
+                <text class="form-label">设备编号</text>
+                <view class="select-field">
+                  <view
+                    class="form-select form-select--dropdown"
+                    :class="{ 'form-select--open': deviceSelectOpen }"
+                    @click.stop="deviceSelectOpen = !deviceSelectOpen"
+                  >
+                    <text :class="{ 'select-placeholder': !form.deviceNumber }">{{ form.deviceNumber || "请选择设备编号" }}</text>
+                    <text class="select-arrow"></text>
+                  </view>
+                  <view v-if="deviceSelectOpen" class="select-menu">
+                    <view class="select-search">
+                      <input
+                        v-model="deviceSearch"
+                        class="select-search-input"
+                        placeholder="搜索设备..."
+                        placeholder-class="input-placeholder"
+                        @click.stop
+                      />
+                    </view>
+                    <scroll-view class="select-scroll" scroll-y>
+                      <view
+                        v-for="item in filteredDeviceOptions"
+                        :key="item.deviceNumber"
+                        class="select-option"
+                        :class="{ 'select-option--active': form.deviceNumber === item.deviceNumber }"
+                        @click.stop="selectDevice(item)"
+                      >
+                        <text v-html="highlightMatch(item.deviceNumber, deviceSearch)"></text>
+                      </view>
+                      <view v-if="filteredDeviceOptions.length === 0" class="select-option select-option--empty">暂无匹配设备</view>
+                    </scroll-view>
+                  </view>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <!-- 管道信息 -->
+          <view class="form-section">
+            <view class="section-head">
+              <text class="section-title">管道信息</text>
+            </view>
+            <view class="form-grid form-grid--two">
+              <view class="form-field">
+                <text class="form-label form-label--required">管道材质</text>
+                <view class="select-field">
+                  <view
+                    class="form-select form-select--dropdown"
+                    :class="{ 'form-select--open': materialSelectOpen, 'form-control--error': materialError }"
+                    @click.stop="materialSelectOpen = !materialSelectOpen"
+                  >
+                    <text :class="{ 'select-placeholder': !form.tubeMaterial }">{{ form.tubeMaterial || "请选择管道材质" }}</text>
+                    <text class="select-arrow"></text>
+                  </view>
+                  <view v-if="materialSelectOpen" class="select-menu select-menu--material">
+                    <view class="select-search">
+                      <input
+                        v-model="materialSearch"
+                        class="select-search-input"
+                        placeholder="搜索材质..."
+                        placeholder-class="input-placeholder"
+                        @click.stop
+                      />
+                    </view>
+                    <scroll-view class="select-scroll" scroll-y>
+                      <view
+                        v-for="item in filteredMaterialOptions"
+                        :key="item"
+                        class="select-option"
+                        :class="{ 'select-option--active': form.tubeMaterial === item }"
+                        @click.stop="selectMaterial(item)"
+                      >
+                        <text v-html="highlightMatch(item)"></text>
+                      </view>
+                      <view v-if="filteredMaterialOptions.length === 0" class="select-option select-option--empty">无匹配结果</view>
+                    </scroll-view>
+                  </view>
+                </view>
+                <text v-if="materialError" class="form-error">{{ materialError }}</text>
+              </view>
+              <view class="form-field">
+                <text class="form-label">管道管径</text>
+                <view class="select-field">
+                  <view
+                    class="form-select form-select--dropdown"
+                    :class="{ 'form-select--open': tubeBoreSelectOpen }"
+                    @click.stop="tubeBoreSelectOpen = !tubeBoreSelectOpen"
+                  >
+                    <text :class="{ 'select-placeholder': !form.tubeBore }">{{ form.tubeBore ? form.tubeBore + 'mm' : "请选择管道管径" }}</text>
+                    <text class="select-arrow"></text>
+                  </view>
+                  <view v-if="tubeBoreSelectOpen" class="select-menu">
+                    <scroll-view class="select-scroll" scroll-y>
+                      <view
+                        v-for="item in tubeBoreOptions"
+                        :key="item"
+                        class="select-option"
+                        :class="{ 'select-option--active': form.tubeBore === item }"
+                        @click.stop="selectTubeBore(item)"
+                      >
+                        <text>{{ item }}</text>
+                      </view>
+                    </scroll-view>
+                  </view>
+                </view>
+              </view>
+              <view class="form-field">
+                <text class="form-label">噪声时间</text>
+                <WorkOrderDatetimePicker v-model="form.noiseTime" placeholder="请选择噪声时间" title="选择噪声时间" />
+              </view>
+              <view class="form-field">
+                <text class="form-label">渗漏状态</text>
+                <input v-model="form.leakStatus" class="form-input" placeholder="请输入渗漏状态" placeholder-class="input-placeholder" />
+              </view>
+            </view>
+          </view>
+
+          <!-- 漏点信息 -->
+          <view class="form-section">
+            <view class="section-head">
+              <text class="section-title">漏点信息</text>
+            </view>
+            <view class="form-grid form-grid--two">
+              <view class="form-field">
+                <text class="form-label">漏点类型</text>
+                <view class="select-field">
+                  <view
+                    class="form-select form-select--dropdown"
+                    :class="{ 'form-select--open': leakPointTypeSelectOpen }"
+                    @click.stop="leakPointTypeSelectOpen = !leakPointTypeSelectOpen"
+                  >
+                    <text :class="{ 'select-placeholder': !form.leakPointType }">{{ form.leakPointType || "请选择漏点类型" }}</text>
+                    <text class="select-arrow"></text>
+                  </view>
+                  <view v-if="leakPointTypeSelectOpen" class="select-menu">
+                    <scroll-view class="select-scroll" scroll-y>
+                      <view
+                        v-for="item in leakPointTypeOptions"
+                        :key="item"
+                        class="select-option"
+                        :class="{ 'select-option--active': form.leakPointType === item }"
+                        @click.stop="selectLeakPointType(item)"
+                      >
+                        <text>{{ item }}</text>
+                      </view>
+                    </scroll-view>
+                  </view>
+                </view>
+              </view>
+              <view class="form-field">
+                <text class="form-label">初判级别</text>
+                <view class="select-field">
+                  <view
+                    class="form-select form-select--dropdown"
+                    :class="{ 'form-select--open': initialLevelSelectOpen }"
+                    @click.stop="initialLevelSelectOpen = !initialLevelSelectOpen"
+                  >
+                    <text :class="{ 'select-placeholder': !form.initialLevel }">{{ form.initialLevel || "请选择初判级别" }}</text>
+                    <text class="select-arrow"></text>
+                  </view>
+                  <view v-if="initialLevelSelectOpen" class="select-menu">
+                    <scroll-view class="select-scroll" scroll-y>
+                      <view
+                        v-for="item in initialLevelOptions"
+                        :key="item"
+                        class="select-option"
+                        :class="{ 'select-option--active': form.initialLevel === item }"
+                        @click.stop="selectInitialLevel(item)"
+                      >
+                        <text>{{ item }}</text>
+                      </view>
+                    </scroll-view>
+                  </view>
+                </view>
+              </view>
+              <view class="form-field">
+                <text class="form-label">漏点大小</text>
+                <view class="select-field">
+                  <view
+                    class="form-select form-select--dropdown"
+                    :class="{ 'form-select--open': leakPointSizeSelectOpen }"
+                    @click.stop="leakPointSizeSelectOpen = !leakPointSizeSelectOpen"
+                  >
+                    <text :class="{ 'select-placeholder': !form.leakPointSize }">{{ form.leakPointSize || "请选择漏点大小" }}</text>
+                    <text class="select-arrow"></text>
+                  </view>
+                  <view v-if="leakPointSizeSelectOpen" class="select-menu">
+                    <scroll-view class="select-scroll" scroll-y>
+                      <view
+                        v-for="item in leakPointSizeOptions"
+                        :key="item"
+                        class="select-option"
+                        :class="{ 'select-option--active': form.leakPointSize === item }"
+                        @click.stop="selectLeakPointSize(item)"
+                      >
+                        <text>{{ item }}</text>
+                      </view>
+                    </scroll-view>
+                  </view>
+                </view>
+              </view>
+              <view class="form-field">
+                <text class="form-label">漏点地面</text>
+                <view class="select-field">
+                  <view
+                    class="form-select form-select--dropdown"
+                    :class="{ 'form-select--open': leakRoadSurfaceSelectOpen }"
+                    @click.stop="leakRoadSurfaceSelectOpen = !leakRoadSurfaceSelectOpen"
+                  >
+                    <text :class="{ 'select-placeholder': !form.leakRoadSurface }">{{ form.leakRoadSurface || "请选择漏点地面" }}</text>
+                    <text class="select-arrow"></text>
+                  </view>
+                  <view v-if="leakRoadSurfaceSelectOpen" class="select-menu">
+                    <scroll-view class="select-scroll" scroll-y>
+                      <view
+                        v-for="item in leakRoadSurfaceOptions"
+                        :key="item"
+                        class="select-option"
+                        :class="{ 'select-option--active': form.leakRoadSurface === item }"
+                        @click.stop="selectLeakRoadSurface(item)"
+                      >
+                        <text>{{ item }}</text>
+                      </view>
+                    </scroll-view>
+                  </view>
+                </view>
+              </view>
+              <view class="form-field form-field--wide">
+                <text class="form-label">坐标位置</text>
+                <view class="form-row">
+                  <input v-model="form.coordinatePosition" class="form-input form-input--flex" placeholder="格式: 经度,纬度 (如 121.4737,31.2304)" placeholder-class="input-placeholder" />
+                  <button class="form-action-btn" hover-class="form-action-btn--hover" @click="openMapPicker">
+                    <text class="form-action-btn__icon form-action-btn__icon--map"></text><text>定位</text>
+                  </button>
+                </view>
+                <view v-if="mapPickerVisible" class="map-picker-panel">
+                  <view class="map-picker-head">
+                    <text class="map-picker-title">点击地图选取坐标</text>
+                    <text class="map-picker-coord" :class="{ 'map-picker-coord--active': mapPickedCoord }">{{ mapPickedCoord || "请在地图上点击选择" }}</text>
+                  </view>
+                  <view class="map-picker-body">
+                    <!-- #ifdef H5 -->
                     <view class="map-picker-body">
-                      <!-- #ifdef H5 -->
                       <LocaleCoordinateMap
                         :lng="mapPickerCenter.lng"
                         :lat="mapPickerCenter.lat"
                         selectable
                         @pick="handleMapPick"
                       />
-                      <!-- #endif -->
-                      <!-- #ifndef H5 -->
-                      <view class="map-picker-canvas map-picker-canvas--fallback">地图选点仅支持 H5 端</view>
-                      <!-- #endif -->
                     </view>
-                    <view class="map-picker-actions">
-                      <button class="dialog-btn dialog-btn--cancel" hover-class="dialog-btn--hover" @click="closeMapPicker">取消</button>
-                      <button class="dialog-btn dialog-btn--primary" :disabled="!mapPickedCoord" hover-class="dialog-btn--hover" @click="confirmMapPick">确认选点</button>
-                    </view>
+                    <!-- #endif -->
+                    <!-- #ifndef H5 -->
+                    <view class="map-picker-canvas map-picker-canvas--fallback">地图选点仅支持 H5 端</view>
+                    <!-- #endif -->
+                  </view>
+                  <view class="map-picker-actions">
+                    <button class="dialog-btn dialog-btn--cancel" hover-class="dialog-btn--hover" @click="closeMapPicker">取消</button>
+                    <button class="dialog-btn dialog-btn--primary" :disabled="!mapPickedCoord" hover-class="dialog-btn--hover" @click="confirmMapPick">确认选点</button>
                   </view>
                 </view>
               </view>
-
-              <!-- 管道信息 -->
-              <view class="form-section">
-                <view class="section-head">
-                  <text class="section-title">管道信息</text>
-                </view>
-                <view class="form-grid form-grid--two">
-                  <view class="form-field">
-                    <text class="form-label form-label--required">管道材质</text>
-                    <view class="select-field">
-                      <view
-                        class="form-select form-select--dropdown"
-                        :class="{ 'form-select--open': materialSelectOpen, 'form-control--error': materialError }"
-                        @click.stop="materialSelectOpen = !materialSelectOpen"
-                      >
-                        <text :class="{ 'select-placeholder': !form.tubeMaterial }">{{ form.tubeMaterial || "请选择管道材质" }}</text>
-                        <text class="select-arrow"></text>
-                      </view>
-                      <view v-if="materialSelectOpen" class="select-menu select-menu--material">
-                        <view class="select-search">
-                          <input
-                            v-model="materialSearch"
-                            class="select-search-input"
-                            placeholder="搜索材质..."
-                            placeholder-class="input-placeholder"
-                            @click.stop
-                          />
-                        </view>
-                        <scroll-view class="select-scroll" scroll-y>
-                          <view
-                            v-for="item in filteredMaterialOptions"
-                            :key="item"
-                            class="select-option"
-                            :class="{ 'select-option--active': form.tubeMaterial === item }"
-                            @click.stop="selectMaterial(item)"
-                          >
-                            <text v-html="highlightMatch(item)"></text>
-                          </view>
-                          <view v-if="filteredMaterialOptions.length === 0" class="select-option select-option--empty">无匹配结果</view>
-                        </scroll-view>
-                      </view>
-                    </view>
-                    <text v-if="materialError" class="form-error">{{ materialError }}</text>
-                  </view>
-                  <view class="form-field">
-                    <text class="form-label">管道口径</text>
-                    <input v-model="form.tubeBore" class="form-input" placeholder="如 DN200" placeholder-class="input-placeholder" />
-                  </view>
-                  <view class="form-field">
-                    <text class="form-label">管道埋深</text>
-                    <input v-model="form.tubeDepth" class="form-input" placeholder="单位: 米" placeholder-class="input-placeholder" />
-                  </view>
-                </view>
+              <view class="form-field">
+                <text class="form-label">漏点位置</text>
+                <input v-model="form.leakPointPosition" class="form-input" placeholder="请输入漏点位置" placeholder-class="input-placeholder" />
               </view>
-
-              <!-- 渗漏照片 -->
-              <view class="form-section">
-                <view class="section-head">
-                  <text class="section-title">渗漏照片</text>
-                  <text class="section-hint">支持 JPG/PNG，每张不超过 10MB，最多 9 张</text>
-                </view>
-                <view class="form-field">
-                  <view class="form-photo-area">
-                    <view v-if="photoList.length > 0" class="photo-preview-list">
-                      <view v-for="(photo, idx) in photoList" :key="idx" class="photo-preview-item">
-                        <image :src="photo.url" class="photo-thumb" mode="aspectFill" />
-                        <button class="photo-remove-btn" hover-class="photo-remove-btn--hover" @click="removePhoto(idx)">
-                          <text class="photo-remove-icon"></text>
-                        </button>
-                      </view>
-                    </view>
-                    <view v-if="photoList.length < 9" class="photo-add-box" @click="handleUploadPhoto">
-                      <text class="photo-add-icon">+</text>
-                      <text class="photo-add-label">{{ photoList.length === 0 ? "上传照片" : "继续添加" }}</text>
-                    </view>
-                  </view>
-                  <input v-model="photoIdListText" class="form-input form-input--hidden-id" placeholder="照片ID (自动生成)" placeholder-class="input-placeholder" />
-                </view>
+              <view class="form-field">
+                <text class="form-label">特征值</text>
+                <input v-model="form.featureValue" class="form-input" placeholder="请输入特征值" placeholder-class="input-placeholder" />
               </view>
             </view>
+          </view>
 
-            <!-- 右侧附属信息 -->
-            <view class="form-aside">
-              <!-- 位置信息 -->
-              <view class="form-section">
-                <view class="section-head">
-                  <text class="section-title">位置信息</text>
-                </view>
-                <view class="form-grid form-grid--single">
-                  <view class="form-field">
-                    <text class="form-label">渗漏位置</text>
-                    <input v-model="form.leakAddress" class="form-input" placeholder="请输入渗漏位置" placeholder-class="input-placeholder" />
+          <!-- 媒体附件 -->
+          <view class="form-section">
+            <view class="section-head">
+              <text class="section-title">媒体附件</text>
+            </view>
+            <view class="form-grid form-grid--two form-grid--media">
+              <view class="form-field form-field--upload">
+                <text class="form-label">疑点现场照片</text>
+                <view class="upload-area">
+                  <view v-if="suspectSceneImageList.length > 0" class="upload-preview-grid">
+                    <view v-for="(img, idx) in suspectSceneImageList" :key="idx" class="upload-preview-item">
+                      <image :src="img.url" class="upload-preview-img" mode="aspectFill" @click="previewImageItem(suspectSceneImageList, idx)" />
+                      <view class="upload-preview-remove" @click.stop="removeSuspectSceneImage(idx)">×</view>
+                    </view>
+                    <view class="upload-preview-item upload-preview-item--add" @click="handleChooseSuspectSceneImages">
+                      <text class="upload-add-icon">+</text>
+                      <text class="upload-add-text">添加</text>
+                    </view>
                   </view>
-                  <view class="form-field">
-                    <text class="form-label">最近设备距离</text>
-                    <input v-model="form.closestDeviceDistance" class="form-input" placeholder="请输入距离" placeholder-class="input-placeholder" />
+                  <view v-else class="upload-placeholder" @click="handleChooseSuspectSceneImages">
+                    <text class="upload-placeholder__title">点击上传图片</text>
+                    <text class="upload-placeholder__hint">支持 jpg、png 格式，可多选</text>
                   </view>
                 </view>
               </view>
-
-              <!-- 关联数据 -->
-              <view class="form-section">
-                <view class="section-head">
-                  <text class="section-title">关联数据</text>
-                </view>
-                <view class="form-grid form-grid--single">
-                  <view class="form-field">
-                    <text class="form-label">关联设备</text>
-                    <input v-model="form.referenceDevices" class="form-input" placeholder="请输入设备编号" placeholder-class="input-placeholder" />
+              <view class="form-field form-field--upload">
+                <text class="form-label">漏点现场照片</text>
+                <view class="upload-area">
+                  <view v-if="leakSceneImageList.length > 0" class="upload-preview-grid">
+                    <view v-for="(img, idx) in leakSceneImageList" :key="idx" class="upload-preview-item">
+                      <image :src="img.url" class="upload-preview-img" mode="aspectFill" @click="previewImageItem(leakSceneImageList, idx)" />
+                      <view class="upload-preview-remove" @click.stop="removeLeakSceneImage(idx)">×</view>
+                    </view>
+                    <view class="upload-preview-item upload-preview-item--add" @click="handleChooseLeakSceneImages">
+                      <text class="upload-add-icon">+</text>
+                      <text class="upload-add-text">添加</text>
+                    </view>
                   </view>
-                  <view class="form-field">
-                    <text class="form-label">关联工单ID</text>
-                    <input v-model="form.referenceWorksheetId" class="form-input" type="number" placeholder="请输入工单ID" placeholder-class="input-placeholder" />
+                  <view v-else class="upload-placeholder" @click="handleChooseLeakSceneImages">
+                    <text class="upload-placeholder__title">点击上传图片</text>
+                    <text class="upload-placeholder__hint">支持 jpg、png 格式，可多选</text>
                   </view>
                 </view>
               </view>
-
-              <!-- 音频附件 -->
-              <view class="form-section">
-                <view class="section-head">
-                  <text class="section-title">音频附件</text>
-                  <text class="section-hint">支持选择本地音频</text>
-                </view>
-                <view class="form-field">
-                  <view v-if="!audioItem" class="audio-add-box">
-                    <button class="audio-action-btn" hover-class="audio-action-btn--hover" @click="handleChooseAudio">
-                      <text class="audio-action-btn__icon audio-action-btn__icon--upload"></text>
-                      <text>选择文件</text>
-                    </button>
+              <view class="form-field form-field--upload">
+                <text class="form-label">现场视频</text>
+                <view class="upload-area">
+                  <view v-if="sceneVideoItem" class="video-preview">
+                    <video :src="sceneVideoItem.url" class="video-preview__player" controls />
+                    <view class="upload-preview-remove video-preview__remove" @click="removeSceneVideo">×</view>
                   </view>
-                  <view v-else class="audio-preview">
+                  <view v-else class="upload-placeholder" @click="handleChooseSceneVideo">
+                    <text class="upload-placeholder__title">点击上传视频</text>
+                    <text class="upload-placeholder__hint">支持 mp4、mov 格式</text>
+                  </view>
+                </view>
+              </view>
+              <view class="form-field form-field--upload">
+                <text class="form-label">音频文件</text>
+                <view class="upload-area">
+                  <view v-if="audioItem" class="audio-preview">
                     <view class="audio-preview__info">
                       <text class="audio-preview__name">{{ audioItem.name }}</text>
                       <text class="audio-preview__duration">{{ audioItem.durationText }}</text>
@@ -217,25 +440,57 @@
                       <button class="audio-preview__btn audio-preview__btn--danger" hover-class="audio-preview__btn--hover" @click="removeAudio">删除</button>
                     </view>
                   </view>
-                  <input v-model="form.referenceAudio" class="form-input form-input--hidden-id" placeholder="音频ID (自动生成)" placeholder-class="input-placeholder" />
+                  <view v-else class="upload-placeholder" @click="handleChooseAudio">
+                    <text class="upload-placeholder__title">点击上传音频</text>
+                    <text class="upload-placeholder__hint">支持 mp3、wav、m4a 格式</text>
+                  </view>
                 </view>
               </view>
+            </view>
+          </view>
 
-              <!-- 备注 -->
-              <view class="form-section">
-                <view class="section-head">
-                  <text class="section-title">备注</text>
-                </view>
-                <view class="form-field">
-                  <textarea v-model="form.remark" class="form-textarea" placeholder="请输入备注信息" placeholder-class="input-placeholder" />
-                </view>
+          <!-- 修复信息 -->
+          <view class="form-section">
+            <view class="section-head">
+              <text class="section-title">修复信息</text>
+            </view>
+            <view class="form-grid form-grid--two">
+              <view class="form-field">
+                <text class="form-label">修复状态</text>
+                <input v-model="form.repairStatus" class="form-input" placeholder="请输入修复状态" placeholder-class="input-placeholder" />
               </view>
+              <view class="form-field">
+                <text class="form-label">修复时间</text>
+                <WorkOrderDatetimePicker v-model="form.repairTime" placeholder="请选择修复时间" title="选择修复时间" />
+              </view>
+              <view class="form-field">
+                <text class="form-label">修复人</text>
+                <input v-model="form.repairPerson" class="form-input" placeholder="请输入修复人" placeholder-class="input-placeholder" />
+              </view>
+              <view class="form-field">
+                <text class="form-label">下漏单位</text>
+                <input v-model="form.leakUnit" class="form-input" placeholder="请输入下漏单位" placeholder-class="input-placeholder" />
+              </view>
+              <view class="form-field">
+                <text class="form-label">维修单位</text>
+                <input v-model="form.maintenanceUnit" class="form-input" placeholder="请输入维修单位" placeholder-class="input-placeholder" />
+              </view>
+            </view>
+          </view>
+
+          <!-- 备注 -->
+          <view class="form-section">
+            <view class="section-head">
+              <text class="section-title">备注</text>
+            </view>
+            <view class="form-field">
+              <textarea v-model="form.remark" class="form-textarea" placeholder="请输入备注信息" placeholder-class="input-placeholder" />
             </view>
           </view>
         </scroll-view>
 
         <view class="dialog-footer">
-          <button class="dialog-button" hover-class="dialog-button--hover" @click="closeDialog">取消</button>
+          <button class="dialog-button" hover-class="dialog-button--hover" @click="handleClose">取消</button>
           <button class="dialog-button" hover-class="dialog-button--hover" @click="resetForm">清空表单</button>
           <button class="dialog-button dialog-button--primary" hover-class="dialog-button--primary-hover" :disabled="submitting" @click="submitForm">
             {{ submitting ? "提交中..." : (isEditMode ? "确认更新" : "确认创建") }}
@@ -247,34 +502,51 @@
 </template>
 
 <script setup lang="ts">
-import LocaleCoordinateMap from "@/components/map/LocaleCoordinateMap.vue";
-import { computed, reactive, ref } from "vue";
-import SuspectTableView from "./SuspectTableView.vue";
+import { computed, reactive, ref, watch } from "vue";
 import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
-import { createSuspect, updateSuspect } from "@/services/leak-report/suspect-management";
-
-type SuspectRecord = Record<string, unknown>;
+import LocaleCoordinateMap from "@/components/map/LocaleCoordinateMap.vue";
+import { createSuspect, updateSuspect } from "@/services/leak-report/suspected-leak";
+import { getRegionList } from "@/services/leak-report/region";
+import { getDeviceVisibleList } from "@/services/leak-report/device";
+import { uploadFile } from "@/services/leak-report/file-upload";
 
 interface SuspectForm {
-  detectedTime: string;
-  leakPart: string;
-  detectAccount: string;
-  leakAddress: string;
-  leakCoordinate: string;
-  closestDeviceDistance: string;
-  tubeDepth: string;
+  detectType: string;
+  reportTime: string;
+  reporter: string;
+  patrolNo: string;
+  deptId: number | undefined;
+  deviceNumber: string;
   tubeMaterial: string;
   tubeBore: string;
-  referenceDevices: string;
-  referenceAudio: string;
-  referenceWorksheetId: string;
-  leakPicture: string;
+  noiseTime: string;
+  leakStatus: string;
+  featureValue: string;
+  leakPointType: string;
+  initialLevel: string;
+  leakPointSize: string;
+  leakRoadSurface: string;
+  coordinatePosition: string;
+  leakPointPosition: string;
+  suspectSceneImages: string;
+  leakSceneImages: string;
+  sceneVideo: string;
+  audioFile: string;
+  repairStatus: string;
+  repairTime: string;
+  repairPerson: string;
+  leakUnit: string;
+  maintenanceUnit: string;
   remark: string;
 }
 
-interface PhotoItem {
-  url: string;
-  id: string;
+interface RegionOption {
+  id: number;
+  deptName: string;
+}
+
+interface DeviceOption {
+  deviceNumber: string;
 }
 
 interface AudioItem {
@@ -284,35 +556,219 @@ interface AudioItem {
   id: string;
 }
 
-const tableViewRef = ref<InstanceType<typeof SuspectTableView> | null>(null);
-const dialogVisible = ref(false);
-const submitting = ref(false);
-const isEditMode = ref(false);
-const editingId = ref<string | number>("");
+const props = defineProps<{
+  suspect?: Record<string, unknown> | null;
+}>();
 
-const form = reactive<SuspectForm>({
-  detectedTime: "",
-  leakPart: "",
-  detectAccount: "",
-  leakAddress: "",
-  leakCoordinate: "",
-  closestDeviceDistance: "",
-  tubeDepth: "",
-  tubeMaterial: "",
+const emit = defineEmits<{
+  (event: "close"): void;
+  (event: "saved"): void;
+}>();
+
+const submitting = ref(false);
+
+// 验证横幅
+const validationBannerMessage = ref("");
+let validationBannerTimer: ReturnType<typeof setTimeout> | null = null;
+
+function showValidationBanner(msg: string) {
+  if (validationBannerTimer) clearTimeout(validationBannerTimer);
+  validationBannerMessage.value = msg;
+  validationBannerTimer = setTimeout(() => {
+    validationBannerMessage.value = "";
+    validationBannerTimer = null;
+  }, 3000);
+}
+
+// 检出类型下拉
+const detectTypeSelectOpen = ref(false);
+const detectTypeOptions = ["人工检出", "设备检出"];
+
+function selectDetectType(value: string) {
+  form.detectType = value;
+  detectTypeSelectOpen.value = false;
+}
+
+// ========== 管道管径下拉 ==========
+const tubeBoreSelectOpen = ref(false);
+const tubeBoreOptions = [
+  "16", "20", "25", "30", "40", "50", "65", "80", "100",
+  "125", "150", "200", "250", "300", "400", "500", "600",
+  "700", "800", "900", "1000", "1100", "1200", "1300",
+  "1400", "1500", "1600", "1700", "1800", "1900", "2000",
+];
+
+function selectTubeBore(value: string) {
+  form.tubeBore = value;
+  tubeBoreSelectOpen.value = false;
+}
+
+// ========== 漏点类型下拉 ==========
+const leakPointTypeSelectOpen = ref(false);
+const leakPointTypeOptions = ["小漏量", "远距离", "大漏量", "埋设深", "大口径", "重大隐患", "疑难漏点", "其它"];
+
+function selectLeakPointType(value: string) {
+  form.leakPointType = value;
+  leakPointTypeSelectOpen.value = false;
+}
+
+// ========== 初判级别下拉 ==========
+const initialLevelSelectOpen = ref(false);
+const initialLevelOptions = ["一般", "紧急"];
+
+function selectInitialLevel(value: string) {
+  form.initialLevel = value;
+  initialLevelSelectOpen.value = false;
+}
+
+// ========== 漏点大小下拉 ==========
+const leakPointSizeSelectOpen = ref(false);
+const leakPointSizeOptions = ["大", "中", "小"];
+
+function selectLeakPointSize(value: string) {
+  form.leakPointSize = value;
+  leakPointSizeSelectOpen.value = false;
+}
+
+// ========== 漏点地面下拉 ==========
+const leakRoadSurfaceSelectOpen = ref(false);
+const leakRoadSurfaceOptions = ["柏油", "水泥", "绿化", "石板", "泥地", "塘渣", "墙面", "其它"];
+
+function selectLeakRoadSurface(value: string) {
+  form.leakRoadSurface = value;
+  leakRoadSurfaceSelectOpen.value = false;
+}
+
+// ========== 地图拾取 ==========
+const mapPickerVisible = ref(false);
+const mapPickedCoord = ref("");
+const mapPickerCenter = ref({ lng: 121.4737, lat: 31.2304 });
+
+function openMapPicker() {
+  mapPickedCoord.value = "";
+  uni.getLocation({
+    type: "gcj02",
+    success: (result) => {
+      mapPickerCenter.value = { lng: result.longitude, lat: result.latitude };
+      mapPickerVisible.value = true;
+    },
+    fail: () => {
+      mapPickerVisible.value = true;
+    },
+  });
+}
+
+function handleMapPick(coordinate: { lng: number; lat: number }) {
+  mapPickedCoord.value = `${coordinate.lng.toFixed(6)},${coordinate.lat.toFixed(6)}`;
+}
+
+function confirmMapPick() {
+  if (mapPickedCoord.value) form.coordinatePosition = mapPickedCoord.value;
+  closeMapPicker();
+}
+
+function closeMapPicker() {
+  mapPickerVisible.value = false;
+  mapPickedCoord.value = "";
+}
+
+const isEditMode = computed(() => !!props.suspect && !!props.suspect.id);
+
+const FORM_DEFAULTS: SuspectForm = {
+  detectType: "",
+  reportTime: "",
+  reporter: "",
+  patrolNo: "",
+  deptId: undefined,
+  deviceNumber: "",
+  tubeMaterial: "镀锌钢",
   tubeBore: "",
-  referenceDevices: "",
-  referenceAudio: "",
-  referenceWorksheetId: "",
-  leakPicture: "",
+  noiseTime: "",
+  leakStatus: "",
+  featureValue: "",
+  leakPointType: "",
+  initialLevel: "",
+  leakPointSize: "",
+  leakRoadSurface: "",
+  coordinatePosition: "",
+  leakPointPosition: "",
+  suspectSceneImages: "",
+  leakSceneImages: "",
+  sceneVideo: "",
+  audioFile: "",
+  repairStatus: "",
+  repairTime: "",
+  repairPerson: "",
+  leakUnit: "",
+  maintenanceUnit: "",
   remark: "",
+};
+
+const form = reactive<SuspectForm>({ ...FORM_DEFAULTS });
+
+// 分区下拉
+const regionSelectOpen = ref(false);
+const regionOptions = ref<RegionOption[]>([]);
+const regionSearch = ref("");
+
+const filteredRegionOptions = computed(() => {
+  if (!regionSearch.value) return regionOptions.value;
+  const keyword = regionSearch.value.toLowerCase();
+  return regionOptions.value.filter((item) => {
+    return item.deptName.toLowerCase().includes(keyword);
+  });
 });
 
-const photoList = ref<PhotoItem[]>([]);
-const photoIdListText = ref("");
-const audioItem = ref<AudioItem | null>(null);
-const audioPlaying = ref(false);
-let audioPlayerInstance: HTMLAudioElement | null = null;
+function loadRegionOptions() {
+  getRegionList({}).then((res: { data?: RegionOption[] }) => {
+    if (res && Array.isArray(res.data)) {
+      regionOptions.value = res.data;
+    }
+  }).catch(() => {
+    // 静默处理
+  });
+}
 
+const selectedRegionName = computed(() => {
+  if (form.deptId == null) return "";
+  const found = regionOptions.value.find((r) => r.id === form.deptId);
+  return found ? found.deptName : "";
+});
+
+function selectRegion(item: RegionOption) {
+  form.deptId = item.id;
+  regionSelectOpen.value = false;
+}
+
+// 设备下拉
+const deviceSelectOpen = ref(false);
+const deviceOptions = ref<DeviceOption[]>([]);
+const deviceSearch = ref("");
+
+const filteredDeviceOptions = computed(() => {
+  if (!deviceSearch.value) return deviceOptions.value;
+  const keyword = deviceSearch.value.toLowerCase();
+  return deviceOptions.value.filter((item) => {
+    return item.deviceNumber.toLowerCase().includes(keyword);
+  });
+});
+
+function loadDeviceOptions() {
+  getDeviceVisibleList({}).then((res: { data?: DeviceOption[] }) => {
+    if (res && Array.isArray(res.data)) {
+      deviceOptions.value = res.data;
+    }
+  }).catch(() => {
+    // 静默处理
+  });
+}
+
+function selectDevice(item: DeviceOption) {
+  form.deviceNumber = item.deviceNumber;
+  deviceSelectOpen.value = false;
+}
+
+// 管道材质下拉
 const materialSelectOpen = ref(false);
 const materialSearch = ref("");
 const materialError = ref("");
@@ -322,32 +778,6 @@ const materialOptions = [
   "PPR", "ABS", "复合", "玻璃钢", "水泥", "铅管", "PE 硬聚乙烯管",
   "PE 软聚乙烯管", "PVC 聚氯乙烯", "低碳钢", "其他",
 ];
-
-const filteredMaterialOptions = computed(() => {
-  if (!materialSearch.value) return materialOptions;
-  const keyword = materialSearch.value.toLowerCase();
-  return materialOptions.filter((item) => {
-    if (item.toLowerCase().includes(keyword)) return true;
-    const py = getPinyin(item);
-    if (py.includes(keyword)) return true;
-    const pyAbbr = getPinyinAbbr(item);
-    if (pyAbbr.includes(keyword)) return true;
-    return false;
-  });
-});
-
-function selectMaterial(value: string) {
-  form.tubeMaterial = value;
-  materialSelectOpen.value = false;
-  materialSearch.value = "";
-  materialError.value = "";
-}
-
-function highlightMatch(text: string): string {
-  if (!materialSearch.value) return text;
-  const keyword = materialSearch.value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return text.replace(new RegExp(`(${keyword})`, "gi"), '<span class="highlight">$1</span>');
-}
 
 const pinyinMap: Record<string, string> = {
   镀: "du", 锌: "xin", 钢: "gang", 铸: "zhu", 铁: "tie", 球: "qiu", 墨: "mo",
@@ -365,128 +795,185 @@ function getPinyinAbbr(text: string): string {
   return text.split("").map((ch) => (pinyinMap[ch] ? pinyinMap[ch][0] : ch.toLowerCase())).join("");
 }
 
-const dialogTitle = computed(() => (isEditMode.value ? "编辑疑点" : "新增疑点"));
+const filteredMaterialOptions = computed(() => {
+  if (!materialSearch.value) return materialOptions;
+  const keyword = materialSearch.value.toLowerCase();
+  return materialOptions.filter((item) => {
+    if (item.toLowerCase().includes(keyword)) return true;
+    const py = getPinyin(item);
+    if (py.includes(keyword)) return true;
+    const pyAbbr = getPinyinAbbr(item);
+    if (pyAbbr.includes(keyword)) return true;
+    return false;
+  });
+});
 
-function openCreateDialog() {
-  isEditMode.value = false;
-  editingId.value = "";
-  resetForm();
+function highlightMatch(text: string, search?: string): string {
+  const keyword = (search || materialSearch.value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  if (!keyword) return text;
+  return text.replace(new RegExp(`(${keyword})`, "gi"), '<span class="highlight">$1</span>');
+}
+
+function selectMaterial(value: string) {
+  form.tubeMaterial = value;
   materialSelectOpen.value = false;
   materialSearch.value = "";
   materialError.value = "";
-  dialogVisible.value = true;
 }
 
-function openEditDialog(suspect: SuspectRecord) {
-  isEditMode.value = true;
-  editingId.value = String(suspect.id ?? "");
-  fillForm(suspect);
-  materialSelectOpen.value = false;
-  materialSearch.value = "";
-  materialError.value = "";
-  dialogVisible.value = true;
+// 图片/视频上传
+interface UploadItem {
+  url: string;
+  id: string;
 }
 
-function fillForm(suspect: SuspectRecord) {
-  form.detectedTime = String(suspect.detectedTime ?? "").replace("T", " ");
-  form.leakPart = String(suspect.leakPart ?? "");
-  form.detectAccount = String(suspect.detectAccount ?? "");
-  form.leakAddress = String(suspect.leakAddress ?? "");
-  form.leakCoordinate = String(suspect.leakCoordinate ?? "");
-  form.closestDeviceDistance = String(suspect.closestDeviceDistance ?? "");
-  form.tubeDepth = String(suspect.tubeDepth ?? "");
-  form.tubeMaterial = String(suspect.tubeMaterial ?? "");
-  form.tubeBore = String(suspect.tubeBore ?? "");
-  form.referenceDevices = String(suspect.referenceDevices ?? "");
-  form.referenceAudio = String(suspect.referenceAudio ?? "");
-  form.referenceWorksheetId = String(suspect.referenceWorksheetId ?? "");
-  form.leakPicture = String(suspect.leakPicture ?? "");
-  form.remark = String(suspect.remark ?? "");
+const suspectSceneImageList = ref<UploadItem[]>([]);
+const leakSceneImageList = ref<UploadItem[]>([]);
+const sceneVideoItem = ref<UploadItem | null>(null);
 
-  // 回填照片列表
-  const picId = form.leakPicture;
-  photoIdListText.value = picId;
-  photoList.value = picId ? [{ url: `/api/file/preview/${picId}`, id: picId }] : [];
-
-  // 回填音频
-  const audioId = form.referenceAudio;
-  if (audioId) {
-    audioItem.value = {
-      url: `/api/file/preview/${audioId}`,
-      name: `音频_${audioId}`,
-      durationText: "--:--",
-      id: audioId,
-    };
-  } else {
-    audioItem.value = null;
+async function uploadSingleFile(filePath: string, fileName: string): Promise<string> {
+  const res: { code?: number; data?: { id?: string; url?: string } } = await uploadFile(filePath, fileName);
+  if (res && res.code !== undefined && res.code !== 0 && res.code !== 200) {
+    throw res;
   }
+  return (res as { data?: { id?: string } })?.data?.id || "";
 }
 
-function closeDialog() {
-  dialogVisible.value = false;
-  closeMapPicker();
-  stopAudio();
+/** 统一图片上传：H5 / 非 H5 共用 */
+async function uploadImages(
+  entries: Array<{ path: string; name: string }>,
+  listRef: typeof suspectSceneImageList,
+  formKey: 'suspectSceneImages' | 'leakSceneImages'
+) {
+  const newItems: UploadItem[] = [];
+  for (const { path, name } of entries) {
+    try {
+      const id = await uploadSingleFile(path, name);
+      newItems.push({ url: path, id });
+    } catch {
+      uni.showToast({ title: `上传 ${name} 失败`, icon: "none" });
+    }
+  }
+  listRef.value = [...listRef.value, ...newItems];
+  updateFormImageIds(listRef.value, formKey);
 }
 
-function resetForm() {
-  form.detectedTime = "";
-  form.leakPart = "";
-  form.detectAccount = "";
-  form.leakAddress = "";
-  form.leakCoordinate = "";
-  form.closestDeviceDistance = "";
-  form.tubeDepth = "";
-  form.tubeMaterial = "镀锌钢";
-  form.tubeBore = "";
-  form.referenceDevices = "";
-  form.referenceAudio = "";
-  form.referenceWorksheetId = "";
-  form.leakPicture = "";
-  form.remark = "";
-  photoList.value = [];
-  photoIdListText.value = "";
-  audioItem.value = null;
-  audioPlaying.value = false;
-  materialSelectOpen.value = false;
-  materialSearch.value = "";
-  materialError.value = "";
-}
-
-/* ========== 图片上传（与漏点表单一致：本地选择 + 临时ID，待后端上传接口对接） ========== */
-function handleUploadPhoto() {
+function pickMultiImages(listRef: typeof suspectSceneImageList, formKey: 'suspectSceneImages' | 'leakSceneImages') {
+  // #ifdef H5
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/*";
+  input.multiple = true;
+  input.onchange = async () => {
+    const files = input.files;
+    if (!files || files.length === 0) return;
+    await uploadImages(Array.from(files).map(f => ({ path: f as unknown as string, name: f.name })), listRef, formKey);
+  };
+  input.click();
+  // #endif
+  // #ifndef H5
   uni.chooseImage({
-    count: 9 - photoList.value.length,
+    count: 9,
     sizeType: ["compressed"],
     sourceType: ["album", "camera"],
-    success: (res) => {
-      const newPhotos: PhotoItem[] = [];
-      const paths: string[] = Array.isArray(res.tempFilePaths) ? res.tempFilePaths : [res.tempFilePaths];
-      paths.forEach((path: string, idx: number) => {
-        newPhotos.push({ url: path, id: `img_${Date.now()}_${idx}` });
-      });
-      photoList.value = [...photoList.value, ...newPhotos];
-      form.leakPicture = photoList.value.map((p) => p.id).join(",");
-      photoIdListText.value = form.leakPicture;
+    success: async (res) => {
+      const entries: Array<{ path: string; name: string }> = [];
+      for (let i = 0; i < res.tempFilePaths.length; i++) {
+        const f = (res.tempFiles as Array<{ path?: string; name?: string }> | undefined)?.[i];
+        entries.push({ path: res.tempFilePaths[i], name: f?.name || `image_${Date.now()}_${i}` });
+      }
+      await uploadImages(entries, listRef, formKey);
+    },
+    fail: () => uni.showToast({ title: "取消选择", icon: "none" }),
+  });
+  // #endif
+}
+
+const handleChooseSuspectSceneImages = () => pickMultiImages(suspectSceneImageList, 'suspectSceneImages');
+const handleChooseLeakSceneImages = () => pickMultiImages(leakSceneImageList, 'leakSceneImages');
+
+function updateFormImageIds(list: UploadItem[], formKey: keyof SuspectForm) {
+  (form as Record<string, unknown>)[formKey as string] = list.map((item) => item.id).filter(Boolean).join(",");
+}
+
+function removeSuspectSceneImage(idx: number) {
+  suspectSceneImageList.value.splice(idx, 1);
+  updateFormImageIds(suspectSceneImageList.value, "suspectSceneImages");
+}
+
+function removeLeakSceneImage(idx: number) {
+  leakSceneImageList.value.splice(idx, 1);
+  updateFormImageIds(leakSceneImageList.value, "leakSceneImages");
+}
+
+function previewImageItem(list: UploadItem[], idx: number) {
+  const urls = list.map((item) => item.url);
+  uni.previewImage({
+    urls,
+    current: idx,
+  });
+}
+
+async function handleChooseSceneVideo() {
+  // #ifdef H5
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "video/*";
+  input.onchange = async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    if (file.size > 200 * 1024 * 1024) {
+      uni.showToast({ title: "视频不能超过 200MB", icon: "none" });
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    try {
+      const id = await uploadSingleFile(file as unknown as string, file.name);
+      sceneVideoItem.value = { url, id };
+      form.sceneVideo = id;
+    } catch {
+      uni.showToast({ title: "视频上传失败", icon: "none" });
+    }
+  };
+  input.click();
+  // #endif
+  // #ifndef H5
+  uni.chooseVideo({
+    sourceType: ["album", "camera"],
+    maxDuration: 120,
+    success: async (res) => {
+      const { tempFilePath } = res;
+      try {
+        const id = await uploadSingleFile(tempFilePath, `video_${Date.now()}`);
+        sceneVideoItem.value = { url: tempFilePath, id };
+        form.sceneVideo = id;
+      } catch {
+        uni.showToast({ title: "视频上传失败", icon: "none" });
+      }
     },
     fail: () => {
       uni.showToast({ title: "取消选择", icon: "none" });
     },
   });
+  // #endif
 }
 
-function removePhoto(idx: number) {
-  photoList.value.splice(idx, 1);
-  form.leakPicture = photoList.value.map((p) => p.id).join(",");
-  photoIdListText.value = form.leakPicture;
+function removeSceneVideo() {
+  sceneVideoItem.value = null;
+  form.sceneVideo = "";
 }
 
-/* ========== 音频上传（本地选择 + 预览/播放/删除，待后端上传接口对接） ========== */
+// 音频
+const audioItem = ref<AudioItem | null>(null);
+const audioPlaying = ref(false);
+let audioPlayerInstance: HTMLAudioElement | null = null;
+
 function handleChooseAudio() {
   // #ifdef H5
   const input = document.createElement("input");
   input.type = "file";
   input.accept = "audio/*";
-  input.onchange = () => {
+  input.onchange = async () => {
     const file = input.files?.[0];
     if (!file) return;
     if (file.size > 50 * 1024 * 1024) {
@@ -495,14 +982,20 @@ function handleChooseAudio() {
     }
     const url = URL.createObjectURL(file);
     const audio = new Audio(url);
-    audio.onloadedmetadata = () => {
-      audioItem.value = {
-        url,
-        name: file.name,
-        durationText: formatDuration(Math.floor(audio.duration * 1000)),
-        id: `audio_${Date.now()}`,
-      };
-      form.referenceAudio = audioItem.value.id;
+    audio.onloadedmetadata = async () => {
+      const durationText = formatDuration(Math.floor(audio.duration * 1000));
+      try {
+        const id = await uploadSingleFile(file as unknown as string, file.name);
+        audioItem.value = {
+          url,
+          name: file.name,
+          durationText,
+          id,
+        };
+        form.audioFile = id;
+      } catch {
+        uni.showToast({ title: "音频上传失败", icon: "none" });
+      }
     };
   };
   input.click();
@@ -512,16 +1005,21 @@ function handleChooseAudio() {
     count: 1,
     type: "file",
     extension: ["mp3", "wav", "m4a", "aac"],
-    success: (res) => {
+    success: async (res) => {
       const file = res.tempFiles?.[0];
       if (!file) return;
-      audioItem.value = {
-        url: file.path,
-        name: file.name,
-        durationText: "--:--",
-        id: `audio_${Date.now()}`,
-      };
-      form.referenceAudio = audioItem.value.id;
+      try {
+        const id = await uploadSingleFile(file.path, file.name);
+        audioItem.value = {
+          url: file.path,
+          name: file.name,
+          durationText: "--:--",
+          id,
+        };
+        form.audioFile = id;
+      } catch {
+        uni.showToast({ title: "音频上传失败", icon: "none" });
+      }
     },
     fail: () => {
       uni.showToast({ title: "取消选择", icon: "none" });
@@ -573,7 +1071,7 @@ function stopAudio() {
 function removeAudio() {
   stopAudio();
   audioItem.value = null;
-  form.referenceAudio = "";
+  form.audioFile = "";
 }
 
 function formatDuration(ms: number): string {
@@ -583,125 +1081,170 @@ function formatDuration(ms: number): string {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-/* ========== 腾讯地图定位（与漏点表单一致） ========== */
-const mapPickerVisible = ref(false);
-const mapPickedCoord = ref("");
-const mapPickerContainer = ref<HTMLElement | null>(null);
-let mapPickerInstance: { destroy?: () => void; on?: (event: string, handler: (e: { latLng: { getLat?: () => number; getLng?: () => number } }) => void) => void } | null = null;
-
-// const TENCENT_MAP_KEY = "JCDBZ-Z2HLI-V26GX-UL7VO-LJFO2-TIFMZ";
-// const TENCENT_MAP_SCRIPT_ID = "tencent-map-sdk-picker";
-// const TENCENT_MAP_SCRIPT_URL = `https://map.qq.com/api/gljs?v=1.exp&key=${TENCENT_MAP_KEY}`;
-
-// function loadTencentMapSDK(): Promise<void> {
-//   if (window.TMap) return Promise.resolve();
-//   return new Promise((resolve, reject) => {
-//     const existing = document.getElementById(TENCENT_MAP_SCRIPT_ID) as HTMLScriptElement | null;
-//     const script = existing || document.createElement("script");
-//     script.id = TENCENT_MAP_SCRIPT_ID;
-//     script.charset = "utf-8";
-//     script.src = TENCENT_MAP_SCRIPT_URL;
-//     script.onload = () => {
-//       if (window.TMap) resolve();
-//       else reject(new Error("SDK load failed"));
-//     };
-//     script.onerror = () => reject(new Error("SDK script failed"));
-//     if (!existing) document.body.appendChild(script);
-//   });
-// }
-
-// function initMapPicker(lng: number, lat: number) {
-//   if (!mapPickerContainer.value || !window.TMap) return;
-//   const center = new window.TMap.LatLng(lat, lng);
-//   const map = new window.TMap.Map(mapPickerContainer.value, { center, zoom: 15, pitch: 0, rotation: 0 });
-//   mapPickerInstance = map;
-//   map.on?.("click", (e: { latLng: { getLat?: () => number; getLng?: () => number } }) => {
-//     const clng = e.latLng.getLng?.().toFixed(6);
-//     const clat = e.latLng.getLat?.().toFixed(6);
-//     if (!clng || !clat) return;
-//     mapPickedCoord.value = `${clng},${clat}`;
-//   });
-// }
-
-const mapPickerCenter = ref({
-  lng: 121.4737,
-  lat: 31.2304,
-});
-
-function openMapPicker() {
-  mapPickedCoord.value = "";
-  uni.getLocation({
-    type: "gcj02",
-      success: (result) => {
-      mapPickerCenter.value = {
-        lng: result.longitude,
-        lat: result.latitude,
-      };
-
-      mapPickerVisible.value = true;
-    },
-
-    fail: () => {
-      mapPickerCenter.value = {
-        lng: 121.4737,
-        lat: 31.2304,
-      };
-
-      mapPickerVisible.value = true;
-    },
-  });
+// 初始化
+function initForm() {
+  Object.assign(form, FORM_DEFAULTS);
+  audioItem.value = null;
+  audioPlaying.value = false;
+  materialSelectOpen.value = false;
+  materialSearch.value = "";
+  materialError.value = "";
+  suspectSceneImageList.value = [];
+  leakSceneImageList.value = [];
+  sceneVideoItem.value = null;
+  validationBannerMessage.value = "";
 }
 
-function handleMapPick(coordinate: {
-  lng: number;
-  lat: number;
-}) {
-  mapPickedCoord.value =
-    `${coordinate.lng.toFixed(6)},${coordinate.lat.toFixed(6)}`;
+function fillForm(suspect: Record<string, unknown>) {
+  form.detectType = String(suspect.detectType ?? "");
+  form.reportTime = String(suspect.reportTime ?? "").replace("T", " ");
+  form.reporter = String(suspect.reporter ?? "");
+  form.patrolNo = String(suspect.patrolNo ?? "");
+  form.deptId = suspect.deptId != null ? Number(suspect.deptId) : undefined;
+  form.deviceNumber = String(suspect.deviceNumber ?? "");
+  form.tubeMaterial = String(suspect.tubeMaterial ?? "镀锌钢");
+  form.tubeBore = String(suspect.tubeBore ?? "");
+  form.noiseTime = String(suspect.noiseTime ?? "").replace("T", " ");
+  form.leakStatus = String(suspect.leakStatus ?? "");
+  form.featureValue = String(suspect.featureValue ?? "");
+  form.leakPointType = String(suspect.leakPointType ?? "");
+  form.initialLevel = String(suspect.initialLevel ?? "");
+  form.leakPointSize = String(suspect.leakPointSize ?? "");
+  form.leakRoadSurface = String(suspect.leakRoadSurface ?? "");
+  form.coordinatePosition = String(suspect.coordinatePosition ?? "");
+  form.leakPointPosition = String(suspect.leakPointPosition ?? "");
+  form.suspectSceneImages = String(suspect.suspectSceneImages ?? "");
+  form.leakSceneImages = String(suspect.leakSceneImages ?? "");
+  form.sceneVideo = String(suspect.sceneVideo ?? "");
+  form.audioFile = String(suspect.audioFile ?? "");
+  form.repairStatus = String(suspect.repairStatus ?? "");
+  form.repairTime = String(suspect.repairTime ?? "").replace("T", " ");
+  form.repairPerson = String(suspect.repairPerson ?? "");
+  form.leakUnit = String(suspect.leakUnit ?? "");
+  form.maintenanceUnit = String(suspect.maintenanceUnit ?? "");
+  form.remark = String(suspect.remark ?? "");
+
+  // 回填音频
+  const audioId = form.audioFile;
+  if (audioId) {
+    audioItem.value = {
+      url: `/api/file/preview/${audioId}`,
+      name: `音频_${audioId}`,
+      durationText: "--:--",
+      id: audioId,
+    };
+  } else {
+    audioItem.value = null;
+  }
+
+  // 回填图片/视频
+  const suspectIds = form.suspectSceneImages;
+  if (suspectIds) {
+    suspectSceneImageList.value = suspectIds.split(",").filter(Boolean).map((id) => ({
+      url: `/api/file/preview/${id}`,
+      id,
+    }));
+  } else {
+    suspectSceneImageList.value = [];
+  }
+  const leakIds = form.leakSceneImages;
+  if (leakIds) {
+    leakSceneImageList.value = leakIds.split(",").filter(Boolean).map((id) => ({
+      url: `/api/file/preview/${id}`,
+      id,
+    }));
+  } else {
+    leakSceneImageList.value = [];
+  }
+  const videoId = form.sceneVideo;
+  if (videoId) {
+    sceneVideoItem.value = {
+      url: `/api/file/preview/${videoId}`,
+      id: videoId,
+    };
+  } else {
+    sceneVideoItem.value = null;
+  }
 }
 
-function confirmMapPick() {
-  if (mapPickedCoord.value) form.leakCoordinate = mapPickedCoord.value;
-  closeMapPicker();
+// 监听 suspect prop 变化来回填表单
+watch(
+  () => props.suspect,
+  (val) => {
+    if (val && val.id) {
+      fillForm(val);
+    } else {
+      initForm();
+    }
+  },
+  { immediate: true }
+);
+
+// 加载下拉选项
+loadRegionOptions();
+loadDeviceOptions();
+
+// 表单操作
+function handleClose() {
+  stopAudio();
+  emit("close");
 }
 
-function closeMapPicker() {
-  mapPickerVisible.value = false;
-  mapPickedCoord.value = "";
+function resetForm() {
+  if (isEditMode.value && props.suspect) {
+    fillForm(props.suspect);
+  } else {
+    initForm();
+  }
 }
 
-/* ========== 表单提交 ========== */
 function buildPayload() {
   return removeEmptyFields({
-    detectedTime: normalizeDatetimeForApi(form.detectedTime),
-    leakLevel: 3,
-    leakPart: form.leakPart.trim(),
-    detectAccount: form.detectAccount.trim(),
-    leakAddress: form.leakAddress.trim(),
-    leakCoordinate: form.leakCoordinate.trim(),
-    closestDeviceDistance: form.closestDeviceDistance.trim(),
-    tubeDepth: form.tubeDepth.trim(),
-    tubeMaterial: form.tubeMaterial.trim(),
+    detectType: form.detectType.trim(),
+    reportTime: normalizeDatetimeForApi(form.reportTime),
+    reporter: form.reporter.trim(),
+    patrolNo: form.patrolNo.trim(),
+    deptId: form.deptId,
+    deviceNumber: form.deviceNumber.trim(),
+    tubeMaterial: form.tubeMaterial,
     tubeBore: form.tubeBore.trim(),
-    referenceDevices: form.referenceDevices.trim(),
-    referenceAudio: form.referenceAudio.trim(),
-    referenceWorksheetId: form.referenceWorksheetId.trim(),
-    leakPicture: form.leakPicture.trim(),
+    noiseTime: normalizeDatetimeForApi(form.noiseTime),
+    leakStatus: form.leakStatus.trim(),
+    featureValue: form.featureValue.trim(),
+    leakPointType: form.leakPointType.trim(),
+    initialLevel: form.initialLevel.trim(),
+    leakPointSize: form.leakPointSize.trim(),
+    leakRoadSurface: form.leakRoadSurface.trim(),
+    coordinatePosition: form.coordinatePosition.trim(),
+    leakPointPosition: form.leakPointPosition.trim(),
+    suspectSceneImages: form.suspectSceneImages.trim(),
+    leakSceneImages: form.leakSceneImages.trim(),
+    sceneVideo: form.sceneVideo.trim(),
+    audioFile: form.audioFile.trim(),
+    repairStatus: form.repairStatus.trim(),
+    repairTime: normalizeDatetimeForApi(form.repairTime),
+    repairPerson: form.repairPerson.trim(),
+    leakUnit: form.leakUnit.trim(),
+    maintenanceUnit: form.maintenanceUnit.trim(),
     remark: form.remark.trim(),
+    processStatus: isEditMode.value ? undefined : 0,
   });
 }
 
-function validate() {
-  if (!form.detectedTime) {
-    uni.showToast({ title: "请选择检出时间", icon: "none" });
-    return false;
+function validate(): boolean {
+  const errors: string[] = [];
+  if (!form.detectType.trim()) {
+    errors.push("检出类型");
   }
-  if (!form.detectAccount.trim()) {
-    uni.showToast({ title: "请输入检出人", icon: "none" });
-    return false;
+  if (!form.reportTime) {
+    errors.push("上报时间");
   }
   if (!form.tubeMaterial) {
     materialError.value = "请选择管道材质";
+    errors.push("管道材质");
+  }
+  if (errors.length > 0) {
+    showValidationBanner("请填写：" + errors.join("、"));
     return false;
   }
   return true;
@@ -716,15 +1259,14 @@ async function submitForm() {
   try {
     const payload = buildPayload();
     const response = isEditMode.value
-      ? await updateSuspect(editingId.value, payload)
+      ? await updateSuspect(props.suspect!.id as string | number, payload)
       : await createSuspect(payload);
     const code = (response as { code?: number })?.code;
     if (code !== undefined && code !== 0 && code !== 200) {
       throw response;
     }
-    uni.showToast({ title: isEditMode.value ? "疑点更新成功" : "疑点创建成功", icon: "success" });
-    dialogVisible.value = false;
-    tableViewRef.value?.fetchSuspects?.();
+    uni.showToast({ title: isEditMode.value ? "疑点更新成功" : "疑点创建成功", icon: "success", duration: 2000 });
+    emit("saved");
   } catch (error) {
     uni.showToast({
       title: (error as { msg?: string })?.msg || (isEditMode.value ? "疑点更新失败" : "疑点创建失败"),
@@ -736,7 +1278,9 @@ async function submitForm() {
 }
 
 function removeEmptyFields(data: Record<string, unknown>) {
-  return Object.fromEntries(Object.entries(data).filter(([, value]) => value !== "" && value !== undefined && value !== null));
+  return Object.fromEntries(
+    Object.entries(data).filter(([, value]) => value !== "" && value !== undefined && value !== null)
+  );
 }
 
 function normalizeDatetimeForApi(value: string) {
@@ -755,7 +1299,6 @@ function normalizeDatetimeForApi(value: string) {
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  overflow-x: hidden;
 }
 
 .dialog-mask {
@@ -828,25 +1371,16 @@ function normalizeDatetimeForApi(value: string) {
   overflow-y: auto;
 }
 
-.form-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-  gap: 18px;
-}
-
-.form-main,
-.form-aside {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  min-width: 0;
-}
-
 .form-section {
   padding: 16px;
+  margin-bottom: 16px;
   background: #fbfdff;
   border: 1px solid #e3edf6;
   border-radius: 6px;
+}
+
+.form-section:last-child {
+  margin-bottom: 0;
 }
 
 .section-head {
@@ -886,8 +1420,8 @@ function normalizeDatetimeForApi(value: string) {
   gap: 12px 16px;
 }
 
-.form-grid--single {
-  grid-template-columns: 1fr;
+.form-grid--media {
+  gap: 20px 20px;
 }
 
 .form-field {
@@ -895,6 +1429,10 @@ function normalizeDatetimeForApi(value: string) {
   flex-direction: column;
   width: 100%;
   min-width: 0;
+}
+
+.form-field--wide {
+  grid-column: span 2;
 }
 
 .form-label {
@@ -933,12 +1471,135 @@ function normalizeDatetimeForApi(value: string) {
   min-width: 0;
 }
 
-.form-input--hidden-id {
-  margin-top: 10px;
-  height: 32px;
-  font-size: 12px;
+.form-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.form-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  height: 38px;
+  padding: 0 14px;
+  color: #3b82f6;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.form-action-btn--hover {
+  background: #dbeafe;
+  border-color: #3b82f6;
+}
+
+.form-action-btn__icon--map {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233b82f6'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+
+.map-picker-panel {
+  margin-top: 12px;
+  border: 1px solid #d5e2ee;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.map-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #f8fbfe;
+  border-bottom: 1px solid #edf3f8;
+}
+
+.map-picker-title {
+  color: #183755;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.map-picker-coord {
   color: #94a3b8;
-  background: #f9fafb;
+  font-size: 13px;
+}
+
+.map-picker-coord--active {
+  color: #3b82f6;
+  font-weight: 700;
+}
+
+.map-picker-body {
+  position: relative;
+  width: 100%;
+  height: 300px;
+}
+
+.map-picker-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.map-picker-canvas--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #7c8da1;
+  font-size: 14px;
+  background: #f8fafc;
+}
+
+.map-picker-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 10px 14px;
+  background: #fff;
+  border-top: 1px solid #edf3f8;
+}
+
+.dialog-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 80px;
+  height: 38px;
+  padding: 0 22px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: opacity 0.16s ease;
+}
+
+.dialog-btn--cancel {
+  color: #34495e;
+  background: #f1f5f9;
+  border: 1px solid #d5e2ee;
+}
+
+.dialog-btn--primary {
+  color: #fff;
+  background: #3b82f6;
+  border: 1px solid #3b82f6;
+}
+
+.dialog-btn--hover {
+  opacity: 0.85;
+}
+
+.dialog-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .form-textarea {
@@ -949,6 +1610,12 @@ function normalizeDatetimeForApi(value: string) {
 
 .input-placeholder {
   color: #9aa9b8;
+}
+
+/* 下拉选择 */
+.select-field {
+  position: relative;
+  width: 100%;
 }
 
 .form-select--dropdown {
@@ -989,11 +1656,6 @@ function normalizeDatetimeForApi(value: string) {
 
 .select-placeholder {
   color: #9aa9b8;
-}
-
-.select-field {
-  position: relative;
-  width: 100%;
 }
 
 .select-menu {
@@ -1080,282 +1742,7 @@ function normalizeDatetimeForApi(value: string) {
   font-weight: 800;
 }
 
-.form-row {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.form-action-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex: none;
-  height: 38px;
-  padding: 0 14px;
-  color: #0d82ee;
-  font-size: 13px;
-  font-weight: 700;
-  white-space: nowrap;
-  background: #edf7ff;
-  border: 1px solid #b8ddf8;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.form-action-btn--hover {
-  background: #d6edfc;
-  border-color: #0d82ee;
-}
-
-.form-action-btn__icon--map {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230d82ee'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z'/%3E%3C/svg%3E") center/contain no-repeat;
-}
-
-/* ========== 地图选点面板 ========== */
-.map-picker-panel {
-  margin-top: 12px;
-  border: 1px solid #d5e2ee;
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.map-picker-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  background: #f8fbfe;
-  border-bottom: 1px solid #edf3f8;
-}
-
-.map-picker-title {
-  color: #183755;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.map-picker-coord {
-  color: #94a3b8;
-  font-size: 13px;
-}
-
-.map-picker-coord--active {
-  color: #0d82ee;
-  font-weight: 700;
-}
-
-.map-picker-body {
-  position: relative;
-  width: 100%;
-  height: 300px;
-}
-
-.map-picker-canvas {
-  width: 100%;
-  height: 100%;
-}
-
-.map-picker-canvas--fallback {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #7c8da1;
-  font-size: 14px;
-  background: #f8fafc;
-}
-
-.map-picker-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  padding: 10px 14px;
-  background: #fff;
-  border-top: 1px solid #edf3f8;
-}
-
-.dialog-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 80px;
-  height: 38px;
-  padding: 0 22px;
-  font-size: 14px;
-  font-weight: 700;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.dialog-btn--cancel {
-  color: #34495e;
-  background: #f1f5f9;
-  border: 1px solid #d5e2ee;
-}
-
-.dialog-btn--primary {
-  color: #fff;
-  background: #0d82ee;
-  border: 1px solid #0d82ee;
-}
-
-.dialog-btn--hover {
-  opacity: 0.85;
-}
-
-.dialog-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-/* ========== 照片上传 ========== */
-.form-photo-area {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.photo-preview-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.photo-preview-item {
-  position: relative;
-  width: 88px;
-  height: 88px;
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.photo-thumb {
-  width: 100%;
-  height: 100%;
-}
-
-.photo-remove-btn {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  margin: 0;
-  padding: 0;
-  background: rgba(0, 0, 0, 0.55);
-  border: 0;
-  border-radius: 50%;
-  cursor: pointer;
-}
-
-.photo-remove-btn--hover {
-  background: rgba(0, 0, 0, 0.75);
-}
-
-.photo-remove-icon {
-  position: relative;
-  width: 10px;
-  height: 10px;
-}
-
-.photo-remove-icon::before,
-.photo-remove-icon::after {
-  position: absolute;
-  top: 4px;
-  left: 0;
-  width: 10px;
-  height: 2px;
-  content: "";
-  background: #fff;
-  border-radius: 1px;
-}
-
-.photo-remove-icon::before {
-  transform: rotate(45deg);
-}
-
-.photo-remove-icon::after {
-  transform: rotate(-45deg);
-}
-
-.photo-add-box {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  width: 88px;
-  height: 88px;
-  border: 2px dashed #c5d2e2;
-  border-radius: 6px;
-  background: #fbfdff;
-  cursor: pointer;
-}
-
-.photo-add-box:hover {
-  border-color: #0d82ee;
-  background: #edf7ff;
-}
-
-.photo-add-icon {
-  font-size: 26px;
-  font-weight: 300;
-  color: #94a3b8;
-  line-height: 1;
-}
-
-.photo-add-label {
-  font-size: 11px;
-  color: #94a3b8;
-}
-
-/* ========== 音频上传 ========== */
-.audio-add-box {
-  display: flex;
-  justify-content: flex-start;
-  gap: 10px;
-}
-
-.audio-action-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  flex: none;
-  min-width: 160px;
-  width: 160px;
-  height: 60px;
-  padding: 0 16px;
-  color: #0d82ee;
-  font-size: 13px;
-  font-weight: 700;
-  background: #edf7ff;
-  border: 1px solid #b8ddf8;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.audio-action-btn--hover {
-  background: #d6edfc;
-  border-color: #0d82ee;
-}
-
-.audio-action-btn__icon {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-}
-
-.audio-action-btn__icon--upload {
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230d82ee'%3E%3Cpath d='M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z'/%3E%3C/svg%3E") center/contain no-repeat;
-}
-
+/* 音频预览 */
 .audio-preview {
   display: flex;
   flex-direction: column;
@@ -1363,7 +1750,9 @@ function normalizeDatetimeForApi(value: string) {
   padding: 14px;
   background: #f8fbfe;
   border: 1px solid #d5e2ee;
-  border-radius: 6px;
+  border-radius: 8px;
+  min-height: 96px;
+  justify-content: center;
 }
 
 .audio-preview__info {
@@ -1423,7 +1812,7 @@ function normalizeDatetimeForApi(value: string) {
   opacity: 0.85;
 }
 
-/* ========== 弹窗底部 ========== */
+/* 弹窗底部 */
 .dialog-footer {
   display: flex;
   align-items: center;
@@ -1476,9 +1865,192 @@ function normalizeDatetimeForApi(value: string) {
   border-color: #d7e0e8;
 }
 
+/* 验证横幅 */
+.validation-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #fff3e0;
+  border-bottom: 1px solid #ffe0b2;
+}
+
+.validation-banner__icon {
+  flex: none;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #e65100;
+}
+
+.validation-banner__text {
+  flex: 1;
+  color: #bf360c;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+/* ========== 上传区域 ========== */
+.upload-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 96px;
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 96px;
+  padding: 20px 16px;
+  background: #f8fbfe;
+  border: 2px dashed #c8dae8;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.upload-placeholder:hover {
+  background: #edf7ff;
+  border-color: #0d82ee;
+}
+
+.upload-placeholder__title {
+  color: #183755;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.upload-placeholder__hint {
+  color: #8799ad;
+  font-size: 12px;
+}
+
+.upload-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 8px;
+}
+
+.upload-preview-item {
+  position: relative;
+  width: 100%;
+  padding-bottom: 100%;
+  overflow: hidden;
+  border: 1px solid #d5e2ee;
+  border-radius: 6px;
+  background: #f6fafe;
+  transition: border-color 0.2s;
+}
+
+.upload-preview-item:hover {
+  border-color: #0d82ee;
+}
+
+.upload-preview-item--add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 0;
+  height: 100%;
+  aspect-ratio: 1 / 1;
+  background: #f8fbfe;
+  border: 2px dashed #c8dae8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.upload-preview-item--add:hover {
+  background: #edf7ff;
+  border-color: #0d82ee;
+}
+
+.upload-add-icon {
+  font-size: 22px;
+  color: #0d82ee;
+  opacity: 0.7;
+  line-height: 1;
+}
+
+.upload-add-text {
+  margin-top: 4px;
+  color: #0d82ee;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.upload-preview-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.upload-preview-remove {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  background: rgba(180, 35, 24, 0.82);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.upload-preview-remove:hover {
+  background: rgba(180, 35, 24, 0.95);
+  transform: scale(1.1);
+}
+
+/* 视频预览 */
+.video-preview {
+  position: relative;
+  width: 100%;
+  border: 1px solid #d5e2ee;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.video-preview__player {
+  width: 100%;
+  height: 200px;
+  background: #000;
+}
+
+.video-preview__remove {
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+}
+
 @media (max-width: 720px) {
-  .form-layout {
+  .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .form-grid--media {
+    gap: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .form-grid--media {
+    grid-template-columns: 1fr;
+    gap: 14px;
   }
 }
 </style>
