@@ -215,6 +215,7 @@ import { clearAuthStorage, createProtectedRouteDecision, LOGIN_PATH } from "@/ut
 import { filterMenuItemsByAccess, flattenMenuPaths, getMenuAccessSummary } from "@/utils/menuAccess";
 import { TOKEN_KEY } from "@/utils/request";
 import LocaleLeakMap from "@/pages/leak-monitor/components/LocaleLeakMap.vue";
+import ValveView from "@/pages/device/valve/components/ValveView.vue";
 interface MenuItem {
   label: string;
   path: string;
@@ -370,7 +371,7 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/device/maintenance/maintenance": { component: DeviceManagementView, props: { mode: "maintenance" } },
   // "/pages/device/status/status": { component: DeviceManagementView, props: { mode: "status" } },
   "/pages/device/settings/settings": { component: DeviceSettingsView },
-  "/pages/device/valve/valve": { component: DeviceManagementView, props: { mode: "valve" } },
+  "/pages/device/valve/valve": { component: ValveView },
   "/pages/command/commandManage": { component: CommandManagePage },
   "/pages/command/commandConfiguration": { component: CommandConfigurationPage },
   "/pages/data-analysis/overview/overview": createPlaceholderContent("/pages/data-analysis/overview/overview"),

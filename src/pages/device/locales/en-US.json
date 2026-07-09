@@ -97,7 +97,8 @@
       "onlyH5": "Map is only supported on H5",
       "mapKeyEmpty": "Tencent Map key is empty",
       "apiUnavailable": "Tencent Maps API unavailable",
-      "noCoordinate": "No coordinate data available. Unable to locate."
+      "noCoordinate": "No coordinate data available. Unable to locate.",
+      "dialogTitle": "Coordinates"
     },
     "leakMap": {
       "unsupported": "The map SDK is available only on the H5 platform.",
@@ -137,7 +138,7 @@
       "confirmDeleteTitle": "Confirm",
       "confirmDeleteContent": "Are you sure you want to delete device {deviceNumber}?",
       "operationFailed": "Operation failed",
-      "alreadyBoundToThisDept": "Device is already bound to this department",
+      "alreadyBoundToThisDept": "Already bound to this department",
       "bindSuccess": "Bound successfully",
       "bindFailed": "Binding failed",
       "requestError": "Request error",
@@ -554,6 +555,36 @@
             "isDeleted": "Deleted Status"
           }
         }
+      }
+    },
+    "valve": {
+      "toolbar": {
+        "pipelineName": "Pipeline Name",
+        "valveNumber": "Valve Number",
+        "valveName": "Valve Name",
+        "branchCompany": "Branch Company",
+        "region": "Region",
+        "dept": "Department",
+        "startTime": "Start Time",
+        "endTime": "End Time"
+      },
+      "table": {
+        "title": "Valve List",
+        "index": "No.",
+        "pipelineName": "Pipeline Name",
+        "valveNumber": "Valve Number",
+        "valveName": "Valve Name",
+        "coordinatePosition": "Coordinate Position",
+        "branchCompany": "Branch Company",
+        "region": "Region",
+        "tubeBore": "Pipe Diameter",
+        "tubeMaterial": "Pipe Material",
+        "xcoordinate": "Longitude",
+        "ycoordinate": "Latitude",
+        "createdAt": "Created Time",
+        "loading": "Loading...",
+        "noData": "No Data",
+        "coordinate": "Coordinates"
       }
     }
   }

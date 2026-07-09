@@ -70,9 +70,9 @@ const deviceSettingsConfig = {
   },
 
   toolbar: [
-    { key: "deviceNumber", label: t('toolbar.deviceNumber'), type: "input" },
-    { key: "startTime", label: t('toolbar.startTime'), type: "date" },
-    { key: "endTime", label: t('toolbar.endTime'), type: "date" }
+    { key: "deviceNumber", labelKey: 'toolbar.deviceNumber', type: "input" },
+    { key: "startTime", labelKey: 'toolbar.startTime', type: "date" },
+    { key: "endTime", labelKey: 'toolbar.endTime', type: "date" }
   ]
 }as const;
 

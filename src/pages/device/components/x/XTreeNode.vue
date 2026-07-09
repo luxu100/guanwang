@@ -42,7 +42,7 @@
 import { computed, ref } from "vue";
 
 export interface PartitionNode {
-  id: number | string;
+  id: number;
   name: string;
   children?: PartitionNode[];
 }

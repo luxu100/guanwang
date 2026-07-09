@@ -9,7 +9,7 @@
           class="filter-group"
       >
 
-        <text class="filter-label">{{ item.label }}</text>
+        <text class="filter-label">{{t(item.labelKey)}}</text>
 
         <!-- input -->
         <input
@@ -37,8 +37,8 @@
             v-else-if="item.type === 'date'"
             :model-value="String(model[item.key] ?? '')"
             class="filter-datetime"
-            :title="item.label"
-            :placeholder="item.label"
+            :title="t(item.labelKey)"
+            :placeholder="t(item.labelKey)"
         />
       </view>
 
@@ -75,9 +75,9 @@ type Option = { label: string; value: string | number };
 
 type DictKey = ""
 type Field =
-    | { key: string; label: string; type: "input" }
-    | { key: string; label: string; type: "date" }
-    | { key: string; label: string; type: "select"; dict: DictKey };
+    | { key: string; labelKey: string; type: "input" }
+    | { key: string; labelKey: string; type: "date" }
+    | { key: string; labelKey: string; type: "select"; dict: DictKey };
 
 type DeviceForm = Record<string, string | number>;
 

@@ -108,7 +108,7 @@
       v-model:visible="showMap"
       :lng="lng"
       :lat="lat"
-      title="设备坐标"
+      :title="t('map.dialogTitle')"
   />
 </template>
 <script setup lang="ts">
