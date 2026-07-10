@@ -3,10 +3,13 @@
  *
  * 页面层应优先调用这里导出的语义化函数，避免在 .vue 文件中直接拼接接口地址。
  */
-import { createCrudService, getRequest, postRequest } from "@/services/shared/crud";
+import { createCrudService } from "@/services/shared/crud";
+import { downloadBinaryFile } from "@/utils/download";
+import { TOKEN_KEY, TOKEN_PREFIX_KEY } from "@/utils/request";
 
 const samplingAudioApi = createCrudService("/api/sampling-audio");
 const samplingDetailApi = createCrudService("/api/sampling-detail");
+const dataQueryAudioApi = createCrudService("/api/data-query/audio");
 
 export const getAudioDataPage = samplingAudioApi.getPage;
 export const getAudioDataList = samplingAudioApi.getList;
@@ -16,20 +19,47 @@ export const getSamplingDetailPage = samplingDetailApi.getPage;
 export const getSamplingDetailList = samplingDetailApi.getList;
 export const getSamplingDetailDetail = samplingDetailApi.getDetail;
 
-export function getDataQueryAudioPage(data) {
-  return postRequest("/api/data-query/audio/page", data);
+export const getDataQueryAudioPage = dataQueryAudioApi.getPage;
+export const getDataQueryAudioDetail = dataQueryAudioApi.getDetail;
+
+export function getAudioWav(id, download = false) {
+  if (download) {
+    return downloadBinaryFile(`/api/sampling-audio/${id}/wav?download=true`, {
+      filename: `audio_${id}.wav`,
+      mimeType: "audio/wav",
+    });
+  }
+  return getAudioWavArrayBuffer(id);
 }
 
-export function getDataQueryAudioDetail(audioId) {
-  return getRequest(`/api/data-query/audio/${audioId}`);
+function getAudioWavArrayBuffer(id) {
+  const url = `/api/sampling-audio/${id}/wav?download=false`;
+  const header = buildAuthHeader();
+
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url,
+      method: "GET",
+      responseType: "arraybuffer",
+      header,
+      success(res) {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(res.data);
+        } else {
+          reject({ code: res.statusCode, msg: "请求失败" });
+        }
+      },
+      fail(err) { reject(err); },
+    });
+  });
 }
 
-export function getSamplingAudioWav(id, params) {
-  return getRequest(`/api/sampling-audio/${id}/wav`, params);
-}
-
-export function migrateAudioBinToTxt(data) {
-  return postRequest("/api/admin/audio/migrate-bin-to-txt", data);
+function buildAuthHeader() {
+  const token = uni.getStorageSync(TOKEN_KEY);
+  const tokenPrefix = uni.getStorageSync(TOKEN_PREFIX_KEY);
+  if (!token) return {};
+  const prefix = typeof tokenPrefix === "string" ? tokenPrefix.trim() : "";
+  return { Authorization: prefix ? `${prefix} ${token}` : token };
 }
 
 export default {
@@ -39,8 +69,7 @@ export default {
   getSamplingDetailPage,
   getSamplingDetailList,
   getSamplingDetailDetail,
-  getDataQueryAudioPage,
-  getDataQueryAudioDetail,
-  getSamplingAudioWav,
-  migrateAudioBinToTxt,
+	getDataQueryAudioPage,
+	getDataQueryAudioDetail,
+  getAudioWav,
 };
