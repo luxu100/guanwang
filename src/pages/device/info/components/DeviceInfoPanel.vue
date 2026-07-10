@@ -55,6 +55,7 @@ import {
   getDeptByIdT
 } from '@/services/device/info.typed';
 import {createScopedT} from "@/i18n";
+import {formatDate} from "@/utils/time";
 const ti = createScopedT("devicePage.info");
 const ts = createScopedT("devicePage.status");
 
@@ -102,43 +103,72 @@ interface FieldConfig {
   dict?: string;         // 对应 DICT_MAPS 的 key
 }
 
-// 基础信息
-const baseFieldsConfig: FieldConfig[] = [
-  { key: 'deviceNumber', label: ti('fields.base.deviceNumber'), type: 'text' },
-  { key: 'productName', label: ti('fields.base.productName'), type: 'text' },
-  { key: 'deviceImei', label: ti('fields.base.deviceImei'), type: 'text' },
-  { key: 'deviceImsi', label: ti('fields.base.deviceImsi'), type: 'text' },
-  { key: 'serialNumber', label: ti('fields.base.serialNumber'), type: 'text' },
-  { key: 'hardwareVersion', label: ti('fields.base.hardwareVersion'), type: 'text' },
-  { key: 'softwareVersion', label: ti('fields.base.softwareVersion'), type: 'text' },
-  { key: 'factoryTime', label: ti('fields.base.factoryTime'), type: 'date' }
-];
-// 安装信息
-const installFieldsConfig: FieldConfig[] = [
-  { key: 'installState', label: ti('fields.install.installState'), type: 'dict', dict: 'installState' },
-  { key: 'installMode', label: ti('fields.install.installMode'), type: 'dict', dict: 'installMode' },
-  { key: 'installAddress', label: ti('fields.install.installAddress'), type: 'text' },
-  { key: 'installLongitude', label: ti('fields.install.installLongitude'), type: 'text' },
-  { key: 'installLatitude', label: ti('fields.install.installLatitude'), type: 'text' },
-  { key: 'tubeGroup', label: ti('fields.install.tubeGroup'), type: 'text' },
-  { key: 'tubeOrder', label: ti('fields.install.tubeOrder'), type: 'text' }
-];
-// 运行状态
-const statusFieldsConfig: FieldConfig[] = [
+// 设备详情
+const deviceFieldsConfig: FieldConfig[] = [
+  { key: 'deviceNumber', label: ti('fields.device.deviceNumber'), type: 'text' },
+  { key: 'deviceAlias', label: ti('fields.device.deviceAlias'), type: 'text' },
+  { key: 'deviceType', label: ti('fields.device.deviceType'), type: 'text' },
+  { key: 'nbNumber', label: ti('fields.device.nbNumber'), type: 'text' },
+  { key: 'deviceImei', label: ti('fields.device.deviceImei'), type: 'text' },
+  { key: 'deviceImsi', label: ti('fields.device.deviceImsi'), type: 'text' },
+  { key: 'serialNumber', label: ti('fields.device.serialNumber'), type: 'text' },
+  { key: 'hardwareVersion', label: ti('fields.device.hardwareVersion'), type: 'text' },
+  { key: 'softwareVersion', label: ti('fields.device.softwareVersion'), type: 'text' },
+  { key: 'factoryTime', label: ti('fields.device.factoryTime'), type: 'date' },
   { key: 'enableState', label: ti('fields.status.enableState'), type: 'dict', dict: 'enableState' },
   { key: 'onlineStatus', label: ti('fields.status.onlineStatus'), type: 'dict', dict: 'onlineStatus' },
   { key: 'leakStatus', label: ti('fields.status.leakStatus'), type: 'dict', dict: 'leakStatus' },
   { key: 'leakProperty', label: ti('fields.status.leakProperty'), type: 'text' },
   { key: 'lastSamplingTime', label: ti('fields.status.lastSamplingTime'), type: 'text' },
-  { key: 'observeDay', label: ti('fields.status.observeDay'), type: 'date' }
+  { key: 'observeDay', label: ti('fields.status.observeDay'), type: 'date' },
+  { key: 'installState', label: ti('fields.install.installState'), type: 'dict', dict: 'installState' },
+  { key: 'installMode', label: ti('fields.install.installMode'), type: 'dict', dict: 'installMode' },
+  { key: 'installAddress', label: ti('fields.install.installAddress'), type: 'text' },
+  { key: 'installLongitude', label: ti('fields.install.installLongitude'), type: 'text' },
+  { key: 'installLatitude', label: ti('fields.install.installLatitude'), type: 'text' }
 ];
 
-// 管线信息
+
+// 通信与协议
+const communicationFieldsConfig: FieldConfig[] = [
+  { key: 'wifiName', label: ti('fields.communication.wifiName'), type: 'text' },
+  { key: 'wifiMac', label: ti('fields.communication.wifiMac'), type: 'text' },
+  { key: 'serverIp', label: ti('fields.communication.serverIp'), type: 'text' },
+  { key: 'serverPort', label: ti('fields.communication.serverPort'), type: 'text' },
+  { key: 'tcpOnlineStatus', label: ti('fields.communication.tcpOnlineStatus'), type: 'dict', dict: 'onlineStatus' },
+  { key: 'tcpRemoteIp', label: ti('fields.communication.tcpRemoteIp'), type: 'text' },
+  { key: 'tcpRemotePort', label: ti('fields.communication.tcpRemotePort'), type: 'text' },
+  { key: 'tcpSessionId', label: ti('fields.communication.tcpSessionId'), type: 'text' },
+  { key: 'tcpConnectedAt', label: ti('fields.communication.tcpConnectedAt'), type: 'date' },
+  { key: 'tcpLastSeenAt', label: ti('fields.communication.tcpLastSeenAt'), type: 'date' },
+  { key: 'aepProtocol', label: ti('fields.communication.aepProtocol'), type: 'text' },
+  { key: 'commandSendway', label: ti('fields.communication.commandSendway'), type: 'text' },
+  { key: 'algorithmType', label: ti('fields.communication.algorithmType'), type: 'text' },
+  { key: 'algorithmVersion', label: ti('fields.communication.algorithmVersion'), type: 'text' },
+  { key: 'loraSignalLevel', label: ti('fields.communication.loraSignalLevel'), type: 'text' },
+  { key: 'pressureSensorModel', label: ti('fields.communication.pressureSensorModel'), type: 'text' },
+  { key: 'pressureSensorSerial', label: ti('fields.communication.pressureSensorSerial'), type: 'text' }
+];
+
+// 管网信息
 const tubeFieldsConfig: FieldConfig[] = [
   { key: 'tubeGroup', label: ti('fields.tube.tubeGroup'), type: 'text' },
   { key: 'tubeName', label: ti('fields.tube.tubeName'), type: 'text' },
   { key: 'tubeType', label: ti('fields.tube.tubeType'), type: 'dict', dict: 'tubeType' },
-  { key: 'deptName', label: ti('fields.tube.deptName'), type: 'text' }
+  { key: 'tubeOrder', label: ti('fields.tube.tubeOrder'), type: 'text' },
+  { key: 'tubeMaterial', label: ti('fields.tube.tubeMaterial'), type: 'text' },
+  { key: 'tubeBore', label: ti('fields.tube.tubeBore'), type: 'text' },
+  { key: 'tubeNumber', label: ti('fields.tube.tubeNumber'), type: 'text' }
+];
+
+// 产品信息
+const productFieldsConfig: FieldConfig[] = [
+  { key: 'productName', label: ti('fields.product.productName'), type: 'text' }
+];
+
+// 组织信息
+const deptFieldsConfig: FieldConfig[] = [
+  { key: 'deptName', label: ti('fields.dept.deptName'), type: 'text' }
 ];
 
 // ================= 3. 核心解析逻辑 =================
@@ -174,30 +204,6 @@ const resolveFields = (configs: FieldConfig[]): { key: string; label: string; va
   });
 };
 
-function formatDate(
-    dateStr: string | number | Date | undefined | null,
-    format: string = 'YYYY-MM-DD HH:mm:ss'
-): string {
-  if (!dateStr) return '--';
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return '--';
-
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
-
-  return format
-      .replace('YYYY', String(year))
-      .replace('MM', month)
-      .replace('DD', day)
-      .replace('HH', hours)
-      .replace('mm', minutes)
-      .replace('ss', seconds);
-}
-
 // ================= 4. 组件基础逻辑 =================
 interface Props {
   visible: boolean;
@@ -214,27 +220,36 @@ const emit = defineEmits<{
   (e: 'edit', data: Partial<Device>): void;
 }>();
 
-const product = ref<DeviceProduct>();
-const tube = ref<TubeNetwork>();
-const dept = ref<Dept>();
-
 const activeTab = ref('base');
 
 const detailTabs = [
-  { label: ti('tabs.base'), value: 'base' },
-  { label: ti('tabs.install'), value: 'install' },
-  { label: ti('tabs.status'), value: 'status' },
-  { label: ti('tabs.tube'), value: 'tube' }
+  { label: ti('tabs.device'), value: 'device' },
+  { label: ti('tabs.communication'), value: 'communication' },
+  { label: ti('tabs.tube'), value: 'tube' },
+  { label: ti('tabs.product'), value: 'product' },
+  { label: ti('tabs.dept'), value: 'dept' }
 ];
 
 // 根据当前激活的 Tab，动态返回对应的字段列表
 const currentFields = computed(() => {
   switch (activeTab.value) {
-    case 'base': return resolveFields(baseFieldsConfig);
-    case 'install': return resolveFields(installFieldsConfig);
-    case 'status': return resolveFields(statusFieldsConfig);
-    case 'tube': return resolveFields(tubeFieldsConfig);
-    default: return [];
+    case 'device':
+      return resolveFields(deviceFieldsConfig);
+
+    case 'communication':
+      return resolveFields(communicationFieldsConfig);
+
+    case 'tube':
+      return resolveFields(tubeFieldsConfig);
+
+    case 'product':
+      return resolveFields(productFieldsConfig);
+
+    case 'dept':
+      return resolveFields(deptFieldsConfig);
+
+    default:
+      return [];
   }
 });
 
@@ -277,23 +292,45 @@ watch(
     { immediate: true }
 );
 
+const product = ref<DeviceProduct>();
+const tube = ref<TubeNetwork>();
+const dept = ref<Dept>();
+
 async function loadRelationData(device: Partial<Device>) {
-  if (!device?.id) return;
-
-  const deptId = device.deptId;
-
-  const [productRes, deptRes, tubeListRes] = await Promise.all([
-    device.productId ? getDeviceProductByIdT(device.productId) : null,
-    deptId ? getDeptByIdT(deptId) : null,
-    device.tubeGroup ? getTubeNetworkListT() : null
-  ]);
-
-  product.value = productRes?.data as DeviceProduct;
-  dept.value = deptRes?.data as Dept;
-  const tubeList = (tubeListRes?.data ?? []) as TubeNetwork[];
-  tube.value = tubeList.find((item) => {
-    return String(item.id) === String(device.tubeGroup) || String(item.tubeName) === String(device.tubeGroup);
-  });
+  // if (!device.id) return;
+  //
+  //
+  // const [
+  //   productRes,
+  //   deptRes,
+  //   tubeRes
+  // ] = await Promise.all([
+  //   device.productId
+  //       ? getDeviceProductByIdT(device.productId)
+  //       : null,
+  //
+  //   device.deptId
+  //       ? getDeptByIdT(device.deptId)
+  //       : null,
+  //
+  //   device.tubeGroup
+  //       ? getTubeNetworkListT()
+  //       : null
+  // ]);
+  //
+  //
+  // product.value = productRes?.data as DeviceProduct;
+  //
+  // dept.value = deptRes?.data as Dept;
+  //
+  //
+  // const tubeList = (tubeRes?.data ?? []) as TubeNetwork[];
+  //
+  // tube.value = tubeList.find(item =>
+  //     String(item.id) === String(device.tubeGroup)
+  //     ||
+  //     String(item.tubeName) === String(device.tubeGroup)
+  // );
 }
 </script>
 
@@ -316,7 +353,7 @@ async function loadRelationData(device: Partial<Device>) {
 .detail-tabs {
   flex: none;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 6px;
   height: 54px;
   padding: 8px;

@@ -103,6 +103,7 @@ import type {Pagination} from "@/types/api";
 import XPaginationBar from "@/pages/device/components/x/XPaginationBar.vue";
 
 import {createScopedT} from "@/i18n";
+import {formatDate} from "../../../../utils/time";
 const t = createScopedT("devicePage");
 
 const props = defineProps<{
@@ -139,30 +140,6 @@ function selectRow(deviceSetting: DeviceSetting) {
   selectedId.value = deviceSetting.id ?? null;
   emit('view', deviceSetting);
   emit('select', deviceSetting);
-}
-
-function formatDate(
-    dateStr: string | number | Date | undefined | null,
-    format: string = 'YYYY-MM-DD HH:mm:ss'
-): string {
-  if (!dateStr) return '-';
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return '-';
-
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
-
-  return format
-      .replace('YYYY', String(year))
-      .replace('MM', month)
-      .replace('DD', day)
-      .replace('HH', hours)
-      .replace('mm', minutes)
-      .replace('ss', seconds);
 }
 
 // 过滤

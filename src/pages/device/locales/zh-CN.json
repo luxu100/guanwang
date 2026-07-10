@@ -208,7 +208,9 @@
       "leakStatus": "渗漏状态",
       "lastSamplingTime": "最后采样时间",
       "onlineStatus": "在线状态",
-      "mapTitle": "设备坐标"
+      "mapTitle": "设备坐标",
+      "deviceAlias": "设备别名",
+      "factoryTime": "出厂时间"
     },
     "addSchema": {
       "basicInfo": {
@@ -280,51 +282,91 @@
       "title": "设备详情",
 
       "tabs": {
-        "base": "基础信息",
-        "install": "安装信息",
-        "status": "运行状态",
-        "tube": "管线信息"
+        "device": "设备详情",
+        "communication": "通信与协议",
+        "tube": "管网信息",
+        "product": "产品信息",
+        "dept": "组织信息"
       },
 
       "empty": "暂无数据",
 
       "fields": {
-        "base": {
+
+        "device": {
           "deviceNumber": "设备编号",
-          "productName": "产品型号",
+          "deviceAlias": "设备别名",
+          "deviceType": "产品型号",
+          "nbNumber": "NB编号",
           "deviceImei": "IMEI",
           "deviceImsi": "IMSI",
           "serialNumber": "序列号",
           "hardwareVersion": "硬件版本",
           "softwareVersion": "软件版本",
-          "factoryTime": "出厂时间"
-        },
+          "factoryTime": "出厂时间",
 
-        "install": {
-          "installState": "安装状态",
-          "installMode": "安装模式",
-          "installAddress": "安装地址",
-          "installLongitude": "经度",
-          "installLatitude": "纬度",
-          "tubeGroup": "管组编号",
-          "tubeOrder": "管线排序"
-        },
-
-        "status": {
           "enableState": "启用状态",
           "onlineStatus": "在线状态",
           "leakStatus": "渗漏状态",
           "leakProperty": "特征值",
           "lastSamplingTime": "最后采样时间",
-          "observeDay": "观测天数"
+          "observeDay": "观测天数",
+
+          "installState": "安装状态",
+          "installMode": "安装模式",
+          "installAddress": "安装地址",
+          "installLongitude": "经度",
+          "installLatitude": "纬度"
         },
+
+
+        "communication": {
+          "wifiName": "WIFI名称",
+          "wifiMac": "WIFI地址",
+
+          "serverIp": "服务器IP",
+          "serverPort": "服务器端口",
+
+          "tcpOnlineStatus": "TCP状态",
+          "tcpRemoteIp": "TCP远程IP",
+          "tcpRemotePort": "TCP远程端口",
+          "tcpSessionId": "TCP会话ID",
+          "tcpConnectedAt": "连接时间",
+          "tcpLastSeenAt": "最后通信时间",
+
+          "aepProtocol": "AEP协议",
+          "commandSendway": "命令发送方式",
+
+          "algorithmType": "算法类型",
+          "algorithmVersion": "算法版本",
+
+          "loraSignalLevel": "LoRa信号",
+
+          "pressureSensorModel": "压力传感器型号",
+          "pressureSensorSerial": "压力传感器编号"
+        },
+
 
         "tube": {
           "tubeGroup": "管组编号",
-          "tubeName": "管线名称",
-          "tubeType": "管线类型",
-          "deptName": "分区信息"
+          "tubeName": "管网名称",
+          "tubeType": "管网类型",
+          "tubeOrder": "管线排序",
+          "tubeMaterial": "管材",
+          "tubeBore": "管径",
+          "tubeNumber": "管道编号"
+        },
+
+
+        "product": {
+          "productName": "产品名称"
+        },
+
+
+        "dept": {
+          "deptName": "所属部门"
         }
+
       }
     },
     "maintain": {

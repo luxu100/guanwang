@@ -7,33 +7,78 @@ export interface Device {
     deviceImei: string;
     deviceImsi: string;
     serialNumber: string;
+
     factoryTime?: string;
+
     enableState: number;
     installState: number;
     installMode: number;
+
     installAddress: string;
     installLongitude: number;
     installLatitude: number;
+
     tubeGroup: string;
     tubeOrder: number;
+
     hardwareVersion: string;
     softwareVersion: string;
+
     leakStatus: number;
     leakProperty: number;
+
     lastSamplingTime?: string;
+
     observeDay: number;
     commandSendway: number;
+
     onlineStatus: number;
+
     wifiName?: string;
     wifiMac?: string;
+
     serverIp?: string;
     serverPort?: string;
+
     loraSignalLevel?: string;
+
     pressureSensorModel?: string;
     pressureSensorSerial?: string;
+
     createUser?: string;
+
     createdAt?: string;
     updatedAt?: string;
+
+    // 新增字段
+    isDeleted?: boolean;
+
+    // TCP连接信息
+    tcpOnlineStatus?: number;
+    tcpRemoteIp?: string;
+    tcpRemotePort?: number;
+    tcpSessionId?: string;
+    tcpConnectedAt?: string;
+    tcpLastSeenAt?: string;
+
+    // 协议
+    aepProtocol?: string;
+
+    // 算法配置
+    algorithmType?: string;
+    algorithmVersion?: string;
+
+    // 阀门信息
+    valveNumber?: string;
+    valveId?: number;
+
+    // 管道信息
+    tubeMaterial?: string;
+    tubeBore?: string;
+    tubeNumber?: string;
+
+    // 设备别名
+    deviceAlias?: string;
 }
 
 export interface DeviceCreateDTO {
@@ -110,14 +155,34 @@ export interface DeviceListItem {
 export interface DeviceProduct {
     id: number;
 
-    createdAt: string;
-    updatedAt: string;
-    isDeleted: boolean;
+    // 基础信息
+    productCode?: string;
+    productName?: string;
 
-    productCode: string;
-    productName: string;
-    masterKey: string;
-    protocolVersion: string;
+    // 主密钥
+    masterKey?: string;
+
+    // 协议
+    protocolVersion?: string;
+
+
+    // AEP配置
+    aepProductId?: number;
+    aepProtocol?: string;
+    aepMasterKey?: string;
+    aepTransparent?: number;
+    aepAuthorization?: string;
+    aepAddress?: string;
+    aepPort?: number;
+
+
+    // 时间
+    createdAt?: string;
+    updatedAt?: string;
+
+
+    // 删除标识
+    isDeleted?: boolean;
 }
 
 export interface DeviceProtocol {
@@ -157,33 +222,73 @@ export interface DeviceProtocolCreateFrom {
 
 export interface Dept {
     id: number;
+
+    // 基础信息
     deptName: string;
-    parentId: number;
+    parentId?: number;
     description?: string;
     administrator?: string;
     sort?: number;
     status?: number;
+
+    // 区域信息
+    regionType?: string;
+    regionCode?: string;
+    regionScope?: string;
+    regionColor?: string;
+    regionCenter?: string;
+
+    // GIS配置
+    zoomLevel?: number;
+    gisVisible?: boolean;
+    gisMinLevel?: number;
+    gisMaxLevel?: number;
+    regionIcon?: string;
+
+    // 组织
+    organizationId?: number;
+
+    // 时间
     createdAt?: string;
     updatedAt?: string;
+
+    // 删除标识
     isDeleted?: boolean;
 }
 
 export interface TubeNetwork {
     id: number;
+
+    // 基础信息
     tubeName: string;
-    parentId: number;
+    parentId?: number;
     description?: string;
+
+    // 管网信息
     administrator?: string;
-    tubeType?: number;
+    tubeType: number;
     tubeShape?: number;
     tubeOrder?: number;
+
+    // 井信息
     wellNumber?: string;
     isStartEnd?: number;
+
+    // 状态
     status?: number;
+
+    // 组织
     deptId?: number;
+
+    // 备注
     remark?: string;
+
+    // 创建信息
+    createUserId?: number;
     createdAt?: string;
     updatedAt?: string;
+
+    // 删除标识
     isDeleted?: boolean;
 }
 

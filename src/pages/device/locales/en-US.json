@@ -208,7 +208,9 @@
       "leakStatus": "Leak Status",
       "lastSamplingTime": "Last Sampling Time",
       "onlineStatus": "Online Status",
-      "mapTitle": "Device Location"
+      "mapTitle": "Device Location",
+      "deviceAlias": "Device Alias",
+      "factoryTime": "Manufacturing Time"
     },
     "addSchema": {
       "basicInfo": {
@@ -280,50 +282,89 @@
       "title": "Device Details",
 
       "tabs": {
-        "base": "Basic Info",
-        "install": "Installation",
-        "status": "Status",
-        "tube": "Pipeline"
+        "device": "Device",
+        "communication": "Communication & Protocol",
+        "tube": "Pipeline",
+        "product": "Product",
+        "dept": "Organization"
       },
 
-      "empty": "No data available",
+      "empty": "No Data",
 
       "fields": {
-        "base": {
+
+        "device": {
           "deviceNumber": "Device Number",
-          "productName": "Product Model",
+          "deviceAlias": "Device Alias",
+          "deviceType": "Product Model",
+          "nbNumber": "NB Number",
           "deviceImei": "IMEI",
           "deviceImsi": "IMSI",
           "serialNumber": "Serial Number",
           "hardwareVersion": "Hardware Version",
           "softwareVersion": "Software Version",
-          "factoryTime": "Factory Time"
-        },
+          "factoryTime": "Manufacture Date",
 
-        "install": {
-          "installState": "Install State",
-          "installMode": "Install Mode",
-          "installAddress": "Address",
-          "installLongitude": "Longitude",
-          "installLatitude": "Latitude",
-          "tubeGroup": "Tube Group",
-          "tubeOrder": "Tube Order"
-        },
-
-        "status": {
-          "enableState": "Enable State",
+          "enableState": "Enable Status",
           "onlineStatus": "Online Status",
           "leakStatus": "Leak Status",
-          "leakProperty": "Feature Value",
+          "leakProperty": "Leak Characteristic",
           "lastSamplingTime": "Last Sampling Time",
-          "observeDay": "Observation Days"
+          "observeDay": "Observation Days",
+
+          "installState": "Installation Status",
+          "installMode": "Installation Mode",
+          "installAddress": "Installation Address",
+          "installLongitude": "Longitude",
+          "installLatitude": "Latitude"
         },
 
+
+        "communication": {
+          "wifiName": "WiFi Name",
+          "wifiMac": "WiFi MAC",
+
+          "serverIp": "Server IP",
+          "serverPort": "Server Port",
+
+          "tcpOnlineStatus": "TCP Status",
+          "tcpRemoteIp": "TCP Remote IP",
+          "tcpRemotePort": "TCP Remote Port",
+          "tcpSessionId": "TCP Session ID",
+          "tcpConnectedAt": "TCP Connected Time",
+          "tcpLastSeenAt": "TCP Last Seen Time",
+
+          "aepProtocol": "AEP Protocol",
+          "commandSendway": "Command Send Method",
+
+          "algorithmType": "Algorithm Type",
+          "algorithmVersion": "Algorithm Version",
+
+          "loraSignalLevel": "LoRa Signal Level",
+
+          "pressureSensorModel": "Pressure Sensor Model",
+          "pressureSensorSerial": "Pressure Sensor Serial Number"
+        },
+
+
         "tube": {
-          "tubeGroup": "Tube Group",
+          "tubeGroup": "Pipeline Group",
           "tubeName": "Pipeline Name",
           "tubeType": "Pipeline Type",
-          "deptName": "Region"
+          "tubeOrder": "Pipeline Order",
+          "tubeMaterial": "Pipeline Material",
+          "tubeBore": "Pipeline Diameter",
+          "tubeNumber": "Pipeline Number"
+        },
+
+
+        "product": {
+          "productName": "Product Name"
+        },
+
+
+        "dept": {
+          "deptName": "Department Name"
         }
       }
     },

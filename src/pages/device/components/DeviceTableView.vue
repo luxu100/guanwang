@@ -11,6 +11,7 @@
           <text v-if="columnVisible.index" class="data-cell data-cell--index">{{ tc('table.index') }}</text>
           <text v-if="columnVisible.deviceNumber" class="data-cell data-cell--device">{{ t('deviceTable.deviceNumber') }}</text>
           <text v-if="columnVisible.deviceType" class="data-cell data-cell--type">{{ t('deviceTable.deviceType') }}</text>
+          <text v-if="columnVisible.deviceAlias" class="data-cell data-cell--device">{{ t('deviceTable.deviceAlias') }}</text>
           <text v-if="columnVisible.enableState" class="data-cell data-cell--status">{{ t('deviceTable.enableState') }}</text>
           <text v-if="columnVisible.installState" class="data-cell data-cell--status">{{ t('deviceTable.installState') }}</text>
           <text v-if="columnVisible.installMode" class="data-cell data-cell--status">{{ t('deviceTable.installMode') }}</text>
@@ -20,6 +21,7 @@
           <text v-if="columnVisible.leakStatus" class="data-cell data-cell--status">{{ t('deviceTable.leakStatus') }}</text>
           <text v-if="columnVisible.lastSamplingTime" class="data-cell data-cell--time">{{ t('deviceTable.lastSamplingTime') }}</text>
           <text v-if="columnVisible.onlineStatus" class="data-cell data-cell--status">{{ t('deviceTable.onlineStatus') }}</text>
+          <text v-if="columnVisible.factoryTime" class="data-cell data-cell--time">{{ t('deviceTable.factoryTime') }}</text>
         </view>
 
         <view v-if="loading" class="table-state">{{ tc('table.loading') }}</view>
@@ -39,6 +41,9 @@
 
           <text v-if="columnVisible.deviceNumber" class="data-cell data-cell--device">{{ device.deviceNumber }}</text>
           <text v-if="columnVisible.deviceType" class="data-cell data-cell--type">{{ device.deviceType }}</text>
+          <text v-if="columnVisible.deviceAlias" class="data-cell data-cell--device">
+            {{ device.deviceAlias || '-' }}
+          </text>
           <text
               v-if="columnVisible.enableState" class="data-cell data-cell--status"
               :class="{
@@ -91,6 +96,9 @@
           >
             {{ onlineStatusMap[device.onlineStatus] || '-' }}
           </text>
+          <text v-if="columnVisible.factoryTime" class="data-cell data-cell--time">
+            {{ formatDate(device.factoryTime) }}
+          </text>
         </view>
       </view>
     </scroll-view>
@@ -118,44 +126,63 @@ import type {Pagination} from "@/types/api";
 import XMapPopup from "@/pages/device/components/x/XMapPopup.vue";
 import XPaginationBar from "@/pages/device/components/x/XPaginationBar.vue";
 import {createScopedT} from "@/i18n";
+import {formatDate} from "../../../utils/time";
 const t = createScopedT("devicePage");
 const tc = createScopedT("devicePage.common");
 
 const props = defineProps<{
   devices: Device[];
   pagination: Pagination;
-  mode:"info" | "maintenance" | "status";
+  mode:"info" | "maintenance" | "status" | "protocol";
 }>();
 
-const columnVisible = computed(()=>{
-  return {
+const columnVisible = computed(() => ({
+  // 基础
+  index: true,
+  deviceNumber: true,
+  deviceType: true,
 
-    // 基础字段
-    index: true,
-    deviceNumber: true,
-    deviceType: true,
+  deviceAlias: ['info', 'maintenance', 'protocol'].includes(props.mode),
+  factoryTime: props.mode === 'info',
 
-    // 状态
-    enableState: props.mode === "info" || props.mode === "status",
+  // 状态
+  enableState: ['info', 'status'].includes(props.mode),
+  installState: ['info', 'maintenance'].includes(props.mode),
+  installMode: ['info', 'maintenance'].includes(props.mode),
+  installAddress: ['info', 'maintenance'].includes(props.mode),
+  coordinate: ['info', 'maintenance'].includes(props.mode),
 
-    installState: props.mode === "info",
+  // 管道
+  tubeGroup: props.mode === 'info',
 
-    installMode: props.mode === "info" || props.mode === "maintenance",
+  // 泄漏
+  leakStatus: ['info', 'maintenance', 'status'].includes(props.mode),
 
-    installAddress: props.mode === "info" || props.mode === "maintenance",
+  // 数据
+  lastSamplingTime: ['info', 'maintenance', 'status'].includes(props.mode),
+  onlineStatus: true,
 
-    coordinate: props.mode === "info"|| props.mode === "maintenance",
+  // 协议
+  aepProtocol: props.mode === 'protocol',
+  hardwareVersion: props.mode === 'protocol',
+  softwareVersion: props.mode === 'protocol',
 
-    tubeGroup: props.mode === "info",
+  tcpOnlineStatus: props.mode === 'protocol',
+  tcpRemoteIp: props.mode === 'protocol',
+  tcpRemotePort: props.mode === 'protocol',
+  tcpConnectedAt: props.mode === 'protocol',
+  tcpLastSeenAt: props.mode === 'protocol',
 
-    leakStatus: props.mode === "info" || props.mode === "status",
+  // 算法
+  algorithmType: props.mode === 'protocol',
+  algorithmVersion: props.mode === 'protocol',
 
-    lastSamplingTime: props.mode === "info" || props.mode === "status",
-
-    onlineStatus: true
-
-  };
-});
+  // 设备扩展
+  valveNumber: props.mode === 'info',
+  tubeMaterial: props.mode === 'info',
+  tubeBore: props.mode === 'info',
+  tubeNumber: props.mode === 'info',
+}));
 
 const loading = ref(false);
 const enableStateMap = computed<Record<number, string>>(() => ({
@@ -201,30 +228,6 @@ function selectRow(device: Device) {
   selectedId.value = device.id;
   emit('view', device);
   emit('select', device);
-}
-
-function formatDate(
-    dateStr: string | number | Date | undefined | null,
-    format: string = 'YYYY-MM-DD HH:mm:ss'
-): string {
-  if (!dateStr) return '-';
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return '-';
-
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
-
-  return format
-      .replace('YYYY', String(year))
-      .replace('MM', month)
-      .replace('DD', day)
-      .replace('HH', hours)
-      .replace('mm', minutes)
-      .replace('ss', seconds);
 }
 
 // 过滤
