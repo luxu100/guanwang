@@ -216,6 +216,7 @@ import { filterMenuItemsByAccess, flattenMenuPaths, getMenuAccessSummary } from 
 import { TOKEN_KEY } from "@/utils/request";
 import LocaleLeakMap from "@/pages/leak-monitor/components/LocaleLeakMap.vue";
 import ValveView from "@/pages/device/valve/components/ValveView.vue";
+import DeviceProtocol from "@/pages/device/protocol/device-protocol.vue";
 interface MenuItem {
   label: string;
   path: string;
@@ -257,6 +258,7 @@ const menuItems: MenuItem[] = [
     children: [
       { label: "设备信息", path: "/pages/device/info/info", icon: "device", keywords: ["设备", "信息"] },
       { label: "拆装维护", path: "/pages/device/maintenance/maintenance", icon: "device", keywords: ["拆装", "维护"] },
+      { label: "协议绑定", path: "/pages/device/deviceProtocol/deviceProtocol", icon: "device", keywords: ["设备","协议"] },
       { label: "设备参数", path: "/pages/device/settings/settings", icon: "device", keywords: ["参数"] },
       { label: "阀门管理", path: "/pages/device/valve/valve", icon: "device", keywords: ["阀门"] },
     ],
@@ -371,6 +373,7 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/device/maintenance/maintenance": { component: DeviceManagementView, props: { mode: "maintenance" } },
   // "/pages/device/status/status": { component: DeviceManagementView, props: { mode: "status" } },
   "/pages/device/settings/settings": { component: DeviceSettingsView },
+  "/pages/device/deviceProtocol/deviceProtocol": { component: DeviceManagementView, props: { mode: "deviceProtocol" } },
   "/pages/device/valve/valve": { component: ValveView },
   "/pages/command/commandManage": { component: CommandManagePage },
   "/pages/command/commandConfiguration": { component: CommandConfigurationPage },

@@ -1,5 +1,5 @@
-import {createCrudServiceTyped} from "@/services/shared/crud.typed";
-import type {DeviceProtocol, ProtocolDefinition} from "@/services/device/types";
+import {createCrudServiceTyped, getRequestT} from "@/services/shared/crud.typed";
+import type {DeviceProtocol, DeviceProtocolRelationVO, ProtocolDefinition} from "@/services/device/types";
 
 const protocolDefinitionApi = createCrudServiceTyped<ProtocolDefinition>("/api/protocol-definition");
 
@@ -21,3 +21,11 @@ export const createDeviceProtocolT = deviceProtocolApi.create;
 export const updateDeviceProtocolT = deviceProtocolApi.update;
 export const deleteDeviceProtocolT = deviceProtocolApi.delete;
 export const batchDeviceDeleteProtocolT = deviceProtocolApi.batchDelete;
+
+export function getDeviceProtocolByDeviceId(deviceId: number) {
+    return getRequestT<DeviceProtocol[]>(`/api/device-protocol-relation/by-device/${deviceId}`);
+}
+
+export function getDeviceProtocolDetailByDeviceId(deviceId: number) {
+    return getRequestT<DeviceProtocolRelationVO[]>(`/api/device-protocol-relation/detail/by-device/${deviceId}`);
+}

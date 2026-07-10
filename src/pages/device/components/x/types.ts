@@ -26,7 +26,7 @@ export type Field =
     | { key: string; label?: string; labelKey: string; type: "select"; dict: string };
 
 export type DictItem = {
-    label: string;
+    label?: string;
     labelKey: string;
     value: any;
 };

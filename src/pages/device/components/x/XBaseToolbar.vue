@@ -6,7 +6,7 @@
 
       <view class="toolbar-row toolbar-row--filters">
 
-        <view class="filter-group">
+        <view  v-if="showFilterGroup"  class="filter-group">
 
           <view
               v-for="item in fields"
@@ -61,6 +61,8 @@
               :show-refresh="showRefresh"
               :can-delete="canDelete"
               :show-edit="showEdit"
+              :show-search="showSearch"
+              :show-reset="showReset"
               @search="$emit('search')"
               @reset="handleReset"
               @add="$emit('add')"
@@ -104,12 +106,19 @@ const props = withDefaults(defineProps<{
   canDelete?: boolean;
   showEdit?: boolean;
   visible?: boolean;
+  showFilterGroup?: boolean;
+  showSearch?: boolean;
+  showReset?: boolean;
 }>(), {
   showAdd: true,
   showDelete: true,
   showRefresh: true,
+  showSearch: true,
+  showReset: true,
   canDelete: true,
   visible: false,
+  showFilterGroup: true,
+  loading: false,
 });
 
 const emit = defineEmits([

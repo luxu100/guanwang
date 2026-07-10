@@ -162,6 +162,7 @@ import type {PartitionNode} from "@/pages/device/components/x/XTreeNode.vue";
 import {createScopedT} from "@/i18n";
 import {bindValveDevices, getDeptIdByDeviceId} from "@/services/device/dept-device.typed";
 import ValveTableDialog from "@/pages/device/valve/components/ValveTableDialog.vue";
+import DeviceProtocolPanel from "@/pages/device/protocol/components/DeviceProtocolPanel.vue";
 const t = createScopedT("devicePage");
 
 /**
@@ -252,7 +253,6 @@ const deviceModuleConfig = {
       { key: "endTime", labelKey: "fields.endTime", type: "date" },
     ],
 
-
     buttons: {
       add: false,
       edit: false,
@@ -303,6 +303,47 @@ const deviceModuleConfig = {
       export: false
     },
   },
+
+  deviceProtocol: {
+    panel: DeviceProtocolPanel,
+
+    searchForm: {
+      deviceNumber: "",
+      deviceType: "",
+      enableState: "",
+      onlineStatus: "",
+      leakStatus: "",
+      startTime: "",
+      endTime: "",
+      receiveStatus: "",
+      maintainType: ""
+    },
+
+    toolbar: [
+      { key: "deviceNumber", labelKey: "fields.deviceNumber", type: "input" },
+      { key: "deviceType", labelKey: "fields.deviceType", type: "select", dict: "product" },
+      { key: "onlineStatus", labelKey: "fields.onlineStatus", type: "select", dict: "online" },
+      { key: "enableState", labelKey: "fields.enableState", type: "select", dict: "enable" },
+      { key: "leakStatus", labelKey: "fields.leakStatus", type: "select", dict: "leak" },
+      { key: "startTime", labelKey: "fields.startTime", type: "date" },
+      { key: "endTime", labelKey: "fields.endTime", type: "date" },
+      { key: "maintainType", labelKey: "fields.maintainType", type: "select", dict: "maintain" },
+      { key: "receiveStatus", labelKey: "fields.receiveStatus", type: "select", dict: "receive" }
+    ],
+
+    buttons: {
+      add: false,
+      edit: false,
+      delete: false,
+      refresh: true,
+      bindDept: false,
+      bindValve: false,
+      import: false,
+      export: false
+    },
+  },
+
+
 } as const;
 
 /**
@@ -1020,11 +1061,15 @@ const toggleDetailPanel = () => {
 const layoutClass = computed(() => {
   if(props.mode === "info"){
     return "layout-split";
-  }else if(props.mode === "maintenance"){
-    return "layout-one-two";
   }else{
-    return "layout-equal";
+    return "layout-one-two"
   }
+  // else if(props.mode === "maintenance"){
+  //   return "layout-one-two";
+  // }
+  // else{
+  //   return "layout-equal";
+  // }
 });
 
 onMounted(() => {

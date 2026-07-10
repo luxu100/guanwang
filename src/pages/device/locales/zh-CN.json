@@ -591,6 +591,21 @@
         "noData": "暂无数据",
         "coordinate": "坐标位置"
       }
+    },
+    "deviceProtocol":{
+      "table": {
+        "title": "设备协议绑定",
+        "protocolCode": "协议编码",
+        "protocolName": "协议名称",
+        "protocolVersion": "协议版本",
+        "afn": "AFN",
+        "taskType": "任务类型",
+        "contentPrefix": "内容前缀",
+        "priority": "优先级",
+        "enabled": "状态",
+        "description": "描述",
+        "updatedAt": "更新时间"
+      }
     }
   }
 }

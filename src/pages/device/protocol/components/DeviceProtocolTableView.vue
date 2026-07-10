@@ -1,45 +1,40 @@
 <template>
   <view class="worksheet-table-panel">
-    <MaintenanceRecordToolbar
-        v-model="searchForm"
-        @search="handleSearch"
-        @reset="handleSearch"
-        @refresh="fetchMaintenanceRecords"
-        @add="handleAdd"
-        @delete="handleDelete"
-        @edit="handleEdit"
-        :visible="isToolbarVisible"
-    />
-
-    <XFloatingCollapseHandle v-if="isFloatingVisible"
-        v-model="isToolbarVisible"
-    />
+    <view class="toolbar-wrapper">
+      <DeviceProtocolToolbar
+          @add="handleAdd"
+          @delete="handleDelete"
+          @edit="handleEdit"
+          :visible="isToolbarVisible"
+      />
+    </view>
 
     <view class="table-head">
-      <text>{{ t("maintain.maintainTable.title") }}</text>
-      <text class="table-head__meta">  {{ t('common.pagination.totalRecords', { total: pagination.total }) }}</text>
+      <text>{{ t("deviceProtocol.table.title") }}</text>
+      <text class="table-head__meta">  {{ t('common.pagination.totalRecords', { total: deviceProtocolList.length }) }}</text>
     </view>
 
     <scroll-view class="table-scroll" scroll-x scroll-y>
       <view class="data-table">
         <view class="data-row data-row--header">
           <text class="data-cell data-cell--index">{{ t("common.table.index") }}</text>
-          <text class="data-cell data-cell--device">{{ t("maintain.maintainTable.deviceNumber") }}</text>
-          <text class="data-cell data-cell--type">{{ t("maintain.maintainTable.type") }}</text>
-          <text class="data-cell data-cell--time">{{ t("maintain.maintainTable.time") }}</text>
-          <text class="data-cell data-cell--address">{{ t("maintain.maintainTable.address") }}</text>
-          <text class="data-cell data-cell--status">{{ t("maintain.maintainTable.installMode") }}</text>
-          <text class="data-cell data-cell--number">{{ t("maintain.maintainTable.tubeGroup") }}</text>
-          <text class="data-cell data-cell--text">{{ t("maintain.maintainTable.tubeMaterial") }}</text>
-          <text class="data-cell data-cell--text">{{ t("maintain.maintainTable.tubeBore") }}</text>
-          <text class="data-cell data-cell--text">{{ t("maintain.maintainTable.remark") }}</text>
+          <text class="data-cell">{{ t("deviceProtocol.table.protocolCode") }}</text>
+          <text class="data-cell">{{ t("deviceProtocol.table.protocolName") }}</text>
+          <text class="data-cell">{{ t("deviceProtocol.table.protocolVersion") }}</text>
+          <text class="data-cell">{{ t("deviceProtocol.table.afn") }}</text>
+          <text class="data-cell">{{ t("deviceProtocol.table.taskType") }}</text>
+          <text class="data-cell">{{ t("deviceProtocol.table.contentPrefix") }}</text>
+          <text class="data-cell">{{ t("deviceProtocol.table.priority") }}</text>
+          <text class="data-cell">{{ t("deviceProtocol.table.enabled") }}</text>
+          <text class="data-cell">{{ t("deviceProtocol.table.description") }}</text>
+          <text class="data-cell">{{ t("deviceProtocol.table.updatedAt") }}</text>
         </view>
 
         <view v-if="loading" class="loading-mask">{{ t('common.table.loading') }}</view>
-        <view v-else-if="deviceList.length === 0" class="table-state">{{ t('common.table.empty') }}</view>
+        <view v-else-if="deviceProtocolList.length === 0" class="table-state">{{ t('common.table.empty') }}</view>
 
         <view
-            v-for="(record, index) in deviceList"
+            v-for="(record, index) in deviceProtocolList"
             :key="record.id"
             class="data-row"
             :class="{ 'data-row--active': selectedRecord?.id === record.id }"
@@ -47,71 +42,58 @@
         >
 
           <text class="data-cell data-cell--index">
-            {{ (pagination.current - 1) * pagination.size + index + 1 }}
+            {{ index + 1 }}
           </text>
 
-          <text class="data-cell data-cell--device">
-            {{ record.deviceNumber || '-' }}
+          <text class="data-cell">
+            {{ record.protocolCode || '-' }}
+          </text>
+
+          <text class="data-cell">
+            {{ record.protocolName || '-' }}
+          </text>
+
+          <text class="data-cell">
+            {{ record.protocolVersion || '-' }}
+          </text>
+
+          <text class="data-cell">
+            {{ record.afn || '-' }}
+          </text>
+
+          <text class="data-cell">
+            {{ record.taskType || '-' }}
+          </text>
+
+          <text class="data-cell">
+            {{ record.contentPrefix || '-' }}
+          </text>
+
+          <text class="data-cell">
+            {{ record.priority ?? '-' }}
           </text>
 
           <text
-              class="data-cell data-cell--type"
-              :class="getMaintainTypeMeta(record.maintainType!).className"
-          >
-            {{ getMaintainTypeMeta(record.maintainType!).label }}
-          </text>
-
-          <text class="data-cell data-cell--time">
-            {{ record.maintainTime || '-' }}
-          </text>
-
-          <text class="data-cell data-cell--address">
-            {{ record.maintainAddress || '-' }}
-          </text>
-
-          <text
-              class="data-cell data-cell--status"
+              class="data-cell"
               :class="{
-              'is-fixed': record.installMode === 0,
-              'is-mobile': record.installMode === 1
-            }"
+                'is-enabled': record.enabled,
+                'is-disabled': !record.enabled
+              }"
           >
-            {{
-              record.installMode === 0
-                  ? t("status.installMode.fixed")
-                  : record.installMode === 1
-                      ? t("status.installMode.mobile")
-                      : '-'
-            }}
+            {{ record.enabled ? '启用' : '禁用' }}
           </text>
 
-          <text class="data-cell data-cell--number">
-            {{ record.tubeGroup || '-' }}
+          <text class="data-cell">
+            {{ record.description || '-' }}
           </text>
 
-          <text class="data-cell data-cell--text">
-            {{ record.tubeMaterial || '-' }}
-          </text>
-
-          <text class="data-cell data-cell--text">
-            {{ record.tubeBore || '-' }}
-          </text>
-
-          <text class="data-cell data-cell--text">
-            {{ record.remark || '-' }}
+          <text class="data-cell">
+            {{ record.updatedAt || '-' }}
           </text>
 
         </view>
       </view>
     </scroll-view>
-
-    <XPaginationBar
-        :current="pagination.current"
-        :size="pagination.size"
-        :total="pagination.total"
-        @change-page="handlePageChange"
-        @change-size="handlePageSizeChange"
-    />
   </view>
 
   <XDynamicDialog
@@ -125,34 +107,32 @@
 </template>
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import type {Device, MaintenanceRecord,MaintenanceCreateForm} from '@/services/device/types';
-import type { Pagination } from '@/types/api';
+import type {
+  Device,
+  MaintenanceRecord,
+  MaintenanceCreateForm,
+  DeviceProtocol,
+  DeviceProtocolRelationVO, DeviceProtocolCreateFrom
+} from '@/services/device/types';
 import {
   createMaintenanceRecordT,
   deleteMaintenanceRecordT,
   getMaintenanceRecordPageT, updateMaintenanceRecordT
 } from "@/services/device/maintenance.typed";
-import MaintenanceRecordToolbar from "@/pages/device/maintenance/components/MaintenanceRecordToolbar.vue";
 import type {FormSection} from "@/pages/device/components/x/types";
 import XDynamicDialog from "@/pages/device/components/x/XDynamicDialog.vue";
-import XFloatingCollapseHandle from "@/pages/device/components/x/XFloatingCollapseHandle.vue";
 import XPaginationBar from "@/pages/device/components/x/XPaginationBar.vue";
 import {createScopedT} from "@/i18n";
+import DeviceProtocolToolbar from "@/pages/device/protocol/components/DeviceProtocolToolbar.vue";
+import {getDeviceProtocolByDeviceId, getDeviceProtocolDetailByDeviceId} from "@/services/device/protocol.typed";
 
 const t = createScopedT("devicePage");
 const isToolbarVisible = ref(true);
-const isFloatingVisible = ref(false);
 
 // ===== 数据 =====
 const loading = ref(false);
 
-const deviceList = ref<MaintenanceRecord[]>([]);
-
-const pagination = ref<Pagination>({
-  current: 1,
-  size: 10,
-  total: 0
-});
+const deviceProtocolList = ref<DeviceProtocolRelationVO[]>([]);
 
 let currentRequestId = 0;
 
@@ -160,15 +140,8 @@ const props = defineProps<{
   deviceData: Partial<Device>;
 }>();
 
-// ===== 查询条件（后端过滤）=====
-const searchForm = ref({
-  maintainType: null as number | null,
-  startTime: '',
-  endTime: ''
-});
-
 const dialogVisible = ref(false);
-const formData = ref<MaintenanceCreateForm>({})
+const formData = ref<DeviceProtocolCreateFrom>({})
 const isEditMode = ref(false);
 const editingId = ref<number | null>(null);
 const addSchema: FormSection[] = [
@@ -288,95 +261,75 @@ watch(
         return;
       }
 
-      // 重置分页
-      pagination.value.current = 1;
-
       // 4. 【重要】竞态处理：记录当前请求ID
       const requestId = ++currentRequestId;
 
-      await fetchMaintenanceRecords(requestId);
+      await fetchDeviceProtocols(requestId);
     },
     { immediate: true }
 );
 
 // ===== 选中行 =====
-const selectedRecord = ref<MaintenanceRecord | null>(null);
+const selectedRecord = ref<DeviceProtocol | null>(null);
 
-function selectRow(record: MaintenanceRecord) {
-  selectedRecord.value = record;
+function selectRow(record: DeviceProtocolRelationVO) {
+  selectedRecord.value = {
+    id: record.id,
+    afn: record.afn,
+    taskType: record.taskType,
+    contentPrefix: record.contentPrefix,
+    priority: record.priority,
+    enabled: record.enabled,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+    deviceId: record.deviceId,
+    protocolId: record.protocolId
+  };
 }
 
 // ===== 请求数据 =====
-async function fetchMaintenanceRecords(requestId?: number) {
+async function fetchDeviceProtocols(requestId?: number) {
+  if (!props.deviceData?.id) return;
+
   loading.value = true;
 
   try {
-    const res = await getMaintenanceRecordPageT({
-      pageNum: pagination.value.current,
-      pageSize: pagination.value.size,
-      deviceNumber: props.deviceData.deviceNumber || undefined,
-      maintainType: searchForm.value.maintainType,
-      startTime: searchForm.value.startTime || undefined,
-      endTime: searchForm.value.endTime || undefined,
-    });
+    const res = await getDeviceProtocolDetailByDeviceId(
+        props.deviceData.id
+    );
 
-    // 如果在 await 期间触发了新的 watch，requestId 会变大，当前的响应应该被丢弃
+    // 防止切换设备时旧请求覆盖新数据
     if (requestId && requestId !== currentRequestId) {
       return;
     }
 
-    const pageData = res.data;
-
-    deviceList.value = pageData?.records ?? [];
-
-    pagination.value.total = pageData?.total ?? 0;
-    pagination.value.current = pageData?.current ?? 1;
-    pagination.value.size = pageData?.size ?? 10;
+    deviceProtocolList.value = res.data ?? [];
 
   } finally {
     loading.value = false;
   }
 }
 
-// ===== 分页 =====
-function handlePageChange(page:number){
-  pagination.value.current = page;
-  fetchMaintenanceRecords();
-}
-
-function handlePageSizeChange(pageSize:number){
-  pagination.value.size = pageSize;
-  pagination.value.current = 1;
-  fetchMaintenanceRecords();
-}
-
-// ===== 查询触发（建议你按钮调用）=====
-async function handleSearch() {
-  pagination.value.current = 1;
-  await Promise.resolve();
-  fetchMaintenanceRecords();
-}
-
 function handleAdd() {
   isEditMode.value = false;
   editingId.value = null;
 
-  formData.value = {
-    deviceNumber: props.deviceData?.deviceNumber || "",
-    maintainType: undefined,
-    maintainTime: "",
-    maintainAddress: "",
-    installMode: undefined,
-    tubeGroup: "",
-    tubeMaterial: "",
-    tubeBore: "",
-    tubeOrder: undefined,
-    remark: "",
-    maintainAccount: "",
-    maintainFeedback: "",
-    maintainCoordinate: "",
-    maintainPicture: ""
-  };
+  // formData.value = {
+  //   deviceNumber: props.deviceData?.deviceNumber || "",
+  //   maintainType: undefined,
+  //   maintainTime: "",
+  //   maintainAddress: "",
+  //   installMode: undefined,
+  //   tubeGroup: "",
+  //   tubeMaterial: "",
+  //   tubeBore: "",
+  //   tubeOrder: undefined,
+  //   remark: "",
+  //   maintainAccount: "",
+  //   maintainFeedback: "",
+  //   maintainCoordinate: "",
+  //   maintainPicture: ""
+  // };
 
   dialogVisible.value = true;
 }
@@ -390,7 +343,7 @@ async function handleSubmit(form: MaintenanceCreateForm) {
     }
 
     dialogVisible.value = false;
-    await refreshList({ resetPage: true });
+    await refreshList();
 
   } catch (e: any) {
     uni.showToast({
@@ -421,7 +374,7 @@ async function submitUpdate(form: MaintenanceCreateForm) {
   if (!editingId.value) return;
 
   const res = await updateMaintenanceRecordT(
-    editingId.value,
+      editingId.value,
       {...form}
   );
 
@@ -484,23 +437,9 @@ async function handleEdit() {
   dialogVisible.value = true;
 }
 
-async function refreshList({ resetPage = false } = {}) {
-  if (resetPage) pagination.value.current = 1;
-
-  await fetchMaintenanceRecords();
+async function refreshList() {
+  await fetchDeviceProtocols();
 }
-
-const maintainTypeMap = {
-  0: { label: t("status.maintain.remove"), className: 'is-removed' },
-  1: { label: t("status.maintain.install"), className: 'is-installed' },
-  2: { label: t("status.maintain.maintenance"), className: 'is-warning' },
-  3: { label: t("status.maintain.inspect"), className: 'is-info' }
-} as Record<number, { label: string; className: string }>;
-
-// 获取维护类型元数据
-const getMaintainTypeMeta = (type: number) => {
-  return maintainTypeMap[type] || { label: '-', className: 'is-unknown' };
-};
 
 </script>
 <style scoped lang="scss">
@@ -526,7 +465,7 @@ const getMaintainTypeMeta = (type: number) => {
 }
 
 .worksheet-table-panel {
-  background: #ffffff;
+  //background: #ffffff;
   border: 1px solid #d8e5ef;
   border-radius: 6px;
   box-shadow: 0 12px 26px rgba(35, 72, 104, 0.09);
@@ -687,7 +626,7 @@ const getMaintainTypeMeta = (type: number) => {
 
 .data-cell--address,
 .data-cell--remark {
-  justify-content: flex-start;
+  justify-content: center;
   text-align: left;
 }
 
@@ -818,5 +757,9 @@ const getMaintainTypeMeta = (type: number) => {
   color: #64748b;
   font-size: 12px;
   padding: 0 12px;
+}
+
+.toolbar-wrapper {
+  padding-bottom: 12px;
 }
 </style>

@@ -123,20 +123,37 @@ export interface DeviceProduct {
 export interface DeviceProtocol {
     id: number;
 
-    createdAt: string;
-    updatedAt: string;
-    isDeleted: boolean;
+    createdAt?: string;
+    updatedAt?: string;
+    isDeleted?: boolean;
 
-    deviceId: number;
-    protocolId: number;
+    deviceId?: number;
+    protocolId?: number;
 
-    afn: string;
-    taskType: string;
-    contentPrefix: string;
+    afn?: string;
+    taskType?: string;
+    contentPrefix?: string;
 
-    priority: number;
-    enabled: boolean;
+    priority?: number;
+    enabled?: boolean;
 }
+
+export interface DeviceProtocolCreateFrom {
+    createdAt?: string;
+    updatedAt?: string;
+    isDeleted?: boolean;
+
+    deviceId?: number;
+    protocolId?: number;
+
+    afn?: string;
+    taskType?: string;
+    contentPrefix?: string;
+
+    priority?: number;
+    enabled?: boolean;
+}
+
 
 export interface Dept {
     id: number;
@@ -649,4 +666,29 @@ export interface ProtocolDefinition {
     createdAt: string;
     updatedAt: string;
     isDeleted: boolean;
+}
+
+export interface DeviceProtocolRelationVO {
+    id: number;
+
+    deviceId: number;
+
+    protocolId: number;
+
+    // 协议信息
+    protocolCode?: string;
+    protocolName?: string;
+    protocolVersion?: string;
+    description?: string;
+
+    // 绑定规则
+    afn?: string;
+    taskType?: string;
+    contentPrefix?: string;
+
+    priority?: number;
+    enabled?: boolean;
+
+    createdAt?: string;
+    updatedAt?: string;
 }

@@ -1,14 +1,14 @@
 <template>
   <view class = "panel">
-    <MaintenanceRecordTableView v-if="props.visible"
+    <DeviceProtocolTableView v-if="props.visible"
         :device-data="props.deviceData"
     />
   </view>
 </template>
 
 <script setup lang="ts">
-import MaintenanceRecordTableView from "@/pages/device/maintenance/components/MaintenanceRecordTableView.vue";
 import type {Device} from "@/services/device/types";
+import DeviceProtocolTableView from "@/pages/device/protocol/components/DeviceProtocolTableView.vue";
 
 const props = defineProps<{
   visible: boolean;

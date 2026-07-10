@@ -589,6 +589,21 @@
         "noData": "No Data",
         "coordinate": "Coordinates"
       }
+    },
+    "deviceProtocol": {
+      "table": {
+        "title": "Device Protocol Bindings",
+        "protocolCode": "Protocol Code",
+        "protocolName": "Protocol Name",
+        "protocolVersion": "Protocol Version",
+        "afn": "AFN",
+        "taskType": "Task Type",
+        "contentPrefix": "Content Prefix",
+        "priority": "Priority",
+        "enabled": "Status",
+        "description": "Description",
+        "updatedAt": "Updated At"
+      }
     }
   }
 }
