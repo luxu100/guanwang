@@ -21,6 +21,7 @@
     </button>
 
     <button
+        v-if="showSearch"
         class="toolbar-button"
         hover-class="toolbar-button--hover"
         :disabled="loading"
@@ -30,6 +31,7 @@
     </button>
 
     <button
+        v-if="showReset"
         class="toolbar-button"
         hover-class="toolbar-button--hover"
         :disabled="loading"
@@ -91,6 +93,14 @@ defineProps({
   showEdit: {
     type: Boolean,
     default: false
+  },
+  showReset: {
+    type: Boolean,
+    default: true
+  },
+  showSearch: {
+    type: Boolean,
+    default: true
   }
 })
 

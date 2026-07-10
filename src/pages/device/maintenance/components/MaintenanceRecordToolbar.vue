@@ -65,18 +65,18 @@ const model = computed({
 const fields: Field[] = [
   {
     key: "maintainType",
-    label: t('maintain.fields.type'),
+    labelKey: 'maintain.fields.type',
     type: "select",
     dict: "maintainType"
   },
   {
     key: "startTime",
-    label: t('maintain.fields.startTime'),
+    labelKey: 'maintain.fields.startTime',
     type: "date"
   },
   {
     key: "endTime",
-    label: t('maintain.fields.endTime'),
+    labelKey: 'maintain.fields.endTime',
     type: "date"
   }
 ];
@@ -84,11 +84,11 @@ const fields: Field[] = [
 // ===== 字典 =====
 const dictMap = {
   maintainType: [
-    { label: t('common.all'), value: '' },
-    { label: t('status.maintain.remove'), value: 0},
-    { label: t('status.maintain.install'), value: 1},
-    { label: t('status.maintain.maintenance'), value: 2},
-    { label: t('status.maintain.inspect'), value: 3 }
+    { labelKey: 'common.all', value: '' },
+    { labelKey: 'status.maintain.remove', value: 0},
+    { labelKey: 'status.maintain.install', value: 1},
+    { labelKey: 'status.maintain.maintenance', value: 2},
+    { labelKey: 'status.maintain.inspect', value: 3 }
   ]
 };
 </script>

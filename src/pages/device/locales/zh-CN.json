@@ -39,7 +39,6 @@
       "deviceNumber": "设备编号",
       "startTime": "开始时间",
       "endTime": "结束时间"
-      
     },
     "formDialog": {
       "title": "新增信息",
@@ -55,7 +54,8 @@
         "selectHint": "请在地图上点击选择",
         "onlyH5": "地图仅支持 H5 端",
         "confirm": "确认选点"
-      }
+      },
+      "departmentPartition": "所属分区"
     },
     "form": {
       "inputPlaceholder": "请输入{label}",
@@ -69,7 +69,8 @@
       "onlyH5": "地图仅支持 H5 端",
       "mapKeyEmpty": "腾讯地图 Key 为空",
       "apiUnavailable": "腾讯地图 API 不可用",
-      "noCoordinate": "该设备暂无坐标信息,无法定位!"
+      "noCoordinate": "该设备暂无坐标信息,无法定位!",
+      "dialogTitle": "坐标位置"
     },
     "datetimePicker": {
       "placeholder": "请选择时间",
@@ -110,7 +111,9 @@
       "addDevice": "新增设备",
       "editDevice": "编辑设备",
       "bindDeptTitle": "绑定部门",
-      "bindDeptSubtitle": "请选择想要绑定的部门"
+      "bindDeptSubtitle": "请选择想要绑定的部门",
+      "bindValveTitle": "绑定阀门",
+      "bindValveSubtitle": "请选择想要绑定的阀门"
     },
     "fields": {
       "deviceNumber": "设备编号",
@@ -138,7 +141,7 @@
       "confirmDeleteTitle": "提示",
       "confirmDeleteContent": "确定要删除设备 {deviceNumber} 吗？",
       "operationFailed": "操作失败",
-      "alreadyBoundToThisDept": "该设备已绑定此部门",
+      "alreadyBoundToThisDept": "已绑定此部门",
       "bindSuccess": "绑定成功",
       "bindFailed": "绑定失败",
       "requestError": "请求异常",
@@ -557,6 +560,51 @@
             "isDeleted": "删除状态"
           }
         }
+      }
+    },
+    "valve": {
+      "toolbar": {
+        "pipelineName": "管道名称",
+        "valveNumber": "阀门编号",
+        "valveName": "阀门名称",
+        "branchCompany": "分公司",
+        "region": "区域",
+        "dept": "所属分区",
+        "startTime": "开始时间",
+        "endTime": "结束时间"
+      },
+      "table": {
+        "title": "阀门列表",
+        "index": "序号",
+        "pipelineName": "管道名称",
+        "valveNumber": "阀门编号",
+        "valveName": "阀门名称",
+        "coordinatePosition": "坐标位置",
+        "branchCompany": "分公司",
+        "region": "区域",
+        "tubeBore": "管道口径",
+        "tubeMaterial": "管道材质",
+        "xcoordinate": "经度",
+        "ycoordinate": "纬度",
+        "createdAt": "创建时间",
+        "loading": "加载中...",
+        "noData": "暂无数据",
+        "coordinate": "坐标位置"
+      }
+    },
+    "deviceProtocol":{
+      "table": {
+        "title": "设备协议绑定",
+        "protocolCode": "协议编码",
+        "protocolName": "协议名称",
+        "protocolVersion": "协议版本",
+        "afn": "AFN",
+        "taskType": "任务类型",
+        "contentPrefix": "内容前缀",
+        "priority": "优先级",
+        "enabled": "状态",
+        "description": "描述",
+        "updatedAt": "更新时间"
       }
     }
   }

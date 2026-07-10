@@ -164,7 +164,6 @@ import type { Pagination } from '@/types/api';
 import DeviceStatusToolbar from "@/pages/device/status/components/DeviceStatusToolbar.vue";
 import {getDeviceStatusUploadPageT} from "@/services/device/status.typed";
 import XFloatingCollapseHandle from "@/pages/device/components/x/XFloatingCollapseHandle.vue";
-import MaintenanceRecordToolbar from "@/pages/device/maintenance/components/MaintenanceRecordToolbar.vue";
 import XPaginationBar from "@/pages/device/components/x/XPaginationBar.vue";
 import {createScopedT} from "@/i18n";
 const t = createScopedT("devicePage");
@@ -474,7 +473,7 @@ const getStatusClass = (type: string, value: number) => {
 
 .data-cell--address,
 .data-cell--remark {
-  justify-content: flex-start;
+  justify-content: center;
   text-align: left;
 }
 

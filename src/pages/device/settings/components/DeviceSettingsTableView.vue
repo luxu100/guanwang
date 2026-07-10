@@ -21,8 +21,8 @@
           <text class="data-cell data-cell--time">{{ t('deviceSetting.fields.orderTime') }}</text>
         </view>
 
-        <view v-if="loading" class="table-state">{{ t('deviceSetting.settingTable.loading') }}</view>
-        <view v-else-if="filteredDeviceSettings.length === 0" class="table-state">{{ t('deviceSetting.settingTable.noData') }}</view>
+        <view v-if="loading" class="loading-mask">{{ t('common.table.loading') }}</view>
+        <view v-else-if="filteredDeviceSettings.length === 0" class="table-state">{{ t('common.table.empty') }}</view>
 
         <view
             v-for="(deviceSetting, index) in filteredDeviceSettings"

@@ -41,7 +41,7 @@
           <text class="detail-item__value">{{ item.value }}</text>
         </view>
       </view>
-      <view v-else class="detail-empty">{{ t('deviceSetting.settingInfo.empty') }}</view>
+      <view v-else class="detail-empty">{{ t('common.table.empt') }}</view>
     </view>
   </view>
 </template>

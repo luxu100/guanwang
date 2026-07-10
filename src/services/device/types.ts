@@ -16,7 +16,6 @@ export interface Device {
     installLatitude: number;
     tubeGroup: string;
     tubeOrder: number;
-    deptId?: number;
     hardwareVersion: string;
     softwareVersion: string;
     leakStatus: number;
@@ -142,20 +141,37 @@ export interface DeviceProduct {
 export interface DeviceProtocol {
     id: number;
 
-    createdAt: string;
-    updatedAt: string;
-    isDeleted: boolean;
+    createdAt?: string;
+    updatedAt?: string;
+    isDeleted?: boolean;
 
-    deviceId: number;
-    protocolId: number;
+    deviceId?: number;
+    protocolId?: number;
 
-    afn: string;
-    taskType: string;
-    contentPrefix: string;
+    afn?: string;
+    taskType?: string;
+    contentPrefix?: string;
 
-    priority: number;
-    enabled: boolean;
+    priority?: number;
+    enabled?: boolean;
 }
+
+export interface DeviceProtocolCreateFrom {
+    createdAt?: string;
+    updatedAt?: string;
+    isDeleted?: boolean;
+
+    deviceId?: number;
+    protocolId?: number;
+
+    afn?: string;
+    taskType?: string;
+    contentPrefix?: string;
+
+    priority?: number;
+    enabled?: boolean;
+}
+
 
 export interface Dept {
     id: number;
@@ -602,4 +618,95 @@ export interface DeviceSetting {
      * 是否删除
      */
     isDeleted?: boolean;
+}
+
+/**
+ * 阀门实体
+ */
+export interface Valve {
+    /** 主键ID */
+    id: number;
+
+    /** 管道名称 */
+    pipelineName: string;
+
+    /** 阀门编号 */
+    valveNumber: string;
+
+    /** 阀门名称 */
+    valveName: string;
+
+    /** 坐标位置 */
+    coordinatePosition: string;
+
+    /** 分公司 */
+    branchCompany: string;
+
+    /** 区域 */
+    region: string;
+
+    /** 管道口径 */
+    tubeBore: string;
+
+    /** 管道材质 */
+    tubeMaterial: string;
+
+    /** 所属分区（部门ID） */
+    deptId: number;
+
+    /** 创建时间 */
+    createdAt: string;
+
+    /** 更新时间 */
+    updatedAt: string;
+
+    /** 横坐标（经度） */
+    xCoordinate: number;
+
+    /** 纵坐标（纬度） */
+    yCoordinate: number;
+
+    coordinate?:string;
+}
+
+export interface ValveBindDeviceDTO {
+    deviceIds: number[];
+}
+
+export interface ProtocolDefinition {
+    id: number;
+    protocolCode: string;
+    protocolName: string;
+    protocolVersion: string;
+    description?: string;
+    enabled: boolean;
+    priority: number;
+    createdAt: string;
+    updatedAt: string;
+    isDeleted: boolean;
+}
+
+export interface DeviceProtocolRelationVO {
+    id: number;
+
+    deviceId: number;
+
+    protocolId: number;
+
+    // 协议信息
+    protocolCode?: string;
+    protocolName?: string;
+    protocolVersion?: string;
+    description?: string;
+
+    // 绑定规则
+    afn?: string;
+    taskType?: string;
+    contentPrefix?: string;
+
+    priority?: number;
+    enabled?: boolean;
+
+    createdAt?: string;
+    updatedAt?: string;
 }

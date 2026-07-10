@@ -51,13 +51,16 @@
         @add="emit('add')"
         @delete="emit('delete')"
         @edit="emit('edit')"
-        :show-edit="true"
+        :show-edit="buttons.edit"
+        :show-add="buttons.add"
+        :show-delete="buttons.delete"
+        :show-refresh="buttons.refresh"
     >
       <template #left>
-        <button class = "toolbar-button" @click="emit('bindDept')">{{t("toolbar.bindDept")}}</button>
-        <button class="toolbar-button" @click="emit('bindValve')">{{t("toolbar.bindValve")}}</button>
-        <button class = "toolbar-button toolbar-button--green" @click="emit('onImport')">{{t("toolbar.import")}}</button>
-        <button class = "toolbar-button toolbar-button--green" @click="emit('onExport')">{{t("toolbar.export")}}</button>
+        <button v-if="buttons.bindDept" class = "toolbar-button" @click="emit('bindDept')">{{t("toolbar.bindDept")}}</button>
+        <button v-if="buttons.bindValve" class= "toolbar-button" @click="emit('bindValve')">{{t("toolbar.bindValve")}}</button>
+        <button v-if="buttons.import" class = "toolbar-button toolbar-button--green" @click="emit('onImport')">{{t("toolbar.import")}}</button>
+        <button v-if="buttons.export" class = "toolbar-button toolbar-button--green" @click="emit('onExport')">{{t("toolbar.export")}}</button>
       </template>
     </XToolbarActions>
 
@@ -68,6 +71,7 @@ import { computed, reactive, watch } from "vue";
 import XDatetimePicker from "@/pages/device/components/x/XDatetimePicker.vue";
 import XToolbarActions from "@/pages/device/components/x/XToolbarActions.vue";
 import {createScopedT} from "@/i18n";
+import type {ToolbarButtons} from "@/pages/device/components/x/types";
 const t = createScopedT("devicePage");
 
 /**
@@ -91,9 +95,12 @@ type DeviceForm = Record<string, string | number>;
  * props
  * =========================
  */
+
+
 const props = defineProps<{
   modelValue: DeviceForm;
   fields: readonly Field[];
+  buttons:ToolbarButtons;
 
   productOptions: Option[];
   enableStateOptions: Option[];

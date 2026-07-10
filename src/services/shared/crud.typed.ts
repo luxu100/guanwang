@@ -1,4 +1,4 @@
-import { createCrudService,getRequest} from "./crud";
+import {createCrudService, getRequest, postRequest} from "./crud";
 import type {ApiResponse, PageResult} from "@/types/api";
 
 export function getRequestT<T>(
@@ -6,6 +6,13 @@ export function getRequestT<T>(
     data?: any
 ): Promise<ApiResponse<T>> {
   return getRequest(url, data);
+}
+
+export function postRequestT<T>(
+    url: string,
+    data?: any
+): Promise<ApiResponse<T>> {
+  return postRequest(url, data);
 }
 
 /**

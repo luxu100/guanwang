@@ -1,60 +1,64 @@
-﻿<!--
-注意：这个页面作为切换页面在AppShell中使用DeviceManagementView组件，传入不同的mode参数来切换不同的页面内容。
--->
-<!--
-代码在AppShell的shellContentDefinitions中：
-"/pages/device/info/info": { component: DeviceManagementView, props: { mode: "info" } },
-"/pages/device/maintenance/maintenance": { component: DeviceManagementView, props: { mode: "maintenance" } },
-"/pages/device/status/status": { component: DeviceManagementView, props: { mode: "status" } },
--->
-
-<template>
+﻿<template>
   <view class="device-page">
 
-    <!-- 顶部搜索栏（config驱动） -->
-    <DeviceToolbar
-        v-model="searchForm"
-        :fields="toolbarConfig"
-        :product-options="productOptions"
-        :enable-state-options="enableStateOptions"
-        :install-state-options="installStateOptions"
-        :online-status-options="onlineStatusOptions"
-        :leak-status-options="leakStatusOptions"
-        :maintain-type-options="maintainTypeOptions"
-        :receive-status-options="receiveStatusOptions"
-        @search="handleSearch"
-        @reset="handleReset"
-        @refresh="fetchDevices"
-        @delete="handleDelete"
-        @add="handleAdd"
-        @edit="handleEdit"
-        @on-export="handleExport"
-        @on-import="handleImport"
-        @bind-dept="handleBindDept"
-        @bind-valve="handleBindValve"
-    />
+    <view
+        class="worksheet-layout"
+        :class="[layoutClass, { collapsed: isDetailCollapsed }]"
+    >
 
-    <!-- 主体 -->
-    <view class="worksheet-layout"
-          :class="[layoutClass, { collapsed: isDetailCollapsed }]">
-
-      <!-- 左侧 table（固定不变） -->
+      <!-- 左侧 -->
       <view class="table-panel">
-        <DeviceTableView
-            :devices="deviceList"
-            :pagination="pagination"
-            @view="handleView"
-            @select="handleSelect"
-            @page-change="handlePageChange"
-            @page-size-change="handlePageSizeChange"
+
+        <!-- 左侧设备Toolbar -->
+        <DeviceToolbar
+            v-model="searchForm"
+            :fields="toolbarConfig"
+            :product-options="productOptions"
+            :enable-state-options="enableStateOptions"
+            :install-state-options="installStateOptions"
+            :online-status-options="onlineStatusOptions"
+            :leak-status-options="leakStatusOptions"
+            :maintain-type-options="maintainTypeOptions"
+            :receive-status-options="receiveStatusOptions"
+            :buttons="showButtonConfig"
+            @search="handleSearch"
+            @reset="handleReset"
+            @refresh="fetchDevices"
+            @delete="handleDelete"
+            @add="handleAdd"
+            @edit="handleEdit"
+            @on-export="handleExport"
+            @on-import="handleImport"
+            @bind-dept="handleBindDept"
+            @bind-valve="handleBindValve"
         />
+
+        <!-- 左侧表格区域 -->
+        <view class="panel-body">
+
+          <DeviceTableView
+              :devices="deviceList"
+              :pagination="pagination"
+              :mode="props.mode"
+              @view="handleView"
+              @select="handleSelect"
+              @page-change="handlePageChange"
+              @page-size-change="handlePageSizeChange"
+          />
+
+        </view>
+
       </view>
 
-      <view class="split-handle" @click="toggleDetailPanel">
-        {{ isDetailCollapsed ? '⟨' : '⟩' }}
+      <!-- 中间拖拽 -->
+      <view
+          class="split-handle"
+          @click="toggleDetailPanel"
+      >
+        {{ isDetailCollapsed ? "⟨" : "⟩" }}
       </view>
 
-      <!-- 右侧 panel（随mode变化） -->
+      <!-- 右侧 -->
       <view class="detail-panel">
 
         <view
@@ -64,18 +68,38 @@
           {{ t("page.selectDevice") }}
         </view>
 
-        <component
+        <view
             v-else
-            :is="CurrentPanel"
-            :device-data="currentDevice"
-            :visible="isDetailPanelVisible"
-        />
+            class="panel-body"
+        >
+
+          <!--
+            DeviceInfoPanel:
+                DeviceInfo
+
+            MaintenancePanel:
+                Toolbar
+                Table
+
+            ProtocolPanel:
+                Toolbar
+                Table
+          -->
+          <component
+              :is="CurrentPanel"
+              :device-data="currentDevice"
+              :visible="isDetailPanelVisible"
+          />
+
+        </view>
+
       </view>
 
     </view>
 
   </view>
 
+  <!-- Dialog -->
   <XDynamicDialog
       v-model:visible="dialogVisible"
       v-model="formData"
@@ -93,15 +117,32 @@
       :subtitle="t('page.bindDeptSubtitle')"
       @confirm="onDeptConfirm"
   />
+
+  <ValveTableDialog
+      v-model:visible="valveDialogVisible"
+      v-model="valveId"
+      :dept-id="currentDeptId"
+      :dept-name="currentDeptName"
+      :title="t('page.bindValveTitle')"
+      :subtitle="t('page.bindValveSubtitle')"
+      @confirm="handleValveConfirm"
+  />
+
 </template>
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
 
-import type {DeptDevice, DeptTreeVO, Device, DeviceCreateForm} from "@/services/device/types";
+import type {
+  DeptDevice,
+  DeptTreeVO,
+  Device,
+  DeviceCreateForm,
+  ValveBindDeviceDTO
+} from "@/services/device/types";
 import {
   createDeptDeviceT,
   createDeviceT,
-  deleteDeviceT, getDeptTreeT,
+  deleteDeviceT, getDeptByIdT, getDeptTreeT,
   getDevicePageT,
   getDeviceProductListT,
   updateDeviceT
@@ -119,6 +160,9 @@ import type {FormSection} from "@/pages/device/components/x/types";
 import type {PartitionNode} from "@/pages/device/components/x/XTreeNode.vue";
 
 import {createScopedT} from "@/i18n";
+import {bindValveDevices, getDeptIdByDeviceId} from "@/services/device/dept-device.typed";
+import ValveTableDialog from "@/pages/device/valve/components/ValveTableDialog.vue";
+import DeviceProtocolPanel from "@/pages/device/protocol/components/DeviceProtocolPanel.vue";
 const t = createScopedT("devicePage");
 
 /**
@@ -172,7 +216,18 @@ const deviceModuleConfig = {
       { key: "leakStatus", labelKey: "fields.leakStatus", type: "select", dict: "leak" },
       { key: "startTime", labelKey: "fields.startTime", type: "date" },
       { key: "endTime", labelKey: "fields.endTime", type: "date" },
-    ]
+    ],
+
+    buttons: {
+      add: true,
+      edit: true,
+      delete: true,
+      refresh: true,
+      bindDept: true,
+      bindValve: true,
+      import: true,
+      export: true
+    },
   },
 
   maintenance: {
@@ -196,7 +251,18 @@ const deviceModuleConfig = {
       { key: "leakStatus", labelKey: "fields.leakStatus", type: "select", dict: "leak" },
       { key: "startTime", labelKey: "fields.startTime", type: "date" },
       { key: "endTime", labelKey: "fields.endTime", type: "date" },
-    ]
+    ],
+
+    buttons: {
+      add: false,
+      edit: false,
+      delete: false,
+      refresh: true,
+      bindDept: false,
+      bindValve: false,
+      import: false,
+      export: false
+    },
   },
 
   status: {
@@ -224,8 +290,60 @@ const deviceModuleConfig = {
       { key: "endTime", labelKey: "fields.endTime", type: "date" },
       { key: "maintainType", labelKey: "fields.maintainType", type: "select", dict: "maintain" },
       { key: "receiveStatus", labelKey: "fields.receiveStatus", type: "select", dict: "receive" }
-    ]
+    ],
+
+    buttons: {
+      add: false,
+      edit: false,
+      delete: false,
+      refresh: true,
+      bindDept: false,
+      bindValve: false,
+      import: false,
+      export: false
+    },
   },
+
+  deviceProtocol: {
+    panel: DeviceProtocolPanel,
+
+    searchForm: {
+      deviceNumber: "",
+      deviceType: "",
+      enableState: "",
+      onlineStatus: "",
+      leakStatus: "",
+      startTime: "",
+      endTime: "",
+      receiveStatus: "",
+      maintainType: ""
+    },
+
+    toolbar: [
+      { key: "deviceNumber", labelKey: "fields.deviceNumber", type: "input" },
+      { key: "deviceType", labelKey: "fields.deviceType", type: "select", dict: "product" },
+      { key: "onlineStatus", labelKey: "fields.onlineStatus", type: "select", dict: "online" },
+      { key: "enableState", labelKey: "fields.enableState", type: "select", dict: "enable" },
+      { key: "leakStatus", labelKey: "fields.leakStatus", type: "select", dict: "leak" },
+      { key: "startTime", labelKey: "fields.startTime", type: "date" },
+      { key: "endTime", labelKey: "fields.endTime", type: "date" },
+      { key: "maintainType", labelKey: "fields.maintainType", type: "select", dict: "maintain" },
+      { key: "receiveStatus", labelKey: "fields.receiveStatus", type: "select", dict: "receive" }
+    ],
+
+    buttons: {
+      add: false,
+      edit: false,
+      delete: false,
+      refresh: true,
+      bindDept: false,
+      bindValve: false,
+      import: false,
+      export: false
+    },
+  },
+
+
 } as const;
 
 /**
@@ -244,6 +362,11 @@ const CurrentPanel = computed(() => currentModule.value.panel);
  * toolbar config（核心）
  */
 const toolbarConfig = computed(() => currentModule.value.toolbar);
+
+/**
+ * toolbar config（核心）
+ */
+const showButtonConfig = computed(() => currentModule.value.buttons);
 
 /**
  * search form（随 mode 切换）
@@ -338,7 +461,6 @@ async function fetchDevices() {
     pageNum: pagination.value.current,
     pageSize: pagination.value.size,
   });
-
   const pageData = res.data;
 
   deviceList.value = pageData?.records ?? [];
@@ -580,7 +702,6 @@ const addSchema = computed<FormSection[]>(() => [
   }
 ]);
 
-
 function handleAdd() {
   selectedDevice.value = null;
   isEditMode.value = false;
@@ -778,13 +899,69 @@ function handleImport() {
   });
 }
 
-function handleBindValve() {
-  uni.showToast({
-    title: t('message.bindValveNotReady'),
-    icon: 'none'
-  });
+/**
+ * 绑定阀门
+ */
+const valveDialogVisible = ref(false);
+const valveId = ref<number|null>(null);
+const currentDeptId = ref<number|null>(null);
+const currentDeptName = ref<string|null>(null);
+async function handleBindValve() {
+  if (!currentDevice.value) {
+    uni.showToast({
+      title: t("message.pleaseSelectDevice"),
+      icon: "none"
+    });
+    return;
+  }
+
+  // 1. 获取当前设备所在分区
+  const res = await getDeptIdByDeviceId(currentDevice.value.id);
+
+  if (res.code !== 200) {
+    uni.showToast({ title: res.msg, icon: "none" });
+    return;
+  }
+
+  const deptId = res.data;
+
+  if (!deptId) {
+    uni.showToast({ title: "当前设备没有分区", icon: "none" });
+    return;
+  }
+
+  // 2. 将分区 ID 存入响应式变量，并打开弹窗
+  // 弹窗内部的 watch 监听到 deptId 变化且 visible 为 true 时，会自动请求数据
+  const deptRes = await getDeptByIdT(deptId)
+  currentDeptId.value = deptId;
+  currentDeptName.value = deptRes.data?.deptName || null;
+  valveDialogVisible.value = true;
 }
 
+// ===== 弹窗确认回调 =====
+async function handleValveConfirm(valve: any) {
+  if (!valve || !currentDevice.value) {
+    uni.showToast({ title: "未选择有效阀门", icon: "none" });
+    return;
+  }
+
+  const valveBindDeviceDTO: ValveBindDeviceDTO = {
+    deviceIds: [currentDevice.value.id]
+  };
+
+  const res = await bindValveDevices(valve.id, valveBindDeviceDTO)
+  if(res.code === 200){
+    uni.showToast({
+      title: res.msg || t('message.bindSuccess'),
+      icon: "success"
+    });
+  }else {
+    uni.showToast({
+      title: res.msg || t('message.bindFailed'),
+      icon: "none"
+    });
+  }
+}
 /**
  * 部门树形控件
  */
@@ -800,13 +977,6 @@ function handleBindDept(){
 
 async function onDeptConfirm(node: PartitionNode | null) {
   if (!node) return;
-  else if(node.id === currentDevice.value?.deptId){
-    uni.showToast({
-      title: t('message.alreadyBoundToThisDept'),
-      icon: 'none'
-    });
-    return;
-  }
   if (!currentDevice.value) {
     uni.showToast({
       title: t('message.pleaseSelectDevice'),
@@ -891,11 +1061,15 @@ const toggleDetailPanel = () => {
 const layoutClass = computed(() => {
   if(props.mode === "info"){
     return "layout-split";
-  }else if(props.mode === "maintenance"){
-    return "layout-one-two";
   }else{
-    return "layout-equal";
+    return "layout-one-two"
   }
+  // else if(props.mode === "maintenance"){
+  //   return "layout-one-two";
+  // }
+  // else{
+  //   return "layout-equal";
+  // }
 });
 
 onMounted(() => {
@@ -904,6 +1078,7 @@ onMounted(() => {
 });
 </script>
 <style scoped lang="scss">
+
 .device-page {
   display: flex;
   flex-direction: column;
@@ -913,101 +1088,104 @@ onMounted(() => {
   background: #eef4f8;
 }
 
-/* 顶部工具栏与下方内容间距 */
-.device-page > :first-child {
-  flex-shrink: 0;
-}
+/* ===========================
+   主布局
+=========================== */
 
-/* 主体区域 */
 .worksheet-layout {
   flex: 1;
-
   display: grid;
-
-  gap: 0px;
+  gap: 0;
   margin-top: 14px;
-
   min-height: 0;
   overflow: hidden;
 }
 
-/* 默认：左列表 + 右详情 */
+/* 左详情右信息 */
 .layout-split {
-  grid-template-columns: minmax(0, 1fr) 24px 380px;
+  grid-template-columns: minmax(0,1fr) 24px 380px;
 }
 
+/* 左右各一半 */
 .layout-equal {
   grid-template-columns: 1fr 24px 1fr;
 }
 
+/* 左1右2 */
 .layout-one-two {
   grid-template-columns: 1fr 24px 2fr;
 }
+
+/* 收起右侧 */
+.worksheet-layout.collapsed {
+  grid-template-columns: minmax(0,1fr) 24px 0;
+}
+
+/* ===========================
+   Panel
+=========================== */
 
 .table-panel,
 .detail-panel {
   display: flex;
   flex-direction: column;
-
+  gap: 12px;
   min-width: 0;
   min-height: 0;
-
   overflow: hidden;
-
-  background: #ffffff;
-
-  border: 1px solid #d8e5ef;
-  border-radius: 6px;
-
-  height: 100%;
-
-  box-shadow: 0 12px 26px rgba(35,72,104,.09);
 }
 
-.detail-panel {
-  overflow-y: auto;
+/* Panel内容区域 */
+.panel-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
-/* 空状态 */
+/* 如果Panel里面需要滚动 */
+.panel-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* ===========================
+   空状态
+=========================== */
+
 .detail-empty {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-
-  height: 100%;
-
   color: #999;
   font-size: 14px;
 }
 
-.worksheet-layout.collapsed {
-  grid-template-columns: minmax(0, 1fr) 24px 0;
-}
+/* ===========================
+   中间拖拽
+=========================== */
 
 .split-handle {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-
   cursor: col-resize;
   user-select: none;
-
-  background: transparent;
-
-  position: relative;
-
-  //color: transparent; /* 默认不显示箭头 */
-
-  z-index: 999;
+  z-index: 10;
 }
 
 .split-handle:hover {
-  background: rgba(64, 158, 255, 0.06);
+  background: rgba(64,158,255,.06);
   color: #409eff;
 }
 
 .split-handle::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 12px;
   bottom: 12px;
@@ -1018,10 +1196,10 @@ onMounted(() => {
 }
 
 .split-handle::after {
-  content: '⋮';
+  content: "⋮";
+  position: relative;
   font-size: 10px;
   color: #c0c4cc;
-  position: relative;
 }
 
 </style>

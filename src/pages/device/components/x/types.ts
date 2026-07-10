@@ -21,11 +21,27 @@ export interface FormSection {
 }
 
 export type Field =
-    | { key: string; label: string; type: "input" }
-    | { key: string; label: string; type: "date" }
-    | { key: string; label: string; type: "select"; dict: string };
+    | { key: string; label?: string; labelKey: string; type: "input" }
+    | { key: string; label?: string; labelKey: string; type: "date" }
+    | { key: string; label?: string; labelKey: string; type: "select"; dict: string };
 
 export type DictItem = {
-    label: string;
+    label?: string;
+    labelKey: string;
     value: any;
+};
+
+export type ToolbarButtons = {
+
+    add?:boolean;
+    edit?:boolean;
+    delete?:boolean;
+    refresh?:boolean;
+
+    bindDept?:boolean;
+    bindValve?:boolean;
+
+    import?:boolean;
+    export?:boolean;
+
 };
