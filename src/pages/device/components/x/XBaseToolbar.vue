@@ -15,7 +15,7 @@
           >
 
             <text class="filter-label">
-              {{ item.label }}
+              {{ t(item.labelKey) }}
             </text>
 
             <!-- input -->
@@ -23,13 +23,13 @@
                 v-if="item.type === 'input'"
                 v-model="model[item.key]"
                 class="filter-input"
-                :placeholder="t('filter.placeholder')"
+                :placeholder="t('toolbar.filter.placeholder')"
             />
 
             <!-- select -->
             <picker
                 v-else-if="item.type === 'select'"
-                :range="dictMap[item.dict]"
+                :range="getPickerRange(item)"
                 range-key="label"
                 @change="handleSelect(item, $event)"
             >
@@ -44,8 +44,8 @@
                 v-else-if="item.type === 'date'"
                 v-model="model[item.key]"
                 class="filter-datetime"
-                :title="item.label"
-                :placeholder="item.label"
+                :title="t(item.labelKey)"
+                :placeholder="t(item.labelKey)"
             />
 
           </view>
@@ -90,7 +90,7 @@ import XDatetimePicker from "./XDatetimePicker.vue";
 import type { Field, DictItem } from "@/pages/device/components/x/types";
 
 import {createScopedT} from "@/i18n";
-const t = createScopedT("devicePage.toolbar");
+const t = createScopedT("devicePage");
 
 const props = withDefaults(defineProps<{
   modelValue: Record<string, any>;
@@ -138,10 +138,16 @@ watch(
 );
 
 /** select label */
-function getSelectLabel(item: Extract<Field, { type: "select" }>) {
+function getSelectLabel(
+    item: Extract<Field,{type:"select"}>
+){
   const list = props.dictMap[item.dict] || [];
-  const val = model[item.key];
-  return list.find(i => i.value === val)?.label;
+
+  const hit=list.find(
+      i=>i.value===model[item.key]
+  );
+
+  return hit ? t(hit.labelKey) : "";
 }
 
 /** select change */
@@ -149,8 +155,13 @@ function handleSelect(
     item: Extract<Field, { type: "select" }>,
     e: { detail: { value: number } }
 ) {
-  const index = e.detail.value;
-  model[item.key] = props.dictMap[item.dict][index].value;
+  const list = props.dictMap[item.dict] || [];
+
+  const option = list[e.detail.value];
+
+  if (!option) return;
+
+  model[item.key] = option.value;
 }
 
 /** reset */
@@ -160,6 +171,13 @@ function handleReset() {
   });
 
   emit("reset");
+}
+
+function getPickerRange(
+    item: Extract<Field,{type:"select"}>
+){
+  return (props.dictMap[item.dict] || [])
+      .map(i => t(i.labelKey));
 }
 </script>
 

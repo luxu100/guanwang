@@ -54,7 +54,8 @@
         "selectHint": "请在地图上点击选择",
         "onlyH5": "地图仅支持 H5 端",
         "confirm": "确认选点"
-      }
+      },
+      "departmentPartition": "所属分区"
     },
     "form": {
       "inputPlaceholder": "请输入{label}",
@@ -110,7 +111,9 @@
       "addDevice": "新增设备",
       "editDevice": "编辑设备",
       "bindDeptTitle": "绑定部门",
-      "bindDeptSubtitle": "请选择想要绑定的部门"
+      "bindDeptSubtitle": "请选择想要绑定的部门",
+      "bindValveTitle": "绑定阀门",
+      "bindValveSubtitle": "请选择想要绑定的阀门"
     },
     "fields": {
       "deviceNumber": "设备编号",

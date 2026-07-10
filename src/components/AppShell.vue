@@ -1653,7 +1653,7 @@ onMounted(() => {
 .side-menu__child-label {
   overflow: hidden;
   font-size: 13px;
-  line-height: 1;
+  line-height: 18px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1834,7 +1834,9 @@ onMounted(() => {
 }
 
 .side-menu--collapsed .side-menu__children {
-  display: none;
+  display: flex;
+  align-items: center;
+  height: 34px;
 }
 
 .side-menu--collapsed .side-menu__group:has(.side-menu__popover) .side-menu__item::after {

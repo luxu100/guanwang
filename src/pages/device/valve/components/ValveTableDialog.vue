@@ -6,7 +6,7 @@
         <view class="dialog-head-content">
           <view class="dialog-title">{{ title }}</view>
           <view v-if="deptName" class="dialog-dept">
-            所属分区：{{ deptName }}
+            {{t('formDialog.departmentPartition')}}：{{ deptName }}
           </view>
           <view v-if="subtitle" class="dialog-subtitle">{{ subtitle }}</view>
         </view>
@@ -270,7 +270,7 @@ function confirm() {
 .valve-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .valve-name { color: #183755; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .valve-meta { color: #64748b; font-size: 12px; }
-.valve-check { color: #0d82ee; font-size: 16px; font-weight: bold; flex-shrink: 0; margin-left: 12px; }
+.valve-check { color: #0d82ee; font-size: 16px; font-weight: bold; flex-shrink: 0; margin-left: auto; padding-left: 12px;}
 
 /* Footer */
 .dialog-actions {

@@ -50,18 +50,18 @@ const model = computed({
 const fields: Field[] = [
   {
     key: "leakStatus",
-    label: t("deviceTable.leakStatus"),
+    labelKey: "deviceTable.leakStatus",
     type: "select",
     dict: "leakStatus"
   },
   {
     key: "startTime",
-    label: t("maintain.fields.startTime"),
+    labelKey: "maintain.fields.startTime",
     type: "date"
   },
   {
     key: "endTime",
-    label: t("maintain.fields.endTime"),
+    labelKey: "maintain.fields.endTime",
     type: "date"
   }
 ];
@@ -69,11 +69,11 @@ const fields: Field[] = [
 // ===== 4. 字典映射 =====
 const dictMap = {
   leakStatus: [
-    { label: t("common.all"), value: null },
-    { label: t("status.leak.leak"), value: 0 },
-    { label: t("status.leak.normal"), value: 1 },
-    { label: t("status.leak.suspected"), value: 2 },
-    { label: t("status.leak.unknown"), value: 3 }
+    { labelKey: "common.all", value: null },
+    { labelKey: "status.leak.leak", value: 0 },
+    { labelKey: "status.leak.normal", value: 1 },
+    { labelKey: "status.leak.suspected", value: 2 },
+    { labelKey: "status.leak.unknown", value: 3 }
   ]
 };
 </script>

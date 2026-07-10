@@ -637,3 +637,16 @@ export interface Valve {
 export interface ValveBindDeviceDTO {
     deviceIds: number[];
 }
+
+export interface ProtocolDefinition {
+    id: number;
+    protocolCode: string;
+    protocolName: string;
+    protocolVersion: string;
+    description?: string;
+    enabled: boolean;
+    priority: number;
+    createdAt: string;
+    updatedAt: string;
+    isDeleted: boolean;
+}

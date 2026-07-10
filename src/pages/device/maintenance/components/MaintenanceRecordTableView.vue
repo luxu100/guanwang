@@ -1,15 +1,17 @@
 <template>
   <view class="worksheet-table-panel">
-    <MaintenanceRecordToolbar
-        v-model="searchForm"
-        @search="handleSearch"
-        @reset="handleSearch"
-        @refresh="fetchMaintenanceRecords"
-        @add="handleAdd"
-        @delete="handleDelete"
-        @edit="handleEdit"
-        :visible="isToolbarVisible"
-    />
+    <view class="toolbar-wrapper">
+      <MaintenanceRecordToolbar
+          v-model="searchForm"
+          @search="handleSearch"
+          @reset="handleSearch"
+          @refresh="fetchMaintenanceRecords"
+          @add="handleAdd"
+          @delete="handleDelete"
+          @edit="handleEdit"
+          :visible="isToolbarVisible"
+      />
+    </view>
 
     <XFloatingCollapseHandle v-if="isFloatingVisible"
         v-model="isToolbarVisible"
@@ -526,7 +528,7 @@ const getMaintainTypeMeta = (type: number) => {
 }
 
 .worksheet-table-panel {
-  background: #ffffff;
+  //background: #ffffff;
   border: 1px solid #d8e5ef;
   border-radius: 6px;
   box-shadow: 0 12px 26px rgba(35, 72, 104, 0.09);
@@ -687,7 +689,7 @@ const getMaintainTypeMeta = (type: number) => {
 
 .data-cell--address,
 .data-cell--remark {
-  justify-content: flex-start;
+  justify-content: center;
   text-align: left;
 }
 
@@ -818,5 +820,9 @@ const getMaintainTypeMeta = (type: number) => {
   color: #64748b;
   font-size: 12px;
   padding: 0 12px;
+}
+
+.toolbar-wrapper {
+  padding-bottom: 12px;
 }
 </style>

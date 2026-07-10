@@ -8,18 +8,18 @@
     <scroll-view class="table-scroll" scroll-x scroll-y>
       <view class="data-table">
         <view class="data-row data-row--header">
-          <text class="data-cell data-cell--index">{{ tc('table.index') }}</text>
-          <text class="data-cell data-cell--device">{{ t('deviceTable.deviceNumber') }}</text>
-          <text class="data-cell data-cell--type">{{ t('deviceTable.deviceType') }}</text>
-          <text class="data-cell data-cell--status">{{ t('deviceTable.enableState') }}</text>
-          <text class="data-cell data-cell--status">{{ t('deviceTable.installState') }}</text>
-          <text class="data-cell data-cell--status">{{ t('deviceTable.installMode') }}</text>
-          <text class="data-cell data-cell--address">{{ t('deviceTable.installAddress') }}</text>
-          <text class="data-cell data-cell--coord">{{ t('deviceTable.coordinate') }}</text>
-          <text class="data-cell data-cell--number">{{ t('deviceTable.tubeGroup') }}</text>
-          <text class="data-cell data-cell--status">{{ t('deviceTable.leakStatus') }}</text>
-          <text class="data-cell data-cell--time">{{ t('deviceTable.lastSamplingTime') }}</text>
-          <text class="data-cell data-cell--status">{{ t('deviceTable.onlineStatus') }}</text>
+          <text v-if="columnVisible.index" class="data-cell data-cell--index">{{ tc('table.index') }}</text>
+          <text v-if="columnVisible.deviceNumber" class="data-cell data-cell--device">{{ t('deviceTable.deviceNumber') }}</text>
+          <text v-if="columnVisible.deviceType" class="data-cell data-cell--type">{{ t('deviceTable.deviceType') }}</text>
+          <text v-if="columnVisible.enableState" class="data-cell data-cell--status">{{ t('deviceTable.enableState') }}</text>
+          <text v-if="columnVisible.installState" class="data-cell data-cell--status">{{ t('deviceTable.installState') }}</text>
+          <text v-if="columnVisible.installMode" class="data-cell data-cell--status">{{ t('deviceTable.installMode') }}</text>
+          <text v-if="columnVisible.installAddress" class="data-cell data-cell--address">{{ t('deviceTable.installAddress') }}</text>
+          <text v-if="columnVisible.coordinate" class="data-cell data-cell--coord">{{ t('deviceTable.coordinate') }}</text>
+          <text v-if="columnVisible.tubeGroup" class="data-cell data-cell--number">{{ t('deviceTable.tubeGroup') }}</text>
+          <text v-if="columnVisible.leakStatus" class="data-cell data-cell--status">{{ t('deviceTable.leakStatus') }}</text>
+          <text v-if="columnVisible.lastSamplingTime" class="data-cell data-cell--time">{{ t('deviceTable.lastSamplingTime') }}</text>
+          <text v-if="columnVisible.onlineStatus" class="data-cell data-cell--status">{{ t('deviceTable.onlineStatus') }}</text>
         </view>
 
         <view v-if="loading" class="table-state">{{ tc('table.loading') }}</view>
@@ -33,14 +33,14 @@
             @click="selectRow(device)"
         >
 
-          <text class="data-cell data-cell--index">
+          <text v-if="columnVisible.index" class="data-cell data-cell--index">
             {{ (pagination.current - 1) * pagination.size + index + 1 }}
           </text>
 
-          <text class="data-cell data-cell--device">{{ device.deviceNumber }}</text>
-          <text class="data-cell data-cell--type">{{ device.deviceType }}</text>
+          <text v-if="columnVisible.deviceNumber" class="data-cell data-cell--device">{{ device.deviceNumber }}</text>
+          <text v-if="columnVisible.deviceType" class="data-cell data-cell--type">{{ device.deviceType }}</text>
           <text
-              class="data-cell data-cell--status"
+              v-if="columnVisible.enableState" class="data-cell data-cell--status"
               :class="{
                 'is-enabled': device.enableState === 1,
                 'is-disabled': device.enableState === 0
@@ -49,7 +49,7 @@
             {{ enableStateMap[device.enableState] || '-' }}
           </text>
           <text
-              class="data-cell data-cell--status"
+              v-if="columnVisible.installState" class="data-cell data-cell--status"
               :class="{
                 'is-installed': device.installState === 1,
                 'is-not-installed': device.installState === 0
@@ -58,7 +58,7 @@
             {{ installStateMap[device.installState] || '-' }}
           </text>
           <text
-              class="data-cell data-cell--status"
+              v-if="columnVisible.installMode" class="data-cell data-cell--status"
               :class="{
                 'is-fixed': device.installMode === 0,
                 'is-mobile': device.installMode === 1
@@ -66,24 +66,24 @@
           >
             {{ installModeMap[device.installMode] || '-' }}
           </text>
-          <text class="data-cell data-cell--address">{{ device.installAddress }}</text>
+          <text v-if="columnVisible.installAddress" class="data-cell data-cell--address">{{ device.installAddress }}</text>
           <text
-              class="data-cell data-cell--coord data-cell--link"
+              v-if="columnVisible.coordinate" class="data-cell data-cell--coord data-cell--link"
               @click.stop="handleCoordClick(device.installLongitude, device.installLatitude)"          >
             {{ device.installLongitude && device.installLatitude
               ? `${device.installLongitude}, ${device.installLatitude}`
               : '-' }}
           </text>
-          <text class="data-cell data-cell--number">{{ device.tubeGroup }}</text>
+          <text v-if="columnVisible.tubeGroup" class="data-cell data-cell--number">{{ device.tubeGroup }}</text>
           <text
-              class="data-cell data-cell--status"
+              v-if="columnVisible.leakStatus" class="data-cell data-cell--status"
               :class="getStatusClass('leak', device.leakStatus)"
           >
             {{ leakStatusMap[device.leakStatus] || '-' }}
           </text>
-          <text class="data-cell data-cell--time">{{ formatDate(device.lastSamplingTime) }}</text>
+          <text v-if="columnVisible.lastSamplingTime" class="data-cell data-cell--time">{{ formatDate(device.lastSamplingTime) }}</text>
           <text
-              class="data-cell data-cell--status"
+              v-if="columnVisible.onlineStatus" class="data-cell data-cell--status"
               :class="{
                 'is-online': device.onlineStatus === 1,
                 'is-offline': device.onlineStatus === 0
@@ -124,7 +124,38 @@ const tc = createScopedT("devicePage.common");
 const props = defineProps<{
   devices: Device[];
   pagination: Pagination;
+  mode:"info" | "maintenance" | "status";
 }>();
+
+const columnVisible = computed(()=>{
+  return {
+
+    // 基础字段
+    index: true,
+    deviceNumber: true,
+    deviceType: true,
+
+    // 状态
+    enableState: props.mode === "info" || props.mode === "status",
+
+    installState: props.mode === "info",
+
+    installMode: props.mode === "info" || props.mode === "maintenance",
+
+    installAddress: props.mode === "info" || props.mode === "maintenance",
+
+    coordinate: props.mode === "info"|| props.mode === "maintenance",
+
+    tubeGroup: props.mode === "info",
+
+    leakStatus: props.mode === "info" || props.mode === "status",
+
+    lastSamplingTime: props.mode === "info" || props.mode === "status",
+
+    onlineStatus: true
+
+  };
+});
 
 const loading = ref(false);
 const enableStateMap = computed<Record<number, string>>(() => ({
@@ -436,7 +467,7 @@ function handleCoordClick(longitude: number, latitude: number) {
 
 .data-cell--address,
 .data-cell--remark {
-  justify-content: flex-start;
+  justify-content: center;
   text-align: left;
 }
 

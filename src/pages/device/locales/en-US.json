@@ -54,7 +54,8 @@
         "selectHint": "Please click on the map to select",
         "onlyH5": "Map is only supported on H5",
         "confirm": "Confirm Selection"
-      }
+      },
+      "departmentPartition": "Department Partition"
     },
     "form": {
       "inputPlaceholder": "Please enter {label}",
@@ -110,7 +111,9 @@
       "addDevice": "Add Device",
       "editDevice": "Edit Device",
       "bindDeptTitle": "Bind Department",
-      "bindDeptSubtitle": "Please select the department to bind"
+      "bindDeptSubtitle": "Please select the department to bind",
+      "bindValveTitle": "Bind Valve",
+      "bindValveSubtitle": "Please select the valve to bind."
     },
     "fields": {
       "deviceNumber": "Device No.",
