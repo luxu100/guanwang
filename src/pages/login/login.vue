@@ -5,7 +5,7 @@
     <view class="login-form" :class="`login-form--${activeMode}`">
       <view class="login-header">
         <text class="login-title">{{ modeTitle }}</text>
-        <text class="login-subtitle">WELCOME</text>
+        <text class="login-subtitle">{{ activeMode === "login" ? "Welcome" : "WELCOME" }}</text>
       </view>
 
       <view class="mode-tabs">
@@ -27,7 +27,7 @@
             v-model="loginForm.username"
             class="field-input"
             type="text"
-            placeholder="请输入账号"
+            placeholder="账号 / Account"
             placeholder-class="field-placeholder"
           />
           <button
@@ -35,7 +35,7 @@
             class="field-clear"
             hover-class="field-clear--hover"
             @click="clearLoginAccount"
-            aria-label="清除账号和密码"
+            aria-label="清除账号和密码 / Clear account and password"
           >
             <view class="clear-icon"></view>
           </button>
@@ -47,7 +47,7 @@
             v-model="loginForm.password"
             class="field-input"
             :password="!passwordVisible"
-            placeholder="请输入密码"
+            placeholder="密码 / Password"
             placeholder-class="field-placeholder"
             @confirm="handleLogin"
           />
@@ -139,10 +139,10 @@
           <view class="remember-login__box" :class="{ 'remember-login__box--checked': rememberLogin }">
             <view class="remember-login__tick"></view>
           </view>
-          <text class="remember-login__text">记住账号与密码</text>
+          <text class="remember-login__text">记住登录信息</text>
         </view>
         <text class="form-link" @click="switchMode(activeMode === 'register' ? 'login' : 'register')">
-          {{ activeMode === "register" ? "已有账号？返回登录" : "没有账号？用户注册" }}
+          {{ activeMode === "register" ? "已有账号？返回登录" : "注册 / Register" }}
         </text>
       </view>
 
@@ -153,7 +153,7 @@
         :disabled="submitting"
         @click="handleSubmit"
       >
-        {{ submitText }}
+        {{ activeMode === "login" && !submitting ? "登录 / Sign in" : submitText }}
       </button>
 
       <view v-if="notice" class="form-notice" :class="`form-notice--${notice.type}`">
@@ -249,7 +249,7 @@ const submitText = computed(() => {
   }
 
   const textMap: Record<Mode, string> = {
-    login: "登 录",
+    login: "登录",
     register: "注 册",
   };
 
@@ -319,12 +319,12 @@ function isPasswordValid(password: string) {
 
 function validateLoginForm() {
   if (!loginForm.username.trim()) {
-    showNotice("error", "请输入账号");
+    showNotice("error", "请输入账号 / Please enter your account");
     return false;
   }
 
   if (!loginForm.password) {
-    showNotice("error", "请输入密码");
+    showNotice("error", "请输入密码 / Please enter your password");
     return false;
   }
 
@@ -446,13 +446,13 @@ async function handleLogin() {
     });
 
     if (!isSuccessResponse(response?.code)) {
-      showNotice("error", getResponseMessage(response, "登录失败，请检查账号和密码"));
+      showNotice("error", getResponseMessage(response, "登录失败，请检查账号和密码 / Login failed. Please check your account and password."));
       return;
     }
 
     saveLoginData(response.data);
     saveRememberedLogin();
-    showToast("登录成功", "success");
+    showToast("登录成功 / Login successful", "success");
     // 确保登录后侧边栏为展开状态
     try {
       uni.setStorageSync(MENU_COLLAPSED_KEY, false);
@@ -464,7 +464,7 @@ async function handleLogin() {
       url: "/pages/leak-monitor/leak-monitor",
     });
   } catch (error) {
-    showNotice("error", (error as RequestError)?.msg || "登录失败，请稍后重试");
+    showNotice("error", (error as RequestError)?.msg || "登录失败，请稍后重试 / Login failed. Please try again later.");
   } finally {
     submitting.value = false;
   }
