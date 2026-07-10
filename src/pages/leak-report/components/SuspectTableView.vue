@@ -1,15 +1,41 @@
 <template>
   <view class="suspect-view">
+    <!-- ========== 筛选栏 ========== -->
     <view class="suspect-toolbar">
       <view class="toolbar-row toolbar-row--filters">
         <view class="filter-group">
-          <text class="filter-label">检出人</text>
-          <input v-model="filters.detectAccount" class="filter-input" placeholder="请输入检出人" placeholder-class="input-placeholder" />
+          <text class="filter-label">检出类型</text>
+          <picker :range="detectTypeFilterOptions" range-key="label" :value="currentDetectTypeIndex" @change="handleDetectTypeChange">
+            <view class="filter-select">
+              <text>{{ currentDetectTypeLabel }}</text>
+              <text class="filter-select__arrow"></text>
+            </view>
+          </picker>
         </view>
 
         <view class="filter-group">
-          <text class="filter-label">渗漏位置</text>
-          <input v-model="filters.leakAddress" class="filter-input" placeholder="请输入渗漏位置" placeholder-class="input-placeholder" />
+          <text class="filter-label">处理状态</text>
+          <picker :range="processStatusFilterOptions" range-key="label" :value="currentProcessStatusIndex" @change="handleProcessStatusChange">
+            <view class="filter-select">
+              <text>{{ currentProcessStatusLabel }}</text>
+              <text class="filter-select__arrow"></text>
+            </view>
+          </picker>
+        </view>
+
+        <view class="filter-group">
+          <text class="filter-label">是否漏点</text>
+          <picker :range="isLeakPointFilterOptions" range-key="label" :value="currentIsLeakPointIndex" @change="handleIsLeakPointChange">
+            <view class="filter-select">
+              <text>{{ currentIsLeakPointLabel }}</text>
+              <text class="filter-select__arrow"></text>
+            </view>
+          </picker>
+        </view>
+
+        <view class="filter-group">
+          <text class="filter-label">上报人员</text>
+          <input v-model="filters.reporter" class="filter-input" placeholder="请输入上报人员" placeholder-class="input-placeholder" />
         </view>
 
         <view class="filter-group filter-group--date">
@@ -59,8 +85,10 @@
       </view>
     </view>
 
-    <view class="suspect-layout">
-      <view class="suspect-table-panel">
+    <!-- ========== 左侧表格 + 右侧详情面板 ========== -->
+    <view ref="suspectLayoutRef" class="suspect-layout">
+      <!-- 左侧表格 -->
+      <view class="suspect-table-panel" :style="{ width: splitRatio * 100 + '%', flexShrink: 0 }">
         <view class="table-head">
           <text>{{ pageTitle }}</text>
           <text class="table-head__meta">共 {{ total }} 条</text>
@@ -70,10 +98,13 @@
           <view class="data-table">
             <view class="data-row data-row--header">
               <text class="data-cell data-cell--index data-cell--sortable" @click="toggleSort('index')">序号<text class="sort-indicator" :class="getSortClass('index')"></text></text>
-              <text class="data-cell data-cell--time data-cell--sortable" @click="toggleSort('detectedTime')">检出时间<text class="sort-indicator" :class="getSortClass('detectedTime')"></text></text>
-              <text class="data-cell data-cell--address data-cell--sortable" @click="toggleSort('leakAddress')">渗漏位置<text class="sort-indicator" :class="getSortClass('leakAddress')"></text></text>
-              <text class="data-cell data-cell--account data-cell--sortable" @click="toggleSort('detectAccount')">检出人<text class="sort-indicator" :class="getSortClass('detectAccount')"></text></text>
-              <text class="data-cell data-cell--worksheet data-cell--sortable" @click="toggleSort('referenceWorksheetId')">关联工单<text class="sort-indicator" :class="getSortClass('referenceWorksheetId')"></text></text>
+              <text class="data-cell data-cell--detect-type data-cell--sortable" @click="toggleSort('detectType')">检出类型<text class="sort-indicator" :class="getSortClass('detectType')"></text></text>
+              <text class="data-cell data-cell--process-status data-cell--sortable" @click="toggleSort('processStatus')">处理状态<text class="sort-indicator" :class="getSortClass('processStatus')"></text></text>
+              <text class="data-cell data-cell--is-leak data-cell--sortable" @click="toggleSort('isLeakPoint')">是否漏点<text class="sort-indicator" :class="getSortClass('isLeakPoint')"></text></text>
+              <text class="data-cell data-cell--position data-cell--sortable" @click="toggleSort('leakPointPosition')">漏点位置<text class="sort-indicator" :class="getSortClass('leakPointPosition')"></text></text>
+              <text class="data-cell data-cell--time data-cell--sortable" @click="toggleSort('reportTime')">上报时间<text class="sort-indicator" :class="getSortClass('reportTime')"></text></text>
+              <text class="data-cell data-cell--reporter data-cell--sortable" @click="toggleSort('reporter')">上报人员<text class="sort-indicator" :class="getSortClass('reporter')"></text></text>
+              <text class="data-cell data-cell--worksheet data-cell--sortable" @click="toggleSort('workOrderNo')">关联工单<text class="sort-indicator" :class="getSortClass('workOrderNo')"></text></text>
             </view>
 
             <view v-if="loading" class="table-state">加载中...</view>
@@ -88,10 +119,17 @@
                 @click="selectSuspect(item, index)"
               >
                 <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
-                <text class="data-cell data-cell--time">{{ getDetectedTime(item) }}</text>
-                <text class="data-cell data-cell--address">{{ getLeakAddress(item) }}</text>
-                <text class="data-cell data-cell--account">{{ getDetectAccount(item) }}</text>
-                <text class="data-cell data-cell--worksheet">{{ getReferenceWorksheetId(item) }}</text>
+                <text class="data-cell data-cell--detect-type">{{ getTextValue(item, ["detectType"], "-") }}</text>
+                <text class="data-cell data-cell--process-status">
+                  <text class="status-tag" :class="getProcessStatusClass(item)">{{ getProcessStatusLabel(item) }}</text>
+                </text>
+                <text class="data-cell data-cell--is-leak">
+                  <text class="status-tag" :class="getIsLeakPointClass(item)">{{ getIsLeakPointLabel(item) }}</text>
+                </text>
+                <text class="data-cell data-cell--position">{{ getTextValue(item, ["leakPointPosition"], "-") }}</text>
+                <text class="data-cell data-cell--time">{{ formatDateTime(getTextValue(item, ["reportTime"], "-")) }}</text>
+                <text class="data-cell data-cell--reporter">{{ getTextValue(item, ["reporter"], "-") }}</text>
+                <text class="data-cell data-cell--worksheet">{{ getTextValue(item, ["workOrderNo"], "-") }}</text>
               </view>
             </view>
           </view>
@@ -104,7 +142,23 @@
         </view>
       </view>
 
-      <view class="suspect-detail-panel">
+      <view
+        ref="splitDividerRef"
+        class="split-divider"
+        :class="{ 'split-divider--active': isDragging }"
+        @mousedown="onDividerMouseDown"
+        @touchstart.prevent="onDividerTouchStart"
+      >
+        <view class="split-divider__line"></view>
+        <view class="split-divider__grip">
+          <view class="split-divider__dot"></view>
+          <view class="split-divider__dot"></view>
+          <view class="split-divider__dot"></view>
+        </view>
+      </view>
+
+      <!-- 右侧详情面板 — flex:1 自动占满剩余宽度 -->
+      <view class="suspect-detail-panel" style="flex: 1; min-width: 0;">
         <view class="detail-tabs">
           <view
             v-for="tab in detailTabs"
@@ -119,22 +173,24 @@
 
         <view v-if="!selectedSuspect" class="detail-empty">请选择左侧疑点查看详情</view>
         <view v-else class="detail-body">
+          <!-- 疑点详情 Tab -->
           <view v-if="activeTab === 'base'" class="detail-base-panel">
             <view class="detail-summary">
               <view class="detail-summary__main">
                 <text class="detail-summary__label">疑点编号</text>
-                <text class="detail-summary__number">{{ baseSummary.id }}</text>
+                <text class="detail-summary__number">{{ getId(selectedSuspect) }}</text>
               </view>
             </view>
 
             <view class="detail-grid detail-grid--base">
-              <view v-for="item in secondaryBaseDetailFields" :key="item.label" class="detail-item detail-item--base">
+              <view v-for="item in baseDetailFields" :key="item.label" class="detail-item detail-item--base">
                 <text class="detail-item__label">{{ item.label }}</text>
                 <text class="detail-item__value">{{ item.value }}</text>
               </view>
             </view>
           </view>
 
+          <!-- 管道信息 Tab -->
           <view v-if="activeTab === 'pipe'" class="detail-grid detail-grid--content">
             <view v-for="item in pipeDetailFields" :key="item.label" class="detail-item detail-item--note">
               <text class="detail-item__label">{{ item.label }}</text>
@@ -142,136 +198,217 @@
             </view>
           </view>
 
-          <view v-if="activeTab === 'time'" class="detail-time-panel">
-            <view class="time-section">
-              <text class="detail-section-title">时间信息</text>
-              <view class="time-list">
-                <view v-for="item in timeMomentFields" :key="item.label" class="time-row">
-                  <view class="time-row__marker"></view>
-                  <view class="time-row__content">
-                    <text class="time-row__label">{{ item.label }}</text>
-                    <text class="time-row__value">{{ item.value }}</text>
-                  </view>
-                </view>
-              </view>
-            </view>
-
-            <view class="time-section time-section--location">
-              <text class="detail-section-title">地点信息</text>
-              <view v-for="item in locationDetailFields" :key="item.label" class="location-row">
-                <text class="location-row__label">{{ item.label }}</text>
-                <text class="location-row__value">{{ item.value }}</text>
-              </view>
+          <!-- 关联信息 Tab -->
+          <view v-if="activeTab === 'related'" class="detail-grid detail-grid--content">
+            <view v-for="item in relatedDetailFields" :key="item.label" class="detail-item detail-item--note">
+              <text class="detail-item__label">{{ item.label }}</text>
+              <text class="detail-item__value">{{ item.value }}</text>
             </view>
           </view>
         </view>
 
-        <view v-if="mode === 'processing' && selectedSuspect" class="process-box">
+        <!-- 疑点处理区（仅处理模式） -->
+        <view v-if="selectedSuspect && mode === 'processing'" class="process-box">
           <text class="process-box__title">疑点处理</text>
           <view class="process-actions">
-            <button class="toolbar-button process-action process-action--confirm" :disabled="processing" hover-class="toolbar-button--hover" @click="openConfirmDialog">确认疑点</button>
-            <button class="toolbar-button process-action process-action--exclude" :disabled="processing" hover-class="toolbar-button--hover" @click="handleExclude">排除疑点</button>
-            <button class="toolbar-button process-action process-action--worksheet" :disabled="processing" hover-class="toolbar-button--hover" @click="openWorksheetDialog">转工单</button>
+            <!-- 状态 0-未处理：派单 -->
+            <template v-if="getProcessStatus(selectedSuspect) === 0">
+              <button class="toolbar-button process-action process-action--confirm-leak" :disabled="processing" hover-class="toolbar-button--hover" @click="openConfirmLeakDialog">确认疑点</button>
+              <button class="toolbar-button process-action process-action--dispatch" :disabled="processing" hover-class="toolbar-button--hover" @click="openDispatchDialog">转工单</button>
+              <button class="toolbar-button process-action process-action--exclude" :disabled="processing" hover-class="toolbar-button--hover" @click="openExcludeDialog">排除疑点</button>
+            </template>
+            <!-- 状态 1-已派单：确认疑点、排除疑点、查看工单 -->
+            <template v-if="getProcessStatus(selectedSuspect) === 1">
+              <button class="toolbar-button process-action process-action--confirm-leak" :disabled="processing" hover-class="toolbar-button--hover" @click="openConfirmLeakDialog">确认疑点</button>
+              <button class="toolbar-button process-action process-action--exclude" :disabled="processing" hover-class="toolbar-button--hover" @click="openExcludeDialog">排除疑点</button>
+              <button class="toolbar-button process-action process-action--view-worksheet" :disabled="!getWorkOrderId(selectedSuspect)" hover-class="toolbar-button--hover" @click="viewWorkOrder">查看工单</button>
+            </template>
+            <!-- 状态 2-处理中：确认疑点、排除疑点、查看工单 -->
+            <template v-if="getProcessStatus(selectedSuspect) === 2">
+              <button class="toolbar-button process-action process-action--confirm-leak" :disabled="processing" hover-class="toolbar-button--hover" @click="openConfirmLeakDialog">确认疑点</button>
+              <button class="toolbar-button process-action process-action--exclude" :disabled="processing" hover-class="toolbar-button--hover" @click="openExcludeDialog">排除疑点</button>
+              <button class="toolbar-button process-action process-action--view-worksheet" :disabled="!getWorkOrderId(selectedSuspect)" hover-class="toolbar-button--hover" @click="viewWorkOrder">查看工单</button>
+            </template>
+            <!-- 状态 3-已完成：查看工单 -->
+            <template v-if="getProcessStatus(selectedSuspect) === 3">
+              <button class="toolbar-button process-action process-action--view-worksheet" :disabled="!getWorkOrderId(selectedSuspect)" hover-class="toolbar-button--hover" @click="viewWorkOrder">查看工单</button>
+            </template>
+            <!-- 状态 4-已排除：仅查看 -->
+            <template v-if="getProcessStatus(selectedSuspect) === 4">
+              <text class="process-action--excluded">已排除</text>
+            </template>
           </view>
         </view>
       </view>
     </view>
 
-    <view v-if="confirmDialogVisible" class="dialog-mask" @click.self="closeConfirmDialog">
-      <view class="dialog-panel dialog-panel--sm" @click.stop>
+    <!-- ========== 转工单对话框 ========== -->
+    <view v-if="dispatchDialogVisible" class="dialog-mask" @click.self="closeDispatchDialog">
+      <view class="dialog-panel" @click.stop>
         <view class="dialog-header">
           <view>
-            <text class="dialog-title">确认疑点</text>
-            <text class="dialog-subtitle">选择渗漏级别，确认后该疑点将转为漏点</text>
+            <text class="dialog-title">转工单</text>
+            <text class="dialog-subtitle">填写工单信息，将疑点转为工单处理</text>
           </view>
-          <button class="dialog-close" hover-class="dialog-close--hover" aria-label="关闭" @click="closeConfirmDialog">×</button>
+          <button class="dialog-close" hover-class="dialog-close--hover" aria-label="关闭" @click="closeDispatchDialog">×</button>
         </view>
         <view class="dialog-body">
           <view class="form-field">
-            <text class="form-label">编号</text>
-            <view class="form-readonly">{{ worksheetSuspectId || "-" }}</view>
+            <text class="form-label">疑点编号</text>
+            <view class="form-readonly">{{ dispatchSuspectId || "-" }}</view>
           </view>
           <view class="form-field">
-            <text class="form-label form-label--required">渗漏级别</text>
-            <view class="option-group">
-              <button
-                v-for="item in confirmLevelOptions"
-                :key="item.value"
-                class="option-button"
-                :class="{ 'option-button--active': confirmLevel === item.value }"
-                hover-class="option-button--hover"
-                @click="confirmLevel = item.value"
+            <text class="form-label">工单编号</text>
+            <input v-model="dispatchForm.workOrderNo" class="form-input" placeholder="不填则自动生成" placeholder-class="input-placeholder" />
+          </view>
+          <view class="form-field">
+            <text class="form-label">预期时间</text>
+            <WorkOrderDatetimePicker v-model="dispatchForm.expectedTime" class="form-datetime" title="选择预期时间" placeholder="请选择预期时间" />
+          </view>
+          <view class="form-field">
+            <text class="form-label">紧急程度</text>
+            <view class="select-field">
+              <view
+                class="form-select form-select--dropdown"
+                :class="{ 'form-select--open': dispatchUrgencySelectOpen, 'form-control--error': dispatchUrgencyError }"
+                @click.stop="dispatchUrgencySelectOpen = !dispatchUrgencySelectOpen"
               >
-                {{ item.label }}
-              </button>
+                <text :class="{ 'select-placeholder': !dispatchForm.urgencyLevel }">{{ dispatchUrgencyLabel }}</text>
+                <text class="select-arrow"></text>
+              </view>
+              <view v-if="dispatchUrgencySelectOpen" class="select-menu">
+                <view
+                  v-for="item in urgencyOptions"
+                  :key="item.value"
+                  class="select-option"
+                  :class="{ 'select-option--active': dispatchForm.urgencyLevel === item.value }"
+                  @click.stop="selectDispatchUrgency(item.value)"
+                >
+                  {{ item.label }}
+                </view>
+              </view>
             </view>
+            <text v-if="dispatchUrgencyError" class="form-error">{{ dispatchUrgencyError }}</text>
+          </view>
+          <view class="form-field">
+            <text class="form-label">处理流程</text>
+            <input v-model="dispatchForm.processFlow" class="form-input" placeholder="请输入处理流程" placeholder-class="input-placeholder" />
+          </view>
+          <view class="form-field">
+            <text class="form-label">处理人员</text>
+            <input v-model="dispatchForm.handler" class="form-input" placeholder="请输入处理人员" placeholder-class="input-placeholder" />
           </view>
           <view class="form-field">
             <text class="form-label">备注</text>
-            <textarea v-model="confirmRemark" class="form-textarea" placeholder="请输入确认备注" placeholder-class="input-placeholder" />
+            <textarea v-model="dispatchForm.remark" class="form-textarea" placeholder="请输入备注" placeholder-class="input-placeholder" />
+          </view>
+          <view class="form-field">
+            <text class="form-label">设备编号</text>
+            <input v-model="dispatchForm.deviceNo" class="form-input" placeholder="请输入设备编号" placeholder-class="input-placeholder" />
+          </view>
+          <view class="form-field">
+            <text class="form-label">渗漏状态</text>
+            <input v-model="dispatchForm.leakageStatus" class="form-input" placeholder="请输入渗漏状态" placeholder-class="input-placeholder" />
+          </view>
+          <view class="form-field">
+            <text class="form-label">安装图片</text>
+            <input v-model="dispatchForm.installImage" class="form-input" placeholder="请输入安装图片地址" placeholder-class="input-placeholder" />
+          </view>
+          <view class="form-field">
+            <text class="form-label">安装地址</text>
+            <input v-model="dispatchForm.installAddress" class="form-input" placeholder="请输入安装地址" placeholder-class="input-placeholder" />
           </view>
         </view>
         <view class="dialog-footer">
-          <button class="dialog-button" hover-class="dialog-button--hover" @click="closeConfirmDialog">取消</button>
-          <button class="dialog-button dialog-button--primary" :disabled="processing" hover-class="dialog-button--hover" @click="submitConfirm">
+          <button class="dialog-button" hover-class="dialog-button--hover" @click="closeDispatchDialog">取消</button>
+          <button class="dialog-button dialog-button--primary" :disabled="processing" hover-class="dialog-button--hover" @click="submitDispatch">
+            {{ processing ? "处理中..." : "确认转工单" }}
+          </button>
+        </view>
+      </view>
+    </view>
+
+    <!-- ========== 确认疑点对话框 ========== -->
+    <view v-if="confirmLeakDialogVisible" class="dialog-mask" @click.self="closeConfirmLeakDialog">
+      <view class="dialog-panel" @click.stop>
+        <view class="dialog-header">
+          <view>
+            <text class="dialog-title">确认疑点</text>
+            <text class="dialog-subtitle">确认后该疑点将转为漏点记录，同步到漏点界面</text>
+          </view>
+          <button class="dialog-close" hover-class="dialog-close--hover" aria-label="关闭" @click="closeConfirmLeakDialog">×</button>
+        </view>
+        <view class="dialog-body">
+          <view class="form-field">
+            <text class="form-label">疑点编号</text>
+            <view class="form-readonly">{{ confirmLeakSuspectId || "-" }}</view>
+          </view>
+          <view class="form-field">
+            <text class="form-label">漏点类型</text>
+            <input v-model="confirmLeakForm.leakPointType" class="form-input" placeholder="请输入漏点类型" placeholder-class="input-placeholder" />
+          </view>
+          <view class="form-field">
+            <text class="form-label">漏点位置</text>
+            <input v-model="confirmLeakForm.leakPointPosition" class="form-input" placeholder="请输入漏点位置" placeholder-class="input-placeholder" />
+          </view>
+          <view class="form-field">
+            <text class="form-label">坐标位置</text>
+            <input v-model="confirmLeakForm.coordinatePosition" class="form-input" placeholder="请输入坐标位置" placeholder-class="input-placeholder" />
+          </view>
+          <view class="form-field">
+            <text class="form-label">初判级别</text>
+            <input v-model="confirmLeakForm.initialLevel" class="form-input" placeholder="请输入初判级别" placeholder-class="input-placeholder" />
+          </view>
+          <view class="form-field">
+            <text class="form-label">漏点大小</text>
+            <input v-model="confirmLeakForm.leakPointSize" class="form-input" placeholder="请输入漏点大小" placeholder-class="input-placeholder" />
+          </view>
+          <view class="form-field">
+            <text class="form-label">漏点路面</text>
+            <input v-model="confirmLeakForm.leakRoadSurface" class="form-input" placeholder="请输入漏点路面" placeholder-class="input-placeholder" />
+          </view>
+          <view class="form-field">
+            <text class="form-label">备注</text>
+            <textarea v-model="confirmLeakForm.remark" class="form-textarea" placeholder="请输入备注" placeholder-class="input-placeholder" />
+          </view>
+        </view>
+        <view class="dialog-footer">
+          <button class="dialog-button" hover-class="dialog-button--hover" @click="closeConfirmLeakDialog">取消</button>
+          <button class="dialog-button dialog-button--primary" :disabled="processing" hover-class="dialog-button--hover" @click="submitConfirmLeak">
             {{ processing ? "处理中..." : "确认" }}
           </button>
         </view>
       </view>
     </view>
 
-    <view v-if="worksheetDialogVisible" class="dialog-mask" @click.self="closeWorksheetDialog">
-      <view class="dialog-panel dialog-panel--sm" @click.stop>
+    <!-- ========== 排除疑点对话框 ========== -->
+    <view v-if="excludeDialogVisible" class="dialog-mask" @click.self="closeExcludeDialog">
+      <view class="dialog-panel" @click.stop>
         <view class="dialog-header">
           <view>
-            <text class="dialog-title">转工单</text>
-            <text class="dialog-subtitle">填写工单信息，创建工单并关联当前疑点</text>
+            <text class="dialog-title">排除疑点</text>
+            <text class="dialog-subtitle">确认排除后将标记该疑点为已排除，并记录排除原因</text>
           </view>
-          <button class="dialog-close" hover-class="dialog-close--hover" aria-label="关闭" @click="closeWorksheetDialog">×</button>
+          <button class="dialog-close" hover-class="dialog-close--hover" aria-label="关闭" @click="closeExcludeDialog">×</button>
         </view>
         <view class="dialog-body">
           <view class="form-field">
-            <text class="form-label">编号</text>
-            <view class="form-readonly">{{ worksheetSuspectId || "-" }}</view>
+            <text class="form-label">疑点编号</text>
+            <view class="form-readonly">{{ excludeSuspectId || "-" }}</view>
           </view>
           <view class="form-field">
-            <text class="form-label form-label--required">工单标题</text>
-            <input v-model="worksheetForm.title" class="form-input" placeholder="请输入工单标题" placeholder-class="input-placeholder" />
+            <text class="form-label form-label--required">排除原因</text>
+            <textarea v-model="excludeForm.reason" class="form-textarea" placeholder="请输入排除原因" placeholder-class="input-placeholder" />
           </view>
           <view class="form-field">
-            <text class="form-label form-label--required">工单类型</text>
-            <view class="select-field">
-              <view
-                class="form-select form-select--dropdown"
-                :class="{ 'form-select--open': worksheetTypeSelectOpen, 'form-control--error': worksheetTypeError }"
-                @click.stop="worksheetTypeSelectOpen = !worksheetTypeSelectOpen"
-              >
-                <text :class="{ 'select-placeholder': worksheetForm.type === '' }">{{ worksheetTypeLabel }}</text>
-                <text class="select-arrow"></text>
-              </view>
-              <view v-if="worksheetTypeSelectOpen" class="select-menu">
-                <view
-                  v-for="item in worksheetTypeOptions"
-                  :key="item.value"
-                  class="select-option"
-                  :class="{ 'select-option--active': worksheetForm.type === item.value }"
-                  @click.stop="selectWorksheetType(item.value)"
-                >
-                  {{ item.label }}
-                </view>
-              </view>
-            </view>
-            <text v-if="worksheetTypeError" class="form-error">{{ worksheetTypeError }}</text>
-          </view>
-          <view class="form-field">
-            <text class="form-label">工单描述</text>
-            <textarea v-model="worksheetForm.description" class="form-textarea" placeholder="请输入工单描述" placeholder-class="input-placeholder" />
+            <text class="form-label">操作人</text>
+            <input v-model="excludeForm.operator" class="form-input" placeholder="请输入操作人" placeholder-class="input-placeholder" />
           </view>
         </view>
         <view class="dialog-footer">
-          <button class="dialog-button" hover-class="dialog-button--hover" @click="closeWorksheetDialog">取消</button>
-          <button class="dialog-button dialog-button--primary" :disabled="processing" hover-class="dialog-button--hover" @click="submitWorksheet">
-            {{ processing ? "处理中..." : "转工单" }}
+          <button class="dialog-button" hover-class="dialog-button--hover" @click="closeExcludeDialog">取消</button>
+          <button class="dialog-button dialog-button--danger" :disabled="processing" hover-class="dialog-button--hover" @click="submitExclude">
+            {{ processing ? "处理中..." : "确认排除" }}
           </button>
         </view>
       </view>
@@ -280,18 +417,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from "vue";
-import { getSuspectPage, getSuspectDetail, deleteSuspect } from "@/services/leak-report/suspect-management";
-import { confirmSuspect, excludeSuspect, convertToWorksheet } from "@/services/leak-report/suspect-processing";
+import { computed, onMounted, onUnmounted, reactive, ref } from "vue";
+import { getSuspectPage, getSuspectDetail, deleteSuspect } from "@/services/leak-report/suspected-leak";
+import { dispatchSuspect, confirmLeakPoint, excludeSuspect } from "@/services/leak-report/suspected-leak";
 import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
 
+// ========== 类型定义 ==========
 type SuspectMode = "management" | "processing";
-type DetailTab = "base" | "pipe" | "time";
+type DetailTab = "base" | "pipe" | "related";
 type SuspectRecord = Record<string, unknown>;
-type OptionValue = number | "";
-type SelectOption<T extends OptionValue = OptionValue> = {
+type OptionValue = number | string;
+type SelectOption = {
   label: string;
-  value: T;
+  value: OptionValue;
 };
 
 interface ApiResponseLike {
@@ -303,6 +441,7 @@ interface ApiResponseLike {
   msg?: string;
 }
 
+// ========== Props / Emits ==========
 const props = defineProps<{
   mode: SuspectMode;
 }>();
@@ -312,31 +451,69 @@ const emit = defineEmits<{
   (event: "edit", suspect: SuspectRecord): void;
 }>();
 
+// ========== 常量 ==========
 const pageTitleMap: Record<SuspectMode, string> = {
   management: "疑点管理列表",
   processing: "疑点处理列表",
 };
 
-const leakLevelOptions: SelectOption[] = [
+const processStatusFilterOptions: SelectOption[] = [
   { label: "不限", value: "" },
-  { label: "轻度", value: 0 },
-  { label: "中度", value: 1 },
-  { label: "重度", value: 2 },
-  { label: "疑点", value: 3 },
+  { label: "未处理", value: 0 },
+  { label: "已派单", value: 1 },
+  { label: "处理中", value: 2 },
+  { label: "已完成", value: 3 },
+  { label: "已取消", value: 4 },
+];
+
+const isLeakPointFilterOptions: SelectOption[] = [
+  { label: "不限", value: "" },
+  { label: "否", value: 0 },
+  { label: "是", value: 1 },
+  { label: "待确认", value: 2 },
+];
+
+const detectTypeFilterOptions: SelectOption[] = [
+  { label: "全部", value: "" },
+  { label: "人工检出", value: "人工检出" },
+  { label: "设备检出", value: "设备检出" },
+];
+
+const processStatusLabelMap: Record<number, string> = {
+  0: "未处理",
+  1: "已派单",
+  2: "处理中",
+  3: "已完成",
+  4: "已排除",
+};
+
+const isLeakPointLabelMap: Record<number, string> = {
+  0: "否",
+  1: "是",
+  2: "待确认",
+};
+
+const urgencyOptions: SelectOption[] = [
+  { label: "低", value: "low" },
+  { label: "中", value: "medium" },
+  { label: "高", value: "high" },
+  { label: "紧急", value: "urgent" },
 ];
 
 const detailTabs: Array<{ label: string; value: DetailTab }> = [
   { label: "疑点详情", value: "base" },
   { label: "管道信息", value: "pipe" },
-  { label: "时间地点", value: "time" },
+  { label: "关联信息", value: "related" },
 ];
 
+// ========== 响应式数据 ==========
 const filters = reactive({
+  detectType: "",
+  processStatus: "" as number | "",
+  isLeakPoint: "" as number | "",
+  reporter: "",
   startTime: "",
   endTime: "",
-  leakLevel: 3 as number | "",
-  detectAccount: "",
-  leakAddress: "",
 });
 
 const pagination = reactive({
@@ -354,108 +531,262 @@ const activeTab = ref<DetailTab>("base");
 const sortField = ref<string>("");
 const sortOrder = ref<"asc" | "desc" | "">("");
 
+const splitRatio = ref(0.7);
+const isDragging = ref(false);
+
+// 对话框状态
+const processing = ref(false);
+const dispatchDialogVisible = ref(false);
+const dispatchUrgencySelectOpen = ref(false);
+const dispatchUrgencyError = ref("");
+const dispatchForm = reactive({
+  workOrderNo: "",
+  expectedTime: "",
+  urgencyLevel: "",
+  processFlow: "",
+  handler: "",
+  remark: "",
+  deviceNo: "",
+  leakageStatus: "",
+  installImage: "",
+  installAddress: "",
+});
+
+const confirmLeakDialogVisible = ref(false);
+const confirmLeakForm = reactive({
+  leakPointType: "",
+  leakPointPosition: "",
+  coordinatePosition: "",
+  initialLevel: "",
+  leakPointSize: "",
+  leakRoadSurface: "",
+  remark: "",
+});
+
+// ========== 计算属性 ==========
 const pageTitle = computed(() => pageTitleMap[props.mode]);
-const currentLevelLabel = computed(() => getOptionLabel(leakLevelOptions, filters.leakLevel, "不限"));
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pagination.pageSize)));
 
+const currentProcessStatusIndex = computed(() => {
+  const idx = processStatusFilterOptions.findIndex((item) => item.value === filters.processStatus);
+  return idx >= 0 ? idx : 0;
+});
+const currentProcessStatusLabel = computed(() => {
+  return processStatusFilterOptions[currentProcessStatusIndex.value]?.label || "不限";
+});
+
+const currentIsLeakPointIndex = computed(() => {
+  const idx = isLeakPointFilterOptions.findIndex((item) => item.value === filters.isLeakPoint);
+  return idx >= 0 ? idx : 0;
+});
+const currentIsLeakPointLabel = computed(() => {
+  return isLeakPointFilterOptions[currentIsLeakPointIndex.value]?.label || "不限";
+});
+
+const currentDetectTypeIndex = computed(() => {
+  const idx = detectTypeFilterOptions.findIndex((item) => item.value === filters.detectType);
+  return idx >= 0 ? idx : 0;
+});
+const currentDetectTypeLabel = computed(() => {
+  return detectTypeFilterOptions[currentDetectTypeIndex.value]?.label || "全部";
+});
+
+const dispatchUrgencyLabel = computed(() => {
+  if (!dispatchForm.urgencyLevel) return "请选择紧急程度";
+  return urgencyOptions.find((item) => item.value === dispatchForm.urgencyLevel)?.label || "请选择紧急程度";
+});
+
+const dispatchSuspectId = computed(() => (selectedSuspect.value ? getRowId(selectedSuspect.value) : ""));
+const confirmLeakSuspectId = computed(() => (selectedSuspect.value ? getRowId(selectedSuspect.value) : ""));
+
+// 疑点详情字段
 const baseDetailFields = computed(() => {
   const item = selectedSuspect.value || {};
-
   return [
-    { label: "疑点编号", value: getId(item) },
-    { label: "渗漏部位", value: getLeakPart(item) },
-    { label: "检出人", value: getDetectAccount(item) },
-    { label: "关联设备", value: getReferenceDevices(item) },
-    { label: "关联音频", value: getReferenceAudio(item) },
-    { label: "关联工单ID", value: getReferenceWorksheetId(item) },
-    { label: "渗漏照片", value: getLeakPicture(item) },
-    { label: "备注", value: getRemark(item) },
+    { label: "处理状态", value: getProcessStatusLabel(item) },
+    { label: "检漏类型", value: getTextValue(item, ["detectType"], "-") },
+    { label: "是否漏点", value: getIsLeakPointLabel(item) },
+    { label: "漏点类型", value: getTextValue(item, ["leakPointType"], "-") },
+    { label: "初判级别", value: getTextValue(item, ["initialLevel"], "-") },
+    { label: "漏点大小", value: getTextValue(item, ["leakPointSize"], "-") },
+    { label: "漏点路面", value: getTextValue(item, ["leakRoadSurface"], "-") },
+    { label: "坐标位置", value: getTextValue(item, ["coordinatePosition"], "-") },
+    { label: "漏点位置", value: getTextValue(item, ["leakPointPosition"], "-") },
+    { label: "上报人员", value: getTextValue(item, ["reporter"], "-") },
+    { label: "上报时间", value: formatDateTime(getTextValue(item, ["reportTime"], "-")) },
+    { label: "备注信息", value: getTextValue(item, ["remark"], "-") },
+    { label: "巡查编号", value: getTextValue(item, ["patrolNo"], "-") },
   ];
 });
 
-const baseSummary = computed(() => {
-  const item = selectedSuspect.value || {};
-  return {
-    id: getId(item),
-  };
-});
-
-const secondaryBaseDetailFields = computed(() =>
-  baseDetailFields.value.filter((item) => item.label !== "疑点编号"),
-);
-
+// 管道信息字段
 const pipeDetailFields = computed(() => {
   const item = selectedSuspect.value || {};
-
   return [
-    { label: "管道埋深", value: getTubeDepth(item) },
-    { label: "管道材料", value: getTubeMaterial(item) },
-    { label: "管道口径", value: getTubeBore(item) },
-    { label: "最近设备距离", value: getClosestDeviceDistance(item) },
-    { label: "关联设备", value: getReferenceDevices(item) },
-    { label: "关联音频", value: getReferenceAudio(item) },
+    { label: "管道管径", value: getTextValue(item, ["tubeBore"], "-") },
+    { label: "管道材质", value: getTextValue(item, ["tubeMaterial"], "-") },
+    { label: "设备编号", value: getTextValue(item, ["deviceNumber"], "-") },
+    { label: "噪声时间", value: formatDateTime(getTextValue(item, ["noiseTime"], "-")) },
+    { label: "渗漏状态", value: getTextValue(item, ["leakStatus"], "-") },
+    { label: "特征值", value: getTextValue(item, ["featureValue"], "-") },
+    { label: "音频文件", value: getTextValue(item, ["audioFile"], "-") },
+    { label: "修复状态", value: getTextValue(item, ["repairStatus"], "-") },
+    { label: "修复时间", value: formatDateTime(getTextValue(item, ["repairTime"], "-")) },
+    { label: "修复人", value: getTextValue(item, ["repairPerson"], "-") },
+    { label: "下漏单位", value: getTextValue(item, ["leakUnit"], "-") },
+    { label: "维修单位", value: getTextValue(item, ["maintenanceUnit"], "-") },
+    { label: "所属分区", value: getTextValue(item, ["deptId"], "-") },
   ];
 });
 
-const timeDetailFields = computed(() => {
+// 关联信息字段
+const relatedDetailFields = computed(() => {
   const item = selectedSuspect.value || {};
-
   return [
-    { label: "检出时间", value: getDetectedTime(item) },
-    { label: "创建时间", value: getCreatedAt(item) },
+    { label: "关联工单编号", value: getTextValue(item, ["workOrderNo"], "-") },
+    { label: "关联工单ID", value: getTextValue(item, ["workOrderId"], "-") },
+    { label: "关联漏点记录ID", value: getTextValue(item, ["leakPointRecordId"], "-") },
+    { label: "创建时间", value: formatDateTime(getTextValue(item, ["createdAt"], "-")) },
     { label: "更新时间", value: formatDateTime(getTextValue(item, ["updatedAt"], "-")) },
-    { label: "渗漏位置", value: getLeakAddress(item) },
-    { label: "渗漏坐标", value: getLeakCoordinate(item) },
   ];
 });
-const timeMomentFields = computed(() => timeDetailFields.value.filter((item) => item.label !== "渗漏位置" && item.label !== "渗漏坐标"));
-const locationDetailFields = computed(() => timeDetailFields.value.filter((item) => item.label === "渗漏位置" || item.label === "渗漏坐标"));
 
+// ========== 生命周期 ==========
 onMounted(() => {
   void fetchSuspects();
+
+  // window 级鼠标/触摸事件统一在 mounted 注册，确保 mousemove/mouseup 全程捕获
+  window.addEventListener("mousemove", onWindowMouseMove);
+  window.addEventListener("mouseup", onDragEnd);
+  window.addEventListener("touchmove", onWindowTouchMove, { passive: false });
+  window.addEventListener("touchend", onDragEnd);
 });
 
-watch(selectedSuspect, () => {
-  // 选中变化时无需额外动作，详情由 computed 派生
+onUnmounted(() => {
+  isDragging.value = false;
+  window.removeEventListener("mousemove", onWindowMouseMove);
+  window.removeEventListener("mouseup", onDragEnd);
+  window.removeEventListener("touchmove", onWindowTouchMove);
+  window.removeEventListener("touchend", onDragEnd);
+  document.body.style.cursor = "";
+  document.body.style.userSelect = "";
 });
 
-function handleLevelChange(event: { detail: { value: number } }) {
-  filters.leakLevel = leakLevelOptions[event.detail.value]?.value ?? "";
+// ========== 筛选器事件处理 ==========
+function handleProcessStatusChange(event: { detail: { value: number } }) {
+  filters.processStatus = (processStatusFilterOptions[event.detail.value]?.value ?? "") as number | "";
 }
 
-function buildQueryParams() {
-  if (!validateDateTimeRange()) {
-    throw {
-      code: -2,
-      msg: "时间格式应为 YYYY-MM-DDTHH:mm:ss",
-    };
+function handleIsLeakPointChange(event: { detail: { value: number } }) {
+  filters.isLeakPoint = (isLeakPointFilterOptions[event.detail.value]?.value ?? "") as number | "";
+}
+
+function handleDetectTypeChange(event: { detail: { value: number } }) {
+  filters.detectType = (detectTypeFilterOptions[event.detail.value]?.value ?? "") as string;
+}
+
+// ========== 拖动分隔条 ==========
+const MIN_RATIO = 0.25;
+const MAX_RATIO = 0.78;
+
+const splitDividerRef = ref<HTMLElement | null>(null);
+const suspectLayoutRef = ref<HTMLElement | null>(null);
+
+// 拖拽内部状态（非响应式，避免频繁刷新）
+let _dragStartX = 0;
+let _dragStartRatio = 0.7;
+let _containerWidth = 0;
+
+// 每次挂载都从默认值 0.7 开始，切换页面时自动回到默认大小
+
+/** 通过 Vue 模板事件触发拖拽开始（兼容 uni-app 事件系统） */
+function onDividerMouseDown(e: MouseEvent) {
+  e.preventDefault();
+  beginDrag(e.clientX);
+}
+
+function onDividerTouchStart(e: TouchEvent) {
+  beginDrag(e.touches[0].clientX);
+}
+
+function beginDrag(clientX: number) {
+  isDragging.value = true;
+  // uni-app 的 <view> ref 指向组件实例，需通过 $el 获取根 DOM 元素
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const layout = ((suspectLayoutRef.value as any)?.$el || document.querySelector(".suspect-layout")) as HTMLElement | null;
+  if (!layout || typeof layout.getBoundingClientRect !== "function") {
+    isDragging.value = false;
+    return;
   }
+  _containerWidth = layout.getBoundingClientRect().width;
+  if (_containerWidth <= 0) _containerWidth = layout.clientWidth;
+  if (_containerWidth <= 0) {
+    isDragging.value = false;
+    return;
+  }
+  _dragStartRatio = splitRatio.value;
+  _dragStartX = clientX;
+  document.body.style.cursor = "col-resize";
+  document.body.style.userSelect = "none";
+}
 
-  const queryLeakLevel = 3;
+function onWindowMouseMove(e: MouseEvent) {
+  if (!isDragging.value) return;
+  moveDrag(e.clientX);
+}
 
-  return {
+function onWindowTouchMove(e: TouchEvent) {
+  if (!isDragging.value) return;
+  e.preventDefault();
+  moveDrag(e.touches[0].clientX);
+}
+
+function moveDrag(clientX: number) {
+  const delta = _containerWidth > 0 ? (clientX - _dragStartX) / _containerWidth : 0;
+  const newRatio = Math.min(MAX_RATIO, Math.max(MIN_RATIO, _dragStartRatio + delta));
+  splitRatio.value = newRatio;
+}
+
+function onDragEnd() {
+  if (!isDragging.value) return;
+  isDragging.value = false;
+  document.body.style.cursor = "";
+  document.body.style.userSelect = "";
+}
+
+// ========== 查询参数构建 ==========
+function buildQueryParams() {
+  const params: Record<string, unknown> = {
     pageNum: pagination.pageNum,
     pageSize: pagination.pageSize,
     startTime: normalizeDateForApi(filters.startTime, false),
     endTime: normalizeDateForApi(filters.endTime, true),
     sortOrder: sortOrder.value || "desc",
     sortField: sortField.value || "createdAt",
-    leakLevel: queryLeakLevel,
-    detectAccount: filters.detectAccount.trim() || undefined,
-    leakAddress: filters.leakAddress.trim() || undefined,
   };
+
+  if (filters.processStatus !== "" && filters.processStatus !== undefined) {
+    params.processStatus = filters.processStatus;
+  }
+  if (filters.isLeakPoint !== "" && filters.isLeakPoint !== undefined) {
+    params.isLeakPoint = filters.isLeakPoint;
+  }
+  if (filters.detectType.trim()) {
+    params.detectType = filters.detectType.trim();
+  }
+  if (filters.reporter.trim()) {
+    params.reporter = filters.reporter.trim();
+  }
+
+  return params;
 }
 
-function validateDateTimeRange() {
-  const pattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/;
-  return (!filters.startTime || pattern.test(filters.startTime)) && (!filters.endTime || pattern.test(filters.endTime));
-}
-
+// ========== 数据获取 ==========
 async function fetchSuspects() {
   loading.value = true;
 
   try {
-    const response = await getSuspectPage(buildQueryParams()) as ApiResponseLike;
+    const response = (await getSuspectPage(buildQueryParams())) as ApiResponseLike;
     assertSuccessResponse(response);
     const parsed = parsePageResponse(response);
     suspects.value = parsed.records;
@@ -475,55 +806,60 @@ async function fetchSuspects() {
   }
 }
 
-function parsePageResponse(response: ApiResponseLike) {
-  const data = response?.data ?? response;
-  const pageData = findPageContainer(data) || findPageContainer(response) || (isObject(data) ? data : {});
-  const records = getFirstArray(pageData, ["records", "rows", "list", "items"]);
-  const topLevelRecords = getFirstArray(response, ["records", "rows", "list", "items"]);
-  const finalRecords = records.length > 0 ? records : topLevelRecords;
-  const totalValue = getFirstNumber(pageData, ["total", "count", "totalCount", "totalRow", "totalRows", "totalElements"]) ??
-    getFirstNumber(response, ["total", "count", "totalCount", "totalRow", "totalRows", "totalElements"]);
-  const current = getFirstNumber(pageData, ["current", "pageNum", "page", "pageNo"]);
-  const size = getFirstNumber(pageData, ["size", "pageSize", "limit"]);
-
-  if (current) {
-    pagination.pageNum = current;
-  }
-
-  if (size) {
-    pagination.pageSize = size;
-  }
-
-  const minimumVisibleTotal = (pagination.pageNum - 1) * pagination.pageSize + finalRecords.length;
-  const resolvedTotal = totalValue === undefined ? finalRecords.length : Math.max(totalValue, minimumVisibleTotal);
-
-  return {
-    records: finalRecords.map((item) => (isObject(item) ? item : { value: item })),
-    total: resolvedTotal,
-  };
+function searchSuspects() {
+  pagination.pageNum = 1;
+  void fetchSuspects();
 }
 
-function findPageContainer(value: unknown): SuspectRecord | null {
-  if (!isObject(value)) {
-    return null;
-  }
-
-  const hasRecords = getFirstArray(value, ["records", "rows", "list", "items"]).length > 0;
-  const hasTotal = getFirstNumber(value, ["total", "count", "totalCount", "totalRow", "totalRows", "totalElements"]) !== undefined;
-  if (hasRecords || hasTotal) {
-    return value;
-  }
-
-  for (const key of ["data", "result", "page", "pageData"]) {
-    const matched = findPageContainer(value[key]);
-    if (matched) {
-      return matched;
-    }
-  }
-
-  return null;
+function resetFilters() {
+  clearFilters();
+  searchSuspects();
 }
 
+function clearFilters() {
+  filters.detectType = "";
+  filters.processStatus = "";
+  filters.isLeakPoint = "";
+  filters.reporter = "";
+  filters.startTime = "";
+  filters.endTime = "";
+}
+
+function resetFiltersAndFetch() {
+  clearFilters();
+  pagination.pageNum = 1;
+  return fetchSuspects();
+}
+
+// ========== 排序 ==========
+function toggleSort(field: string) {
+  if (sortField.value === field && sortOrder.value === "asc") {
+    sortOrder.value = "desc";
+  } else {
+    sortField.value = field;
+    sortOrder.value = sortField.value === field && sortOrder.value === "desc" ? "" : "asc";
+  }
+  if (!sortOrder.value) sortField.value = "";
+  searchSuspects();
+}
+
+function getSortClass(field: string) {
+  if (sortField.value !== field) return "sort-indicator--default";
+  return sortOrder.value === "asc" ? "sort-indicator--asc" : "sort-indicator--desc";
+}
+
+// ========== 分页 ==========
+function changePage(step: number) {
+  const nextPage = pagination.pageNum + step;
+  if (nextPage < 1 || nextPage > totalPages.value) {
+    return;
+  }
+
+  pagination.pageNum = nextPage;
+  void fetchSuspects();
+}
+
+// ========== 行选择 ==========
 function selectFirstRow() {
   if (suspects.value.length === 0) {
     selectedSuspect.value = null;
@@ -551,12 +887,12 @@ async function selectSuspect(item: SuspectRecord, index: number) {
   }
 
   try {
-    const response = await getSuspectDetail(id);
+    const response = (await getSuspectDetail(id)) as ApiResponseLike;
     assertSuccessResponse(response);
     if (isObject(response?.data)) {
       selectedSuspect.value = {
         ...item,
-        ...response.data,
+        ...(response.data as SuspectRecord),
       };
     }
   } catch {
@@ -564,6 +900,7 @@ async function selectSuspect(item: SuspectRecord, index: number) {
   }
 }
 
+// ========== 删除 ==========
 async function removeSuspect() {
   const id = selectedSuspect.value ? getRowId(selectedSuspect.value) : "";
   if (!id) {
@@ -575,133 +912,62 @@ async function removeSuspect() {
     title: "确认删除",
     content: "确定要删除该疑点吗？删除后不可恢复。",
     success: (modalRes) => {
-      if (!modalRes.confirm) {
-        return;
-      }
-      void confirmDelete(id);
+      if (!modalRes.confirm) return;
+      void doDelete(id, false);
     },
   });
 }
 
-async function confirmDelete(id: string | number) {
+async function doDelete(id: string | number, force: boolean) {
   try {
-    const response = await deleteSuspect(id) as ApiResponseLike;
+    const response = (await deleteSuspect(id, force)) as ApiResponseLike;
     assertSuccessResponse(response);
-    uni.showToast({ title: "疑点已删除", icon: "success" });
+    uni.showToast({ title: force ? "疑点已强制删除" : "疑点已删除", icon: "success", duration: 2000 });
     await fetchSuspects();
   } catch (error) {
-    uni.showToast({
-      title: (error as { msg?: string })?.msg || "疑点删除失败",
-      icon: "none",
-    });
-  }
-}
-
-function searchSuspects() {
-  pagination.pageNum = 1;
-  void fetchSuspects();
-}
-
-function toggleSort(field: string) {
-  if (sortField.value === field) {
-    if (sortOrder.value === "asc") {
-      sortOrder.value = "desc";
-    } else if (sortOrder.value === "desc") {
-      sortField.value = "";
-      sortOrder.value = "";
+    const errMsg = (error as { msg?: string })?.msg || "";
+    if (!force && errMsg && (errMsg.includes("关联") || errMsg.includes("工单") || errMsg.includes("强制"))) {
+      uni.showModal({
+        title: "强制删除",
+        content: "该疑点已关联工单，强制删除将同时解除关联，是否继续？",
+        success: (res) => res.confirm && void doDelete(id, true),
+      });
     } else {
-      sortOrder.value = "asc";
+      uni.showToast({ title: errMsg || "删除失败", icon: "none" });
     }
-  } else {
-    sortField.value = field;
-    sortOrder.value = "asc";
   }
-  searchSuspects();
 }
 
-function getSortClass(field: string) {
-  if (sortField.value !== field) return "sort-indicator--default";
-  return sortOrder.value === "asc" ? "sort-indicator--asc" : "sort-indicator--desc";
+// ========== 转工单 ==========
+function openDispatchDialog() {
+  dispatchForm.workOrderNo = "";
+  dispatchForm.expectedTime = "";
+  dispatchForm.urgencyLevel = "";
+  dispatchForm.processFlow = "";
+  dispatchForm.handler = "";
+  dispatchForm.remark = "";
+  dispatchForm.deviceNo = "";
+  dispatchForm.leakageStatus = "";
+  dispatchForm.installImage = "";
+  dispatchForm.installAddress = "";
+  dispatchUrgencySelectOpen.value = false;
+  dispatchUrgencyError.value = "";
+  dispatchDialogVisible.value = true;
 }
 
-function resetFilters() {
-  clearFilters();
-  searchSuspects();
+function closeDispatchDialog() {
+  dispatchDialogVisible.value = false;
+  dispatchUrgencySelectOpen.value = false;
+  dispatchUrgencyError.value = "";
 }
 
-function clearFilters() {
-  filters.startTime = "";
-  filters.endTime = "";
-  filters.leakLevel = "";
-  filters.detectAccount = "";
-  filters.leakAddress = "";
+function selectDispatchUrgency(value: OptionValue) {
+  dispatchForm.urgencyLevel = String(value);
+  dispatchUrgencySelectOpen.value = false;
+  dispatchUrgencyError.value = "";
 }
 
-const confirmLevelOptions: SelectOption<number>[] = [
-  { label: "轻度", value: 0 },
-  { label: "中度", value: 1 },
-  { label: "重度", value: 2 },
-];
-
-const worksheetTypeOptions: SelectOption<number>[] = [
-  { label: "巡检", value: 0 },
-  { label: "检漏", value: 1 },
-  { label: "拆装", value: 2 },
-  { label: "维护", value: 3 },
-];
-
-const processing = ref(false);
-const confirmDialogVisible = ref(false);
-const confirmLevel = ref<number>(0);
-const confirmRemark = ref("");
-const worksheetDialogVisible = ref(false);
-const worksheetTypeSelectOpen = ref(false);
-const worksheetTypeError = ref("");
-const worksheetForm = reactive({ title: "", type: "" as number | "", description: "" });
-
-const confirmLevelLabel = computed(() => confirmLevelOptions.find((item) => item.value === confirmLevel.value)?.label || "请选择");
-const worksheetTypeLabel = computed(() => {
-  if (worksheetForm.type === "") return "请选择工单类型";
-  return worksheetTypeOptions.find((item) => item.value === worksheetForm.type)?.label || "请选择工单类型";
-});
-const worksheetSuspectId = computed(() => (selectedSuspect.value ? getRowId(selectedSuspect.value) : ""));
-
-function handleConfirmLevelChange(event: { detail: { value: number } }) {
-  confirmLevel.value = confirmLevelOptions[event.detail.value]?.value ?? 0;
-}
-
-function selectWorksheetType(value: number) {
-  worksheetForm.type = value;
-  worksheetTypeSelectOpen.value = false;
-  worksheetTypeError.value = "";
-}
-
-function openConfirmDialog() {
-  confirmLevel.value = 0;
-  confirmRemark.value = "";
-  confirmDialogVisible.value = true;
-}
-
-function closeConfirmDialog() {
-  confirmDialogVisible.value = false;
-}
-
-function openWorksheetDialog() {
-  worksheetForm.title = "";
-  worksheetForm.type = "";
-  worksheetForm.description = "";
-  worksheetTypeSelectOpen.value = false;
-  worksheetTypeError.value = "";
-  worksheetDialogVisible.value = true;
-}
-
-function closeWorksheetDialog() {
-  worksheetDialogVisible.value = false;
-  worksheetTypeSelectOpen.value = false;
-  worksheetTypeError.value = "";
-}
-
-async function submitConfirm() {
+async function submitDispatch() {
   const id = selectedSuspect.value ? getRowId(selectedSuspect.value) : "";
   if (!id) {
     uni.showToast({ title: "请先选择疑点", icon: "none" });
@@ -710,85 +976,30 @@ async function submitConfirm() {
 
   processing.value = true;
   try {
-    const response = await confirmSuspect(id, {
-      leakLevel: confirmLevel.value,
-      remark: confirmRemark.value.trim(),
-    }) as ApiResponseLike;
+    const payload: Record<string, unknown> = {};
+    const woNo = dispatchForm.workOrderNo.trim();
+    if (woNo) {
+      payload.workOrderNo = woNo;
+    } else {
+      // 不填则自动生成，格式与工单创建一致：GD+年月日时分秒
+      const now = new Date();
+      const pad = (n: number) => String(n).padStart(2, "0");
+      payload.workOrderNo = `GD${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+    }
+    if (dispatchForm.expectedTime) payload.expectedTime = dispatchForm.expectedTime;
+    if (dispatchForm.urgencyLevel) payload.urgencyLevel = dispatchForm.urgencyLevel;
+    if (dispatchForm.processFlow.trim()) payload.processFlow = dispatchForm.processFlow.trim();
+    if (dispatchForm.handler.trim()) payload.handler = dispatchForm.handler.trim();
+    if (dispatchForm.remark.trim()) payload.remark = dispatchForm.remark.trim();
+    if (dispatchForm.deviceNo.trim()) payload.deviceNo = dispatchForm.deviceNo.trim();
+    if (dispatchForm.leakageStatus.trim()) payload.leakageStatus = dispatchForm.leakageStatus.trim();
+    if (dispatchForm.installImage.trim()) payload.installImage = dispatchForm.installImage.trim();
+    if (dispatchForm.installAddress.trim()) payload.installAddress = dispatchForm.installAddress.trim();
+
+    const response = (await dispatchSuspect(id, payload)) as ApiResponseLike;
     assertSuccessResponse(response);
-    uni.showToast({ title: "疑点已确认", icon: "success" });
-    confirmDialogVisible.value = false;
-    await fetchSuspects();
-  } catch (error) {
-    uni.showToast({
-      title: (error as { msg?: string })?.msg || "确认失败",
-      icon: "none",
-    });
-  } finally {
-    processing.value = false;
-  }
-}
-
-async function handleExclude() {
-  const id = selectedSuspect.value ? getRowId(selectedSuspect.value) : "";
-  if (!id) {
-    uni.showToast({ title: "请先选择疑点", icon: "none" });
-    return;
-  }
-
-  uni.showModal({
-    title: "确认排除",
-    content: "确定要排除该疑点吗？排除后将物理删除，不可恢复。",
-    success: (modalRes) => {
-      if (!modalRes.confirm) {
-        return;
-      }
-      void doExclude(id);
-    },
-  });
-}
-
-async function doExclude(id: string | number) {
-  processing.value = true;
-  try {
-    const response = await excludeSuspect(id) as ApiResponseLike;
-    assertSuccessResponse(response);
-    uni.showToast({ title: "疑点已排除", icon: "success" });
-    await fetchSuspects();
-  } catch (error) {
-    uni.showToast({
-      title: (error as { msg?: string })?.msg || "排除失败",
-      icon: "none",
-    });
-  } finally {
-    processing.value = false;
-  }
-}
-
-async function submitWorksheet() {
-  const id = selectedSuspect.value ? getRowId(selectedSuspect.value) : "";
-  if (!id) {
-    uni.showToast({ title: "请先选择疑点", icon: "none" });
-    return;
-  }
-  if (!worksheetForm.title.trim()) {
-    uni.showToast({ title: "请输入工单标题", icon: "none" });
-    return;
-  }
-  if (worksheetForm.type === "") {
-    worksheetTypeError.value = "请选择工单类型";
-    return;
-  }
-
-  processing.value = true;
-  try {
-    const response = await convertToWorksheet(id, {
-      title: worksheetForm.title.trim(),
-      type: worksheetForm.type,
-      description: worksheetForm.description.trim(),
-    }) as ApiResponseLike;
-    assertSuccessResponse(response);
-    uni.showToast({ title: "已转工单", icon: "success" });
-    worksheetDialogVisible.value = false;
+    uni.showToast({ title: "转工单成功", icon: "success", duration: 2000 });
+    dispatchDialogVisible.value = false;
     await fetchSuspects();
   } catch (error) {
     uni.showToast({
@@ -800,20 +1011,224 @@ async function submitWorksheet() {
   }
 }
 
-function resetFiltersAndFetch() {
-  clearFilters();
-  pagination.pageNum = 1;
-  return fetchSuspects();
+// ========== 确认漏点 ==========
+function openConfirmLeakDialog() {
+  confirmLeakForm.leakPointType = "";
+  confirmLeakForm.leakPointPosition = "";
+  confirmLeakForm.coordinatePosition = "";
+  confirmLeakForm.initialLevel = "";
+  confirmLeakForm.leakPointSize = "";
+  confirmLeakForm.leakRoadSurface = "";
+  confirmLeakForm.remark = "";
+  confirmLeakDialogVisible.value = true;
 }
 
-function changePage(step: number) {
-  const nextPage = pagination.pageNum + step;
-  if (nextPage < 1 || nextPage > totalPages.value) {
+function closeConfirmLeakDialog() {
+  confirmLeakDialogVisible.value = false;
+}
+
+async function submitConfirmLeak() {
+  const id = selectedSuspect.value ? getRowId(selectedSuspect.value) : "";
+  if (!id) {
+    uni.showToast({ title: "请先选择疑点", icon: "none" });
     return;
   }
 
-  pagination.pageNum = nextPage;
-  void fetchSuspects();
+  processing.value = true;
+  try {
+    const payload: Record<string, unknown> = {};
+    if (confirmLeakForm.leakPointType.trim()) payload.leakPointType = confirmLeakForm.leakPointType.trim();
+    if (confirmLeakForm.leakPointPosition.trim()) payload.leakPointPosition = confirmLeakForm.leakPointPosition.trim();
+    if (confirmLeakForm.coordinatePosition.trim()) payload.coordinatePosition = confirmLeakForm.coordinatePosition.trim();
+    if (confirmLeakForm.initialLevel.trim()) payload.initialLevel = confirmLeakForm.initialLevel.trim();
+    if (confirmLeakForm.leakPointSize.trim()) payload.leakPointSize = confirmLeakForm.leakPointSize.trim();
+    if (confirmLeakForm.leakRoadSurface.trim()) payload.leakRoadSurface = confirmLeakForm.leakRoadSurface.trim();
+    if (confirmLeakForm.remark.trim()) payload.remark = confirmLeakForm.remark.trim();
+
+    const response = (await confirmLeakPoint(id, payload)) as ApiResponseLike;
+    assertSuccessResponse(response);
+    uni.showToast({ title: "疑点已确认，同步至漏点界面", icon: "success", duration: 2000 });
+    confirmLeakDialogVisible.value = false;
+    await fetchSuspects();
+  } catch (error) {
+    uni.showToast({
+      title: (error as { msg?: string })?.msg || "确认疑点失败",
+      icon: "none",
+    });
+  } finally {
+    processing.value = false;
+  }
+}
+
+// ========== 排除疑点 ==========
+const excludeDialogVisible = ref(false);
+const excludeSuspectId = ref<string | number | null>(null);
+const excludeForm = reactive({
+  reason: "",
+  operator: "",
+});
+
+function openExcludeDialog() {
+  const suspect = selectedSuspect.value;
+  if (!suspect) return;
+  excludeSuspectId.value = getId(suspect);
+  excludeForm.reason = "";
+  excludeForm.operator = "";
+  excludeDialogVisible.value = true;
+}
+
+function closeExcludeDialog() {
+  excludeDialogVisible.value = false;
+}
+
+async function submitExclude() {
+  const id = excludeSuspectId.value;
+  if (id === null || id === undefined) return;
+  if (!excludeForm.reason.trim()) {
+    uni.showToast({ title: "请输入排除原因", icon: "none" });
+    return;
+  }
+
+  processing.value = true;
+  try {
+    const payload: Record<string, unknown> = { reason: excludeForm.reason.trim() };
+    if (excludeForm.operator.trim()) payload.operator = excludeForm.operator.trim();
+
+    const response = (await excludeSuspect(String(id), payload)) as ApiResponseLike;
+    assertSuccessResponse(response);
+    uni.showToast({ title: "疑点已排除", icon: "success", duration: 2000 });
+    excludeDialogVisible.value = false;
+    await fetchSuspects();
+  } catch (error) {
+    uni.showToast({
+      title: (error as { msg?: string })?.msg || "排除失败",
+      icon: "none",
+    });
+  } finally {
+    processing.value = false;
+  }
+}
+
+// ========== 查看工单 ==========
+function viewWorkOrder() {
+  const workOrderId = getWorkOrderId(selectedSuspect.value);
+  if (!workOrderId) {
+    uni.showToast({ title: "无关联工单", icon: "none" });
+    return;
+  }
+  uni.navigateTo({
+    url: `/pages/work-order/processing/processing?id=${workOrderId}`,
+  });
+}
+
+// ========== 辅助函数：状态标签 ==========
+function getProcessStatus(item: SuspectRecord | null): number {
+  if (!item) return -1;
+  const val = getStableValue(item, ["processStatus"]);
+  if (typeof val === "number") return val;
+  if (typeof val === "string" && val.trim()) {
+    const num = Number(val);
+    return Number.isNaN(num) ? -1 : num;
+  }
+  return -1;
+}
+
+function getProcessStatusLabel(item: SuspectRecord): string {
+  const status = getProcessStatus(item);
+  return processStatusLabelMap[status] || "未知";
+}
+
+function getProcessStatusClass(item: SuspectRecord): string {
+  const status = getProcessStatus(item);
+  const classMap: Record<number, string> = {
+    0: "status-tag--pending",
+    1: "status-tag--dispatched",
+    2: "status-tag--processing",
+    3: "status-tag--completed",
+    4: "status-tag--excluded",
+  };
+  return classMap[status] || "status-tag--default";
+}
+
+function getIsLeakPointLabel(item: SuspectRecord): string {
+  const val = getStableValue(item, ["isLeakPoint"]);
+  if (typeof val === "number") return isLeakPointLabelMap[val] || "未知";
+  if (typeof val === "string" && val.trim()) {
+    const num = Number(val);
+    return Number.isNaN(num) ? "未知" : (isLeakPointLabelMap[num] || "未知");
+  }
+  return "未知";
+}
+
+function getIsLeakPointClass(item: SuspectRecord): string {
+  const val = getStableValue(item, ["isLeakPoint"]);
+  let num = -1;
+  if (typeof val === "number") num = val;
+  else if (typeof val === "string" && val.trim()) num = Number(val);
+  const classMap: Record<number, string> = {
+    0: "status-tag--no",
+    1: "status-tag--yes",
+    2: "status-tag--pending-confirm",
+  };
+  return classMap[num] || "status-tag--default";
+}
+
+function getWorkOrderId(item: SuspectRecord | null): string | number {
+  if (!item) return "";
+  const val = getStableValue(item, ["workOrderId"]);
+  return typeof val === "string" || typeof val === "number" ? val : "";
+}
+
+// ========== 通用工具函数（保留自原有文件） ==========
+function parsePageResponse(response: ApiResponseLike) {
+  const data = response?.data ?? response;
+  const pageData = findPageContainer(data) || findPageContainer(response) || (isObject(data) ? data : {});
+  const records = getFirstArray(pageData, ["records", "rows", "list", "items"]);
+  const topLevelRecords = getFirstArray(response, ["records", "rows", "list", "items"]);
+  const finalRecords = records.length > 0 ? records : topLevelRecords;
+  const totalValue =
+    getFirstNumber(pageData, ["total", "count", "totalCount", "totalRow", "totalRows", "totalElements"]) ??
+    getFirstNumber(response, ["total", "count", "totalCount", "totalRow", "totalRows", "totalElements"]);
+  const current = getFirstNumber(pageData, ["current", "pageNum", "page", "pageNo"]);
+  const size = getFirstNumber(pageData, ["size", "pageSize", "limit"]);
+
+  if (current) {
+    pagination.pageNum = current;
+  }
+
+  if (size) {
+    pagination.pageSize = size;
+  }
+
+  const minimumVisibleTotal = (pagination.pageNum - 1) * pagination.pageSize + finalRecords.length;
+  const resolvedTotal = totalValue === undefined ? finalRecords.length : Math.max(totalValue, minimumVisibleTotal);
+
+  return {
+    records: finalRecords.map((item) => (isObject(item) ? item : { value: item })),
+    total: resolvedTotal,
+  };
+}
+
+function findPageContainer(value: unknown): SuspectRecord | null {
+  if (!isObject(value)) {
+    return null;
+  }
+
+  const hasRecords = getFirstArray(value, ["records", "rows", "list", "items"]).length > 0;
+  const hasTotal =
+    getFirstNumber(value, ["total", "count", "totalCount", "totalRow", "totalRows", "totalElements"]) !== undefined;
+  if (hasRecords || hasTotal) {
+    return value;
+  }
+
+  for (const key of ["data", "result", "page", "pageData"]) {
+    const matched = findPageContainer(value[key]);
+    if (matched) {
+      return matched;
+    }
+  }
+
+  return null;
 }
 
 function assertSuccessResponse(response: ApiResponseLike | undefined) {
@@ -840,89 +1255,6 @@ function getRowKey(item: SuspectRecord, index: number) {
 
 function getId(item: SuspectRecord) {
   return getTextValue(item, ["id"], "-");
-}
-
-function getDetectedTime(item: SuspectRecord) {
-  return formatDateTime(getTextValue(item, ["detectedTime"], "-"));
-}
-
-function getLeakAddress(item: SuspectRecord) {
-  return getTextValue(item, ["leakAddress"], "-");
-}
-
-function getLeakCoordinate(item: SuspectRecord) {
-  return getTextValue(item, ["leakCoordinate"], "-");
-}
-
-function getLeakLevelLabel(item: SuspectRecord) {
-  return getOptionLabel(leakLevelOptions, getStableValue(item, ["leakLevel"]), "未知");
-}
-
-function getLeakPart(item: SuspectRecord) {
-  return getTextValue(item, ["leakPart"], "-");
-}
-
-function getReferenceDevices(item: SuspectRecord) {
-  return getTextValue(item, ["referenceDevices"], "-");
-}
-
-function getReferenceAudio(item: SuspectRecord) {
-  return getTextValue(item, ["referenceAudio"], "-");
-}
-
-function getReferenceWorksheetId(item: SuspectRecord) {
-  return getTextValue(item, ["referenceWorksheetId"], "-");
-}
-
-function getClosestDeviceDistance(item: SuspectRecord) {
-  return getTextValue(item, ["closestDeviceDistance"], "-");
-}
-
-function getTubeDepth(item: SuspectRecord) {
-  return getTextValue(item, ["tubeDepth"], "-");
-}
-
-function getTubeMaterial(item: SuspectRecord) {
-  return getTextValue(item, ["tubeMaterial"], "-");
-}
-
-function getTubeBore(item: SuspectRecord) {
-  return getTextValue(item, ["tubeBore"], "-");
-}
-
-function getDetectAccount(item: SuspectRecord) {
-  return getTextValue(item, ["detectAccount"], "-");
-}
-
-function getLeakPicture(item: SuspectRecord) {
-  return getTextValue(item, ["leakPicture"], "-");
-}
-
-function getRemark(item: SuspectRecord) {
-  return getTextValue(item, ["remark"], "-");
-}
-
-function getCreatedAt(item: SuspectRecord) {
-  return formatDateTime(getTextValue(item, ["createdAt"], "-"));
-}
-
-function getLevelClass(item: SuspectRecord) {
-  const level = Number(getStableValue(item, ["leakLevel"]));
-  if (level === 2) {
-    return "level-pill--high";
-  }
-  if (level === 1) {
-    return "level-pill--mid";
-  }
-  if (level === 3) {
-    return "level-pill--suspect";
-  }
-  return "level-pill--low";
-}
-
-function getOptionLabel(options: SelectOption[], value: unknown, fallback: string) {
-  const normalized = typeof value === "string" && value.trim() !== "" ? Number(value) : value;
-  return options.find((item) => item.value === normalized)?.label || fallback;
 }
 
 function getTextValue(item: SuspectRecord, keys: string[], fallback = "") {
@@ -1011,6 +1343,7 @@ function formatDateTime(value: string) {
     .replace(/(?:Z|[+-]\d{2}:?\d{2})$/, "");
 }
 
+// ========== 暴露方法 ==========
 defineExpose({
   fetchSuspects,
   resetFiltersAndFetch,
@@ -1116,14 +1449,6 @@ defineExpose({
   color: #9aa9b8;
 }
 
-.filter-input {
-  width: 100%;
-}
-
-.filter-input--name {
-  width: 100%;
-}
-
 .filter-separator {
   color: #8191a2;
   font-size: 13px;
@@ -1210,7 +1535,7 @@ defineExpose({
 .toolbar-actions {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   flex: 0 0 auto;
   justify-content: flex-start;
   width: auto;
@@ -1303,10 +1628,8 @@ defineExpose({
 }
 
 .suspect-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 380px;
+  display: flex;
   flex: 1;
-  gap: 14px;
   margin-top: 14px;
   min-height: 0;
   overflow: hidden;
@@ -1321,6 +1644,90 @@ defineExpose({
   min-height: 0;
   overflow: hidden;
   overflow-x: hidden;
+}
+
+.split-divider {
+  flex: none;
+  width: 16px;
+  height: 100%;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.18s ease;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  /* 鼠标靠近时切换为拉伸光标 */
+}
+
+.split-divider__line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  background: #d8e5ef;
+  border-radius: 999px;
+  transform: translateX(-50%);
+  transition: background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.split-divider:hover .split-divider__line,
+.split-divider--active .split-divider__line {
+  background: #0d82ee;
+  box-shadow: 0 0 6px rgba(13, 130, 238, 0.3);
+}
+
+.split-divider__grip {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  opacity: 0.4;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.split-divider:hover .split-divider__grip,
+.split-divider--active .split-divider__grip {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.split-divider__dot {
+  width: 4px;
+  height: 4px;
+  background: #809bb5;
+  border-radius: 50%;
+  transition: background 0.18s ease;
+}
+
+.split-divider:hover .split-divider__dot,
+.split-divider--active .split-divider__dot {
+  background: #0d82ee;
+}
+
+.split-divider::before {
+  display: none;
+}
+
+.split-divider:hover {
+  background: rgba(13, 130, 238, 0.06);
+}
+
+.split-divider--active {
+  background: rgba(13, 130, 238, 0.1) !important;
+}
+
+/* 面板最小宽度约束 — 防止拖拽时过度挤压 */
+.suspect-table-panel {
+  min-width: 280px;
+}
+
+.suspect-detail-panel {
+  min-width: 240px;
 }
 
 .table-head {
@@ -1391,7 +1798,7 @@ defineExpose({
 
 .data-row {
   display: grid;
-  grid-template-columns: 52px 1fr 2fr 1fr 1fr;
+  grid-template-columns: 48px 90px 80px 72px 1fr 1fr 80px 150px;
   min-height: 42px;
   width: 100%;
   min-width: 0;
@@ -1464,7 +1871,7 @@ defineExpose({
   align-items: center;
   justify-content: center;
   min-width: 0;
-  padding: 0 12px;
+  padding: 0 8px;
   overflow: hidden;
   color: #24384d;
   font-size: 13px;
@@ -1526,8 +1933,7 @@ defineExpose({
   color: #64748b;
 }
 
-.data-cell--address,
-.data-cell--remark {
+.data-cell--position {
   justify-content: flex-start;
   text-align: left;
 }
@@ -1538,20 +1944,80 @@ defineExpose({
   font-weight: 800;
 }
 
-.data-cell--device {
-  color: #0f4c81;
-  font-family: "DIN Alternate", "Arial", sans-serif;
-  font-weight: 800;
-}
-
-.data-cell--account {
-  color: #24384d;
-}
-
 .data-cell--worksheet {
   color: #0f4c81;
   font-family: "DIN Alternate", "Arial", sans-serif;
   font-weight: 800;
+}
+
+.data-cell--reporter {
+  color: #24384d;
+}
+
+/* 状态标签 */
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.status-tag--pending {
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+}
+
+.status-tag--dispatched {
+  color: #1e40af;
+  background: #dbeafe;
+  border: 1px solid #93c5fd;
+}
+
+.status-tag--processing {
+  color: #6d28d9;
+  background: #ede9fe;
+  border: 1px solid #c4b5fd;
+}
+
+.status-tag--completed {
+  color: #166534;
+  background: #dcfce7;
+  border: 1px solid #86efac;
+}
+
+.status-tag--excluded {
+  color: #7a5910;
+  background: #fef3c7;
+  border: 1px solid #f5d685;
+}
+
+.status-tag--no {
+  color: #6b7280;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+}
+
+.status-tag--yes {
+  color: #166534;
+  background: #dcfce7;
+  border: 1px solid #86efac;
+}
+
+.status-tag--pending-confirm {
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+}
+
+.status-tag--default {
+  color: #6b7280;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
 }
 
 .table-state {
@@ -1593,6 +2059,7 @@ defineExpose({
   font-size: 13px;
 }
 
+/* ========== 详情面板 ========== */
 .detail-tabs {
   flex: none;
   display: grid;
@@ -1692,32 +2159,6 @@ defineExpose({
   line-height: 1.25;
   word-break: normal;
   overflow-wrap: anywhere;
-}
-
-.detail-summary__badges {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  flex-wrap: wrap;
-  gap: 7px;
-}
-
-.detail-summary__badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 26px;
-  padding: 0 10px;
-  font-size: 12px;
-  font-weight: 900;
-  border: 1px solid transparent;
-  border-radius: 999px;
-}
-
-.detail-summary__badge--level {
-  color: #177245;
-  background: #eaf8ef;
-  border-color: #bfe8ce;
 }
 
 .detail-grid--base {
@@ -1850,375 +2291,9 @@ defineExpose({
   border-left-color: #cbd5e1;
 }
 
-.detail-time-panel {
-  display: grid;
-  gap: 12px;
-}
-
-.time-section {
-  min-width: 0;
-  padding: 14px;
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid #dfebf5;
-  border-radius: 6px;
-  box-shadow: 0 8px 18px rgba(33, 72, 108, 0.055);
-}
-
-.detail-section-title {
-  display: block;
-  margin-bottom: 12px;
-  color: #183755;
-  font-size: 14px;
-  font-weight: 900;
-}
-
-.time-list {
-  position: relative;
-  display: grid;
-  gap: 0;
-}
-
-.time-list::before {
-  position: absolute;
-  top: 16px;
-  bottom: 16px;
-  left: 6px;
-  width: 2px;
-  content: "";
-  background: #d7e8f6;
-}
-
-.time-row {
-  position: relative;
-  display: grid;
-  grid-template-columns: 18px minmax(0, 1fr);
-  gap: 10px;
-  min-width: 0;
-  padding: 9px 0;
-}
-
-.time-row__marker {
-  position: relative;
-  z-index: 1;
-  width: 10px;
-  height: 10px;
-  margin-top: 4px;
-  background: #0d82ee;
-  border: 3px solid #e8f4ff;
-  border-radius: 50%;
-  box-shadow: 0 0 0 1px #b9dcff;
-}
-
-.time-row__content {
-  display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.time-row__label {
-  color: #6b7f94;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.time-row__value {
-  min-width: 0;
-  color: #172033;
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1.45;
-  word-break: break-all;
-}
-
-.time-section--location {
-  background:
-    linear-gradient(90deg, rgba(13, 130, 238, 0.08), rgba(255, 255, 255, 0) 58%),
-    rgba(255, 255, 255, 0.96);
-}
-
-.location-row {
-  display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
-  gap: 10px;
-  min-width: 0;
-  padding: 11px 0;
-  border-top: 1px solid #edf3f8;
-}
-
-.location-row__label {
-  color: #6b7f94;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.location-row__value {
-  color: #172033;
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1.5;
-  word-break: break-all;
-}
-
-/* ============================================
-   响应式布局
-   ============================================ */
-
-/* 大屏（>= 1440px）：表格与详情面板并排 */
-@media (min-width: 1440px) {
-  .suspect-layout {
-    grid-template-columns: minmax(0, 1fr) 420px;
-  }
-
-  .data-row {
-    grid-template-columns: 52px 1fr 2.5fr 1fr 1fr;
-  }
-}
-
-/* 中屏（<= 1280px）：表格与详情面板上下堆叠 */
-@media (max-width: 1280px) {
-  .suspect-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .suspect-detail-panel {
-    min-height: 320px;
-  }
-
-  .data-row {
-    grid-template-columns: 52px 1fr 2fr 1fr 1fr;
-  }
-}
-
-/* 小屏平板（<= 960px） */
-@media (max-width: 960px) {
-  .suspect-view {
-    padding: 0 8px 10px;
-  }
-
-  .suspect-layout {
-    gap: 10px;
-    margin-top: 10px;
-  }
-
-  .toolbar-row--filters {
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .filter-group {
-    flex: 1 1 100%;
-    min-width: 0;
-  }
-
-  .filter-group--date {
-    flex: 1 1 100%;
-  }
-
-  .date-range {
-    flex-wrap: wrap;
-  }
-
-  .filter-datetime {
-    flex: 1 1 140px;
-    width: auto;
-  }
-
-  .data-row {
-    grid-template-columns: 48px 1fr 2fr 1fr 1fr;
-    min-height: 40px;
-  }
-
-  .data-cell {
-    padding: 0 8px;
-    font-size: 12px;
-  }
-
-  .detail-tabs {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 4px;
-    height: 48px;
-    padding: 6px;
-  }
-
-  .detail-tab {
-    font-size: 12px;
-  }
-
-  .process-actions {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-}
-
-/* 手机（<= 640px） */
-@media (max-width: 640px) {
-  .suspect-view {
-    padding: 0 4px 8px;
-  }
-
-  .suspect-toolbar {
-    padding: 10px;
-    gap: 8px;
-  }
-
-  .toolbar-row--filters {
-    gap: 6px;
-  }
-
-  .toolbar-row--bottom {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-  }
-
-  .toolbar-actions {
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    gap: 6px;
-  }
-
-  .toolbar-actions .toolbar-button {
-    min-width: 56px;
-    padding: 0 10px;
-    font-size: 12px;
-    height: 34px;
-  }
-
-  .toolbar-actions .toolbar-icon-button {
-    width: 34px;
-    height: 34px;
-  }
-
-  .suspect-layout {
-    grid-template-columns: 1fr;
-    gap: 8px;
-    margin-top: 8px;
-  }
-
-  .suspect-detail-panel {
-    min-height: 280px;
-  }
-
-  .table-head {
-    height: 42px;
-    padding: 0 10px;
-    font-size: 14px;
-  }
-
-  .table-head__meta {
-    font-size: 11px;
-    padding: 2px 8px;
-  }
-
-  .data-row {
-    grid-template-columns: 42px 1fr 2fr 1fr 1fr;
-    min-height: 38px;
-  }
-
-  .data-row--header {
-    min-height: 38px;
-  }
-
-  .data-cell {
-    padding: 0 6px;
-    font-size: 11px;
-  }
-
-  .data-row--header .data-cell {
-    font-size: 11px;
-  }
-
-  .detail-tabs {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 3px;
-    height: 44px;
-    padding: 4px;
-  }
-
-  .detail-tab {
-    font-size: 11px;
-  }
-
-  .detail-body {
-    padding: 10px;
-  }
-
-  .detail-item--base {
-    grid-template-columns: 72px minmax(0, 1fr);
-    min-height: 40px;
-    padding: 6px 10px;
-  }
-
-  .detail-grid--content .detail-item {
-    grid-template-columns: 1fr;
-  }
-
-  .detail-grid--content .detail-item__value {
-    border-top: 1px solid #edf3f8;
-    border-left: 0;
-  }
-
-  .detail-item--note .detail-item__label {
-    min-height: 34px;
-  }
-
-  .time-row__content,
-  .location-row {
-    grid-template-columns: 1fr;
-    gap: 4px;
-  }
-
-  .pagination-bar {
-    height: 40px;
-    padding: 0 8px;
-    gap: 6px;
-  }
-
-  .page-button {
-    height: 28px;
-    padding: 0 8px;
-    font-size: 12px;
-    line-height: 28px;
-  }
-
-  .page-info {
-    font-size: 12px;
-  }
-}
-
-/* 极小屏（<= 400px） */
-@media (max-width: 400px) {
-  .data-row {
-    grid-template-columns: 36px 1fr 2fr 1fr 1fr;
-    min-height: 36px;
-  }
-
-  .data-cell {
-    padding: 0 4px;
-    font-size: 10px;
-  }
-
-  .data-row--header .data-cell {
-    font-size: 10px;
-  }
-
-  .detail-tabs {
-    grid-template-columns: 1fr 1fr 1fr 1fr;
-    gap: 2px;
-    height: 40px;
-    padding: 3px;
-  }
-
-  .detail-tab {
-    font-size: 10px;
-  }
-}
-
+/* ========== 疑点处理区 ========== */
 .process-box {
   flex: none;
-  margin-top: 16px;
   padding: 16px 18px 18px;
   background: #f8fbfe;
   border-top: 1px solid #e3edf6;
@@ -2236,40 +2311,71 @@ defineExpose({
 }
 
 .process-actions {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .process-action {
-  width: 100%;
+  width: auto;
+  min-width: 80px;
   height: 40px;
   margin: 0;
-  padding: 0 12px;
+  padding: 0 14px;
   font-size: 14px;
   font-weight: 800;
   line-height: 40px;
   border-radius: 6px;
 }
 
-.process-action--confirm {
-  color: #177245;
-  background: #eaf8ef;
-  border-color: #bfe8ce;
-}
-
-.process-action--exclude {
-  color: #b42318;
-  background: #fff5f3;
-  border-color: #ffc9c0;
-}
-
-.process-action--worksheet {
+.process-action--dispatch {
   color: #ffffff;
   background: #0d82ee;
   border-color: #0d82ee;
 }
 
+.process-action--confirm-leak {
+  color: #177245;
+  background: #eaf8ef;
+  border-color: #bfe8ce;
+}
+
+.process-action--view-worksheet {
+  color: #1e40af;
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
+.process-action--edit {
+  color: #31506d;
+  background: #f6fbff;
+  border-color: #cbdced;
+}
+
+.process-action--delete {
+  color: #b42318;
+  background: #fff5f3;
+  border-color: #ffc9c0;
+}
+
+.process-action--exclude {
+  color: #7a5910;
+  background: #fff9e6;
+  border-color: #f5d685;
+}
+
+.process-action--excluded {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 16px;
+  font-size: 13px;
+  color: #7a5910;
+  background: #fff9e6;
+  border-radius: 6px;
+  border: 1px solid #f5d685;
+}
+
+/* ========== 对话框 ========== */
 .dialog-mask {
   position: fixed;
   inset: 0;
@@ -2280,10 +2386,10 @@ defineExpose({
   background: rgba(15, 35, 55, 0.22);
 }
 
-.dialog-panel--sm {
+.dialog-panel {
   display: flex;
   flex-direction: column;
-  width: min(480px, calc(100vw - 32px));
+  width: min(520px, calc(100vw - 32px));
   max-height: calc(100vh - 64px);
   overflow: hidden;
   background: #ffffff;
@@ -2323,6 +2429,8 @@ defineExpose({
   height: 32px;
   margin: 0;
   padding: 0;
+  font-size: 18px;
+  color: #5f7188;
   background: #f6fbff;
   border: 1px solid #d9e7f3;
   border-radius: 6px;
@@ -2396,7 +2504,11 @@ defineExpose({
   cursor: pointer;
 }
 
-.form-select__arrow {
+.form-select--dropdown {
+  position: relative;
+}
+
+.select-arrow {
   width: 8px;
   height: 8px;
   border: solid #74879c;
@@ -2481,6 +2593,17 @@ defineExpose({
   border-radius: 4px;
 }
 
+.form-datetime {
+  width: 100%;
+}
+
+.form-datetime :deep(.datetime-picker__control) {
+  height: 38px;
+  padding: 0 12px;
+  font-size: 14px;
+  line-height: 38px;
+}
+
 .input-placeholder {
   color: #9aa9b8;
   font-size: 14px;
@@ -2532,46 +2655,272 @@ defineExpose({
   border-color: #0d82ee;
 }
 
+.dialog-button--danger {
+  color: #ffffff;
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
 .dialog-button[disabled] {
   opacity: 0.45;
   cursor: not-allowed;
 }
 
-.option-group {
-  display: flex;
-  gap: 8px;
+/* ============================================
+   响应式布局
+   ============================================ */
+
+/* 大屏（>= 1440px） */
+@media (min-width: 1440px) {
+  .data-row {
+    grid-template-columns: 48px 100px 90px 80px 1fr 1fr 90px 160px;
+  }
 }
 
-.option-button {
-  flex: 1;
-  height: 38px;
-  margin: 0;
-  padding: 0 12px;
-  color: #31506d;
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 38px;
-  text-align: center;
-  background: #fbfdff;
-  border: 1px solid #d5e2ee;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+/* 中屏（<= 1280px） */
+@media (max-width: 1280px) {
+  .suspect-layout {
+    flex-direction: column;
+  }
+
+  .split-divider {
+    display: none;
+  }
+
+  .suspect-table-panel,
+  .suspect-detail-panel {
+    width: 100% !important;
+  }
+
+  .suspect-detail-panel {
+    min-height: 320px;
+  }
 }
 
-.option-button::after {
-  border: 0;
+/* 小屏平板（<= 960px） */
+@media (max-width: 960px) {
+  .suspect-view {
+    padding: 0 8px 10px;
+  }
+
+  .suspect-layout {
+    margin-top: 10px;
+  }
+
+  .toolbar-row--filters {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .filter-group {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .filter-group--date {
+    flex: 1 1 100%;
+  }
+
+  .date-range {
+    flex-wrap: wrap;
+  }
+
+  .filter-datetime {
+    flex: 1 1 140px;
+    width: auto;
+  }
+
+  .data-row {
+    grid-template-columns: 42px 80px 72px 64px 1fr 1fr 72px 135px;
+    min-height: 40px;
+  }
+
+  .data-cell {
+    padding: 0 6px;
+    font-size: 12px;
+  }
+
+  .detail-tabs {
+    gap: 4px;
+    height: 48px;
+    padding: 6px;
+  }
+
+  .detail-tab {
+    font-size: 12px;
+  }
+
+  .process-actions {
+    gap: 8px;
+  }
 }
 
-.option-button--hover {
-  border-color: #8fc8f8;
-  box-shadow: 0 0 0 3px rgba(13, 130, 238, 0.1);
+/* 手机（<= 640px） */
+@media (max-width: 640px) {
+  .suspect-view {
+    padding: 0 4px 8px;
+  }
+
+  .suspect-toolbar {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .toolbar-row--filters {
+    gap: 6px;
+  }
+
+  .toolbar-row--bottom {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .toolbar-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+
+  .toolbar-actions .toolbar-button {
+    min-width: 56px;
+    padding: 0 10px;
+    font-size: 12px;
+    height: 34px;
+  }
+
+  .toolbar-actions .toolbar-icon-button {
+    width: 34px;
+    height: 34px;
+  }
+
+  .suspect-layout {
+    margin-top: 8px;
+    flex-direction: column;
+  }
+
+  .split-divider {
+    display: none;
+  }
+
+  .suspect-table-panel,
+  .suspect-detail-panel {
+    width: 100% !important;
+  }
+
+  .suspect-detail-panel {
+    min-height: 280px;
+  }
+
+  .table-head {
+    height: 42px;
+    padding: 0 10px;
+    font-size: 14px;
+  }
+
+  .table-head__meta {
+    font-size: 11px;
+    padding: 2px 8px;
+  }
+
+  .data-row {
+    grid-template-columns: 38px 70px 64px 56px 1fr 1fr 64px 125px;
+    min-height: 38px;
+  }
+
+  .data-row--header {
+    min-height: 38px;
+  }
+
+  .data-cell {
+    padding: 0 4px;
+    font-size: 11px;
+  }
+
+  .data-row--header .data-cell {
+    font-size: 11px;
+  }
+
+  .detail-tabs {
+    gap: 3px;
+    height: 44px;
+    padding: 4px;
+  }
+
+  .detail-tab {
+    font-size: 11px;
+  }
+
+  .detail-body {
+    padding: 10px;
+  }
+
+  .detail-item--base {
+    grid-template-columns: 72px minmax(0, 1fr);
+    min-height: 40px;
+    padding: 6px 10px;
+  }
+
+  .detail-grid--content .detail-item {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-grid--content .detail-item__value {
+    border-top: 1px solid #edf3f8;
+    border-left: 0;
+  }
+
+  .detail-item--note .detail-item__label {
+    min-height: 34px;
+  }
+
+  .pagination-bar {
+    height: 40px;
+    padding: 0 8px;
+    gap: 6px;
+  }
+
+  .page-button {
+    height: 28px;
+    padding: 0 8px;
+    font-size: 12px;
+    line-height: 28px;
+  }
+
+  .page-info {
+    font-size: 12px;
+  }
+
+  .process-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
 }
 
-.option-button--active {
-  color: #ffffff;
-  background: #0d82ee;
-  border-color: #0d82ee;
-  box-shadow: 0 5px 12px rgba(13, 130, 238, 0.18);
+/* 极小屏（<= 400px） */
+@media (max-width: 400px) {
+  .data-row {
+    grid-template-columns: 34px 60px 56px 48px 1fr 1fr 56px 110px;
+    min-height: 36px;
+  }
+
+  .data-cell {
+    padding: 0 3px;
+    font-size: 10px;
+  }
+
+  .data-row--header .data-cell {
+    font-size: 10px;
+  }
+
+  .detail-tabs {
+    gap: 2px;
+    height: 40px;
+    padding: 3px;
+  }
+
+  .detail-tab {
+    font-size: 10px;
+  }
 }
 </style>

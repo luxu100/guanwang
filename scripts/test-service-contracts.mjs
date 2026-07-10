@@ -6,12 +6,13 @@ const source = readFileSync(new URL("../src/services/partition/partition.js", im
 const typeSource = readFileSync(new URL("../src/services/partition/partition.d.ts", import.meta.url), "utf8");
 const parseSource = readFileSync(new URL("../src/services/data-receive/parse.js", import.meta.url), "utf8");
 const parseTypeSource = readFileSync(new URL("../src/services/data-receive/parse.d.ts", import.meta.url), "utf8");
+const dataReceiveViewSource = readFileSync(new URL("../src/pages/data-receive/components/DataReceiveView.vue", import.meta.url), "utf8");
 
-test("partition semantic exports use department endpoints", () => {
-  assert.match(source, /const deptApi = createCrudService\("\/api\/dept"\)/);
-  assert.match(source, /export const getPartitionPage = deptApi\.getPage/);
-  assert.match(source, /export const createPartition = deptApi\.create/);
-  assert.match(source, /export const getDeptList = getPartitionList/);
+test("partition semantic exports use region endpoints", () => {
+  assert.match(source, /const regionApi = createCrudService\("\/api\/region"\)/);
+  assert.match(source, /export const getPartitionPage = regionApi\.getPage/);
+  assert.match(source, /export const createPartition = regionApi\.create/);
+  assert.match(source, /export const getRegionList = regionApi\.getList/);
 });
 
 test("tube network endpoints remain explicit and separate", () => {
@@ -20,15 +21,45 @@ test("tube network endpoints remain explicit and separate", () => {
   assert.doesNotMatch(source, /export const getPartitionPage = tubeNetworkApi\.getPage/);
 });
 
-test("partition devices are queried through device page deptId", () => {
-  assert.match(source, /const deviceApi = createCrudService\("\/api\/device"\)/);
+test("partition devices use backend region-device endpoints", () => {
   assert.match(source, /function getPartitionDevicePage\(partitionId, data = \{\}\)/);
-  assert.match(source, /deptId: partitionId/);
+  assert.match(source, /postRequest\(`\/api\/region\/\$\{partitionId\}\/devices\/page`, data\)/);
+  assert.match(source, /function getPartitionDeviceList\(partitionId, params\)/);
+  assert.match(source, /getRequest\(`\/api\/region\/\$\{partitionId\}\/devices`, params\)/);
+  assert.match(source, /function getPartitionTree\(params\)/);
+  assert.match(source, /getRequest\("\/api\/region\/tree", params\)/);
   assert.match(typeSource, /getPartitionDevicePage\(partitionId: ServiceId, data\?: ServiceQuery\)/);
+  assert.match(typeSource, /getPartitionDeviceList\(partitionId: ServiceId, params\?: ServiceQuery\)/);
+  assert.match(typeSource, /getPartitionTree\(params\?: ServiceQuery\)/);
+});
+
+test("legacy department endpoints remain explicit and separate", () => {
+  assert.match(source, /const deptApi = createCrudService\("\/api\/dept"\)/);
+  assert.match(source, /export const getDeptPage = deptApi\.getPage/);
+  assert.match(source, /postRequest\(`\/api\/dept\/\$\{deptId\}\/devices\/page`, data\)/);
+  assert.match(source, /getRequest\("\/api\/dept\/tree", params\)/);
+  assert.doesNotMatch(source, /export const getPartitionPage = deptApi\.getPage/);
 });
 
 test("protocol field batch save endpoint is wrapped", () => {
   assert.match(parseSource, /postRequest\("\/api\/protocol-field-definition\/batch-save", data\)/);
   assert.match(parseSource, /batchSaveProtocolFields/);
   assert.match(parseTypeSource, /batchSaveProtocolFields\(data: ProtocolFieldDefinition\[\]\)/);
+});
+
+test("protocol field format metadata endpoint is wrapped and used", () => {
+  assert.match(parseSource, /getRequest\("\/api\/protocol-field-formats", params\)/);
+  assert.match(parseTypeSource, /interface FieldFormatMetadata/);
+  assert.match(dataReceiveViewSource, /getProtocolFieldFormats/);
+  assert.match(dataReceiveViewSource, /startPosition: normalizeImportNumber\(getFirstImportValue\(field, \["startPosition", "startBit", "offset", "start"\]\)\)/);
+});
+
+test("updated protocol parse service wraps list detail and parsed-json endpoints", () => {
+  assert.match(parseSource, /export const getProtocolFieldList = protocolFieldDefinitionApi\.getList/);
+  assert.match(parseSource, /export const batchDeleteProtocolField = protocolFieldDefinitionApi\.batchDelete/);
+  assert.match(parseSource, /export const getProtocolParseRecordList = protocolParseRecordApi\.getList/);
+  assert.match(parseSource, /export const getProtocolParseRecordDetail = protocolParseRecordApi\.getDetail/);
+  assert.match(parseSource, /postRequest\("\/api\/protocol-parse-record\/parsed-json\/page", data\)/);
+  assert.match(parseTypeSource, /interface ProtocolParseRecordJson/);
+  assert.match(parseTypeSource, /getProtocolParsedJsonPage\(data: ProtocolParseRecordQuery\)/);
 });

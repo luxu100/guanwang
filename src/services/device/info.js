@@ -3,11 +3,12 @@
  *
  * 页面层应优先调用这里导出的语义化函数，避免在 .vue 文件中直接拼接接口地址。
  */
-import { createCrudService, getRequest } from "@/services/shared/crud";
+import { createCrudService, getRequest, postRequest } from "@/services/shared/crud";
 
 const deviceApi = createCrudService("/api/device");
 const deviceProductApi = createCrudService("/api/device-product");
 const deviceProtocolApi = createCrudService("/api/device-protocol-relation");
+const valveApi = createCrudService("/api/valve");
 
 export const getDevicePage = deviceApi.getPage;
 export const getDeviceList = deviceApi.getList;
@@ -16,6 +17,46 @@ export const createDevice = deviceApi.create;
 export const updateDevice = deviceApi.update;
 export const deleteDevice = deviceApi.delete;
 export const batchDeleteDevice = deviceApi.batchDelete;
+
+export function getDeviceFullDetail(id) {
+  return getRequest(`/api/device/${id}/detail`);
+}
+
+export function getVisibleDeviceList(params) {
+  return getRequest("/api/device/visible-list", params);
+}
+
+export function getDeviceQuerySidebar(data) {
+  return postRequest("/api/device-query/sidebar", data);
+}
+
+export function getDeviceQueryTodayOnlineRate(data) {
+  return postRequest("/api/device-query/sidebar/today-online-rate", data);
+}
+
+export function getDeviceQueryTcpTodayOnlineRate(data) {
+  return postRequest("/api/device-query/sidebar/tcp-today-online-rate", data);
+}
+
+export function getDeviceQueryCommunicationSuccessRate(data) {
+  return postRequest("/api/device-query/sidebar/communication-success-rate", data);
+}
+
+export function getDeviceQueryParameterPage(data) {
+  return postRequest("/api/device-query/device-parameter/page", data);
+}
+
+export function getDeviceQueryInfoPage(data) {
+  return postRequest("/api/device-query/device-info/page", data);
+}
+
+export function getDeviceQueryParameterDetail(id) {
+  return getRequest(`/api/device-query/device-parameter/${id}`);
+}
+
+export function getDeviceQueryInfoDetail(id) {
+  return getRequest(`/api/device-query/device-info/${id}`);
+}
 
 export const getDeviceProductPage = deviceProductApi.getPage;
 export const getDeviceProductList = deviceProductApi.getList;
@@ -36,14 +77,52 @@ export function getDeviceProtocolByProtocol(protocolId, params) {
   return getRequest(`/api/device-protocol-relation/by-protocol/${protocolId}`, params);
 }
 
+export const getValvePage = valveApi.getPage;
+export const getValveList = valveApi.getList;
+export const getValveDetail = valveApi.getDetail;
+export const createValve = valveApi.create;
+export const updateValve = valveApi.update;
+export const deleteValve = valveApi.delete;
+export const batchDeleteValve = valveApi.batchDelete;
+
+export function createValveDirect(data) {
+  return postRequest("/api/valve", data);
+}
+
+export function bindValveDevices(valveId, data) {
+  return postRequest(`/api/valve/${valveId}/bind-devices`, data);
+}
+
+export function unbindValveDevices(valveId, data) {
+  return postRequest(`/api/valve/${valveId}/unbind-devices`, data);
+}
+
+export function getValveDeviceList(valveId, params) {
+  return getRequest(`/api/valve/${valveId}/devices`, params);
+}
+
+export function getValveDevicePage(valveId, data = {}) {
+  return postRequest(`/api/valve/${valveId}/devices/page`, data);
+}
+
 export default {
   getDevicePage,
   getDeviceList,
   getDeviceDetail,
+  getDeviceFullDetail,
+  getVisibleDeviceList,
   createDevice,
   updateDevice,
   deleteDevice,
   batchDeleteDevice,
+  getDeviceQuerySidebar,
+  getDeviceQueryTodayOnlineRate,
+  getDeviceQueryTcpTodayOnlineRate,
+  getDeviceQueryCommunicationSuccessRate,
+  getDeviceQueryParameterPage,
+  getDeviceQueryInfoPage,
+  getDeviceQueryParameterDetail,
+  getDeviceQueryInfoDetail,
   getDeviceProductPage,
   getDeviceProductList,
   getDeviceProductDetail,
@@ -55,4 +134,16 @@ export default {
   createDeviceProtocol,
   getDeviceProtocolByDevice,
   getDeviceProtocolByProtocol,
+  getValvePage,
+  getValveList,
+  getValveDetail,
+  createValve,
+  createValveDirect,
+  updateValve,
+  deleteValve,
+  batchDeleteValve,
+  bindValveDevices,
+  unbindValveDevices,
+  getValveDeviceList,
+  getValveDevicePage,
 };

@@ -7,6 +7,7 @@ import { createCrudService, getRequest, postRequest } from "@/services/shared/cr
 
 const roleApi = createCrudService("/api/role");
 const permissionApi = createCrudService("/api/permission");
+const operationLogApi = createCrudService("/api/operation-log");
 
 export const getRolePage = roleApi.getPage;
 export const getRoleList = roleApi.getList;
@@ -35,6 +36,14 @@ export function getRolePermissions(roleId) {
   return getRequest(`/api/role/${roleId}/permissions`);
 }
 
+export const getOperationLogPage = operationLogApi.getPage;
+export const getOperationLogList = operationLogApi.getList;
+export const getOperationLogDetail = operationLogApi.getDetail;
+export const createOperationLog = operationLogApi.create;
+export const updateOperationLog = operationLogApi.update;
+export const deleteOperationLog = operationLogApi.delete;
+export const batchDeleteOperationLog = operationLogApi.batchDelete;
+
 export default {
   getRolePage,
   getRoleList,
@@ -53,4 +62,11 @@ export default {
   batchDeletePermission,
   getPermissionTree,
   assignRolePermissions,
+  getOperationLogPage,
+  getOperationLogList,
+  getOperationLogDetail,
+  createOperationLog,
+  updateOperationLog,
+  deleteOperationLog,
+  batchDeleteOperationLog,
 };

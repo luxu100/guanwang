@@ -3,7 +3,7 @@
  *
  * 页面层应优先调用这里导出的语义化函数，避免在 .vue 文件中直接拼接接口地址。
  */
-import { createCrudService } from "@/services/shared/crud";
+import { createCrudService, getRequest, postRequest } from "@/services/shared/crud";
 
 const leakageRecordApi = createCrudService("/api/leakage-record");
 const algorithmResultApi = createCrudService("/api/algorithm-result");
@@ -20,6 +20,18 @@ export const getAlgorithmResultPage = algorithmResultApi.getPage;
 export const getAlgorithmResultList = algorithmResultApi.getList;
 export const getAlgorithmResultDetail = algorithmResultApi.getDetail;
 
+export function getDataQueryLeakagePage(data) {
+  return postRequest("/api/data-query/leakage/page", data);
+}
+
+export function getDataQueryLeakageDetail(recordId) {
+  return getRequest(`/api/data-query/leakage/${recordId}`);
+}
+
+export function getLeakageFeatureTrend(deviceNumber) {
+  return getRequest(`/api/data-query/leakage/feature-trend/${deviceNumber}`);
+}
+
 export default {
   getLeakageDataPage,
   getLeakageDataList,
@@ -31,4 +43,7 @@ export default {
   getAlgorithmResultPage,
   getAlgorithmResultList,
   getAlgorithmResultDetail,
+  getDataQueryLeakagePage,
+  getDataQueryLeakageDetail,
+  getLeakageFeatureTrend,
 };

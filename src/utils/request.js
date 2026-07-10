@@ -66,17 +66,33 @@ function normalizeUrl(url) {
   return `${baseUrl}${path}`;
 }
 
+function withForcedDeleteParam(url, method) {
+  if (method !== "DELETE") {
+    return url;
+  }
+
+  const [urlWithoutHash, hash = ""] = String(url).split("#");
+  const [path, query = ""] = urlWithoutHash.split("?");
+  const params = new URLSearchParams(query);
+  params.set("is_force", "true");
+
+  const nextQuery = params.toString();
+  return `${path}${nextQuery ? `?${nextQuery}` : ""}${hash ? `#${hash}` : ""}`;
+}
+
 /**
  * 项目统一请求函数。
  * 成功时返回后端响应体；HTTP 非 2xx 或网络失败时 reject 统一错误对象。
  */
 export default function request(options) {
   const { url, method = "GET", data, header = {}, timeout = 15000 } = options;
+  const normalizedMethod = method.toUpperCase();
+  const requestUrl = withForcedDeleteParam(url, normalizedMethod);
 
   return new Promise((resolve, reject) => {
     uni.request({
-      url: normalizeUrl(url),
-      method: method.toUpperCase(),
+      url: normalizeUrl(requestUrl),
+      method: normalizedMethod,
       data,
       timeout,
       header: {

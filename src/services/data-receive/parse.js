@@ -13,8 +13,16 @@ export const getProtocolFieldDetail = protocolFieldDefinitionApi.getDetail;
 export const createProtocolField = protocolFieldDefinitionApi.create;
 export const updateProtocolField = protocolFieldDefinitionApi.update;
 export const deleteProtocolField = protocolFieldDefinitionApi.delete;
+export const getProtocolFieldList = protocolFieldDefinitionApi.getList;
+export const batchDeleteProtocolField = protocolFieldDefinitionApi.batchDelete;
 
 export const getProtocolParseRecordPage = protocolParseRecordApi.getPage;
+export const getProtocolParseRecordList = protocolParseRecordApi.getList;
+export const getProtocolParseRecordDetail = protocolParseRecordApi.getDetail;
+
+export function getProtocolParsedJsonPage(data) {
+  return postRequest("/api/protocol-parse-record/parsed-json/page", data);
+}
 
 export function batchSaveProtocolFields(data) {
   return postRequest("/api/protocol-field-definition/batch-save", data);
@@ -24,13 +32,23 @@ export function getFieldsByProtocol(protocolId, params) {
   return getRequest(`/api/protocol-field-definition/by-protocol/${protocolId}`, params);
 }
 
+export function getProtocolFieldFormats(params) {
+  return getRequest("/api/protocol-field-formats", params);
+}
+
 export default {
   getProtocolFieldPage,
   getProtocolFieldDetail,
   createProtocolField,
   updateProtocolField,
   deleteProtocolField,
+  getProtocolFieldList,
+  batchDeleteProtocolField,
   batchSaveProtocolFields,
   getProtocolParseRecordPage,
+  getProtocolParseRecordList,
+  getProtocolParseRecordDetail,
+  getProtocolParsedJsonPage,
   getFieldsByProtocol,
+  getProtocolFieldFormats,
 };

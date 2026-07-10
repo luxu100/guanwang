@@ -189,7 +189,8 @@
                     :value="getInlineFieldValue(item, column.key)"
                     placeholder="-"
                     placeholder-class="input-placeholder"
-                    @input="handleInlineFieldInput(item, column.key, $event)"
+                    :disabled="isLockedProtocolField(item)"
+                    @input="!isLockedProtocolField(item) && handleInlineFieldInput(item, column.key, $event)"
                   />
                 </template>
                 <text v-else-if="column.type === 'status'" class="status-pill" :class="getStatusClass(item, column)">{{ getColumnText(item, column) }}</text>
@@ -200,6 +201,18 @@
         </scroll-view>
 
         <view class="pagination-bar">
+          <view class="page-size">
+            <text class="page-info">每页</text>
+            <input
+              v-model="pageSizeInputValue"
+              class="page-size-input"
+              type="number"
+              confirm-type="done"
+              @blur="commitPageSizeInput"
+              @confirm="commitPageSizeInput"
+            />
+            <text class="page-info">条</text>
+          </view>
           <button class="page-button" :disabled="pagination.pageNum <= 1" hover-class="page-button--hover" @click="changePage(-1)">上一页</button>
           <view class="page-jump">
             <text class="page-info">第</text>
@@ -237,6 +250,12 @@
               <picker v-else-if="field.type === 'boolean'" :range="booleanOptions" range-key="label" @change="handleBooleanChange(field.key, $event)">
                 <view class="form-select">
                   <text>{{ getBooleanLabel(formModel[field.key]) }}</text>
+                  <text class="select-arrow"></text>
+                </view>
+              </picker>
+              <picker v-else-if="field.type === 'select'" :range="field.options || []" range-key="label" @change="handleFormSelectChange(field, $event)">
+                <view class="form-select">
+                  <text>{{ getFieldOptionLabel(field, formModel[field.key]) }}</text>
                   <text class="select-arrow"></text>
                 </view>
               </picker>
@@ -388,6 +407,7 @@ import {
   createProtocolField,
   deleteProtocolField,
   getFieldsByProtocol,
+  getProtocolFieldFormats,
   getProtocolFieldDetail,
   getProtocolFieldPage,
   getProtocolParseRecordPage,
@@ -448,6 +468,9 @@ type SelectOption = {
   label: string;
   value: string;
 };
+type FieldFormatOption = SelectOption & {
+  outputType?: string;
+};
 
 interface FieldConfig {
   key: string;
@@ -486,8 +509,8 @@ const booleanOptions = [
 ];
 const parseStatusOptions: SelectOption[] = [
   { label: "全部", value: "" },
-  { label: "成功", value: "success" },
-  { label: "失败", value: "failed" },
+  { label: "成功", value: "SUCCESS" },
+  { label: "失败", value: "FAILED" },
 ];
 const leakStatusOptions: SelectOption[] = [
   { label: "全部", value: "" },
@@ -585,7 +608,7 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     columns: [
       { key: "fieldName", label: "字段名", width: 140 },
       { key: "fieldCnName", label: "中文名", width: 140 },
-      { key: "startPosition", label: "起始", width: 80 },
+      // { key: "startPosition", label: "起始", width: 80 },
       { key: "fieldLength", label: "长度", width: 80 },
       { key: "format", label: "格式", width: 100 },
       { key: "outputType", label: "输出类型", width: 110 },
@@ -836,17 +859,20 @@ const fieldProtocolForm = reactive({
   enabled: true,
   description: "",
 });
+const protocolFieldFormatOptions = ref<FieldFormatOption[]>([]);
 const pagination = reactive({
   pageNum: 1,
   pageSize: 10,
 });
 const pageInputValue = ref("1");
+const pageSizeInputValue = ref("10");
 const filterState = reactive<Record<SectionKey, Record<string, string>>>(createInitialFilterState());
 const formModel = reactive<Record<string, FormValue>>({});
 
 const modeSections = computed(() => modeSectionKeys[props.mode].map((key) => sectionConfigs[key]));
 const activeConfig = computed(() => sectionConfigs[activeSectionKey.value]);
 const filterModel = computed(() => filterState[activeSectionKey.value]);
+const formatFieldConfig = computed(() => sectionConfigs.field.formFields?.find((field) => field.key === "format"));
 const isProtocolFieldEditor = computed(() => activeConfig.value.key === "field" && Boolean(activeFieldProtocol.value));
 const createActionText = computed(() => {
   if (isProtocolFieldEditor.value) {
@@ -893,10 +919,46 @@ watch(
   },
 );
 
+watch(
+  () => pagination.pageSize,
+  (pageSize) => {
+    pageSizeInputValue.value = String(pageSize);
+  },
+);
+
 onMounted(() => {
   loadProtocolFieldTemplates();
+  void loadProtocolFieldFormats();
   void fetchRecords();
 });
+
+async function loadProtocolFieldFormats() {
+  try {
+    const response = await getProtocolFieldFormats() as ApiResponseLike;
+    assertSuccessResponse(response);
+    protocolFieldFormatOptions.value = parseListResponse(response)
+      .reduce<FieldFormatOption[]>((options, item) => {
+        const value = getText(item, ["code"], "");
+        const name = getText(item, ["name"], value);
+        const outputType = getText(item, ["outputType"], "");
+        if (value) {
+          options.push({ label: name && name !== value ? `${name}（${value}）` : value, value, outputType });
+        }
+        return options;
+      }, []);
+
+    if (formatFieldConfig.value) {
+      formatFieldConfig.value.type = protocolFieldFormatOptions.value.length ? "select" : "text";
+      formatFieldConfig.value.options = protocolFieldFormatOptions.value;
+    }
+  } catch {
+    protocolFieldFormatOptions.value = [];
+    if (formatFieldConfig.value) {
+      formatFieldConfig.value.type = "text";
+      formatFieldConfig.value.options = [];
+    }
+  }
+}
 
 function createRecordSection(
   key: SectionKey,
@@ -1023,6 +1085,28 @@ function commitPageInput() {
   }
 
   jumpToPage(inputPage);
+}
+
+function commitPageSizeInput() {
+  const nextPageSize = normalizePageSize(pageSizeInputValue.value, pagination.pageSize);
+  pageSizeInputValue.value = String(nextPageSize);
+  if (nextPageSize === pagination.pageSize) {
+    return;
+  }
+
+  pagination.pageSize = nextPageSize;
+  pagination.pageNum = 1;
+  pageInputValue.value = "1";
+  void fetchRecords();
+}
+
+function normalizePageSize(value: unknown, fallback: number) {
+  const numberValue = Number(value);
+  if (!Number.isFinite(numberValue)) {
+    return fallback;
+  }
+
+  return Math.min(Math.max(Math.trunc(numberValue), 1), 500);
 }
 
 function jumpToPage(page: number) {
@@ -1179,6 +1263,12 @@ function fillFieldCommonFormFromProtocol(item: RecordLike | null) {
   fieldCommonForm.protocolId = protocolId === undefined || protocolId === null ? "" : String(protocolId);
   fieldCommonForm.afn = String(getValue(source, ["afn", "AFN"]) ?? fieldCommonForm.afn ?? "");
   fieldCommonForm.taskType = String(getValue(source, ["taskType", "typeCode"]) ?? fieldCommonForm.taskType ?? "TASK_1");
+}
+
+const LOCKED_PROTOCOL_FIELD_NAMES = new Set(["esaIntensityFrequency"]);
+
+function isLockedProtocolField(item: RecordLike) {
+  return LOCKED_PROTOCOL_FIELD_NAMES.has(String(getValue(item, ["fieldName"]) || ""));
 }
 
 function syncFieldCommonFormFromRecords(items: RecordLike[]) {
@@ -1512,6 +1602,9 @@ function buildChangedFieldRecordsPayload(protocolId: string | number | null | un
 }
 
 function buildChangedFieldRecordPayload(item: RecordLike, protocolId: string | number | null | undefined) {
+  if (isLockedProtocolField(item)) {
+    return null;
+  }
   const normalized = normalizeFieldRecordForSave(item, protocolId);
   const id = getId(item);
   if (!id) {
@@ -1997,7 +2090,7 @@ function normalizeProtocolFieldImportPayload(field: RecordLike) {
     taskType: getFirstImportValue(field, ["taskType", "typeCode"]),
     fieldName: getFirstImportValue(field, ["fieldName", "name", "field"]),
     fieldCnName: getFirstImportValue(field, ["fieldCnName", "cnName", "label", "title", "name"]),
-    startBit: normalizeImportNumber(getFirstImportValue(field, ["startBit", "offset", "start"])),
+    startPosition: normalizeImportNumber(getFirstImportValue(field, ["startPosition", "startBit", "offset", "start"])),
     fieldLength: normalizeImportNumber(getFirstImportValue(field, ["fieldLength", "length", "len"])),
     format: getFirstImportValue(field, ["format", "dataType", "type"]),
     unit: getFirstImportValue(field, ["unit"]),
@@ -2106,6 +2199,21 @@ function handleFormInput(key: string, event: Event | { detail?: { value?: string
 
 function handleBooleanChange(key: string, event: { detail: { value: number } }) {
   formModel[key] = booleanOptions[event.detail.value]?.value ?? true;
+}
+
+function handleFormSelectChange(field: FieldConfig, event: { detail: { value: number } }) {
+  const option = field.options?.[event.detail.value];
+  formModel[field.key] = option?.value || "";
+
+  const outputType = (option as FieldFormatOption | undefined)?.outputType;
+  if (field.key === "format" && outputType) {
+    formModel.outputType = outputType;
+  }
+}
+
+function getFieldOptionLabel(field: FieldConfig, value: unknown) {
+  const option = field.options?.find((item) => String(item.value) === String(value ?? ""));
+  return option?.label || String(value || field.placeholder || "请选择");
 }
 
 function getBooleanLabel(value: unknown) {
@@ -2379,7 +2487,7 @@ function resetRuntimeState() {
   min-width: 0;
   min-height: 0;
   margin-top: 14px;
-  overflow: auto;
+  overflow: hidden;
 }
 
 .data-layout--field-editor {
@@ -2392,6 +2500,10 @@ function resetRuntimeState() {
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
+}
+
+.detail-panel {
   overflow: auto;
 }
 
@@ -2444,10 +2556,10 @@ function resetRuntimeState() {
 }
 
 .table-scroll {
-  flex: 1;
+  flex: 1 1 0;
   width: 100%;
   max-width: 100%;
-  height: auto;
+  height: 0;
   min-height: 0;
   overflow: auto;
 }
@@ -2580,6 +2692,13 @@ function resetRuntimeState() {
   flex: none;
 }
 
+.page-size {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+
 .toolbar-button,
 .toolbar-icon-button,
 .page-button,
@@ -2698,7 +2817,8 @@ function resetRuntimeState() {
   font-size: 13px;
 }
 
-.page-input {
+.page-input,
+.page-size-input {
   box-sizing: border-box;
   width: 48px;
   height: 28px;
@@ -2711,6 +2831,10 @@ function resetRuntimeState() {
   background: #ffffff;
   border: 1px solid #cbdced;
   border-radius: 4px;
+}
+
+.page-size-input {
+  width: 64px;
 }
 
 .detail-body {

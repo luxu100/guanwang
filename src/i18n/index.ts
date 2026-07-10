@@ -39,7 +39,28 @@ export function getStoredLocale(): LocaleCode | null {
 
 export function getUserLocale(userInfo = uni.getStorageSync("userInfo")): LocaleCode | null {
   const userLocale = userInfo?.locale || userInfo?.defaultLanguage || userInfo?.language;
-  return isLocaleCode(userLocale) ? userLocale : null;
+  if (isLocaleCode(userLocale)) {
+    return userLocale;
+  }
+
+  return getLocaleByRegion(userInfo?.region);
+}
+
+export function getLocaleByRegion(region: unknown): LocaleCode | null {
+  if (typeof region !== "string") {
+    return null;
+  }
+
+  const normalizedRegion = region.trim().toLowerCase();
+  if (normalizedRegion === "国内" || normalizedRegion === "china" || normalizedRegion === "cn") {
+    return "zh-CN";
+  }
+
+  if (normalizedRegion === "国外" || normalizedRegion === "overseas" || normalizedRegion === "foreign" || normalizedRegion === "en") {
+    return "en-US";
+  }
+
+  return null;
 }
 
 export function getInitialLocale(): LocaleCode {
@@ -134,6 +155,7 @@ export default {
   applyUserLocale,
   getInitialLocale,
   getLocale,
+  getLocaleByRegion,
   getStoredLocale,
   getUserLocale,
   isLocaleCode,
