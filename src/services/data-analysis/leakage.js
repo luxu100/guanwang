@@ -28,6 +28,10 @@ export function getDataQueryLeakageDetail(recordId) {
   return getRequest(`/api/data-query/leakage/${recordId}`);
 }
 
+export function getLeakageFeatureTrend(deviceNumber) {
+  return getRequest(`/api/data-query/leakage/feature-trend/${deviceNumber}`);
+}
+
 export default {
   getLeakageDataPage,
   getLeakageDataList,
@@ -41,4 +45,5 @@ export default {
   getAlgorithmResultDetail,
   getDataQueryLeakagePage,
   getDataQueryLeakageDetail,
+  getLeakageFeatureTrend,
 };
