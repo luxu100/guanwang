@@ -16,7 +16,7 @@
 
 				<view class="table">
 					<!-- 表头 -->
-					<view class="table-row table-row--header dept-table-row">
+					<view class="table-row dept-table-row table-row--header">
 					  <view
 					    v-for="column in deptColumns" 
 					    :key="column.key"
@@ -33,7 +33,7 @@
 					<view v-else>
 						<view v-for="(item,index) in deptTableList" 
 						:key="item.id" 
-						class="table-row dept-table-row"
+						class="dept-table-row table-row"
 						:class="{ 'table-row--action': currentDeptId === item.id}"
 						@click="handleDeptTableRowClick(item)"
 						>
@@ -127,13 +127,15 @@
 							/>
 						  </view>			
 						  <view class="col-index col-center"> {{ index + 1 }} </view>			
-						  <view class="col-dept-name col-center"> {{ getDeptName(item.deptId) }} </view>
-						  <view class="col-device-id col-center"> {{ item.deviceId }} </view>
+						  <view class="col-dept-name col-center"> {{ getDeptName() }} </view>
+						  <view class="col-device-number col-center"> {{ item.deviceNumber }} </view>
+						  <view class="col-device-alias col-center"> {{ item.deviceAlias || '-' }} </view>
+						  <view class="col-position col-center"> {{ item.installLongitude, item.installLatitude || '-' }} </view>
 						  <view class="col-min-level col-center"> {{ item.gisMinLevel || '-' }} </view>
 						  <view class="col-max-level col-center"> {{ item.gisMaxLevel || '-' }} </view>
 						  <view class="col-action col-center">
 							  <button class="table-action-btn" @click.stop="handleCheckDevice(item)" >
-								设备详情
+								查看详情
 							  </button>
 							</view>		  
 						</view>
@@ -286,6 +288,95 @@
 			</view>
 		</view> 
 		
+		<view v-if="deviceDialogVisible" class="dialog-mask" @click="closeDeviceDialog">
+			<view class="dialog-panel" @click.stop>
+			    <view class="dialog-head">
+			      <view>
+			        <text class="dialog-title">设备详细信息</text>
+			        <text class="dialog-subtitle">查看当前设备的完整信息</text>
+			      </view>
+			
+			      <button class="icon-button" hover-class="icon-button--hover" aria-label="关闭" @click="closeDeviceDialog">
+			        <text class="close-icon"></text>
+			      </button>
+			    </view>
+			
+			    <view class="dialog-body">
+				  <view class="device-dialog-form">
+			
+			        <view class="detail-item">
+			          <text class="detail-label">设备编号</text>
+			          <text class="detail-value">
+			            {{ deviceDetail.deviceNumber || "-" }}
+			          </text>
+			        </view>
+			
+					<view class="detail-item">
+					  <text class="detail-label">设备名称</text>
+					  <text class="detail-value">
+					    {{ deviceDetail?.deviceAlias ?? "-" }}
+					  </text>
+					</view>
+					
+			        <view class="detail-item">
+			          <text class="detail-label">所属分区</text>
+			          <text class="detail-value">
+			            {{ getDeptName() }}
+			          </text>
+			        </view>
+			
+			        <view class="detail-item">
+			          <text class="detail-label">管段编号</text>
+			          <text class="detail-value">
+			            {{ deviceDetail?.tubeNumber ?? "-" }}
+			          </text>
+			        </view>
+					
+					<view class="detail-item">
+					  <text class="detail-label">安装位置</text>
+					  <text class="detail-value">
+					    {{ deviceDetail?.installAddress ?? "-" }}
+					  </text>
+					</view>
+					
+			        <view class="detail-item">
+			          <text class="detail-label">地理位置</text>
+			          <text class="detail-value">
+			            {{ deviceDetail?.installLongitude,deviceDetail?.installLatitude ?? "-" }}
+			          </text>
+			        </view>
+			
+					<view class="detail-item">
+					  <text class="detail-label">GIS最小级别</text>
+					  <text class="detail-value">
+					    {{ deviceDetail.gisMinLevel ?? "-" }}
+					  </text>
+					</view>
+			
+			        <view class="detail-item">
+			          <text class="detail-label">GIS最大级别</text>
+			          <text class="detail-value">
+			            {{ deviceDetail.gisMaxLevel ?? "-" }}
+			          </text>
+			        </view>
+			
+			        <view class="detail-item">
+			          <text class="detail-label">设备状态</text>
+			          <text class="detail-value">
+			            {{ deviceDetail?.enableState===1? "启动" : "禁用" }}
+			          </text>
+			        </view>
+			
+			      </view>
+			    </view>
+			
+			    <view class="dialog-actions">
+			      <button class="primary-button" @click="closeDeviceDialog">
+			        确定
+			      </button>
+			    </view>
+			  </view>
+		</view>
 	
     </view>
 </template>
@@ -301,7 +392,7 @@ import {
 	deleteDept,
 	getDeptDeviceList,
 	getDeptDevicePage,
-	getDeptDeviceDetail,
+	getDeptDeviceBindingList,
 } from "@/services/partition/partition";
 
 interface DeptApiItem {
@@ -420,13 +511,11 @@ const loadDeptDeviceList = async (page = 1) => {
       pageSize: deptDevicePagination.size,
     };
 
-    if (currentDeptId.value !== undefined && currentDeptId.value !== 0) {
-      params.deptId = currentDeptId.value;
-    }else{
-		uni.showToast({ title: "请先选择分区", icon: "none" });
-		return;
+    if (currentDeptId.value === undefined) {
+      uni.showToast({ title: "请先选择分区", icon: "none" });
+      return;
 	}
-    const res = await getDeptDevicePage(params) as ApiResponseLike;
+    const res = await getDeptDevicePage(currentDeptId.value, params) as ApiResponseLike;
 	assertSuccessResponse(res);
     const pageData = res.data as {
       records: DeptDeviceItem[];
@@ -473,12 +562,13 @@ type DeptColumn = {
 type DeptDeviceKey =
 	| "checkbox"
 	| "index"
-	| "deptId"
-	| "deviceId"
+	| "deptName"
+	| "deviceNumber"
+	| "deviceAlias"
+	| "position"
 	| "gisMinLevel"
 	| "gisMaxLevel"
-	| "detail"
-	| "operation";
+	| "detail";
 
 type DeptDeviceColumn = {
   key: DeptDeviceKey;
@@ -488,10 +578,23 @@ type DeptDeviceColumn = {
 
 interface DeptDeviceItem {
   id: number;
-  deptId: number;
-  deviceId: number;
+  deviceNumber: string;
+  deviceAlias?: string;
+  deviceType?: string;
+  installAddress?: string;
+  installLongitude?: number;
+  installLatitude?: number;
+  tubeNumber?: string;
+  tubeBore?: string;
+  enableState?: number
   gisMinLevel?: number;
   gisMaxLevel?: number;
+}
+
+interface DeptDeviceBinding{
+	id: number;
+	deptId: number;
+	deviceId: number;
 }
 
 const fillDeptForm = (item: DeptApiItem) => {
@@ -536,6 +639,10 @@ const openDeptDialog = () => {
   deptDialogVisible.value = true;
 };
 
+const openDeviceDialog = () => {
+  deviceDialogVisible.value = true;
+};
+
 const deptColumns: DeptColumn[] = [
   { key: "index", label: "序号", className: "col-index" },
   { key: "deptName", label: "分区名称", className: "col-dept-name" },
@@ -549,8 +656,10 @@ const deptColumns: DeptColumn[] = [
 const deptDeviceColumns: DeptDeviceColumn[] = [
   { key: "checkbox", label: "", className: "col-checkbox" },
   { key: "index", label: "序号", className: "col-index" },
-  { key: "deptId", label: "所属分区", className: "col-dept-name" },
-  { key: "deviceId", label: "设备编号", className: "col-device-id" },
+  { key: "deptName", label: "所属分区", className: "col-dept-name" },
+  { key: "deviceNumber", label: "设备编号", className: "col-device-number" },
+  { key: "deviceAlias", label: "设备别名", className: "col-device-alias" }, 
+  { key: "position", label: "地理位置", className: "col-position" },
   { key: "gisMinLevel", label: "GIS最小级别", className: "col-min-level" },
   { key: "gisMaxLevel", label: "GIS最大级别", className: "col-max-level" },
   { key: "detail", label: "详细信息", className: "col-detail" },
@@ -595,10 +704,9 @@ const handleDeviceSearch = async () => {
 	  pageNum: 1,
 	  pageSize: deptDevicePagination.size,
 	  deviceId: keyword,
-	  deptId: currentDeptId.value,
 	};
 	
-	const res = await getDeptDevicePage(params) as ApiResponseLike;
+	const res = await getDeptDevicePage(currentDeptId.value, params) as ApiResponseLike;
 	assertSuccessResponse(res);
 	const pageData = res.data as {
 		records: DeptDeviceItem[];
@@ -627,9 +735,9 @@ const handleDeviceRefresh = async () => {
   loadDeptDeviceList(1);
 };
 
-const getDeptName = (deptId: number): string => {
-  const dept = deptList.value.find(item => item.id === deptId);
-  return dept ? dept.deptName : "-";
+const getDeptName = () => {
+	const dept = getDeptById(currentDeptId.value!);
+	return dept ? dept.deptName : "-";
 };
 
 const isAllSelected = computed(() => {
@@ -680,6 +788,7 @@ const deptTypeOptions = [
   { label: "H86Q", value: "11" },
 ];
 
+const deviceDialogVisible = ref(false);
 const deptDialogVisible = ref(false);
 const submitting = ref(false);
 const isDeptCreating = ref(false);
@@ -720,19 +829,12 @@ const resetDeptForm = () => {
 
 const handleCreateDept = () => {
   currentDeptId.value = undefined;
+  deptDeviceList.value = [];
   isDeptCreating.value = true;
   resetDeptForm();
   clearErrors();
   activeSelect.value = "";
   openDeptDialog();
-};
-
-const handleCheckDevice = (item: any) => {
-  // console.log("编辑设备", item);
-  uni.showToast({
-    title: `编辑设备：${item.deviceId}`,
-    icon: "none"
-  });
 };
 
 const handleEditDept = () => {
@@ -760,6 +862,10 @@ const closeDeptDialog = () => {
   activeSelect.value = "";
   deptDialogVisible.value = false;
 };
+
+const closeDeviceDialog = () => {
+	deviceDialogVisible.value = false;
+}
 
 const getDeptTypeLabel = () => {
   const item = deptTypeOptions.find(item => item.value === deptForm.regionType);
@@ -820,8 +926,6 @@ const handleChooseDeptIcon = () => {
 const openOrgDialog = () => {
   uni.showToast({ title: "所属组织待接入", icon: "none" });
 };
-
-
 
 function validateCreateForm() {
   clearErrors();
@@ -914,7 +1018,7 @@ const handleDeleteDept = async () => {
       success: async (res) => {
         if (!res.confirm) return;
 		try{
-			await deleteDept(currentDeptId.value!, true);
+			await deleteDept(currentDeptId.value!);
 			uni.showToast({ title: "删除成功", icon: "success" });
 			
 			currentDeptId.value = undefined;
@@ -984,6 +1088,14 @@ const handleDeleteSelectedDevice = () => {
       selectedIds.value = [];
     },
   });
+};
+
+const deviceDetail = ref<DeptDeviceItem | null>(null);
+
+const handleCheckDevice = (item: DeptDeviceItem) => {
+  deviceDialogVisible.value = true;
+  deviceDetail.value = item;
+  console.log("查看设备", item);
 };
 
 </script>
@@ -1216,7 +1328,7 @@ const handleDeleteSelectedDevice = () => {
   background: #fff;
   border: 1px solid #d8e6f2;
   border-radius: 6px;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .table-header-cell {
@@ -1242,14 +1354,6 @@ const handleDeleteSelectedDevice = () => {
   white-space: nowrap;
 }
 
-.table-row {
-  display: grid;
-  min-width: 700px;
-  width: 100%;
-  min-height: 42px;
-  border-bottom: 1px solid #edf1f5;
-}
-
 .table-row--action {
 	color: #0d82ee;
 	font-weight: 700;
@@ -1258,12 +1362,21 @@ const handleDeleteSelectedDevice = () => {
 	box-shadow: inset 0 0 0 1px #b9dcff;
 }
 
+.table-row{
+	display: grid;
+	width: 100%;
+	min-height: 42px;
+	border-bottom: 1px solid #edf1f5;
+}
+
 .dept-table-row{
+	min-width: 700px;
 	grid-template-columns: 50px 180px 100px 110px 110px 180fr 60px;
 }
 
 .device-table-row{
-	grid-template-columns: 50px 50px 180px 80px 110px 110px 100px;
+	min-width: 960px;
+	grid-template-columns: 50px 50px 180px 80px 100px 180px 110px 110px 100px;
 }
 
 .table-row:not(.table-row--header):nth-child(odd) {
@@ -1282,6 +1395,7 @@ const handleDeleteSelectedDevice = () => {
   position: sticky;
   top: 0;
   z-index: 1;
+  width: 100%;
   min-height: 44px;
   background: #f6f9fc;
   font-size: 12px;
@@ -1368,6 +1482,12 @@ const handleDeleteSelectedDevice = () => {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px 18px;
+}
+
+.device-dialog-form {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 12px 18px;
 }
 
 .dialog-mask {
@@ -1681,6 +1801,31 @@ const handleDeleteSelectedDevice = () => {
   padding: 12px 22px;
   background: #ffffff;
   border-top: 1px solid #edf3f8;
+}
+
+.detail-item {
+  display: flex;
+  min-height: 42px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.detail-label {
+  width: 150px;
+  flex-shrink: 0;
+  padding: 10px 12px;
+  background-color: #f5f7fa;
+  color: #606266;
+  box-sizing: border-box;
+}
+
+.detail-value {
+  flex: 1;
+  padding: 10px 12px;
+  color: #303133;
+  word-break: break-all;
+  box-sizing: border-box;
 }
 
 </style>
