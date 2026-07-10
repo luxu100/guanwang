@@ -104,14 +104,6 @@ export default {
   deleteDept,
   batchDeleteDept,
   
-  getDeptDevicePage,
-  getDeptDeviceList,
-  getDeptDeviceDetail,
-  createDeptDevice,
-  updateDeptDevice,
-  deleteDeptDevice,
-  batchDeleteDeptDevice,
-  
   getPartitionDevicePage,
   getPartitionDeviceList,
   getPartitionTree,

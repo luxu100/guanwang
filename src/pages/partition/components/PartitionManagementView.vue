@@ -1,31 +1,5 @@
 <template>
     <view class="dept">
-        <!-- 分区树 -->
-		<view class="dept-layout">
-			<view class="tree-panel">
-				<view class="section-head">
-				  <text class="section-title">分区结构</text>
-				  <button class="icon-button" hover-class="icon-button--hover" aria-label="刷新" @click="deptRefresh">
-				    <text class="icon-refresh"></text>
-				  </button>
-				</view>
-				<!-- 树内容 -->
-				<view class="tree-content">
-					<view 
-					  v-for="item in deptTreeList" 
-					  :key="item.id" 
-					  class="tree-node" 
-					  :class="{ 'tree-node--active': currentDeptId === item.id }"
-					  :title="item.deptName"
-					  @click="handleDeptClick(item)"
-					>
-						<text class="text-hidden">{{ item.deptName }}</text>
-					</view>
-				</view>
-				
-			</view>
-		</view>
-
 		<!-- 分区信息 -->
 		<view class="dev-layout">
 			<!-- 分区信息 -->
@@ -33,24 +7,16 @@
 				<view class="section-head">
 					<text class="section-title"> 分区信息 </text>
 					<view class="toolbar-panel">
+						  <button class="secondary-button" @click="deptRefresh"> 刷新 </button>
 						  <button class="secondary-button" @click="handleCreateDept"> 新增 </button>
-						  <button class="secondary-button" :disabled="!currentDeptId || currentDeptId === 0" @click="handleEditDept">
-						    编辑
-						  </button>
-
-						  <button
-						    class="danger-button"
-						    :disabled="!currentDeptId || currentDeptId === 0"
-						    @click="handleDeleteDept"
-						  >
-						    删除
-						  </button>
+						  <button class="secondary-button" :disabled="!currentDeptId || currentDeptId === 0" @click="handleEditDept"> 编辑 </button>
+						  <button class="danger-button" :disabled="!currentDeptId || currentDeptId === 0" @click="handleDeleteDept"> 删除 </button>
 					</view>
 				</view>
 
 				<view class="table">
 					<!-- 表头 -->
-					<view class="table-row table-row--header dept-table-row">
+					<view class="table-row dept-table-row table-row--header">
 					  <view
 					    v-for="column in deptColumns" 
 					    :key="column.key"
@@ -60,20 +26,20 @@
 					  </view>
 					</view>
 					
-					<view v-if="loading" class="table-state col-center">加载中...</view>
+					<view v-if="deptLoading" class="table-state col-center">加载中...</view>
 					<view v-else-if="deptTableList.length === 0" class="table-state">暂无分区信息</view>
 					
 				    <!-- 数据 -->
 					<view v-else>
 						<view v-for="(item,index) in deptTableList" 
 						:key="item.id" 
-						class="table-row dept-table-row"
+						class="dept-table-row table-row"
 						:class="{ 'table-row--action': currentDeptId === item.id}"
 						@click="handleDeptTableRowClick(item)"
 						>
 						  <view class="col-index col-center" > {{ index + 1 }} </view>
 						  <view class="col-dept-name col-center" :title="item.deptName"> {{ item.deptName }} </view>
-						  <view class="col-dept-type col-center" :title="item.deptType"> {{ item.deptType || '-' }} </view>
+						  <view class="col-dept-type col-center" :title="item.regionType"> {{ item.regionType || '-' }} </view>
 						  <view class="col-min-level col-center"> {{ item.gisMinLevel || '-' }} </view>
 						  <view class="col-max-level col-center"> {{ item.gisMaxLevel || '-' }} </view>
 						  <view class="col-dept-id col-center"> {{ item.id || '-' }} </view>
@@ -83,11 +49,11 @@
 				</view>
 			
 				<view class="pagination-bar">
-				  <button class="page-btn" :disabled="pagination.current <= 1" @click="handlePageChange(pagination.current - 1)">
+				  <button class="page-btn" :disabled="deptPagination.current <= 1" @click="handlePageChange(deptPagination, deptPagination.current - 1)">
 				    上一页
 				  </button>
-				  <text class="page-info">第 {{ pagination.current }}  /  {{ Math.ceil(pagination.total / pagination.size) || 1 }} 页</text>
-				  <button class="page-btn" :disabled="pagination.current >= Math.ceil(pagination.total / pagination.size)" @click="handlePageChange(pagination.current + 1)">
+				  <text class="page-info">第 {{ deptPagination.current }}  /  {{ Math.ceil(deptPagination.total / deptPagination.size) || 1 }} 页</text>
+				  <button class="page-btn" :disabled="deptPagination.current >= Math.ceil(deptPagination.total / deptPagination.size)" @click="handlePageChange(deptPagination, deptPagination.current + 1)">
 				    下一页
 				  </button>
 				</view>
@@ -147,7 +113,7 @@
 					  </view>
 					</view>
 					
-					<view v-if="loading" class="table-state">加载中...</view>
+					<view v-if="deptDeviceLoading" class="table-state">加载中...</view>
 					<view v-else-if="deptDeviceList.length === 0" class="table-state">暂无设备数据</view>
 					
 					<!-- 数据 -->
@@ -161,13 +127,15 @@
 							/>
 						  </view>			
 						  <view class="col-index col-center"> {{ index + 1 }} </view>			
-						  <view class="col-dept-name col-center"> {{ getDeptName(item.deptId) }} </view>
-						  <view class="col-device-id col-center"> {{ item.deviceId }} </view>
+						  <view class="col-dept-name col-center"> {{ getDeptName() }} </view>
+						  <view class="col-device-number col-center"> {{ item.deviceNumber }} </view>
+						  <view class="col-device-alias col-center"> {{ item.deviceAlias || '-' }} </view>
+						  <view class="col-position col-center"> {{ item.installLongitude, item.installLatitude || '-' }} </view>
 						  <view class="col-min-level col-center"> {{ item.gisMinLevel || '-' }} </view>
 						  <view class="col-max-level col-center"> {{ item.gisMaxLevel || '-' }} </view>
 						  <view class="col-action col-center">
 							  <button class="table-action-btn" @click.stop="handleCheckDevice(item)" >
-								设备详情
+								查看详情
 							  </button>
 							</view>		  
 						</view>
@@ -176,11 +144,11 @@
 				</view>
 			
 				<view class="pagination-bar">
-				  <button class="page-btn" :disabled="pagination.current <= 1" @click="handlePageChange(pagination.current - 1)">
+				  <button class="page-btn" :disabled="deptDevicePagination.current <= 1" @click="handlePageChange(deptDevicePagination,deptDevicePagination.current - 1)">
 					上一页
 				  </button>
-				  <text class="page-info">第 {{ pagination.current }}  /  {{ Math.ceil(pagination.total / pagination.size) || 1 }} 页</text>
-				  <button class="page-btn" :disabled="pagination.current >= Math.ceil(pagination.total / pagination.size)" @click="handlePageChange(pagination.current + 1)">
+				  <text class="page-info">第 {{ deptDevicePagination.current }}  /  {{ Math.ceil(deptDevicePagination.total / deptDevicePagination.size) || 1 }} 页</text>
+				  <button class="page-btn" :disabled="deptDevicePagination.current >= Math.ceil(deptDevicePagination.total / deptDevicePagination.size)" @click="handlePageChange(deptDevicePagination, deptDevicePagination.current + 1)">
 					下一页
 				  </button>
 				</view>
@@ -201,88 +169,215 @@
 			   </button>
 			 </view>
 		
+			<view v-if="firstDeptFormError" class="error-summary">{{ firstDeptFormError }}</view>
+		
 			 <view class="dialog-body">
 			   <view class="dept-dialog-form">
-				 <view class="form-field">
-				   <text class="form-label">分区类型</text>
-				   <picker class="form-picker" mode="selector" :range="deptTypeOptions" range-key="label"
-				     :value="deptTypeIndex" @change="handleDeptTypeChange">
-				     <view class="form-input picker-input">
-				 		<text class="picker-text">{{ getDeptTypeLabel() }}</text>
-				        <text class="picker-arrow"></text>
-				     </view>
-				   </picker>
-				 </view>
+				  <view class="form-field">
+				    <text class="form-label">分区类型</text>
+				    <view class="select-field">
+					    <view class="form-select form-select--dropdown" :class="{ 'form-select--open': activeSelect === 'deptType'}" @click.stop="toggleSelect('deptType')">
+						   <text :class="{ 'select-placeholder': deptForm.regionType === ''}">{{getDeptTypeLabel()}}</text>
+						   <text class="select-arrow"></text>
+					    </view>
+					    <view v-if="activeSelect === 'deptType'" class="select-menu">
+						   <view v-for="item in deptTypeOptions" :key="item.value" class="select-option" 
+						   :class="{ 'select-option--active': deptForm.regionType === item.value}" @click.stop="selectDeptType(item.value)">{{item.label}}</view>
+					    </view>
+				    </view>
+				  </view>
 				 
-				 <view class="form-field">
-				     <text class="form-label">分区名称</text>
-				     <input v-model="deptForm.deptName" class="form-input" placeholder="请输入分区名称" />
-				   </view>
+				  <view class="form-field">
+				    <text class="form-label form-label--required">分区名称</text>
+				    <input v-model="deptForm.deptName" class="form-input" :class="{ 'form-control--error': validationErrors.deptName }" placeholder="请输入分区名称" placeholder-class="input-placeholder" @input="clearError('deptName')"/>
+					<text v-if="validationErrors.deptName" class="form-error">{{ validationErrors.deptName }}</text>
+				  </view>
 				 		 
-				   <view class="form-field">
-				     <text class="form-label">分区代码</text>
-				     <input v-model="deptForm.deptCode" class="form-input" placeholder="请输入分区代码" />
-				   </view>
+				  <view class="form-field">
+				    <text class="form-label">分区代码</text>
+				    <input v-model="deptForm.regionCode" class="form-input" placeholder="请输入分区代码" placeholder-class="input-placeholder" />
+				  </view>
 				 		 
-				   <view class="form-field">
-				     <text class="form-label">所属组织</text>
-				     <input v-model="deptForm.orgId" class="form-input" placeholder="请输入所属组织" />
-				   </view>
+				  <view class="form-field">
+				    <text class="form-label">分区范围</text>
+					<view class="input-icon">
+						 <input v-model="deptForm.regionScope" class="form-input form-input-icon" placeholder="请选择分区范围" placeholder-class="input-placeholder" />
+						 <button class="icon-button input-icon-button" @click="openRangeDialog" >
+							<text>...</text>
+						 </button>
+					</view>
+				  </view>
 				 		 
-				   <view class="form-field form-field--wide">
-				     <text class="form-label">分区范围</text>
-				     <textarea v-model="deptForm.deptRange" class="form-textarea" placeholder="请输入分区范围" />
-				   </view>
+				  <view class="form-field">
+				    <text class="form-label form-label--required">排序</text>
+				    <input v-model="deptForm.sort" type="number" class="form-input" :class="{ 'form-control--error': validationErrors.sort }" placeholder="请输入排序" placeholder-class="input-placeholder" @input="clearError('sort')" />
+					<text v-if="validationErrors.sort" class="form-error">{{ validationErrors.sort }}</text>
+				  </view>
 				 		 
-				   <view class="form-field">
-				     <text class="form-label">排序</text>
-				     <input v-model="deptForm.sort" type="number" class="form-input" placeholder="请输入排序" />
-				   </view>
+				  <view class="form-field">
+				    <text class="form-label">分区颜色</text>
+					<view class="input-icon">
+						 <input v-model="deptForm.regionColor" class="form-input form-input-icon" placeholder="请选择分区颜色，如#ff0000" placeholder-class="input-placeholder" />
+						 <button class="icon-button input-icon-button" @click="openColorDialog" >
+							<text>...</text>
+						 </button>
+					</view>
+				  </view>
 				 		 
-				   <view class="form-field">
-				     <text class="form-label">分区颜色</text>
-				     <input v-model="deptForm.deptColor" class="form-input" placeholder="请输入分区颜色" />
-				   </view>
+				  <view class="form-field">
+				    <text class="form-label">分区中心</text>
+					<view class="input-icon">
+						 <input v-model="deptForm.regionCenter" class="form-input form-input-icon" placeholder="请选择分区中心" placeholder-class="input-placeholder" />
+						 <button class="icon-button input-icon-button" @click="openCenterDialog" >
+							<text>...</text>
+						 </button>
+					</view>
+				  </view>
 				 		 
-				   <view class="form-field">
-				     <text class="form-label">分区中心</text>
-				     <input v-model="deptForm.deptCenter" class="form-input" placeholder="请输入分区中心" />
-				   </view>
+				  <view class="form-field">
+				    <text class="form-label">缩放层级</text>
+				    <input v-model="deptForm.zoomLevel" type="number" class="form-input" placeholder="请输入缩放层级" placeholder-class="input-placeholder" />
+				  </view>
 				 		 
-				   <view class="form-field">
-				     <text class="form-label">缩放层级</text>
-				     <input v-model="deptForm.zoomLevel" type="number" class="form-input" placeholder="请输入缩放层级" />
-				   </view>
+				  <view class="form-field">
+				    <text class="form-label">GIS显示</text>
+					<checkbox :checked="deptForm.gisVisible === 1" @click="deptForm.gisVisible = !deptForm.gisVisible" />
+				  </view>
+				  
+				  <view class="form-field">
+				    <text class="form-label">GIS最小级别</text>
+				    <input v-model="deptForm.gisMinLevel" type="number" class="form-input" placeholder="请输入GIS最小级别" placeholder-class="input-placeholder" />
+				  </view>
 				 		 
-				   <view class="form-field">
-				     <text class="form-label">GIS显示</text>
-				     <input v-model="deptForm.gisVisible" class="form-input" placeholder="请输入GIS显示" />
-				   </view>
+				  <view class="form-field">
+				    <text class="form-label">GIS最大级别</text>
+				    <input v-model="deptForm.gisMaxLevel" type="number" class="form-input" placeholder="请输入GIS最大级别" placeholder-class="input-placeholder" />
+				  </view>
 				 		 
-				   <view class="form-field">
-				     <text class="form-label">GIS最小级别</text>
-				     <input v-model="deptForm.gisMinLevel" type="number" class="form-input" placeholder="请输入GIS最小级别" />
-				   </view>
-				 		 
-				   <view class="form-field">
-				     <text class="form-label">GIS最大级别</text>
-				     <input v-model="deptForm.gisMaxLevel" type="number" class="form-input" placeholder="请输入GIS最大级别" />
-				   </view>
-				 		 
-				   <view class="form-field">
-				     <text class="form-label">分区图标</text>
-				     <input v-model="deptForm.deptIcon" class="form-input" placeholder="请输入分区图标" />
-				   </view>
+				  <view class="form-field">
+				    <text class="form-label">分区图标</text>
+					<view class="input-icon">
+						 <input v-model="deptForm.regionIcon" class="form-input form-input-icon" placeholder="请输入分区图标" placeholder-class="input-placeholder" />
+						 <button class="icon-button input-icon-button" @click="handleChooseDeptIcon" >
+							<text>...</text>
+						 </button>
+					</view>
+				  </view>
+				 
+				  <view class="form-field">
+				    <text class="form-label">所属组织</text>
+					<!-- <view class="org-select-wrap" @click="openOrgDialog">
+					    <input
+					      class="form-input org-select-input"
+					     :value="selectedOrgName"
+					      placeholder="请选择所属组织"
+					      disabled
+					    />
+					</view> -->
+				    <input v-model="deptForm.organizationId" class="form-input" placeholder="请输入所属组织" />
+				  </view>
 				 
 			   </view>
 			 </view>
 		
 			 <view class="dialog-actions">
-			   <button class="secondary-button" @click="closeDeptDialog">取消</button>
-			   <button class="primary-button" @click="handleSaveDept">保存</button>
+			   <button class="secondary-button" hover-class="secondary-button--hover" @click="closeDeptDialog">取消</button>
+			   <button class="secondary-button" hover-class="secondary-button--hover" @click="resetDeptForm">清空表单</button>
+			   <button class="primary-button" :disabled="submitting" hover-class="primary-button--hover" @click="handleSaveDept">{{ submitting? "保存中..." : "保存" }}</button>
 			 </view>
 			</view>
 		</view> 
+		
+		<view v-if="deviceDialogVisible" class="dialog-mask" @click="closeDeviceDialog">
+			<view class="dialog-panel" @click.stop>
+			    <view class="dialog-head">
+			      <view>
+			        <text class="dialog-title">设备详细信息</text>
+			        <text class="dialog-subtitle">查看当前设备的完整信息</text>
+			      </view>
+			
+			      <button class="icon-button" hover-class="icon-button--hover" aria-label="关闭" @click="closeDeviceDialog">
+			        <text class="close-icon"></text>
+			      </button>
+			    </view>
+			
+			    <view class="dialog-body">
+				  <view class="device-dialog-form">
+			
+			        <view class="detail-item">
+			          <text class="detail-label">设备编号</text>
+			          <text class="detail-value">
+			            {{ deviceDetail.deviceNumber || "-" }}
+			          </text>
+			        </view>
+			
+					<view class="detail-item">
+					  <text class="detail-label">设备名称</text>
+					  <text class="detail-value">
+					    {{ deviceDetail?.deviceAlias ?? "-" }}
+					  </text>
+					</view>
+					
+			        <view class="detail-item">
+			          <text class="detail-label">所属分区</text>
+			          <text class="detail-value">
+			            {{ getDeptName() }}
+			          </text>
+			        </view>
+			
+			        <view class="detail-item">
+			          <text class="detail-label">管段编号</text>
+			          <text class="detail-value">
+			            {{ deviceDetail?.tubeNumber ?? "-" }}
+			          </text>
+			        </view>
+					
+					<view class="detail-item">
+					  <text class="detail-label">安装位置</text>
+					  <text class="detail-value">
+					    {{ deviceDetail?.installAddress ?? "-" }}
+					  </text>
+					</view>
+					
+			        <view class="detail-item">
+			          <text class="detail-label">地理位置</text>
+			          <text class="detail-value">
+			            {{ deviceDetail?.installLongitude,deviceDetail?.installLatitude ?? "-" }}
+			          </text>
+			        </view>
+			
+					<view class="detail-item">
+					  <text class="detail-label">GIS最小级别</text>
+					  <text class="detail-value">
+					    {{ deviceDetail.gisMinLevel ?? "-" }}
+					  </text>
+					</view>
+			
+			        <view class="detail-item">
+			          <text class="detail-label">GIS最大级别</text>
+			          <text class="detail-value">
+			            {{ deviceDetail.gisMaxLevel ?? "-" }}
+			          </text>
+			        </view>
+			
+			        <view class="detail-item">
+			          <text class="detail-label">设备状态</text>
+			          <text class="detail-value">
+			            {{ deviceDetail?.enableState===1? "启动" : "禁用" }}
+			          </text>
+			        </view>
+			
+			      </view>
+			    </view>
+			
+			    <view class="dialog-actions">
+			      <button class="primary-button" @click="closeDeviceDialog">
+			        确定
+			      </button>
+			    </view>
+			  </view>
+		</view>
+	
     </view>
 </template>
 
@@ -295,29 +390,26 @@ import {
 	createDept,
 	updateDept,
 	deleteDept,
-	getPartitionDevicePage,
 	getDeptDeviceList,
 	getDeptDevicePage,
-	getDeptDeviceDetail,
+	getDeptDeviceBindingList,
 } from "@/services/partition/partition";
 
 interface DeptApiItem {
   id: number;
   deptName: string;
-  deptType?: string;
-  deptCode?: number;
-  deptRange?: string;
+  regionType?: string;
+  regionCode?: string;
+  regionScope?: string;
   sort?: number;
-  deptColor?: string;
-  deptCenter?: string;
+  regionColor?: string;
+  regionCenter?: string;
   zoomLevel?: number;
-  gisVisible: number;
+  gisVisible: boolean;
   gisMinLevel?: number;
   gisMaxLevel?: number;
-  deptIcon?: string;
-  orgId?: number;
-  created?: string;
-  updatedAt?: string
+  regionIcon?: string;
+  organizationId?: number;
   parentId?: number;
 }
 
@@ -325,7 +417,7 @@ type DeptTableItem = Pick<
 	DeptApiItem,
 	| "id"
 	| "deptName"
-	| "deptType"
+	| "regionType"
 	| "gisMinLevel"
 	| "gisMaxLevel"
 	| "sort"
@@ -343,116 +435,121 @@ type DeptKey =
 type DeptForm = Pick<
 	DeptApiItem,
 	| "deptName"
-	| "deptType"
-	| "deptCode"
-	| "deptRange"
+	| "regionType"
+	| "regionCode"
+	| "regionScope"
 	| "sort"
-	| "deptColor"
-	| "deptCenter"
+	| "regionColor"
+	| "regionCenter"
 	| "zoomLevel"
 	| "gisVisible"
 	| "gisMinLevel"
 	| "gisMaxLevel"
-	| "deptIcon"
-	| "orgId"
+	| "regionIcon"
+	| "organizationId"
   > & {
 	id?: number;
   };
 
-interface DeptTreeItem {
-  id: number;
-  deptName: string;
-  parentId?: number;
-  isAll?: boolean;
+interface ApiResponseLike {
+  code?: number;
+  msg?: string;
+  data?: unknown;
 }
 
 const deptList = ref<DeptApiItem[]>([]);
-const allDeptTableList =  computed<DeptTableItem[]>(() =>
+const deptTableList =  computed<DeptTableItem[]>(() =>
   deptList.value.map(item => ({
     id: item.id,
     deptName: item.deptName,
-    deptType: item.deptType,
+    deptType: item.regionType,
     gisMinLevel: item.gisMinLevel,
     gisMaxLevel: item.gisMaxLevel,
     sort: item.sort,
   }))
 );
 
-const deptTableList = computed<DeptTableItem[]>(() => {
-  if (currentDeptId.value === undefined || currentDeptId.value === 0) {
-    return allDeptTableList.value;
-  }
-
-  return allDeptTableList.value.filter(item => item.id === currentDeptId.value);
-});
-
-const deptTreeList = computed<DeptTreeItem[]>(() => [
-  {
-    id: 0,
-    deptName: "所有分区",
-    parentId: 0,
-    isAll: true,
-  },
-  ...deptList.value.map(item => ({
-    id: item.id,
-    deptName: item.deptName,
-    parentId: item.parentId,
-  })),
-]);
-
-const loadDeptList = async () => {
+const loadDeptList = async (page: number) => {
+  deptLoading.value = true;
+  
   try {
-    const res = await getDeptList();
-    deptList.value = (res.data as DeptApiItem[]) || [];
-	// console.log("分区列表", deptList.value);
-  } catch (e:any) {
-    console.error("获取分区列表失败",e);
+	const params: any = {
+		pageNum: page,
+		pageSize: deptPagination.size,
+	};
+    const res = await getDeptPage(params) as ApiResponseLike;
+	assertSuccessResponse(res);
+	
+	const pageData = res.data as {
+	  records: DeptApiItem[];
+	  total: number;
+	};
+	
+    deptList.value = pageData.records || [];
+	console.log("分区列表", deptList.value);
+	deptPagination.current = page;
+	deptPagination.total = pageData.total || 0;
+	
+	if(currentDeptId.value == null && deptList.value.length){
+		currentDeptId.value = deptList.value[0].id;
+	}
+  } catch (error) {
+	uni.showToast({
+		title: (error as {msg?: string })?.msg || "加载分区列表失败", 
+		icon: "none",
+	});
+  } finally {
+	deptLoading.value = false;
   }
 };
 
 const loadDeptDeviceList = async (page = 1) => {
-  loading.value = true;
-
+  deptDeviceLoading.value = true;
   try {
     const params: any = {
       pageNum: page,
-      pageSize: pagination.size,
+      pageSize: deptDevicePagination.size,
     };
 
-    if (currentDeptId.value !== undefined && currentDeptId.value !== 0) {
-      params.deptId = currentDeptId.value;
-    }
-	
-    const res = await getDeptDevicePage(params);
-	// console.log("设备列表", res)
+    if (currentDeptId.value === undefined) {
+      uni.showToast({ title: "请先选择分区", icon: "none" });
+      return;
+	}
+    const res = await getDeptDevicePage(currentDeptId.value, params) as ApiResponseLike;
+	assertSuccessResponse(res);
     const pageData = res.data as {
       records: DeptDeviceItem[];
       total: number;
     };
 
     deptDeviceList.value = pageData.records || [];
-    pagination.total = pageData.total || 0;
-    pagination.current = page;
+	console.log("设备列表",deptDeviceList.value);
+    deptDevicePagination.total = pageData.total || 0;
+    deptDevicePagination.current = page;
+  } catch (error){
+	  uni.showToast({
+	  	title: (error as {msg?: string })?.msg || "加载设备列表失败", 
+	  	icon: "none",
+	  });
   } finally {
-    loading.value = false;
+    deptDeviceLoading.value = false;
   }
 };
 
 const deptRefresh = async () => {
+  await loadDeptList(1);
   const currentId = currentDeptId.value;
-  await loadDeptList();
   await loadDeptDeviceList(1);
   if (currentId != undefined) {
-    const current = deptTreeList.value.find(item => item.id === currentId);
+    const current = deptList.value.find(item => item.id === currentId);
 
     if (current) {
-      await handleDeptClick(current);
+      await handleDeptTableRowClick(current);
     }
   }
-}; 
+};
 
 onMounted(async () => {
-  currentDeptId.value = 0;
   await deptRefresh();
 });
 
@@ -465,12 +562,13 @@ type DeptColumn = {
 type DeptDeviceKey =
 	| "checkbox"
 	| "index"
-	| "deptId"
-	| "deviceId"
+	| "deptName"
+	| "deviceNumber"
+	| "deviceAlias"
+	| "position"
 	| "gisMinLevel"
 	| "gisMaxLevel"
-	| "detail"
-	| "operation";
+	| "detail";
 
 type DeptDeviceColumn = {
   key: DeptDeviceKey;
@@ -480,47 +578,58 @@ type DeptDeviceColumn = {
 
 interface DeptDeviceItem {
   id: number;
-  deptId: number;
-  deviceId: string;
+  deviceNumber: string;
+  deviceAlias?: string;
+  deviceType?: string;
+  installAddress?: string;
+  installLongitude?: number;
+  installLatitude?: number;
+  tubeNumber?: string;
+  tubeBore?: string;
+  enableState?: number
   gisMinLevel?: number;
   gisMaxLevel?: number;
 }
 
-interface DevicePageResult {
-  current: number;
-  pages: number;
-  size: number;
-  total: number;
-  records: any[];
+interface DeptDeviceBinding{
+	id: number;
+	deptId: number;
+	deviceId: number;
 }
 
 const fillDeptForm = (item: DeptApiItem) => {
   Object.assign(deptForm,{
-	deptTypt: item.deptType,
+	regionTypt: item.regionType,
 	deptName: item.deptName,
-	deptCode: item.deptCode,
-	deptRange: item.deptRange,
+	regionCode: item.regionCode,
+	regionScope: item.regionScope,
 	sort: item.sort,
-	deptColor: item.deptColor,
-	deptCenter: item.deptCenter,
+	regionColor: item.regionColor,
+	regionCenter: item.regionCenter,
 	zoomLevel: item.zoomLevel,
 	gisVisible: item.gisVisible,
 	gisMinLevel: item.gisMinLevel,
 	gisMaxLevel: item.gisMaxLevel,
-	deptIcon: item.deptIcon,
-	orgId: item.orgId,
+	regionIcon: item.regionIcon,
+	organizationId: item.organizationId,
   });
 };
 
 const currentDeptId = ref<number>();
-const pagination = reactive({
+const deptPagination = reactive({
   current: 1,
   size: 10,
   total: 0
 });
-const deptDialogVisible = ref(false);
-const isDeptCreating = ref(false);
-const loading = ref(false);
+
+const deptDevicePagination = reactive({
+  current: 1,
+  size: 10,
+  total: 0
+});
+
+const deptLoading = ref(false);
+const deptDeviceLoading = ref(false);
 const deptDeviceList = ref<DeptDeviceItem[]>([]);
 const deviceKeyword = ref("");
 const selectedIds = ref<number[]>([]);
@@ -528,6 +637,10 @@ const DeptKeyword = ref("");
 
 const openDeptDialog = () => {
   deptDialogVisible.value = true;
+};
+
+const openDeviceDialog = () => {
+  deviceDialogVisible.value = true;
 };
 
 const deptColumns: DeptColumn[] = [
@@ -543,25 +656,14 @@ const deptColumns: DeptColumn[] = [
 const deptDeviceColumns: DeptDeviceColumn[] = [
   { key: "checkbox", label: "", className: "col-checkbox" },
   { key: "index", label: "序号", className: "col-index" },
-  { key: "deptId", label: "所属分区", className: "col-dept-name" },
-  { key: "deviceId", label: "设备编号", className: "col-device-id" },
+  { key: "deptName", label: "所属分区", className: "col-dept-name" },
+  { key: "deviceNumber", label: "设备编号", className: "col-device-number" },
+  { key: "deviceAlias", label: "设备别名", className: "col-device-alias" }, 
+  { key: "position", label: "地理位置", className: "col-position" },
   { key: "gisMinLevel", label: "GIS最小级别", className: "col-min-level" },
   { key: "gisMaxLevel", label: "GIS最大级别", className: "col-max-level" },
   { key: "detail", label: "详细信息", className: "col-detail" },
 ];
-
-const handleDeptClick = async (item: DeptTreeItem) => {
-	if(!item.isAll){
-		fillDeptForm(item as DeptApiItem);
-	}else{
-		resetDeptForm(); //所有分区
-	}
-	selectedIds.value = [];
-	currentDeptId.value = item.id;
-	pagination.current = 1; //重置到第一页
-	deptDeviceList.value = [];
-	await loadDeptDeviceList(1);
-};
 
 const getDeptById = (id: number): DeptApiItem | undefined => {
   return deptList.value.find(item => item.id === id);
@@ -570,7 +672,7 @@ const getDeptById = (id: number): DeptApiItem | undefined => {
 const handleDeptTableRowClick = async (item: DeptTableItem) => {
   currentDeptId.value = item.id;
   selectedIds.value = [];
-  pagination.current = 1;
+  deptDevicePagination.current = 1;
   deptDeviceList.value = [];
 
   const dept = getDeptById(item.id);
@@ -596,20 +698,30 @@ const handleDeviceSearch = async () => {
     return;
   }
   const keyword = deviceKeyword.value.trim();
-  pagination.current = 1;
-  deptDeviceList.value = [];
-  loading.value = true;
+  deptDeviceLoading.value = true;
   try{
-	const res = await getPartitionDevicePage(currentDeptId.value, {
-	  pageNum: pagination.current,
-	  pageSize: pagination.size,
-	  deviceNumber: keyword,
-	});
-	const pageData = res.data as DevicePageResult;
+	const params: any = {
+	  pageNum: 1,
+	  pageSize: deptDevicePagination.size,
+	  deviceId: keyword,
+	};
+	
+	const res = await getDeptDevicePage(currentDeptId.value, params) as ApiResponseLike;
+	assertSuccessResponse(res);
+	const pageData = res.data as {
+		records: DeptDeviceItem[];
+		total: number;
+	};
 	deptDeviceList.value = pageData.records || [];
-	pagination.total = pageData.total || 0;
+	deptDevicePagination.current = 1;
+	deptDevicePagination.total = pageData.total || 0;
+  }catch (error){
+	uni.showToast({
+		title: (error as {msg?: string })?.msg || "搜索失败", 
+		icon: "none",
+	});
   }finally{
-	loading.value = false;
+	deptDeviceLoading.value = false;
   }
 };
 
@@ -620,29 +732,12 @@ const handleDeviceRefresh = async () => {
   }
   deviceKeyword.value = "";
   selectedIds.value = [];
-  deptDeviceList.value = [];
-  loading.value = true;
-  
-  try{
-	const res = await getPartitionDevicePage(currentDeptId.value, {
-	  pageNum: pagination.current,
-	  pageSize: pagination.size,
-	});
-	
-	const pageData = res.data as DevicePageResult;
-	deptDeviceList.value = pageData.records || [];
-	pagination.total = pageData.total || 0;
-	
-	uni.showToast({ title: "刷新成功", icon: "success" });
-	  
-  }finally{
-	loading.value = false;
-  }
+  loadDeptDeviceList(1);
 };
 
-const getDeptName = (deptId: number): string => {
-  const dept = deptList.value.find(item => item.id === deptId);
-  return dept ? dept.deptName : "-";
+const getDeptName = () => {
+	const dept = getDeptById(currentDeptId.value!);
+	return dept ? dept.deptName : "-";
 };
 
 const isAllSelected = computed(() => {
@@ -661,78 +756,23 @@ const handleSelectAll = () => {
   }
 };
 
-
-const handlePageChange = async (page:number) => {
-
-  pagination.current = page;
-  if (currentDeptId.value === undefined) {
-    return;
-  }
-  await loadDeptDeviceList(1);
+const handlePageChange = async (pagination: any, page:number) => {
+	pagination.current = page;
+	console.log("current", deptPagination.current);
+	if(pagination == deptPagination){
+		await loadDeptList(deptPagination.current);
+		console.log("cuurent", deptPagination.current);
+	}else if(pagination == deptDevicePagination){
+		await loadDeptDeviceList(deptDevicePagination.current);
+	}
 };
 
-const deptForm = reactive<DeptForm>({
-  deptType: "",
-  deptName: "",
-  deptCode: undefined,
-  deptRange: "",
-  sort: undefined,
-  deptColor: "",
-  deptCenter: "",
-  zoomLevel: undefined,
-  gisVisible: 1,
-  gisMinLevel: undefined,
-  gisMaxLevel: undefined,
-  deptIcon: "",
-  orgId: undefined,
-});
 
-const resetDeptForm = () => {
-  Object.assign(deptForm,{
-	deptType: "",
-	deptName: "",
-	deptCode: undefined,
-	deptRange: "",
-	sort: undefined,
-	deptColor: "",
-	deptCenter: "",
-	zoomLevel: undefined,
-	gisVisible: 1,
-	gisMinLevel: undefined,
-	gisMaxLevel: undefined,
-	deptIcon: "",
-	orgId: undefined,
-  });
-};
-
-const handleCreateDept = () => {
-  currentDeptId.value = undefined;
-  isDeptCreating.value = true;
-  resetDeptForm();
-  openDeptDialog();
-};
-
-const handleCheckDevice = (item: any) => {
-  // console.log("编辑设备", item);
-  uni.showToast({
-    title: `编辑设备：${item.deviceId}`,
-    icon: "none"
-  });
-};
-
-const handleEditDept = () => {
-  if (currentDeptId.value === undefined) {
-    uni.showToast({ title: "请先选择分区", icon: "none" });
-    return;
-  }
-  isDeptCreating.value = false;
-  openDeptDialog();
-};
-
-const closeDeptDialog = () => {
-  deptDialogVisible.value = false;
-};
-
+type SelectKey = "deptType" | "" ;
+type ValidationKey =
+  | "deptName"
+  | "sort";
+  
 const deptTypeOptions = [
   { label: "漏水噪音监测终端", value: "0" },
   { label: "测压点", value: "1" },
@@ -748,57 +788,224 @@ const deptTypeOptions = [
   { label: "H86Q", value: "11" },
 ];
 
-const deptTypeIndex = computed(() => {
-	const index = deptTypeOptions.findIndex(
-		item => item.value === deptForm.deptType);
-    return index === -1 ? 0 : index;
-});
+const deviceDialogVisible = ref(false);
+const deptDialogVisible = ref(false);
+const submitting = ref(false);
+const isDeptCreating = ref(false);
+const activeSelect = ref<SelectKey | "">("");
+const firstDeptFormError = computed(() => Object.values(validationErrors).find(Boolean) || "");
+const validationErrors = reactive<Record<ValidationKey, string>>(getEmptyValidationErrors());
 
-const handleDeptTypeChange = (e: any) => {
-  const index = Number(e.detail.value);
-  deptForm.deptType = deptTypeOptions[index].value;
+const defaultDeptForm: DeptForm =  {
+	regionType: "",
+	deptName: "",
+	regionCode: "",
+	regionScope: "",
+	sort: undefined,
+	regionColor: "",
+	regionCenter: "",
+	zoomLevel: undefined,
+	gisVisible: false,
+	gisMinLevel: undefined,
+	gisMaxLevel: undefined,
+	regionIcon: "",
+	organizationId: undefined,
 };
 
+const deptForm = reactive<DeptForm>({ ...defaultDeptForm });
+
+function getEmptyValidationErrors(): Record<ValidationKey, string> {
+  return {
+    deptName: "",
+    sort: "",
+  };
+}
+
+const resetDeptForm = () => {
+	Object.assign(deptForm, defaultDeptForm);
+	clearErrors();
+	activeSelect.value = "";
+};
+
+const handleCreateDept = () => {
+  currentDeptId.value = undefined;
+  deptDeviceList.value = [];
+  isDeptCreating.value = true;
+  resetDeptForm();
+  clearErrors();
+  activeSelect.value = "";
+  openDeptDialog();
+};
+
+const handleEditDept = () => {
+  if (currentDeptId.value === undefined) {
+    uni.showToast({ title: "请先选择分区", icon: "none" });
+    return;
+  }
+  isDeptCreating.value = false;
+  openDeptDialog();
+};
+
+function toggleSelect(key: SelectKey) {
+  activeSelect.value = activeSelect.value === key ? "" : key;
+}
+
+function selectDeptType(value: string) {
+  deptForm.regionType = value;
+  activeSelect.value = "";
+}
+
+const closeDeptDialog = () => {
+  if (submitting.value) {
+    return;
+  }
+  activeSelect.value = "";
+  deptDialogVisible.value = false;
+};
+
+const closeDeviceDialog = () => {
+	deviceDialogVisible.value = false;
+}
+
 const getDeptTypeLabel = () => {
-  const item = deptTypeOptions.find(item => item.value === deptForm.deptType);
+  const item = deptTypeOptions.find(item => item.value === deptForm.regionType);
   return item?.label || "请选择分区类型";
 };
 
-const handleSaveDept = async () => {
-  if (!deptForm.deptName.trim()) {
-    uni.showToast({ title: "请输入分区名称", icon: "none" });
-    return;
+const openRangeDialog = () => {
+  uni.showToast({ title: "范围选择待接入", icon: "none" });
+  // rangeDialogVisible.value = true;
+};
+
+const openColorDialog = () => {
+  uni.showToast({ title: "颜色选择待接入", icon: "none" });
+};
+
+const openCenterDialog = () => {
+  uni.showToast({ title: "分区中心待接入", icon: "none" });
+};
+
+const handleChooseDeptIcon = () => {
+  uni.chooseImage({
+    count: 1,
+    sizeType: ["original", "compressed"],
+    sourceType: ["album", "camera"],
+    success: async (res) => {
+      const filePath = res.tempFilePaths[0];
+	  const fileName = filePath.split("/").pop() || "";
+	  
+	        // input 显示文件名
+	        deptForm.regionIcon = fileName;
+      // uni.uploadFile({
+      //   url: "你的上传接口地址",
+      //   filePath,
+      //   name: "file",
+      //   success: (uploadRes) => {
+      //     const data = JSON.parse(uploadRes.data);
+
+      //     // 假设后端返回图片地址 data.url
+      //     deptForm.deptIcon = data.url;
+
+      //     uni.showToast({
+      //       title: "上传成功",
+      //       icon: "success",
+      //     });
+      //   },
+      //   fail: () => {
+      //     uni.showToast({
+      //       title: "上传失败",
+      //       icon: "none",
+      //     });
+      //   },
+      // });
+    },
+  });
+  uni.showToast({ title: "图标上传待接入", icon: "none" });
+};
+
+const openOrgDialog = () => {
+  uni.showToast({ title: "所属组织待接入", icon: "none" });
+};
+
+function validateCreateForm() {
+  clearErrors();
+  if (deptForm.deptName === "") {
+    return setError("deptName", "请输入分区名称");
   }
 
+  if (deptForm.sort === undefined) {
+    return setError("sort", "请输入排序");
+  }
+  return true;
+}
+
+function clearError(key: ValidationKey) {
+  validationErrors[key] = "";
+}
+
+function clearErrors() {
+  (Object.keys(validationErrors) as ValidationKey[]).forEach((key) => {
+    validationErrors[key] = "";
+  });
+}
+
+function setError(key: ValidationKey, message: string) {
+  validationErrors[key] = message;
+  uni.showToast({ title: message, icon: "none" });
+  return false;
+}
+
+const handleSaveDept = async () => {
+  if (!validateCreateForm()) {
+    return;
+  }
+  
+  submitting.value = true;
   const payload = {
     ...deptForm,
   };
 
   try {
+	  let res;
       if (isDeptCreating.value) {
-        await createDept(payload);
+        res = await createDept(payload) as ApiResponseLike;
         uni.showToast({ title: "新增成功", icon: "success" });
       } else {
 		if (!deptForm.id) {
 		  uni.showToast({ title: "请先选择分区", icon: "none" });
 		  return;
 		}
-        await updateDept(deptForm.id, payload);
-  
+        res = await updateDept(deptForm.id, payload) as ApiResponseLike;
         uni.showToast({ title: "保存成功", icon: "success" });
       }
+	  assertSuccessResponse(res);
 	  isDeptCreating.value = false;
       closeDeptDialog();
 	  resetDeptForm();
-      await loadDeptList();
+      await loadDeptList(1);
   
-    } catch (e) {
+    } catch (error) {
       uni.showToast({
-        title: "保存失败",
+        title: (error as {msg?: string })?.msg || "保存失败",
         icon: "none"
       });
-    }
+    }finally{
+	  submitting.value = false;
+	}
 };
+
+function assertSuccessResponse(response: ApiResponseLike | undefined) {
+  const code = response?.code;
+  if (code === undefined || code === 0 || code === 200) {
+    return;
+  }
+
+  throw {
+    code,
+    msg: response?.msg || "请求失败",
+    data: response?.data,
+  };
+}
 
 const handleDeleteDept = async () => {
   if (currentDeptId.value === undefined) {
@@ -818,7 +1025,7 @@ const handleDeleteDept = async () => {
 			deptDeviceList.value = [];
 			selectedIds.value = [];
 			resetDeptForm();
-			await loadDeptList();
+			await loadDeptList(1);
 		}catch{
 			uni.showToast({ title: "删除失败", icon: "none" });
 		}
@@ -881,6 +1088,14 @@ const handleDeleteSelectedDevice = () => {
       selectedIds.value = [];
     },
   });
+};
+
+const deviceDetail = ref<DeptDeviceItem | null>(null);
+
+const handleCheckDevice = (item: DeptDeviceItem) => {
+  deviceDialogVisible.value = true;
+  deviceDetail.value = item;
+  console.log("查看设备", item);
 };
 
 </script>
@@ -1012,19 +1227,6 @@ const handleDeleteSelectedDevice = () => {
 	text-overflow: ellipsis;
 }
 
-/* placeholder */
-.input-placeholder {
-  color: #9aa9b8;
-}
-
-.dept-layout {
-  min-width: 200px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 12px;
-}
-
 .dev-layout {
   flex: 1;
   display: flex;
@@ -1032,80 +1234,15 @@ const handleDeleteSelectedDevice = () => {
   gap: 12px;
   min-width: 0;
   min-height: 0;
-  padding: 12px 12px 12px 0;
+  padding: 12px 10px 12px 0;
   justify-content: space-between;
-}
-
-// 分区刷新
-.icon-refresh {
-  position: relative;
-  width: 15px;
-  height: 15px;
-  border: 2px solid currentColor;
-  border-right-color: transparent;
-  border-radius: 50%;
-}
-
-.icon-refresh::after {
-  position: absolute;
-  top: -4px;
-  right: -2px;
-  width: 6px;
-  height: 6px;
-  content: "";
-  border-top: 2px solid currentColor;
-  border-right: 2px solid currentColor;
-  transform: rotate(25deg);
-}
-
-.tree-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 12px;
-  background: #fff;
-  border: 1px solid #d8e6f2;
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.tree-search {
-  padding: 12px;
-}
-
-.tree-content {
-  flex: 1;
-  padding: 12px;
-  min-height: 0;
-  overflow-y: auto;
-}
-
-.tree-node {
-  display: flex;
-  align-items: center;
-  min-height: 36px;
-  padding: 0 12px;
-  cursor: pointer;
-  border-radius: 4px;
-  font-size: 13px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.tree-node:hover {
-  background: #edf7ff;
-}
-
-.tree-node--active {
-  color: #0d82ee;
-  background: #edf7ff;
-  font-weight: 700;
 }
 
 .toolbar-panel {
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 5px 10px;
   justify-content: space-between;
   flex-wrap: wrap;
 }
@@ -1113,14 +1250,14 @@ const handleDeleteSelectedDevice = () => {
 .toolbar-left {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
 .toolbar-right {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
@@ -1191,7 +1328,7 @@ const handleDeleteSelectedDevice = () => {
   background: #fff;
   border: 1px solid #d8e6f2;
   border-radius: 6px;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .table-header-cell {
@@ -1217,20 +1354,29 @@ const handleDeleteSelectedDevice = () => {
   white-space: nowrap;
 }
 
-.table-row {
-  display: grid;
-  min-width: 700px;
-  width: 100%;
-  min-height: 42px;
-  border-bottom: 1px solid #edf1f5;
+.table-row--action {
+	color: #0d82ee;
+	font-weight: 700;
+	position: relative;
+	background: #e7f3ff !important;
+	box-shadow: inset 0 0 0 1px #b9dcff;
+}
+
+.table-row{
+	display: grid;
+	width: 100%;
+	min-height: 42px;
+	border-bottom: 1px solid #edf1f5;
 }
 
 .dept-table-row{
+	min-width: 700px;
 	grid-template-columns: 50px 180px 100px 110px 110px 180fr 60px;
 }
 
 .device-table-row{
-	grid-template-columns: 50px 50px 180px 80px 110px 110px 100px;
+	min-width: 960px;
+	grid-template-columns: 50px 50px 180px 80px 100px 180px 110px 110px 100px;
 }
 
 .table-row:not(.table-row--header):nth-child(odd) {
@@ -1249,6 +1395,7 @@ const handleDeleteSelectedDevice = () => {
   position: sticky;
   top: 0;
   z-index: 1;
+  width: 100%;
   min-height: 44px;
   background: #f6f9fc;
   font-size: 12px;
@@ -1337,10 +1484,16 @@ const handleDeleteSelectedDevice = () => {
   gap: 12px 18px;
 }
 
+.device-dialog-form {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 12px 18px;
+}
+
 .dialog-mask {
   position: fixed;
   inset: 0;
-  z-index: 2;
+  z-index: 999;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1349,7 +1502,11 @@ const handleDeleteSelectedDevice = () => {
 }
 
 .dialog-panel {
-  width: 560px;
+  display: flex;
+  flex-direction: column;
+  // width: min(1120px, calc(100vw - 44px));
+  // height: min(730px, calc(100vh - 28px));
+  // max-height: calc(100vh - 28px);
   overflow: hidden;
   background: #ffffff;
   border: 1px solid #d8e6f2;
@@ -1361,6 +1518,7 @@ const handleDeleteSelectedDevice = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex: none;
   padding: 18px 24px;
   background: #f8fbfe;
   border-bottom: 1px solid #edf3f8;
@@ -1369,7 +1527,7 @@ const handleDeleteSelectedDevice = () => {
 .dialog-title {
   display: block;
   color: #183755;
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 900;
 }
 
@@ -1381,38 +1539,29 @@ const handleDeleteSelectedDevice = () => {
 }
 
 .dialog-body {
-  padding: 18px 24px;
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  padding: 18px 24px 16px;
   background: #ffffff;
 }
 
-.form-field {
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.form-field--wide {
-  grid-column: span 2;
-}
-
-.form-textarea {
-  box-sizing: border-box;
-  width: 100%;
-  height: 90px;
+.error-summary {
+  flex: none;
+  margin: 12px 24px 0;
   padding: 9px 12px;
-  color: #172033;
-  font-size: 14px;
-  background: #fbfdff;
-  border: 1px solid #d5e2ee;
+  color: #b42318;
+  font-size: 13px;
+  font-weight: 800;
+  background: #fff5f3;
+  border: 1px solid #ffc9c0;
   border-radius: 4px;
 }
 
-.dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 12px 22px;
-  background: #ffffff;
-  border-top: 1px solid #edf3f8;
+.form-field {
+  position: relative;
+  align-items: center;
+  min-width: 0;
 }
 
 .icon-button {
@@ -1429,6 +1578,11 @@ const handleDeleteSelectedDevice = () => {
   background: #f6fbff;
   border: 1px solid #d9e7f3;
   border-radius: 4px;
+}
+
+.input-icon-button {
+  width: 38px;
+  height: 38px;
 }
 
 .icon-button::after {
@@ -1466,14 +1620,38 @@ const handleDeleteSelectedDevice = () => {
   transform: rotate(-45deg);
 }
 
-/* 输入框 */
-.form-input {
+.form-label {
+  display: block;
+  margin-bottom: 5px;
+  color: #34495e;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.form-label--required::after {
+  margin-left: 4px;
+  color: #ef4444;
+  content: "*";
+}
+
+.form-input[disabled]{
+  color: #64748b;
+  background: #f3f7fb;
+}
+
+.form-input,
+.form-select {
   box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
   height: 38px;
-  padding: 0 12px;
-  color: #172033;
-  font-size: 12px;
   line-height: 38px;
+  padding: 0 12px;
+  overflow: hidden;
+  color: #172033;
+  font-size: 14px;
+  text-overflow: ellipsis;
   background: #fbfdff;
   border: 1px solid #d5e2ee;
   border-radius: 4px;
@@ -1482,57 +1660,172 @@ const handleDeleteSelectedDevice = () => {
     box-shadow 0.16s ease,
     background-color 0.16s ease;
 }
-.form-picker{
-	flex: 1;
-	width: 100%;
-	display: block;
+
+.input-icon {
+	display: flex;
+	flex-wrap: nowrap;
 }
+
+.form-input-icon {
+  margin-right: 5px;
+  width: 82%;
+}
+
 .form-input:focus {
   background: #ffffff;
   border-color: #8fc8f8;
   box-shadow: 0 0 0 3px rgba(13, 130, 238, 0.1);
 }
 
-.form-label {
+.form-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.form-select--dropdown {
+  background: #f7fbff;
+  box-shadow: inset 0 -1px 0 rgba(13, 130, 238, 0.03);
+  cursor: pointer;
+}
+
+.form-select--open {
+  background: #ffffff;
+  border-color: #8fc8f8;
+  box-shadow: 0 0 0 3px rgba(13, 130, 238, 0.1);
+}
+
+.form-control--error,
+.form-control--error:focus {
+  background: #fffafa;
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.form-error {
   display: block;
-  margin-bottom: 5px;
-  color: #34495e;
+  margin-top: 5px;
+  color: #d92d20;
   font-size: 12px;
   font-weight: 700;
+  line-height: 1.35;
 }
 
-.form-input[disabled]{
-  color: #64748b;
-  background: #f3f7fb;
+.select-field {
+  position: relative;
 }
 
-.picker-input {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-}
-
-.picker-text {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-sizing: border-box;
-  width: 100%;
-  color: #172033;
-  font-size: 14px;
-  background: #f9fcff;
-  border-radius: 4px;
-  height: 27px;
-  line-height: 27px;
-}
-
-.picker-arrow {
+.select-arrow {
   width: 8px;
   height: 8px;
   border: solid #74879c;
   border-width: 0 2px 2px 0;
   transform: translateY(-2px) rotate(45deg);
+}
+
+.select-menu {
+  position: absolute;
+  right: 0;
+  left: 0;
+  z-index: 20;
+  margin-top: 4px;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #cbdced;
+  border-radius: 4px;
+  box-shadow: 0 14px 28px rgba(15, 35, 55, 0.16);
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.select-option {
+  min-height: 36px;
+  padding: 0 12px;
+  color: #172033;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 36px;
+  cursor: pointer;
+  border-bottom: 1px solid #edf3f8;
+}
+
+.select-option:last-child {
+  border-bottom: 0;
+}
+
+.select-option:hover,
+.select-option--active {
+  color: #0d82ee;
+  background: #edf7ff;
+}
+
+.select-placeholder {
+  color: #9aa9b8;
+}
+
+.input-placeholder {
+  color: #9aa9b8;
+}
+
+.color-dialog {
+  width: 460px;
+  background: #fff;
+  border-radius: 6px;
+}
+
+.color-dialog-body {
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.native-color-picker {
+  width: 120px;
+  height: 80px;
+  padding: 0;
+  border: none;
+}
+
+.color-preview {
+  width: 60px;
+  height: 36px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 12px 22px;
+  background: #ffffff;
+  border-top: 1px solid #edf3f8;
+}
+
+.detail-item {
+  display: flex;
+  min-height: 42px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.detail-label {
+  width: 150px;
+  flex-shrink: 0;
+  padding: 10px 12px;
+  background-color: #f5f7fa;
+  color: #606266;
+  box-sizing: border-box;
+}
+
+.detail-value {
+  flex: 1;
+  padding: 10px 12px;
+  color: #303133;
+  word-break: break-all;
+  box-sizing: border-box;
 }
 
 </style>
