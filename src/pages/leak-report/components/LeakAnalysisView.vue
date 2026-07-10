@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <view class="leak-analysis-view">
     <!-- 筛选栏 -->
     <view class="toolbar">
@@ -17,7 +17,18 @@
           <input v-model="filters.deviceNumber" class="filter-input" placeholder="请输入设备编号" placeholder-class="input-placeholder" />
         </view>
 
-        <!-- 算法分析tab无需额外筛选 -->
+        <!-- 算法分析tab：算法状态 -->
+        <template v-if="dataType === 'algorithm'">
+          <view class="filter-group">
+            <text class="filter-label">算法状态</text>
+            <picker :range="algorithmStatusOptions" range-key="label" @change="handleAlgorithmStatusChange">
+              <view class="filter-select">
+                <text>{{ currentAlgorithmStatusLabel }}</text>
+                <text class="filter-select__arrow"></text>
+              </view>
+            </picker>
+          </view>
+        </template>
 
         <!-- 渗漏记录tab：渗漏级别 + 检出人 -->
         <template v-if="dataType === 'leakage'">
@@ -32,7 +43,7 @@
           </view>
           <view class="filter-group">
             <text class="filter-label">检出人</text>
-            <input v-model="filters.detectAccount" class="filter-input" placeholder="请输入检出人" placeholder-class="input-placeholder" />
+            <input v-model="filters.inspector" class="filter-input" placeholder="请输入检出人" placeholder-class="input-placeholder" />
           </view>
         </template>
 
@@ -171,6 +182,26 @@
               </view>
             </view>
           </view>
+          <view v-if="selectedRecord && dataType === 'algorithm'" class="detail-audio-section">
+            <view class="detail-audio-header">
+              <text class="detail-audio-title">关联音频</text>
+              <button v-if="audioList.length > 0" class="audio-refresh-btn" hover-class="audio-refresh-btn--hover" @click="loadAudioList">刷新</button>
+            </view>
+            <view v-if="audioLoading" class="audio-state">加载中...</view>
+            <view v-else-if="audioList.length === 0" class="audio-state">暂无关联音频</view>
+            <view v-else class="audio-list">
+              <view v-for="(audio, ai) in audioList" :key="ai" class="audio-item">
+                <view class="audio-item__info">
+                  <text class="audio-item__time">{{ formatDateTime(getFieldValue(audio, "audioTime")) }}</text>
+                  <text class="audio-item__rate">采样率: {{ getFieldValue(audio, "samplingRate") || "-" }}</text>
+                </view>
+                <view class="audio-item__actions">
+                  <button class="audio-play-btn" hover-class="audio-play-btn--hover" @click="toggleAudioPlay(audio, ai)">{{ playingAudioIndex === ai ? '暂停' : '播放' }}</button>
+                  <a :href="getAudioWavUrl(audio, true)" class="audio-download-link">下载</a>
+                </view>
+              </view>
+            </view>
+          </view>
         </view>
       </template>
     </LeakTableView>
@@ -187,6 +218,10 @@ import {
 } from "@/services/leak-report/leak-analysis";
 import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
 import LeakTableView from "@/pages/leak-report/components/LeakTableView.vue";
+
+function getBaseUrl(): string {
+  return (import.meta as unknown as { env: { VITE_API_BASE_URL?: string } }).env?.VITE_API_BASE_URL || "";
+}
 
 type AnalysisRecord = Record<string, unknown>;
 type DataType = "algorithm" | "leakage";
@@ -214,6 +249,14 @@ const leakLevelOptions: Array<{ label: string; value: number | "" }> = [
   { label: "疑点", value: 3 },
 ];
 
+const algorithmStatusOptions: Array<{ label: string; value: string }> = [
+  { label: "不限", value: "" },
+  { label: "等待处理", value: "PENDING" },
+  { label: "处理成功", value: "SUCCESS" },
+  { label: "处理失败", value: "FAILED" },
+  { label: "跳过", value: "SKIPPED" },
+];
+
 const detailTabs: Array<{ label: string; value: DetailTab }> = [
   { label: "详情", value: "detail" },
 ];
@@ -227,7 +270,8 @@ const filters = reactive({
   deviceNumber: "",
   dataType: "algorithm" as DataType,
   leakLevel: "" as number | "",
-  detectAccount: "",
+  inspector: "",
+  algorithmStatus: "" as string,
 });
 
 const pagination = reactive({
@@ -243,6 +287,10 @@ const loading = ref(false);
 const dataType = ref<DataType>("algorithm");
 const activeDetailTab = ref<DetailTab>("detail");
 const exportMenuVisible = ref(false);
+const audioList = ref<Record<string, unknown>[]>([]);
+const audioLoading = ref(false);
+const playingAudioIndex = ref(-1);
+let audioPlayerInstance: HTMLAudioElement | null = null;
 
 const currentDataTypeLabel = computed(() =>
   dataTypeOptions.find((o) => o.value === filters.dataType)?.label || "算法分析",
@@ -250,6 +298,10 @@ const currentDataTypeLabel = computed(() =>
 
 const currentLeakLevelLabel = computed(() =>
   leakLevelOptions.find((o) => o.value === filters.leakLevel)?.label || "不限",
+);
+
+const currentAlgorithmStatusLabel = computed(() =>
+  algorithmStatusOptions.find((o) => o.value === filters.algorithmStatus)?.label || "不限",
 );
 
 const dataTypeLabel = computed(() =>
@@ -293,25 +345,10 @@ const currentDetailFields = computed(() => {
       { label: "信号处理结果(噪音计)", value: String(getFieldValue(r, "signalprocessingResult1") || "-") },
       { label: "泄漏判定", value: String(getFieldValue(r, "signalprocessingResult2") || "-") },
       { label: "浙大算法结果", value: String(getFieldValue(r, "signalprocessingResult3") || "-") },
+      { label: "信号处理频率3", value: String(getFieldValue(r, "signalprocessingFrequency3") || "-") },
       { label: "信号处理结果", value: String(getFieldValue(r, "signalprocessingResult") || "-") },
-      { label: "状态", value: String(getFieldValue(r, "leakStatus") || "-") },
-      { label: "算法类型", value: String(getFieldValue(r, "algorithmType") || "-") },
-      { label: "泄漏带宽", value: String(getFieldValue(r, "leakBandwidth") || "-") },
-      { label: "泄漏能量", value: String(getFieldValue(r, "leakEnergy") || "-") },
-      { label: "泄漏频率", value: String(getFieldValue(r, "leakFrequency") || "-") },
-      { label: "特征值", value: String(getFieldValue(r, "featureValue") || "-") },
-      { label: "增益", value: String(getFieldValue(r, "gain") || "-") },
-      { label: "天气", value: String(getFieldValue(r, "weather") || "-") },
-      { label: "蓝鲸分析", value: String(getFieldValue(r, "blueWhaleAnalysis") || "-") },
-      { label: "人工分析", value: String(getFieldValue(r, "manualAnalysis") || "-") },
-      { label: "原因分析", value: String(getFieldValue(r, "causeAnalysis") || "-") },
-      { label: "排查反馈", value: String(getFieldValue(r, "checkFeedback") || "-") },
-      { label: "阀门编号", value: String(getFieldValue(r, "valveNumber") || "-") },
-      { label: "所属片区", value: String(getFieldValue(r, "areaName") || "-") },
-      { label: "安装人员", value: String(getFieldValue(r, "installPerson") || "-") },
-      { label: "安装地址", value: String(getFieldValue(r, "installAddress") || "-") },
-      { label: "坐标位置", value: String(getFieldValue(r, "coordinate") || "-") },
-      { label: "拆装", value: String(getFieldValue(r, "installStatus") || "-") },
+      { label: "算法状态", value: String(getFieldValue(r, "algorithmStatus") || "-") },
+      { label: "失败原因", value: String(getFieldValue(r, "algorithmError") || "-") },
       { label: "创建时间", value: formatDateTime(getFieldValue(r, "createdAt") || "-") },
     ];
   }
@@ -366,6 +403,10 @@ function handleLeakLevelChange(event: { detail: { value: number } }) {
   filters.leakLevel = leakLevelOptions[event.detail.value]?.value ?? "";
 }
 
+function handleAlgorithmStatusChange(event: { detail: { value: number } }) {
+  filters.algorithmStatus = algorithmStatusOptions[event.detail.value]?.value ?? "";
+}
+
 function toggleSort(field: string) {
   if (sortField.value === field) {
     if (sortOrder.value === "asc") { sortOrder.value = "desc"; }
@@ -391,10 +432,14 @@ function buildQueryParams() {
   if (filters.deviceNumber.trim()) {
     (baseParams as Record<string, unknown>).deviceNumber = filters.deviceNumber.trim();
   }
+  // 算法分析tab补充筛选
+  if (dataType.value === "algorithm") {
+    if (filters.algorithmStatus !== "") (baseParams as Record<string, unknown>).algorithmStatus = filters.algorithmStatus;
+  }
   // 渗漏记录tab补充筛选
   if (dataType.value === "leakage") {
     if (filters.leakLevel !== "") (baseParams as Record<string, unknown>).leakLevel = filters.leakLevel;
-    if (filters.detectAccount.trim()) (baseParams as Record<string, unknown>).detectAccount = filters.detectAccount.trim();
+    if (filters.inspector.trim()) (baseParams as Record<string, unknown>).inspector = filters.inspector.trim();
   }
 
   return baseParams;
@@ -495,7 +540,8 @@ function resetFilters() {
   filters.deviceNumber = "";
   filters.dataType = "algorithm";
   filters.leakLevel = "";
-  filters.detectAccount = "";
+  filters.inspector = "";
+  filters.algorithmStatus = "";
   searchAnalysis();
 }
 
@@ -522,6 +568,7 @@ function selectRecord(item: AnalysisRecord, index: number) {
   selectedRecord.value = item;
   selectedRecordKey.value = getRowKey(item, index);
   activeDetailTab.value = "detail";
+  loadAudioList();
 
   const id = getRowId(item);
   if (!id) return;
@@ -536,6 +583,45 @@ function selectRecord(item: AnalysisRecord, index: number) {
       }
     })
     .catch(() => {});
+}
+
+function getAudioWavUrl(audio: Record<string, unknown>, download = false): string {
+  const id = getFieldValue(audio, "id");
+  if (!id) return "";
+  const base = getBaseUrl();
+  return `${base}/api/sampling-audio/${id}/wav${download ? "?download=true" : ""}`;
+}
+
+async function loadAudioList() {
+  if (!selectedRecord.value) return;
+  const deviceNumber = getFieldValue(selectedRecord.value, "deviceNumber");
+  if (!deviceNumber) { audioList.value = []; return; }
+  audioLoading.value = true;
+  try {
+    const { postRequest } = await import("@/services/shared/crud");
+    const res = await postRequest("/api/sampling-audio/page", { pageNum: 1, pageSize: 10, deviceNumber }) as unknown as ApiResponseLike;
+    const p = parsePageResponse(res);
+    audioList.value = (p.records || []) as Record<string, unknown>[];
+  } catch { audioList.value = []; }
+  finally { audioLoading.value = false; }
+}
+
+function toggleAudioPlay(audio: Record<string, unknown>, index: number) {
+  // #ifdef H5
+  if (playingAudioIndex.value === index) {
+    audioPlayerInstance?.pause();
+    playingAudioIndex.value = -1;
+    return;
+  }
+  audioPlayerInstance?.pause();
+  audioPlayerInstance = new Audio(getAudioWavUrl(audio));
+  audioPlayerInstance.onended = () => { playingAudioIndex.value = -1; };
+  audioPlayerInstance.play();
+  playingAudioIndex.value = index;
+  // #endif
+  // #ifndef H5
+  uni.showToast({ title: "音频播放仅支持 H5 端", icon: "none" });
+  // #endif
 }
 
 // --- helpers ---
@@ -1328,4 +1414,18 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+.detail-audio-section { flex: none; padding: 12px 16px; border-top: 1px solid #edf3f8; max-height: 280px; overflow-y: auto; }
+.detail-audio-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.detail-audio-title { font-size: 13px; font-weight: 800; color: #415a73; }
+.audio-refresh-btn { min-width: 48px; height: 24px; padding: 0 8px; font-size: 12px; color: #3b82f6; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px; }
+.audio-refresh-btn--hover { background: #dbeafe; }
+.audio-state { padding: 16px; text-align: center; color: #a0aec0; font-size: 13px; }
+.audio-list { display: flex; flex-direction: column; gap: 8px; }
+.audio-item { padding: 8px 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; }
+.audio-item__info { display: flex; gap: 12px; margin-bottom: 6px; }
+.audio-item__time { font-size: 12px; font-weight: 700; color: #3b82f6; }
+.audio-item__rate { font-size: 12px; color: #64748b; }
+.audio-item__actions { display: flex; align-items: center; gap: 8px; }
+.audio-play-btn { min-width: 48px; height: 28px; padding: 0 10px; font-size: 12px; color: #3b82f6; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px; } .audio-play-btn--hover { background: #dbeafe; }
+.audio-download-link { font-size: 12px; color: #3b82f6; text-decoration: underline; }
 </style>

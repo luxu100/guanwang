@@ -1,4 +1,4 @@
-﻿<template>
+﻿﻿<template>
   <view class="leak-management-view">
     <!-- 筛选栏 -->
     <view class="toolbar">
@@ -12,17 +12,16 @@
           </view>
         </view>
         <view class="filter-group">
-          <text class="filter-label">渗漏级别</text>
-          <picker :range="leakLevelOptions" range-key="label" @change="handleLeakLevelChange">
-            <view class="filter-select">
-              <text>{{ currentLeakLevelLabel }}</text>
-              <text class="filter-select__arrow"></text>
-            </view>
-          </picker>
+          <text class="filter-label">设备编号</text>
+          <input v-model="filters.deviceNumber" class="filter-input" placeholder="请输入设备编号" placeholder-class="input-placeholder" />
         </view>
         <view class="filter-group">
-          <text class="filter-label">检出人</text>
-          <input v-model="filters.detectAccount" class="filter-input" placeholder="请输入检出人" placeholder-class="input-placeholder" />
+          <text class="filter-label">漏点类型</text>
+          <input v-model="filters.leakPointType" class="filter-input" placeholder="请输入漏点类型" placeholder-class="input-placeholder" />
+        </view>
+        <view class="filter-group">
+          <text class="filter-label">漏点区域</text>
+          <input v-model="filters.leakArea" class="filter-input" placeholder="请输入漏点区域" placeholder-class="input-placeholder" />
         </view>
       </view>
       <view class="toolbar-row toolbar-row--bottom">
@@ -65,10 +64,10 @@
             <view v-if="allSelectable" class="checkbox" :class="{ 'checkbox--checked': isAllSelected }" @click.stop="toggleSelectAll"><text v-if="isAllSelected" class="checkbox__mark"></text></view>
           </view>
           <text class="data-cell data-cell--index">序号</text>
-          <text class="data-cell data-cell--time data-cell--sortable" @click.stop="toggleSort('detectedTime')">检出时间<text class="sort-arrow sort-arrow--active" v-if="sortField === 'detectedTime'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
-          <text class="data-cell data-cell--level data-cell--sortable" @click.stop="toggleSort('leakLevel')">渗漏级别<text class="sort-arrow sort-arrow--active" v-if="sortField === 'leakLevel'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
+          <text class="data-cell data-cell--time data-cell--sortable" @click.stop="toggleSort('detectTime')">检出时间<text class="sort-arrow sort-arrow--active" v-if="sortField === 'detectTime'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
+          <text class="data-cell data-cell--level data-cell--sortable" @click.stop="toggleSort('leakStatus')">渗漏状态<text class="sort-arrow sort-arrow--active" v-if="sortField === 'leakStatus'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
           <text class="data-cell data-cell--address">漏点位置</text>
-          <text class="data-cell data-cell--account">检出人</text>
+          <text class="data-cell data-cell--account">巡检人员</text>
           <text class="data-cell data-cell--wsid">关联工单</text>
           <text class="data-cell data-cell--devices">关联设备</text>
         </view>
@@ -79,12 +78,12 @@
             <view v-if="allSelectable" class="checkbox" :class="{ 'checkbox--checked': isItemSelected(item) }"><text v-if="isItemSelected(item)" class="checkbox__mark"></text></view>
           </view>
           <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
-          <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "detectedTime")) }}</text>
-          <text class="data-cell data-cell--level"><text class="level-pill" :class="getLeakLevelClass(item)">{{ getLeakLevelLabel(item) }}</text></text>
-          <text class="data-cell data-cell--address">{{ getFieldValue(item, "leakAddress") || "-" }}</text>
-          <text class="data-cell data-cell--account">{{ getFieldValue(item, "detectAccount") || "-" }}</text>
-          <text class="data-cell data-cell--wsid">{{ getFieldValue(item, "referenceWorksheetId") || "-" }}</text>
-          <text class="data-cell data-cell--devices">{{ getFieldValue(item, "referenceDevices") || "-" }}</text>
+          <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "detectTime")) }}</text>
+          <text class="data-cell data-cell--level"><text class="level-pill" :class="''">{{ getFieldValue(item, "leakStatus") || "-" }}</text></text>
+          <text class="data-cell data-cell--address">{{ getFieldValue(item, "leakPointPosition") || "-" }}</text>
+          <text class="data-cell data-cell--account">{{ getFieldValue(item, "inspector") || "-" }}</text>
+          <text class="data-cell data-cell--wsid" @click.stop="handleWorkOrderJump(item)"><text v-if="getFieldValue(item, 'workOrderId')" class="link-text">{{ getFieldValue(item, "workOrderId") }}</text><text v-else>-</text></text>
+          <text class="data-cell data-cell--devices">{{ getFieldValue(item, "deviceNumber") || "-" }}</text>
         </view>
       </view>
 
@@ -95,8 +94,8 @@
           </view>
           <view v-if="activeDetailTab === 'base'" class="detail-section">
             <view class="detail-summary">
-              <view class="detail-summary__main"><text class="detail-summary__label">漏点位置</text><text class="detail-summary__value">{{ getFieldValue(selectedRecord, "leakAddress") || "-" }}</text></view>
-              <view class="detail-summary__badges"><text class="detail-summary__badge" :class="getLeakLevelBadgeClass(selectedRecord)">{{ getLeakLevelLabel(selectedRecord) }}</text></view>
+              <view class="detail-summary__main"><text class="detail-summary__label">漏点位置</text><text class="detail-summary__value">{{ getFieldValue(selectedRecord, "leakPointPosition") || "-" }}</text></view>
+              <view class="detail-summary__badges"><text class="detail-summary__badge" :class="''">{{ getFieldValue(selectedRecord, "leakStatus") || "-" }}</text></view>
             </view>
             <view class="detail-grid"><view v-for="item in baseDetailFields" :key="item.label" class="detail-item" :class="getDetailItemClass(item)"><text class="detail-item__label">{{ item.label }}</text><text class="detail-item__value">{{ item.value }}</text></view></view>
           </view>
@@ -128,41 +127,80 @@
             <view class="form-grid form-grid--two">
               <view class="form-field">
                 <text class="form-label form-label--required">检出时间</text>
-                <WorkOrderDatetimePicker v-model="form.detectedTime" title="选择检出时间" placeholder="请选择检出时间" :clearable="false" />
-              </view>
-              <view class="form-field select-field-wrapper">
-                <text class="form-label form-label--required">渗漏级别</text>
-                <view class="custom-select" :class="{ 'custom-select--open': leakDropdownOpen }" @click="leakDropdownOpen = !leakDropdownOpen">
-                  <text :class="{ 'custom-select__placeholder': formLeakLevelIndex < 0 }">{{ currentFormLeakLevelLabel }}</text>
-                  <text class="select-arrow" :class="{ 'select-arrow--up': leakDropdownOpen }"></text>
-                </view>
-                <view v-if="leakDropdownOpen" class="custom-select-dropdown">
-                  <view v-for="(opt, idx) in leakLevelOptionsFiltered" :key="idx" class="custom-select-option" @click.stop="selectFormLeakLevel(idx)">
-                    <text>{{ opt.label }}</text><text v-if="formLeakLevelIndex === idx" class="custom-select-check">✓</text>
-                  </view>
-                </view>
-              </view>
-              <view v-if="leakDropdownOpen" class="select-backdrop" @click="leakDropdownOpen = false" />
-              <view class="form-field form-field--wide">
-                <text class="form-label form-label--required">漏点位置</text>
-                <input v-model="form.leakAddress" class="form-input" placeholder="请输入漏点位置" placeholder-class="input-placeholder" />
-                <text v-if="validationErrors.leakAddress" class="form-error">{{ validationErrors.leakAddress }}</text>
+                <WorkOrderDatetimePicker v-model="form.detectTime" title="选择检出时间" placeholder="请选择检出时间" :clearable="false" />
               </view>
               <view class="form-field">
-                <text class="form-label form-label--required">泄漏部位</text><input v-model="form.leakPart" class="form-input" :class="{ 'form-control--error': validationErrors.leakPart }" placeholder="请输入泄漏部位" placeholder-class="input-placeholder" />
+                <text class="form-label">检出类型</text>
+                <input v-model="form.detectType" class="form-input" placeholder="如 人工/算法" placeholder-class="input-placeholder" />
+              </view>
+              <view class="form-field">
+                <text class="form-label">检出难度</text>
+                <input v-model="form.detectDifficulty" class="form-input" placeholder="如 简单/中/难" placeholder-class="input-placeholder" />
+              </view>
+              <view class="form-field">
+                <text class="form-label form-label--required">漏点类型</text>
+                <input v-model="form.leakPointType" class="form-input" :class="{ 'form-control--error': validationErrors.leakPointType }" placeholder="如 腐蚀/破裂" placeholder-class="input-placeholder" />
+                <text v-if="validationErrors.leakPointType" class="form-error">{{ validationErrors.leakPointType }}</text>
+              </view>
+              <view class="form-field form-field--wide">
+                <text class="form-label form-label--required">漏点位置</text>
+                <input v-model="form.leakPointPosition" class="form-input" placeholder="请输入漏点位置" placeholder-class="input-placeholder" />
+                <text v-if="validationErrors.leakPointPosition" class="form-error">{{ validationErrors.leakPointPosition }}</text>
+              </view>
+              <view class="form-field">
+                <text class="form-label form-label--required">泄漏部位</text>
+                <input v-model="form.leakPart" class="form-input" :class="{ 'form-control--error': validationErrors.leakPart }" placeholder="请输入泄漏部位" placeholder-class="input-placeholder" />
                 <text v-if="validationErrors.leakPart" class="form-error">{{ validationErrors.leakPart }}</text>
               </view>
               <view class="form-field">
-                <text class="form-label">检出人</text><input v-model="form.detectAccount" class="form-input" placeholder="请输入检出人" placeholder-class="input-placeholder" />
+                <text class="form-label">漏量</text>
+                <input v-model="form.leakVolume" class="form-input" placeholder="如 2.5L/min" placeholder-class="input-placeholder" />
+              </view>
+              <view class="form-field">
+                <text class="form-label">漏点区域</text>
+                <input v-model="form.leakArea" class="form-input" placeholder="如 城北" placeholder-class="input-placeholder" />
+              </view>
+              <view class="form-field">
+                <text class="form-label">渗漏状态</text>
+                <input v-model="form.leakStatus" class="form-input" placeholder="如 未修复/已修复" placeholder-class="input-placeholder" />
+              </view>
+              <view class="form-field">
+                <text class="form-label form-label--required">巡检人员</text>
+                <input v-model="form.inspector" class="form-input" :class="{ 'form-control--error': validationErrors.inspector }" placeholder="请输入巡检人员" placeholder-class="input-placeholder" />
+                <text v-if="validationErrors.inspector" class="form-error">{{ validationErrors.inspector }}</text>
+              </view>
+              <view class="form-field">
+                <text class="form-label">定漏人员</text>
+                <input v-model="form.locator" class="form-input" placeholder="请输入定漏人员" placeholder-class="input-placeholder" />
+              </view>
+              <view class="form-field">
+                <text class="form-label">产生漏点原因</text>
+                <input v-model="form.leakReason" class="form-input" placeholder="如 管道老化" placeholder-class="input-placeholder" />
+              </view>
+              <view class="form-field">
+                <text class="form-label">费用</text>
+                <input v-model="form.cost" class="form-input" type="number" placeholder="请输入费用" placeholder-class="input-placeholder" />
+              </view>
+              <view class="form-field">
+                <text class="form-label">人工复核次数</text>
+                <input v-model="form.manualReviewCount" class="form-input" type="number" placeholder="请输入次数" placeholder-class="input-placeholder" />
+              </view>
+              <view class="form-field">
+                <text class="form-label">维修处理方式</text>
+                <input v-model="form.repairMethod" class="form-input" placeholder="如 更换管道" placeholder-class="input-placeholder" />
+              </view>
+              <view class="form-field">
+                <text class="form-label">修复时间</text>
+                <WorkOrderDatetimePicker v-model="form.repairTime" title="选择修复时间" placeholder="请选择修复时间" />
               </view>
             </view>
           </view>
           <!-- 渗漏坐标 -->
           <view class="form-section">
-            <view class="section-head"><text class="section-title">渗漏坐标</text><text class="section-hint">可手动输入或点击地图拾取</text></view>
+            <view class="section-head"><text class="section-title">坐标位置</text><text class="section-hint">可手动输入或点击地图拾取</text></view>
             <view class="form-field">
               <view class="form-row">
-                <input v-model="form.leakCoordinate" class="form-input form-input--flex" placeholder="格式: 经度,纬度 (如 121.4737,31.2304)" placeholder-class="input-placeholder" />
+                <input v-model="form.coordinatePosition" class="form-input form-input--flex" placeholder="格式: 经度,纬度 (如 121.4737,31.2304)" placeholder-class="input-placeholder" />
                 <button class="form-action-btn" hover-class="form-action-btn--hover" @click="openMapPicker">
                   <text class="form-action-btn__icon form-action-btn__icon--map"></text><text>地图拾取</text>
                 </button>
@@ -201,25 +239,28 @@
             <view class="form-grid form-grid--two">
               <view class="form-field"><text class="form-label form-label--required">管道材质</text><input v-model="form.tubeMaterial" class="form-input" :class="{ 'form-control--error': validationErrors.tubeMaterial }" placeholder="如 PE / 钢管 / 铸铁" placeholder-class="input-placeholder" /><text v-if="validationErrors.tubeMaterial" class="form-error">{{ validationErrors.tubeMaterial }}</text></view>
               <view class="form-field"><text class="form-label form-label--required">管道口径</text><input v-model="form.tubeBore" class="form-input" :class="{ 'form-control--error': validationErrors.tubeBore }" placeholder="如 DN200" placeholder-class="input-placeholder" /><text v-if="validationErrors.tubeBore" class="form-error">{{ validationErrors.tubeBore }}</text></view>
-              <view class="form-field"><text class="form-label form-label--required">管道埋深</text><input v-model="form.tubeDepth" class="form-input" :class="{ 'form-control--error': validationErrors.tubeDepth }" placeholder="单位: 米" placeholder-class="input-placeholder" /><text v-if="validationErrors.tubeDepth" class="form-error">{{ validationErrors.tubeDepth }}</text></view>
+              <view class="form-field"><text class="form-label form-label--required">管道埋深</text><input v-model="form.tubeBuriedDepth" class="form-input" :class="{ 'form-control--error': validationErrors.tubeBuriedDepth }" placeholder="单位: 米" placeholder-class="input-placeholder" /><text v-if="validationErrors.tubeBuriedDepth" class="form-error">{{ validationErrors.tubeBuriedDepth }}</text></view>
+              <view class="form-field"><text class="form-label">管道年限</text><input v-model="form.tubeAge" class="form-input" placeholder="如 15年" placeholder-class="input-placeholder" /></view>
             </view>
           </view>
-          <!-- 关联数据 -->
+          <!-- 设备与音频 -->
           <view class="form-section">
-            <view class="section-head"><text class="section-title">关联数据</text></view>
+            <view class="section-head"><text class="section-title">设备与音频</text></view>
             <view class="form-grid form-grid--two">
-              <view class="form-field"><text class="form-label">关联设备</text><input v-model="form.referenceDevices" class="form-input" placeholder="请输入设备编号" placeholder-class="input-placeholder" /></view>
-              <view class="form-field"><text class="form-label">关联工单ID</text><input v-model="form.referenceWorksheetId" class="form-input" type="number" placeholder="请输入工单ID" placeholder-class="input-placeholder" /></view>
-              <view class="form-field"><text class="form-label">最近设备距离</text><input v-model="form.closestDeviceDistance" class="form-input" placeholder="请输入距离" placeholder-class="input-placeholder" /></view>
+              <view class="form-field"><text class="form-label">设备编号</text><input v-model="form.deviceNumber" class="form-input" placeholder="请输入设备编号" placeholder-class="input-placeholder" /></view>
+              <view class="form-field"><text class="form-label">漏点距离</text><input v-model="form.leakDistance" class="form-input" placeholder="请输入距离" placeholder-class="input-placeholder" /></view>
+              <view class="form-field"><text class="form-label">噪音样本</text><input v-model="form.noiseSample" class="form-input" placeholder="请输入噪音样本" placeholder-class="input-placeholder" /></view>
+              <view class="form-field"><text class="form-label">噪声时间</text><WorkOrderDatetimePicker v-model="form.noiseTime" title="选择噪声时间" placeholder="请选择噪声时间" /></view>
+              <view class="form-field"><text class="form-label">特征值</text><input v-model="form.featureValue" class="form-input" placeholder="请输入特征值" placeholder-class="input-placeholder" /></view>
               <view class="form-field">
-                <text class="form-label">关联音频</text>
-                <view class="form-row"><input v-model="form.referenceAudio" class="form-input form-input--flex" placeholder="音频文件ID" placeholder-class="input-placeholder" /><button class="form-action-btn form-action-btn--small" hover-class="form-action-btn--hover" @click="handleUploadAudio"><text>上传</text></button></view>
+                <text class="form-label">音频文件</text>
+                <view class="form-row"><input v-model="form.audioFile" class="form-input form-input--flex" placeholder="音频文件ID" placeholder-class="input-placeholder" /><button class="form-action-btn form-action-btn--small" hover-class="form-action-btn--hover" @click="handleUploadAudio"><text>上传</text></button></view>
               </view>
             </view>
           </view>
-          <!-- 渗漏照片 -->
+          <!-- 现场照片 -->
           <view class="form-section">
-            <view class="section-head"><text class="section-title">渗漏照片</text><text class="section-hint">支持 JPG/PNG，每张不超过 10MB</text></view>
+            <view class="section-head"><text class="section-title">现场照片</text><text class="section-hint">支持 JPG/PNG，每张不超过 10MB</text></view>
             <view class="form-field">
               <view class="form-photo-area">
                 <view v-if="photoList.length > 0" class="photo-preview-list">
@@ -233,10 +274,15 @@
               <input v-model="photoIdListText" class="form-input form-input--hidden-id" placeholder="照片ID (自动生成)" placeholder-class="input-placeholder" />
             </view>
           </view>
+          <!-- 现场视频 -->
+          <view class="form-section">
+            <view class="section-head"><text class="section-title">现场视频</text></view>
+            <view class="form-field"><input v-model="form.sceneVideo" class="form-input" placeholder="请输入视频URL" placeholder-class="input-placeholder" /></view>
+          </view>
           <!-- 备注 -->
           <view class="form-section">
             <view class="section-head"><text class="section-title">备注</text></view>
-            <view class="form-field"><textarea v-model="form.remark" class="form-textarea" placeholder="请输入备注信息（漏点原因、处理建议等）" placeholder-class="input-placeholder" /></view>
+            <view class="form-field"><textarea v-model="form.description" class="form-textarea" placeholder="请输入备注信息（漏点原因、处理建议等）" placeholder-class="input-placeholder" /></view>
           </view>
         </view>
         <view class="dialog-actions">
@@ -252,7 +298,6 @@
 import LocaleCoordinateMap from "@/components/map/LocaleCoordinateMap.vue";
 import { MAP_CONFIG } from "@/services/map/map";
 import { computed, reactive, ref, onMounted } from "vue";
-import type { LeakLevel, LeakLevelOption } from "@/types/LeakPoint";
 import type { DetailTab } from "@/types/LeakPoint";
 import {
   getLeakPointPage,
@@ -279,29 +324,16 @@ interface PhotoItem {
   id: string;
 }
 
-const leakLevelOptions: readonly LeakLevelOption[] = [
-  { label: "不限", value: "" },
-  { label: "轻度", value: 0 },
-  { label: "中度", value: 1 },
-  { label: "重度", value: 2 },
-] as const;
-
-const leakLevelOptionsWithoutAll: Pick<LeakLevelOption, "label" | "value">[] = [
-  { label: "轻度", value: 0 },
-  { label: "中度", value: 1 },
-  { label: "重度", value: 2 },
-];
-
 const detailTabs: Array<{ label: string; value: DetailTab }> = [
   { label: "基本信息", value: "base" },
   { label: "管道信息", value: "pipe" },
   { label: "附件备注", value: "attach" },
 ];
 
-const sortField = ref("detectedTime");
+const sortField = ref("detectTime");
 const sortOrder = ref("desc");
 
-const filters = reactive({ startTime: "", endTime: "", leakLevel: "" as number | "", detectAccount: "" });
+const filters = reactive({ startTime: "", endTime: "", deviceNumber: "", leakPointType: "", leakArea: "" });
 const pagination = reactive({ pageNum: 1, pageSize: 10 });
 const records = ref<RecordItem[]>([]);
 const selectedRecord = ref<RecordItem | null>(null);
@@ -314,46 +346,51 @@ const dialogVisible = ref(false);
 const isEditing = ref(false);
 const submitting = ref(false);
 const activeDetailTab = ref<DetailTab>("base");
-const formLeakLevelIndex = ref(0);
-const leakDropdownOpen = ref(false);
-const leakLevelOptionsFiltered = leakLevelOptionsWithoutAll;
-
 const photoList = ref<PhotoItem[]>([]);
 const photoIdListText = ref("");
 
 const validationErrors = reactive({
-  detectedTime: "",
-  leakAddress: "",
-  leakLevel: "",
+  detectTime: "",
+  leakPointType: "",
+  leakPointPosition: "",
   leakPart: "",
+  inspector: "",
   tubeMaterial: "",
   tubeBore: "",
-  tubeDepth: "",
+  tubeBuriedDepth: "",
 });
 
 const form = reactive({
-  detectedTime: "",
-  leakAddress: "",
-  leakCoordinate: "",
-  leakLevel: 0 as LeakLevel,
-  leakPart: "",
-  tubeMaterial: "",
+  detectType: "",
+  detectTime: "",
+  detectDifficulty: "",
+  leakPointType: "",
+  leakPointPosition: "",
+  coordinatePosition: "",
+  leakVolume: "",
   tubeBore: "",
-  tubeDepth: "",
-  detectAccount: "",
-  referenceDevices: "",
-  referenceWorksheetId: "",
-  closestDeviceDistance: "",
-  referenceAudio: "",
-  leakPicture: "",
-  remark: "",
-});
-
-const currentLeakLevelLabel = computed(() => leakLevelOptions.find((o) => o.value === filters.leakLevel)?.label || "不限");
-
-const currentFormLeakLevelLabel = computed(() => {
-  const opt = leakLevelOptionsWithoutAll[formLeakLevelIndex.value];
-  return opt?.label || "请选择渗漏级别";
+  tubeMaterial: "",
+  tubeAge: "",
+  leakPart: "",
+  tubeBuriedDepth: "",
+  leakReason: "",
+  leakDistance: "",
+  noiseSample: "",
+  inspector: "",
+  locator: "",
+  cost: "",
+  leakArea: "",
+  repairTime: "",
+  sceneImages: "",
+  sceneVideo: "",
+  manualReviewCount: "",
+  deviceNumber: "",
+  noiseTime: "",
+  leakStatus: "",
+  featureValue: "",
+  audioFile: "",
+  repairMethod: "",
+  description: "",
 });
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pagination.pageSize)));
@@ -361,14 +398,13 @@ const allSelectable = computed(() => records.value.length > 0);
 const isAllSelected = computed(() => records.value.length > 0 && records.value.every((r) => isItemSelected(r)));
 
 const statisticsCards = computed(() => {
-  const light = records.value.filter((r) => Number(gv(r, "leakLevel")) === 0).length;
-  const medium = records.value.filter((r) => Number(gv(r, "leakLevel")) === 1).length;
-  const heavy = records.value.filter((r) => Number(gv(r, "leakLevel")) === 2).length;
+  const unrepaired = records.value.filter((r) => String(gv(r, "leakStatus") || "") === "未修复").length;
+  const repaired = records.value.filter((r) => String(gv(r, "leakStatus") || "") === "已修复").length;
   return [
     { label: "总记录数", value: String(total.value) },
-    { label: "轻度", value: String(light) },
-    { label: "中度", value: String(medium) },
-    { label: "重度", value: String(heavy) },
+    { label: "未修复", value: String(unrepaired) },
+    { label: "已修复", value: String(repaired) },
+    { label: "当前页条数", value: String(records.value.length) },
   ];
 });
 
@@ -381,52 +417,44 @@ function mkFields(r: RecordItem | null, defs: Array<[string, string, boolean?, s
 }
 
 const baseDetailFields = computed(() => mkFields(selectedRecord.value, [
-  ["检出时间", "detectedTime", true],
-  ["渗漏级别", "", false, getLeakLevelLabel(selectedRecord.value)],
-  ["设备编号", "deviceNumber"],
+  ["检出时间", "detectTime", true],
+  ["渗漏状态", "leakStatus"],
   ["检出类型", "detectType"],
   ["检出难度", "detectDifficulty"],
-  ["漏点类型", "leakType"],
-  ["漏点位置", "leakAddress"],
-  ["渗漏坐标", "leakCoordinate"],
+  ["漏点类型", "leakPointType"],
+  ["漏点位置", "leakPointPosition"],
+  ["坐标位置", "coordinatePosition"],
   ["泄漏部位", "leakPart"],
   ["漏点距离", "leakDistance"],
-  ["漏量", "leakAmount"],
+  ["漏量", "leakVolume"],
   ["漏点区域", "leakArea"],
-  ["检出人", "detectAccount"],
-  ["巡检人员", "inspectPerson"],
-  ["定漏人员", "confirmPerson"],
-  ["产生漏点原因", "leakCause"],
+  ["巡检人员", "inspector"],
+  ["定漏人员", "locator"],
+  ["产生漏点原因", "leakReason"],
   ["费用", "cost"],
   ["人工复核次数", "manualReviewCount"],
   ["维修处理方式", "repairMethod"],
-  ["描述", "description"],
-  ["最近设备距离", "closestDeviceDistance"],
-  ["关联工单ID", "referenceWorksheetId"],
-  ["关联设备", "referenceDevices"],
+  ["备注", "description"],
+  ["噪声时间", "noiseTime", true],
+  ["特征值", "featureValue"],
   ["修复时间", "repairTime", true],
   ["创建时间", "createdAt", true],
-  ["更新时间", "updatedAt", true],
 ]));
 
 const pipeDetailFields = computed(() => mkFields(selectedRecord.value, [
   ["管道材质", "tubeMaterial"],
   ["管道口径", "tubeBore"],
-  ["管道埋深", "tubeDepth"],
+  ["管道埋深", "tubeBuriedDepth"],
   ["管道年限", "tubeAge"],
 ]));
 
 const attachDetailFields = computed(() => mkFields(selectedRecord.value, [
-  ["关联音频", "referenceAudio"],
   ["音频文件", "audioFile"],
-  ["渗漏照片", "leakPicture"],
-  ["现场照片", "sitePhoto"],
-  ["现场视频", "siteVideo"],
-  ["噪声时间", "noiseTime", true],
-  ["渗漏状态", "leakStatus"],
-  ["特征值", "featureValue"],
+  ["现场照片", "sceneImages"],
+  ["现场视频", "sceneVideo"],
   ["噪音样本", "noiseSample"],
-  ["备注", "remark"],
+  ["频谱", "spectrum"],
+  ["下载", "downloadUrl"],
 ]));
 
 function gv(item: RecordItem, k: string) { return Object.hasOwn(item, k) ? item[k] : undefined; }
@@ -434,11 +462,6 @@ function getRowId(item: RecordItem): string { const v = gv(item, "id"); return t
 function getRowKey(item: RecordItem, i: number): string { return getRowId(item) || String(i); }
 
 onMounted(() => fetchLeakPoints());
-
-function handleLeakLevelChange(ev: { detail: { value: number } }) {
-  const opt = leakLevelOptions[ev.detail.value];
-  filters.leakLevel = (opt?.value as number | "") ?? "";
-}
 
 function toggleSort(field: string) {
   if (sortField.value === field) {
@@ -459,9 +482,10 @@ function buildQuery(): Record<string, unknown> {
     startTime: normDate(filters.startTime, false),
     endTime: normDate(filters.endTime, true),
     sortOrder: sortOrder.value || "desc",
-    sortField: sortField.value || "detectedTime",
-    leakLevel: filters.leakLevel === "" ? undefined : filters.leakLevel,
-    detectAccount: filters.detectAccount.trim() || undefined,
+    sortField: sortField.value || "detectTime",
+    deviceNumber: filters.deviceNumber.trim() || undefined,
+    leakPointType: filters.leakPointType.trim() || undefined,
+    leakArea: filters.leakArea.trim() || undefined,
   });
 }
 
@@ -484,7 +508,7 @@ async function fetchLeakPoints() {
 }
 
 function searchLeakPoints() { pagination.pageNum = 1; fetchLeakPoints(); }
-function resetFilters() { filters.startTime = ""; filters.endTime = ""; filters.leakLevel = ""; filters.detectAccount = ""; searchLeakPoints(); }
+function resetFilters() { filters.startTime = ""; filters.endTime = ""; filters.deviceNumber = ""; filters.leakPointType = ""; filters.leakArea = ""; searchLeakPoints(); }
 function changePage(s: number) { const n = pagination.pageNum + s; if (n < 1 || n > totalPages.value) return; pagination.pageNum = n; fetchLeakPoints(); }
 
 function selectFirstRow() {
@@ -520,57 +544,65 @@ function openEditDialog() {
 function closeDialog() { dialogVisible.value = false; }
 
 function resetForm() {
-  form.detectedTime = ""; form.leakLevel = 0; form.leakAddress = ""; form.leakCoordinate = "";
-  form.leakPart = ""; form.tubeMaterial = ""; form.tubeBore = ""; form.tubeDepth = "";
-  form.detectAccount = ""; form.referenceDevices = ""; form.referenceWorksheetId = "";
-  form.closestDeviceDistance = ""; form.referenceAudio = ""; form.leakPicture = ""; form.remark = "";
-  formLeakLevelIndex.value = 0; photoList.value = []; photoIdListText.value = ""; clearValidationErrors();
+  form.detectType = ""; form.detectTime = ""; form.detectDifficulty = ""; form.leakPointType = "";
+  form.leakPointPosition = ""; form.coordinatePosition = ""; form.leakVolume = ""; form.tubeBore = "";
+  form.tubeMaterial = ""; form.tubeAge = ""; form.leakPart = ""; form.tubeBuriedDepth = "";
+  form.leakReason = ""; form.leakDistance = ""; form.noiseSample = ""; form.inspector = "";
+  form.locator = ""; form.cost = ""; form.leakArea = ""; form.repairTime = "";
+  form.sceneImages = ""; form.sceneVideo = ""; form.manualReviewCount = ""; form.deviceNumber = "";
+  form.noiseTime = ""; form.leakStatus = ""; form.featureValue = ""; form.audioFile = "";
+  form.repairMethod = ""; form.description = "";
+  photoList.value = []; photoIdListText.value = ""; clearValidationErrors();
 }
 
 function fillForm(item: RecordItem) {
-  form.detectedTime = toLocal(gv(item, "detectedTime"));
-  form.leakLevel = (Number(gv(item, "leakLevel")) ?? 0) as LeakLevel;
-  const idx = leakLevelOptionsWithoutAll.findIndex((o) => o.value === form.leakLevel);
-  formLeakLevelIndex.value = idx >= 0 ? idx : 0;
-  form.leakAddress = String(gv(item, "leakAddress") ?? "");
-  form.leakCoordinate = String(gv(item, "leakCoordinate") ?? "");
-  form.leakPart = String(gv(item, "leakPart") ?? "");
-  form.tubeMaterial = String(gv(item, "tubeMaterial") ?? "");
+  form.detectType = String(gv(item, "detectType") ?? "");
+  form.detectTime = toLocal(gv(item, "detectTime"));
+  form.detectDifficulty = String(gv(item, "detectDifficulty") ?? "");
+  form.leakPointType = String(gv(item, "leakPointType") ?? "");
+  form.leakPointPosition = String(gv(item, "leakPointPosition") ?? "");
+  form.coordinatePosition = String(gv(item, "coordinatePosition") ?? "");
+  form.leakVolume = String(gv(item, "leakVolume") ?? "");
   form.tubeBore = String(gv(item, "tubeBore") ?? "");
-  form.tubeDepth = String(gv(item, "tubeDepth") ?? "");
-  form.detectAccount = String(gv(item, "detectAccount") ?? "");
-  form.referenceDevices = String(gv(item, "referenceDevices") ?? "");
-  form.referenceWorksheetId = String(gv(item, "referenceWorksheetId") ?? "");
-  form.closestDeviceDistance = String(gv(item, "closestDeviceDistance") ?? "");
-  form.referenceAudio = String(gv(item, "referenceAudio") ?? "");
-  form.remark = String(gv(item, "remark") ?? "");
-  const picId = String(gv(item, "leakPicture") ?? ""); form.leakPicture = picId; photoIdListText.value = picId;
+  form.tubeMaterial = String(gv(item, "tubeMaterial") ?? "");
+  form.tubeAge = String(gv(item, "tubeAge") ?? "");
+  form.leakPart = String(gv(item, "leakPart") ?? "");
+  form.tubeBuriedDepth = String(gv(item, "tubeBuriedDepth") ?? "");
+  form.leakReason = String(gv(item, "leakReason") ?? "");
+  form.leakDistance = String(gv(item, "leakDistance") ?? "");
+  form.noiseSample = String(gv(item, "noiseSample") ?? "");
+  form.inspector = String(gv(item, "inspector") ?? "");
+  form.locator = String(gv(item, "locator") ?? "");
+  form.cost = String(gv(item, "cost") ?? "");
+  form.leakArea = String(gv(item, "leakArea") ?? "");
+  form.repairTime = toLocal(gv(item, "repairTime"));
+  form.sceneImages = String(gv(item, "sceneImages") ?? "");
+  form.sceneVideo = String(gv(item, "sceneVideo") ?? "");
+  form.manualReviewCount = String(gv(item, "manualReviewCount") ?? "");
+  form.deviceNumber = String(gv(item, "deviceNumber") ?? "");
+  form.noiseTime = toLocal(gv(item, "noiseTime"));
+  form.leakStatus = String(gv(item, "leakStatus") ?? "");
+  form.featureValue = String(gv(item, "featureValue") ?? "");
+  form.audioFile = String(gv(item, "audioFile") ?? "");
+  form.repairMethod = String(gv(item, "repairMethod") ?? "");
+  form.description = String(gv(item, "description") ?? "");
+  const picId = String(gv(item, "sceneImages") ?? ""); form.sceneImages = picId; photoIdListText.value = picId;
   photoList.value = picId ? [{ url: `/api/file/preview/${picId}`, id: picId }] : [];
   clearValidationErrors();
 }
 
-function selectFormLeakLevel(idx: number) {
-  formLeakLevelIndex.value = idx;
-  form.leakLevel = leakLevelOptionsWithoutAll[idx].value as LeakLevel;
-  leakDropdownOpen.value = false;
-}
-
-function handleFormLeakLevelChange(ev: { detail: { value: number } }) {
-  formLeakLevelIndex.value = ev.detail.value;
-  form.leakLevel = leakLevelOptionsWithoutAll[ev.detail.value].value as LeakLevel;
-}
-
-function clearValidationErrors() { validationErrors.detectedTime = ""; validationErrors.leakAddress = ""; validationErrors.leakLevel = ""; validationErrors.leakPart = ""; validationErrors.tubeMaterial = ""; validationErrors.tubeBore = ""; validationErrors.tubeDepth = ""; }
+function clearValidationErrors() { validationErrors.detectTime = ""; validationErrors.leakPointType = ""; validationErrors.leakPointPosition = ""; validationErrors.leakPart = ""; validationErrors.inspector = ""; validationErrors.tubeMaterial = ""; validationErrors.tubeBore = ""; validationErrors.tubeBuriedDepth = ""; }
 
 function validateForm(): boolean {
   clearValidationErrors(); let valid = true;
-  if (!form.detectedTime) { validationErrors.detectedTime = "请选择检出时间"; valid = false; }
-  if (!form.leakAddress.trim()) { validationErrors.leakAddress = "请输入漏点位置"; valid = false; }
-  if (formLeakLevelIndex.value < 0) { validationErrors.leakLevel = "请选择渗漏级别"; valid = false; }
+  if (!form.detectTime) { validationErrors.detectTime = "请选择检出时间"; valid = false; }
+  if (!form.leakPointType.trim()) { validationErrors.leakPointType = "请输入漏点类型"; valid = false; }
+  if (!form.leakPointPosition.trim()) { validationErrors.leakPointPosition = "请输入漏点位置"; valid = false; }
   if (!form.leakPart.trim()) { validationErrors.leakPart = "请输入泄漏部位"; valid = false; }
+  if (!form.inspector.trim()) { validationErrors.inspector = "请输入巡检人员"; valid = false; }
   if (!form.tubeMaterial.trim()) { validationErrors.tubeMaterial = "请选择管道材质"; valid = false; }
   if (!form.tubeBore.trim()) { validationErrors.tubeBore = "请输入管道口径"; valid = false; }
-  if (!form.tubeDepth.trim()) { validationErrors.tubeDepth = "请输入管道埋深"; valid = false; }
+  if (!form.tubeBuriedDepth.trim()) { validationErrors.tubeBuriedDepth = "请输入管道埋深"; valid = false; }
   return valid;
 }
 
@@ -582,18 +614,18 @@ function handleUploadPhoto() {
       const paths: string[] = Array.isArray(res.tempFilePaths) ? res.tempFilePaths : [res.tempFilePaths];
       paths.forEach((path: string, idx: number) => { newPhotos.push({ url: path, id: `img_${Date.now()}_${idx}` }); });
       photoList.value = [...photoList.value, ...newPhotos];
-      form.leakPicture = photoList.value.map((p) => p.id).join(","); photoIdListText.value = form.leakPicture;
+      form.sceneImages = photoList.value.map((p) => p.id).join(","); photoIdListText.value = form.sceneImages;
     },
     fail: () => { uni.showToast({ title: "取消选择", icon: "none" }); },
   });
 }
 
-function removePhoto(idx: number) { photoList.value.splice(idx, 1); form.leakPicture = photoList.value.map((p) => p.id).join(","); photoIdListText.value = form.leakPicture; }
+function removePhoto(idx: number) { photoList.value.splice(idx, 1); form.sceneImages = photoList.value.map((p) => p.id).join(","); photoIdListText.value = form.sceneImages; }
 function handleExport() {
   if (!records.value.length) { uni.showToast({ title: "暂无数据可导出", icon: "none" }); return; }
   // #ifdef H5
   const headers = ["检出时间", "渗漏级别", "漏点位置", "泄漏部位", "检出人", "管道材质", "管道口径", "管道埋深", "渗漏坐标", "关联设备", "备注"];
-  const keys = ["detectedTime", "leakLevel", "leakAddress", "leakPart", "detectAccount", "tubeMaterial", "tubeBore", "tubeDepth", "leakCoordinate", "referenceDevices", "remark"];
+  const keys = ["detectTime", "leakLevel", "leakPointPosition", "leakPart", "inspector", "tubeMaterial", "tubeBore", "tubeBuriedDepth", "coordinatePosition", "deviceNumber", "description"];
   const levelMap: Record<number, string> = { 0: "轻度", 1: "中度", 2: "重度" };
   const rows = records.value.map((r) =>
     keys.map((k) => {
@@ -711,7 +743,7 @@ function handleMapPick(coordinate: {
 }
 
 function confirmMapPick() {
-  if (mapPickedCoord.value) form.leakCoordinate = mapPickedCoord.value;
+  if (mapPickedCoord.value) form.coordinatePosition = mapPickedCoord.value;
   closeMapPicker();
 }
 
@@ -723,18 +755,41 @@ function closeMapPicker() {
 
 function buildPayload() {
   return rmEmpty({
-    detectedTime: normDt(form.detectedTime), leakLevel: form.leakLevel, leakAddress: form.leakAddress.trim(),
-    leakCoordinate: form.leakCoordinate.trim(), leakPart: form.leakPart.trim(),
-    tubeMaterial: form.tubeMaterial.trim(), tubeBore: form.tubeBore.trim(), tubeDepth: form.tubeDepth.trim(),
-    detectAccount: form.detectAccount.trim(), referenceDevices: form.referenceDevices.trim(),
-    referenceWorksheetId: form.referenceWorksheetId ? Number(form.referenceWorksheetId) : undefined,
-    closestDeviceDistance: form.closestDeviceDistance.trim(), referenceAudio: form.referenceAudio.trim(),
-    leakPicture: form.leakPicture.trim() || undefined, remark: form.remark.trim(),
+    detectType: form.detectType.trim(),
+    detectTime: normDt(form.detectTime),
+    detectDifficulty: form.detectDifficulty.trim(),
+    leakPointType: form.leakPointType.trim(),
+    leakPointPosition: form.leakPointPosition.trim(),
+    coordinatePosition: form.coordinatePosition.trim(),
+    leakVolume: form.leakVolume.trim(),
+    tubeBore: form.tubeBore.trim(),
+    tubeMaterial: form.tubeMaterial.trim(),
+    tubeAge: form.tubeAge.trim(),
+    leakPart: form.leakPart.trim(),
+    tubeBuriedDepth: form.tubeBuriedDepth.trim(),
+    leakReason: form.leakReason.trim(),
+    leakDistance: form.leakDistance.trim(),
+    noiseSample: form.noiseSample.trim(),
+    inspector: form.inspector.trim(),
+    locator: form.locator.trim(),
+    cost: form.cost.trim() || undefined,
+    leakArea: form.leakArea.trim(),
+    repairTime: normDt(form.repairTime) || undefined,
+    sceneImages: form.sceneImages.trim() || undefined,
+    sceneVideo: form.sceneVideo.trim(),
+    manualReviewCount: form.manualReviewCount.trim() ? Number(form.manualReviewCount) : undefined,
+    deviceNumber: form.deviceNumber.trim(),
+    noiseTime: normDt(form.noiseTime) || undefined,
+    leakStatus: form.leakStatus.trim(),
+    featureValue: form.featureValue.trim(),
+    audioFile: form.audioFile.trim(),
+    repairMethod: form.repairMethod.trim(),
+    description: form.description.trim(),
   });
 }
 
 async function submitForm() {
-  if (!validateForm()) { const fe = validationErrors.detectedTime || validationErrors.leakAddress || validationErrors.leakLevel || validationErrors.leakPart || validationErrors.tubeMaterial || validationErrors.tubeBore || validationErrors.tubeDepth; if (fe) uni.showToast({ title: fe, icon: "none" }); return; }
+  if (!validateForm()) { const fe = validationErrors.detectTime || validationErrors.leakPointType || validationErrors.leakPointPosition || validationErrors.leakPart || validationErrors.inspector || validationErrors.tubeMaterial || validationErrors.tubeBore || validationErrors.tubeBuriedDepth; if (fe) uni.showToast({ title: fe, icon: "none" }); return; }
   submitting.value = true;
   try {
     const payload = buildPayload(); let res: Res;
@@ -760,16 +815,19 @@ async function handleBatchDelete() {
   catch (e: unknown) { uni.showToast({ title: (e as { msg?: string }).msg || "批量删除失败", icon: "none" }); }
 }
 
+function handleWorkOrderJump(item: RecordItem) {
+  const wid = getFieldValue(item, "workOrderId");
+  if (!wid) { uni.showToast({ title: "无关联工单", icon: "none" }); return; }
+  uni.navigateTo({ url: `/pages/work-order/processing/processing?id=${wid}` });
+}
+
 function getFieldValue(item: RecordItem | null, key: string): string { if (!item) return ""; const v = gv(item, key); if (v === undefined || v === null) return ""; return String(v); }
 function formatDateTime(v: unknown): string { return fmtDt(v); }
 
-function getLeakLevelLabel(item: RecordItem | null): string {
-  if (!item) return "-"; const v = Number(gv(item, "leakLevel"));
-  if (v === 0) return "轻度"; if (v === 1) return "中度"; if (v === 2) return "重度"; return "未知";
-}
-function getLeakLevelClass(item: RecordItem): string { const v = Number(gv(item, "leakLevel")); if (v === 0) return "level-pill--light"; if (v === 1) return "level-pill--medium"; if (v === 2) return "level-pill--heavy"; if (v === 3) return "level-pill--suspect"; return ""; }
-function getLeakLevelBadgeClass(item: RecordItem | null): string { if (!item) return ""; const v = Number(gv(item, "leakLevel")); if (v === 0) return "detail-summary__badge--light"; if (v === 1) return "detail-summary__badge--medium"; if (v === 2) return "detail-summary__badge--heavy"; return ""; }
-function getDetailItemClass(item: { label: string }): string { if (item.label !== "渗漏级别" || !selectedRecord.value) return ""; const v = Number(gv(selectedRecord.value, "leakLevel")); if (v === 0) return "detail-item--level-light"; if (v === 1) return "detail-item--level-medium"; if (v === 2) return "detail-item--level-heavy"; return ""; }
+function getLeakLevelLabel(item: RecordItem | null): string { if (!item) return "-"; return getFieldValue(item, "leakStatus") || "-"; }
+function getLeakLevelClass(item: RecordItem): string { return ""; }
+function getLeakLevelBadgeClass(item: RecordItem | null): string { return ""; }
+function getDetailItemClass(item: { label: string }): string { if (item.label !== "渗漏状态") return ""; return ""; }
 
 function getItemAccentClass(label: string): string {
   // 管道属性类（蓝）
@@ -823,7 +881,7 @@ function applyLocalSort(list: RecordItem[]): RecordItem[] {
     if (field === "leakLevel") {
       va = Number(va);
       vb = Number(vb);
-    } else if (field === "detectedTime" || field === "createdAt") {
+    } else if (field === "detectTime" || field === "createdAt") {
       va = String(va ?? "");
       vb = String(vb ?? "");
     }
@@ -941,6 +999,7 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .detail-item--level-light { border-left: 4px solid #22c55e; padding-left: 10px; background: #f0fdf4; }
 .detail-item--level-medium { border-left: 4px solid #f59e0b; padding-left: 10px; background: #fffbeb; }
 .detail-item--level-heavy { border-left: 4px solid #ef4444; padding-left: 10px; background: #fef2f2; }
+.link-text { color: #3b82f6; text-decoration: underline; cursor: pointer; }
 .detail-actions { display: flex; gap: 10px; flex: none; padding: 12px 14px; border-top: 1px solid #edf3f8; }
 
 .dialog-mask { position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center; background: rgba(15,35,55,0.22); }
