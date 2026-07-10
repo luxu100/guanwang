@@ -64,7 +64,7 @@
           </text>
 
           <text class="data-cell data-cell--time">
-            {{ record.maintainTime || '-' }}
+            {{ formatDate(record.maintainTime) || '-' }}
           </text>
 
           <text class="data-cell data-cell--address">
@@ -126,7 +126,7 @@
   />
 </template>
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import {computed, ref, watch} from 'vue';
 import type {Device, MaintenanceRecord,MaintenanceCreateForm} from '@/services/device/types';
 import type { Pagination } from '@/types/api';
 import {
@@ -140,6 +140,7 @@ import XDynamicDialog from "@/pages/device/components/x/XDynamicDialog.vue";
 import XFloatingCollapseHandle from "@/pages/device/components/x/XFloatingCollapseHandle.vue";
 import XPaginationBar from "@/pages/device/components/x/XPaginationBar.vue";
 import {createScopedT} from "@/i18n";
+import {formatDate} from "@/utils/time";
 
 const t = createScopedT("devicePage");
 const isToolbarVisible = ref(true);
@@ -173,8 +174,8 @@ const dialogVisible = ref(false);
 const formData = ref<MaintenanceCreateForm>({})
 const isEditMode = ref(false);
 const editingId = ref<number | null>(null);
-const addSchema: FormSection[] = [
-  {
+const addSchema = computed<FormSection[]>(() => [
+    {
     title: t("maintain.addSchema.basicInfo.title"),
     fields: [
       {
@@ -276,7 +277,7 @@ const addSchema: FormSection[] = [
       }
     ]
   }
-];
+]);
 
 watch(
     // 1. 直接监听具体的字段

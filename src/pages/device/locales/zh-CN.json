@@ -605,6 +605,30 @@
         "enabled": "状态",
         "description": "描述",
         "updatedAt": "更新时间"
+      },
+      "addSchema": {
+        "basicInfo": {
+          "title": "协议绑定信息",
+          "protocolId": "协议",
+          "afn": "AFN",
+          "taskType": "任务类型",
+          "contentPrefix": "内容前缀",
+          "priority": "优先级",
+          "enabled": "启用状态"
+        },
+        "option": {
+          "enabled": {
+            "true": "启用",
+            "false": "禁用"
+          }
+        }
+      },
+      "page": {
+        "addProtocol": "新增协议绑定",
+        "editProtocol": "编辑协议绑定"
+      },
+      "message": {
+        "confirmDeleteTitle": "确定要删除该协议绑定吗？"
       }
     }
   }

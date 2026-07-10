@@ -45,11 +45,15 @@
             {{ index + 1 }}
           </text>
 
-          <text class="data-cell">
+          <text class="data-cell data-cell--remark"
+                @mouseenter="showTooltip($event,record.protocolCode)"
+                @mouseleave="hideTooltip">
             {{ record.protocolCode || '-' }}
           </text>
 
-          <text class="data-cell">
+          <text class="data-cell data-cell--remark"
+                @mouseenter="showTooltip($event,record.protocolName)"
+                @mouseleave="hideTooltip">
             {{ record.protocolName || '-' }}
           </text>
 
@@ -83,30 +87,42 @@
             {{ record.enabled ? '启用' : '禁用' }}
           </text>
 
-          <text class="data-cell">
+          <text class="data-cell data-cell--remark"
+                @mouseenter="showTooltip($event,record.description)"
+                @mouseleave="hideTooltip">
             {{ record.description || '-' }}
           </text>
 
-          <text class="data-cell">
-            {{ record.updatedAt || '-' }}
+          <text class="data-cell data-cell--time">
+            {{ formatDate(record.updatedAt || '-') }}
           </text>
 
         </view>
       </view>
     </scroll-view>
+    <view
+        v-if="tooltipVisible"
+        class="table-tooltip"
+        :style="{
+         left: tooltipX+'px',
+         top: tooltipY+'px'
+       }"
+    >
+      {{tooltipText}}
+    </view>
   </view>
 
   <XDynamicDialog
       v-model:visible="dialogVisible"
       v-model="formData"
       :schema="addSchema"
-      :title="isEditMode ? t('maintain.page.edit.Maintenance') : t('maintain.page.addMaintenance')"
+      :title="isEditMode ? t('deviceProtocol.page.editProtocol') : t('deviceProtocol.page.addProtocol')"
       @submit="handleSubmit"
       @cancel="dialogVisible = false"
   />
 </template>
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import {computed, ref, watch} from 'vue';
 import type {
   Device,
   MaintenanceRecord,
@@ -119,12 +135,20 @@ import {
   deleteMaintenanceRecordT,
   getMaintenanceRecordPageT, updateMaintenanceRecordT
 } from "@/services/device/maintenance.typed";
-import type {FormSection} from "@/pages/device/components/x/types";
+import type {FieldOption, FormSection} from "@/pages/device/components/x/types";
 import XDynamicDialog from "@/pages/device/components/x/XDynamicDialog.vue";
 import XPaginationBar from "@/pages/device/components/x/XPaginationBar.vue";
 import {createScopedT} from "@/i18n";
 import DeviceProtocolToolbar from "@/pages/device/protocol/components/DeviceProtocolToolbar.vue";
-import {getDeviceProtocolByDeviceId, getDeviceProtocolDetailByDeviceId} from "@/services/device/protocol.typed";
+import {
+  deleteDeviceProtocolT,
+  getDeviceProtocolByDeviceId,
+  getDeviceProtocolDetailByDeviceId,
+  updateDeviceProtocolT
+} from "@/services/device/protocol.typed";
+import {formatDate} from "@/utils/time";
+import {createDeviceProtocolT} from "@/services/device/info.typed";
+import {getProtocolDefinitionList} from "@/services/data-receive/access";
 
 const t = createScopedT("devicePage");
 const isToolbarVisible = ref(true);
@@ -144,110 +168,59 @@ const dialogVisible = ref(false);
 const formData = ref<DeviceProtocolCreateFrom>({})
 const isEditMode = ref(false);
 const editingId = ref<number | null>(null);
-const addSchema: FormSection[] = [
-  {
-    title: t("maintain.addSchema.basicInfo.title"),
-    fields: [
-      {
-        key: "deviceNumber",
-        label: t("maintain.addSchema.basicInfo.deviceNumber"),
-        type: "input",
-        required: true
-      },
-      {
-        key: "maintainType",
-        label: t("maintain.addSchema.basicInfo.maintainType"),
-        type: "select",
-        required: true,
-        options: [
-          {
-            label: t("maintain.addSchema.option.maintainType.remove"),
-            value: 0
-          },
-          {
-            label: t("maintain.addSchema.option.maintainType.install"),
-            value: 1
-          },
-          {
-            label: t("maintain.addSchema.option.maintainType.maintenance"),
-            value: 2
-          },
-          {
-            label: t("maintain.addSchema.option.maintainType.inspect"),
-            value: 3
-          }
-        ]
-      },
-      {
-        key: "maintainTime",
-        label: t("maintain.addSchema.basicInfo.maintainTime"),
-        type: "datetime",
-        required: true
-      },
-      {
-        key: "maintainAddress",
-        label: t("maintain.addSchema.basicInfo.maintainAddress"),
-        type: "input"
-      },
-      {
-        key: "installMode",
-        label: t("maintain.addSchema.basicInfo.installMode"),
-        type: "select",
-        options: [
-          {
-            label: t("maintain.addSchema.option.installMode.fixed"),
-            value: 0
-          },
-          {
-            label: t("maintain.addSchema.option.installMode.mobile"),
-            value: 1
-          }
-        ]
-      },
-      {
-        key: "tubeGroup",
-        label: t("maintain.addSchema.basicInfo.tubeGroup"),
-        type: "input"
-      },
-      {
-        key: "tubeMaterial",
-        label: t("maintain.addSchema.basicInfo.tubeMaterial"),
-        type: "input"
-      },
-      {
-        key: "tubeBore",
-        label: t("maintain.addSchema.basicInfo.tubeBore"),
-        type: "input"
-      },
-      {
-        key: "remark",
-        label: t("maintain.addSchema.basicInfo.remark"),
-        type: "textarea"
-      }
-    ]
-  },
-  {
-    title: t("maintain.addSchema.extendInfo.title"),
-    fields: [
-      {
-        key: "maintainAccount",
-        label: t("maintain.addSchema.extendInfo.maintainAccount"),
-        type: "input"
-      },
-      {
-        key: "maintainFeedback",
-        label: t("maintain.addSchema.extendInfo.maintainFeedback"),
-        type: "textarea",
-        large: true
-      },
-      {
-        key: "maintainCoordinate",
-        label: t("maintain.addSchema.extendInfo.maintainCoordinate"),
-        type: "input"
-      }
-    ]
-  }
-];
+const addSchema = computed<FormSection[]>(() => {
+  return [
+    {
+      title: t("deviceProtocol.addSchema.basicInfo.title"),
+      fields: [
+        {
+          key: "protocolId",
+          label: t("deviceProtocol.addSchema.basicInfo.protocolId"),
+          type: "select",
+          required: true,
+          options: protocolOptions.value
+        },
+        {
+          key: "afn",
+          label: t("deviceProtocol.addSchema.basicInfo.afn"),
+          type: "input",
+          required: true
+        },
+        {
+          key: "taskType",
+          label: t("deviceProtocol.addSchema.basicInfo.taskType"),
+          type: "input",
+          required: true
+        },
+        {
+          key: "contentPrefix",
+          label: t("deviceProtocol.addSchema.basicInfo.contentPrefix"),
+          type: "input"
+        },
+        {
+          key: "priority",
+          label: t("deviceProtocol.addSchema.basicInfo.priority"),
+          type: "input"
+        },
+        {
+          key: "enabled",
+          label: t("deviceProtocol.addSchema.basicInfo.enabled"),
+          type: "select",
+          options: [
+            {
+              label: "启用",
+              value: true
+            },
+            {
+              label: "禁用",
+              value: false
+            }
+          ]
+        }
+      ]
+    }
+  ];
+});
 
 watch(
     // 1. 直接监听具体的字段
@@ -310,31 +283,42 @@ async function fetchDeviceProtocols(requestId?: number) {
   }
 }
 
+const protocolOptions = ref<FieldOption[]>([]);
+
+async function fetchProtocolOptions() {
+  const res = await getProtocolDefinitionList();
+
+  protocolOptions.value = (res.data ?? [])
+      .filter(item => item.id && item.protocolName)
+      .map(item => ({
+        label: item.protocolName!,
+        value: item.id!
+      }));
+}
+
 function handleAdd() {
   isEditMode.value = false;
   editingId.value = null;
 
-  // formData.value = {
-  //   deviceNumber: props.deviceData?.deviceNumber || "",
-  //   maintainType: undefined,
-  //   maintainTime: "",
-  //   maintainAddress: "",
-  //   installMode: undefined,
-  //   tubeGroup: "",
-  //   tubeMaterial: "",
-  //   tubeBore: "",
-  //   tubeOrder: undefined,
-  //   remark: "",
-  //   maintainAccount: "",
-  //   maintainFeedback: "",
-  //   maintainCoordinate: "",
-  //   maintainPicture: ""
-  // };
+  fetchProtocolOptions();
+
+  formData.value = {
+    deviceId: props.deviceData?.id,
+    protocolId: undefined,
+    afn: "",
+    taskType: "",
+    contentPrefix: "",
+    priority: 0,
+    enabled: true,
+    createdAt: undefined,
+    updatedAt: undefined,
+    isDeleted: false
+  };
 
   dialogVisible.value = true;
 }
 
-async function handleSubmit(form: MaintenanceCreateForm) {
+async function handleSubmit(form: DeviceProtocolCreateFrom) {
   try {
     if (isEditMode.value) {
       await submitUpdate(form);
@@ -353,8 +337,8 @@ async function handleSubmit(form: MaintenanceCreateForm) {
   }
 }
 
-async function submitCreate(form: MaintenanceCreateForm) {
-  const res = await createMaintenanceRecordT(form);
+async function submitCreate(form: DeviceProtocolCreateFrom) {
+  const res = await createDeviceProtocolT(form);
 
   if (res.code !== 200) {
     uni.showToast({
@@ -370,10 +354,10 @@ async function submitCreate(form: MaintenanceCreateForm) {
   });
 }
 
-async function submitUpdate(form: MaintenanceCreateForm) {
+async function submitUpdate(form: DeviceProtocolCreateFrom) {
   if (!editingId.value) return;
 
-  const res = await updateMaintenanceRecordT(
+  const res = await updateDeviceProtocolT(
       editingId.value,
       {...form}
   );
@@ -398,11 +382,11 @@ async function handleDelete() {
 
     uni.showModal({
       title: t("message.confirmDeleteTitle"),
-      content: t("maintain.message.confirmDeleteTitle"),
+      content: t("deviceProtocol.message.confirmDeleteTitle"),
       success: async (res) => {
         if (!res.confirm) return;
 
-        await deleteMaintenanceRecordT(selectedRecord.value?.id ?? 0);
+        await deleteDeviceProtocolT(selectedRecord.value?.id ?? 0);
 
         await refreshList();
 
@@ -439,6 +423,29 @@ async function handleEdit() {
 
 async function refreshList() {
   await fetchDeviceProtocols();
+}
+
+const tooltipText = ref('');
+const tooltipVisible = ref(false);
+const tooltipX = ref(0);
+const tooltipY = ref(0);
+
+function showTooltip(e:any,text?:string){
+  if(!text || text === '-') return;
+  tooltipText.value=text;
+  tooltipX.value =
+      e.clientX ??
+      e.detail?.x ??
+      0;
+  tooltipY.value =
+      (e.clientY ??
+          e.detail?.y ??
+          0) + 10;
+  tooltipVisible.value=true;
+}
+
+function hideTooltip(){
+  tooltipVisible.value = false;
 }
 
 </script>
@@ -761,5 +768,48 @@ async function refreshList() {
 
 .toolbar-wrapper {
   padding-bottom: 12px;
+}
+
+.table-tooltip {
+  position: fixed;
+  z-index: 9999;
+  max-width: 360px;
+  min-width: 120px;
+  padding: 10px 14px;
+  color: #24384d;
+  font-size: 13px;
+  line-height: 20px;
+  background: #fff;
+  border: 1px solid #d8e5ef;
+  border-radius: 6px;
+  box-shadow: 0 8px 20px rgba(35,72,104,.15);
+  white-space: normal;
+  word-break: break-all;
+  pointer-events: none;
+  animation: tooltip-show .15s ease-out;
+}
+
+.table-tooltip::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 18px;
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  border-left: 1px solid #d8e5ef;
+  border-top: 1px solid #d8e5ef;
+  transform: rotate(45deg);
+}
+
+@keyframes tooltip-show {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

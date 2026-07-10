@@ -236,21 +236,21 @@ const deviceModuleConfig = {
     searchForm: {
       deviceNumber: "",
       deviceType: "",
-      enableState: "",
-      onlineStatus: "",
-      leakStatus: "",
-      startTime: "",
-      endTime: "",
+      // enableState: "",
+      // onlineStatus: "",
+      // leakStatus: "",
+      // startTime: "",
+      // endTime: "",
     },
 
     toolbar: [
       { key: "deviceNumber", labelKey: "fields.deviceNumber", type: "input" },
       { key: "deviceType", labelKey: "fields.deviceType", type: "select", dict: "product" },
-      { key: "onlineStatus", labelKey: "fields.onlineStatus", type: "select", dict: "online" },
-      { key: "enableState", labelKey: "fields.enableState", type: "select", dict: "enable" },
-      { key: "leakStatus", labelKey: "fields.leakStatus", type: "select", dict: "leak" },
-      { key: "startTime", labelKey: "fields.startTime", type: "date" },
-      { key: "endTime", labelKey: "fields.endTime", type: "date" },
+      // { key: "onlineStatus", labelKey: "fields.onlineStatus", type: "select", dict: "online" },
+      // { key: "enableState", labelKey: "fields.enableState", type: "select", dict: "enable" },
+      // { key: "leakStatus", labelKey: "fields.leakStatus", type: "select", dict: "leak" },
+      // { key: "startTime", labelKey: "fields.startTime", type: "date" },
+      // { key: "endTime", labelKey: "fields.endTime", type: "date" },
     ],
 
     buttons: {
@@ -271,25 +271,25 @@ const deviceModuleConfig = {
     searchForm: {
       deviceNumber: "",
       deviceType: "",
-      enableState: "",
-      onlineStatus: "",
-      leakStatus: "",
-      startTime: "",
-      endTime: "",
-      receiveStatus: "",
-      maintainType: ""
+      // enableState: "",
+      // onlineStatus: "",
+      // leakStatus: "",
+      // startTime: "",
+      // endTime: "",
+      // receiveStatus: "",
+      // maintainType: ""
     },
 
     toolbar: [
       { key: "deviceNumber", labelKey: "fields.deviceNumber", type: "input" },
       { key: "deviceType", labelKey: "fields.deviceType", type: "select", dict: "product" },
-      { key: "onlineStatus", labelKey: "fields.onlineStatus", type: "select", dict: "online" },
-      { key: "enableState", labelKey: "fields.enableState", type: "select", dict: "enable" },
-      { key: "leakStatus", labelKey: "fields.leakStatus", type: "select", dict: "leak" },
-      { key: "startTime", labelKey: "fields.startTime", type: "date" },
-      { key: "endTime", labelKey: "fields.endTime", type: "date" },
-      { key: "maintainType", labelKey: "fields.maintainType", type: "select", dict: "maintain" },
-      { key: "receiveStatus", labelKey: "fields.receiveStatus", type: "select", dict: "receive" }
+      // { key: "onlineStatus", labelKey: "fields.onlineStatus", type: "select", dict: "online" },
+      // { key: "enableState", labelKey: "fields.enableState", type: "select", dict: "enable" },
+      // { key: "leakStatus", labelKey: "fields.leakStatus", type: "select", dict: "leak" },
+      // { key: "startTime", labelKey: "fields.startTime", type: "date" },
+      // { key: "endTime", labelKey: "fields.endTime", type: "date" },
+      // { key: "maintainType", labelKey: "fields.maintainType", type: "select", dict: "maintain" },
+      // { key: "receiveStatus", labelKey: "fields.receiveStatus", type: "select", dict: "receive" }
     ],
 
     buttons: {
@@ -310,25 +310,25 @@ const deviceModuleConfig = {
     searchForm: {
       deviceNumber: "",
       deviceType: "",
-      enableState: "",
-      onlineStatus: "",
-      leakStatus: "",
-      startTime: "",
-      endTime: "",
-      receiveStatus: "",
-      maintainType: ""
+      // enableState: "",
+      // onlineStatus: "",
+      // leakStatus: "",
+      // startTime: "",
+      // endTime: "",
+      // receiveStatus: "",
+      // maintainType: ""
     },
 
     toolbar: [
       { key: "deviceNumber", labelKey: "fields.deviceNumber", type: "input" },
       { key: "deviceType", labelKey: "fields.deviceType", type: "select", dict: "product" },
-      { key: "onlineStatus", labelKey: "fields.onlineStatus", type: "select", dict: "online" },
-      { key: "enableState", labelKey: "fields.enableState", type: "select", dict: "enable" },
-      { key: "leakStatus", labelKey: "fields.leakStatus", type: "select", dict: "leak" },
-      { key: "startTime", labelKey: "fields.startTime", type: "date" },
-      { key: "endTime", labelKey: "fields.endTime", type: "date" },
-      { key: "maintainType", labelKey: "fields.maintainType", type: "select", dict: "maintain" },
-      { key: "receiveStatus", labelKey: "fields.receiveStatus", type: "select", dict: "receive" }
+      // { key: "onlineStatus", labelKey: "fields.onlineStatus", type: "select", dict: "online" },
+      // { key: "enableState", labelKey: "fields.enableState", type: "select", dict: "enable" },
+      // { key: "leakStatus", labelKey: "fields.leakStatus", type: "select", dict: "leak" },
+      // { key: "startTime", labelKey: "fields.startTime", type: "date" },
+      // { key: "endTime", labelKey: "fields.endTime", type: "date" },
+      // { key: "maintainType", labelKey: "fields.maintainType", type: "select", dict: "maintain" },
+      // { key: "receiveStatus", labelKey: "fields.receiveStatus", type: "select", dict: "receive" }
     ],
 
     buttons: {

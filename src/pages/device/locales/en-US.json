@@ -603,6 +603,30 @@
         "enabled": "Status",
         "description": "Description",
         "updatedAt": "Updated At"
+      },
+      "addSchema": {
+        "basicInfo": {
+          "title": "Protocol Binding Information",
+          "protocolId": "Protocol",
+          "afn": "AFN",
+          "taskType": "Task Type",
+          "contentPrefix": "Content Prefix",
+          "priority": "Priority",
+          "enabled": "Enabled Status"
+        },
+        "option": {
+          "enabled": {
+            "true": "Enabled",
+            "false": "Disabled"
+          }
+        }
+      },
+      "page": {
+        "addProtocol": "Add Protocol Binding",
+        "editProtocol": "Edit Protocol Binding"
+      },
+      "message": {
+        "confirmDeleteTitle": "Are you sure you want to delete this protocol binding?"
       }
     }
   }

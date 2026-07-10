@@ -2,7 +2,7 @@
 
 export interface FieldOption {
     label: string;
-    value: number | string;
+    value: number | string | boolean;
 }
 
 export interface FormField {
