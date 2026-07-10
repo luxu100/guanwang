@@ -632,6 +632,30 @@
         "loading": "加载中...",
         "noData": "暂无数据",
         "coordinate": "坐标位置"
+      },
+      "page": {
+        "addValve": "新增阀门",
+        "editValve": "编辑阀门"
+      },
+      "addSchema": {
+        "basicInfo": {
+          "title": "基本信息",
+          "pipelineName": "管道名称",
+          "valveNumber": "阀门编号",
+          "valveName": "阀门名称",
+          "coordinatePosition": "坐标位置",
+          "branchCompany": "分公司",
+          "region": "区域",
+          "tubeBore": "管道口径",
+          "tubeMaterial": "管道材质",
+          "deptId": "所属分区",
+          "xCoordinate": "经度",
+          "yCoordinate": "纬度",
+          "coordinate": "坐标位置"
+        }
+      },
+      "message": {
+        "confirmDeleteTitle": "确定删除当前阀门吗？"
       }
     },
     "deviceProtocol":{

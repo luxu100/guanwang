@@ -48,6 +48,9 @@
         @search="emit('search')"
         @reset="emit('reset')"
         @refresh="emit('refresh')"
+        @add="emit('add')"
+        @edit="emit('edit')"
+        @delete="emit('delete')"
         :show-edit="true"
         :show-add="true"
         :show-delete="true"
@@ -98,6 +101,9 @@ const emit = defineEmits<{
   (e: "reset"): void;
   (e: "refresh"): void;
   (e: "bindDept"): void;
+  (e: "add"): void;
+  (e: "edit"): void;
+  (e: "delete"): void;
 }>();
 
 /**

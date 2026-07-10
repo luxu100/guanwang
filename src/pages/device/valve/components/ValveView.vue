@@ -9,6 +9,9 @@
         @reset="handleReset"
         @refresh="fetchValve"
         @bind-dept="handleBindDept"
+        @edit="handleEdit"
+        @delete="handleDelete"
+        @add="handleAdd"
     />
 
     <!-- 主体 -->
@@ -37,19 +40,32 @@
       :subtitle="t('page.bindDeptSubtitle')"
       @confirm="onDeptConfirm"
   />
+
+  <XDynamicDialog
+      v-model:visible="dialogVisible"
+      v-model="formData"
+      :schema="addSchema"
+      :title="isEditMode ? t('valve.page.editValve') : t('valve.page.addValve')"
+      @submit="handleSubmit"
+      @cancel="dialogVisible = false"
+  />
 </template>
 
 <script setup lang="ts">
 import {computed, onMounted, ref} from "vue";
 import ValveToolbar from "@/pages/device/valve/components/ValveToolbar.vue";
 import ValveTableView from "@/pages/device/valve/components/ValveTableView.vue";
-import {getValvePageT, updateValveT} from "@/services/device/valve.typed";
-import type {DeptTreeVO, Valve} from "@/services/device/types";
-import {getDeptTreeT} from "@/services/device/info.typed";
+import {createValveT, deleteValveT, getValvePageT, updateValveT} from "@/services/device/valve.typed";
+import type {DeptTreeVO, DeviceProtocolCreateFrom, Valve, ValveCreateFrom} from "@/services/device/types";
+import {createDeviceProtocolT, getDeptTreeT} from "@/services/device/info.typed";
 
 import {createScopedT} from "@/i18n";
 import type {PartitionNode} from "@/pages/device/components/x/XTreeNode.vue";
 import XTreeSelectDialog from "@/pages/device/components/x/XTreeSelectDialog.vue";
+import XDynamicDialog from "@/pages/device/components/x/XDynamicDialog.vue";
+import {deleteDeviceProtocolT, updateDeviceProtocolT} from "@/services/device/protocol.typed";
+import type {FormSection} from "@/pages/device/components/x/types";
+import {createValve, updateValve} from "@/services/device/info";
 const t = createScopedT("devicePage");
 
 const valveConfig = {
@@ -218,6 +234,239 @@ async function fetchDeptTree() {
     console.error(t('message.fetchDeptTreeFailed'), e);
   }
 }
+
+const dialogVisible = ref(false);
+const formData = ref<ValveCreateFrom>({})
+const isEditMode = ref(false);
+const editingId = ref<number | null>(null);
+const addSchema = computed<FormSection[]>(() => {
+  return [
+    {
+      title: t("valve.addSchema.basicInfo.title"),
+      fields: [
+        {
+          key: "pipelineName",
+          label: t("valve.addSchema.basicInfo.pipelineName"),
+          type: "input",
+          required: true
+        },
+        {
+          key: "valveNumber",
+          label: t("valve.addSchema.basicInfo.valveNumber"),
+          type: "input",
+          required: true
+        },
+        {
+          key: "valveName",
+          label: t("valve.addSchema.basicInfo.valveName"),
+          type: "input",
+          required: true
+        },
+        {
+          key: "coordinate",
+          label: t("valve.addSchema.basicInfo.coordinate"),
+          type: "location",
+          placeholder: "格式:经度,纬度 （如 121.4737,31.2304)"
+        },
+        {
+          key: "branchCompany",
+          label: t("valve.addSchema.basicInfo.branchCompany"),
+          type: "input"
+        },
+        {
+          key: "region",
+          label: t("valve.addSchema.basicInfo.region"),
+          type: "input"
+        },
+        {
+          key: "tubeBore",
+          label: t("valve.addSchema.basicInfo.tubeBore"),
+          type: "input"
+        },
+        {
+          key: "tubeMaterial",
+          label: t("valve.addSchema.basicInfo.tubeMaterial"),
+          type: "input"
+        }
+      ]
+    }
+  ];
+});
+function handleAdd() {
+  isEditMode.value = false;
+  editingId.value = null;
+
+  formData.value = {
+    pipelineName: "",
+    valveNumber: "",
+    valveName: "",
+    coordinatePosition: "",
+    branchCompany: "",
+    region: "",
+    tubeBore: "",
+    tubeMaterial: "",
+    deptId: undefined,
+    xCoordinate: undefined,
+    yCoordinate: undefined,
+    coordinate: "",
+    isDeleted: false
+  };
+
+  dialogVisible.value = true;
+}
+
+async function handleSubmit(form: ValveCreateFrom) {
+  try {
+    if (isEditMode.value) {
+      await submitUpdate(form);
+    } else {
+      await submitCreate(form);
+    }
+
+    dialogVisible.value = false;
+    await refreshList();
+
+  } catch (e: any) {
+    uni.showToast({
+      title: e?.message || t("message.operationFailed"),
+      icon: "error"
+    });
+  }
+}
+
+async function submitCreate(form: ValveCreateFrom) {
+  if (form.coordinate) {
+    const [lng, lat] = form.coordinate.split(",").map(Number);
+
+    if (!Number.isNaN(lng) && !Number.isNaN(lat)) {
+      form.xCoordinate = lng;
+      form.yCoordinate = lat;
+    }
+  }
+
+  const res = await createValveT(form);
+
+  if (res.code !== 200) {
+    uni.showToast({
+      title: res.msg || t("message.addFail"),
+      icon: "error"
+    });
+    throw new Error(res.msg);
+  }
+
+  uni.showToast({
+    title: t("message.addSuccess"),
+    icon: "success"
+  });
+}
+
+async function submitUpdate(form: ValveCreateFrom) {
+  if (form.coordinate) {
+    const [lng, lat] = form.coordinate.split(",").map(Number);
+
+    if (!Number.isNaN(lng) && !Number.isNaN(lat)) {
+      form.xCoordinate = lng;
+      form.yCoordinate = lat;
+    }
+  }
+
+  if (!editingId.value) return;
+
+  const res = await updateValveT(
+      editingId.value,
+      {
+        ...form
+      }
+  );
+
+  if (res.code !== 200) {
+    uni.showToast({
+      title: res.msg || t("message.updateFail"),
+      icon: "error"
+    });
+    throw new Error(res.msg);
+  }
+
+  uni.showToast({
+    title: t("message.updateSuccess"),
+    icon: "success"
+  });
+}
+
+async function handleDelete() {
+  try {
+    if (!selectedValve.value?.id) return;
+
+    uni.showModal({
+      title: t("message.confirmDeleteTitle"),
+      content: t("valve.message.confirmDeleteTitle"),
+      success: async (res) => {
+        if (!res.confirm) return;
+
+        await deleteValveT(selectedValve.value?.id ?? 0);
+
+        await refreshList();
+
+        uni.showToast({
+          title: t("message.deleteSuccess"),
+          icon: 'success'
+        });
+
+        selectedValve.value = null;
+      }
+    });
+
+  } catch (e: any) {
+    uni.showToast({
+      title: e?.message || t("message.deleteFail"),
+      icon: 'error'
+    });
+  }
+}
+
+async function handleEdit() {
+  if (!selectedValve.value) {
+    uni.showToast({
+      title: t("message.selectRecord"),
+      icon: "none"
+    });
+    return;
+  }
+
+  isEditMode.value = true;
+  editingId.value = selectedValve.value.id;
+
+  formData.value = {
+    pipelineName: selectedValve.value.pipelineName,
+    valveNumber: selectedValve.value.valveNumber,
+    valveName: selectedValve.value.valveName,
+    coordinatePosition: selectedValve.value.coordinatePosition,
+    branchCompany: selectedValve.value.branchCompany,
+    region: selectedValve.value.region,
+    tubeBore: selectedValve.value.tubeBore,
+    tubeMaterial: selectedValve.value.tubeMaterial,
+    deptId: selectedValve.value.deptId,
+    xCoordinate: selectedValve.value.xCoordinate,
+    yCoordinate: selectedValve.value.yCoordinate,
+  };
+
+  if (
+      formData.value.xCoordinate != null &&
+      formData.value.yCoordinate != null
+  ) {
+    formData.value.coordinate =
+        `${formData.value.xCoordinate},${formData.value.yCoordinate}`;
+  } else {
+    formData.value.coordinate = "";
+  }
+
+  dialogVisible.value = true;
+}
+
+async function refreshList() {
+  await fetchValve();
+}
+
 
 onMounted(() => {
   fetchValve();

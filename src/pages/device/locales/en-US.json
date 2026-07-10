@@ -629,6 +629,30 @@
         "loading": "Loading...",
         "noData": "No Data",
         "coordinate": "Coordinates"
+      },
+      "page": {
+        "addValve": "Add Valve",
+        "editValve": "Edit Valve"
+      },
+      "addSchema": {
+        "basicInfo": {
+          "title": "Basic Information",
+          "pipelineName": "Pipeline Name",
+          "valveNumber": "Valve Number",
+          "valveName": "Valve Name",
+          "coordinatePosition": "Coordinate Position",
+          "branchCompany": "Branch Company",
+          "region": "Region",
+          "tubeBore": "Pipe Diameter",
+          "tubeMaterial": "Pipe Material",
+          "deptId": "Department",
+          "xCoordinate": "Longitude",
+          "yCoordinate": "Latitude",
+          "coordinate": "Coordinates"
+        }
+      },
+      "message": {
+        "confirmDeleteTitle": "Are you sure you want to delete this valve?"
       }
     },
     "deviceProtocol": {
