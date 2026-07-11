@@ -210,6 +210,7 @@ import SuspectManagementView from "@/pages/leak-report/components/SuspectManagem
 import LeakManagementView from "@/pages/leak-report/components/LeakManagementView.vue";
 import LeakAnalysisView from "@/pages/leak-report/components/LeakAnalysisView.vue";
 import HistoryOverviewView from "@/pages/leak-report/components/HistoryOverviewView.vue";
+import DataAnalysisSheetView from "@/pages/data-analysis/components/DataAnalysisSheetView.vue";
 import { MENU_COLLAPSED_KEY, OPENED_TABS_KEY } from "@/utils/appShellStorage";
 import { clearAuthStorage, createProtectedRouteDecision, LOGIN_PATH } from "@/utils/authGuard";
 import { filterMenuItemsByAccess, flattenMenuPaths, getMenuAccessSummary } from "@/utils/menuAccess";
@@ -378,8 +379,8 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/command/commandManage": { component: CommandManagePage },
   "/pages/command/commandConfiguration": { component: CommandConfigurationPage },
   "/pages/data-analysis/overview/overview": createPlaceholderContent("/pages/data-analysis/overview/overview"),
-  "/pages/data-analysis/audio/audio": createPlaceholderContent("/pages/data-analysis/audio/audio"),
-  "/pages/data-analysis/leakage/leakage": createPlaceholderContent("/pages/data-analysis/leakage/leakage"),
+  "/pages/data-analysis/audio/audio": { component: DataAnalysisSheetView, props: { mode: "audio" } },
+  "/pages/data-analysis/leakage/leakage": { component: DataAnalysisSheetView, props: { mode: "leakage" } },
   "/pages/leak-report/suspect-management/suspect-management": { component: SuspectManagementView },
   "/pages/leak-report/suspect-processing/suspect-processing": { component: SuspectTableView, props: { mode: "processing" } },
   "/pages/leak-report/leak-management/leak-management": { component: LeakManagementView },

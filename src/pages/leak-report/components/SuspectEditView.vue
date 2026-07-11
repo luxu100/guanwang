@@ -1314,7 +1314,7 @@ function normalizeDatetimeForApi(value: string) {
 .dialog-panel {
   display: flex;
   flex-direction: column;
-  width: min(960px, calc(100vw - 32px));
+  width: min(1000px, calc(100vw - 32px));
   max-height: calc(100vh - 64px);
   overflow: hidden;
   background: #ffffff;
@@ -1367,16 +1367,16 @@ function normalizeDatetimeForApi(value: string) {
 .dialog-body {
   flex: 1;
   min-height: 0;
-  padding: 20px;
+  padding: 24px;
   overflow-y: auto;
 }
 
 .form-section {
-  padding: 16px;
+  padding: 18px 26px;
   margin-bottom: 16px;
   background: #fbfdff;
   border: 1px solid #e3edf6;
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 .form-section:last-child {
@@ -1387,41 +1387,43 @@ function normalizeDatetimeForApi(value: string) {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .section-title {
   position: relative;
-  padding-left: 10px;
+  padding-left: 14px;
   color: #183755;
   font-size: 15px;
   font-weight: 800;
+  letter-spacing: 0.2px;
 }
 
 .section-title::before {
   position: absolute;
-  top: 2px;
+  top: 1px;
   left: 0;
-  width: 3px;
-  height: 16px;
+  width: 4px;
+  height: 18px;
   content: "";
   background: #0d82ee;
-  border-radius: 999px;
+  border-radius: 2px;
 }
 
 .section-hint {
   color: #94a3b8;
   font-size: 12px;
+  font-weight: 500;
 }
 
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px 16px;
+  gap: 18px 28px;
 }
 
 .form-grid--media {
-  gap: 20px 20px;
+  gap: 22px 22px;
 }
 
 .form-field {
@@ -1437,33 +1439,57 @@ function normalizeDatetimeForApi(value: string) {
 
 .form-label {
   display: block;
-  margin-bottom: 6px;
-  color: #34495e;
+  margin-bottom: 8px;
+  color: #2c3e50;
   font-size: 13px;
   font-weight: 700;
+  line-height: 1.4;
 }
 
 .form-label--required::before {
-  margin-right: 4px;
-  color: #b42318;
+  margin-right: 5px;
+  color: #dc2626;
   content: "*";
+  font-weight: 700;
 }
 
 .form-input,
 .form-textarea {
   box-sizing: border-box;
   width: 100%;
-  color: #172033;
+  color: #1a2035;
   font-size: 14px;
-  background: #f9fcff;
-  border: 1px solid #cbdced;
-  border-radius: 4px;
+  font-weight: 500;
+  background: #fafcff;
+  border: 1px solid #d0dce8;
+  border-radius: 5px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.form-input:hover,
+.form-textarea:hover {
+  border-color: #b0c4d8;
+  background: #fff;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  background: #fff;
+  border-color: #5ba4f0;
+  box-shadow: 0 0 0 3px rgba(13, 130, 238, 0.08);
+  outline: none;
 }
 
 .form-input {
-  height: 38px;
+  height: 40px;
   padding: 0 12px;
-  line-height: 38px;
+  line-height: 40px;
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+  color: #a0aec0;
+  font-weight: 400;
 }
 
 .form-input--flex {
@@ -1603,13 +1629,15 @@ function normalizeDatetimeForApi(value: string) {
 }
 
 .form-textarea {
-  height: 88px;
-  padding: 8px 12px;
+  height: 90px;
+  padding: 10px 12px;
   line-height: 1.5;
+  resize: vertical;
 }
 
 .input-placeholder {
-  color: #9aa9b8;
+  color: #a0aec0;
+  font-weight: 400;
 }
 
 /* 下拉选择 */
@@ -1624,30 +1652,37 @@ function normalizeDatetimeForApi(value: string) {
   justify-content: space-between;
   box-sizing: border-box;
   width: 100%;
-  height: 38px;
+  height: 40px;
   padding: 0 12px;
-  color: #172033;
+  color: #1a2035;
   font-size: 14px;
-  background: #f9fcff;
-  border: 1px solid #cbdced;
-  border-radius: 4px;
+  font-weight: 500;
+  background: #fafcff;
+  border: 1px solid #d0dce8;
+  border-radius: 5px;
   cursor: pointer;
-  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.form-select--dropdown:hover {
+  border-color: #b0c4d8;
+  background: #fff;
 }
 
 .form-select--open {
-  border-color: #0d82ee;
-  box-shadow: 0 0 0 3px rgba(13, 130, 238, 0.1);
+  border-color: #5ba4f0;
+  box-shadow: 0 0 0 3px rgba(13, 130, 238, 0.08);
+  background: #fff;
 }
 
 .select-arrow {
   display: inline-block;
   width: 7px;
   height: 7px;
-  border: solid #74879c;
+  border: solid #7a8ea3;
   border-width: 0 2px 2px 0;
   transform: translateY(-2px) rotate(45deg);
-  transition: transform 0.18s ease;
+  transition: transform 0.2s ease;
 }
 
 .form-select--open .select-arrow {
@@ -1655,7 +1690,8 @@ function normalizeDatetimeForApi(value: string) {
 }
 
 .select-placeholder {
-  color: #9aa9b8;
+  color: #a0aec0;
+  font-weight: 400;
 }
 
 .select-menu {
@@ -1667,9 +1703,9 @@ function normalizeDatetimeForApi(value: string) {
   max-height: 240px;
   overflow: hidden;
   background: #ffffff;
-  border: 1px solid #d5e2ee;
-  border-radius: 4px;
-  box-shadow: 0 8px 24px rgba(15, 35, 55, 0.12);
+  border: 1px solid #d0dce8;
+  border-radius: 6px;
+  box-shadow: 0 10px 28px rgba(15, 35, 55, 0.14);
 }
 
 .select-menu--material {
@@ -1677,51 +1713,74 @@ function normalizeDatetimeForApi(value: string) {
 }
 
 .select-search {
-  padding: 6px 8px;
+  padding: 8px 10px;
   border-bottom: 1px solid #edf1f5;
 }
 
 .select-search-input {
   box-sizing: border-box;
   width: 100%;
-  height: 32px;
+  height: 34px;
   padding: 0 10px;
-  color: #172033;
+  color: #1a2035;
   font-size: 13px;
+  font-weight: 500;
   background: #f6fafe;
-  border: 1px solid #d5e2ee;
-  border-radius: 4px;
+  border: 1px solid #d0dce8;
+  border-radius: 5px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.select-search-input:hover {
+  border-color: #b0c4d8;
+  background: #fff;
+}
+
+.select-search-input:focus {
+  border-color: #5ba4f0;
+  box-shadow: 0 0 0 3px rgba(13, 130, 238, 0.08);
+  background: #fff;
+  outline: none;
 }
 
 .select-scroll {
   max-height: 200px;
+  overflow-y: auto;
 }
 
 .select-option {
   display: flex;
   align-items: center;
-  height: 36px;
-  padding: 0 12px;
-  color: #172033;
+  height: 38px;
+  padding: 0 14px;
+  color: #1a2035;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
-  transition: background 0.14s ease;
+  transition: background 0.14s ease, color 0.14s ease;
 }
 
 .select-option:hover {
   background: #edf7ff;
+  color: #0d82ee;
 }
 
 .select-option--active {
   color: #0d82ee;
   background: #e8f4ff;
+  font-weight: 700;
 }
 
 .select-option--empty {
-  color: #9aa9b8;
+  color: #94a3b8;
   font-weight: 500;
+  font-style: italic;
   cursor: default;
+}
+
+.select-option--empty:hover {
+  background: transparent;
+  color: #94a3b8;
 }
 
 .form-control--error {
@@ -1851,12 +1910,13 @@ function normalizeDatetimeForApi(value: string) {
   color: #ffffff;
   background: #0d82ee;
   border-color: #0d82ee;
+  box-shadow: 0 4px 12px rgba(13, 130, 238, 0.2);
 }
 
-.dialog-button--primary-hover {
-  color: #ffffff;
+.dialog-button--primary.dialog-button--hover {
   background: #0674d8;
   border-color: #0674d8;
+  box-shadow: 0 6px 16px rgba(13, 130, 238, 0.28);
 }
 
 .dialog-button[disabled] {
@@ -1868,26 +1928,25 @@ function normalizeDatetimeForApi(value: string) {
 /* 验证横幅 */
 .validation-banner {
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 10px 20px;
-  background: #fff3e0;
-  border-bottom: 1px solid #ffe0b2;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  margin: 0 20px;
+  background: #fff8ed;
+  border: 1px solid #f5d685;
+  border-radius: 6px;
 }
 
 .validation-banner__icon {
-  flex: none;
   font-size: 16px;
-  line-height: 1.5;
-  color: #e65100;
+  flex-shrink: 0;
 }
 
 .validation-banner__text {
-  flex: 1;
-  color: #bf360c;
+  color: #92400e;
   font-size: 13px;
   font-weight: 600;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 /* ========== 上传区域 ========== */

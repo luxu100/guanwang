@@ -61,27 +61,29 @@
 }
 
 .login-title {
-  font-size: 34px;
-  font-weight: 400;
-  line-height: 1.08;
+  font-size: 36px;
+  font-weight: 500;
+  line-height: 1.12;
+  text-align: center;
   white-space: nowrap;
 }
 
 .login-subtitle {
-  margin-top: 0;
+  margin-top: 8px;
   font-family: Arial, Helvetica, sans-serif;
-  font-size: 28px;
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: 6px;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: 0;
   white-space: nowrap;
+  color: rgba(255, 255, 255, 0.78);
 }
 
 .mode-tabs {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 6px;
-  margin-top: 28px;
+  margin-top: 24px;
   padding: 5px;
   background: rgba(255, 255, 255, 0.16);
   border: 1px solid rgba(255, 255, 255, 0.24);
@@ -97,6 +99,9 @@
   text-align: center;
   border-radius: 6px;
   cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   transition:
     color 0.2s ease,
     background-color 0.2s ease,
@@ -112,8 +117,8 @@
 .field-group {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  margin-top: 42px;
+  gap: 18px;
+  margin-top: 32px;
 }
 
 .field-group--compact {
@@ -529,7 +534,7 @@
     --login-input-height: 46px;
 
     min-width: 0;
-    background-position: center center;
+    background-position: right center;
   }
 
   .login-logo {
@@ -538,10 +543,10 @@
 
   .login-form {
     top: max(24px, 5vh);
-    right: auto;
-    left: 50%;
+    right: 4vw;
+    left: auto;
     width: var(--login-form-width);
-    transform: translateX(-50%);
+    transform: none;
   }
 
   .login-form--register {
@@ -562,12 +567,11 @@
   }
 
   .login-title {
-    font-size: 28px;
+    font-size: 30px;
   }
 
   .login-subtitle {
-    font-size: 22px;
-    letter-spacing: 4px;
+    font-size: 13px;
   }
 
   .mode-tabs {
@@ -608,9 +612,9 @@
   }
 
   .form-links--login {
-    align-items: flex-end;
-    flex-direction: column;
-    gap: 8px;
+    align-items: center;
+    flex-direction: row;
+    gap: 12px;
   }
 
   .login-button {
@@ -633,11 +637,11 @@
   }
 
   .login-title {
-    font-size: 26px;
+    font-size: 28px;
   }
 
   .login-subtitle {
-    font-size: 20px;
+    font-size: 17px;
   }
 
   .field-group {
