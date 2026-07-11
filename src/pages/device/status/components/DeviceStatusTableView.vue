@@ -1,12 +1,12 @@
 <template>
+  <DeviceStatusToolbar
+      v-model="searchForm"
+      @search="handleSearch"
+      @reset="handleSearch"
+      @refresh="fetchDeviceStatuss"
+      :visible="isToolbarVisible"
+  />
   <view class="data-table-container">
-    <DeviceStatusToolbar
-        v-model="searchForm"
-        @search="handleSearch"
-        @reset="handleSearch"
-        @refresh="fetchDeviceStatuss"
-        :visible="isToolbarVisible"
-    />
 
     <XFloatingCollapseHandle v-if="isFloatingVisible"
         v-model="isToolbarVisible"

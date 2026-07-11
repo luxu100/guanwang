@@ -1,6 +1,29 @@
 ﻿<template>
   <view class="device-page">
-
+<!--    全局toolbar-->
+    <DeviceToolbar  v-if="showGlobalToolbar"
+        v-model="searchForm"
+        :fields="toolbarConfig"
+        :product-options="productOptions"
+        :enable-state-options="enableStateOptions"
+        :install-state-options="installStateOptions"
+        :online-status-options="onlineStatusOptions"
+        :leak-status-options="leakStatusOptions"
+        :maintain-type-options="maintainTypeOptions"
+        :receive-status-options="receiveStatusOptions"
+        :buttons="showButtonConfig"
+        @search="handleSearch"
+        @reset="handleReset"
+        @refresh="fetchDevices"
+        @delete="handleDelete"
+        @add="handleAdd"
+        @edit="handleEdit"
+        @on-export="handleExport"
+        @on-import="handleImport"
+        @bind-dept="handleBindDept"
+        @bind-valve="handleBindValve"
+        @show-detail="handleShowDetail"
+    />
     <view
         class="worksheet-layout"
         :class="[layoutClass, { collapsed: isDetailCollapsed }]"
@@ -10,7 +33,7 @@
       <view class="table-panel">
 
         <!-- 左侧设备Toolbar -->
-        <DeviceToolbar
+        <DeviceToolbar v-if="showLeftToolbar"
             v-model="searchForm"
             :fields="toolbarConfig"
             :product-options="productOptions"
@@ -171,7 +194,7 @@ const t = createScopedT("devicePage");
  * =========================
  */
 const props = defineProps<{
-  mode: "info" | "maintenance" | "status" ;
+  mode: "info" | "maintenance" | "status" | "deviceProtocol" ;
 }>();
 
 /**
@@ -226,7 +249,8 @@ const deviceModuleConfig = {
       bindDept: true,
       bindValve: true,
       import: true,
-      export: true
+      export: true,
+      detail:true
     },
   },
 
@@ -375,6 +399,9 @@ const searchForm = ref<any>({
   ...currentModule.value.searchForm,
 });
 
+const showGlobalToolbar = ref<boolean>(true);
+const showLeftToolbar = ref<boolean>(false);
+
 /**
  * mode变化重置
  */
@@ -384,6 +411,14 @@ watch(
       searchForm.value = {
         ...currentModule.value.searchForm,
       };
+
+      if (props.mode === "info") {
+        showGlobalToolbar.value = true;
+        showLeftToolbar.value = false;
+      }else{
+        showGlobalToolbar.value = false;
+        showLeftToolbar.value = true;
+      }
 
       fetchDevices();
     },
@@ -899,6 +934,9 @@ function handleImport() {
   });
 }
 
+function handleShowDetail() {
+  toggleDetailPanel();
+}
 /**
  * 绑定阀门
  */

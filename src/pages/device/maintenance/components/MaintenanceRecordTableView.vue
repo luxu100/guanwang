@@ -1,17 +1,18 @@
 <template>
+  <view class="toolbar-wrapper">
+    <MaintenanceRecordToolbar
+        v-model="searchForm"
+        @search="handleSearch"
+        @reset="handleSearch"
+        @refresh="fetchMaintenanceRecords"
+        @add="handleAdd"
+        @delete="handleDelete"
+        @edit="handleEdit"
+        :visible="isToolbarVisible"
+    />
+  </view>
+
   <view class="data-table-container">
-    <view class="toolbar-wrapper">
-      <MaintenanceRecordToolbar
-          v-model="searchForm"
-          @search="handleSearch"
-          @reset="handleSearch"
-          @refresh="fetchMaintenanceRecords"
-          @add="handleAdd"
-          @delete="handleDelete"
-          @edit="handleEdit"
-          :visible="isToolbarVisible"
-      />
-    </view>
 
     <XFloatingCollapseHandle v-if="isFloatingVisible"
         v-model="isToolbarVisible"

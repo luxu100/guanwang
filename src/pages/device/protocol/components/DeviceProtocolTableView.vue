@@ -1,14 +1,13 @@
 <template>
+  <view class="toolbar-wrapper">
+    <DeviceProtocolToolbar
+        @add="handleAdd"
+        @delete="handleDelete"
+        @edit="handleEdit"
+        :visible="isToolbarVisible"
+    />
+  </view>
   <view class="data-table-container">
-    <view class="toolbar-wrapper">
-      <DeviceProtocolToolbar
-          @add="handleAdd"
-          @delete="handleDelete"
-          @edit="handleEdit"
-          :visible="isToolbarVisible"
-      />
-    </view>
-
     <view class="table-head">
       <text>{{ t("deviceProtocol.table.title") }}</text>
       <text class="table-head__meta">  {{ t('common.pagination.totalRecords', { total: deviceProtocolList.length }) }}</text>

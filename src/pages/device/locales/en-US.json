@@ -38,7 +38,8 @@
       "bindDept": "bindDept",
       "deviceNumber": "deviceNumber",
       "startTime": "startTime",
-      "endTime": "endTime"
+      "endTime": "endTime",
+      "showDetail": "Show Detail"
     },
     "formDialog": {
       "title": "Add New Record",

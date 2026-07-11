@@ -44,4 +44,5 @@ export type ToolbarButtons = {
     import?:boolean;
     export?:boolean;
 
+    detail?:boolean;
 };

@@ -38,7 +38,8 @@
       "bindDept": "绑定部门",
       "deviceNumber": "设备编号",
       "startTime": "开始时间",
-      "endTime": "结束时间"
+      "endTime": "结束时间",
+      "showDetail": "查看详情"
     },
     "formDialog": {
       "title": "新增信息",

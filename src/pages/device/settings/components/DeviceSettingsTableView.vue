@@ -12,7 +12,7 @@
           <text class="data-cell data-cell--device">{{ t('deviceSetting.settingTable.deviceNumber') }}</text>
           <text class="data-cell data-cell--status">{{ t('deviceSetting.fields.enabledControl') }}</text>
           <text class="data-cell data-cell--status">{{ t('deviceSetting.fields.inspectionControl') }}</text>
-          <text class="data-cell data-cell--status">{{ t('deviceSetting.fields.workMode') }}</text>
+          <text class="data-cell data-cell--status data-cell--workMode">{{ t('deviceSetting.fields.workMode') }}</text>
           <text class="data-cell data-cell--number">{{ t('deviceSetting.fields.measureLength') }}</text>
           <text class="data-cell data-cell--status">{{ t('deviceSetting.fields.gainMode') }}</text>
           <text class="data-cell data-cell--number">{{ t('deviceSetting.fields.gainValue') }}</text>
@@ -76,7 +76,7 @@
           </text>
 
           <!-- 工作模式 -->
-          <text class="data-cell data-cell--status">
+          <text class="data-cell data-cell--status data-cell--workMode">
             <text
                 class="status-tag"
                 :class="getWorkModeClass(deviceSetting.workMode)"
@@ -199,4 +199,7 @@ function getWorkModeClass(mode?: number | null) {
 @import "@/pages/device/components/x/table-cell.css";
 @import "@/pages/device/components/x/table.css";
 @import "@/pages/device/components/x/table-row.css";
+.data-cell--workMode{
+  width: 180px;
+}
 </style>

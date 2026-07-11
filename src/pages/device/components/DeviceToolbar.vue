@@ -62,6 +62,9 @@
         <button v-if="buttons.import" class = "toolbar-button toolbar-button--green" @click="emit('onImport')">{{t("toolbar.import")}}</button>
         <button v-if="buttons.export" class = "toolbar-button toolbar-button--green" @click="emit('onExport')">{{t("toolbar.export")}}</button>
       </template>
+      <template #right>
+        <button v-if="buttons.detail" class = "toolbar-button" @click="emit('showDetail')">{{t("toolbar.showDetail")}}</button>
+      </template>
     </XToolbarActions>
 
   </view>
@@ -123,6 +126,7 @@ const emit = defineEmits<{
   (e: "edit"): void;
   (e: "bindDept"): void;
   (e: "bindValve"): void;
+  (e: "showDetail"): void;
 }>();
 
 /**
