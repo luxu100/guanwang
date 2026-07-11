@@ -8,6 +8,7 @@
         @search="handleSearch"
         @reset="handleReset"
         @refresh="fetchSettings"
+        @show-detail="toggleDetailPanel"
     />
 
     <!-- 主体 -->

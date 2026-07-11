@@ -16,9 +16,6 @@
 
     <!-- 主体 -->
     <view class="worksheet-layout">
-
-      <!-- 左侧 table（固定不变） -->
-      <view class="table-panel">
         <ValveTableView
             :valves="valveList"
             :pagination="pagination"
@@ -27,7 +24,6 @@
             @page-change="handlePageChange"
             @page-size-change="handlePageSizeChange"
         />
-      </view>
     </view>
 
   </view>

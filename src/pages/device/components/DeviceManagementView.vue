@@ -194,7 +194,7 @@ const t = createScopedT("devicePage");
  * =========================
  */
 const props = defineProps<{
-  mode: "info" | "maintenance" | "status" | "deviceProtocol" ;
+  mode: "info" | "maintenance" | "status" | "protocol" ;
 }>();
 
 /**
@@ -328,7 +328,7 @@ const deviceModuleConfig = {
     },
   },
 
-  deviceProtocol: {
+  protocol: {
     panel: DeviceProtocolPanel,
 
     searchForm: {

@@ -52,7 +52,8 @@
         :show-add="false"
         :show-delete="false"
     >
-      <template #left>
+      <template #right>
+        <button class = "toolbar-button" @click="emit('showDetail')">{{t("toolbar.showDetail")}}</button>
       </template>
     </XToolbarActions>
 
@@ -96,6 +97,7 @@ const emit = defineEmits<{
   (e: "search"): void;
   (e: "reset"): void;
   (e: "refresh"): void;
+  (e: "showDetail"): void;
 }>();
 
 /**
