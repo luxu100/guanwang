@@ -843,3 +843,34 @@ export interface DeviceProtocolRelationVO {
     createdAt?: string;
     updatedAt?: string;
 }
+
+export interface DeviceRelationInfoVO {
+    product?: DeviceProductVO;
+    tube?: TubeNetworkVO;
+    dept?: DeptVO;
+}
+
+export interface DeviceProductVO {
+    id:number;
+    productName:string;
+    productCode:string;
+    protocolVersion:string;
+    aepProtocol:string;
+}
+
+export interface TubeNetworkVO {
+    id:number;
+    tubeName:string;
+    tubeType:number;
+    tubeShape:number;
+    wellNumber:string;
+    status:number;
+    administrator:string;
+}
+
+export interface DeptVO {
+    id:number;
+    deptName:string;
+    administrator:string;
+    description:string;
+}

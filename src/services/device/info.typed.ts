@@ -1,6 +1,16 @@
 import {createCrudServiceTyped, getRequestT} from "@/services/shared/crud.typed";
 import { getRequest, postRequest } from "@/services/shared/crud";
-import type {Dept, DeptDevice, DeptTreeVO, Device, DeviceProduct, DeviceProtocol, TubeNetwork, Valve} from "./types";
+import type {
+  Dept,
+  DeptDevice,
+  DeptTreeVO,
+  Device,
+  DeviceProduct,
+  DeviceProtocol,
+  DeviceRelationInfoVO,
+  TubeNetwork,
+  Valve
+} from "./types";
 import type {ApiResponse} from "@/types/api";
 
 // ================= device =================
@@ -117,3 +127,8 @@ export function getValveDevicePageT(valveId: string | number, data: Record<strin
   return postRequest(`/api/valve/${valveId}/devices/page`, data);
 }
 
+export function getDeviceRelationInfoT(id: number) {
+  return getRequestT<DeviceRelationInfoVO>(
+      `/api/device/${id}/relation-info`
+  );
+}

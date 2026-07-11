@@ -283,17 +283,28 @@
       "title": "Device Details",
 
       "tabs": {
-        "device": "Device",
-        "communication": "Communication & Protocol",
-        "tube": "Pipeline",
-        "product": "Product",
-        "dept": "Organization"
+        "detail": "Device Details",
+        "relation": "Related Information"
       },
 
       "empty": "No Data",
 
-      "fields": {
+      "summary": {
+        "type": "Product Model",
+        "online": "Online Status"
+      },
 
+      "section": {
+        "base": "Basic Information",
+        "status": "Status Information",
+        "install": "Installation Information",
+        "communication": "Communication Information",
+        "product": "Product Information",
+        "tube": "Pipeline Information",
+        "dept": "Organization Information"
+      },
+
+      "fields": {
         "device": {
           "deviceNumber": "Device Number",
           "deviceAlias": "Device Alias",
@@ -304,69 +315,80 @@
           "serialNumber": "Serial Number",
           "hardwareVersion": "Hardware Version",
           "softwareVersion": "Software Version",
-          "factoryTime": "Manufacture Date",
 
           "enableState": "Enable Status",
           "onlineStatus": "Online Status",
           "leakStatus": "Leak Status",
-          "leakProperty": "Leak Characteristic",
           "lastSamplingTime": "Last Sampling Time",
-          "observeDay": "Observation Days",
 
           "installState": "Installation Status",
           "installMode": "Installation Mode",
           "installAddress": "Installation Address",
-          "installLongitude": "Longitude",
-          "installLatitude": "Latitude"
+          "installLongitude": "Installation Longitude",
+          "installLatitude": "Installation Latitude"
         },
-
 
         "communication": {
           "wifiName": "WiFi Name",
-          "wifiMac": "WiFi MAC",
+          "wifiMac": "WiFi Address",
 
           "serverIp": "Server IP",
           "serverPort": "Server Port",
 
-          "tcpOnlineStatus": "TCP Status",
-          "tcpRemoteIp": "TCP Remote IP",
-          "tcpRemotePort": "TCP Remote Port",
           "tcpSessionId": "TCP Session ID",
-          "tcpConnectedAt": "TCP Connected Time",
-          "tcpLastSeenAt": "TCP Last Seen Time",
+          "tcpLastSeenAt": "Last Communication Time",
 
-          "aepProtocol": "AEP Protocol",
-          "commandSendway": "Command Send Method",
-
-          "algorithmType": "Algorithm Type",
-          "algorithmVersion": "Algorithm Version",
-
-          "loraSignalLevel": "LoRa Signal Level",
-
-          "pressureSensorModel": "Pressure Sensor Model",
-          "pressureSensorSerial": "Pressure Sensor Serial Number"
+          "aepProtocol": "AEP Protocol"
         },
-
-
-        "tube": {
-          "tubeGroup": "Pipeline Group",
-          "tubeName": "Pipeline Name",
-          "tubeType": "Pipeline Type",
-          "tubeOrder": "Pipeline Order",
-          "tubeMaterial": "Pipeline Material",
-          "tubeBore": "Pipeline Diameter",
-          "tubeNumber": "Pipeline Number"
-        },
-
 
         "product": {
-          "productName": "Product Name"
+          "productName": "Product Name",
+          "productCode": "Product Code",
+          "protocolVersion": "Protocol Version",
+          "aepProtocol": "AEP Protocol"
         },
 
+        "tube": {
+          "tubeName": "Pipeline Name",
+          "tubeMaterial": "Pipe Material",
+          "tubeBore": "Pipe Diameter",
+          "tubeNumber": "Pipeline Number",
+          "administrator": "Administrator"
+        },
 
         "dept": {
-          "deptName": "Department Name"
+          "deptName": "Department",
+          "administrator": "Administrator",
+          "description": "Description"
         }
+      },
+
+      "status": {
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+
+        "online": {
+          "online": "Online",
+          "offline": "Offline",
+          "unknown": "Unknown"
+        },
+
+        "leak": {
+          "leak": "Leak",
+          "normal": "Normal",
+          "suspected": "Suspected Leak",
+          "unknown": "Unknown"
+        }
+      },
+
+      "install": {
+        "installed": "Installed",
+        "uninstalled": "Not Installed"
+      },
+
+      "installMode": {
+        "fixed": "Fixed Installation",
+        "mobile": "Mobile Installation"
       }
     },
     "maintain": {
