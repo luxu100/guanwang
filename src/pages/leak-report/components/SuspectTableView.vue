@@ -46,18 +46,18 @@
             <WorkOrderDatetimePicker v-model="filters.endTime" class="filter-datetime" title="选择结束时间" placeholder="请选择结束时间" />
           </view>
         </view>
-      </view>
 
-      <view class="toolbar-row toolbar-row--bottom">
-        <view class="toolbar-actions toolbar-actions--left">
+        <view class="toolbar-actions toolbar-actions--inline">
           <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="searchSuspects">查询</button>
           <button class="toolbar-button" hover-class="toolbar-button--hover" @click="resetFilters">重置</button>
           <button class="toolbar-icon-button" hover-class="toolbar-icon-button--hover" aria-label="刷新" @click="fetchSuspects">
             <text class="icon-refresh"></text>
           </button>
         </view>
-        <view class="toolbar-spacer"></view>
-        <view v-if="mode === 'management'" class="toolbar-actions toolbar-actions--right">
+      </view>
+
+      <view v-if="mode === 'management'" class="toolbar-row toolbar-row--bottom">
+        <view class="toolbar-actions">
           <button
             class="toolbar-button toolbar-button--primary toolbar-button--create"
             hover-class="toolbar-button--hover"
@@ -83,28 +83,57 @@
           </button>
         </view>
       </view>
+
+      <view v-if="mode === 'processing'" class="toolbar-row toolbar-row--bottom">
+        <view class="toolbar-actions">
+          <button
+            class="toolbar-button toolbar-button--primary"
+            :disabled="!selectedSuspect || processing || getIsLeakPoint(selectedSuspect) === 1 || getProcessStatus(selectedSuspect) === 4"
+            hover-class="toolbar-button--hover"
+            @click="openConfirmLeakDialog"
+          >
+            确认疑点
+          </button>
+          <button
+            class="toolbar-button toolbar-button--danger"
+            :disabled="!selectedSuspect || processing || getProcessStatus(selectedSuspect) === 4 || getIsLeakPoint(selectedSuspect) === 1"
+            hover-class="toolbar-button--hover"
+            @click="openExcludeDialog"
+          >
+            排除疑点
+          </button>
+          <button
+            class="toolbar-button"
+            :disabled="!selectedSuspect || processing || getProcessStatus(selectedSuspect) !== 0"
+            hover-class="toolbar-button--hover"
+            @click="openDispatchDialog"
+          >
+            转工单
+          </button>
+        </view>
+      </view>
     </view>
 
     <!-- ========== 左侧表格 + 右侧详情面板 ========== -->
-    <view ref="suspectLayoutRef" class="suspect-layout">
+    <view class="suspect-layout">
       <!-- 左侧表格 -->
-      <view class="suspect-table-panel" :style="{ width: splitRatio * 100 + '%', flexShrink: 0 }">
+      <view class="suspect-table-panel">
         <view class="table-head">
           <text>{{ pageTitle }}</text>
           <text class="table-head__meta">共 {{ total }} 条</text>
         </view>
 
-        <scroll-view class="table-scroll" scroll-y>
+        <scroll-view class="table-scroll" scroll-x scroll-y>
           <view class="data-table">
             <view class="data-row data-row--header">
-              <text class="data-cell data-cell--index data-cell--sortable" @click="toggleSort('index')">序号<text class="sort-indicator" :class="getSortClass('index')"></text></text>
-              <text class="data-cell data-cell--detect-type data-cell--sortable" @click="toggleSort('detectType')">检出类型<text class="sort-indicator" :class="getSortClass('detectType')"></text></text>
-              <text class="data-cell data-cell--process-status data-cell--sortable" @click="toggleSort('processStatus')">处理状态<text class="sort-indicator" :class="getSortClass('processStatus')"></text></text>
-              <text class="data-cell data-cell--is-leak data-cell--sortable" @click="toggleSort('isLeakPoint')">是否漏点<text class="sort-indicator" :class="getSortClass('isLeakPoint')"></text></text>
-              <text class="data-cell data-cell--position data-cell--sortable" @click="toggleSort('leakPointPosition')">漏点位置<text class="sort-indicator" :class="getSortClass('leakPointPosition')"></text></text>
-              <text class="data-cell data-cell--time data-cell--sortable" @click="toggleSort('reportTime')">上报时间<text class="sort-indicator" :class="getSortClass('reportTime')"></text></text>
-              <text class="data-cell data-cell--reporter data-cell--sortable" @click="toggleSort('reporter')">上报人员<text class="sort-indicator" :class="getSortClass('reporter')"></text></text>
-              <text class="data-cell data-cell--worksheet data-cell--sortable" @click="toggleSort('workOrderNo')">关联工单<text class="sort-indicator" :class="getSortClass('workOrderNo')"></text></text>
+              <text class="data-cell data-cell--index data-header-cell--sortable" :class="{ 'data-header-cell--active': sortField === 'index' }" @click="toggleSort('index')">序号<text class="sort-indicator" :class="getSortClass('index')"></text></text>
+              <text class="data-cell data-cell--detect-type data-header-cell--sortable" :class="{ 'data-header-cell--active': sortField === 'detectType' }" @click="toggleSort('detectType')">检出类型<text class="sort-indicator" :class="getSortClass('detectType')"></text></text>
+              <text class="data-cell data-cell--process-status data-header-cell--sortable" :class="{ 'data-header-cell--active': sortField === 'processStatus' }" @click="toggleSort('processStatus')">处理状态<text class="sort-indicator" :class="getSortClass('processStatus')"></text></text>
+              <text class="data-cell data-cell--is-leak data-header-cell--sortable" :class="{ 'data-header-cell--active': sortField === 'isLeakPoint' }" @click="toggleSort('isLeakPoint')">是否漏点<text class="sort-indicator" :class="getSortClass('isLeakPoint')"></text></text>
+              <text class="data-cell data-cell--position data-header-cell--sortable" :class="{ 'data-header-cell--active': sortField === 'leakPointPosition' }" @click="toggleSort('leakPointPosition')">漏点位置<text class="sort-indicator" :class="getSortClass('leakPointPosition')"></text></text>
+              <text class="data-cell data-cell--time data-header-cell--sortable" :class="{ 'data-header-cell--active': sortField === 'reportTime' }" @click="toggleSort('reportTime')">上报时间<text class="sort-indicator" :class="getSortClass('reportTime')"></text></text>
+              <text class="data-cell data-cell--reporter data-header-cell--sortable" :class="{ 'data-header-cell--active': sortField === 'reporter' }" @click="toggleSort('reporter')">上报人员<text class="sort-indicator" :class="getSortClass('reporter')"></text></text>
+              <text class="data-cell data-cell--worksheet data-header-cell--sortable" :class="{ 'data-header-cell--active': sortField === 'workOrderNo' }" @click="toggleSort('workOrderNo')">关联工单<text class="sort-indicator" :class="getSortClass('workOrderNo')"></text></text>
             </view>
 
             <view v-if="loading" class="table-state">加载中...</view>
@@ -142,23 +171,8 @@
         </view>
       </view>
 
-      <view
-        ref="splitDividerRef"
-        class="split-divider"
-        :class="{ 'split-divider--active': isDragging }"
-        @mousedown="onDividerMouseDown"
-        @touchstart.prevent="onDividerTouchStart"
-      >
-        <view class="split-divider__line"></view>
-        <view class="split-divider__grip">
-          <view class="split-divider__dot"></view>
-          <view class="split-divider__dot"></view>
-          <view class="split-divider__dot"></view>
-        </view>
-      </view>
-
-      <!-- 右侧详情面板 — flex:1 自动占满剩余宽度 -->
-      <view class="suspect-detail-panel" style="flex: 1; min-width: 0;">
+      <!-- 右侧详情面板 -->
+      <view class="suspect-detail-panel">
         <view class="detail-tabs">
           <view
             v-for="tab in detailTabs"
@@ -175,72 +189,48 @@
         <view v-else class="detail-body">
           <!-- 疑点详情 Tab -->
           <view v-if="activeTab === 'base'" class="detail-base-panel">
-            <view class="detail-summary">
-              <view class="detail-summary__main">
-                <text class="detail-summary__label">疑点编号</text>
-                <text class="detail-summary__number">{{ getId(selectedSuspect) }}</text>
+            <view class="detail-summary-card">
+              <view class="detail-summary-card__head">
+                <view class="detail-summary-card__id-group">
+                  <text class="detail-summary-card__label">疑点编号</text>
+                  <text class="detail-summary-card__number">{{ getId(selectedSuspect) }}</text>
+                </view>
+                <view class="detail-summary-card__badges">
+                  <text class="status-tag" :class="getProcessStatusClass(selectedSuspect)">{{ getProcessStatusLabel(selectedSuspect) }}</text>
+                </view>
               </view>
             </view>
 
-            <view class="detail-grid detail-grid--base">
-              <view v-for="item in baseDetailFields" :key="item.label" class="detail-item detail-item--base">
-                <text class="detail-item__label">{{ item.label }}</text>
-                <text class="detail-item__value">{{ item.value }}</text>
+            <view class="detail-fields-grid">
+              <view v-for="item in baseDetailFields" :key="item.label" class="detail-field-card">
+                <text class="detail-field-card__label">{{ item.label }}</text>
+                <text class="detail-field-card__value">{{ item.value }}</text>
               </view>
             </view>
           </view>
 
           <!-- 管道信息 Tab -->
-          <view v-if="activeTab === 'pipe'" class="detail-grid detail-grid--content">
-            <view v-for="item in pipeDetailFields" :key="item.label" class="detail-item detail-item--note">
-              <text class="detail-item__label">{{ item.label }}</text>
-              <text class="detail-item__value">{{ item.value }}</text>
+          <view v-if="activeTab === 'pipe'" class="detail-base-panel">
+            <view class="detail-fields-grid">
+              <view v-for="item in pipeDetailFields" :key="item.label" class="detail-field-card">
+                <text class="detail-field-card__label">{{ item.label }}</text>
+                <text class="detail-field-card__value">{{ item.value }}</text>
+              </view>
             </view>
           </view>
 
           <!-- 关联信息 Tab -->
-          <view v-if="activeTab === 'related'" class="detail-grid detail-grid--content">
-            <view v-for="item in relatedDetailFields" :key="item.label" class="detail-item detail-item--note">
-              <text class="detail-item__label">{{ item.label }}</text>
-              <text class="detail-item__value">{{ item.value }}</text>
+          <view v-if="activeTab === 'related'" class="detail-base-panel">
+            <view class="detail-fields-grid">
+              <view v-for="item in relatedDetailFields" :key="item.label" class="detail-field-card">
+                <text class="detail-field-card__label">{{ item.label }}</text>
+                <text class="detail-field-card__value">{{ item.value }}</text>
+              </view>
             </view>
           </view>
-        </view>
-
-        <!-- 疑点处理区（仅处理模式） -->
-        <view v-if="selectedSuspect && mode === 'processing'" class="process-box">
-          <text class="process-box__title">疑点处理</text>
-          <view class="process-actions">
-            <!-- 状态 0-未处理：派单 -->
-            <template v-if="getProcessStatus(selectedSuspect) === 0">
-              <button class="toolbar-button process-action process-action--confirm-leak" :disabled="processing" hover-class="toolbar-button--hover" @click="openConfirmLeakDialog">确认疑点</button>
-              <button class="toolbar-button process-action process-action--dispatch" :disabled="processing" hover-class="toolbar-button--hover" @click="openDispatchDialog">转工单</button>
-              <button class="toolbar-button process-action process-action--exclude" :disabled="processing" hover-class="toolbar-button--hover" @click="openExcludeDialog">排除疑点</button>
-            </template>
-            <!-- 状态 1-已派单：确认疑点、排除疑点、查看工单 -->
-            <template v-if="getProcessStatus(selectedSuspect) === 1">
-              <button class="toolbar-button process-action process-action--confirm-leak" :disabled="processing" hover-class="toolbar-button--hover" @click="openConfirmLeakDialog">确认疑点</button>
-              <button class="toolbar-button process-action process-action--exclude" :disabled="processing" hover-class="toolbar-button--hover" @click="openExcludeDialog">排除疑点</button>
-              <button class="toolbar-button process-action process-action--view-worksheet" :disabled="!getWorkOrderId(selectedSuspect)" hover-class="toolbar-button--hover" @click="viewWorkOrder">查看工单</button>
-            </template>
-            <!-- 状态 2-处理中：确认疑点、排除疑点、查看工单 -->
-            <template v-if="getProcessStatus(selectedSuspect) === 2">
-              <button class="toolbar-button process-action process-action--confirm-leak" :disabled="processing" hover-class="toolbar-button--hover" @click="openConfirmLeakDialog">确认疑点</button>
-              <button class="toolbar-button process-action process-action--exclude" :disabled="processing" hover-class="toolbar-button--hover" @click="openExcludeDialog">排除疑点</button>
-              <button class="toolbar-button process-action process-action--view-worksheet" :disabled="!getWorkOrderId(selectedSuspect)" hover-class="toolbar-button--hover" @click="viewWorkOrder">查看工单</button>
-            </template>
-            <!-- 状态 3-已完成：查看工单 -->
-            <template v-if="getProcessStatus(selectedSuspect) === 3">
-              <button class="toolbar-button process-action process-action--view-worksheet" :disabled="!getWorkOrderId(selectedSuspect)" hover-class="toolbar-button--hover" @click="viewWorkOrder">查看工单</button>
-            </template>
-            <!-- 状态 4-已排除：仅查看 -->
-            <template v-if="getProcessStatus(selectedSuspect) === 4">
-              <text class="process-action--excluded">已排除</text>
-            </template>
-          </view>
-        </view>
       </view>
     </view>
+  </view>
 
     <!-- ========== 转工单对话框 ========== -->
     <view v-if="dispatchDialogVisible" class="dialog-mask" @click.self="closeDispatchDialog">
@@ -257,66 +247,74 @@
             <text class="form-label">疑点编号</text>
             <view class="form-readonly">{{ dispatchSuspectId || "-" }}</view>
           </view>
-          <view class="form-field">
-            <text class="form-label">工单编号</text>
-            <input v-model="dispatchForm.workOrderNo" class="form-input" placeholder="不填则自动生成" placeholder-class="input-placeholder" />
+          <view class="form-grid form-grid--two">
+            <view class="form-field">
+              <text class="form-label">工单编号</text>
+              <input v-model="dispatchForm.workOrderNo" class="form-input" placeholder="不填则自动生成" placeholder-class="input-placeholder" />
+            </view>
+            <view class="form-field">
+              <text class="form-label">预期时间</text>
+              <WorkOrderDatetimePicker v-model="dispatchForm.expectedTime" class="form-datetime" title="选择预期时间" placeholder="请选择预期时间" />
+            </view>
           </view>
-          <view class="form-field">
-            <text class="form-label">预期时间</text>
-            <WorkOrderDatetimePicker v-model="dispatchForm.expectedTime" class="form-datetime" title="选择预期时间" placeholder="请选择预期时间" />
-          </view>
-          <view class="form-field">
-            <text class="form-label">紧急程度</text>
-            <view class="select-field">
-              <view
-                class="form-select form-select--dropdown"
-                :class="{ 'form-select--open': dispatchUrgencySelectOpen, 'form-control--error': dispatchUrgencyError }"
-                @click.stop="dispatchUrgencySelectOpen = !dispatchUrgencySelectOpen"
-              >
-                <text :class="{ 'select-placeholder': !dispatchForm.urgencyLevel }">{{ dispatchUrgencyLabel }}</text>
-                <text class="select-arrow"></text>
-              </view>
-              <view v-if="dispatchUrgencySelectOpen" class="select-menu">
+          <view class="form-grid form-grid--two">
+            <view class="form-field">
+              <text class="form-label">紧急程度</text>
+              <view class="select-field">
                 <view
-                  v-for="item in urgencyOptions"
-                  :key="item.value"
-                  class="select-option"
-                  :class="{ 'select-option--active': dispatchForm.urgencyLevel === item.value }"
-                  @click.stop="selectDispatchUrgency(item.value)"
+                  class="form-select form-select--dropdown"
+                  :class="{ 'form-select--open': dispatchUrgencySelectOpen, 'form-control--error': dispatchUrgencyError }"
+                  @click.stop="dispatchUrgencySelectOpen = !dispatchUrgencySelectOpen"
                 >
-                  {{ item.label }}
+                  <text :class="{ 'select-placeholder': !dispatchForm.urgencyLevel }">{{ dispatchUrgencyLabel }}</text>
+                  <text class="select-arrow"></text>
+                </view>
+                <view v-if="dispatchUrgencySelectOpen" class="select-menu">
+                  <view
+                    v-for="item in urgencyOptions"
+                    :key="item.value"
+                    class="select-option"
+                    :class="{ 'select-option--active': dispatchForm.urgencyLevel === item.value }"
+                    @click.stop="selectDispatchUrgency(item.value)"
+                  >
+                    {{ item.label }}
+                  </view>
                 </view>
               </view>
+              <text v-if="dispatchUrgencyError" class="form-error">{{ dispatchUrgencyError }}</text>
             </view>
-            <text v-if="dispatchUrgencyError" class="form-error">{{ dispatchUrgencyError }}</text>
+            <view class="form-field">
+              <text class="form-label">处理流程</text>
+              <input v-model="dispatchForm.processFlow" class="form-input" placeholder="请输入处理流程" placeholder-class="input-placeholder" />
+            </view>
           </view>
-          <view class="form-field">
-            <text class="form-label">处理流程</text>
-            <input v-model="dispatchForm.processFlow" class="form-input" placeholder="请输入处理流程" placeholder-class="input-placeholder" />
+          <view class="form-grid form-grid--two">
+            <view class="form-field">
+              <text class="form-label">处理人员</text>
+              <input v-model="dispatchForm.handler" class="form-input" placeholder="请输入处理人员" placeholder-class="input-placeholder" />
+            </view>
+            <view class="form-field">
+              <text class="form-label">设备编号</text>
+              <input v-model="dispatchForm.deviceNo" class="form-input" placeholder="请输入设备编号" placeholder-class="input-placeholder" />
+            </view>
           </view>
-          <view class="form-field">
-            <text class="form-label">处理人员</text>
-            <input v-model="dispatchForm.handler" class="form-input" placeholder="请输入处理人员" placeholder-class="input-placeholder" />
-          </view>
-          <view class="form-field">
-            <text class="form-label">备注</text>
-            <textarea v-model="dispatchForm.remark" class="form-textarea" placeholder="请输入备注" placeholder-class="input-placeholder" />
-          </view>
-          <view class="form-field">
-            <text class="form-label">设备编号</text>
-            <input v-model="dispatchForm.deviceNo" class="form-input" placeholder="请输入设备编号" placeholder-class="input-placeholder" />
-          </view>
-          <view class="form-field">
-            <text class="form-label">渗漏状态</text>
-            <input v-model="dispatchForm.leakageStatus" class="form-input" placeholder="请输入渗漏状态" placeholder-class="input-placeholder" />
-          </view>
-          <view class="form-field">
-            <text class="form-label">安装图片</text>
-            <input v-model="dispatchForm.installImage" class="form-input" placeholder="请输入安装图片地址" placeholder-class="input-placeholder" />
+          <view class="form-grid form-grid--two">
+            <view class="form-field">
+              <text class="form-label">渗漏状态</text>
+              <input v-model="dispatchForm.leakageStatus" class="form-input" placeholder="请输入渗漏状态" placeholder-class="input-placeholder" />
+            </view>
+            <view class="form-field">
+              <text class="form-label">安装图片</text>
+              <input v-model="dispatchForm.installImage" class="form-input" placeholder="请输入安装图片地址" placeholder-class="input-placeholder" />
+            </view>
           </view>
           <view class="form-field">
             <text class="form-label">安装地址</text>
             <input v-model="dispatchForm.installAddress" class="form-input" placeholder="请输入安装地址" placeholder-class="input-placeholder" />
+          </view>
+          <view class="form-field">
+            <text class="form-label">备注</text>
+            <textarea v-model="dispatchForm.remark" class="form-textarea" placeholder="请输入备注" placeholder-class="input-placeholder" />
           </view>
         </view>
         <view class="dialog-footer">
@@ -343,29 +341,105 @@
             <text class="form-label">疑点编号</text>
             <view class="form-readonly">{{ confirmLeakSuspectId || "-" }}</view>
           </view>
-          <view class="form-field">
-            <text class="form-label">漏点类型</text>
-            <input v-model="confirmLeakForm.leakPointType" class="form-input" placeholder="请输入漏点类型" placeholder-class="input-placeholder" />
+          <view class="form-grid form-grid--two">
+            <view class="form-field">
+              <text class="form-label">检出时间</text>
+              <WorkOrderDatetimePicker v-model="confirmLeakForm.detectTime" class="form-datetime" title="选择检出时间" placeholder="请选择检出时间" />
+            </view>
+            <view class="form-field">
+              <text class="form-label">检出难度</text>
+              <view class="select-field">
+                <view
+                  class="form-select form-select--dropdown"
+                  :class="{ 'form-select--open': detectDifficultySelectOpen }"
+                  @click.stop="detectDifficultySelectOpen = !detectDifficultySelectOpen"
+                >
+                  <text :class="{ 'select-placeholder': !confirmLeakForm.detectDifficulty }">{{ confirmLeakForm.detectDifficulty || "请选择检出难度" }}</text>
+                  <text class="select-arrow"></text>
+                </view>
+                <view v-if="detectDifficultySelectOpen" class="select-menu">
+                  <view
+                    v-for="item in detectDifficultyOptions"
+                    :key="item.value"
+                    class="select-option"
+                    :class="{ 'select-option--active': confirmLeakForm.detectDifficulty === item.value }"
+                    @click.stop="selectDetectDifficulty(item.value)"
+                  >
+                    {{ item.label }}
+                  </view>
+                </view>
+              </view>
+            </view>
           </view>
-          <view class="form-field">
-            <text class="form-label">漏点位置</text>
-            <input v-model="confirmLeakForm.leakPointPosition" class="form-input" placeholder="请输入漏点位置" placeholder-class="input-placeholder" />
+          <view class="form-grid form-grid--two">
+            <view class="form-field">
+              <text class="form-label">漏点类型</text>
+              <view class="select-field">
+                <view class="form-select form-select--dropdown" :class="{ 'form-select--open': leakPointTypeSelectOpen }" @click.stop="leakPointTypeSelectOpen = !leakPointTypeSelectOpen">
+                  <text :class="{ 'select-placeholder': !confirmLeakForm.leakPointType }">{{ confirmLeakForm.leakPointType || "请选择漏点类型" }}</text>
+                  <text class="select-arrow"></text>
+                </view>
+                <view v-if="leakPointTypeSelectOpen" class="select-menu">
+                  <view v-for="item in leakPointTypeOptions" :key="item" class="select-option" :class="{ 'select-option--active': confirmLeakForm.leakPointType === item }" @click.stop="selectLeakPointType(item)">
+                    <text>{{ item }}</text>
+                  </view>
+                </view>
+              </view>
+            </view>
+            <view class="form-field">
+              <text class="form-label">漏点位置</text>
+              <input v-model="confirmLeakForm.leakPointPosition" class="form-input" placeholder="请输入漏点位置" placeholder-class="input-placeholder" />
+            </view>
           </view>
-          <view class="form-field">
-            <text class="form-label">坐标位置</text>
-            <input v-model="confirmLeakForm.coordinatePosition" class="form-input" placeholder="请输入坐标位置" placeholder-class="input-placeholder" />
+          <view class="form-grid form-grid--two">
+            <view class="form-field">
+              <text class="form-label">坐标位置</text>
+              <input v-model="confirmLeakForm.coordinatePosition" class="form-input" placeholder="请输入坐标位置" placeholder-class="input-placeholder" />
+            </view>
+            <view class="form-field">
+              <text class="form-label">初判级别</text>
+              <view class="select-field">
+                <view class="form-select form-select--dropdown" :class="{ 'form-select--open': initialLevelSelectOpen }" @click.stop="initialLevelSelectOpen = !initialLevelSelectOpen">
+                  <text :class="{ 'select-placeholder': !confirmLeakForm.initialLevel }">{{ confirmLeakForm.initialLevel || "请选择初判级别" }}</text>
+                  <text class="select-arrow"></text>
+                </view>
+                <view v-if="initialLevelSelectOpen" class="select-menu">
+                  <view v-for="item in initialLevelOptions" :key="item.value" class="select-option" :class="{ 'select-option--active': confirmLeakForm.initialLevel === item.value }" @click.stop="selectInitialLevel(item.value)">
+                    <text>{{ item.label }}</text>
+                  </view>
+                </view>
+              </view>
+            </view>
           </view>
-          <view class="form-field">
-            <text class="form-label">初判级别</text>
-            <input v-model="confirmLeakForm.initialLevel" class="form-input" placeholder="请输入初判级别" placeholder-class="input-placeholder" />
-          </view>
-          <view class="form-field">
-            <text class="form-label">漏点大小</text>
-            <input v-model="confirmLeakForm.leakPointSize" class="form-input" placeholder="请输入漏点大小" placeholder-class="input-placeholder" />
-          </view>
-          <view class="form-field">
-            <text class="form-label">漏点路面</text>
-            <input v-model="confirmLeakForm.leakRoadSurface" class="form-input" placeholder="请输入漏点路面" placeholder-class="input-placeholder" />
+          <view class="form-grid form-grid--two">
+            <view class="form-field">
+              <text class="form-label">漏点大小</text>
+              <view class="select-field">
+                <view class="form-select form-select--dropdown" :class="{ 'form-select--open': leakPointSizeSelectOpen }" @click.stop="leakPointSizeSelectOpen = !leakPointSizeSelectOpen">
+                  <text :class="{ 'select-placeholder': !confirmLeakForm.leakPointSize }">{{ confirmLeakForm.leakPointSize || "请选择漏点大小" }}</text>
+                  <text class="select-arrow"></text>
+                </view>
+                <view v-if="leakPointSizeSelectOpen" class="select-menu">
+                  <view v-for="item in leakPointSizeOptions" :key="item" class="select-option" :class="{ 'select-option--active': confirmLeakForm.leakPointSize === item }" @click.stop="selectLeakPointSize(item)">
+                    <text>{{ item }}</text>
+                  </view>
+                </view>
+              </view>
+            </view>
+            <view class="form-field">
+              <text class="form-label">漏点路面</text>
+              <view class="select-field">
+                <view class="form-select form-select--dropdown" :class="{ 'form-select--open': leakRoadSurfaceSelectOpen }" @click.stop="leakRoadSurfaceSelectOpen = !leakRoadSurfaceSelectOpen">
+                  <text :class="{ 'select-placeholder': !confirmLeakForm.leakRoadSurface }">{{ confirmLeakForm.leakRoadSurface || "请选择漏点路面" }}</text>
+                  <text class="select-arrow"></text>
+                </view>
+                <view v-if="leakRoadSurfaceSelectOpen" class="select-menu">
+                  <view v-for="item in leakRoadSurfaceOptions" :key="item" class="select-option" :class="{ 'select-option--active': confirmLeakForm.leakRoadSurface === item }" @click.stop="selectLeakRoadSurface(item)">
+                    <text>{{ item }}</text>
+                  </view>
+                </view>
+              </view>
+            </view>
           </view>
           <view class="form-field">
             <text class="form-label">备注</text>
@@ -417,7 +491,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { getSuspectPage, getSuspectDetail, deleteSuspect } from "@/services/leak-report/suspected-leak";
 import { dispatchSuspect, confirmLeakPoint, excludeSuspect } from "@/services/leak-report/suspected-leak";
 import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
@@ -531,9 +605,6 @@ const activeTab = ref<DetailTab>("base");
 const sortField = ref<string>("");
 const sortOrder = ref<"asc" | "desc" | "">("");
 
-const splitRatio = ref(0.7);
-const isDragging = ref(false);
-
 // 对话框状态
 const processing = ref(false);
 const dispatchDialogVisible = ref(false);
@@ -553,7 +624,10 @@ const dispatchForm = reactive({
 });
 
 const confirmLeakDialogVisible = ref(false);
+const detectDifficultySelectOpen = ref(false);
 const confirmLeakForm = reactive({
+  detectTime: "",
+  detectDifficulty: "",
   leakPointType: "",
   leakPointPosition: "",
   coordinatePosition: "",
@@ -562,6 +636,27 @@ const confirmLeakForm = reactive({
   leakRoadSurface: "",
   remark: "",
 });
+
+const detectDifficultyOptions: SelectOption[] = [
+  { label: "一般", value: "一般" },
+  { label: "疑难", value: "疑难" },
+];
+
+// 确认疑点对话框下拉选项
+const leakPointTypeSelectOpen = ref(false);
+const leakPointTypeOptions = ["小漏量", "远距离", "大漏量", "埋设深", "大口径", "重大隐患", "疑难漏点", "其它"];
+
+const initialLevelSelectOpen = ref(false);
+const initialLevelOptions: SelectOption[] = [
+  { label: "一般", value: "一般" },
+  { label: "紧急", value: "紧急" },
+];
+
+const leakPointSizeSelectOpen = ref(false);
+const leakPointSizeOptions = ["大", "中", "小"];
+
+const leakRoadSurfaceSelectOpen = ref(false);
+const leakRoadSurfaceOptions = ["柏油", "水泥", "绿化", "石板", "泥地", "塘渣", "墙面", "其它"];
 
 // ========== 计算属性 ==========
 const pageTitle = computed(() => pageTitleMap[props.mode]);
@@ -599,23 +694,17 @@ const dispatchUrgencyLabel = computed(() => {
 const dispatchSuspectId = computed(() => (selectedSuspect.value ? getRowId(selectedSuspect.value) : ""));
 const confirmLeakSuspectId = computed(() => (selectedSuspect.value ? getRowId(selectedSuspect.value) : ""));
 
-// 疑点详情字段
+// 疑点详情字段（列表已显示的字段不再重复展示）
 const baseDetailFields = computed(() => {
   const item = selectedSuspect.value || {};
   return [
-    { label: "处理状态", value: getProcessStatusLabel(item) },
-    { label: "检漏类型", value: getTextValue(item, ["detectType"], "-") },
-    { label: "是否漏点", value: getIsLeakPointLabel(item) },
     { label: "漏点类型", value: getTextValue(item, ["leakPointType"], "-") },
     { label: "初判级别", value: getTextValue(item, ["initialLevel"], "-") },
     { label: "漏点大小", value: getTextValue(item, ["leakPointSize"], "-") },
     { label: "漏点路面", value: getTextValue(item, ["leakRoadSurface"], "-") },
     { label: "坐标位置", value: getTextValue(item, ["coordinatePosition"], "-") },
-    { label: "漏点位置", value: getTextValue(item, ["leakPointPosition"], "-") },
-    { label: "上报人员", value: getTextValue(item, ["reporter"], "-") },
-    { label: "上报时间", value: formatDateTime(getTextValue(item, ["reportTime"], "-")) },
-    { label: "备注信息", value: getTextValue(item, ["remark"], "-") },
     { label: "巡查编号", value: getTextValue(item, ["patrolNo"], "-") },
+    { label: "备注信息", value: getTextValue(item, ["remark"], "-") },
   ];
 });
 
@@ -639,11 +728,10 @@ const pipeDetailFields = computed(() => {
   ];
 });
 
-// 关联信息字段
+// 关联信息字段（列表已显示的字段不再重复展示）
 const relatedDetailFields = computed(() => {
   const item = selectedSuspect.value || {};
   return [
-    { label: "关联工单编号", value: getTextValue(item, ["workOrderNo"], "-") },
     { label: "关联工单ID", value: getTextValue(item, ["workOrderId"], "-") },
     { label: "关联漏点记录ID", value: getTextValue(item, ["leakPointRecordId"], "-") },
     { label: "创建时间", value: formatDateTime(getTextValue(item, ["createdAt"], "-")) },
@@ -654,22 +742,6 @@ const relatedDetailFields = computed(() => {
 // ========== 生命周期 ==========
 onMounted(() => {
   void fetchSuspects();
-
-  // window 级鼠标/触摸事件统一在 mounted 注册，确保 mousemove/mouseup 全程捕获
-  window.addEventListener("mousemove", onWindowMouseMove);
-  window.addEventListener("mouseup", onDragEnd);
-  window.addEventListener("touchmove", onWindowTouchMove, { passive: false });
-  window.addEventListener("touchend", onDragEnd);
-});
-
-onUnmounted(() => {
-  isDragging.value = false;
-  window.removeEventListener("mousemove", onWindowMouseMove);
-  window.removeEventListener("mouseup", onDragEnd);
-  window.removeEventListener("touchmove", onWindowTouchMove);
-  window.removeEventListener("touchend", onDragEnd);
-  document.body.style.cursor = "";
-  document.body.style.userSelect = "";
 });
 
 // ========== 筛选器事件处理 ==========
@@ -683,75 +755,6 @@ function handleIsLeakPointChange(event: { detail: { value: number } }) {
 
 function handleDetectTypeChange(event: { detail: { value: number } }) {
   filters.detectType = (detectTypeFilterOptions[event.detail.value]?.value ?? "") as string;
-}
-
-// ========== 拖动分隔条 ==========
-const MIN_RATIO = 0.25;
-const MAX_RATIO = 0.78;
-
-const splitDividerRef = ref<HTMLElement | null>(null);
-const suspectLayoutRef = ref<HTMLElement | null>(null);
-
-// 拖拽内部状态（非响应式，避免频繁刷新）
-let _dragStartX = 0;
-let _dragStartRatio = 0.7;
-let _containerWidth = 0;
-
-// 每次挂载都从默认值 0.7 开始，切换页面时自动回到默认大小
-
-/** 通过 Vue 模板事件触发拖拽开始（兼容 uni-app 事件系统） */
-function onDividerMouseDown(e: MouseEvent) {
-  e.preventDefault();
-  beginDrag(e.clientX);
-}
-
-function onDividerTouchStart(e: TouchEvent) {
-  beginDrag(e.touches[0].clientX);
-}
-
-function beginDrag(clientX: number) {
-  isDragging.value = true;
-  // uni-app 的 <view> ref 指向组件实例，需通过 $el 获取根 DOM 元素
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const layout = ((suspectLayoutRef.value as any)?.$el || document.querySelector(".suspect-layout")) as HTMLElement | null;
-  if (!layout || typeof layout.getBoundingClientRect !== "function") {
-    isDragging.value = false;
-    return;
-  }
-  _containerWidth = layout.getBoundingClientRect().width;
-  if (_containerWidth <= 0) _containerWidth = layout.clientWidth;
-  if (_containerWidth <= 0) {
-    isDragging.value = false;
-    return;
-  }
-  _dragStartRatio = splitRatio.value;
-  _dragStartX = clientX;
-  document.body.style.cursor = "col-resize";
-  document.body.style.userSelect = "none";
-}
-
-function onWindowMouseMove(e: MouseEvent) {
-  if (!isDragging.value) return;
-  moveDrag(e.clientX);
-}
-
-function onWindowTouchMove(e: TouchEvent) {
-  if (!isDragging.value) return;
-  e.preventDefault();
-  moveDrag(e.touches[0].clientX);
-}
-
-function moveDrag(clientX: number) {
-  const delta = _containerWidth > 0 ? (clientX - _dragStartX) / _containerWidth : 0;
-  const newRatio = Math.min(MAX_RATIO, Math.max(MIN_RATIO, _dragStartRatio + delta));
-  splitRatio.value = newRatio;
-}
-
-function onDragEnd() {
-  if (!isDragging.value) return;
-  isDragging.value = false;
-  document.body.style.cursor = "";
-  document.body.style.userSelect = "";
 }
 
 // ========== 查询参数构建 ==========
@@ -1012,19 +1015,57 @@ async function submitDispatch() {
 }
 
 // ========== 确认漏点 ==========
+function selectDetectDifficulty(value: OptionValue) {
+  confirmLeakForm.detectDifficulty = String(value);
+  detectDifficultySelectOpen.value = false;
+}
+
+function selectLeakPointType(value: string) {
+  confirmLeakForm.leakPointType = value;
+  leakPointTypeSelectOpen.value = false;
+}
+
+function selectInitialLevel(value: OptionValue) {
+  confirmLeakForm.initialLevel = String(value);
+  initialLevelSelectOpen.value = false;
+}
+
+function selectLeakPointSize(value: string) {
+  confirmLeakForm.leakPointSize = value;
+  leakPointSizeSelectOpen.value = false;
+}
+
+function selectLeakRoadSurface(value: string) {
+  confirmLeakForm.leakRoadSurface = value;
+  leakRoadSurfaceSelectOpen.value = false;
+}
+
 function openConfirmLeakDialog() {
-  confirmLeakForm.leakPointType = "";
-  confirmLeakForm.leakPointPosition = "";
-  confirmLeakForm.coordinatePosition = "";
-  confirmLeakForm.initialLevel = "";
-  confirmLeakForm.leakPointSize = "";
-  confirmLeakForm.leakRoadSurface = "";
-  confirmLeakForm.remark = "";
+  const suspect = selectedSuspect.value || {};
+  confirmLeakForm.detectTime = "";
+  confirmLeakForm.detectDifficulty = "";
+  confirmLeakForm.leakPointType = String(suspect.leakPointType ?? "");
+  confirmLeakForm.leakPointPosition = String(suspect.leakPointPosition ?? "");
+  confirmLeakForm.coordinatePosition = String(suspect.coordinatePosition ?? "");
+  confirmLeakForm.initialLevel = String(suspect.initialLevel ?? "");
+  confirmLeakForm.leakPointSize = String(suspect.leakPointSize ?? "");
+  confirmLeakForm.leakRoadSurface = String(suspect.leakRoadSurface ?? "");
+  confirmLeakForm.remark = String(suspect.remark ?? "");
+  detectDifficultySelectOpen.value = false;
+  leakPointTypeSelectOpen.value = false;
+  initialLevelSelectOpen.value = false;
+  leakPointSizeSelectOpen.value = false;
+  leakRoadSurfaceSelectOpen.value = false;
   confirmLeakDialogVisible.value = true;
 }
 
 function closeConfirmLeakDialog() {
   confirmLeakDialogVisible.value = false;
+  detectDifficultySelectOpen.value = false;
+  leakPointTypeSelectOpen.value = false;
+  initialLevelSelectOpen.value = false;
+  leakPointSizeSelectOpen.value = false;
+  leakRoadSurfaceSelectOpen.value = false;
 }
 
 async function submitConfirmLeak() {
@@ -1036,7 +1077,12 @@ async function submitConfirmLeak() {
 
   processing.value = true;
   try {
+    // 先收集表单中填写的字段值
     const payload: Record<string, unknown> = {};
+    if (confirmLeakForm.detectTime) payload.detectTime = confirmLeakForm.detectTime;
+    if (confirmLeakForm.detectDifficulty) payload.detectDifficulty = confirmLeakForm.detectDifficulty;
+
+    // 表单可见字段：用户可修改，填入有效值时覆盖
     if (confirmLeakForm.leakPointType.trim()) payload.leakPointType = confirmLeakForm.leakPointType.trim();
     if (confirmLeakForm.leakPointPosition.trim()) payload.leakPointPosition = confirmLeakForm.leakPointPosition.trim();
     if (confirmLeakForm.coordinatePosition.trim()) payload.coordinatePosition = confirmLeakForm.coordinatePosition.trim();
@@ -1044,6 +1090,24 @@ async function submitConfirmLeak() {
     if (confirmLeakForm.leakPointSize.trim()) payload.leakPointSize = confirmLeakForm.leakPointSize.trim();
     if (confirmLeakForm.leakRoadSurface.trim()) payload.leakRoadSurface = confirmLeakForm.leakRoadSurface.trim();
     if (confirmLeakForm.remark.trim()) payload.remark = confirmLeakForm.remark.trim();
+
+    // 同步疑点已有的其他信息（表单不展示但漏点需要保留的字段）
+    const suspect = selectedSuspect.value;
+    if (suspect) {
+      const extraFields: string[] = [
+        "detectType", "tubeBore", "tubeMaterial", "suspectSceneImages",
+        "leakSceneImages", "sceneVideo", "reporter", "reportTime",
+        "patrolNo", "deviceNumber", "noiseTime", "leakStatus", "featureValue",
+        "audioFile", "repairStatus", "repairTime", "repairPerson",
+        "leakUnit", "maintenanceUnit", "deptId",
+      ];
+      for (const field of extraFields) {
+        const val = suspect[field];
+        if (val !== undefined && val !== null && val !== "") {
+          payload[field] = val;
+        }
+      }
+    }
 
     const response = (await confirmLeakPoint(id, payload)) as ApiResponseLike;
     assertSuccessResponse(response);
@@ -1177,6 +1241,17 @@ function getWorkOrderId(item: SuspectRecord | null): string | number {
   if (!item) return "";
   const val = getStableValue(item, ["workOrderId"]);
   return typeof val === "string" || typeof val === "number" ? val : "";
+}
+
+function getIsLeakPoint(item: SuspectRecord | null): number {
+  if (!item) return -1;
+  const val = getStableValue(item, ["isLeakPoint"]);
+  if (typeof val === "number") return val;
+  if (typeof val === "string" && val.trim()) {
+    const num = Number(val);
+    return Number.isNaN(num) ? -1 : num;
+  }
+  return -1;
 }
 
 // ========== 通用工具函数（保留自原有文件） ==========
@@ -1407,10 +1482,6 @@ defineExpose({
   width: 100%;
 }
 
-.toolbar-spacer {
-  flex: 1;
-}
-
 .filter-label {
   color: #52677b;
   font-size: 12px;
@@ -1542,9 +1613,24 @@ defineExpose({
   margin-left: 0;
 }
 
-.toolbar-actions--right {
-  margin-left: auto;
-  justify-content: flex-end;
+.toolbar-actions--inline {
+  align-self: end;
+}
+
+.toolbar-actions--inline .toolbar-button,
+.toolbar-actions--inline .toolbar-icon-button {
+  height: 30px;
+  line-height: 30px;
+  border-radius: 4px;
+}
+
+.toolbar-actions--inline .toolbar-button {
+  min-width: 56px;
+  padding: 0 12px;
+}
+
+.toolbar-actions--inline .toolbar-icon-button {
+  width: 30px;
 }
 
 .toolbar-actions .toolbar-button,
@@ -1628,12 +1714,13 @@ defineExpose({
 }
 
 .suspect-layout {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(380px, 20vw, 420px);
   flex: 1;
+  gap: 14px;
   margin-top: 14px;
   min-height: 0;
   overflow: hidden;
-  overflow-x: hidden;
 }
 
 .suspect-table-panel,
@@ -1643,91 +1730,6 @@ defineExpose({
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  overflow-x: hidden;
-}
-
-.split-divider {
-  flex: none;
-  width: 16px;
-  height: 100%;
-  cursor: col-resize;
-  background: transparent;
-  transition: background 0.18s ease;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
-  /* 鼠标靠近时切换为拉伸光标 */
-}
-
-.split-divider__line {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  width: 2px;
-  background: #d8e5ef;
-  border-radius: 999px;
-  transform: translateX(-50%);
-  transition: background 0.18s ease, box-shadow 0.18s ease;
-}
-
-.split-divider:hover .split-divider__line,
-.split-divider--active .split-divider__line {
-  background: #0d82ee;
-  box-shadow: 0 0 6px rgba(13, 130, 238, 0.3);
-}
-
-.split-divider__grip {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  opacity: 0.4;
-  transition: opacity 0.18s ease, transform 0.18s ease;
-}
-
-.split-divider:hover .split-divider__grip,
-.split-divider--active .split-divider__grip {
-  opacity: 1;
-  transform: scale(1.1);
-}
-
-.split-divider__dot {
-  width: 4px;
-  height: 4px;
-  background: #809bb5;
-  border-radius: 50%;
-  transition: background 0.18s ease;
-}
-
-.split-divider:hover .split-divider__dot,
-.split-divider--active .split-divider__dot {
-  background: #0d82ee;
-}
-
-.split-divider::before {
-  display: none;
-}
-
-.split-divider:hover {
-  background: rgba(13, 130, 238, 0.06);
-}
-
-.split-divider--active {
-  background: rgba(13, 130, 238, 0.1) !important;
-}
-
-/* 面板最小宽度约束 — 防止拖拽时过度挤压 */
-.suspect-table-panel {
-  min-width: 280px;
-}
-
-.suspect-detail-panel {
-  min-width: 240px;
 }
 
 .table-head {
@@ -1792,16 +1794,16 @@ defineExpose({
 
 .data-table {
   width: 100%;
-  min-width: 0;
+  min-width: 900px;
   background: #ffffff;
 }
 
 .data-row {
   display: grid;
-  grid-template-columns: 48px 90px 80px 72px 1fr 1fr 80px 150px;
+  grid-template-columns: 54px minmax(92px, 0.85fr) minmax(88px, 0.82fr) minmax(78px, 0.76fr) minmax(160px, 1.2fr) minmax(140px, 1fr) minmax(88px, 0.78fr) minmax(200px, 0.95fr);
   min-height: 42px;
   width: 100%;
-  min-width: 0;
+  min-width: 900px;
   border-bottom: 1px solid #edf1f5;
   cursor: pointer;
   transition:
@@ -1852,7 +1854,11 @@ defineExpose({
 .data-row--active {
   position: relative;
   background: #e7f3ff !important;
-  box-shadow: inset 0 0 0 1px #b9dcff;
+}
+
+.data-row--active .data-cell {
+  background: #e7f3ff;
+  box-shadow: inset 0 -1px 0 0 #b9dcff;
 }
 
 .data-row--active::before {
@@ -1879,7 +1885,6 @@ defineExpose({
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
-  border-right: 1px solid #edf1f5;
 }
 
 .data-row--header .data-cell {
@@ -1888,45 +1893,72 @@ defineExpose({
   font-size: 12px;
   letter-spacing: 0;
   text-align: center;
-}
-
-.data-cell--sortable {
-  cursor: pointer;
+  gap: 5px;
   user-select: none;
-  transition: color 0.18s ease;
 }
 
-.data-cell--sortable:hover {
+.data-header-cell--sortable {
+  cursor: pointer;
+  transition:
+    color 0.18s ease,
+    background 0.18s ease;
+}
+
+.data-header-cell--sortable:hover {
   color: #0d82ee;
+  background: #edf7ff;
+}
+
+.data-header-cell--active {
+  color: #0d82ee !important;
+  background: #eaf5ff;
 }
 
 .sort-indicator {
-  display: inline-block;
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  width: 12px;
+  height: 14px;
+  color: #9cafc1;
+  vertical-align: middle;
+}
+
+.sort-indicator::before,
+.sort-indicator::after {
+  position: absolute;
+  left: 3px;
   width: 0;
   height: 0;
-  margin-left: 4px;
-  vertical-align: middle;
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
+  content: "";
+  border-right: 3px solid transparent;
+  border-left: 3px solid transparent;
 }
 
+.sort-indicator::before {
+  top: 2px;
+  border-bottom: 4px solid currentColor;
+}
+
+.sort-indicator::after {
+  bottom: 2px;
+  border-top: 4px solid currentColor;
+}
+
+.sort-indicator--asc::before,
+.sort-indicator--desc::after {
+  color: #0d82ee;
+}
+
+.sort-indicator--asc::after,
+.sort-indicator--desc::before,
 .sort-indicator--default {
-  border-top: 5px solid #c5d2e0;
-  opacity: 0.4;
+  opacity: 0.46;
 }
 
-.sort-indicator--asc {
-  border-bottom: 5px solid #0d82ee;
-  border-top: 0;
-}
 
-.sort-indicator--desc {
-  border-top: 5px solid #0d82ee;
-}
-
-.data-cell:last-child {
-  border-right: 0;
-}
+/* last-child border removed — left/right 边框已全部取消 */
 
 .data-cell--index {
   justify-content: center;
@@ -1934,8 +1966,8 @@ defineExpose({
 }
 
 .data-cell--position {
-  justify-content: flex-start;
-  text-align: left;
+  justify-content: center;
+  text-align: center;
 }
 
 .data-cell--time {
@@ -2114,184 +2146,122 @@ defineExpose({
   text-align: center;
 }
 
-.detail-grid {
-  display: grid;
-  gap: 12px;
-}
-
 .detail-base-panel {
   display: grid;
-  gap: 12px;
+  gap: 14px;
+  min-width: 0;
 }
 
-.detail-summary {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  align-items: stretch;
-  min-width: 0;
-  padding: 14px 16px;
+/* ========== 摘要卡片 ========== */
+.detail-summary-card {
   background: #ffffff;
   border: 1px solid #dce9f4;
   border-left: 4px solid #0d82ee;
-  border-radius: 6px;
-  box-shadow: 0 8px 18px rgba(33, 72, 108, 0.045);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(33, 72, 108, 0.07);
+  overflow: hidden;
 }
 
-.detail-summary__main {
+.detail-summary-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+}
+
+.detail-summary-card__id-group {
+  display: grid;
+  gap: 4px;
   min-width: 0;
 }
 
-.detail-summary__label {
-  display: block;
+.detail-summary-card__label {
   color: #6b7f94;
   font-size: 12px;
   font-weight: 800;
 }
 
-.detail-summary__number {
-  display: block;
-  margin-top: 7px;
+.detail-summary-card__number {
   color: #0f4c81;
   font-family: "DIN Alternate", "Arial", sans-serif;
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 900;
   line-height: 1.25;
   word-break: normal;
   overflow-wrap: anywhere;
 }
 
-.detail-grid--base {
-  grid-template-columns: 1fr;
-  gap: 0;
-  overflow: hidden;
-  background: #ffffff;
-  border: 1px solid #dfebf5;
-  border-radius: 6px;
-  box-shadow: 0 8px 18px rgba(33, 72, 108, 0.045);
-}
-
-.detail-grid--content {
-  grid-template-columns: 1fr;
+.detail-summary-card__badges {
+  display: flex;
+  align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
-.detail-item {
+/* ========== 字段卡片网格 ========== */
+.detail-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.detail-field-card {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  gap: 6px;
   min-width: 0;
-  min-height: 74px;
-  padding: 12px 13px;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid #dfebf5;
-  border-radius: 6px;
-  box-shadow: 0 8px 18px rgba(33, 72, 108, 0.055);
-}
-
-.detail-item--base {
-  position: relative;
-  display: grid;
-  grid-template-columns: 92px minmax(0, 1fr);
-  align-items: center;
-  min-height: 48px;
-  padding: 8px 14px;
+  padding: 12px 14px;
   background: #ffffff;
-  border: 0;
-  border-bottom: 1px solid #edf3f8;
-  border-radius: 0;
-  box-shadow: none;
+  border: 1px solid #e8f0f7;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(33, 72, 108, 0.04);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
-.detail-item--base::before {
-  display: none;
+.detail-field-card:hover {
+  border-color: #cfe0f0;
+  box-shadow: 0 4px 12px rgba(33, 72, 108, 0.07);
 }
 
-.detail-grid--base .detail-item--base:last-child {
-  border-bottom: 0;
-}
-
-.detail-item--base .detail-item__label {
-  color: #71869b;
-}
-
-.detail-item--base .detail-item__value {
-  margin-top: 0;
-  text-align: right;
-}
-
-.detail-grid--content .detail-item {
-  display: grid;
-  grid-template-columns: 86px minmax(0, 1fr);
-  align-items: stretch;
-  min-height: 0;
-  padding: 0;
-  overflow: hidden;
-  background: #ffffff;
-  border-color: #dfebf5;
-  box-shadow: none;
-}
-
-.detail-item__label {
+.detail-field-card__label {
   display: flex;
   align-items: center;
-  color: #6b7f94;
-  font-size: 12px;
+  gap: 6px;
+  color: #7a8ea3;
+  font-size: 11px;
   font-weight: 800;
-  line-height: 1.3;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
 }
 
-.detail-item__value {
-  display: block;
-  margin-top: 8px;
+.detail-field-card__label::before {
+  content: "";
+  width: 3px;
+  height: 12px;
+  background: #b9dcff;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.detail-field-card__value {
   color: #172033;
   font-size: 14px;
   font-weight: 700;
   line-height: 1.45;
   word-break: break-all;
-}
-
-.detail-grid--content .detail-item__value {
-  min-height: 52px;
-  margin-top: 0;
-  padding: 14px 14px;
-  color: #172033;
-  font-size: 13px;
-  font-weight: 700;
-  background: #fbfdff;
-  border-left: 1px solid #edf3f8;
-  border-radius: 0;
-  box-shadow: none;
-  white-space: pre-wrap;
-}
-
-.detail-item--note .detail-item__label {
-  display: flex;
-  align-items: center;
-  padding: 0 12px;
-  color: #5f7891;
-  font-size: 12px;
-  background: #f7fafc;
-  border-left: 3px solid #b9dcff;
-}
-
-.detail-item--note:nth-child(1) .detail-item__label {
-  border-left-color: #7dd3fc;
-}
-
-.detail-item--note:nth-child(2) .detail-item__label {
-  border-left-color: #86efac;
-}
-
-.detail-item--note:nth-child(3) .detail-item__label,
-.detail-item--note:nth-child(4) .detail-item__label,
-.detail-item--note:nth-child(5) .detail-item__label,
-.detail-item--note:nth-child(6) .detail-item__label {
-  border-left-color: #cbd5e1;
+  padding-left: 9px;
 }
 
 /* ========== 疑点处理区 ========== */
+.detail-process-box {
+  margin-top: 14px;
+  padding: 14px;
+  background: #f8fbfe;
+  border: 1px solid #e3edf6;
+  border-radius: 8px;
+}
+
 .process-box {
   flex: none;
   padding: 16px 18px 18px;
@@ -2314,6 +2284,7 @@ defineExpose({
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  justify-content: flex-start;
 }
 
 .process-action {
@@ -2389,7 +2360,7 @@ defineExpose({
 .dialog-panel {
   display: flex;
   flex-direction: column;
-  width: min(520px, calc(100vw - 32px));
+  width: min(780px, calc(100vw - 32px));
   max-height: calc(100vh - 64px);
   overflow: hidden;
   background: #ffffff;
@@ -2402,7 +2373,7 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   flex: none;
-  padding: 18px 24px;
+  padding: 14px 28px;
   background: #f8fbfe;
   border-bottom: 1px solid #edf3f8;
 }
@@ -2410,13 +2381,13 @@ defineExpose({
 .dialog-title {
   display: block;
   color: #183755;
-  font-size: 22px;
-  font-weight: 900;
+  font-size: 18px;
+  font-weight: 800;
 }
 
 .dialog-subtitle {
   display: block;
-  margin-top: 4px;
+  margin-top: 2px;
   color: #5f7188;
   font-size: 13px;
 }
@@ -2446,28 +2417,30 @@ defineExpose({
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 18px 24px 16px;
+  padding: 14px 28px 12px;
   background: #fff;
 }
 
 .form-field {
   display: flex;
   flex-direction: column;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .form-label {
   display: block;
-  margin-bottom: 5px;
-  color: #34495e;
+  margin-bottom: 4px;
+  color: #2c3e50;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 .form-label--required::after {
   margin-left: 4px;
-  color: #ef4444;
+  color: #dc2626;
   content: "*";
+  font-weight: 700;
 }
 
 .form-input,
@@ -2475,26 +2448,59 @@ defineExpose({
 .form-textarea {
   box-sizing: border-box;
   width: 100%;
-  color: #172033;
+  color: #1a2035;
   font-size: 14px;
-  background: #fbfdff;
-  border: 1px solid #d5e2ee;
-  border-radius: 4px;
-  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+  font-weight: 500;
+  background: #fafcff;
+  border: 1px solid #d0dce8;
+  border-radius: 5px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
 
-.form-input,
-.form-select {
-  height: 38px;
-  padding: 0 12px;
-  line-height: 38px;
+.form-input:hover,
+.form-select:hover,
+.form-textarea:hover {
+  border-color: #b0c4d8;
+  background: #fff;
 }
 
 .form-input:focus,
 .form-textarea:focus {
   background: #fff;
-  border-color: #8fc8f8;
-  box-shadow: 0 0 0 3px rgba(13, 130, 238, 0.1);
+  border-color: #5ba4f0;
+  box-shadow: 0 0 0 3px rgba(13, 130, 238, 0.08);
+  outline: none;
+}
+
+.form-input,
+.form-select {
+  height: 36px;
+  padding: 0 12px;
+  line-height: 36px;
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+  color: #a0aec0;
+  font-weight: 400;
+}
+
+.form-textarea {
+  min-height: 90px;
+  padding: 10px 12px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 20px;
+  margin-bottom: 0;
+}
+
+.form-grid--two .form-field {
+  margin-bottom: 12px;
 }
 
 .form-select {
@@ -2521,7 +2527,8 @@ defineExpose({
 }
 
 .select-placeholder {
-  color: #9aa9b8;
+  color: #a0aec0;
+  font-weight: 400;
 }
 
 .select-menu {
@@ -2530,33 +2537,35 @@ defineExpose({
   left: 0;
   right: 0;
   z-index: 100;
-  max-height: 200px;
+  max-height: 220px;
   overflow-y: auto;
   background: #ffffff;
-  border: 1px solid #d5e2ee;
-  border-radius: 4px;
-  box-shadow: 0 8px 24px rgba(15, 35, 55, 0.12);
+  border: 1px solid #d0dce8;
+  border-radius: 6px;
+  box-shadow: 0 10px 28px rgba(15, 35, 55, 0.14);
 }
 
 .select-option {
   display: flex;
   align-items: center;
-  height: 36px;
-  padding: 0 12px;
-  color: #172033;
+  height: 38px;
+  padding: 0 14px;
+  color: #1a2035;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
-  transition: background 0.14s ease;
+  transition: background 0.14s ease, color 0.14s ease;
 }
 
 .select-option:hover {
   background: #edf7ff;
+  color: #0d82ee;
 }
 
 .select-option--active {
   color: #0d82ee;
   background: #e8f4ff;
+  font-weight: 700;
 }
 
 .form-control--error {
@@ -2573,8 +2582,8 @@ defineExpose({
 }
 
 .form-textarea {
-  min-height: 88px;
-  padding: 9px 12px;
+  min-height: 72px;
+  padding: 8px 12px;
   line-height: 1.45;
 }
 
@@ -2583,14 +2592,14 @@ defineExpose({
   display: flex;
   align-items: center;
   width: 100%;
-  height: 38px;
+  height: 36px;
   padding: 0 12px;
-  color: #31506d;
+  color: #2c3e50;
   font-size: 14px;
-  font-weight: 700;
-  background: #f1f5f9;
-  border: 1px solid #e3edf6;
-  border-radius: 4px;
+  font-weight: 600;
+  background: #f0f4f8;
+  border: 1px solid #e0e8f0;
+  border-radius: 5px;
 }
 
 .form-datetime {
@@ -2598,15 +2607,26 @@ defineExpose({
 }
 
 .form-datetime :deep(.datetime-picker__control) {
-  height: 38px;
+  height: 36px;
   padding: 0 12px;
   font-size: 14px;
-  line-height: 38px;
+  font-weight: 500;
+  line-height: 36px;
+  background: #fafcff;
+  border: 1px solid #d0dce8;
+  border-radius: 5px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.form-datetime :deep(.datetime-picker__control:hover) {
+  border-color: #b0c4d8;
+  background: #fff;
 }
 
 .input-placeholder {
-  color: #9aa9b8;
+  color: #a0aec0;
   font-size: 14px;
+  font-weight: 400;
 }
 
 .dialog-footer {
@@ -2615,30 +2635,30 @@ defineExpose({
   justify-content: flex-end;
   gap: 12px;
   flex: none;
-  padding: 12px 22px;
+  padding: 12px 28px;
   padding-bottom: calc(12px + env(safe-area-inset-bottom));
-  background: #fff;
-  border-top: 1px solid #edf3f8;
-  box-shadow: 0 -4px 16px rgba(24, 55, 85, 0.06);
+  background: #fafcff;
+  border-top: 1px solid #e8eef4;
+  box-shadow: 0 -2px 12px rgba(24, 55, 85, 0.04);
 }
 
 .dialog-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 80px;
-  height: 38px;
+  min-width: 88px;
+  height: 40px;
   margin: 0;
-  padding: 0 22px;
-  color: #34495e;
+  padding: 0 24px;
+  color: #2c3e50;
   font-size: 14px;
   font-weight: 700;
-  line-height: 38px;
-  background: #f1f5f9;
-  border: 1px solid #d5e2ee;
+  line-height: 40px;
+  background: #f0f4f8;
+  border: 1px solid #d0dce8;
   border-radius: 6px;
   cursor: pointer;
-  transition: opacity 0.16s ease;
+  transition: all 0.18s ease;
 }
 
 .dialog-button::after {
@@ -2646,19 +2666,34 @@ defineExpose({
 }
 
 .dialog-button--hover {
-  opacity: 0.85;
+  background: #e4ecf5;
+  border-color: #b0c4d8;
 }
 
 .dialog-button--primary {
   color: #ffffff;
   background: #0d82ee;
   border-color: #0d82ee;
+  box-shadow: 0 4px 12px rgba(13, 130, 238, 0.2);
+}
+
+.dialog-button--primary.dialog-button--hover {
+  background: #0674d8;
+  border-color: #0674d8;
+  box-shadow: 0 6px 16px rgba(13, 130, 238, 0.28);
 }
 
 .dialog-button--danger {
   color: #ffffff;
-  background: #dc2626;
-  border-color: #dc2626;
+  background: #e74c3c;
+  border-color: #e74c3c;
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.2);
+}
+
+.dialog-button--danger.dialog-button--hover {
+  background: #c0392b;
+  border-color: #c0392b;
+  box-shadow: 0 6px 16px rgba(231, 76, 60, 0.28);
 }
 
 .dialog-button[disabled] {
@@ -2670,30 +2705,118 @@ defineExpose({
    响应式布局
    ============================================ */
 
-/* 大屏（>= 1440px） */
-@media (min-width: 1440px) {
+/* 2K+ 大屏（>= 1920px） */
+@media (min-width: 1920px) {
+  .suspect-layout {
+    grid-template-columns: minmax(0, 1fr) clamp(400px, 22vw, 480px);
+  }
+
   .data-row {
-    grid-template-columns: 48px 100px 90px 80px 1fr 1fr 90px 160px;
+    grid-template-columns: 58px minmax(110px, 0.9fr) minmax(104px, 0.86fr) minmax(94px, 0.8fr) minmax(200px, 1.2fr) minmax(160px, 1fr) minmax(104px, 0.82fr) minmax(220px, 0.98fr);
+  }
+
+  .suspect-view {
+    padding: 0 20px 16px;
+  }
+
+  .suspect-layout {
+    gap: 18px;
+    margin-top: 18px;
+  }
+
+  .table-head {
+    height: 54px;
+    font-size: 17px;
+    padding: 0 20px;
+  }
+
+  .data-cell {
+    font-size: 14px;
+    padding: 0 10px;
+  }
+
+  .data-row--header .data-cell {
+    font-size: 13px;
+  }
+
+  .table-head__meta {
+    font-size: 14px;
+    padding: 4px 12px;
   }
 }
 
-/* 中屏（<= 1280px） */
+/* 全高清（>= 1440px, < 1920px） */
+@media (min-width: 1440px) and (max-width: 1919px) {
+  .data-row {
+    grid-template-columns: 54px minmax(100px, 0.88fr) minmax(96px, 0.84fr) minmax(86px, 0.78fr) minmax(180px, 1.2fr) minmax(150px, 1fr) minmax(96px, 0.8fr) minmax(210px, 0.96fr);
+  }
+}
+
+/* 1366×768 标清（>= 1280px, < 1440px） */
+@media (min-width: 1280px) and (max-width: 1439px) {
+  .suspect-layout {
+    grid-template-columns: minmax(0, 1fr) clamp(340px, 18vw, 380px);
+  }
+
+  .data-row {
+    grid-template-columns: 50px minmax(90px, 0.85fr) minmax(86px, 0.8fr) minmax(76px, 0.74fr) minmax(150px, 1.2fr) minmax(130px, 1fr) minmax(86px, 0.76fr) minmax(180px, 0.92fr);
+  }
+
+  .suspect-toolbar {
+    padding: 10px 14px;
+    gap: 10px;
+  }
+
+  .filter-group {
+    flex: 0 0 120px;
+  }
+
+  .filter-datetime {
+    flex: 0 0 165px;
+    width: 165px;
+  }
+
+  .table-head {
+    height: 46px;
+    font-size: 15px;
+    padding: 0 14px;
+  }
+
+  .data-cell {
+    padding: 0 7px;
+    font-size: 12px;
+  }
+
+  .data-row--header .data-cell {
+    font-size: 11px;
+  }
+
+  .detail-body {
+    padding: 14px;
+  }
+
+  .detail-fields-grid {
+    gap: 8px;
+  }
+
+  .detail-field-card {
+    padding: 10px 12px;
+  }
+
+  .detail-field-card__value {
+    font-size: 13px;
+  }
+}
+
+/* 中屏（<= 1280px），堆叠布局 */
 @media (max-width: 1280px) {
   .suspect-layout {
-    flex-direction: column;
+    grid-template-columns: minmax(0, 1fr) clamp(300px, 28vw, 380px);
   }
 
-  .split-divider {
-    display: none;
-  }
-
-  .suspect-table-panel,
-  .suspect-detail-panel {
-    width: 100% !important;
-  }
-
-  .suspect-detail-panel {
-    min-height: 320px;
+  .suspect-table-panel {
+    overflow-y: auto;
+    min-height: 0;
   }
 }
 
@@ -2731,7 +2854,6 @@ defineExpose({
   }
 
   .data-row {
-    grid-template-columns: 42px 80px 72px 64px 1fr 1fr 72px 135px;
     min-height: 40px;
   }
 
@@ -2796,16 +2918,12 @@ defineExpose({
 
   .suspect-layout {
     margin-top: 8px;
-    flex-direction: column;
+    grid-template-columns: minmax(0, 1fr) clamp(260px, 30vw, 340px);
   }
 
-  .split-divider {
-    display: none;
-  }
-
-  .suspect-table-panel,
-  .suspect-detail-panel {
-    width: 100% !important;
+  .suspect-table-panel {
+    overflow-y: auto;
+    min-height: 0;
   }
 
   .suspect-detail-panel {
@@ -2824,7 +2942,6 @@ defineExpose({
   }
 
   .data-row {
-    grid-template-columns: 38px 70px 64px 56px 1fr 1fr 64px 125px;
     min-height: 38px;
   }
 
@@ -2855,23 +2972,8 @@ defineExpose({
     padding: 10px;
   }
 
-  .detail-item--base {
-    grid-template-columns: 72px minmax(0, 1fr);
-    min-height: 40px;
-    padding: 6px 10px;
-  }
-
-  .detail-grid--content .detail-item {
+  .detail-fields-grid {
     grid-template-columns: 1fr;
-  }
-
-  .detail-grid--content .detail-item__value {
-    border-top: 1px solid #edf3f8;
-    border-left: 0;
-  }
-
-  .detail-item--note .detail-item__label {
-    min-height: 34px;
   }
 
   .pagination-bar {
@@ -2900,7 +3002,6 @@ defineExpose({
 /* 极小屏（<= 400px） */
 @media (max-width: 400px) {
   .data-row {
-    grid-template-columns: 34px 60px 56px 48px 1fr 1fr 56px 110px;
     min-height: 36px;
   }
 
