@@ -1,0 +1,122 @@
+/* =========================
+   Table Container
+========================= */
+
+.data-table-container {
+    background: #ffffff;
+    border: 1px solid #d8e5ef;
+    border-radius: 6px;
+    box-shadow: 0 12px 26px rgba(35, 72, 104, 0.09);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+
+/* =========================
+   Table Header
+========================= */
+
+.table-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    flex: none;
+
+    height: 50px;
+    padding: 0 16px;
+
+    color: #24445f;
+    font-size: 16px;
+    font-weight: 800;
+
+    background: #fff;
+    border-bottom: 1px solid #edf3f8;
+}
+
+
+.table-head__meta {
+    padding: 4px 10px;
+
+    color:#6a7f94;
+    font-size:13px;
+    font-weight:800;
+
+    background:#f7fafc;
+
+    border:1px solid #e3ebf2;
+    border-radius:999px;
+}
+
+
+/* =========================
+   Scroll
+========================= */
+
+.table-scroll {
+    flex:1;
+
+    min-height:0;
+
+    background:#fff;
+
+    overflow-x:auto;
+    white-space:nowrap;
+}
+
+
+.data-table {
+    display:inline-flex;
+    flex-direction:column;
+
+    width:max-content;
+
+    background:#fff;
+}
+
+
+/* =========================
+   Empty State
+========================= */
+
+.table-state {
+    height:180px;
+
+    color:#7c8da1;
+
+    font-size:14px;
+
+    line-height:180px;
+
+    text-align:center;
+}
+
+
+/* =========================
+   Loading
+========================= */
+
+.loading-mask {
+    position:absolute;
+
+    inset:0;
+
+    z-index:100;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+
+    color:#31506d;
+
+    font-size:14px;
+
+    background:rgba(255,255,255,.6);
+
+    backdrop-filter:blur(1px);
+}

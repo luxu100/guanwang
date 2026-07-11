@@ -1,0 +1,113 @@
+/* ==============================
+   Table Cell Base
+================================ */
+
+.data-cell {
+    display: flex !important;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 0;
+    width: 140px;
+
+    padding: 0 12px;
+
+    overflow: hidden;
+
+    color: #24384d;
+    font-size: 13px;
+    line-height: 1.35;
+
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    border-right: 1px solid #edf1f5;
+}
+
+.data-cell--coord {
+    min-width: 140px;
+    color: #172033;
+    font-weight: 600;
+    font-size: 13px;
+    white-space: nowrap;
+}
+.data-cell--link {
+    color: #1677ff;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-decoration: none;
+}
+
+.data-cell--link:hover {
+    color: #0d82ee;
+    text-decoration: underline;
+}
+
+.data-cell--link:active {
+    opacity: 0.7;
+}
+
+.data-row--header .data-cell {
+    color: #415a73;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.data-cell:last-child {
+    border-right: 0;
+}
+
+
+/* ==============================
+   Column Type
+================================ */
+
+
+.data-cell--index {
+    width: 50px;
+    color: #64748b;
+}
+
+
+.data-cell--device {
+    color: #1e293b;
+    font-family: "DIN Alternate", "Arial", sans-serif;
+    font-weight: 600;
+    letter-spacing: .5px;
+}
+
+
+.data-cell--type {
+    color: #334155;
+    font-weight: 600;
+}
+
+
+.data-cell--number {
+    color: #0f4c81;
+    font-family: "DIN Alternate", "Arial", sans-serif;
+    font-weight: 800;
+}
+
+
+.data-cell--time {
+    color: #64748b;
+    font-family: "DIN Alternate", "Arial", sans-serif;
+    font-size: 12px;
+}
+
+
+.data-cell--address,
+.data-cell--remark {
+    justify-content: flex-start;
+    text-align: left;
+}
+
+
+.data-cell--status {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .5px;
+}

@@ -1,0 +1,275 @@
+/* =========================================================
+ * Status Tag（状态标签）
+ * ========================================================= */
+
+.status-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 54px;
+    height: 24px;
+    padding: 0 9px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 24px;
+}
+
+/* 蓝色（信息） */
+.status-tag--primary {
+    color: #0d82ee;
+    background: #f3f9ff;
+    border-color: #d7eaff;
+}
+
+/* 绿色（成功） */
+.status-tag--success {
+    color: #177245;
+    background: #eaf8ef;
+    border-color: #bfe8ce;
+}
+
+/* 橙色（警告） */
+.status-tag--warning {
+    color: #b54708;
+    background: #fff8eb;
+    border-color: #fedf89;
+}
+
+/* 红色（危险） */
+.status-tag--danger {
+    color: #b42318;
+    background: #fff1ee;
+    border-color: #ffd3cb;
+}
+
+/* 紫色（特殊状态） */
+.status-tag--info {
+    color: #6941c6;
+    background: #f3f0ff;
+    border-color: #d8ceff;
+}
+
+/* 灰色（默认） */
+.status-tag--default {
+    color: #5f7186;
+    background: #f3f6f9;
+    border-color: #dbe4ec;
+}
+
+/* 青色（处理中、巡检等） */
+.status-tag--cyan {
+    color: #0f766e;
+    background: #ecfeff;
+    border-color: #a5f3fc;
+}
+
+/* 靛蓝色（特殊业务） */
+.status-tag--indigo {
+    color: #4338ca;
+    background: #eef2ff;
+    border-color: #c7d2fe;
+}
+/* 蓝 */
+.status-tag--blue {
+    color: #0d82ee;
+    background: #f3f9ff;
+    border-color: #d7eaff;
+}
+
+
+/* 绿 */
+.status-tag--green {
+    color: #177245;
+    background: #eaf8ef;
+    border-color: #bfe8ce;
+}
+
+
+/* 橙 */
+.status-tag--orange {
+    color: #b54708;
+    background: #fff8eb;
+    border-color: #fedf89;
+}
+
+/* 红 */
+.status-tag--red {
+    color: #b42318;
+    background: #fff1ee;
+    border-color: #ffd3cb;
+}
+
+/* 紫 */
+.status-tag--purple {
+    color: #6941c6;
+    background: #f3f0ff;
+    border-color: #d8ceff;
+}
+
+/*
+ * Table State（表格空状态）
+ */
+.table-state {
+    height: 180px;
+    color: #7c8da1;
+    font-size: 14px;
+    line-height: 180px;
+    text-align: center;
+}
+
+/* =========================================================
+ * Statistic Card（统计卡片）
+ * ========================================================= */
+
+.stat-card {
+    --stat-color: #0d82ee;
+    --stat-color-light: #65b6ff;
+    --stat-bg: #f3f9ff;
+    --stat-border: #d7eaff;
+    --stat-soft: rgba(13, 130, 238, 0.12);
+
+    position: relative;
+    min-width: 0;
+    padding: 13px 14px 12px;
+    overflow: hidden;
+    background:
+            linear-gradient(
+                    180deg,
+                    rgba(255, 255, 255, 0.98) 0%,
+                    var(--stat-bg) 100%
+            ),
+            radial-gradient(
+                    circle at 92% 18%,
+                    var(--stat-soft) 0,
+                    transparent 34%
+            );
+    border: 1px solid var(--stat-border);
+    border-radius: 6px;
+    box-shadow: 0 10px 22px rgba(35, 72, 104, 0.07);
+}
+
+/* Header */
+
+.stat-card__head {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.stat-card__title {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+}
+
+.stat-card__marker {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    background: var(--stat-color);
+    border: 3px solid rgba(255, 255, 255, 0.86);
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px var(--stat-soft);
+}
+
+.stat-card__label {
+    color: #53687d;
+    font-size: 12px;
+    font-weight: 800;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Body */
+
+.stat-card__body {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 10px;
+}
+
+.stat-card__value {
+    color: var(--stat-color);
+    font-size: 24px;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.stat-card__unit {
+    color: #7a8b9d;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+    transform: translateY(4px);
+}
+
+/* Progress */
+
+.stat-card__progress {
+    position: relative;
+    z-index: 1;
+    height: 6px;
+    margin-top: 12px;
+    overflow: hidden;
+    background: rgba(125, 148, 170, 0.13);
+    border-radius: 999px;
+}
+
+.stat-card__progress-bar {
+    height: 100%;
+    background: linear-gradient(
+            90deg,
+            var(--stat-color),
+            var(--stat-color-light)
+    );
+    border-radius: inherit;
+}
+
+/* =========================================================
+ * Statistic Card Theme
+ * ========================================================= */
+
+/* 主色 */
+.stat-card--primary {
+    --stat-color: #0d82ee;
+    --stat-bg: #f3f9ff;
+    --stat-border: #d7eaff;
+}
+
+/* 成功 */
+.stat-card--success {
+    --stat-color: #16a34a;
+    --stat-bg: #f0fbf4;
+    --stat-border: #ccefd8;
+}
+
+/* 警告 */
+.stat-card--warning {
+    --stat-color: #f59e0b;
+    --stat-bg: #fff8eb;
+    --stat-border: #fde4b5;
+}
+
+/* 危险 */
+.stat-card--danger {
+    --stat-color: #dc2626;
+    --stat-bg: #fff4f4;
+    --stat-border: #ffd3d3;
+}
+
+/* 信息 */
+.stat-card--info {
+    --stat-color: #2563eb;
+    --stat-bg: #f1f6ff;
+    --stat-border: #d7e5ff;
+}

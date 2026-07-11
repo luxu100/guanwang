@@ -121,7 +121,6 @@ async function fetchSettings() {
   });
 
   const pageData = res.data;
-  console.log(pageData);
 
   deviceSettingList.value = pageData?.records ?? [];
   pagination.value.total = pageData?.total ?? 0;

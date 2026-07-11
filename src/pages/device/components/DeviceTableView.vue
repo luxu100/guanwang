@@ -1,5 +1,5 @@
 <template>
-  <view class="worksheet-table-panel">
+  <view class="data-table-container">
     <view class="table-head">
       <text>{{ t('deviceTable.title') }}</text>
       <text class="table-head__meta">  {{ t('common.pagination.totalRecords', { total: pagination.total }) }}</text>
@@ -45,31 +45,46 @@
             {{ device.deviceAlias || '-' }}
           </text>
           <text
-              v-if="columnVisible.enableState" class="data-cell data-cell--status"
-              :class="{
-                'is-enabled': device.enableState === 1,
-                'is-disabled': device.enableState === 0
-              }"
+              v-if="columnVisible.enableState"
+              class="data-cell data-cell--status"
           >
-            {{ enableStateMap[device.enableState] || '-' }}
+            <text
+                class="status-tag"
+                :class="{
+                  'status-tag--success': device.enableState === 1,
+                  'status-tag--danger': device.enableState === 0
+                }"
+            >
+              {{ enableStateMap[device.enableState] || '-' }}
+            </text>
           </text>
           <text
-              v-if="columnVisible.installState" class="data-cell data-cell--status"
-              :class="{
-                'is-installed': device.installState === 1,
-                'is-not-installed': device.installState === 0
-              }"
+              v-if="columnVisible.installState"
+              class="data-cell data-cell--status"
           >
-            {{ installStateMap[device.installState] || '-' }}
+            <text
+                class="status-tag"
+                :class="{
+                  'status-tag--success': device.installState === 1,
+                  'status-tag--default': device.installState === 0
+                }"
+            >
+              {{ installStateMap[device.installState] || '-' }}
+            </text>
           </text>
           <text
-              v-if="columnVisible.installMode" class="data-cell data-cell--status"
-              :class="{
-                'is-fixed': device.installMode === 0,
-                'is-mobile': device.installMode === 1
-              }"
+              v-if="columnVisible.installMode"
+              class="data-cell data-cell--status"
           >
-            {{ installModeMap[device.installMode] || '-' }}
+            <text
+                class="status-tag"
+                :class="{
+                  'status-tag--primary': device.installMode === 0,
+                  'status-tag--info': device.installMode === 1
+                }"
+            >
+              {{ installModeMap[device.installMode] || '-' }}
+            </text>
           </text>
           <text v-if="columnVisible.installAddress" class="data-cell data-cell--address">{{ device.installAddress }}</text>
           <text
@@ -81,20 +96,30 @@
           </text>
           <text v-if="columnVisible.tubeGroup" class="data-cell data-cell--number">{{ device.tubeGroup }}</text>
           <text
-              v-if="columnVisible.leakStatus" class="data-cell data-cell--status"
-              :class="getStatusClass('leak', device.leakStatus)"
+              v-if="columnVisible.leakStatus"
+              class="data-cell data-cell--status"
           >
-            {{ leakStatusMap[device.leakStatus] || '-' }}
+            <text
+                class="status-tag"
+                :class="getStatusClass('leak', device.leakStatus)"
+            >
+              {{ leakStatusMap[device.leakStatus] || '-' }}
+            </text>
           </text>
           <text v-if="columnVisible.lastSamplingTime" class="data-cell data-cell--time">{{ formatDate(device.lastSamplingTime) }}</text>
           <text
-              v-if="columnVisible.onlineStatus" class="data-cell data-cell--status"
-              :class="{
-                'is-online': device.onlineStatus === 1,
-                'is-offline': device.onlineStatus === 0
-              }"
+              v-if="columnVisible.onlineStatus"
+              class="data-cell data-cell--status"
           >
-            {{ onlineStatusMap[device.onlineStatus] || '-' }}
+            <text
+                class="status-tag"
+                :class="{
+                  'status-tag--success': device.onlineStatus === 1,
+                  'status-tag--default': device.onlineStatus === 0
+                }"
+            >
+              {{ onlineStatusMap[device.onlineStatus] || '-' }}
+            </text>
           </text>
           <text v-if="columnVisible.factoryTime" class="data-cell data-cell--time">
             {{ formatDate(device.factoryTime) }}
@@ -252,18 +277,23 @@ function openCoord(longitude: number, latitude: number) {
 }
 
 const getStatusClass = (type: string, value: number) => {
-  // 如果是渗漏状态 (leak)
+
   if (type === 'leak') {
     switch (value) {
-      case 0: return 'is-leak';      // 渗漏 -> 红色
-      case 1: return 'is-normal';    // 正常 -> 绿色
-      case 2: return 'is-warning';   // 疑似 -> 橙色
-      case 3: return 'is-unknown';   // 未知 -> 灰色
-      default: return 'is-unknown';
+      case 0:
+        return 'status-tag--danger';   // 渗漏
+      case 1:
+        return 'status-tag--success';  // 正常
+      case 2:
+        return 'status-tag--warning';  // 疑似
+      case 3:
+        return 'status-tag--default';  // 未知
+      default:
+        return 'status-tag--default';
     }
   }
-  // 如果以后有其他类型的状态，可以在这里添加逻辑
-  return '';
+
+  return 'status-tag--default';
 };
 
 function handleCoordClick(longitude: number, latitude: number) {
@@ -283,301 +313,8 @@ function handleCoordClick(longitude: number, latitude: number) {
 </script>
 
 <style scoped lang="scss">
-.data-cell--coord {
-  min-width: 140px;
-  color: #172033;
-  font-weight: 600;
-  font-size: 13px;
-  white-space: nowrap;
-}
-.data-cell--link {
-  color: #1677ff;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  text-decoration: none;
-}
-
-.data-cell--link:hover {
-  color: #0d82ee;
-  text-decoration: underline;
-}
-
-.data-cell--link:active {
-  opacity: 0.7;
-}
-
-.worksheet-table-panel {
-  background: #ffffff;
-  border: 1px solid #d8e5ef;
-  border-radius: 6px;
-  box-shadow: 0 12px 26px rgba(35, 72, 104, 0.09);
-  height: 100%;
-}
-
-.table-state {
-  height: 180px;
-  color: #7c8da1;
-  font-size: 14px;
-  line-height: 180px;
-  text-align: center;
-}
-
-.worksheet-table-panel {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.table-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.table-head {
-  flex: none;
-  height: 50px;
-  padding: 0 16px;
-  color: #24445f;
-  font-size: 16px;
-  font-weight: 800;
-  background: #ffffff;
-  border-bottom: 1px solid #edf3f8;
-}
-
-.table-head__meta {
-  padding: 4px 10px;
-  color: #6a7f94;
-  font-size: 13px;
-  font-weight: 800;
-  background: #f7fafc;
-  border: 1px solid #e3ebf2;
-  border-radius: 999px;
-}
-
-.table-scroll {
-  flex: 1;
-  height: auto;
-  min-height: 0;
-  background: #ffffff;
-  overflow-x: auto;
-  white-space: nowrap;
-}
-
-.data-table {
-  display: inline-flex;
-  flex-direction: column;
-  width: max-content;
-  background: #ffffff;
-}
-
-
-.data-row {
-  display: flex;
-  grid-template-columns: 58px 190px 116px 110px 110px 110px 138px 104px 168px 168px 168px 220px 220px;
-  min-height: 42px;
-  width: max-content;
-  border-bottom: 1px solid #edf1f5;
-  cursor: pointer;
-  transition:
-      background 0.18s ease,
-      box-shadow 0.18s ease;
-}
-
-.data-row--header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  min-height: 44px;
-  color: #20384f;
-  font-weight: 800;
-  background: #f6f9fc;
-  cursor: default;
-  box-shadow: 0 1px 0 #dbe7f0;
-}
-
-.data-row:not(.data-row--header):nth-child(odd) {
-  background: #ffffff;
-}
-
-.data-row:not(.data-row--header):nth-child(even) {
-  background: #fbfdff;
-}
-
-.data-row:not(.data-row--header):hover {
-  background: #f1f8ff;
-  box-shadow: inset 0 0 0 1px #d7ebfb;
-}
-
-.data-row--active {
-  position: relative;
-  background: #e7f3ff !important;
-  box-shadow: inset 0 0 0 1px #b9dcff;
-}
-
-.data-row--active::before {
-  position: absolute;
-  top: 7px;
-  bottom: 7px;
-  left: 0;
-  width: 3px;
-  content: "";
-  background: #0d82ee;
-  border-radius: 0 999px 999px 0;
-}
-
-
-.data-cell {
-  display: flex !important;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  min-width: 0;
-  padding: 0 12px;
-  overflow: hidden;
-  color: #24384d;
-  font-size: 13px;
-  line-height: 1.35;
-  text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  border-right: 1px solid #edf1f5;
-  width: 140px;
-}
-
-.data-row--header .data-cell {
-  color: #415a73;
-  font-size: 12px;
-  letter-spacing: 0;
-}
-
-.data-cell:last-child {
-  border-right: 0;
-}
-
-.data-cell--index {
-  justify-content: center;
-  color: #64748b;
-  width:50px;
-}
-
-.data-cell--number {
-  color: #0f4c81;
-  font-family: "DIN Alternate", "Arial", sans-serif;
-  font-weight: 800;
-}
-
-.data-cell--address,
-.data-cell--remark {
-  justify-content: center;
-  text-align: left;
-}
-
-/* 设备编号：通常由字母和数字组成，使用等宽字体更清晰，颜色适中 */
-.data-cell--device {
-  color: #1e293b;
-  font-family: "DIN Alternate", "Arial", sans-serif;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-}
-
-/* 设备类型：作为普通文本标签，颜色略深以区分状态 */
-.data-cell--type {
-  color: #334155;
-  font-weight: 600;
-}
-
-/* 状态类（启用/安装/渗漏/在线）：
-   由于状态列通常包含不同状态，这里提供基础样式。
-   实际开发中建议配合 JS 动态添加如 .is-online / .is-leak 等修饰类 */
-.data-cell--status {
-  font-weight: 600;
-  font-size: 12px;
-  text-transform: uppercase; /* 如果状态是英文，大写更美观；中文可去掉 */
-  letter-spacing: 0.5px;
-}
-
-/* 安装模式：普通文本，稍浅的颜色 */
-.data-cell--mode {
-  color: #475569;
-}
-
-/* 最后采样时间：时间数据使用等宽字体对齐，颜色偏灰 */
-.data-cell--time {
-  color: #64748b;
-  font-family: "DIN Alternate", "Arial", sans-serif;
-  font-size: 12px;
-}
-
-/* 正常/在线/启用 */
-.data-cell--status.is-online,
-.data-cell--status.is-enabled {
-  color: #10b981; /* 绿色 */
-}
-
-/* 异常/渗漏/离线 */
-.data-cell--status.is-leak,
-.data-cell--status.is-offline {
-  color: #ef4444; /* 红色 */
-}
-
-/* 警告/安装中 */
-.data-cell--status.is-warning,
-.data-cell--status.is-installing {
-  color: #f59e0b; /* 橙色 */
-}
-
-/* ==========================================
-   状态列增强样式 (Status Badge Styles)
-   ========================================== */
-
-/* 基础状态样式：加粗、大写、紧凑间距 */
-.data-cell--status {
-  font-weight: 700;
-  font-size: 12px;
-  letter-spacing: 0.5px;
-  text-transform: uppercase; /* 如果是中文，可以删掉这行 */
-  position: relative;
-  padding-left: 24px; /* 为左侧圆点留出空间 */
-}
-
-/* --- 通用语义化颜色 --- */
-/* 成功/启用/在线/已安装 (绿色) */
-.is-enabled,
-.is-installed,
-.is-online,
-.is-normal{
-  color: #059669; /* 深绿 */
-}
-
-/* 警告/流动点/疑似 (琥珀色/橙色) */
-.is-mobile,
-.is-warning,
-  /* 渗漏状态中的 "疑似" */
-[data-v-xxxxxx] .is-leak-status-2 {
-  color: #92400e; /* 深橙 */
-}
-
-/* 危险/停用/离线/渗漏 (红色) */
-.is-disabled,
-.is-offline,
-.is-leak,
-  /* 渗漏状态中的 "渗漏" */
-[data-v-xxxxxx] .is-leak-status-0 {
-  color: #991b1b; /* 深红 */
-}
-
-/* 未知/未安装/灰色 (中性色) */
-.is-not-installed,
-.is-unknown,
-  /* 渗漏状态中的 "未知" */
-[data-v-xxxxxx] .is-leak-status-3 {
-  color: #4b5563; /* 灰 */
-}
-
-/* 固定点 (蓝色) */
-.is-fixed {
-  color: #1e40af;
-}
+@import "@/pages/device/components/x/status.css";
+@import "@/pages/device/components/x/table-cell.css";
+@import "@/pages/device/components/x/table.css";
+@import "@/pages/device/components/x/table-row.css";
 </style>
