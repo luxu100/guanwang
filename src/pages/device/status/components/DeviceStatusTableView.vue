@@ -1,162 +1,166 @@
 <template>
-  <DeviceStatusToolbar
-      v-model="searchForm"
-      @search="handleSearch"
-      @reset="handleSearch"
-      @refresh="fetchDeviceStatuss"
-      :visible="isToolbarVisible"
-  />
-  <view class="data-table-container">
-
-    <XFloatingCollapseHandle v-if="isFloatingVisible"
-        v-model="isToolbarVisible"
-    />
-
-    <view class="table-head">
-      <text>{{ t("device-status.statusTable.title") }}</text>
-      <text class="table-head__meta">  {{ t('common.pagination.totalRecords', { total: pagination.total }) }}</text>
+  <view class="page-container">
+    <view class="toolbar-wrapper">
+      <DeviceStatusToolbar
+          v-model="searchForm"
+          @search="handleSearch"
+          @reset="handleSearch"
+          @refresh="fetchDeviceStatuss"
+          :visible="isToolbarVisible"
+      />
     </view>
+    <view class="data-table-container">
 
-    <scroll-view class="table-scroll" scroll-x scroll-y>
-      <view class="data-table">
-        <view class="data-row data-row--header">
+      <XFloatingCollapseHandle v-if="isFloatingVisible"
+                               v-model="isToolbarVisible"
+      />
 
-          <text class="data-cell data-cell--index">{{ t("common.table.index") }}</text>
-          <text class="data-cell data-cell--device">{{ t("device-status.statusTable.deviceNumber") }}</text>
-          <text class="data-cell data-cell--status">{{ t("device-status.statusTable.leakStatus") }}</text>
-
-          <text class="data-cell data-cell--device">{{ t("device-status.statusTable.firmwareVersion") }}</text>
-          <text class="data-cell data-cell--device">{{ t("device-status.statusTable.hardwareVersion") }}</text>
-
-          <text class="data-cell data-cell--status">{{ t("device-status.statusTable.workMode") }}</text>
-
-          <text class="data-cell data-cell--text">{{ t("device-status.statusTable.batteryVoltage") }}</text>
-          <text class="data-cell data-cell--text">{{ t("device-status.statusTable.deviceTemperature") }}</text>
-
-          <text class="data-cell data-cell--text">{{ t("device-status.statusTable.signalIntensity") }}</text>
-          <text class="data-cell data-cell--text">{{ t("device-status.statusTable.signalQuality") }}</text>
-
-          <text class="data-cell data-cell--text">{{ t("device-status.statusTable.coordinateLocation") }}</text>
-
-          <text class="data-cell data-cell--text">{{ t("device-status.statusTable.leakEsa") }}</text>
-          <text class="data-cell data-cell--text">{{ t("device-status.statusTable.leakIntensity") }}</text>
-          <text class="data-cell data-cell--text">{{ t("device-status.statusTable.leakFrequency") }}</text>
-
-          <text class="data-cell data-cell--time">{{ t("device-status.statusTable.uploadTime") }}</text>
-        </view>
-
-        <view v-if="loading" class="loading-mask">{{ t('common.table.loading') }}</view>
-        <view v-else-if="deviceList.length === 0" class="table-state">{{ t('common.table.empty') }}</view>
-
-        <view
-            v-for="(record, index) in deviceList"
-            :key="record.id"
-            class="data-row"
-            :class="{ 'data-row--active': selectedId === record.id }"
-            @click="selectRow(record)"
-        >
-
-          <!-- 序号 -->
-          <text class="data-cell data-cell--index">
-            {{ (pagination.current - 1) * pagination.size + index + 1 }}
-          </text>
-
-          <!-- 设备编号 -->
-          <text class="data-cell data-cell--device">
-            {{ record.deviceNumber || '-' }}
-          </text>
-
-          <!-- 渗漏状态 -->
-          <text class="data-cell data-cell--status">
-            <text
-                class="status-tag"
-                :class="getStatusClass('leak', record.leakStatus)"
-            >
-              {{
-                record.leakStatus === 0
-                    ? t("status.leak.leak")
-                    : record.leakStatus === 1
-                        ? t("status.leak.normal")
-                        : record.leakStatus === 2
-                            ? t("status.leak.suspected")
-                            : record.leakStatus === 3
-                                ? t("status.leak.unknown")
-                                : "-"
-              }}
-            </text>
-          </text>
-
-          <!-- 固件版本 -->
-          <text class="data-cell data-cell--device">
-            {{ record.firmwareVersion || '-' }}
-          </text>
-
-          <!-- 硬件版本 -->
-          <text class="data-cell data-cell--device">
-            {{ record.hardwareVersion || '-' }}
-          </text>
-
-          <!-- 工作模式 -->
-          <text class="data-cell data-cell--status">
-            {{ record.workMode ?? '-' }}
-          </text>
-
-          <!-- 电池电压 -->
-          <text class="data-cell data-cell--text">
-            {{ record.batteryVoltage || '-' }}
-          </text>
-
-          <!-- 设备温度 -->
-          <text class="data-cell data-cell--text">
-            {{ record.deviceTemperature || '-' }}
-          </text>
-
-          <!-- 信号强度 -->
-          <text class="data-cell data-cell--text">
-            {{ record.signalIntensity || '-' }}
-          </text>
-
-          <!-- 信号质量 -->
-          <text class="data-cell data-cell--text">
-            {{ record.signalQuality || '-' }}
-          </text>
-
-          <!-- 坐标位置 -->
-          <text class="data-cell data-cell--text">
-            {{ record.coordinateLocation || '-' }}
-          </text>
-
-          <!-- ESA指标 -->
-          <text class="data-cell data-cell--text">
-            {{ record.leakEsa ?? '-' }}
-          </text>
-
-          <!-- 漏损强度 -->
-          <text class="data-cell data-cell--text">
-            {{ record.leakIntensity ?? '-' }}
-          </text>
-
-          <!-- 漏损频率 -->
-          <text class="data-cell data-cell--text">
-            {{ record.leakFrequency ?? '-' }}
-          </text>
-
-          <!-- 上报时间 -->
-          <text class="data-cell data-cell--time">
-            {{ record.uploadTime || '-' }}
-          </text>
-
-        </view>
+      <view class="table-head">
+        <text>{{ t("device-status.statusTable.title") }}</text>
+        <text class="table-head__meta">  {{ t('common.pagination.totalRecords', { total: pagination.total }) }}</text>
       </view>
-    </scroll-view>
 
-    <XPaginationBar
-        :current="pagination.current"
-        :size="pagination.size"
-        :total="pagination.total"
-        @change-page="handlePageChange"
-        @change-size="handlePageSizeChange"
-    />
+      <scroll-view class="table-scroll" scroll-x scroll-y>
+        <view class="data-table">
+          <view class="data-row data-row--header">
+
+            <text class="data-cell data-cell--index">{{ t("common.table.index") }}</text>
+            <text class="data-cell data-cell--device">{{ t("device-status.statusTable.deviceNumber") }}</text>
+            <text class="data-cell data-cell--status">{{ t("device-status.statusTable.leakStatus") }}</text>
+
+            <text class="data-cell data-cell--device">{{ t("device-status.statusTable.firmwareVersion") }}</text>
+            <text class="data-cell data-cell--device">{{ t("device-status.statusTable.hardwareVersion") }}</text>
+
+            <text class="data-cell data-cell--status">{{ t("device-status.statusTable.workMode") }}</text>
+
+            <text class="data-cell data-cell--text">{{ t("device-status.statusTable.batteryVoltage") }}</text>
+            <text class="data-cell data-cell--text">{{ t("device-status.statusTable.deviceTemperature") }}</text>
+
+            <text class="data-cell data-cell--text">{{ t("device-status.statusTable.signalIntensity") }}</text>
+            <text class="data-cell data-cell--text">{{ t("device-status.statusTable.signalQuality") }}</text>
+
+            <text class="data-cell data-cell--text">{{ t("device-status.statusTable.coordinateLocation") }}</text>
+
+            <text class="data-cell data-cell--text">{{ t("device-status.statusTable.leakEsa") }}</text>
+            <text class="data-cell data-cell--text">{{ t("device-status.statusTable.leakIntensity") }}</text>
+            <text class="data-cell data-cell--text">{{ t("device-status.statusTable.leakFrequency") }}</text>
+
+            <text class="data-cell data-cell--time">{{ t("device-status.statusTable.uploadTime") }}</text>
+          </view>
+
+          <view v-if="loading" class="loading-mask">{{ t('common.table.loading') }}</view>
+          <view v-else-if="deviceList.length === 0" class="table-state">{{ t('common.table.empty') }}</view>
+
+          <view
+              v-for="(record, index) in deviceList"
+              :key="record.id"
+              class="data-row"
+              :class="{ 'data-row--active': selectedId === record.id }"
+              @click="selectRow(record)"
+          >
+
+            <!-- 序号 -->
+            <text class="data-cell data-cell--index">
+              {{ (pagination.current - 1) * pagination.size + index + 1 }}
+            </text>
+
+            <!-- 设备编号 -->
+            <text class="data-cell data-cell--device">
+              {{ record.deviceNumber || '-' }}
+            </text>
+
+            <!-- 渗漏状态 -->
+            <text class="data-cell data-cell--status">
+              <text
+                  class="status-tag"
+                  :class="getStatusClass('leak', record.leakStatus)"
+              >
+                {{
+                  record.leakStatus === 0
+                      ? t("status.leak.leak")
+                      : record.leakStatus === 1
+                          ? t("status.leak.normal")
+                          : record.leakStatus === 2
+                              ? t("status.leak.suspected")
+                              : record.leakStatus === 3
+                                  ? t("status.leak.unknown")
+                                  : "-"
+                }}
+              </text>
+            </text>
+
+            <!-- 固件版本 -->
+            <text class="data-cell data-cell--device">
+              {{ record.firmwareVersion || '-' }}
+            </text>
+
+            <!-- 硬件版本 -->
+            <text class="data-cell data-cell--device">
+              {{ record.hardwareVersion || '-' }}
+            </text>
+
+            <!-- 工作模式 -->
+            <text class="data-cell data-cell--status">
+              {{ record.workMode ?? '-' }}
+            </text>
+
+            <!-- 电池电压 -->
+            <text class="data-cell data-cell--text">
+              {{ record.batteryVoltage || '-' }}
+            </text>
+
+            <!-- 设备温度 -->
+            <text class="data-cell data-cell--text">
+              {{ record.deviceTemperature || '-' }}
+            </text>
+
+            <!-- 信号强度 -->
+            <text class="data-cell data-cell--text">
+              {{ record.signalIntensity || '-' }}
+            </text>
+
+            <!-- 信号质量 -->
+            <text class="data-cell data-cell--text">
+              {{ record.signalQuality || '-' }}
+            </text>
+
+            <!-- 坐标位置 -->
+            <text class="data-cell data-cell--text">
+              {{ record.coordinateLocation || '-' }}
+            </text>
+
+            <!-- ESA指标 -->
+            <text class="data-cell data-cell--text">
+              {{ record.leakEsa ?? '-' }}
+            </text>
+
+            <!-- 漏损强度 -->
+            <text class="data-cell data-cell--text">
+              {{ record.leakIntensity ?? '-' }}
+            </text>
+
+            <!-- 漏损频率 -->
+            <text class="data-cell data-cell--text">
+              {{ record.leakFrequency ?? '-' }}
+            </text>
+
+            <!-- 上报时间 -->
+            <text class="data-cell data-cell--time">
+              {{ record.uploadTime || '-' }}
+            </text>
+
+          </view>
+        </view>
+      </scroll-view>
+
+      <XPaginationBar
+          :current="pagination.current"
+          :size="pagination.size"
+          :total="pagination.total"
+          @change-page="handlePageChange"
+          @change-size="handlePageSizeChange"
+      />
+    </view>
   </view>
 </template>
 <script setup lang="ts">

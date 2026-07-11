@@ -1,124 +1,125 @@
 <template>
-  <view class="toolbar-wrapper">
-    <MaintenanceRecordToolbar
-        v-model="searchForm"
-        @search="handleSearch"
-        @reset="handleSearch"
-        @refresh="fetchMaintenanceRecords"
-        @add="handleAdd"
-        @delete="handleDelete"
-        @edit="handleEdit"
-        :visible="isToolbarVisible"
-    />
-  </view>
-
-  <view class="data-table-container">
-
-    <XFloatingCollapseHandle v-if="isFloatingVisible"
-        v-model="isToolbarVisible"
-    />
-
-    <view class="table-head">
-      <text>{{ t("maintain.maintainTable.title") }}</text>
-      <text class="table-head__meta">  {{ t('common.pagination.totalRecords', { total: pagination.total }) }}</text>
+  <view class="page-container">
+    <view class="toolbar-wrapper">
+      <MaintenanceRecordToolbar
+          v-model="searchForm"
+          @search="handleSearch"
+          @reset="handleSearch"
+          @refresh="fetchMaintenanceRecords"
+          @add="handleAdd"
+          @delete="handleDelete"
+          @edit="handleEdit"
+          :visible="isToolbarVisible"
+      />
     </view>
+    <view class="data-table-container">
 
-    <scroll-view class="table-scroll" scroll-x scroll-y>
-      <view class="data-table">
-        <view class="data-row data-row--header">
-          <text class="data-cell data-cell--index">{{ t("common.table.index") }}</text>
-          <text class="data-cell data-cell--device">{{ t("maintain.maintainTable.deviceNumber") }}</text>
-          <text class="data-cell data-cell--type">{{ t("maintain.maintainTable.type") }}</text>
-          <text class="data-cell data-cell--time">{{ t("maintain.maintainTable.time") }}</text>
-          <text class="data-cell data-cell--address">{{ t("maintain.maintainTable.address") }}</text>
-          <text class="data-cell data-cell--status">{{ t("maintain.maintainTable.installMode") }}</text>
-          <text class="data-cell data-cell--number">{{ t("maintain.maintainTable.tubeGroup") }}</text>
-          <text class="data-cell data-cell--text">{{ t("maintain.maintainTable.tubeMaterial") }}</text>
-          <text class="data-cell data-cell--text">{{ t("maintain.maintainTable.tubeBore") }}</text>
-          <text class="data-cell data-cell--text">{{ t("maintain.maintainTable.remark") }}</text>
-        </view>
+      <XFloatingCollapseHandle v-if="isFloatingVisible"
+                               v-model="isToolbarVisible"
+      />
 
-        <view v-if="loading" class="loading-mask">{{ t('common.table.loading') }}</view>
-        <view v-else-if="deviceList.length === 0" class="table-state">{{ t('common.table.empty') }}</view>
+      <view class="table-head">
+        <text>{{ t("maintain.maintainTable.title") }}</text>
+        <text class="table-head__meta">  {{ t('common.pagination.totalRecords', { total: pagination.total }) }}</text>
+      </view>
 
-        <view
-            v-for="(record, index) in deviceList"
-            :key="record.id"
-            class="data-row"
-            :class="{ 'data-row--active': selectedRecord?.id === record.id }"
-            @click="selectRow(record)"
-        >
+      <scroll-view class="table-scroll" scroll-x scroll-y>
+        <view class="data-table">
+          <view class="data-row data-row--header">
+            <text class="data-cell data-cell--index">{{ t("common.table.index") }}</text>
+            <text class="data-cell data-cell--device">{{ t("maintain.maintainTable.deviceNumber") }}</text>
+            <text class="data-cell data-cell--type">{{ t("maintain.maintainTable.type") }}</text>
+            <text class="data-cell data-cell--time">{{ t("maintain.maintainTable.time") }}</text>
+            <text class="data-cell data-cell--address">{{ t("maintain.maintainTable.address") }}</text>
+            <text class="data-cell data-cell--status">{{ t("maintain.maintainTable.installMode") }}</text>
+            <text class="data-cell data-cell--number">{{ t("maintain.maintainTable.tubeGroup") }}</text>
+            <text class="data-cell data-cell--text">{{ t("maintain.maintainTable.tubeMaterial") }}</text>
+            <text class="data-cell data-cell--text">{{ t("maintain.maintainTable.tubeBore") }}</text>
+            <text class="data-cell data-cell--text">{{ t("maintain.maintainTable.remark") }}</text>
+          </view>
 
-          <text class="data-cell data-cell--index">
-            {{ (pagination.current - 1) * pagination.size + index + 1 }}
-          </text>
+          <view v-if="loading" class="loading-mask">{{ t('common.table.loading') }}</view>
+          <view v-else-if="deviceList.length === 0" class="table-state">{{ t('common.table.empty') }}</view>
 
-          <text class="data-cell data-cell--device">
-            {{ record.deviceNumber || '-' }}
-          </text>
+          <view
+              v-for="(record, index) in deviceList"
+              :key="record.id"
+              class="data-row"
+              :class="{ 'data-row--active': selectedRecord?.id === record.id }"
+              @click="selectRow(record)"
+          >
 
-          <text class="data-cell data-cell--type">
-            <text
-                class="status-tag"
-                :class="getMaintainTypeMeta(record.maintainType).className"
-            >
-              {{ getMaintainTypeMeta(record.maintainType).label }}
+            <text class="data-cell data-cell--index">
+              {{ (pagination.current - 1) * pagination.size + index + 1 }}
             </text>
-          </text>
 
-          <text class="data-cell data-cell--time">
-            {{ formatDate(record.maintainTime) || '-' }}
-          </text>
+            <text class="data-cell data-cell--device">
+              {{ record.deviceNumber || '-' }}
+            </text>
 
-          <text class="data-cell data-cell--address">
-            {{ record.maintainAddress || '-' }}
-          </text>
+            <text class="data-cell data-cell--type">
+              <text
+                  class="status-tag"
+                  :class="getMaintainTypeMeta(record.maintainType).className"
+              >
+                {{ getMaintainTypeMeta(record.maintainType).label }}
+              </text>
+            </text>
 
-          <text class="data-cell data-cell--status">
-            <text
-                class="status-tag"
-                :class="{
+            <text class="data-cell data-cell--time">
+              {{ formatDate(record.maintainTime) || '-' }}
+            </text>
+
+            <text class="data-cell data-cell--address">
+              {{ record.maintainAddress || '-' }}
+            </text>
+
+            <text class="data-cell data-cell--status">
+              <text
+                  class="status-tag"
+                  :class="{
                   'status-tag--success': record.installMode === 0,
                   'status-tag--warning': record.installMode === 1
               }"
-            >
-              {{
-                record.installMode === 0
-                    ? t("status.installMode.fixed")
-                    : record.installMode === 1
-                        ? t("status.installMode.mobile")
-                        : "-"
-              }}
+              >
+                {{
+                  record.installMode === 0
+                      ? t("status.installMode.fixed")
+                      : record.installMode === 1
+                          ? t("status.installMode.mobile")
+                          : "-"
+                }}
+              </text>
             </text>
-          </text>
 
-          <text class="data-cell data-cell--number">
-            {{ record.tubeGroup || '-' }}
-          </text>
+            <text class="data-cell data-cell--number">
+              {{ record.tubeGroup || '-' }}
+            </text>
 
-          <text class="data-cell data-cell--text">
-            {{ record.tubeMaterial || '-' }}
-          </text>
+            <text class="data-cell data-cell--text">
+              {{ record.tubeMaterial || '-' }}
+            </text>
 
-          <text class="data-cell data-cell--text">
-            {{ record.tubeBore || '-' }}
-          </text>
+            <text class="data-cell data-cell--text">
+              {{ record.tubeBore || '-' }}
+            </text>
 
-          <text class="data-cell data-cell--text">
-            {{ record.remark || '-' }}
-          </text>
+            <text class="data-cell data-cell--text">
+              {{ record.remark || '-' }}
+            </text>
 
+          </view>
         </view>
-      </view>
-    </scroll-view>
+      </scroll-view>
 
-    <XPaginationBar
-        :current="pagination.current"
-        :size="pagination.size"
-        :total="pagination.total"
-        @change-page="handlePageChange"
-        @change-size="handlePageSizeChange"
-    />
+      <XPaginationBar
+          :current="pagination.current"
+          :size="pagination.size"
+          :total="pagination.total"
+          @change-page="handlePageChange"
+          @change-size="handlePageSizeChange"
+      />
+    </view>
   </view>
 
   <XDynamicDialog

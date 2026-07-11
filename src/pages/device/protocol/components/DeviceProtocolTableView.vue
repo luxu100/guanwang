@@ -1,115 +1,117 @@
 <template>
-  <view class="toolbar-wrapper">
-    <DeviceProtocolToolbar
-        @add="handleAdd"
-        @delete="handleDelete"
-        @edit="handleEdit"
-        :visible="isToolbarVisible"
-    />
-  </view>
-  <view class="data-table-container">
-    <view class="table-head">
-      <text>{{ t("deviceProtocol.table.title") }}</text>
-      <text class="table-head__meta">  {{ t('common.pagination.totalRecords', { total: deviceProtocolList.length }) }}</text>
+  <view class="page-container">
+    <view class="toolbar-wrapper">
+      <DeviceProtocolToolbar
+          @add="handleAdd"
+          @delete="handleDelete"
+          @edit="handleEdit"
+          :visible="isToolbarVisible"
+      />
     </view>
+    <view class="data-table-container">
+      <view class="table-head">
+        <text>{{ t("deviceProtocol.table.title") }}</text>
+        <text class="table-head__meta">  {{ t('common.pagination.totalRecords', { total: deviceProtocolList.length }) }}</text>
+      </view>
 
-    <scroll-view class="table-scroll" scroll-x scroll-y>
-      <view class="data-table">
-        <view class="data-row data-row--header">
-          <text class="data-cell data-cell--index">{{ t("common.table.index") }}</text>
-          <text class="data-cell">{{ t("deviceProtocol.table.protocolCode") }}</text>
-          <text class="data-cell">{{ t("deviceProtocol.table.protocolName") }}</text>
-          <text class="data-cell">{{ t("deviceProtocol.table.protocolVersion") }}</text>
-          <text class="data-cell">{{ t("deviceProtocol.table.afn") }}</text>
-          <text class="data-cell">{{ t("deviceProtocol.table.taskType") }}</text>
-          <text class="data-cell">{{ t("deviceProtocol.table.contentPrefix") }}</text>
-          <text class="data-cell">{{ t("deviceProtocol.table.priority") }}</text>
-          <text class="data-cell">{{ t("deviceProtocol.table.enabled") }}</text>
-          <text class="data-cell">{{ t("deviceProtocol.table.description") }}</text>
-          <text class="data-cell">{{ t("deviceProtocol.table.updatedAt") }}</text>
-        </view>
+      <scroll-view class="table-scroll" scroll-x scroll-y>
+        <view class="data-table">
+          <view class="data-row data-row--header">
+            <text class="data-cell data-cell--index">{{ t("common.table.index") }}</text>
+            <text class="data-cell">{{ t("deviceProtocol.table.protocolCode") }}</text>
+            <text class="data-cell">{{ t("deviceProtocol.table.protocolName") }}</text>
+            <text class="data-cell">{{ t("deviceProtocol.table.protocolVersion") }}</text>
+            <text class="data-cell">{{ t("deviceProtocol.table.afn") }}</text>
+            <text class="data-cell">{{ t("deviceProtocol.table.taskType") }}</text>
+            <text class="data-cell">{{ t("deviceProtocol.table.contentPrefix") }}</text>
+            <text class="data-cell">{{ t("deviceProtocol.table.priority") }}</text>
+            <text class="data-cell">{{ t("deviceProtocol.table.enabled") }}</text>
+            <text class="data-cell">{{ t("deviceProtocol.table.description") }}</text>
+            <text class="data-cell">{{ t("deviceProtocol.table.updatedAt") }}</text>
+          </view>
 
-        <view v-if="loading" class="loading-mask">{{ t('common.table.loading') }}</view>
-        <view v-else-if="deviceProtocolList.length === 0" class="table-state">{{ t('common.table.empty') }}</view>
+          <view v-if="loading" class="loading-mask">{{ t('common.table.loading') }}</view>
+          <view v-else-if="deviceProtocolList.length === 0" class="table-state">{{ t('common.table.empty') }}</view>
 
-        <view
-            v-for="(record, index) in deviceProtocolList"
-            :key="record.id"
-            class="data-row"
-            :class="{ 'data-row--active': selectedRecord?.id === record.id }"
-            @click="selectRow(record)"
-        >
+          <view
+              v-for="(record, index) in deviceProtocolList"
+              :key="record.id"
+              class="data-row"
+              :class="{ 'data-row--active': selectedRecord?.id === record.id }"
+              @click="selectRow(record)"
+          >
 
-          <text class="data-cell data-cell--index">
-            {{ index + 1 }}
-          </text>
+            <text class="data-cell data-cell--index">
+              {{ index + 1 }}
+            </text>
 
-          <text class="data-cell data-cell--remark"
-                @mouseenter="showTooltip($event,record.protocolCode)"
-                @mouseleave="hideTooltip">
-            {{ record.protocolCode || '-' }}
-          </text>
+            <text class="data-cell data-cell--remark"
+                  @mouseenter="showTooltip($event,record.protocolCode)"
+                  @mouseleave="hideTooltip">
+              {{ record.protocolCode || '-' }}
+            </text>
 
-          <text class="data-cell data-cell--remark"
-                @mouseenter="showTooltip($event,record.protocolName)"
-                @mouseleave="hideTooltip">
-            {{ record.protocolName || '-' }}
-          </text>
+            <text class="data-cell data-cell--remark"
+                  @mouseenter="showTooltip($event,record.protocolName)"
+                  @mouseleave="hideTooltip">
+              {{ record.protocolName || '-' }}
+            </text>
 
-          <text class="data-cell">
-            {{ record.protocolVersion || '-' }}
-          </text>
+            <text class="data-cell">
+              {{ record.protocolVersion || '-' }}
+            </text>
 
-          <text class="data-cell">
-            {{ record.afn || '-' }}
-          </text>
+            <text class="data-cell">
+              {{ record.afn || '-' }}
+            </text>
 
-          <text class="data-cell">
-            {{ record.taskType || '-' }}
-          </text>
+            <text class="data-cell">
+              {{ record.taskType || '-' }}
+            </text>
 
-          <text class="data-cell">
-            {{ record.contentPrefix || '-' }}
-          </text>
+            <text class="data-cell">
+              {{ record.contentPrefix || '-' }}
+            </text>
 
-          <text class="data-cell">
-            {{ record.priority ?? '-' }}
-          </text>
+            <text class="data-cell">
+              {{ record.priority ?? '-' }}
+            </text>
 
-          <text class="data-cell">
-            <text
-                class="status-tag"
-                :class="{
+            <text class="data-cell">
+              <text
+                  class="status-tag"
+                  :class="{
                   'status-tag--success': record.enabled,
                   'status-tag--danger': !record.enabled
                 }"
-            >
-              {{ record.enabled ? t('status.status.enabled') : t('status.status.disable') }}
+              >
+                {{ record.enabled ? t('status.status.enabled') : t('status.status.disable') }}
+              </text>
             </text>
-          </text>
 
-          <text class="data-cell data-cell--remark"
-                @mouseenter="showTooltip($event,record.description)"
-                @mouseleave="hideTooltip">
-            {{ record.description || '-' }}
-          </text>
+            <text class="data-cell data-cell--remark"
+                  @mouseenter="showTooltip($event,record.description)"
+                  @mouseleave="hideTooltip">
+              {{ record.description || '-' }}
+            </text>
 
-          <text class="data-cell data-cell--time">
-            {{ formatDate(record.updatedAt || '-') }}
-          </text>
+            <text class="data-cell data-cell--time">
+              {{ formatDate(record.updatedAt || '-') }}
+            </text>
 
+          </view>
         </view>
-      </view>
-    </scroll-view>
-    <view
-        v-if="tooltipVisible"
-        class="table-tooltip"
-        :style="{
+      </scroll-view>
+      <view
+          v-if="tooltipVisible"
+          class="table-tooltip"
+          :style="{
          left: tooltipX+'px',
          top: tooltipY+'px'
        }"
-    >
-      {{tooltipText}}
+      >
+        {{tooltipText}}
+      </view>
     </view>
   </view>
 
