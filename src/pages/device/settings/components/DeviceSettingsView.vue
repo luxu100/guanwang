@@ -13,6 +13,7 @@
 
     <!-- 主体 -->
     <view class="worksheet-layout"
+          :style="layoutStyle"
           :class="[layoutClass, { collapsed: isDetailCollapsed }]">
 
       <!-- 左侧 table（固定不变） -->
@@ -27,13 +28,11 @@
         />
       </view>
 
-      <view class="split-handle" @click="toggleDetailPanel">
+      <view class="split-handle" @mousedown="startResize">
         {{ isDetailCollapsed ? '⟨' : '⟩' }}
       </view>
 
-      <!-- 右侧 panel（随mode变化） -->
       <view class="detail-panel">
-
         <view
             v-if="!currentDeviceSetting?.id"
             class="detail-empty"
@@ -154,6 +153,67 @@ const layoutClass = computed(() => {
     return "layout-split";
 });
 
+/*
+ 中间条可滑动
+ */
+const detailWidth = ref(400);
+const layoutStyle = computed(() => {
+  if(isDetailCollapsed.value){
+    return { gridTemplateColumns: `minmax(0,1fr) 24px` }
+  }
+  return { gridTemplateColumns: `minmax(0,1fr) 24px ${detailWidth.value}px` }
+});
+
+const isDragging = ref(false);
+
+let startX = 0;
+let startWidth = 0;
+
+function startResize(e: MouseEvent) {
+  startX = e.clientX;
+  startWidth = detailWidth.value;
+  isDragging.value = false;
+  document.addEventListener(
+      "mousemove",
+      resize
+  );
+  document.addEventListener(
+      "mouseup",
+      stopResize
+  );
+}
+
+
+function resize(e: MouseEvent) {
+  const diff = startX - e.clientX;
+  if(Math.abs(diff) > 3){
+    isDragging.value = true;
+  }
+  let width = startWidth + diff;
+  // 限制范围
+  width = Math.max(
+      260,
+      Math.min(width,800)
+  );
+  detailWidth.value = width;
+}
+
+
+function stopResize(){
+  document.removeEventListener(
+      "mousemove",
+      resize
+  );
+  document.removeEventListener(
+      "mouseup",
+      stopResize
+  );
+  // 如果没有移动，认为是点击
+  if(!isDragging.value){
+    toggleDetailPanel();
+  }
+}
+
 onMounted(() => {
   fetchSettings();
 });
@@ -176,15 +236,13 @@ onMounted(() => {
 
 /* 主体区域 */
 .worksheet-layout {
-  flex: 1;
-
-  display: grid;
-
   gap: 0px;
   margin-top: 14px;
-
-  min-height: 0;
-  overflow: hidden;
+  flex:1;
+  display:grid;
+  grid-template-rows:minmax(0,1fr);
+  min-height:0;
+  overflow:hidden;
 }
 
 /* 默认：左列表 + 右详情 */
@@ -214,8 +272,6 @@ onMounted(() => {
 
   border: 1px solid #d8e5ef;
   border-radius: 6px;
-
-  height: 100%;
 
   box-shadow: 0 12px 26px rgba(35,72,104,.09);
 }
