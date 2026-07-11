@@ -141,7 +141,7 @@ function renderChart(freqData: Uint8Array, sampleRate: number) {
       formatter: (params: any) => {
         const p = Array.isArray(params) ? params[0] : params;
         if (!p) return "";
-        return `频率: ${Number(p.axisValue).toFixed(1)}Hz 幅度: ${Number(p.value[1])}dB`;
+        return `频率: ${Number(p.axisValue).toFixed(1)}Hz 幅值: ${Number(p.value[1])}dB`;
       },
     },
     grid: { left: 56, right: 24, top: 44, bottom: 16 },

@@ -36,9 +36,6 @@
           </view>
         </view>
 
-      </view>
-
-      <view class="toolbar-row toolbar-row--bottom">
         <view class="toolbar-actions">
           <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="search">查询</button>
           <button class="toolbar-button" hover-class="toolbar-button--hover" @click="reset">重置</button>
@@ -117,9 +114,34 @@
         </scroll-view>
 
         <view class="pagination-bar">
+          <view class="page-size">
+            每页
+            <view class="page-size-value" @click.stop="showPageSize = !showPageSize">
+              {{ pageSize }}
+            </view>
+            <view v-if="showPageSize" class="page-size-popup">
+              <view
+                v-for="item in pageSizeOptions"
+                :key="item"
+                class="page-size-item"
+                @click="selectPageSize(item)"
+              >
+                {{ item }}
+              </view>
+            </view>
+            条
+          </view>
+
           <button class="page-button" :disabled="currentPage <= 1" @click="changePage(-1)">上一页</button>
           <text class="page-info">第 {{ currentPage }} / {{ totalPages }} 页</text>
           <button class="page-button" :disabled="currentPage >= totalPages" @click="changePage(1)">下一页</button>
+
+          <view class="jump-box">
+            到第
+            <input class="page-input" type="number" v-model.number="jumpPage" />
+            页
+            <button class="page-button jump-btn" @click="jumpToPage">确定</button>
+          </view>
         </view>
       </view>
 
@@ -378,7 +400,10 @@ interface ApiResponseLike {
   msg?: string;
 }
 
-const pageSize = 10;
+const pageSize = ref(10);
+const pageSizeOptions = [10, 20, 50, 100];
+const showPageSize = ref(false);
+const jumpPage = ref<number | null>(null);
 
 const filters = reactive<DataAnalysisFilters>({
   deviceNumber: "",
@@ -549,9 +574,9 @@ const tableColumns = computed<TableColumn[]>(() => {
 });
 
 const totalPages = computed(() => {
-  if (props.mode === "audio") return Math.max(1, Math.ceil(audioTotal.value / pageSize));
-  if (props.mode === "leakage") return Math.max(1, Math.ceil(leakTotal.value / pageSize));
-  return Math.max(1, Math.ceil(filteredData.value.length / pageSize));
+  if (props.mode === "audio") return Math.max(1, Math.ceil(audioTotal.value / pageSize.value));
+  if (props.mode === "leakage") return Math.max(1, Math.ceil(leakTotal.value / pageSize.value));
+  return Math.max(1, Math.ceil(filteredData.value.length / pageSize.value));
 });
 
 const sortFieldMap: Record<string, Record<string, string>> = {
@@ -676,7 +701,7 @@ async function fetchAudioData() {
 function buildAudioQueryParams() {
   return removeEmptyFields({
     pageNum: currentPage.value,
-    pageSize,
+    pageSize: pageSize.value,
     sortOrder: sortState.order,
     sortField: resolveSortField(),
     deviceNumber: filters.deviceNumber.trim() || undefined,
@@ -737,7 +762,7 @@ async function fetchLeakageData() {
 function buildLeakageQueryParams() {
   return removeEmptyFields({
     pageNum: currentPage.value,
-    pageSize,
+    pageSize: pageSize.value,
     sortOrder: sortState.order,
     sortField: resolveSortField(),
     deviceNumber: filters.deviceNumber.trim() || undefined,
@@ -784,7 +809,7 @@ function parsePageResponse(response: ApiResponseLike) {
   const totalValue = getFirstNumber(pageData, ["total", "count", "totalCount", "totalRow", "totalRows", "totalElements"])
     ?? getFirstNumber(response, ["total", "count", "totalCount", "totalRow", "totalRows", "totalElements"])
     ?? 0;
-  const minimumVisibleTotal = (currentPage.value - 1) * pageSize + finalRecords.length;
+  const minimumVisibleTotal = (currentPage.value - 1) * pageSize.value + finalRecords.length;
   const resolvedTotal = Math.max(totalValue, minimumVisibleTotal);
 
   return {
@@ -925,6 +950,29 @@ function changePage(step: number) {
   }
 }
 
+function selectPageSize(size: number) {
+  showPageSize.value = false;
+  pageSize.value = size;
+  currentPage.value = 1;
+  if (props.mode === "audio") {
+    fetchAudioData();
+  } else if (props.mode === "leakage") {
+    fetchLeakageData();
+  }
+}
+
+function jumpToPage() {
+  const page = Number(jumpPage.value);
+  if (!page || page < 1 || page > totalPages.value) return;
+  currentPage.value = page;
+  jumpPage.value = null;
+  if (props.mode === "audio") {
+    fetchAudioData();
+  } else if (props.mode === "leakage") {
+    fetchLeakageData();
+  }
+}
+
 async function loadPartitions() {
   try {
     const response = await getDeptList() as { data: Array<{ id: number; deptName: string }> };
@@ -1000,14 +1048,6 @@ watch(
   flex-wrap: wrap;
   align-items: end;
   gap: 14px 20px;
-}
-
-.toolbar-row--bottom {
-  display: flex;
-  align-items: end;
-  justify-content: flex-end;
-  gap: 12px;
-  width: 100%;
 }
 
 .filter-group {
@@ -1117,7 +1157,7 @@ watch(
   flex: 0 0 auto;
   justify-content: flex-start;
   width: auto;
-  margin-left: 0;
+  margin-left: auto;
   align-self: end;
 }
 
@@ -1251,21 +1291,22 @@ watch(
 }
 
 .data-table {
-  width: 1138px;
-  min-width: 1138px;
+  width: 100%;
+  min-width: 900px;
   background: #ffffff;
 }
 
 .data-table--leakage {
-  width: 998px;
-  min-width: 998px;
+  width: 100%;
+  min-width: 760px;
 }
 
 .data-row {
   display: grid;
-  grid-template-columns: 58px 180px 180px 90px 90px 120px 240px 180px;
+  grid-template-columns: 58px minmax(130px, 1.3fr) minmax(140px, 1.4fr) minmax(70px, 0.7fr) minmax(70px, 0.7fr) minmax(90px, 0.9fr) minmax(180px, 1.6fr) minmax(140px, 1.2fr);
   min-height: 42px;
-  width: 1138px;
+  width: 100%;
+  min-width: 900px;
   border-bottom: 1px solid #edf1f5;
   cursor: pointer;
   transition:
@@ -1316,8 +1357,8 @@ watch(
 }
 
 .data-row--leakage {
-  grid-template-columns: 58px 180px 180px 80px 80px 90px 90px 240px;
-  width: 998px;
+  grid-template-columns: 58px minmax(130px, 1.3fr) minmax(140px, 1.4fr) minmax(70px, 0.7fr) minmax(70px, 0.7fr) minmax(70px, 0.7fr) minmax(70px, 0.7fr) minmax(180px, 1.6fr);
+  min-width: 760px;
 }
 
 .data-cell {
@@ -1484,6 +1525,102 @@ watch(
   height: 48px;
   padding: 0 14px;
   border-top: 1px solid #edf3f8;
+}
+
+.page-size {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  color: #64748b;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.page-size-value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 50px;
+  height: 30px;
+  padding: 0 10px;
+  color: #31506d;
+  font-size: 13px;
+  font-weight: 600;
+  background: #f6fbff;
+  border: 1px solid #cbdced;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.page-size-value:hover {
+  background: #eef7ff;
+  border-color: #a9d2ff;
+}
+
+.page-size-popup {
+  position: absolute;
+  bottom: 42px;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 70px;
+  padding: 6px 0;
+  background: #fff;
+  border: 1px solid #d9e7f3;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(15, 35, 55, 0.18);
+  z-index: 9999;
+}
+
+.page-size-popup::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  border-right: 1px solid #d9e7f3;
+  border-bottom: 1px solid #d9e7f3;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.page-size-item {
+  height: 32px;
+  line-height: 32px;
+  padding: 0 18px;
+  color: #31506d;
+  font-size: 13px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.page-size-item:hover {
+  background: #eef7ff;
+}
+
+.jump-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+  font-size: 13px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.page-input {
+  width: 50px;
+  height: 30px;
+  color: #64748b;
+  font-size: 13px;
+  padding: 0 6px;
+  text-align: center;
+  border: 1px solid #cbdced;
+  border-radius: 4px;
+  outline: none;
+  box-sizing: border-box;
 }
 
 .page-button {
@@ -1760,17 +1897,33 @@ watch(
     gap: 10px;
   }
 
-  .toolbar-row--bottom {
-    flex-wrap: wrap;
-  }
-
   .toolbar-actions {
     justify-content: flex-start;
   }
+}
 
+@media (max-width: 980px) {
   .sheet-layout {
     grid-template-columns: 1fr;
     grid-template-rows: 1fr auto;
+  }
+
+  .sheet-detail-panel {
+    min-height: 360px;
+  }
+
+  .data-table,
+  .data-row {
+    min-width: 760px;
+  }
+
+  .data-row {
+    grid-template-columns: 46px minmax(110px, 1.1fr) minmax(120px, 1.2fr) minmax(60px, 0.6fr) minmax(60px, 0.6fr) minmax(74px, 0.74fr) minmax(140px, 1.3fr) minmax(110px, 1fr);
+  }
+
+  .data-row--leakage {
+    grid-template-columns: 46px minmax(110px, 1.1fr) minmax(120px, 1.2fr) minmax(60px, 0.6fr) minmax(60px, 0.6fr) minmax(60px, 0.6fr) minmax(60px, 0.6fr) minmax(140px, 1.3fr);
+    min-width: 670px;
   }
 }
 
@@ -1779,10 +1932,14 @@ watch(
     padding: 12px;
   }
 
-  .toolbar-row--filters,
-  .toolbar-row--bottom {
+  .toolbar-row--filters {
     display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .toolbar-actions {
+    flex-wrap: wrap;
+    margin-left: 0;
   }
 
   .filter-group,
