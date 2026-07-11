@@ -217,7 +217,6 @@ import { TOKEN_KEY } from "@/utils/request";
 import LocaleLeakMap from "@/pages/leak-monitor/components/LocaleLeakMap.vue";
 import { applyUserLocale } from "@/i18n";
 import ValveView from "@/pages/device/valve/components/ValveView.vue";
-import DeviceProtocol from "@/pages/device/protocol/device-protocol.vue";
 interface MenuItem {
   label: string;
   path: string;
