@@ -8,11 +8,12 @@ export interface FieldOption {
 export interface FormField {
     key: string;
     label: string;
-    type: "input" | "select" | "datetime" | "textarea" | "location";
+    type: "input" | "select" | "datetime" | "textarea" | "location" | "photo";
     required?: boolean;
     placeholder?: string;
     options?: FieldOption[];
     large?: boolean;
+    disabled?: boolean;
 }
 
 export interface FormSection {
