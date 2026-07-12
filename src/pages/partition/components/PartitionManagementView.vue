@@ -1,113 +1,86 @@
 <template>
     <view class="dept">
 		<!-- 分区信息 -->
-		<view class="dev-layout">
-			<!-- 分区信息 -->
-			<view class="table-panel">
-				<view class="section-head">
-					<text class="section-title"> 分区信息 </text>
-					<view class="toolbar-panel">
-						  <button class="secondary-button" @click="deptRefresh"> 刷新 </button>
-						  <button class="secondary-button" @click="handleCreateDept"> 新增 </button>
-						  <button class="secondary-button" :disabled="!currentDeptId || currentDeptId === 0" @click="handleEditDept"> 编辑 </button>
-						  <button class="danger-button" :disabled="!currentDeptId || currentDeptId === 0" @click="handleDeleteDept"> 删除 </button>
-					</view>
+		<view class="dept-layout">
+			<view class="table-head">
+				<text> 分区信息 </text>
+				<view class="toolbar-panel">
+					  <button class="secondary-button" @click="deptRefresh"> 刷新 </button>
+					  <button class="secondary-button" @click="handleCreateDept"> 新增 </button>
+					  <button class="secondary-button" :disabled="!currentDeptId || currentDeptId === 0" @click="handleEditDept"> 编辑 </button>
+					  <button class="danger-button" :disabled="!currentDeptId || currentDeptId === 0" @click="handleDeleteDept"> 删除 </button>
 				</view>
+			</view>
 
+			<scroll-view class="table-scroll" scroll-x scroll-y>
 				<view class="table">
 					<!-- 表头 -->
-					<view class="table-row dept-table-row table-row--header">
+					<view class="table-row table-row--header dept-table-row">
 					  <view
-					    v-for="column in deptColumns" 
-					    :key="column.key"
-						:class="[column.className, 'col-center']" >
-					    <!-- 普通列 -->
-					    <text>{{ column.label }}</text>
+						v-for="column in deptColumns" 
+						:key="column.key"
+						class="table-cell table-header-cell"
+						:class="column.className" >
+						<!-- 普通列 -->
+						<text>{{ column.label }}</text>
 					  </view>
 					</view>
 					
-					<view v-if="deptLoading" class="table-state col-center">加载中...</view>
+					<view v-if="deptLoading" class="table-state ">加载中...</view>
 					<view v-else-if="deptTableList.length === 0" class="table-state">暂无分区信息</view>
 					
-				    <!-- 数据 -->
-					<view v-else>
-						<view v-for="(item,index) in deptTableList" 
-						:key="item.id" 
-						class="dept-table-row table-row"
-						:class="{ 'table-row--action': currentDeptId === item.id}"
-						@click="handleDeptTableRowClick(item)"
-						>
-						  <view class="col-index col-center" > {{ index + 1 }} </view>
-						  <view class="col-dept-name col-center" :title="item.deptName"> {{ item.deptName }} </view>
-						  <view class="col-dept-type col-center" :title="item.regionType"> {{ item.regionType || '-' }} </view>
-						  <view class="col-min-level col-center"> {{ item.gisMinLevel || '-' }} </view>
-						  <view class="col-max-level col-center"> {{ item.gisMaxLevel || '-' }} </view>
-						  <view class="col-dept-id col-center"> {{ item.id || '-' }} </view>
-						  <view class="col-sort col-center"> {{ item.sort || '-' }} </view>
-						</view>
-					</view>	
+					<!-- 数据 -->
+					<view v-for="(item,index) in deptTableList" 
+					v-else
+					:key="item.id" 
+					class="dept-table-row table-row"
+					:class="{ 'table-row--active': currentDeptId === item.id}"
+					@click="handleDeptTableRowClick(item)"
+					>
+					  <text class="table-cell col-index " > {{ (deptPagination.current - 1) * deptPagination.size + index + 1 }} </text>
+					  <text class="table-cell col-dept-name " :title="item.deptName"> {{ item.deptName }} </text>
+					  <text class="table-cell col-dept-type " :title="item.regionType"> {{ getDeptTypeLabel(item.regionType, "-") }} </text>
+					  <text class="table-cell col-min-level "> {{ item.gisMinLevel || '-' }} </text>
+					  <text class="table-cell col-max-level "> {{ item.gisMaxLevel || '-' }} </text>
+					  <text class="table-cell col-dept-id "> {{ item.id || '-' }} </text>
+					  <text class="table-cell col-sort "> {{ item.sort || '-' }} </text>
+					</view>
 				</view>
+						
+			</scroll-view>
 			
-				<view class="pagination-bar">
-				  <button class="page-btn" :disabled="deptPagination.current <= 1" @click="handlePageChange(deptPagination, deptPagination.current - 1)">
-				    上一页
-				  </button>
-				  <text class="page-info">第 {{ deptPagination.current }}  /  {{ Math.ceil(deptPagination.total / deptPagination.size) || 1 }} 页</text>
-				  <button class="page-btn" :disabled="deptPagination.current >= Math.ceil(deptPagination.total / deptPagination.size)" @click="handlePageChange(deptPagination, deptPagination.current + 1)">
-				    下一页
-				  </button>
-				</view>
+			<view class="pagination-bar">
+			  <button class="page-btn" :disabled="deptPagination.current <= 1" @click="handlePageChange(deptPagination, deptPagination.current - 1)">
+				上一页
+			  </button>
+			  <text class="page-info">第 {{ deptPagination.current }}  /  {{ Math.ceil(deptPagination.total / deptPagination.size) || 1 }} 页</text>
+			  <button class="page-btn" :disabled="deptPagination.current >= Math.ceil(deptPagination.total / deptPagination.size)" @click="handlePageChange(deptPagination, deptPagination.current + 1)">
+				下一页
+			  </button>
 			</view>
 		</view> 
 		
 		<!-- 设备 -->
-		<view class="dev-layout">
-			<!-- 设备列表 -->
-			<view class="table-panel">
-				<view class="section-head">
-					<text class="section-title"> 设备列表 </text>
-					<view class="toolbar-panel">
-						<view class="toolbar-left">
-							<!-- 左侧查询 -->
-							<input
-							  v-model="deviceKeyword"
-							  class="toolbar-input"
-							  placeholder="请输入设备编号"
-							  placeholder-class="input-placeholder"
-							/>
-							<button class="primary-button" @click="handleDeviceSearch"> 查询 </button>
-							<button class="secondary-button" @click="handleDeviceRefresh"> 刷新 </button>
-						</view>
-								
-						<view class="toolbar-right">
-							<!-- 右侧功能按钮 -->
-							<button class="secondary-button" @click="handleBatchAction"> 批量移动 </button>
-							<button class="secondary-button" @click="handleImportDevice"> 导入 </button>
-							<button class="secondary-button" @click="handleExportDevice"> 导出 </button>
-							<button class="primary-button" @click="handleCreateDevice"> 新增设备 </button>
-							<button class="danger-button" @click="handleDeleteSelectedDevice"> 删除 </button>
-						</view>
-					</view>
+		<view class="device-layout">
+			<view class="table-head">
+				<text> 设备列表 </text>
+				<view class="toolbar-panel">
+					<!-- 查询 -->
+					<input v-model="deviceKeyword" class="toolbar-input" placeholder="请输入设备编号" placeholder-class="input-placeholder"/>
+					<button class="primary-button" @click="handleDeviceSearch"> 查询 </button>
+					<button class="secondary-button" @click="handleDeviceRefresh"> 刷新 </button>
 				</view>
+			</view>
 
+			<scroll-view class="table-scroll" scroll-x scroll-y>
 				<view class="table">
 					<!-- 表头 -->
 					<view class="table-row table-row--header device-table-row">
-<!-- 排序					  <view
-						:class="[column.className, { 'table-header-cell': column.sortable, 'table-header-cell--active': sortState.field === column.key }]"
-						@click="column.sortable && toggleSort(column.key as SortField)"
-					  > -->
 					  <view
 						v-for="column in deptDeviceColumns"
 						:key="column.key"
-						:class="[column.className, 'col-center']" >
-						<!-- 全选框 -->
-						<checkbox-group v-if="column.key === 'checkbox'">
-						  <checkbox
-						    :checked="isAllSelected"
-						    @click.stop="handleSelectAll"
-						  />
-						</checkbox-group>
+						class="table-cell table-header-cell"
+						:class="column.className" >
 						<!-- 普通列 -->
 						<text>{{ column.label }}</text>
 					  </view>
@@ -117,41 +90,31 @@
 					<view v-else-if="deptDeviceList.length === 0" class="table-state">暂无设备数据</view>
 					
 					<!-- 数据 -->
-					<view v-else>
-						<view
-						  v-for="(item,index) in deptDeviceList" :key="item.id" class="table-row device-table-row" >	
-						  <view class="col-checkbox col-center">
-							<checkbox
-							  :checked="selectedIds.includes(item.id)"
-							  @click.stop="handleSelectDevice(item.id)"
-							/>
-						  </view>			
-						  <view class="col-index col-center"> {{ index + 1 }} </view>			
-						  <view class="col-dept-name col-center"> {{ getDeptName() }} </view>
-						  <view class="col-device-number col-center"> {{ item.deviceNumber }} </view>
-						  <view class="col-device-alias col-center"> {{ item.deviceAlias || '-' }} </view>
-						  <view class="col-position col-center"> {{ item.installLongitude, item.installLatitude || '-' }} </view>
-						  <view class="col-min-level col-center"> {{ item.gisMinLevel || '-' }} </view>
-						  <view class="col-max-level col-center"> {{ item.gisMaxLevel || '-' }} </view>
-						  <view class="col-action col-center">
-							  <button class="table-action-btn" @click.stop="handleCheckDevice(item)" >
-								查看详情
-							  </button>
-							</view>		  
-						</view>
+					<view v-for="(item,index) in deptDeviceList" v-else :key="item.id" class="table-row device-table-row" >				
+					  <view class="table-cell col-index "> {{ (deptDevicePagination.current - 1) * deptDevicePagination.size + index + 1 }} </view>			
+					  <view class="table-cell col-dept-name "> {{ getDeptName() }} </view>
+					  <view class="table-cell col-device-number "> {{ item.deviceNumber }} </view>
+					  <view class="table-cell col-device-alias "> {{ item.deviceAlias || '-' }} </view>
+					  <view class="table-cell col-position "> {{ item.installLongitude, item.installLatitude || '-' }} </view>
+					  <view class="table-cell col-min-level "> {{ item.gisMinLevel || '-' }} </view>
+					  <view class="table-cell col-max-level "> {{ item.gisMaxLevel || '-' }} </view>
+					  <view class="table-cell col-action ">
+						  <button class="table-action-btn" @click.stop="handleCheckDevice(item)" > 查看详情 </button>
+					  </view>		  
 					</view>
 					
 				</view>
+			</scroll-view>
 			
-				<view class="pagination-bar">
-				  <button class="page-btn" :disabled="deptDevicePagination.current <= 1" @click="handlePageChange(deptDevicePagination,deptDevicePagination.current - 1)">
-					上一页
-				  </button>
-				  <text class="page-info">第 {{ deptDevicePagination.current }}  /  {{ Math.ceil(deptDevicePagination.total / deptDevicePagination.size) || 1 }} 页</text>
-				  <button class="page-btn" :disabled="deptDevicePagination.current >= Math.ceil(deptDevicePagination.total / deptDevicePagination.size)" @click="handlePageChange(deptDevicePagination, deptDevicePagination.current + 1)">
-					下一页
-				  </button>
-				</view>
+		
+			<view class="pagination-bar">
+			  <button class="page-btn" :disabled="deptDevicePagination.current <= 1" @click="handlePageChange(deptDevicePagination,deptDevicePagination.current - 1)">
+				上一页
+			  </button>
+			  <text class="page-info">第 {{ deptDevicePagination.current }}  /  {{ Math.ceil(deptDevicePagination.total / deptDevicePagination.size) || 1 }} 页</text>
+			  <button class="page-btn" :disabled="deptDevicePagination.current >= Math.ceil(deptDevicePagination.total / deptDevicePagination.size)" @click="handlePageChange(deptDevicePagination, deptDevicePagination.current + 1)">
+				下一页
+			  </button>
 			</view>
 		</view>
 		
@@ -176,11 +139,11 @@
 				  <view class="form-field">
 				    <text class="form-label">分区类型</text>
 				    <view class="select-field">
-					    <view class="form-select form-select--dropdown" :class="{ 'form-select--open': activeSelect === 'deptType'}" @click.stop="toggleSelect('deptType')">
-						   <text :class="{ 'select-placeholder': deptForm.regionType === ''}">{{getDeptTypeLabel()}}</text>
+					    <view class="form-select form-select--dropdown" :class="{ 'form-select--open': activeSelect }" @click.stop="toggleSelect()">
+						   <text :class="{ 'select-placeholder': deptForm.regionType === ''}">{{getDeptTypeLabel(deptForm.regionType, "请选择分区类型") }}</text>
 						   <text class="select-arrow"></text>
 					    </view>
-					    <view v-if="activeSelect === 'deptType'" class="select-menu">
+					    <view v-if="activeSelect" class="select-menu">
 						   <view v-for="item in deptTypeOptions" :key="item.value" class="select-option" 
 						   :class="{ 'select-option--active': deptForm.regionType === item.value}" @click.stop="selectDeptType(item.value)">{{item.label}}</view>
 					    </view>
@@ -241,7 +204,7 @@
 				 		 
 				  <view class="form-field">
 				    <text class="form-label">GIS显示</text>
-					<checkbox :checked="deptForm.gisVisible === 1" @click="deptForm.gisVisible = !deptForm.gisVisible" />
+					<checkbox :checked="deptForm.gisVisible === true" @click="deptForm.gisVisible = !deptForm.gisVisible" />
 				  </view>
 				  
 				  <view class="form-field">
@@ -462,7 +425,7 @@ const deptTableList =  computed<DeptTableItem[]>(() =>
   deptList.value.map(item => ({
     id: item.id,
     deptName: item.deptName,
-    deptType: item.regionType,
+    regionType: item.regionType,
     gisMinLevel: item.gisMinLevel,
     gisMaxLevel: item.gisMaxLevel,
     sort: item.sort,
@@ -560,7 +523,6 @@ type DeptColumn = {
 };
 
 type DeptDeviceKey =
-	| "checkbox"
 	| "index"
 	| "deptName"
 	| "deviceNumber"
@@ -591,15 +553,10 @@ interface DeptDeviceItem {
   gisMaxLevel?: number;
 }
 
-interface DeptDeviceBinding{
-	id: number;
-	deptId: number;
-	deviceId: number;
-}
-
 const fillDeptForm = (item: DeptApiItem) => {
   Object.assign(deptForm,{
-	regionTypt: item.regionType,
+	id: item.id,
+	regionType: item.regionType,
 	deptName: item.deptName,
 	regionCode: item.regionCode,
 	regionScope: item.regionScope,
@@ -632,8 +589,6 @@ const deptLoading = ref(false);
 const deptDeviceLoading = ref(false);
 const deptDeviceList = ref<DeptDeviceItem[]>([]);
 const deviceKeyword = ref("");
-const selectedIds = ref<number[]>([]);
-const DeptKeyword = ref("");
 
 const openDeptDialog = () => {
   deptDialogVisible.value = true;
@@ -654,7 +609,6 @@ const deptColumns: DeptColumn[] = [
 ];
 
 const deptDeviceColumns: DeptDeviceColumn[] = [
-  { key: "checkbox", label: "", className: "col-checkbox" },
   { key: "index", label: "序号", className: "col-index" },
   { key: "deptName", label: "所属分区", className: "col-dept-name" },
   { key: "deviceNumber", label: "设备编号", className: "col-device-number" },
@@ -671,7 +625,6 @@ const getDeptById = (id: number): DeptApiItem | undefined => {
 
 const handleDeptTableRowClick = async (item: DeptTableItem) => {
   currentDeptId.value = item.id;
-  selectedIds.value = [];
   deptDevicePagination.current = 1;
   deptDeviceList.value = [];
 
@@ -680,16 +633,6 @@ const handleDeptTableRowClick = async (item: DeptTableItem) => {
     fillDeptForm(dept);
   }
   await loadDeptDeviceList(1);
-};
-
-const handleSelectDevice = (id: number) => {
-  const index = selectedIds.value.indexOf(id);
-
-  if (index > -1) {
-    selectedIds.value.splice(index, 1);
-  } else {
-    selectedIds.value.push(id);
-  }
 };
 
 const handleDeviceSearch = async () => {
@@ -703,7 +646,7 @@ const handleDeviceSearch = async () => {
 	const params: any = {
 	  pageNum: 1,
 	  pageSize: deptDevicePagination.size,
-	  deviceId: keyword,
+	  deviceNumber: keyword,
 	};
 	
 	const res = await getDeptDevicePage(currentDeptId.value, params) as ApiResponseLike;
@@ -712,6 +655,7 @@ const handleDeviceSearch = async () => {
 		records: DeptDeviceItem[];
 		total: number;
 	};
+	console.log("sous", res);
 	deptDeviceList.value = pageData.records || [];
 	deptDevicePagination.current = 1;
 	deptDevicePagination.total = pageData.total || 0;
@@ -731,29 +675,12 @@ const handleDeviceRefresh = async () => {
     return;
   }
   deviceKeyword.value = "";
-  selectedIds.value = [];
   loadDeptDeviceList(1);
 };
 
 const getDeptName = () => {
 	const dept = getDeptById(currentDeptId.value!);
 	return dept ? dept.deptName : "-";
-};
-
-const isAllSelected = computed(() => {
-  if (deptDeviceList.value.length === 0) {
-    return false;
-  }
-
-  return deptDeviceList.value.every(item => selectedIds.value.includes(item.id));
-});
-
-const handleSelectAll = () => {
-  if (isAllSelected.value) {
-    selectedIds.value = [];
-  } else {
-    selectedIds.value = deptDeviceList.value.map(item => item.id);
-  }
 };
 
 const handlePageChange = async (pagination: any, page:number) => {
@@ -767,8 +694,6 @@ const handlePageChange = async (pagination: any, page:number) => {
 	}
 };
 
-
-type SelectKey = "deptType" | "" ;
 type ValidationKey =
   | "deptName"
   | "sort";
@@ -791,8 +716,8 @@ const deptTypeOptions = [
 const deviceDialogVisible = ref(false);
 const deptDialogVisible = ref(false);
 const submitting = ref(false);
+const activeSelect = ref(false);
 const isDeptCreating = ref(false);
-const activeSelect = ref<SelectKey | "">("");
 const firstDeptFormError = computed(() => Object.values(validationErrors).find(Boolean) || "");
 const validationErrors = reactive<Record<ValidationKey, string>>(getEmptyValidationErrors());
 
@@ -805,7 +730,7 @@ const defaultDeptForm: DeptForm =  {
 	regionColor: "",
 	regionCenter: "",
 	zoomLevel: undefined,
-	gisVisible: false,
+	gisVisible: true,
 	gisMinLevel: undefined,
 	gisMaxLevel: undefined,
 	regionIcon: "",
@@ -824,7 +749,6 @@ function getEmptyValidationErrors(): Record<ValidationKey, string> {
 const resetDeptForm = () => {
 	Object.assign(deptForm, defaultDeptForm);
 	clearErrors();
-	activeSelect.value = "";
 };
 
 const handleCreateDept = () => {
@@ -832,8 +756,6 @@ const handleCreateDept = () => {
   deptDeviceList.value = [];
   isDeptCreating.value = true;
   resetDeptForm();
-  clearErrors();
-  activeSelect.value = "";
   openDeptDialog();
 };
 
@@ -841,35 +763,37 @@ const handleEditDept = () => {
   if (currentDeptId.value === undefined) {
     uni.showToast({ title: "请先选择分区", icon: "none" });
     return;
+  }else{
+	isDeptCreating.value = false;
+	const dept = getDeptById(currentDeptId.value);
+	fillDeptForm(dept!);
+	openDeptDialog();
   }
-  isDeptCreating.value = false;
-  openDeptDialog();
 };
 
-function toggleSelect(key: SelectKey) {
-  activeSelect.value = activeSelect.value === key ? "" : key;
+function toggleSelect() {
+  activeSelect.value = !activeSelect.value;
 }
 
 function selectDeptType(value: string) {
   deptForm.regionType = value;
-  activeSelect.value = "";
+  activeSelect.value = false;
 }
 
 const closeDeptDialog = () => {
   if (submitting.value) {
     return;
   }
-  activeSelect.value = "";
   deptDialogVisible.value = false;
+  clearErrors();
 };
 
 const closeDeviceDialog = () => {
 	deviceDialogVisible.value = false;
 }
 
-const getDeptTypeLabel = () => {
-  const item = deptTypeOptions.find(item => item.value === deptForm.regionType);
-  return item?.label || "请选择分区类型";
+const getDeptTypeLabel = (value: any, fallback:string) => {
+  return deptTypeOptions.find((item) => item.value === value)?.label || fallback;
 };
 
 const openRangeDialog = () => {
@@ -964,26 +888,21 @@ const handleSaveDept = async () => {
   const payload = {
     ...deptForm,
   };
-
   try {
 	  let res;
       if (isDeptCreating.value) {
         res = await createDept(payload) as ApiResponseLike;
         uni.showToast({ title: "新增成功", icon: "success" });
+		await loadDeptList(1);
       } else {
 		if (!deptForm.id) {
-		  uni.showToast({ title: "请先选择分区", icon: "none" });
 		  return;
 		}
         res = await updateDept(deptForm.id, payload) as ApiResponseLike;
         uni.showToast({ title: "保存成功", icon: "success" });
       }
 	  assertSuccessResponse(res);
-	  isDeptCreating.value = false;
-      closeDeptDialog();
-	  resetDeptForm();
-      await loadDeptList(1);
-  
+	  deptDialogVisible.value = false;
     } catch (error) {
       uni.showToast({
         title: (error as {msg?: string })?.msg || "保存失败",
@@ -1023,70 +942,12 @@ const handleDeleteDept = async () => {
 			
 			currentDeptId.value = undefined;
 			deptDeviceList.value = [];
-			selectedIds.value = [];
 			resetDeptForm();
 			await loadDeptList(1);
 		}catch{
 			uni.showToast({ title: "删除失败", icon: "none" });
 		}
 	  },
-  });
-};
-
-const handleBatchAction = () => {
-  if (selectedIds.value.length === 0) {
-    uni.showToast({ title: "请先选择设备", icon: "none" });
-    return;
-  }
-
-  uni.showToast({ title: "批量操作待接入", icon: "none" });
-};
-
-const handleImportDevice = () => {
-  if (currentDeptId.value === undefined || currentDeptId.value === 0) {
-    uni.showToast({ title: "请先选择分区", icon: "none" });
-    return;
-  }
-  uni.showToast({ title: "导入功能待接入", icon: "none" });
-};
-
-const handleExportDevice = () => {
-  if (currentDeptId.value === undefined || currentDeptId.value === 0) {
-    uni.showToast({ title: "请先选择分区", icon: "none" });
-    return;
-  }
-
-  uni.showToast({ title: "导出功能待接入", icon: "none" });
-};
-
-const handleCreateDevice = () => {
-  if (currentDeptId.value === undefined || currentDeptId.value === 0) {
-    uni.showToast({ title: "请先选择分区", icon: "none" });
-    return;
-  }
-
-  uni.showToast({ title: "新增设备待接入", icon: "none" });
-};
-
-const handleDeleteSelectedDevice = () => {
-  if (selectedIds.value.length === 0) {
-    uni.showToast({ title: "请先选择设备", icon: "none" });
-    return;
-  }
-
-  uni.showModal({
-    title: "删除确认",
-    content: `确认删除选中的 ${selectedIds.value.length} 个设备吗？`,
-    success: async (res) => {
-      if (!res.confirm) return;
-
-      uni.showToast({
-        title: "删除接口待接入",
-        icon: "none",
-      });
-
-      selectedIds.value = [];
-    },
   });
 };
 
@@ -1102,14 +963,6 @@ const handleCheckDevice = (item: DeptDeviceItem) => {
 
 
 <style scoped lang="scss">
-.dept {
-  position: relative;
-  display: flex;
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-  background: #eef4f8;
-}
 
 .primary-button,
 .secondary-button,
@@ -1188,37 +1041,41 @@ const handleCheckDevice = (item: DeptDeviceItem) => {
 }
 
 /* 区域标题栏 */
-.section-head {
+.table-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 11px;
-  padding-bottom: 9px;
-  border-bottom: 1px solid #eef4fa;
+  flex: none;
+  height: 50px;
+  padding: 0 20px;
+  color: #24445f;
+  font-size: 16px;
+  font-weight: 800;
+  background: #ffffff;
+  border-bottom: 1px solid #edf3ed;
 }
 
 /* 标题文字 */
-.section-title {
-  position: relative;
-  padding-left: 10px;
-  color: #183755;
-  font-size: 16px;
-  font-weight: 900;
-  flex-shrink: 0;
-}
+// .section-title {
+//   position: relative;
+  // padding-left: 10px;
+//   color: #183755;
+//   font-size: 16px;
+//   font-weight: 900;
+//   flex-shrink: 0;
+// }
 
-.section-title::before {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 3px;
-  height: 16px;
-  content: "";
-  background: #0d82ee;
-  border-radius: 999px;
-  transform: translateY(-50%);
-}
+// .section-title::before {
+//   position: absolute;
+//   top: 50%;
+//   left: 0;
+//   width: 3px;
+//   height: 16px;
+//   content: "";
+//   background: #0d82ee;
+//   border-radius: 999px;
+//   transform: translateY(-50%);
+// }
 
 .text-hidden{
 	flex: 1;
@@ -1227,48 +1084,29 @@ const handleCheckDevice = (item: DeptDeviceItem) => {
 	text-overflow: ellipsis;
 }
 
-.dev-layout {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-width: 0;
+.dept {
+  display: grid;
+  grid-template-columns: 66% 34%;
+  height: 100%;
   min-height: 0;
-  padding: 12px 10px 12px 0;
-  justify-content: space-between;
+  padding: 14px;
+  gap: 14px;
+  overflow: hidden;
+  background: #eef4f8;
 }
 
-.toolbar-panel {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 5px 10px;
-  justify-content: space-between;
-  flex-wrap: wrap;
-}
-
-.toolbar-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.toolbar-input {
-  width: 120px;
-  height: 30px;
-  padding: 0 12px;
-  font-size: 12px;
-  background: #fbfdff;
-  border: 1px solid #d5e2ee;
-  border-radius: 4px;
+.dept-layout,
+.device-layout{
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	min-height: 0;
+	min-width: 0;
+	background: #ffffff;
+	border: 1px solid #d8e6f2;
+	border-radius: 6px;
+	box-shadow: 0 12px 26px rgba(35, 72, 104, 0.09);
+	overflow: hidden;
 }
 
 .sort-indicator {
@@ -1311,55 +1149,66 @@ const handleCheckDevice = (item: DeptDeviceItem) => {
   opacity: 0.46;
 }
 
-.table {
-  flex: 1;
-  width: 100%;
-  min-height: 0px;
-  font-size: 12px;
-  overflow: auto;
-}
-
-.table-panel {
-  flex: 1;
-  min-height: 0px;
-  padding: 5px;
-  display: flex;
-  flex-direction: column;
-  background: #fff;
-  border: 1px solid #d8e6f2;
-  border-radius: 6px;
-  overflow: auto;
-}
-
-.table-header-cell {
+.toolbar-panel {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
-  font-weight: 700;
-  cursor: pointer;
+  gap: 10px;
+  padding: 5px 10px;
+  justify-content: space-between;
+  flex-wrap: wrap;
 }
 
-.table-header-cell:hover {
-	background: #edf7ff;
-	color: #0d82ee;
+.toolbar-input {
+  width: 120px;
+  height: 30px;
+  padding: 0 12px;
+  font-size: 12px;
+  background: #fbfdff;
+  border: 1px solid #d5e2ee;
+  border-radius: 4px;
 }
 
-.table-header-cell--active {
-  color: #0d82ee !important;
-  background: #eaf5ff;
+.table-scroll {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+  background: #ffffff;
 }
 
-.table-header-cell text {
-  white-space: nowrap;
+.table-scroll :deep(.uni-scroll-view),
+.detail-body :deep(.uni-scroll-view) {
+  scrollbar-color: #9fb4c8 #edf3f8;
+  scrollbar-width: thin;
 }
 
-.table-row--action {
-	color: #0d82ee;
-	font-weight: 700;
-	position: relative;
-	background: #e7f3ff !important;
-	box-shadow: inset 0 0 0 1px #b9dcff;
+.table-scroll :deep(.uni-scroll-view::-webkit-scrollbar),
+.detail-body::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+.table-scroll :deep(.uni-scroll-view::-webkit-scrollbar-track),
+.detail-body::-webkit-scrollbar-track {
+  background: #edf3f8;
+  border-radius: 999px;
+}
+
+.table-scroll :deep(.uni-scroll-view::-webkit-scrollbar-thumb),
+.detail-body::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, #9fb4c8, #6f8ba8);
+  border: 2px solid #edf3f8;
+  border-radius: 999px;
+}
+
+.table-scroll :deep(.uni-scroll-view::-webkit-scrollbar-thumb:hover),
+.detail-body::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(90deg, #7f9ab4, #4d6f91);
+}
+
+.table {
+  width: 100%;
+  background: #ffffff;
+  font-size: 12px;
 }
 
 .table-row{
@@ -1367,16 +1216,32 @@ const handleCheckDevice = (item: DeptDeviceItem) => {
 	width: 100%;
 	min-height: 42px;
 	border-bottom: 1px solid #edf1f5;
+	transition:
+	  background 0.18s ease,
+	  box-shadow 0.18s ease;
 }
 
 .dept-table-row{
-	min-width: 700px;
-	grid-template-columns: 50px 180px 100px 110px 110px 180fr 60px;
+	min-width: 900px;
+	cursor: pointer;
+	grid-template-columns: 54px minmax(180px, 1.5fr) minmax(110px, 0.82fr) minmax(110px, 0.8fr) minmax(110px, 0.8fr) minmax(180px, 1.5fr) minmax(60px, 1fr);
 }
 
 .device-table-row{
-	min-width: 960px;
-	grid-template-columns: 50px 50px 180px 80px 100px 180px 110px 110px 100px;
+	min-width: 950px;
+	grid-template-columns: 54px minmax(180px, 1.5fr) minmax(80px, 0.82fr) minmax(150px, 1fr) minmax(150px, 1fr) minmax(110px, 0.8fr) minmax(110px, 0.8fr) minmax(110px, 1fr);
+}
+
+.table-row--header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  color: #20384f;
+  min-height: 44px;
+  font-weight: 800;
+  background: #f6f9fc;
+  cursor: default;
+  box-shadow: 0 1px 0 #dbe7f0;
 }
 
 .table-row:not(.table-row--header):nth-child(odd) {
@@ -1389,33 +1254,70 @@ const handleCheckDevice = (item: DeptDeviceItem) => {
 
 .table-row:not(.table-row--header):hover {
   background: #edf7ff;
+  box-shadow: inset 0 0 0 1px #d7ebfb;
 }
 
-.table-row--header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  width: 100%;
-  min-height: 44px;
-  background: #f6f9fc;
-  font-size: 12px;
-  font-weight: 800;
-  box-shadow: 0 1px 0 #dbe7f0;
+// .table-row > view {
+//   display: flex;
+//   align-items: center;
+//   padding: 0 5px;
+//   box-sizing: border-box;
+// }
+
+.table-row--active {
+	position: relative;
+	background: #e7f3ff !important;
+	box-shadow: inset 0 0 0 1px #b9dcff;
 }
 
-.table-row > view {
-  display: flex;
-  align-items: center;
-  padding: 0 5px;
-  box-sizing: border-box;
+.table-row--active::before {
+  position: absolute;
+  top: 7px;
+  bottom: 7px;
+  left: 0;
+  width: 3px;
+  content: "";
+  background: #0d82ee;
+  border-radius: 0 999px 999px 0;
 }
 
-.table-state {
+.table-cell {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 100%;
-  height: 120px;
+  min-width: 0;
+  padding: 0 12px;
+  overflow: hidden;
+  color: #24384d;
+  font-size: 13px;
+  line-height: 1.35;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-right: 1px solid #edf1f5;
+}
+
+.table-row--header .table-cell {
+	color: #415a73;
+	font-size: 12px;
+	letter-spacing: 0;
+}
+
+.table-cell:last-child {
+  border-right: 0;
+}
+
+.col-index{
+	justify-content: center;
+	color: #64748b;
+}
+
+.table-header-cell {
+  gap: 5px;
+  user-select: none;
+}
+
+.table-state {
   height: 180px;
   color: #7c8da1;
   font-size: 14px;
@@ -1438,11 +1340,6 @@ const handleCheckDevice = (item: DeptDeviceItem) => {
 
 .table-action-btn::after {
   border: 0;
-}
-
-.col-center{
-	justify-content: center;
-	flex-shrink: 0;
 }
 
 .pagination-bar {
@@ -1826,6 +1723,399 @@ const handleCheckDevice = (item: DeptDeviceItem) => {
   color: #303133;
   word-break: break-all;
   box-sizing: border-box;
+}
+
+@media (max-width: 980px) {
+  .dept-table-row {
+	min-width: 700px;
+    grid-template-columns: 46px minmax(150px, 1.3fr) minmax(100px, 0.78fr) minmax(110px, 0.72fr) minmax(110px, 0.72fr) minmax(110px, 1.3fr) minmax(60px, 0.92fr);
+  }
+  
+  .device-table-row {
+	min-width: 870px;
+    grid-template-columns: 46px minmax(150px, 1.3fr) minmax(75px, 0.78fr) minmax(130px, 0.78fr) minmax(130px, 0.78fr) minmax(110px, 0.72fr) minmax(110px, 0.72fr) minmax(110px, 0.78fr);
+  }
+}
+
+@media (max-height: 960px) and (min-width: 981px) {
+  .dept {
+    padding: 10px;
+  }
+
+  // .stats-grid {
+  //   gap: 8px;
+  //   margin-bottom: 8px;
+  // }
+
+  // .stat-card {
+  //   padding: 9px 12px 8px;
+  // }
+
+  // .stat-card::after {
+  //   right: -24px;
+  //   bottom: -30px;
+  //   width: 76px;
+  //   height: 76px;
+  // }
+
+  // .stat-card__body {
+  //   margin-top: 7px;
+  // }
+
+  // .stat-card__value {
+  //   font-size: 21px;
+  // }
+
+  // .stat-card__progress {
+  //   height: 5px;
+  //   margin-top: 8px;
+  // }
+
+  // .global-breakdown {
+  //   padding: 10px 12px;
+  //   margin-bottom: 10px;
+  // }
+
+  // .global-breakdown__head {
+  //   margin-bottom: 8px;
+  // }
+
+  // .global-breakdown__content {
+  //   gap: 10px;
+  // }
+
+  // .breakdown-section {
+  //   padding: 9px 10px;
+  // }
+
+  // .breakdown-section::before {
+  //   top: 9px;
+  //   bottom: 9px;
+  // }
+
+  // .breakdown-section__head {
+  //   margin-bottom: 7px;
+  // }
+
+  // .breakdown-list {
+  //   gap: 6px 10px;
+  // }
+
+  // .breakdown-row {
+  //   gap: 5px;
+  //   padding: 7px 9px;
+  // }
+
+  // .worksheet-toolbar {
+  //   gap: 8px;
+  //   padding: 10px 12px;
+  // }
+
+  // .toolbar-row--filters {
+  //   gap: 8px 10px;
+  // }
+
+  // .filter-group {
+  //   gap: 4px;
+  // }
+
+  // .filter-label {
+  //   font-size: 11px;
+  // }
+
+  // .filter-input,
+  // .filter-select,
+  // .toolbar-row--filters .filter-input,
+  // .toolbar-row--filters .filter-select {
+  //   height: 27px;
+  //   font-size: 12px;
+  //   line-height: 27px;
+  // }
+
+  // .filter-datetime {
+  //   flex-basis: 184px;
+  //   width: 184px;
+  // }
+
+  // .filter-datetime :deep(.datetime-picker__control) {
+  //   height: 28px;
+  //   font-size: 12px;
+  //   line-height: 28px;
+  // }
+
+  // .toolbar-actions .toolbar-button,
+  // .toolbar-actions .toolbar-icon-button {
+  //   height: 34px;
+  // }
+
+  .dept {
+    gap: 10px;
+  }
+
+  .table-head {
+    height: 42px;
+    padding: 0 14px;
+    font-size: 15px;
+  }
+
+  .table-row {
+    min-height: 36px;
+  }
+
+  .table-row--header {
+    min-height: 38px;
+  }
+
+  .table-cell {
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  // .status-pill,
+  // .urgency-pill {
+  //   min-width: 50px;
+  //   height: 22px;
+  //   padding: 0 8px;
+  //   font-size: 11px;
+  //   line-height: 22px;
+  // }
+
+  // .pagination-bar {
+  //   height: 42px;
+  // }
+
+  // .detail-tabs {
+  //   gap: 4px;
+  //   height: 40px;
+  //   padding: 4px;
+  // }
+
+  // .detail-tab {
+  //   font-size: 12px;
+  // }
+
+  // .detail-body {
+  //   padding: 8px;
+  // }
+
+  // .detail-base-panel,
+  // .detail-grid,
+  // .detail-time-panel {
+  //   gap: 6px;
+  // }
+
+  // .detail-summary {
+  //   gap: 6px;
+  //   padding: 9px 12px;
+  // }
+
+  // .detail-summary__label {
+  //   font-size: 11px;
+  // }
+
+  // .detail-summary__number {
+  //   margin-top: 4px;
+  //   font-size: 15px;
+  // }
+
+  // .detail-summary__badges {
+  //   gap: 5px;
+  // }
+
+  // .detail-summary__badge {
+  //   min-width: 56px;
+  //   height: 22px;
+  //   line-height: 22px;
+  // }
+
+  // .detail-summary__meta {
+  //   gap: 6px;
+  //   padding-top: 7px;
+  // }
+
+  // .detail-summary__meta-value {
+  //   margin-top: 2px;
+  //   font-size: 12px;
+  // }
+
+  // .detail-item--base {
+  //   grid-template-columns: 78px minmax(0, 1fr);
+  //   min-height: 34px;
+  //   padding: 5px 10px;
+  // }
+
+  // .detail-item__label {
+  //   font-size: 11px;
+  // }
+
+  // .detail-item__value {
+  //   font-size: 12px;
+  //   line-height: 1.28;
+  // }
+
+  // .detail-grid--content {
+  //   gap: 6px;
+  // }
+
+  // .detail-grid--content .detail-item {
+  //   grid-template-columns: 74px minmax(0, 1fr);
+  // }
+
+  // .detail-grid--content .detail-item__value {
+  //   min-height: 34px;
+  //   padding: 9px 10px;
+  //   font-size: 12px;
+  //   line-height: 1.32;
+  // }
+
+  // .detail-item--note .detail-item__label {
+  //   padding: 0 9px;
+  // }
+
+  // .time-section {
+  //   padding: 8px 10px;
+  // }
+
+  // .detail-section-title {
+  //   margin-bottom: 6px;
+  //   font-size: 13px;
+  // }
+
+  // .time-list::before {
+  //   top: 11px;
+  //   bottom: 11px;
+  //   left: 5px;
+  // }
+
+  // .time-row {
+  //   grid-template-columns: 15px minmax(0, 1fr);
+  //   gap: 6px;
+  //   padding: 4px 0;
+  // }
+
+  // .time-row__marker {
+  //   width: 8px;
+  //   height: 8px;
+  //   margin-top: 3px;
+  //   border-width: 2px;
+  // }
+
+  // .time-row__content {
+  //   grid-template-columns: 58px minmax(0, 1fr);
+  //   gap: 6px;
+  // }
+
+  // .time-row__label {
+  //   font-size: 11px;
+  // }
+
+  // .time-row__value {
+  //   font-size: 12px;
+  //   line-height: 1.28;
+  // }
+
+  // .location-row {
+  //   grid-template-columns: 42px minmax(0, 1fr);
+  //   gap: 7px;
+  //   padding: 6px 0;
+  // }
+
+  // .location-row__label,
+  // .location-row__value {
+  //   font-size: 12px;
+  //   line-height: 1.3;
+  // }
+
+  // .process-box__title {
+  //   margin-bottom: 7px;
+  //   font-size: 14px;
+  // }
+
+  // .process-box .form-field {
+  //   margin-bottom: 6px;
+  // }
+
+  // .process-form-grid {
+  //   gap: 6px;
+  // }
+
+  // .process-more-toggle {
+  //   min-height: 28px;
+  //   margin-bottom: 6px;
+  //   font-size: 12px;
+  // }
+
+  // .process-more-panel {
+  //   padding: 7px 7px 1px;
+  //   margin-bottom: 6px;
+  // }
+
+  // .form-label {
+  //   margin-bottom: 3px;
+  //   font-size: 12px;
+  // }
+
+  // .form-input,
+  // .form-select {
+  //   height: 28px;
+  //   padding: 0 8px;
+  //   font-size: 12px;
+  //   line-height: 28px;
+  // }
+
+  // .process-select {
+  //   min-height: 28px;
+  // }
+
+  // .form-textarea {
+  //   height: 44px;
+  //   padding: 6px 8px;
+  //   font-size: 12px;
+  //   line-height: 1.3;
+  // }
+
+  // .form-textarea--compact {
+  //   height: 34px;
+  // }
+
+  // .process-actions {
+  //   gap: 6px;
+  // }
+
+  // .process-action {
+  //   height: 28px;
+  //   font-size: 12px;
+  //   line-height: 28px;
+  // }
+}
+
+@media (max-width: 520px) {
+  // .detail-grid--base {
+  //   grid-template-columns: 1fr;
+  // }
+
+  // .detail-item--base {
+  //   grid-template-columns: 78px minmax(0, 1fr);
+  // }
+
+  // .detail-grid--content .detail-item {
+  //   grid-template-columns: 1fr;
+  // }
+
+  // .detail-grid--content .detail-item__value {
+  //   border-top: 1px solid #edf3f8;
+  //   border-left: 0;
+  // }
+
+  // .detail-item--note .detail-item__label {
+  //   min-height: 38px;
+  // }
+
+  // .time-row__content,
+  // .location-row {
+  //   grid-template-columns: 1fr;
+  //   gap: 5px;
+  // }
 }
 
 </style>
