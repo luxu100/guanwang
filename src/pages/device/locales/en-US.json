@@ -218,9 +218,12 @@
         "title": "Basic Information",
         "deviceNumber": "Device Number",
         "deviceNumberPlaceholder": "Please enter device number",
+        "deviceAlias": "Device Alias",
         "productModel": "Product Model",
-        "deviceType": "Device Type"
+        "deviceType": "Device Type",
+        "factoryTime": "Manufacture Date"
       },
+
       "identification": {
         "title": "Device Identification",
         "nbNumber": "NB Number",
@@ -228,54 +231,37 @@
         "imsi": "IMSI",
         "serialNumber": "Serial Number"
       },
-      "install": {
-        "title": "Installation Information",
-        "installState": "Install State",
-        "installMode": "Install Mode",
-        "address": "Install Address",
-        "coordinate": "Installation Coordinates (Enter manually or pick on map)",
-        "coordinatePlaceholder": "Format: Longitude, Latitude (e.g., 121.4737, 31.2304)"
+
+      "communication": {
+        "title": "Communication Configuration",
+        "commandSendway": "Command Sending Method"
       },
-      "status": {
-        "title": "Device Status",
-        "enableState": "Enable State",
-        "leakStatus": "Leak Status",
-        "leakValue": "Leak Value"
+
+      "sensor": {
+        "title": "Sensor Information",
+        "pressureSensorModel": "Pressure Sensor Model",
+        "pressureSensorSerial": "Pressure Sensor Serial Number"
       },
-      "tube": {
-        "title": "Pipeline Information",
-        "group": "Tube Group",
-        "order": "Tube Order"
-      },
+
       "system": {
         "title": "System Information (Optional)",
         "hardwareVersion": "Hardware Version",
         "softwareVersion": "Software Version"
       },
 
+      "algorithm": {
+        "title": "Algorithm Configuration (Optional)",
+        "algorithmType": "Algorithm Type",
+        "algorithmVersion": "Algorithm Version"
+      },
+
       "option": {
-        "product": {
-          "LD18": "LD18",
-          "LD18E_FM": "LD18E-FM",
-          "LD18HE_FM": "LD18HE-FM"
-        },
-        "install": {
-          "installed": "Installed",
-          "uninstalled": "Not Installed"
-        },
-        "installMode": {
-          "fixed": "Fixed Point",
-          "mobile": "Mobile Point"
-        },
-        "status": {
-          "enabled": "Enabled",
-          "disabled": "Disabled"
-        },
-        "leak": {
-          "normal": "Normal",
-          "leak": "Leak",
-          "suspected": "Suspected",
-          "unknown": "Unknown"
+        "commandSendway": {
+          "4G": "4G",
+          "NB": "NB",
+          "opticalFiber": "Optical Fiber",
+          "serialPort": "Serial Port",
+          "networkPort": "Ethernet"
         }
       }
     },

@@ -555,6 +555,11 @@ const addSchema = computed<FormSection[]>(() => [
         placeholder: t("addSchema.basicInfo.deviceNumberPlaceholder")
       },
       {
+        key: "deviceAlias",
+        label: t("addSchema.basicInfo.deviceAlias"),
+        type: "input"
+      },
+      {
         key: "productId",
         label: t("addSchema.basicInfo.productModel"),
         type: "select",
@@ -563,21 +568,12 @@ const addSchema = computed<FormSection[]>(() => [
       {
         key: "deviceType",
         label: t("addSchema.basicInfo.deviceType"),
-        type: "select",
-        options: [
-          {
-            label: t("addSchema.option.product.LD18"),
-            value: "LD18"
-          },
-          {
-            label: t("addSchema.option.product.LD18E_FM"),
-            value: "LD18E-FM"
-          },
-          {
-            label: t("addSchema.option.product.LD18HE_FM"),
-            value: "LD18HE-FM"
-          }
-        ]
+        type: "input"
+      },
+      {
+        key: "factoryTime",
+        label: t("addSchema.basicInfo.factoryTime"),
+        type: "datetime"
       }
     ]
   },
@@ -609,112 +605,49 @@ const addSchema = computed<FormSection[]>(() => [
   },
 
   {
-    title: t("addSchema.install.title"),
+    title: t("addSchema.communication.title"),
     fields: [
       {
-        key: "installState",
-        label: t("addSchema.install.installState"),
+        key: "commandSendway",
+        label: t("addSchema.communication.commandSendway"),
         type: "select",
         options: [
           {
-            label: t("addSchema.option.install.uninstalled"),
+            label: t("addSchema.option.commandSendway.4G"),
             value: 0
           },
           {
-            label: t("addSchema.option.install.installed"),
-            value: 1
-          }
-        ]
-      },
-      {
-        key: "installMode",
-        label: t("addSchema.install.installMode"),
-        type: "select",
-        options: [
-          {
-            label: t("addSchema.option.installMode.fixed"),
-            value: 0
-          },
-          {
-            label: t("addSchema.option.installMode.mobile"),
-            value: 1
-          }
-        ]
-      },
-      {
-        key: "installAddress",
-        label: t("addSchema.install.address"),
-        type: "input"
-      },
-      {
-        key: "coordinate",
-        label: t("addSchema.install.coordinate"),
-        type: "location",
-        placeholder: "格式:经度,纬度 （如 121.4737,31.2304)"
-      }
-    ]
-  },
-
-  {
-    title: t("addSchema.status.title"),
-    fields: [
-      {
-        key: "enableState",
-        label: t("addSchema.status.enableState"),
-        type: "select",
-        options: [
-          {
-            label: t("addSchema.option.status.enabled"),
+            label: t("addSchema.option.commandSendway.NB"),
             value: 1
           },
           {
-            label: t("addSchema.option.status.disabled"),
-            value: 0
-          }
-        ]
-      },
-      {
-        key: "leakStatus",
-        label: t("addSchema.status.leakStatus"),
-        type: "select",
-        options: [
-          {
-            label: t("addSchema.option.leak.normal"),
-            value: 1
-          },
-          {
-            label: t("addSchema.option.leak.leak"),
-            value: 0
-          },
-          {
-            label: t("addSchema.option.leak.suspected"),
+            label: t("addSchema.option.commandSendway.opticalFiber"),
             value: 2
           },
           {
-            label: t("addSchema.option.leak.unknown"),
+            label: t("addSchema.option.commandSendway.serialPort"),
             value: 3
+          },
+          {
+            label: t("addSchema.option.commandSendway.networkPort"),
+            value: 4
           }
         ]
-      },
-      {
-        key: "leakProperty",
-        label: t("addSchema.status.leakValue"),
-        type: "input"
       }
     ]
   },
 
   {
-    title: t("addSchema.tube.title"),
+    title: t("addSchema.sensor.title"),
     fields: [
       {
-        key: "tubeGroup",
-        label: t("addSchema.tube.group"),
+        key: "pressureSensorModel",
+        label: t("addSchema.sensor.pressureSensorModel"),
         type: "input"
       },
       {
-        key: "tubeOrder",
-        label: t("addSchema.tube.order"),
+        key: "pressureSensorSerial",
+        label: t("addSchema.sensor.pressureSensorSerial"),
         type: "input"
       }
     ]
@@ -731,6 +664,22 @@ const addSchema = computed<FormSection[]>(() => [
       {
         key: "softwareVersion",
         label: t("addSchema.system.softwareVersion"),
+        type: "input"
+      }
+    ]
+  },
+
+  {
+    title: t("addSchema.algorithm.title"),
+    fields: [
+      {
+        key: "algorithmType",
+        label: t("addSchema.algorithm.algorithmType"),
+        type: "input"
+      },
+      {
+        key: "algorithmVersion",
+        label: t("addSchema.algorithm.algorithmVersion"),
         type: "input"
       }
     ]

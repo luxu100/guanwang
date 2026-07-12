@@ -408,39 +408,35 @@ export interface MaintenanceCreateForm {
 }
 
 export interface DeviceCreateForm {
-    // ===== 必填核心 =====
+    // 基础信息
     deviceNumber?: string;
-    productId?: number;
     deviceType?: string;
+    productId?: number;
+    deviceAlias?: string;
 
-    // ===== 设备标识（可选）=====
+    // 设备识别
     nbNumber?: string;
     deviceImei?: string;
     deviceImsi?: string;
     serialNumber?: string;
 
-    // ===== 安装信息 =====
-    installState?: number;
-    installMode?: number;
-    installAddress?: string;
-    installLongitude?: number;
-    installLatitude?: number;
-    coordinate?:string;
+    // 出厂信息
+    factoryTime?: string;
 
-    // ===== 启用状态 =====
-    enableState?: number;
-
-    // ===== 管网信息 =====
-    tubeGroup?: string;
-    tubeOrder?: number;
-
-    // ===== 备注/扩展 =====
+    // 固件信息
     hardwareVersion?: string;
     softwareVersion?: string;
 
-    // ===== 设备属性 =====
-    leakProperty?: number;
-    leakStatus?: number;
+    // 通信方式
+    commandSendway?: number;
+
+    // 压力传感器
+    pressureSensorModel?: string;
+    pressureSensorSerial?: string;
+
+    // 算法配置
+    algorithmType?: string;
+    algorithmVersion?: string;
 }
 
 /**

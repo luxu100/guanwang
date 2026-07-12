@@ -218,9 +218,12 @@
         "title": "基础信息",
         "deviceNumber": "设备编号",
         "deviceNumberPlaceholder": "请输入设备编号",
+        "deviceAlias": "设备别名",
         "productModel": "产品型号",
-        "deviceType": "设备类型"
+        "deviceType": "设备类型",
+        "factoryTime": "出厂时间"
       },
+
       "identification": {
         "title": "设备标识",
         "nbNumber": "NB编号",
@@ -228,54 +231,37 @@
         "imsi": "IMSI",
         "serialNumber": "序列号"
       },
-      "install": {
-        "title": "安装信息",
-        "installState": "安装状态",
-        "installMode": "安装模式",
-        "address": "安装地址",
-        "coordinate": "安装坐标(可手动输入或点击地图拾取)",
-        "coordinatePlaceholder": "格式:经度,纬度 （如 121.4737,31.2304)"
+
+      "communication": {
+        "title": "通信配置",
+        "commandSendway": "指令发送方式"
       },
-      "status": {
-        "title": "设备状态",
-        "enableState": "启用状态",
-        "leakStatus": "渗漏状态",
-        "leakValue": "渗漏值"
+
+      "sensor": {
+        "title": "传感器信息",
+        "pressureSensorModel": "压力传感器型号",
+        "pressureSensorSerial": "压力传感器序列号"
       },
-      "tube": {
-        "title": "管网信息",
-        "group": "管组编号",
-        "order": "管序号"
-      },
+
       "system": {
         "title": "系统信息（可选）",
         "hardwareVersion": "硬件版本",
         "softwareVersion": "软件版本"
       },
 
+      "algorithm": {
+        "title": "算法配置（可选）",
+        "algorithmType": "算法类型",
+        "algorithmVersion": "算法版本"
+      },
+
       "option": {
-        "product": {
-          "LD18": "LD18",
-          "LD18E_FM": "LD18E-FM",
-          "LD18HE_FM": "LD18HE-FM"
-        },
-        "install": {
-          "installed": "已安装",
-          "uninstalled": "未安装"
-        },
-        "installMode": {
-          "fixed": "固定点",
-          "mobile": "流动点"
-        },
-        "status": {
-          "enabled": "启用",
-          "disabled": "停用"
-        },
-        "leak": {
-          "normal": "正常",
-          "leak": "渗漏",
-          "suspected": "疑似",
-          "unknown": "未知"
+        "commandSendway": {
+          "4G": "4G",
+          "NB": "NB",
+          "opticalFiber": "光纤",
+          "serialPort": "串口",
+          "networkPort": "网口"
         }
       }
     },
