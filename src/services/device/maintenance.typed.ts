@@ -6,6 +6,7 @@
 import {createCrudServiceTyped, getRequestT} from "@/services/shared/crud.typed";
 import type {DeviceProduct, MaintenanceRecord} from "@/services/device/types";
 import type {ApiResponse} from "@/types/api";
+import request from "@/utils/request";
 
 const maintenanceRecordApi = createCrudServiceTyped<MaintenanceRecord>("/api/maintenance-record");
 
@@ -26,4 +27,3 @@ export default {
   deleteMaintenanceRecordT,
   batchDeleteMaintenanceRecordT,
 };
-

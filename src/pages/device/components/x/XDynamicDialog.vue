@@ -55,10 +55,19 @@
                   <input
                       v-if="field.type === 'input'"
                       v-model="formData[field.key]"
+                      :class="{ 'form-input--disabled': field.disabled }"
+                      :disabled="field.disabled"
                       class="form-input"
                       :placeholder="field.placeholder || t('form.inputPlaceholder', { label: field.label })"
                       placeholder-class="input-placeholder"
                       @input="clearError(field.key)"
+                  />
+
+                  <XUploadPhoto
+                      v-else-if="field.type==='photo'"
+                      v-model="formData[field.key]"
+                      :placeholder="field.placeholder || t('form.uploadPhotoPlaceholder', { label: field.label })"
+                      placeholder-class="input -placeholder"
                   />
 
                   <!-- select -->
@@ -90,7 +99,7 @@
                     <view v-if="activeSelect === field.key" class="select-menu">
                       <view
                           v-for="option in field.options"
-                          :key="option.value"
+                          :key="String(option.value)"
                           class="select-option"
                           :class="{
                           'select-option--active':
@@ -271,6 +280,7 @@ import XDatetimePicker from "@/pages/device/components/x/XDatetimePicker.vue";
 import XSelectCoordinateMap from "@/pages/device/components/x/XSelectCoordinateMap.vue";
 
 import {createScopedT} from "@/i18n";
+import XUploadPhoto from "@/pages/device/components/x/XUploadPhoto.vue";
 const t = createScopedT("devicePage");
 
 interface Props {
@@ -573,7 +583,7 @@ function closeMapPicker() {
 .dialog-mask {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1063,4 +1073,16 @@ function closeMapPicker() {
   }
 }
 
+.form-input--disabled {
+  color: #64748b;
+  background: #f5f8fb;
+  border-color: #d5e2ee;
+  cursor: not-allowed;
+
+  &:focus {
+    background: #f5f8fb;
+    border-color: #d5e2ee;
+    box-shadow: none;
+  }
+}
 </style>

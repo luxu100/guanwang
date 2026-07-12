@@ -557,7 +557,7 @@ const addSchema = computed<FormSection[]>(() => [
       {
         key: "deviceAlias",
         label: t("addSchema.basicInfo.deviceAlias"),
-        type: "input"
+        type: "input",
       },
       {
         key: "productId",
@@ -683,6 +683,17 @@ const addSchema = computed<FormSection[]>(() => [
         type: "input"
       }
     ]
+  },
+  {
+    title: t("addSchema.other.title"),
+    fields: [
+      {
+        key: "createUser",
+        label: t("addSchema.other.createUser"),
+        type: "input",
+        disabled: true
+      }
+    ]
   }
 ]);
 
@@ -719,7 +730,10 @@ function handleAdd() {
 
     // 算法配置
     algorithmType: "",
-    algorithmVersion: ""
+    algorithmVersion: "",
+
+    // 其他
+    createUser: uni.getStorageSync("userInfo")?.username || ""
   };
   dialogVisible.value = true;
 }

@@ -93,9 +93,9 @@ export default function request(options) {
     uni.request({
       url: normalizeUrl(requestUrl),
       method: normalizedMethod,
-      data,
-      timeout,
-      header: {
+        data,
+        timeout,
+        header: {
         "Content-Type": "application/json",
         ...getAuthHeader(),
         ...header,
@@ -125,4 +125,25 @@ export default function request(options) {
   });
 }
 
-export { TOKEN_KEY, TOKEN_PREFIX_KEY };
+export function uploadRequest(url, filePath, name = "file") {
+  return new Promise((resolve, reject) => {
+    uni.uploadFile({
+      url: normalizeUrl(url),
+      filePath,
+      name,
+      header: getAuthHeader(),
+      success(res) {
+        resolve(JSON.parse(res.data));
+      },
+      fail(err) {
+        reject({
+          code: -1,
+          msg: getFriendlyErrorMessage(err),
+          data: err,
+        });
+      },
+    });
+  });
+}
+
+export { TOKEN_KEY, TOKEN_PREFIX_KEY};

@@ -56,7 +56,12 @@
         "onlyH5": "地图仅支持 H5 端",
         "confirm": "确认选点"
       },
-      "departmentPartition": "所属分区"
+      "departmentPartition": "所属分区",
+      "photo": {
+        "uploadPhoto": "上传照片",
+        "continueAddPhoto": "继续添加照片",
+        "photoIdPlaceholder": "照片ID (自动生成)"
+      }
     },
     "form": {
       "inputPlaceholder": "请输入{label}",
@@ -255,6 +260,11 @@
         "algorithmVersion": "算法版本"
       },
 
+      "other": {
+        "title": "其他信息",
+        "createUser": "创建用户"
+      },
+
       "option": {
         "commandSendway": {
           "4G": "4G",
@@ -406,7 +416,8 @@
         "tubeGroup": "管组编号",
         "tubeMaterial": "管材",
         "tubeBore": "管径",
-        "remark": "备注"
+        "remark": "备注",
+        "coordinate": "坐标位置"
       },
       "page": {
         "addMaintenance": "新增维护记录",
@@ -416,21 +427,27 @@
         "basicInfo": {
           "title": "基础信息",
           "deviceNumber": "设备编号",
+          "deviceAlias": "设备别名",
+          "valveNumber": "阀门编号",
+          "deviceAliasPlaceholder": "--",
+          "valveNumberPlaceholder": "--",
           "maintainType": "维护类型",
           "maintainTime": "维护时间",
           "maintainAddress": "维护地址",
+          "maintainCoordinate": "坐标",
           "installMode": "安装模式",
-          "tubeGroup": "管组编号",
-          "tubeMaterial": "管材",
-          "tubeBore": "管径",
+          "installState": "安装状态",
+          "uninstallType": "拆卸类型",
           "remark": "备注"
         },
+
         "extendInfo": {
           "title": "扩展信息（可选）",
           "maintainAccount": "维护人员",
           "maintainFeedback": "维护反馈",
-          "maintainCoordinate": "坐标"
+          "maintainPicture": "维护图片"
         },
+
         "option": {
           "maintainType": {
             "remove": "拆卸",
@@ -438,9 +455,21 @@
             "maintenance": "维护",
             "inspect": "巡检"
           },
+
           "installMode": {
             "fixed": "固定点",
             "mobile": "流动点"
+          },
+
+          "installState": {
+            "uninstalled": "未安装",
+            "installed": "已安装"
+          },
+
+          "uninstallType": {
+            "normal": "正常拆卸",
+            "fault": "故障拆卸",
+            "other": "其他"
           }
         }
       },

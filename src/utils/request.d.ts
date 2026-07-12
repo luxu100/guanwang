@@ -16,3 +16,9 @@ export interface RequestError {
 }
 
 export default function request<T = unknown>(options: RequestOptions): Promise<T>;
+
+export function uploadRequest<T = unknown>(
+    url: string,
+    filePath: string,
+    name?: string
+): Promise<T>;

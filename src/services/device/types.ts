@@ -303,29 +303,49 @@ export interface DeviceDept {
 
 export interface MaintenanceRecord {
     id: number;
+
+    // 设备信息
     deviceId?: number;
     deviceNumber?: string;
+    deviceAlias?: string;
 
-    maintainType?: number;        // 0-拆 1-装 2-维护 3-巡检
-    maintainTime?: string;        // datetime
+    // 维护信息
+    maintainType?: number;
+    maintainTime?: string;
     maintainAddress?: string;
     maintainCoordinate?: string;
 
+    // 安装信息
     installMode?: number;
+    installState?: number;
+
+    // 维护人员
     maintainAccount?: string;
+
+    // 维护结果
     maintainFeedback?: string;
+    maintainPicture?: string;
 
-    maintainPicture?: string;     // file id list (comma/json string)
-
+    // 管网信息
     tubeGroup?: string;
     tubeMaterial?: string;
     tubeBore?: string;
     tubeOrder?: number;
 
+    // 阀门信息
+    valveNumber?: string;
+    valveName?: string;
+
+    // 拆卸信息
+    uninstallType?: number;
+
+    // 其他
     remark?: string;
 
+    // 系统字段
     createdAt?: string;
     updatedAt?: string;
+    isDeleted?: boolean;
 }
 
 
@@ -385,26 +405,37 @@ export interface DeviceStatusVO {
 }
 
 export interface MaintenanceCreateForm {
+    // 设备信息
+    deviceId?: number;
     deviceNumber?: string;
+    deviceAlias?: string;
+    // 阀门信息
+    valveNumber?: string;
 
+    // 维护信息
     maintainType?: number;
     maintainTime?: string;
     maintainAddress?: string;
     maintainCoordinate?: string;
+    coordinate?: string;
 
+    // 安装信息
     installMode?: number;
-    maintainAccount?: string;
-    maintainFeedback?: string;
+    installState?: number;
 
+    // 维护人员
+    maintainAccount?: string;
+
+    // 维护结果
+    maintainFeedback?: string;
+    //维护照片(文件ID列表)
     maintainPicture?: string;
 
-    tubeGroup?: string;
-    tubeMaterial?: string;
-    tubeBore?: string;
-    tubeOrder?: number;
+    // 拆卸信息
+    uninstallType?: number;
 
+    // 其他
     remark?: string;
-    isDeleted?: boolean;
 }
 
 export interface DeviceCreateForm {
@@ -419,6 +450,8 @@ export interface DeviceCreateForm {
     deviceImei?: string;
     deviceImsi?: string;
     serialNumber?: string;
+
+    createUser?: string;
 
     // 出厂信息
     factoryTime?: string;
@@ -869,4 +902,14 @@ export interface DeptVO {
     deptName:string;
     administrator:string;
     description:string;
+}
+
+export interface SysFileVO {
+    id: number;
+    fileName: string;
+    fileType: string;
+    filePath: string;
+    fileMd5: string;
+    fileCategory: number;
+    createdAt: string;
 }
