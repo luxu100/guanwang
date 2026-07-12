@@ -690,36 +690,37 @@ function handleAdd() {
   selectedDevice.value = null;
   isEditMode.value = false;
   editingId.value = null;
-
   formData.value = {
+    // 基础信息
     deviceNumber: "",
-    productId: undefined,
     deviceType: "",
+    productId: undefined,
+    deviceAlias: "",
 
+    // 设备识别
     nbNumber: "",
     deviceImei: "",
     deviceImsi: "",
     serialNumber: "",
 
-    enableState: 1,
-    installState: undefined,
-    installMode: undefined,
+    // 出厂信息
+    factoryTime: "",
 
-    installAddress: "",
-    installLongitude: undefined,
-    installLatitude: undefined,
-    coordinate: "",
-
-    tubeGroup: "",
-    tubeOrder: undefined,
-
+    // 固件信息
     hardwareVersion: "",
     softwareVersion: "",
 
-    leakProperty: undefined,
-    leakStatus: undefined
-  };
+    // 通信方式
+    commandSendway: undefined,
 
+    // 压力传感器
+    pressureSensorModel: "",
+    pressureSensorSerial: "",
+
+    // 算法配置
+    algorithmType: "",
+    algorithmVersion: ""
+  };
   dialogVisible.value = true;
 }
 
@@ -743,15 +744,6 @@ async function handleSubmit(form: DeviceCreateForm) {
 }
 
 async function submitCreate(form: DeviceCreateForm) {
-  if (form.coordinate) {
-    const [lng, lat] = form.coordinate.split(",").map(Number);
-
-    if (!Number.isNaN(lng) && !Number.isNaN(lat)) {
-      form.installLongitude = lng;
-      form.installLatitude = lat;
-    }
-  }
-
   const res = await createDeviceT(form);
 
   if (res.code !== 200) {
@@ -769,15 +761,6 @@ async function submitCreate(form: DeviceCreateForm) {
 }
 
 async function submitUpdate(form: DeviceCreateForm) {
-  if (form.coordinate) {
-    const [lng, lat] = form.coordinate.split(",").map(Number);
-
-    if (!Number.isNaN(lng) && !Number.isNaN(lat)) {
-      form.installLongitude = lng;
-      form.installLatitude = lat;
-    }
-  }
-
   if (!editingId.value) return;
 
   const res = await updateDeviceT(
@@ -809,16 +792,6 @@ function handleEdit() {
   editingId.value = selectedDevice.value.id;
 
   formData.value = { ...selectedDevice.value };
-
-  if (
-      formData.value.installLongitude != null &&
-      formData.value.installLatitude != null
-  ) {
-    formData.value.coordinate =
-        `${formData.value.installLongitude},${formData.value.installLatitude}`;
-  } else {
-    formData.value.coordinate = "";
-  }
 
   dialogVisible.value = true;
 }
