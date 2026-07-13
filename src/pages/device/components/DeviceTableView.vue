@@ -145,7 +145,7 @@
   />
 </template>
 <script setup lang="ts">
-import {ref, computed, reactive} from 'vue';
+import {ref, computed, watch} from 'vue';
 import type { Device } from '@/services/device/types';
 import type {Pagination} from "@/types/api";
 import XMapPopup from "@/pages/device/components/x/XMapPopup.vue";
@@ -160,6 +160,17 @@ const props = defineProps<{
   pagination: Pagination;
   mode:"info" | "maintenance" | "status" | "protocol";
 }>();
+
+watch(
+    () => props.devices,
+    (list) => {
+      if (list.length > 0 && selectedId.value === null) {
+        const first = list[0];
+        selectRow(first);
+      }
+    },
+    { immediate: true }
+);
 
 const columnVisible = computed(() => ({
   // 基础

@@ -70,7 +70,7 @@
   />
 </template>
 <script setup lang="ts">
-import {ref, computed} from 'vue';
+import {ref, computed, watch} from 'vue';
 import type {Valve} from '@/services/device/types';
 import type {Pagination} from "@/types/api";
 import XPaginationBar from "@/pages/device/components/x/XPaginationBar.vue";
@@ -84,6 +84,18 @@ const props = defineProps<{
   valves: Valve[];
   pagination: Pagination;
 }>();
+
+watch(
+    () => props.valves,
+    (list) => {
+      if (list.length > 0 && selectedId.value === null) {
+        const first = list[0];
+        selectRow(first);
+      }
+    },
+    { immediate: true }
+);
+
 
 const loading = ref(false);
 

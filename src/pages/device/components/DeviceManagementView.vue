@@ -896,15 +896,10 @@ async function handleBindValve() {
   // 1. 获取当前设备所在分区
   const res = await getDeptIdByDeviceId(currentDevice.value.id);
 
-  if (res.code !== 200) {
-    uni.showToast({ title: res.msg, icon: "none" });
-    return;
-  }
-
   const deptId = res.data;
 
   if (!deptId) {
-    uni.showToast({ title: "当前设备没有分区", icon: "none" });
+    uni.showToast({ title: t("message.noPartitionAssigned"), icon: "none" });
     return;
   }
 

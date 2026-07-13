@@ -115,7 +115,7 @@
   </view>
 </template>
 <script setup lang="ts">
-import {ref, computed} from 'vue';
+import {ref, computed, watch} from 'vue';
 import type {DeviceSetting} from '@/services/device/types';
 import type {Pagination} from "@/types/api";
 import XPaginationBar from "@/pages/device/components/x/XPaginationBar.vue";
@@ -128,6 +128,17 @@ const props = defineProps<{
   deviceSettings: DeviceSetting[];
   pagination: Pagination;
 }>();
+
+watch(
+    () => props.deviceSettings,
+    (list) => {
+      if (list.length > 0 && selectedId.value === null) {
+        const first = list[0];
+        selectRow(first);
+      }
+    },
+    { immediate: true }
+);
 
 const loading = ref(false);
 

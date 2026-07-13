@@ -540,7 +540,7 @@ export interface DeviceSetting {
     /**
      * 主键ID
      */
-    id?: number;
+    id: number;
 
     /**
      * 设备编号
