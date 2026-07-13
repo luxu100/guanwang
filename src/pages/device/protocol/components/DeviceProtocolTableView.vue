@@ -102,16 +102,12 @@
           </view>
         </view>
       </scroll-view>
-      <view
-          v-if="tooltipVisible"
-          class="table-tooltip"
-          :style="{
-         left: tooltipX+'px',
-         top: tooltipY+'px'
-       }"
-      >
-        {{tooltipText}}
-      </view>
+      <XTooltip
+          :visible="tooltipVisible"
+          :text="tooltipText"
+          :x="tooltipX"
+          :y="tooltipY"
+      />
     </view>
   </view>
 
@@ -152,6 +148,7 @@ import {
 import {formatDate} from "@/utils/time";
 import {createDeviceProtocolT} from "@/services/device/info.typed";
 import {getProtocolDefinitionList} from "@/services/data-receive/access";
+import XTooltip from "@/pages/device/components/x/XTooltip.vue";
 
 const t = createScopedT("devicePage");
 const isToolbarVisible = ref(true);
@@ -460,48 +457,5 @@ function hideTooltip(){
 
 .toolbar-wrapper {
   padding-bottom: 12px;
-}
-
-.table-tooltip {
-  position: fixed;
-  z-index: 9999;
-  max-width: 360px;
-  min-width: 120px;
-  padding: 10px 14px;
-  color: #24384d;
-  font-size: 13px;
-  line-height: 20px;
-  background: #fff;
-  border: 1px solid #d8e5ef;
-  border-radius: 6px;
-  box-shadow: 0 8px 20px rgba(35,72,104,.15);
-  white-space: normal;
-  word-break: break-all;
-  pointer-events: none;
-  animation: tooltip-show .15s ease-out;
-}
-
-.table-tooltip::before {
-  content: "";
-  position: absolute;
-  top: -6px;
-  left: 18px;
-  width: 10px;
-  height: 10px;
-  background: #fff;
-  border-left: 1px solid #d8e5ef;
-  border-top: 1px solid #d8e5ef;
-  transform: rotate(45deg);
-}
-
-@keyframes tooltip-show {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 </style>

@@ -39,7 +39,11 @@
 					>
 					  <text class="table-cell col-index " > {{ (deptPagination.current - 1) * deptPagination.size + index + 1 }} </text>
 					  <text class="table-cell col-dept-name " :title="item.deptName"> {{ item.deptName }} </text>
-					  <text class="table-cell col-dept-type " :title="item.regionType"> {{ getDeptTypeLabel(item.regionType, "-") }} </text>
+					  <text class="table-cell col-region-type " :title="item.regionType"> {{ getDeptTypeLabel(item.regionType, "-") }} </text>
+					  <text class="table-cell col-region-color " :title="item.regionType"> 
+						<view v-if="item.regionColor !== null" class="color-preview" :style="{ backgroundColor: item.regionColor }"></view>
+						<text v-else>-</text>
+					  </text>
 					  <text class="table-cell col-min-level "> {{ item.gisMinLevel || '-' }} </text>
 					  <text class="table-cell col-max-level "> {{ item.gisMaxLevel || '-' }} </text>
 					  <text class="table-cell col-dept-id "> {{ item.id || '-' }} </text>
@@ -95,9 +99,16 @@
 					  <view class="table-cell col-dept-name "> {{ getDeptName() }} </view>
 					  <view class="table-cell col-device-number "> {{ item.deviceNumber }} </view>
 					  <view class="table-cell col-device-alias "> {{ item.deviceAlias || '-' }} </view>
-					  <view class="table-cell col-position "> {{ item.installLongitude, item.installLatitude || '-' }} </view>
-					  <view class="table-cell col-min-level "> {{ item.gisMinLevel || '-' }} </view>
-					  <view class="table-cell col-max-level "> {{ item.gisMaxLevel || '-' }} </view>
+					  <view class="table-cell col-state "> 
+						<text class="status-pill" :class="getStatusClass(item.enableState)">
+							{{ getEnableStateText(item.enableState) }}
+						</text> 
+					  </view>
+					  <view class="table-cell col-state "> 
+						<text class="status-pill" :class="getStatusClass(item.installState)">
+							{{ getInstallStateText(item.installState) }}
+						</text> 
+					  </view>
 					  <view class="table-cell col-action ">
 						  <button class="table-action-btn" @click.stop="handleCheckDevice(item)" > 查看详情 </button>
 					  </view>		  
@@ -140,7 +151,7 @@
 				    <text class="form-label">分区类型</text>
 				    <view class="select-field">
 					    <view class="form-select form-select--dropdown" :class="{ 'form-select--open': activeSelect }" @click.stop="toggleSelect()">
-						   <text :class="{ 'select-placeholder': deptForm.regionType === ''}">{{getDeptTypeLabel(deptForm.regionType, "请选择分区类型") }}</text>
+						   <text :class="{ 'select-placeholder': deptForm.regionType === '' || deptForm.regionType === null}">{{getDeptTypeLabel(deptForm.regionType, "请选择分区类型") }}</text>
 						   <text class="select-arrow"></text>
 					    </view>
 					    <view v-if="activeSelect" class="select-menu">
@@ -264,29 +275,88 @@
 			      </button>
 			    </view>
 			
-			    <view class="dialog-body">
+			    <view class="dialog-body" scroll-y>
 				  <view class="device-dialog-form">
-			
-			        <view class="detail-item">
-			          <text class="detail-label">设备编号</text>
-			          <text class="detail-value">
-			            {{ deviceDetail.deviceNumber || "-" }}
-			          </text>
-			        </view>
-			
-					<view class="detail-item">
-					  <text class="detail-label">设备名称</text>
-					  <text class="detail-value">
-					    {{ deviceDetail?.deviceAlias ?? "-" }}
-					  </text>
+					<view class="form-section">
+						<view class="table-head">
+							<text class="section-title">基础信息</text>
+						</view>
+						<view class="form-grid">
+							<view class="detail-item">
+							  <text class="detail-label">设备编号</text>
+							  <text class="detail-value"> {{ deviceDetail.deviceNumber || "-" }} </text>
+							</view>
+										
+							<view class="detail-item">
+							  <text class="detail-label">设备名称</text>
+							  <text class="detail-value"> {{ deviceDetail?.deviceAlias ?? "-" }} </text>
+							</view>
+							
+							<view class="detail-item">
+							  <text class="detail-label">所属分区</text>
+							  <text class="detail-value"> {{ getDeptName() }} </text>
+							</view>
+							
+							<view class="detail-item">
+							  <text class="detail-label">设备类型</text>
+							  <text class="detail-value"> {{ deviceDetail?.deviceType ?? "-" }} </text>
+							</view>
+						</view>
 					</view>
-					
-			        <view class="detail-item">
-			          <text class="detail-label">所属分区</text>
-			          <text class="detail-value">
-			            {{ getDeptName() }}
-			          </text>
-			        </view>
+			        
+					<view class="form-section">
+						<view class="table-head">
+							<text class="section-title">安装信息</text>
+						</view>
+						<view class="form-grid">
+							<view class="detail-item">
+							  <text class="detail-label">安装状态</text>
+							  <text class="detail-value"> {{ getInstallStateText(deviceDetail?.installState) }} </text>
+							</view>
+										
+							<view class="detail-item">
+							  <text class="detail-label">安装模式</text>
+							  <text class="detail-value"> {{ getInstallMode(deviceDetail?.installMode) }} </text>
+							</view>
+							
+							<view class="detail-item">
+							  <text class="detail-label">安装地址</text>
+							  <text class="detail-value"> {{ deviceDetail?.installAddress ?? "-" }} </text>
+							</view>
+							
+							<view class="detail-item">
+							  <text class="detail-label">地理位置</text>
+							  <text class="detail-value"> {{ deviceDetail.installLongitude && deviceDetail.installLatitude ? `${deviceDetail.installLongitude}, ${deviceDetail.installLatitude}` : '-'}} </text>
+							</view>
+						</view>
+					</view>
+			
+					<view class="form-section">
+						<view class="table-head">
+							<text class="section-title">状态信息</text>
+						</view>
+						<view class="form-grid">
+							<view class="detail-item">
+							  <text class="detail-label">启用状态</text>
+							  <text class="detail-value"> {{ getEnableStateText(deviceDetail?.enableState) }} </text>
+							</view>
+										
+							<view class="detail-item">
+							  <text class="detail-label">在线状态</text>
+							  <text class="detail-value"> {{ getOnlineStatusText(deviceDetail?.onlineStatus) }} </text>
+							</view>
+							
+							<view class="detail-item">
+							  <text class="detail-label">渗漏状态</text>
+							  <text class="detail-value"> {{ deviceDetail?.leakStatus ?? "-" }} </text>
+							</view>
+							
+							<view class="detail-item">
+							  <text class="detail-label">最后采样时间</text>
+							  <text class="detail-value"> {{ deviceDetail?.lastSamplingTime ?? "-" }} </text>
+							</view>
+						</view>
+					</view>
 			
 			        <view class="detail-item">
 			          <text class="detail-label">管段编号</text>
@@ -295,48 +365,11 @@
 			          </text>
 			        </view>
 					
-					<view class="detail-item">
-					  <text class="detail-label">安装位置</text>
-					  <text class="detail-value">
-					    {{ deviceDetail?.installAddress ?? "-" }}
-					  </text>
-					</view>
-					
-			        <view class="detail-item">
-			          <text class="detail-label">地理位置</text>
-			          <text class="detail-value">
-			            {{ deviceDetail?.installLongitude,deviceDetail?.installLatitude ?? "-" }}
-			          </text>
-			        </view>
-			
-					<view class="detail-item">
-					  <text class="detail-label">GIS最小级别</text>
-					  <text class="detail-value">
-					    {{ deviceDetail.gisMinLevel ?? "-" }}
-					  </text>
-					</view>
-			
-			        <view class="detail-item">
-			          <text class="detail-label">GIS最大级别</text>
-			          <text class="detail-value">
-			            {{ deviceDetail.gisMaxLevel ?? "-" }}
-			          </text>
-			        </view>
-			
-			        <view class="detail-item">
-			          <text class="detail-label">设备状态</text>
-			          <text class="detail-value">
-			            {{ deviceDetail?.enableState===1? "启动" : "禁用" }}
-			          </text>
-			        </view>
-			
 			      </view>
 			    </view>
 			
 			    <view class="dialog-actions">
-			      <button class="primary-button" @click="closeDeviceDialog">
-			        确定
-			      </button>
+			      <button class="primary-button" @click="closeDeviceDialog"> 确定 </button>
 			    </view>
 			  </view>
 		</view>
@@ -356,6 +389,7 @@ import {
 	getDeptDeviceList,
 	getDeptDevicePage,
 	getDeptDeviceBindingList,
+	updateDeptDeviceBinding,
 } from "@/services/partition/partition";
 
 interface DeptApiItem {
@@ -381,6 +415,7 @@ type DeptTableItem = Pick<
 	| "id"
 	| "deptName"
 	| "regionType"
+	| "regionColor"
 	| "gisMinLevel"
 	| "gisMaxLevel"
 	| "sort"
@@ -390,7 +425,8 @@ type DeptKey =
 	| "index"
 	| "id"
 	| "deptName"
-	| "deptType"
+	| "regionType"
+	| "regionColor"
 	| "gisMinLevel"
 	| "gisMaxLevel"
 	| "sort";
@@ -426,6 +462,7 @@ const deptTableList =  computed<DeptTableItem[]>(() =>
     id: item.id,
     deptName: item.deptName,
     regionType: item.regionType,
+	regionColor: item.regionColor,
     gisMinLevel: item.gisMinLevel,
     gisMaxLevel: item.gisMaxLevel,
     sort: item.sort,
@@ -449,7 +486,7 @@ const loadDeptList = async (page: number) => {
 	};
 	
     deptList.value = pageData.records || [];
-	console.log("分区列表", deptList.value);
+	// console.log("分区列表", deptList.value);
 	deptPagination.current = page;
 	deptPagination.total = pageData.total || 0;
 	
@@ -527,9 +564,8 @@ type DeptDeviceKey =
 	| "deptName"
 	| "deviceNumber"
 	| "deviceAlias"
-	| "position"
-	| "gisMinLevel"
-	| "gisMaxLevel"
+	| "enableState"
+	| "installState"
 	| "detail";
 
 type DeptDeviceColumn = {
@@ -543,14 +579,17 @@ interface DeptDeviceItem {
   deviceNumber: string;
   deviceAlias?: string;
   deviceType?: string;
+  enableState: number
+  installState: number;
+  installMode?: number;
   installAddress?: string;
   installLongitude?: number;
   installLatitude?: number;
   tubeNumber?: string;
   tubeBore?: string;
-  enableState?: number
-  gisMinLevel?: number;
-  gisMaxLevel?: number;
+  leakStatus?: number;
+  lastSamplingTime?: string;
+  onlineStatus?: number;
 }
 
 const fillDeptForm = (item: DeptApiItem) => {
@@ -601,7 +640,8 @@ const openDeviceDialog = () => {
 const deptColumns: DeptColumn[] = [
   { key: "index", label: "序号", className: "col-index" },
   { key: "deptName", label: "分区名称", className: "col-dept-name" },
-  { key: "deptType", label: "分区类型", className: "col-dept-type" },
+  { key: "regionType", label: "分区类型", className: "col-region-type" },
+  { key: "regionColor", label: "分区颜色", className: "col-region-color" },
   { key: "gisMinLevel", label: "GIS最小级别", className: "col-min-level" },
   { key: "gisMaxLevel", label: "GIS最大级别", className: "col-max-level" },
   { key: "id", label: "分区ID", className: "col-dept-id" },
@@ -613,9 +653,8 @@ const deptDeviceColumns: DeptDeviceColumn[] = [
   { key: "deptName", label: "所属分区", className: "col-dept-name" },
   { key: "deviceNumber", label: "设备编号", className: "col-device-number" },
   { key: "deviceAlias", label: "设备别名", className: "col-device-alias" }, 
-  { key: "position", label: "地理位置", className: "col-position" },
-  { key: "gisMinLevel", label: "GIS最小级别", className: "col-min-level" },
-  { key: "gisMaxLevel", label: "GIS最大级别", className: "col-max-level" },
+  { key: "enableState", label: "启用状态", className: "col-state" },
+  { key: "installState", label: "安装状态", className: "col-state" },
   { key: "detail", label: "详细信息", className: "col-detail" },
 ];
 
@@ -959,8 +998,73 @@ const handleCheckDevice = (item: DeptDeviceItem) => {
   console.log("查看设备", item);
 };
 
-</script>
+const getEnableStateText = (status: number): string => {
+  switch(status) {
+    case 0:
+      return '停用';
+    case 1:
+      return '启用';
+    default:
+      return '-';
+  }
+};
 
+const getInstallStateText = (status: number): string => {
+  switch(status) {
+    case 0:
+      return '未安装';
+    case 1:
+      return '已安装';
+    default:
+      return '-';
+  }
+};
+
+
+const getInstallMode = (status: number): string => {
+  switch(status) {
+    case 0:
+      return '固定点';
+    case 1:
+      return '流动点';
+    default:
+      return '-';
+  }
+};
+
+const getOnlineStatusText = (status: number): string => {
+  switch(status) {
+    case 0:
+      return '离线';
+    case 1:
+      return '在线';
+    default:
+      return '-';
+  }
+};
+
+const getLeakStatusText = (status: number): string => {
+  switch(status) {
+    case 0:
+      return '渗漏';
+    case 1:
+      return '正常';
+	case 2:
+	  return '疑似';
+	case 3:
+	  return '未知';
+    default:
+      return '-';
+  }
+};
+
+function getStatusClass(value: number) {
+  if (value === 1) {
+    return "status-pill--open";
+  }
+  return "status-pill--close";
+}
+</script>
 
 <style scoped lang="scss">
 
@@ -1056,26 +1160,26 @@ const handleCheckDevice = (item: DeptDeviceItem) => {
 }
 
 /* 标题文字 */
-// .section-title {
-//   position: relative;
-  // padding-left: 10px;
-//   color: #183755;
-//   font-size: 16px;
-//   font-weight: 900;
-//   flex-shrink: 0;
-// }
+.section-title {
+  position: relative;
+  padding-left: 10px;
+  color: #183755;
+  font-size: 16px;
+  font-weight: 900;
+  flex-shrink: 0;
+}
 
-// .section-title::before {
-//   position: absolute;
-//   top: 50%;
-//   left: 0;
-//   width: 3px;
-//   height: 16px;
-//   content: "";
-//   background: #0d82ee;
-//   border-radius: 999px;
-//   transform: translateY(-50%);
-// }
+.section-title::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 3px;
+  height: 16px;
+  content: "";
+  background: #0d82ee;
+  border-radius: 999px;
+  transform: translateY(-50%);
+}
 
 .text-hidden{
 	flex: 1;
@@ -1222,14 +1326,14 @@ const handleCheckDevice = (item: DeptDeviceItem) => {
 }
 
 .dept-table-row{
-	min-width: 900px;
+	min-width: 920px;
 	cursor: pointer;
-	grid-template-columns: 54px minmax(180px, 1.5fr) minmax(110px, 0.82fr) minmax(110px, 0.8fr) minmax(110px, 0.8fr) minmax(180px, 1.5fr) minmax(60px, 1fr);
+	grid-template-columns: 54px minmax(180px, 1.5fr) minmax(110px, 0.82fr) minmax(110px, 0.82fr) minmax(110px, 0.8fr) minmax(110px, 0.8fr) minmax(180px, 1.5fr) minmax(60px, 1fr);
 }
 
 .device-table-row{
-	min-width: 950px;
-	grid-template-columns: 54px minmax(180px, 1.5fr) minmax(80px, 0.82fr) minmax(150px, 1fr) minmax(150px, 1fr) minmax(110px, 0.8fr) minmax(110px, 0.8fr) minmax(110px, 1fr);
+	min-width: 750px;
+	grid-template-columns: 54px minmax(180px, 1.5fr) minmax(80px, 0.82fr) minmax(150px, 1fr) minmax(80px, 0.82fr) minmax(80px, 0.82fr) minmax(110px, 1fr);
 }
 
 .table-row--header {
@@ -1312,6 +1416,10 @@ const handleCheckDevice = (item: DeptDeviceItem) => {
 	color: #64748b;
 }
 
+.col-enable-state{
+	
+}
+
 .table-header-cell {
   gap: 5px;
   user-select: none;
@@ -1382,9 +1490,9 @@ const handleCheckDevice = (item: DeptDeviceItem) => {
 }
 
 .device-dialog-form {
-	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
-	gap: 12px 18px;
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
 }
 
 .dialog-mask {
@@ -1664,6 +1772,32 @@ const handleCheckDevice = (item: DeptDeviceItem) => {
   color: #9aa9b8;
 }
 
+.status-pill{
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 54px;
+	height: 24px;
+	padding: 0 9px;
+	border: 1px solid transparent;
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 800;
+	line-height: 24px;
+}
+
+.status-pill--open {
+  color: #177245;
+  background: #eaf8ef;
+  border-color: #bfe8ce;
+}
+
+.status-pill--close {
+  color: #5f7186;
+  background: #f3f6f9;
+  border-color: #dbe4ec;
+}
+
 .color-dialog {
   width: 460px;
   background: #fff;
@@ -1685,8 +1819,8 @@ const handleCheckDevice = (item: DeptDeviceItem) => {
 }
 
 .color-preview {
-  width: 60px;
-  height: 36px;
+  width: 50px;
+  height: 30px;
   border: 1px solid #dcdfe6;
   border-radius: 4px;
 }
@@ -1700,6 +1834,20 @@ const handleCheckDevice = (item: DeptDeviceItem) => {
   border-top: 1px solid #edf3f8;
 }
 
+.form-section {
+  padding: 0;
+  background: #ffffff;
+  border: 0;
+  border-radius: 0;
+}
+
+.form-grid {
+  display: grid;
+  gap: 12px 18px;
+  grid-template-columns: repeat(2, 305px);
+  justify-content: start;
+}
+
 .detail-item {
   display: flex;
   min-height: 42px;
@@ -1709,8 +1857,9 @@ const handleCheckDevice = (item: DeptDeviceItem) => {
 }
 
 .detail-label {
-  width: 150px;
+  width: 120px;
   flex-shrink: 0;
+  font-size: 15px;
   padding: 10px 12px;
   background-color: #f5f7fa;
   color: #606266;
@@ -1720,20 +1869,23 @@ const handleCheckDevice = (item: DeptDeviceItem) => {
 .detail-value {
   flex: 1;
   padding: 10px 12px;
+  font-size: 15px;
   color: #303133;
   word-break: break-all;
   box-sizing: border-box;
 }
 
+
+
 @media (max-width: 980px) {
   .dept-table-row {
-	min-width: 700px;
-    grid-template-columns: 46px minmax(150px, 1.3fr) minmax(100px, 0.78fr) minmax(110px, 0.72fr) minmax(110px, 0.72fr) minmax(110px, 1.3fr) minmax(60px, 0.92fr);
+	min-width: 790px;
+    grid-template-columns: 46px minmax(150px, 1.3fr) minmax(100px, 0.78fr) minmax(100px, 0.78fr) minmax(110px, 0.72fr) minmax(110px, 0.72fr) minmax(110px, 1.3fr) minmax(60px, 0.92fr);
   }
   
   .device-table-row {
-	min-width: 870px;
-    grid-template-columns: 46px minmax(150px, 1.3fr) minmax(75px, 0.78fr) minmax(130px, 0.78fr) minmax(130px, 0.78fr) minmax(110px, 0.72fr) minmax(110px, 0.72fr) minmax(110px, 0.78fr);
+	min-width: 670px;
+    grid-template-columns: 46px minmax(150px, 1.3fr) minmax(75px, 0.78fr) minmax(130px, 0.78fr) minmax(75px, 0.78fr) minmax(75px, 0.78fr) minmax(110px, 0.78fr);
   }
 }
 
@@ -1871,14 +2023,13 @@ const handleCheckDevice = (item: DeptDeviceItem) => {
     font-size: 12px;
   }
 
-  // .status-pill,
-  // .urgency-pill {
-  //   min-width: 50px;
-  //   height: 22px;
-  //   padding: 0 8px;
-  //   font-size: 11px;
-  //   line-height: 22px;
-  // }
+  .status-pill, {
+    min-width: 50px;
+    height: 22px;
+    padding: 0 8px;
+    font-size: 11px;
+    line-height: 22px;
+  }
 
   // .pagination-bar {
   //   height: 42px;
