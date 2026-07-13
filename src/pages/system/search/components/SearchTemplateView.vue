@@ -168,6 +168,12 @@
 
         <scroll-view class="pqt-detail-scroll" scroll-y>
           <view class="pqt-form">
+            <view class="pqt-form__item pqt-form__item--full pqt-form__item--protocol">
+              <text class="pqt-form__label pqt-form__label--required">协议</text>
+              <picker :range="protocolOptions" range-key="label" @change="handleProtocolChange">
+                <view class="pqt-form__control pqt-form__control--picker">{{ currentProtocolLabel }}</view>
+              </picker>
+            </view>
             <view class="pqt-form__item">
               <text class="pqt-form__label pqt-form__label--required">模板名称</text>
               <input
@@ -185,12 +191,6 @@
                 placeholder="例如 protocol_default"
                 placeholder-class="pqt-placeholder"
               />
-            </view>
-            <view class="pqt-form__item">
-              <text class="pqt-form__label pqt-form__label--required">协议</text>
-              <picker :range="protocolOptions" range-key="label" @change="handleProtocolChange">
-                <view class="pqt-form__control pqt-form__control--picker">{{ currentProtocolLabel }}</view>
-              </picker>
             </view>
             <view class="pqt-form__item">
               <text class="pqt-form__label">适用范围</text>
@@ -1378,6 +1378,10 @@ async function deleteCurrent() {
 
 .pqt-form__item--full {
   grid-column: 1 / -1;
+}
+
+.pqt-form__item--protocol {
+  width: 100%;
 }
 
 .pqt-fields__head {

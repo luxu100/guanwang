@@ -4,6 +4,7 @@ import test from "node:test";
 
 const systemSource = readFileSync(new URL("../src/pages/system/components/SystemManagementView.vue", import.meta.url), "utf8");
 const dataReceiveSource = readFileSync(new URL("../src/pages/data-receive/components/DataReceiveView.vue", import.meta.url), "utf8");
+const searchTemplateSource = readFileSync(new URL("../src/pages/system/search/components/SearchTemplateView.vue", import.meta.url), "utf8");
 
 test("system and data receive modules do not render top metric cards", () => {
   assert.doesNotMatch(systemSource, /<AdminMetricRow\b|from "\@\/components\/admin\/AdminMetricRow\.vue"/);
@@ -31,6 +32,9 @@ test("detail forms constrain inputs to their panels", () => {
   assert.match(systemSource, /\.content-layout--user\s*\{[\s\S]*?grid-template-rows:\s*minmax\(160px, 0\.8fr\) minmax\(320px, 1\.2fr\);/);
   assert.match(systemSource, /\.content-layout--user \.form-grid--user\s*\{[\s\S]*?padding-bottom:\s*16px;/);
   assert.match(systemSource, /\.content-layout--user \.form-field\s*\{[\s\S]*?overflow:\s*visible;/);
+  assert.match(systemSource, /\.content-layout--dict\s*\{[\s\S]*?minmax\(280px, 0\.78fr\)/);
+  assert.match(systemSource, /\.detail-panel--dict \.form-grid\s*\{[\s\S]*?overflow-y:\s*auto;/);
+  assert.match(systemSource, /\.detail-panel--dict \.form-field\s*\{[\s\S]*?overflow:\s*visible;/);
   assert.match(systemSource, /\.check-grid\s*\{[\s\S]*?max-width:\s*100%;/);
 });
 
@@ -54,4 +58,18 @@ test("admin tables and module containers scroll instead of clipping overflowing 
   assert.match(dataReceiveSource, /\.table-scroll\s*\{[\s\S]*?overflow:\s*auto;/);
   assert.match(dataReceiveSource, /\.data-cell\s*\{[\s\S]*?display:\s*table-cell;/);
   assert.match(dataReceiveSource, /\.data-cell\s*\{[\s\S]*?overflow:\s*visible;/);
+});
+
+test("requested admin layout refinements remain in place", () => {
+  assert.match(systemSource, /\.workspace--auth\s*\{[\s\S]*?minmax\(168px, 0\.19fr\)/);
+  assert.match(systemSource, /\.content-layout--auth\s*\{[\s\S]*?minmax\(240px, 1fr\) minmax\(520px, 3fr\)/);
+  assert.match(systemSource, /const visibleMenus = computed/);
+  assert.match(systemSource, /v-for="item in visibleMenus"/);
+  assert.match(systemSource, /class="menu-expand-arrow"/);
+  assert.match(dataReceiveSource, /\.row-actions\s*\{[\s\S]*?justify-content:\s*center;[\s\S]*?width:\s*100%;/);
+
+  const protocolFieldIndex = searchTemplateSource.indexOf("pqt-form__item--protocol");
+  const templateNameIndex = searchTemplateSource.indexOf("模板名称", protocolFieldIndex);
+  assert.ok(protocolFieldIndex >= 0 && templateNameIndex > protocolFieldIndex);
+  assert.match(searchTemplateSource, /\.pqt-form__item--protocol\s*\{[\s\S]*?width:\s*100%;/);
 });

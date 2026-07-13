@@ -148,7 +148,15 @@
         <scroll-view class="table-scroll" scroll-x scroll-y>
           <view class="data-table" :style="{ minWidth: activeTableMinWidth }">
             <view class="data-row data-row--header">
-              <view v-for="column in activeConfig.columns" :key="column.key" class="data-cell" :style="{ minWidth: getColumnMinWidth(column) }">{{ column.label }}</view>
+              <view
+                v-for="column in activeConfig.columns"
+                :key="column.key"
+                class="data-cell"
+                :class="{ 'data-cell--actions': column.type === 'actions' }"
+                :style="{ minWidth: getColumnMinWidth(column) }"
+              >
+                {{ column.label }}
+              </view>
             </view>
 
             <view v-if="loading" class="table-state">加载中...</view>
@@ -167,7 +175,13 @@
               @dragend="handleFieldDragEnd"
               @click="selectRecord(item, index)"
             >
-              <view v-for="column in activeConfig.columns" :key="column.key" class="data-cell" :style="{ minWidth: getColumnMinWidth(column) }">
+              <view
+                v-for="column in activeConfig.columns"
+                :key="column.key"
+                class="data-cell"
+                :class="{ 'data-cell--actions': column.type === 'actions' }"
+                :style="{ minWidth: getColumnMinWidth(column) }"
+              >
                 <view v-if="column.type === 'actions'" class="row-actions">
                   <template v-if="isProtocolFieldEditor">
                     <!-- <text class="row-action-link" @click.stop="moveFieldRecord(index, -1)">上移</text>
@@ -2631,9 +2645,15 @@ function resetRuntimeState() {
 .row-actions {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
+  width: 100%;
   min-width: 0;
   overflow: hidden;
+}
+
+.data-cell--actions {
+  text-align: center;
 }
 
 .table-input,
