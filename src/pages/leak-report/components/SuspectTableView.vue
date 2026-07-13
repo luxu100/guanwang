@@ -224,7 +224,16 @@
             <view class="detail-fields-grid">
               <view v-for="item in relatedDetailFields" :key="item.label" class="detail-field-card">
                 <text class="detail-field-card__label">{{ item.label }}</text>
-                <text class="detail-field-card__value">{{ item.value }}</text>
+                <view v-if="item.type === 'images'" class="detail-field-card__value detail-field-card__value--link" @click="previewMediaFiles(item.ids ?? [], 'image')">
+                  {{ item.value }}
+                </view>
+                <view v-else-if="item.type === 'video'" class="detail-field-card__value detail-field-card__value--link" @click="previewMediaFiles([item.id ?? ''], 'video')">
+                  {{ item.value }}
+                </view>
+                <view v-else-if="item.type === 'audio'" class="detail-field-card__value detail-field-card__value--link" @click="previewAudioFile(item.id ?? '')">
+                  {{ item.value }}
+                </view>
+                <text v-else class="detail-field-card__value">{{ item.value }}</text>
               </view>
             </view>
           </view>
@@ -495,6 +504,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { getSuspectPage, getSuspectDetail, deleteSuspect } from "@/services/leak-report/suspected-leak";
 import { dispatchSuspect, confirmLeakPoint, excludeSuspect } from "@/services/leak-report/suspected-leak";
 import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
+import { getRegionList } from "@/services/leak-report/region";
 
 // ========== 类型定义 ==========
 type SuspectMode = "management" | "processing";
@@ -711,6 +721,8 @@ const baseDetailFields = computed(() => {
 // 管道信息字段
 const pipeDetailFields = computed(() => {
   const item = selectedSuspect.value || {};
+  const deptId = getStableValue(item, ["deptId"]);
+  const deptName = deptId != null ? (deptNameMap.value[Number(deptId)] || String(deptId)) : "-";
   return [
     { label: "管道管径", value: getTextValue(item, ["tubeBore"], "-") },
     { label: "管道材质", value: getTextValue(item, ["tubeMaterial"], "-") },
@@ -718,30 +730,78 @@ const pipeDetailFields = computed(() => {
     { label: "噪声时间", value: formatDateTime(getTextValue(item, ["noiseTime"], "-")) },
     { label: "渗漏状态", value: getTextValue(item, ["leakStatus"], "-") },
     { label: "特征值", value: getTextValue(item, ["featureValue"], "-") },
-    { label: "音频文件", value: getTextValue(item, ["audioFile"], "-") },
     { label: "修复状态", value: getTextValue(item, ["repairStatus"], "-") },
     { label: "修复时间", value: formatDateTime(getTextValue(item, ["repairTime"], "-")) },
     { label: "修复人", value: getTextValue(item, ["repairPerson"], "-") },
     { label: "下漏单位", value: getTextValue(item, ["leakUnit"], "-") },
     { label: "维修单位", value: getTextValue(item, ["maintenanceUnit"], "-") },
-    { label: "所属分区", value: getTextValue(item, ["deptId"], "-") },
+    { label: "所属分区", value: deptName },
   ];
 });
 
-// 关联信息字段（列表已显示的字段不再重复展示）
-const relatedDetailFields = computed(() => {
+interface DetailField {
+  label: string;
+  value: string;
+  type?: "images" | "video" | "audio";
+  ids?: string[];
+  id?: string;
+}
+
+// 关联信息字段
+const relatedDetailFields = computed((): DetailField[] => {
   const item = selectedSuspect.value || {};
+  const suspectImageIds = getTextValue(item, ["suspectSceneImages"], "");
+  const leakImageIds = getTextValue(item, ["leakSceneImages"], "");
+  const videoId = getTextValue(item, ["sceneVideo"], "");
+  const audioId = getTextValue(item, ["audioFile"], "");
+  const suspectIdList = suspectImageIds ? suspectImageIds.split(",").filter(Boolean) : [];
+  const leakIdList = leakImageIds ? leakImageIds.split(",").filter(Boolean) : [];
   return [
     { label: "关联工单ID", value: getTextValue(item, ["workOrderId"], "-") },
     { label: "关联漏点记录ID", value: getTextValue(item, ["leakPointRecordId"], "-") },
+    ...(suspectIdList.length > 0
+      ? [{ label: "疑点现场照片", value: `${suspectIdList.length} 张`, type: "images" as const, ids: suspectIdList }]
+      : [{ label: "疑点现场照片", value: "-" }]),
+    ...(leakIdList.length > 0
+      ? [{ label: "漏点现场照片", value: `${leakIdList.length} 张`, type: "images" as const, ids: leakIdList }]
+      : [{ label: "漏点现场照片", value: "-" }]),
+    ...(videoId
+      ? [{ label: "现场视频", value: "已上传", type: "video" as const, id: videoId }]
+      : [{ label: "现场视频", value: "-" }]),
+    ...(audioId
+      ? [{ label: "音频文件", value: "已上传", type: "audio" as const, id: audioId }]
+      : [{ label: "音频文件", value: "-" }]),
     { label: "创建时间", value: formatDateTime(getTextValue(item, ["createdAt"], "-")) },
     { label: "更新时间", value: formatDateTime(getTextValue(item, ["updatedAt"], "-")) },
   ];
 });
 
+// ========== 区域名称映射 ==========
+interface RegionOption {
+  id: number;
+  deptName: string;
+}
+const regionOptions = ref<RegionOption[]>([]);
+const deptNameMap = computed(() => {
+  const map: Record<number, string> = {};
+  for (const r of regionOptions.value) {
+    if (r.id != null) map[r.id] = r.deptName;
+  }
+  return map;
+});
+
+function loadRegions() {
+  getRegionList({}).then((res: { data?: RegionOption[] }) => {
+    if (res && Array.isArray(res.data)) {
+      regionOptions.value = res.data;
+    }
+  }).catch(() => {});
+}
+
 // ========== 生命周期 ==========
 onMounted(() => {
   void fetchSuspects();
+  loadRegions();
 });
 
 // ========== 筛选器事件处理 ==========
@@ -1183,6 +1243,50 @@ function viewWorkOrder() {
   uni.navigateTo({
     url: `/pages/work-order/processing/processing?id=${workOrderId}`,
   });
+}
+
+// ========== 媒体预览 ==========
+/** 预览图片列表 */
+function previewMediaFiles(ids: string[], type: "image" | "video") {
+  if (!ids.length) {
+    uni.showToast({ title: "暂无文件", icon: "none" });
+    return;
+  }
+  if (type === "video") {
+    // 视频直接用 plus 打开
+    const url = `/api/file/preview/${ids[0]}`;
+    // #ifdef H5
+    window.open(url, "_blank");
+    // #endif
+    // #ifndef H5
+    uni.downloadFile({
+      url,
+      success: (res) => {
+        uni.openDocument({ filePath: res.tempFilePath });
+      },
+    });
+    // #endif
+    return;
+  }
+  // 图片：使用 uni.previewImage
+  const urls = ids.map((id) => `/api/file/preview/${id}`);
+  uni.previewImage({ urls, current: 0 });
+}
+
+/** 播放音频 */
+function previewAudioFile(id: string) {
+  if (!id) {
+    uni.showToast({ title: "暂无音频", icon: "none" });
+    return;
+  }
+  const url = `/api/file/preview/${id}`;
+  // #ifdef H5
+  const audio = new Audio(url);
+  audio.play();
+  // #endif
+  // #ifndef H5
+  uni.playVoice({ filePath: url });
+  // #endif
 }
 
 // ========== 辅助函数：状态标签 ==========
@@ -2251,6 +2355,17 @@ defineExpose({
   line-height: 1.45;
   word-break: break-all;
   padding-left: 9px;
+}
+
+.detail-field-card__value--link {
+  color: #0d82ee;
+  cursor: pointer;
+  transition: color 0.16s ease;
+}
+
+.detail-field-card__value--link:hover {
+  color: #0674d8;
+  text-decoration: underline;
 }
 
 /* ========== 疑点处理区 ========== */
