@@ -9,19 +9,19 @@
       <view class="data-table">
         <view class="data-row data-row--header">
           <text v-if="columnVisible.index" class="data-cell data-cell--index">{{ tc('table.index') }}</text>
-          <text v-if="columnVisible.deviceNumber" class="data-cell data-cell--device">{{ t('deviceTable.deviceNumber') }}</text>
-          <text v-if="columnVisible.deviceType" class="data-cell data-cell--type">{{ t('deviceTable.deviceType') }}</text>
-          <text v-if="columnVisible.deviceAlias" class="data-cell data-cell--device">{{ t('deviceTable.deviceAlias') }}</text>
-          <text v-if="columnVisible.enableState" class="data-cell data-cell--status">{{ t('deviceTable.enableState') }}</text>
-          <text v-if="columnVisible.installState" class="data-cell data-cell--status">{{ t('deviceTable.installState') }}</text>
-          <text v-if="columnVisible.installMode" class="data-cell data-cell--status">{{ t('deviceTable.installMode') }}</text>
-          <text v-if="columnVisible.installAddress" class="data-cell data-cell--address">{{ t('deviceTable.installAddress') }}</text>
-          <text v-if="columnVisible.coordinate" class="data-cell data-cell--coord">{{ t('deviceTable.coordinate') }}</text>
-          <text v-if="columnVisible.tubeGroup" class="data-cell data-cell--number">{{ t('deviceTable.tubeGroup') }}</text>
-          <text v-if="columnVisible.leakStatus" class="data-cell data-cell--status">{{ t('deviceTable.leakStatus') }}</text>
-          <text v-if="columnVisible.lastSamplingTime" class="data-cell data-cell--time">{{ t('deviceTable.lastSamplingTime') }}</text>
-          <text v-if="columnVisible.onlineStatus" class="data-cell data-cell--status">{{ t('deviceTable.onlineStatus') }}</text>
-          <text v-if="columnVisible.factoryTime" class="data-cell data-cell--time">{{ t('deviceTable.factoryTime') }}</text>
+          <text v-if="columnVisible.deviceNumber" class="data-cell ">{{ t('deviceTable.deviceNumber') }}</text>
+          <text v-if="columnVisible.deviceType" class="data-cell ">{{ t('deviceTable.deviceType') }}</text>
+          <text v-if="columnVisible.deviceAlias" class="data-cell ">{{ t('deviceTable.deviceAlias') }}</text>
+          <text v-if="columnVisible.enableState" class="data-cell ">{{ t('deviceTable.enableState') }}</text>
+          <text v-if="columnVisible.installState" class="data-cell ">{{ t('deviceTable.installState') }}</text>
+          <text v-if="columnVisible.installMode" class="data-cell ">{{ t('deviceTable.installMode') }}</text>
+          <text v-if="columnVisible.installAddress" class="data-cell ">{{ t('deviceTable.installAddress') }}</text>
+          <text v-if="columnVisible.coordinate" class="data-cell ">{{ t('deviceTable.coordinate') }}</text>
+          <text v-if="columnVisible.tubeGroup" class="data-cell ">{{ t('deviceTable.tubeGroup') }}</text>
+          <text v-if="columnVisible.leakStatus" class="data-cell ">{{ t('deviceTable.leakStatus') }}</text>
+          <text v-if="columnVisible.lastSamplingTime" class="data-cell ">{{ t('deviceTable.lastSamplingTime') }}</text>
+          <text v-if="columnVisible.onlineStatus" class="data-cell ">{{ t('deviceTable.onlineStatus') }}</text>
+          <text v-if="columnVisible.factoryTime" class="data-cell ">{{ t('deviceTable.factoryTime') }}</text>
         </view>
 
         <view v-if="loading" class="table-state">{{ tc('table.loading') }}</view>

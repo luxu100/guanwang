@@ -9,16 +9,16 @@
       <view class="data-table">
         <view class="data-row data-row--header">
           <text class="data-cell data-cell--index">{{ t('deviceSetting.settingTable.index') }}</text>
-          <text class="data-cell data-cell--device">{{ t('deviceSetting.settingTable.deviceNumber') }}</text>
-          <text class="data-cell data-cell--status">{{ t('deviceSetting.fields.enabledControl') }}</text>
-          <text class="data-cell data-cell--status">{{ t('deviceSetting.fields.inspectionControl') }}</text>
-          <text class="data-cell data-cell--status data-cell--workMode">{{ t('deviceSetting.fields.workMode') }}</text>
-          <text class="data-cell data-cell--number">{{ t('deviceSetting.fields.measureLength') }}</text>
-          <text class="data-cell data-cell--status">{{ t('deviceSetting.fields.gainMode') }}</text>
-          <text class="data-cell data-cell--number">{{ t('deviceSetting.fields.gainValue') }}</text>
-          <text class="data-cell data-cell--number">{{ t('deviceSetting.fields.leakThreshold') }}</text>
-          <text class="data-cell data-cell--number">{{ t('deviceSetting.fields.reportInterval') }}</text>
-          <text class="data-cell data-cell--time">{{ t('deviceSetting.fields.orderTime') }}</text>
+          <text class="data-cell ">{{ t('deviceSetting.settingTable.deviceNumber') }}</text>
+          <text class="data-cell ">{{ t('deviceSetting.fields.enabledControl') }}</text>
+          <text class="data-cell ">{{ t('deviceSetting.fields.inspectionControl') }}</text>
+          <text class="data-cell  data-cell--workMode">{{ t('deviceSetting.fields.workMode') }}</text>
+          <text class="data-cell ">{{ t('deviceSetting.fields.measureLength') }}</text>
+          <text class="data-cell ">{{ t('deviceSetting.fields.gainMode') }}</text>
+          <text class="data-cell ">{{ t('deviceSetting.fields.gainValue') }}</text>
+          <text class="data-cell ">{{ t('deviceSetting.fields.leakThreshold') }}</text>
+          <text class="data-cell ">{{ t('deviceSetting.fields.reportInterval') }}</text>
+          <text class="data-cell ">{{ t('deviceSetting.fields.orderTime') }}</text>
         </view>
 
         <view v-if="loading" class="loading-mask">{{ t('common.table.loading') }}</view>

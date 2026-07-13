@@ -25,25 +25,25 @@
           <view class="data-row data-row--header">
 
             <text class="data-cell data-cell--index">{{ t("common.table.index") }}</text>
-            <text class="data-cell data-cell--device">{{ t("device-status.statusTable.deviceNumber") }}</text>
-            <text class="data-cell data-cell--status">{{ t("device-status.statusTable.leakStatus") }}</text>
+            <text class="data-cell ">{{ t("device-status.statusTable.deviceNumber") }}</text>
+            <text class="data-cell ">{{ t("device-status.statusTable.leakStatus") }}</text>
 
-            <text class="data-cell data-cell--device">{{ t("device-status.statusTable.firmwareVersion") }}</text>
-            <text class="data-cell data-cell--device">{{ t("device-status.statusTable.hardwareVersion") }}</text>
+            <text class="data-cell ">{{ t("device-status.statusTable.firmwareVersion") }}</text>
+            <text class="data-cell ">{{ t("device-status.statusTable.hardwareVersion") }}</text>
 
-            <text class="data-cell data-cell--status">{{ t("device-status.statusTable.workMode") }}</text>
+            <text class="data-cell ">{{ t("device-status.statusTable.workMode") }}</text>
 
-            <text class="data-cell data-cell--text">{{ t("device-status.statusTable.batteryVoltage") }}</text>
-            <text class="data-cell data-cell--text">{{ t("device-status.statusTable.deviceTemperature") }}</text>
+            <text class="data-cell ">{{ t("device-status.statusTable.batteryVoltage") }}</text>
+            <text class="data-cell ">{{ t("device-status.statusTable.deviceTemperature") }}</text>
 
-            <text class="data-cell data-cell--text">{{ t("device-status.statusTable.signalIntensity") }}</text>
-            <text class="data-cell data-cell--text">{{ t("device-status.statusTable.signalQuality") }}</text>
+            <text class="data-cell ">{{ t("device-status.statusTable.signalIntensity") }}</text>
+            <text class="data-cell ">{{ t("device-status.statusTable.signalQuality") }}</text>
 
-            <text class="data-cell data-cell--text">{{ t("device-status.statusTable.coordinateLocation") }}</text>
+            <text class="data-cell ">{{ t("device-status.statusTable.coordinateLocation") }}</text>
 
-            <text class="data-cell data-cell--text">{{ t("device-status.statusTable.leakEsa") }}</text>
-            <text class="data-cell data-cell--text">{{ t("device-status.statusTable.leakIntensity") }}</text>
-            <text class="data-cell data-cell--text">{{ t("device-status.statusTable.leakFrequency") }}</text>
+            <text class="data-cell ">{{ t("device-status.statusTable.leakEsa") }}</text>
+            <text class="data-cell ">{{ t("device-status.statusTable.leakIntensity") }}</text>
+            <text class="data-cell ">{{ t("device-status.statusTable.leakFrequency") }}</text>
 
             <text class="data-cell data-cell--time">{{ t("device-status.statusTable.uploadTime") }}</text>
           </view>
