@@ -33,6 +33,7 @@
             <text class="data-cell data-cell--address">{{ t("maintain.maintainTable.address") }}</text>
             <text class="data-cell data-cell--coord">{{ t('maintain.maintainTable.coordinate') }}</text>
             <text class="data-cell data-cell--status">{{ t("maintain.maintainTable.installMode") }}</text>
+            <text class="data-cell data-cell--status">{{ t("maintain.maintainTable.maintainPicture") }}</text>
             <text class="data-cell data-cell--number">{{ t("maintain.maintainTable.tubeGroup") }}</text>
             <text class="data-cell data-cell--text">{{ t("maintain.maintainTable.tubeMaterial") }}</text>
             <text class="data-cell data-cell--text">{{ t("maintain.maintainTable.tubeBore") }}</text>
@@ -99,6 +100,19 @@
               </text>
             </text>
 
+            <text
+                class="data-cell data-cell--link"
+                @click.stop="handlePicture(record)"
+            >
+              {{
+                record.maintainPicture
+                    ? t("common.viewImages", {
+                      count: getPictureList(record.maintainPicture).length
+                    })
+                    : '-'
+              }}
+            </text>
+
             <text class="data-cell data-cell--number">
               {{ record.tubeGroup || '-' }}
             </text>
@@ -144,6 +158,11 @@
       :lat="lat"
       :title="t('map.dialogTitle')"
   />
+
+  <XImageViewerDialog
+      v-model:visible="imageDialogVisible"
+      :file-ids="currentPictureIds"
+  />
 </template>
 <script setup lang="ts">
 import {computed, ref, watch} from 'vue';
@@ -162,6 +181,7 @@ import XPaginationBar from "@/pages/device/components/x/XPaginationBar.vue";
 import {createScopedT} from "@/i18n";
 import {formatDate} from "@/utils/time";
 import XMapPopup from "@/pages/device/components/x/XMapPopup.vue";
+import XImageViewerDialog from "@/pages/device/components/x/XImageViewerDialog.vue";
 
 const t = createScopedT("devicePage");
 const isToolbarVisible = ref(true);
@@ -604,6 +624,31 @@ function handleCoordClick(coordinate?: string) {
     icon: "none",
     duration: 2000
   });
+}
+
+/*
+图片展示
+ */
+const imageDialogVisible = ref(false);
+const currentPictureIds = ref("");
+
+function getPictureList(picture?: string) {
+  return picture
+      ? picture.split(",").filter(Boolean)
+      : [];
+}
+
+function handlePicture(record: MaintenanceRecord) {
+  if (!record.maintainPicture) {
+    uni.showToast({
+      title: "暂无图片",
+      icon: "none"
+    });
+    return;
+  }
+
+  currentPictureIds.value = record.maintainPicture;
+  imageDialogVisible.value = true;
 }
 
 type MaintainTypeMeta = {

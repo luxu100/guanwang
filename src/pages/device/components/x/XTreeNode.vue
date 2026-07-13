@@ -79,7 +79,7 @@ function select() {
   display: flex;
   align-items: center;
   height: 40px; /* 稍微增加高度，提升点击体验 */
-  padding: 0 12px;
+  padding: 0 18px;
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -134,8 +134,8 @@ function select() {
 }
 
 .tree-radio {
-  width: 32px;
-  padding-right: 8px;
+  width: 40px;
+  padding-right: 12px;
   box-sizing: border-box;
 
   display: flex;

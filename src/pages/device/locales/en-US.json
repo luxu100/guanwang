@@ -20,7 +20,9 @@
         "jumpConfirm": "Go",
         "page": "Page {current} / {total}",
         "totalRecords": "Total: {total}"
-      }
+      },
+      "imageCount": "Total {count} images",
+      "viewImages": "View Images ({count})"
     },
     "toolbar": {
       "add": "Add",
@@ -404,7 +406,8 @@
         "tubeMaterial": "Material",
         "tubeBore": "Diameter",
         "remark": "Remark",
-        "coordinate": "Coordinates"
+        "coordinate": "Coordinates",
+        "maintainPicture": "Maintenance Picture"
       },
       "page": {
         "addMaintenance": "Add Maintenance",

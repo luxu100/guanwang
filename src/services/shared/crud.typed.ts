@@ -15,6 +15,23 @@ export function postRequestT<T>(
   return postRequest(url, data);
 }
 
+export function timeout<T>(
+    promise:Promise<T>,
+    ms:number
+):Promise<T>{
+
+  return Promise.race([
+    promise,
+
+    new Promise<T>((_,reject)=>
+        setTimeout(
+            ()=>reject(new Error("timeout")),
+            ms
+        )
+    )
+  ]);
+}
+
 /**
  * 类型增强版 CRUD（不修改原 crud.js）
  */

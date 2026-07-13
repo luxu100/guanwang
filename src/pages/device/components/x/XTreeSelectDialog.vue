@@ -1,32 +1,24 @@
 <template>
-  <view v-if="visible" class="dialog-mask" @click="closeDialog">
-    <view class="dialog-panel" @click.stop>
+  <view v-if="visible" class="dialog__mask" @click="closeDialog">
+    <view class="dialog__panel" @click.stop>
 
-      <!-- Header -->
-      <view class="dialog-head">
-        <view class="dialog-head-content">
-          <view class="dialog-title">
-            {{ title }}
-          </view>
-          <view v-if="subtitle" class="dialog-subtitle">
-            {{ subtitle }}
-          </view>
+      <view class="dialog__header">
+        <view class="dialog__header-content">
+          <view class="dialog__title">{{ title }}</view>
+          <view v-if="subtitle" class="dialog__subtitle">{{ subtitle }}</view>
         </view>
 
-        <button class="icon-button" @click="closeDialog">
-          ✕
+        <button class="button button__icon" @click="closeDialog">
+          <view class="close-icon"/>
         </button>
       </view>
 
 
-      <!-- Body -->
-      <scroll-view scroll-y class="dialog-body">
-        <view
-            v-if="!treeData || treeData.length === 0"
-            class="empty-state"
-        >
-          {{t('common.table.empty') }}
+      <scroll-view scroll-y class="dialog__body">
+        <view v-if="!treeData || treeData.length === 0" class="empty-state">
+          {{ t('common.table.empty') }}
         </view>
+
         <XTreeNode
             v-for="node in treeData"
             :key="node.id"
@@ -36,21 +28,17 @@
         />
       </scroll-view>
 
-      <!-- Footer -->
-      <view class="dialog-actions">
-        <button
-            class="secondary-button"
-            @click="closeDialog"
-        >
-          {{t('common.cancel') }}
+
+      <view class="dialog__footer">
+        <button class="button button__secondary" @click="closeDialog">
+          {{ t('common.cancel') }}
         </button>
-        <button
-            class="primary-button"
-            @click="confirm"
-        >
-          {{t('common.confirm') }}
+
+        <button class="button button__primary" @click="confirm">
+          {{ t('common.confirm') }}
         </button>
       </view>
+
     </view>
   </view>
 </template>
@@ -157,138 +145,8 @@ function findNode(
 </script>
 
 <style scoped lang="scss">
-/* 遮罩 */
-.dialog-mask{
-  position:fixed;
-  inset:0;
-  z-index:1000;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:14px;
-  background:rgba(15,35,55,.36);
-}
-
-/* 弹窗 */
-.dialog-panel{
-  width:60vw;
-  max-width:900px;
-  min-width:320px;
-  height:min(620px,calc(100vh - 28px));
-  display:flex;
-  flex-direction:column;
-  overflow:hidden;
-  background:#fff;
-  border:1px solid #d8e6f2;
-  border-radius:6px;
-  box-shadow:
-      0 18px 46px rgba(15,35,55,.2);
-}
-
-/* Header */
-.dialog-head{
-  flex:none;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding: 18px 24px;
-  background:#f8fbfe;
-  border-bottom: 1px solid #edf3f8;
-}
-
-.dialog-head-content{
-  flex:1;
-  min-width:0;
-}
-
-.dialog-title{
-  color:#183755;
-  font-size:20px;
-  font-weight:900;
-  line-height:1.2;
-}
-
-.dialog-subtitle{
-  margin-top:4px;
-  color:#5f7188;
-  font-size:13px;
-}
-
-/* 关闭按钮 */
-.icon-button{
-  width:32px;
-  height:32px;
-  margin: 0 0 0 16px;
-  padding:0;
-  line-height:1;
-  flex-shrink:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  color:#64748b;
-  background:#f6fbff;
-  border: 1px solid #d9e7f3;
-  border-radius:4px;
-  font-size:14px;
-}
-
-.icon-button:hover{
-  background:#edf7ff;
-  color:#0d82ee;
-}
-
-/* 内容 */
-.dialog-body{
-  flex:1;
-  padding: 12px 16px;
-  background:#fff;
-}
-
-.empty-state{
-  padding:40px 0;
-  text-align:center;
-  color:#9aa9b8;
-  font-size:14px;
-}
-.dialog-actions {
-  flex: none;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 24px;
-  background: #fff;
-  border-top: 1px solid #edf3f8;
-}
-
-.dialog-actions button {
-  margin: 0;
-}
-
-/* 按钮 */
-.primary-button,
-.secondary-button {
-  height: 38px;
-  padding: 0 24px;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 900;
-  border: 1px solid transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.primary-button {
-  background: #0d82ee;
-  color: white;
-}
-
-.secondary-button {
-  background: #f6fbff;
-  color: #34495e;
-  border-color: #d9e7f3;
-}
+@import "@/pages/device/components/x/dialog.css";
+@import "@/pages/device/components/x/button.css";
 
 /* 动画 */
 @keyframes fadeIn {

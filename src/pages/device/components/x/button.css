@@ -1,0 +1,148 @@
+/* =========================
+   Button Base
+========================= */
+
+.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    height: 36px;
+    padding: 0 18px;
+
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1;
+
+    border: 1px solid transparent;
+    border-radius: 4px;
+
+    cursor: pointer;
+    transition:
+            color .15s ease,
+            background-color .15s ease,
+            border-color .15s ease;
+
+    box-sizing: border-box;
+}
+
+
+/* =========================
+   Primary Button
+========================= */
+
+.button__primary {
+    min-width: 104px;
+
+    color: #ffffff;
+    background: #0d82ee;
+    border-color: #0d82ee;
+}
+
+
+.button__primary:hover {
+    background: #0674d8;
+    border-color: #0674d8;
+}
+
+
+.button__primary:disabled,
+.button__primary--disabled {
+    color: #dbeafe;
+    background: #82b9ec;
+    border-color: #82b9ec;
+
+    cursor: not-allowed;
+}
+
+
+/* =========================
+   Secondary Button
+========================= */
+
+.button__secondary {
+    min-width: 84px;
+    padding: 0 14px;
+
+    color: #31506d;
+    background: #f6fbff;
+    border-color: #cbdced;
+}
+
+
+.button__secondary:hover {
+    color: #0d82ee;
+    background: #edf7ff;
+    border-color: #a9d7ff;
+}
+
+
+.button__secondary:disabled,
+.button__secondary--disabled {
+    color: #94a3b8;
+    background: #f1f5f9;
+    border-color: #d9e7f3;
+
+    cursor: not-allowed;
+}
+
+
+/* =========================
+   Icon Button
+========================= */
+
+.button__icon {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+
+    color: #64748b;
+    background: #f6fbff;
+    border-color: #d9e7f3;
+}
+
+
+.button__icon:hover {
+    color: #0d82ee;
+    background: #edf7ff;
+    border-color: #a9d7ff;
+}
+
+
+/* =========================
+   Close Icon
+========================= */
+
+.close-icon {
+    position: relative;
+
+    width: 14px;
+    height: 14px;
+}
+
+
+.close-icon::before,
+.close-icon::after {
+    position: absolute;
+
+    top: 6px;
+    left: 0;
+
+    width: 14px;
+    height: 2px;
+
+    content: "";
+
+    background: currentColor;
+    border-radius: 2px;
+}
+
+
+.close-icon::before {
+    transform: rotate(45deg);
+}
+
+
+.close-icon::after {
+    transform: rotate(-45deg);
+}

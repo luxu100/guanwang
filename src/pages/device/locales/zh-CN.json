@@ -20,7 +20,9 @@
         "jumpConfirm": "确定",
         "page": "第 {current} / {total} 页",
         "totalRecords": "共 {total} 条"
-      }
+      },
+      "imageCount": "共 {count} 张图片",
+      "viewImages": "查看图片({count})"
     },
     "toolbar": {
       "add": "新增",
@@ -417,7 +419,8 @@
         "tubeMaterial": "管材",
         "tubeBore": "管径",
         "remark": "备注",
-        "coordinate": "坐标位置"
+        "coordinate": "坐标位置",
+        "maintainPicture": "维护图片"
       },
       "page": {
         "addMaintenance": "新增维护记录",
