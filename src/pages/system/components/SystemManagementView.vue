@@ -39,7 +39,7 @@
 
         <scroll-view v-else-if="mode === 'menu'" class="side-list" scroll-y>
           <view
-            v-for="item in menus"
+            v-for="item in visibleMenus"
             :key="getId(item)"
             class="side-list__item side-list__item--tree"
             :class="{ 'side-list__item--active': getId(item) === getId(selectedMenu) }"
@@ -47,7 +47,16 @@
             @click="selectMenu(item)"
           >
             <view class="side-list__tree-title">
-              <text v-if="getTreeLevel(item) > 1" class="side-list__tree-branch"></text>
+              <view
+                v-if="hasMenuChildren(item)"
+                class="menu-expand-toggle"
+                :aria-label="isMenuExpanded(item) ? '收起子菜单' : '展开子菜单'"
+                @click.stop="toggleMenuExpanded(item)"
+              >
+                <text class="menu-expand-arrow" :class="{ 'menu-expand-arrow--expanded': isMenuExpanded(item) }"></text>
+              </view>
+              <text v-else-if="getTreeLevel(item) > 1" class="side-list__tree-branch"></text>
+              <text v-else class="side-list__tree-spacer"></text>
               <text class="side-list__title">{{ getPermissionName(item) }}</text>
             </view>
             <text class="side-list__sub">{{ getText(item, ['path'], '目录节点') }}</text>
@@ -240,7 +249,7 @@
           </view>
         </view>
 
-        <view v-else-if="mode === 'auth'" class="content-layout">
+        <view v-else-if="mode === 'auth'" class="content-layout content-layout--auth">
           <view class="detail-panel detail-panel--role">
             <view class="detail-head">
               <text>{{ isCreating ? "新增角色" : "角色基础信息" }}</text>
@@ -342,7 +351,7 @@
                 </view>
                 <view v-if="loading" class="table-state">加载中...</view>
                 <view v-else-if="!menus.length" class="table-state">暂无菜单数据</view>
-                <view v-for="item in menus" v-else :key="getId(item)" class="data-row" :class="{ 'data-row--active': getId(item) === getId(selectedMenu) }" @click="selectMenu(item)">
+                <view v-for="item in visibleMenus" v-else :key="getId(item)" class="data-row" :class="{ 'data-row--active': getId(item) === getId(selectedMenu) }" @click="selectMenu(item)">
                   <text class="data-cell data-cell--select">
                     <text
                       class="check-box"
@@ -350,9 +359,20 @@
                       @click.stop="toggleMenuSelection(item)"
                     ></text>
                   </text>
-                  <text class="data-cell data-cell--name">
-                    <text>{{ getPermissionName(item) }}</text>
-                  </text>
+                  <view class="data-cell data-cell--name">
+                    <view class="menu-table-name" :style="{ paddingLeft: `${(getTreeLevel(item) - 1) * 18}px` }">
+                      <view
+                        v-if="hasMenuChildren(item)"
+                        class="menu-expand-toggle"
+                        :aria-label="isMenuExpanded(item) ? '收起子菜单' : '展开子菜单'"
+                        @click.stop="toggleMenuExpanded(item)"
+                      >
+                        <text class="menu-expand-arrow" :class="{ 'menu-expand-arrow--expanded': isMenuExpanded(item) }"></text>
+                      </view>
+                      <text v-else class="menu-expand-spacer"></text>
+                      <text>{{ getPermissionName(item) }}</text>
+                    </view>
+                  </view>
                   <text class="data-cell data-cell--code">{{ getText(item, ['permissionCode'], '-') }}</text>
                   <text class="data-cell data-cell--path">{{ getText(item, ['path'], '-') }}</text>
                   <text class="data-cell data-cell--status">
@@ -806,6 +826,7 @@ const selectedRoleIds = ref<Array<string | number>>([]);
 const selectedPermissionIds = ref<Array<string | number>>([]);
 const selectedUserPartitionIds = ref<string[]>([]);
 const selectedMenuIds = ref<Array<string | number>>([]);
+const expandedMenuIds = ref<Array<string | number>>([]);
 const userPartitionDraftIds = ref<string[]>([]);
 const selectedAlarmOptions = ref(["enabled", "web", "app"]);
 const activeOrg = ref("all");
@@ -873,6 +894,31 @@ const menuParentOptions = computed<Array<SelectOption<string>>>(() => [
     })),
 ]);
 const currentMenuParentLabel = computed(() => menuParentOptions.value.find((item) => item.value === String(menuForm.parentId || "0"))?.label || "根节点");
+const menuParentIds = computed(() => {
+  const parentIds = new Set<string | number>();
+  menus.value.forEach((item, index) => {
+    const nextItem = menus.value[index + 1];
+    const id = getId(item);
+    if (isValidId(id) && nextItem && getTreeLevel(nextItem) > getTreeLevel(item)) {
+      parentIds.add(id);
+    }
+  });
+  return parentIds;
+});
+const visibleMenus = computed(() => {
+  if (filters.keyword.trim()) {
+    return menus.value;
+  }
+
+  const ancestorExpansion: boolean[] = [];
+  return menus.value.filter((item) => {
+    const level = Math.max(1, getTreeLevel(item));
+    ancestorExpansion.length = level - 1;
+    const isVisible = ancestorExpansion.every(Boolean);
+    ancestorExpansion[level - 1] = isMenuExpanded(item);
+    return isVisible;
+  });
+});
 const selectableMenuIds = computed(() => menus.value.map((item) => getId(item)).filter((id) => isValidId(id) && !isLocalMenuId(id)));
 const areAllCurrentMenusSelected = computed(() => {
   const ids = selectableMenuIds.value;
@@ -1280,6 +1326,7 @@ async function loadMenus() {
       }
     }
 
+    expandedMenuIds.value = [];
     selectMenu(menus.value[0] || null);
     syncSelectedMenuIds();
   } catch (error) {
@@ -1287,6 +1334,7 @@ async function loadMenus() {
     menus.value = getDefaultMenuResources(keyword);
     total.value = menus.value.length;
     menuSource.value = "local";
+    expandedMenuIds.value = [];
     selectMenu(menus.value[0] || null);
     syncSelectedMenuIds();
     toastError(error, "菜单数据加载失败");
@@ -2343,6 +2391,23 @@ function toggleId(list: Array<string | number>, id: string | number) {
   }
 }
 
+function hasMenuChildren(item: RecordLike) {
+  return menuParentIds.value.has(getId(item));
+}
+
+function isMenuExpanded(item: RecordLike) {
+  return expandedMenuIds.value.includes(getId(item));
+}
+
+function toggleMenuExpanded(item: RecordLike) {
+  const id = getId(item);
+  if (!isValidId(id) || !hasMenuChildren(item)) {
+    return;
+  }
+
+  toggleId(expandedMenuIds.value, id);
+}
+
 function flattenTree(records: RecordLike[], level = 1): RecordLike[] {
   return records.flatMap((item) => {
     const children = getFirstArray(item, ["children", "childList", "nodes"]).map((child) => (isObject(child) ? child : { value: child }));
@@ -2548,7 +2613,7 @@ function isValidId(value: unknown): value is string | number {
 }
 
 .workspace--auth {
-  grid-template-columns: minmax(216px, 0.28fr) minmax(0, 1fr);
+  grid-template-columns: minmax(168px, 0.19fr) minmax(0, 1fr);
 }
 
 .workspace--menu {
@@ -2689,6 +2754,36 @@ function isValidId(value: unknown): value is string | number {
   flex: none;
   border-left: 1px solid #bfd3e6;
   border-bottom: 1px solid #bfd3e6;
+}
+
+.side-list__tree-spacer,
+.menu-expand-spacer {
+  width: 18px;
+  flex: none;
+}
+
+.menu-expand-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.menu-expand-arrow {
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateX(-2px) rotate(-45deg);
+  transition: transform 160ms ease;
+}
+
+.menu-expand-arrow--expanded {
+  transform: translateY(-2px) rotate(45deg);
 }
 
 .side-list__title {
@@ -2989,9 +3084,13 @@ function isValidId(value: unknown): value is string | number {
   grid-template-rows: minmax(250px, 0.9fr) minmax(240px, 0.72fr);
 }
 
+.content-layout--auth {
+  grid-template-columns: minmax(240px, 1fr) minmax(520px, 3fr);
+}
+
 .content-layout--dict {
   grid-template-columns: 1fr;
-  grid-template-rows: minmax(260px, 1fr) minmax(158px, 0.42fr);
+  grid-template-rows: minmax(220px, 1fr) minmax(320px, 0.9fr);
 }
 
 .content-layout--user {
@@ -3093,6 +3192,12 @@ function isValidId(value: unknown): value is string | number {
 
 .data-table--menu .data-cell--name {
   min-width: 180px;
+}
+
+.menu-table-name {
+  display: flex;
+  align-items: center;
+  min-width: 0;
 }
 
 .data-table--menu .data-cell--select {
@@ -3218,6 +3323,21 @@ function isValidId(value: unknown): value is string | number {
 
 .content-layout--user .form-field {
   overflow: visible;
+}
+
+.detail-panel--dict .form-grid {
+  align-content: start;
+  padding-bottom: 16px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.detail-panel--dict .form-field {
+  overflow: visible;
+}
+
+.detail-panel--dict .form-actions {
+  flex: none;
 }
 
 .form-field {
@@ -3556,7 +3676,7 @@ function isValidId(value: unknown): value is string | number {
   }
 
   .content-layout--dict {
-    grid-template-rows: minmax(240px, 1fr) minmax(150px, 0.42fr);
+    grid-template-rows: minmax(200px, 0.8fr) minmax(320px, 1fr);
   }
 
   .content-layout--user {

@@ -214,39 +214,40 @@
                 </view>
               </view>
 
-              <view class="detail-grid detail-grid--base">
-                <template v-if="leakageDetailTab === 'base'">
-                  <view class="detail-item detail-item--base">
-                    <text class="detail-item__label">时间</text>
-                    <text class="detail-item__value">{{ ((selectedItem as LeakItem).detectedTime || '').replace(/\.\d+/, '').replace('T', ' ') }}</text>
-                  </view>
-                  <view class="detail-item detail-item--base">
-                    <text class="detail-item__label">天气</text>
-                    <text class="detail-item__value">{{ (selectedItem as LeakItem).weather }}</text>
-                  </view>
-                  <view class="detail-item detail-item--base">
-                    <text class="detail-item__label">拆/装</text>
-                    <text class="detail-item__value">{{ (selectedItem as LeakItem).installStatus }}</text>
-                  </view>
-                  <view class="detail-item detail-item--base">
-                    <text class="detail-item__label">阀门编号</text>
-                    <text class="detail-item__value">{{ (selectedItem as LeakItem).valveNumber }}</text>
-                  </view>
-                  <view class="detail-item detail-item--base">
-                    <text class="detail-item__label">所属片区</text>
-                    <text class="detail-item__value">{{ (selectedItem as LeakItem).deptName }}</text>
-                  </view>
-                  <view class="detail-item detail-item--base">
-                    <text class="detail-item__label">安装人员</text>
-                    <text class="detail-item__value">{{ (selectedItem as LeakItem).installer }}</text>
-                  </view>
-                  <view class="detail-item detail-item--base">
-                    <text class="detail-item__label">安装地址</text>
-                    <text class="detail-item__value">{{ (selectedItem as LeakItem).address }}</text>
-                  </view>
-                </template>
+              <view v-if="leakageDetailTab === 'base'" class="detail-grid detail-grid--base">
+                <view class="detail-item detail-item--base">
+                  <text class="detail-item__label">时间</text>
+                  <text class="detail-item__value">{{ ((selectedItem as LeakItem).detectedTime || '').replace(/\.\d+/, '').replace('T', ' ') }}</text>
+                </view>
+                <view class="detail-item detail-item--base">
+                  <text class="detail-item__label">天气</text>
+                  <text class="detail-item__value">{{ (selectedItem as LeakItem).weather }}</text>
+                </view>
+                <view class="detail-item detail-item--base">
+                  <text class="detail-item__label">拆/装</text>
+                  <text class="detail-item__value">{{ (selectedItem as LeakItem).installStatus }}</text>
+                </view>
+                <view class="detail-item detail-item--base">
+                  <text class="detail-item__label">阀门编号</text>
+                  <text class="detail-item__value">{{ (selectedItem as LeakItem).valveNumber }}</text>
+                </view>
+                <view class="detail-item detail-item--base">
+                  <text class="detail-item__label">所属片区</text>
+                  <text class="detail-item__value">{{ (selectedItem as LeakItem).deptName }}</text>
+                </view>
+                <view class="detail-item detail-item--base">
+                  <text class="detail-item__label">安装人员</text>
+                  <text class="detail-item__value">{{ (selectedItem as LeakItem).installer }}</text>
+                </view>
+                <view class="detail-item detail-item--base">
+                  <text class="detail-item__label">安装地址</text>
+                  <text class="detail-item__value">{{ (selectedItem as LeakItem).address }}</text>
+                </view>
+              </view>
 
-                <template v-else-if="leakageDetailTab === 'analysis'">
+              <view v-else-if="leakageDetailTab === 'analysis'">
+                <view class="leak-sub-card">
+                  <text class="leak-sub-card__header">渗漏分析</text>
                   <view class="detail-item detail-item--base">
                     <text class="detail-item__label">状态</text>
                     <text class="detail-item__value">
@@ -281,9 +282,10 @@
                     <text class="detail-item__label">算法类型</text>
                     <text class="detail-item__value">{{ (selectedItem as LeakItem).algorithmType }}</text>
                   </view>
-                </template>
+                </view>
 
-                <template v-else-if="leakageDetailTab === 'detail'">
+                <view class="leak-sub-card">
+                  <text class="leak-sub-card__header">渗漏详情</text>
                   <view class="detail-item detail-item--base">
                     <text class="detail-item__label">渗漏带宽</text>
                     <text class="detail-item__value">{{ (selectedItem as LeakItem).leakBandwidth }}</text>
@@ -296,7 +298,7 @@
                     <text class="detail-item__label">渗漏频率</text>
                     <text class="detail-item__value">{{ (selectedItem as LeakItem).leakFrequency }}</text>
                   </view>
-                </template>
+                </view>
               </view>
             </view>
           </template>
@@ -467,8 +469,7 @@ const leakageStatusOptions = [
 
 const leakageDetailTabs = [
   { label: "基本信息", value: "base" as const },
-  { label: "渗漏分析", value: "analysis" as const },
-  { label: "渗漏详情", value: "detail" as const },
+  { label: "渗漏信息", value: "analysis" as const },
 ];
 
 const pageTitle = computed(() => {
@@ -1711,12 +1712,42 @@ watch(
 
 .leak-tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 6px;
   padding: 8px;
   background: #f6fafe;
   border: 1px solid #dce9f4;
   border-radius: 6px;
+}
+
+.leak-sub-card {
+  background: #ffffff;
+  border: 1px solid #dfebf5;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 8px 18px rgba(33, 72, 108, 0.045);
+}
+
+.leak-sub-card + .leak-sub-card {
+  margin-top: 10px;
+}
+
+.leak-sub-card__header {
+  display: block;
+  padding: 10px 14px;
+  color: #183755;
+  font-size: 14px;
+  font-weight: 900;
+  background: #f7fafc;
+  border-bottom: 1px solid #e3edf6;
+}
+
+.leak-sub-card .detail-item--base {
+  border-bottom: 1px solid #edf3f8;
+}
+
+.leak-sub-card .detail-item--base:last-child {
+  border-bottom: 0;
 }
 
 .leak-tab {

@@ -26,38 +26,6 @@ export function getVisibleDeviceList(params) {
   return getRequest("/api/device/visible-list", params);
 }
 
-export function getDeviceQuerySidebar(data) {
-  return postRequest("/api/device-query/sidebar", data);
-}
-
-export function getDeviceQueryTodayOnlineRate(data) {
-  return postRequest("/api/device-query/sidebar/today-online-rate", data);
-}
-
-export function getDeviceQueryTcpTodayOnlineRate(data) {
-  return postRequest("/api/device-query/sidebar/tcp-today-online-rate", data);
-}
-
-export function getDeviceQueryCommunicationSuccessRate(data) {
-  return postRequest("/api/device-query/sidebar/communication-success-rate", data);
-}
-
-export function getDeviceQueryParameterPage(data) {
-  return postRequest("/api/device-query/device-parameter/page", data);
-}
-
-export function getDeviceQueryInfoPage(data) {
-  return postRequest("/api/device-query/device-info/page", data);
-}
-
-export function getDeviceQueryParameterDetail(id) {
-  return getRequest(`/api/device-query/device-parameter/${id}`);
-}
-
-export function getDeviceQueryInfoDetail(id) {
-  return getRequest(`/api/device-query/device-info/${id}`);
-}
-
 export const getDeviceProductPage = deviceProductApi.getPage;
 export const getDeviceProductList = deviceProductApi.getList;
 export const getDeviceProductDetail = deviceProductApi.getDetail;
@@ -115,14 +83,6 @@ export default {
   updateDevice,
   deleteDevice,
   batchDeleteDevice,
-  getDeviceQuerySidebar,
-  getDeviceQueryTodayOnlineRate,
-  getDeviceQueryTcpTodayOnlineRate,
-  getDeviceQueryCommunicationSuccessRate,
-  getDeviceQueryParameterPage,
-  getDeviceQueryInfoPage,
-  getDeviceQueryParameterDetail,
-  getDeviceQueryInfoDetail,
   getDeviceProductPage,
   getDeviceProductList,
   getDeviceProductDetail,

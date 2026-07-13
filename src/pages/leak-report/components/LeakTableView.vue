@@ -26,6 +26,12 @@
             :disabled="pageNum >= totalPages"
             @click="$emit('next-page')"
           >下一页</button>
+          <view class="jump-box">
+            <text class="jump-text">到第</text>
+            <input class="page-input" type="number" v-model.number="jumpPage" @keyup.enter="jumpToPage" />
+            <text class="jump-text">页</text>
+            <button class="page-button jump-btn" hover-class="page-button--hover" @click="jumpToPage">跳转</button>
+          </view>
         </view>
       </view>
 
@@ -41,7 +47,9 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
+import { ref, watch } from "vue";
+
+const props = defineProps<{
   title: string;
   total: number;
   pageNum: number;
@@ -50,10 +58,22 @@ defineProps<{
   detailEmptyText?: string;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   (event: "prev-page"): void;
   (event: "next-page"): void;
+  (event: "jump-page", page: number): void;
 }>();
+
+const jumpPage = ref<number | null>(null);
+
+watch(() => props.pageNum, () => { jumpPage.value = null; });
+
+function jumpToPage() {
+  const page = Number(jumpPage.value);
+  if (!page || page < 1 || page > props.totalPages) return;
+  emit("jump-page", page);
+  jumpPage.value = null;
+}
 </script>
 
 <style lang="scss" scoped>
@@ -216,6 +236,36 @@ defineEmits<{
 .page-info {
   color: #64748b;
   font-size: 13px;
+}
+
+.jump-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.jump-text {
+  color: #64748b;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.page-input {
+  width: 40px;
+  height: 30px;
+  color: #31506d;
+  font-size: 13px;
+  padding: 0 6px;
+  text-align: center;
+  background: #f6fbff;
+  border: 1px solid #cbdced;
+  border-radius: 4px;
+  outline: none;
+}
+
+.jump-btn {
+  padding: 0 10px;
 }
 
 .detail-empty {

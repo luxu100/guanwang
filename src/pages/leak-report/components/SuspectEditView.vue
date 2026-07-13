@@ -492,8 +492,8 @@
         <view class="dialog-footer">
           <button class="dialog-button" hover-class="dialog-button--hover" @click="handleClose">取消</button>
           <button class="dialog-button" hover-class="dialog-button--hover" @click="resetForm">清空表单</button>
-          <button class="dialog-button dialog-button--primary" hover-class="dialog-button--primary-hover" :disabled="submitting" @click="submitForm">
-            {{ submitting ? "提交中..." : (isEditMode ? "确认更新" : "确认创建") }}
+          <button class="dialog-button dialog-button--primary" hover-class="dialog-button--primary-hover" :disabled="submitting || uploading" @click="submitForm">
+            {{ uploading ? uploadProgressText : (submitting ? "提交中..." : (isEditMode ? "确认更新" : "确认创建")) }}
           </button>
         </view>
       </view>
@@ -554,6 +554,7 @@ interface AudioItem {
   name: string;
   durationText: string;
   id: string;
+  file?: File;
 }
 
 const props = defineProps<{
@@ -821,53 +822,116 @@ function selectMaterial(value: string) {
   materialError.value = "";
 }
 
-// 图片/视频上传
+// 图片/视频上传（先本地预览，提交时统一上传）
 interface UploadItem {
   url: string;
   id: string;
+  file?: File;
 }
 
 const suspectSceneImageList = ref<UploadItem[]>([]);
 const leakSceneImageList = ref<UploadItem[]>([]);
 const sceneVideoItem = ref<UploadItem | null>(null);
 
-async function uploadSingleFile(filePath: string, fileName: string): Promise<string> {
-  const res: { code?: number; data?: { id?: string; url?: string } } = await uploadFile(filePath, fileName);
+// 统一上传进度
+const uploading = ref(false);
+const uploadProgressText = ref("");
+
+/** 提交前统一上传所有待上传的媒体文件 */
+async function uploadPendingMedia(): Promise<boolean> {
+  const tasks: Array<() => Promise<void>> = [];
+
+  // 收集待上传的图片
+  for (const list of [suspectSceneImageList, leakSceneImageList]) {
+    for (const item of list.value) {
+      if (!item.id && item.file) {
+        const file = item.file;
+        const name = (file as File).name || "image";
+        tasks.push(async () => {
+          uploadProgressText.value = `正在上传 ${name}`;
+          const id = await uploadSingleFile(file, name);
+          item.id = id;
+        });
+      }
+    }
+  }
+
+  // 视频
+  const videoItem = sceneVideoItem.value;
+  if (videoItem && !videoItem.id && videoItem.file) {
+    const file = videoItem.file;
+    const name = (file as File).name || "video";
+    tasks.push(async () => {
+      uploadProgressText.value = `正在上传 ${name}`;
+      const id = await uploadSingleFile(file, name);
+      videoItem.id = id;
+    });
+  }
+
+  // 音频
+  if (audioItem.value && !audioItem.value.id && audioItem.value.file) {
+    const file = audioItem.value.file;
+    const name = (file as File).name || "audio";
+    tasks.push(async () => {
+      uploadProgressText.value = `正在上传 ${name}`;
+      const id = await uploadSingleFile(file, name);
+      if (audioItem.value) audioItem.value.id = id;
+    });
+  }
+
+  if (tasks.length === 0) return true;
+
+  uploading.value = true;
+  try {
+    for (const task of tasks) {
+      await task();
+    }
+    return true;
+  } catch {
+    uni.showToast({ title: "文件上传失败，请重试", icon: "none" });
+    return false;
+  } finally {
+    uploading.value = false;
+    uploadProgressText.value = "";
+  }
+}
+
+/** 同步 form 中的媒体字段（用已上传的 ID 填充） */
+function syncMediaFormFields() {
+  form.suspectSceneImages = suspectSceneImageList.value.map(i => i.id).filter(Boolean).join(",");
+  form.leakSceneImages = leakSceneImageList.value.map(i => i.id).filter(Boolean).join(",");
+  form.sceneVideo = sceneVideoItem.value?.id || "";
+  form.audioFile = audioItem.value?.id || "";
+}
+
+async function uploadSingleFile(fileSource: File | string, fileName: string): Promise<string> {
+  const callback = (pct: number) => {
+    uploadProgressText.value = `正在上传 ${fileName} (${pct}%)`;
+  };
+  const res: { code?: number; data?: { id?: string; url?: string } } =
+    await uploadFile(fileSource, fileName, callback as (...args: unknown[]) => void);
   if (res && res.code !== undefined && res.code !== 0 && res.code !== 200) {
     throw res;
   }
   return (res as { data?: { id?: string } })?.data?.id || "";
 }
 
-/** 统一图片上传：H5 / 非 H5 共用 */
-async function uploadImages(
-  entries: Array<{ path: string; name: string }>,
-  listRef: typeof suspectSceneImageList,
-  formKey: 'suspectSceneImages' | 'leakSceneImages'
-) {
-  const newItems: UploadItem[] = [];
-  for (const { path, name } of entries) {
-    try {
-      const id = await uploadSingleFile(path, name);
-      newItems.push({ url: path, id });
-    } catch {
-      uni.showToast({ title: `上传 ${name} 失败`, icon: "none" });
-    }
-  }
-  listRef.value = [...listRef.value, ...newItems];
-  updateFormImageIds(listRef.value, formKey);
-}
-
+/** 选择图片（仅本地预览，不上传） */
 function pickMultiImages(listRef: typeof suspectSceneImageList, formKey: 'suspectSceneImages' | 'leakSceneImages') {
   // #ifdef H5
   const input = document.createElement("input");
   input.type = "file";
   input.accept = "image/*";
   input.multiple = true;
-  input.onchange = async () => {
+  input.onchange = () => {
     const files = input.files;
     if (!files || files.length === 0) return;
-    await uploadImages(Array.from(files).map(f => ({ path: f as unknown as string, name: f.name })), listRef, formKey);
+    const items: UploadItem[] = Array.from(files).map(f => ({
+      url: URL.createObjectURL(f),
+      id: "",
+      file: f,
+    }));
+    listRef.value = [...listRef.value, ...items];
   };
   input.click();
   // #endif
@@ -876,13 +940,13 @@ function pickMultiImages(listRef: typeof suspectSceneImageList, formKey: 'suspec
     count: 9,
     sizeType: ["compressed"],
     sourceType: ["album", "camera"],
-    success: async (res) => {
-      const entries: Array<{ path: string; name: string }> = [];
+    success: (res) => {
+      const items: UploadItem[] = [];
       for (let i = 0; i < res.tempFilePaths.length; i++) {
-        const f = (res.tempFiles as Array<{ path?: string; name?: string }> | undefined)?.[i];
-        entries.push({ path: res.tempFilePaths[i], name: f?.name || `image_${Date.now()}_${i}` });
+        const path = res.tempFilePaths[i];
+        items.push({ url: path, id: "", file: undefined });
       }
-      await uploadImages(entries, listRef, formKey);
+      listRef.value = [...listRef.value, ...items];
     },
     fail: () => uni.showToast({ title: "取消选择", icon: "none" }),
   });
@@ -914,26 +978,24 @@ function previewImageItem(list: UploadItem[], idx: number) {
   });
 }
 
-async function handleChooseSceneVideo() {
+/** 选择视频（仅本地预览，不上传） */
+function handleChooseSceneVideo() {
   // #ifdef H5
   const input = document.createElement("input");
   input.type = "file";
   input.accept = "video/*";
-  input.onchange = async () => {
+  input.onchange = () => {
     const file = input.files?.[0];
     if (!file) return;
     if (file.size > 200 * 1024 * 1024) {
       uni.showToast({ title: "视频不能超过 200MB", icon: "none" });
       return;
     }
-    const url = URL.createObjectURL(file);
-    try {
-      const id = await uploadSingleFile(file as unknown as string, file.name);
-      sceneVideoItem.value = { url, id };
-      form.sceneVideo = id;
-    } catch {
-      uni.showToast({ title: "视频上传失败", icon: "none" });
-    }
+    sceneVideoItem.value = {
+      url: URL.createObjectURL(file),
+      id: "",
+      file,
+    };
   };
   input.click();
   // #endif
@@ -941,15 +1003,11 @@ async function handleChooseSceneVideo() {
   uni.chooseVideo({
     sourceType: ["album", "camera"],
     maxDuration: 120,
-    success: async (res) => {
-      const { tempFilePath } = res;
-      try {
-        const id = await uploadSingleFile(tempFilePath, `video_${Date.now()}`);
-        sceneVideoItem.value = { url: tempFilePath, id };
-        form.sceneVideo = id;
-      } catch {
-        uni.showToast({ title: "视频上传失败", icon: "none" });
-      }
+    success: (res) => {
+      sceneVideoItem.value = {
+        url: res.tempFilePath,
+        id: "",
+      };
     },
     fail: () => {
       uni.showToast({ title: "取消选择", icon: "none" });
@@ -973,7 +1031,7 @@ function handleChooseAudio() {
   const input = document.createElement("input");
   input.type = "file";
   input.accept = "audio/*";
-  input.onchange = async () => {
+  input.onchange = () => {
     const file = input.files?.[0];
     if (!file) return;
     if (file.size > 50 * 1024 * 1024) {
@@ -981,21 +1039,16 @@ function handleChooseAudio() {
       return;
     }
     const url = URL.createObjectURL(file);
-    const audio = new Audio(url);
-    audio.onloadedmetadata = async () => {
-      const durationText = formatDuration(Math.floor(audio.duration * 1000));
-      try {
-        const id = await uploadSingleFile(file as unknown as string, file.name);
-        audioItem.value = {
-          url,
-          name: file.name,
-          durationText,
-          id,
-        };
-        form.audioFile = id;
-      } catch {
-        uni.showToast({ title: "音频上传失败", icon: "none" });
-      }
+    const audioEl = new Audio(url);
+    audioEl.onloadedmetadata = () => {
+      const durationText = formatDuration(Math.floor(audioEl.duration * 1000));
+      audioItem.value = {
+        url,
+        name: file.name,
+        durationText,
+        id: "",
+        file,
+      };
     };
   };
   input.click();
@@ -1005,21 +1058,15 @@ function handleChooseAudio() {
     count: 1,
     type: "file",
     extension: ["mp3", "wav", "m4a", "aac"],
-    success: async (res) => {
+    success: (res) => {
       const file = res.tempFiles?.[0];
       if (!file) return;
-      try {
-        const id = await uploadSingleFile(file.path, file.name);
-        audioItem.value = {
-          url: file.path,
-          name: file.name,
-          durationText: "--:--",
-          id,
-        };
-        form.audioFile = id;
-      } catch {
-        uni.showToast({ title: "音频上传失败", icon: "none" });
-      }
+      audioItem.value = {
+        url: file.path,
+        name: file.name,
+        durationText: "--:--",
+        id: "",
+      };
     },
     fail: () => {
       uni.showToast({ title: "取消选择", icon: "none" });
@@ -1199,7 +1246,7 @@ function resetForm() {
 }
 
 function buildPayload() {
-  return removeEmptyFields({
+  const data: Record<string, unknown> = {
     detectType: form.detectType.trim(),
     reportTime: normalizeDatetimeForApi(form.reportTime),
     reporter: form.reporter.trim(),
@@ -1227,8 +1274,15 @@ function buildPayload() {
     leakUnit: form.leakUnit.trim(),
     maintenanceUnit: form.maintenanceUnit.trim(),
     remark: form.remark.trim(),
-    processStatus: isEditMode.value ? undefined : 0,
-  });
+  };
+  if (!isEditMode.value) {
+    data.processStatus = 0;
+  }
+  // 编辑模式：保留所有字段（含空值），以便清空已填写内容
+  if (isEditMode.value) {
+    return data;
+  }
+  return removeEmptyFields(data);
 }
 
 function validate(): boolean {
@@ -1257,6 +1311,15 @@ async function submitForm() {
 
   submitting.value = true;
   try {
+    // 先上传所有待上传的媒体文件
+    const uploadOk = await uploadPendingMedia();
+    if (!uploadOk) {
+      submitting.value = false;
+      return;
+    }
+    // 同步媒体字段到 form
+    syncMediaFormFields();
+
     const payload = buildPayload();
     const response = isEditMode.value
       ? await updateSuspect(props.suspect!.id as string | number, payload)
@@ -1987,6 +2050,54 @@ function normalizeDatetimeForApi(value: string) {
 .upload-placeholder__hint {
   color: #8799ad;
   font-size: 12px;
+}
+
+/* 上传进度条 */
+.upload-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 96px;
+  padding: 20px 16px;
+  background: #f8fbfe;
+  border: 2px dashed #c8dae8;
+  border-radius: 8px;
+}
+
+.upload-progress__label {
+  color: #183755;
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+  text-align: center;
+}
+
+.upload-progress__track {
+  width: 100%;
+  height: 8px;
+  background: #e3edf6;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.upload-progress__bar {
+  height: 100%;
+  background: linear-gradient(90deg, #5ba4f0, #0d82ee);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.upload-progress__pct {
+  color: #0d82ee;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: "DIN Alternate", "Arial", sans-serif;
 }
 
 .upload-preview-grid {
