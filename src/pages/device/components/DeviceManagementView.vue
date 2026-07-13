@@ -913,7 +913,6 @@ async function handleBindValve() {
   const deptRes = await getDeptByIdT(deptId)
   currentDeptId.value = deptId;
   currentDeptName.value = deptRes.data?.deptName || null;
-  console.log(deptRes);
   valveDialogVisible.value = true;
 }
 
