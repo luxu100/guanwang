@@ -12,7 +12,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { MAP_CONFIG } from "@/services/map/map";
 const TENCENT_MAP_KEY = MAP_CONFIG.tencentKey;
 const TENCENT_MAP_SCRIPT_ID = "tencent-map-gl-sdk";
@@ -35,6 +35,8 @@ interface TencentLatLng {
 interface TencentMapInstance {
   destroy?: () => void;
   resize?: () => void;
+  easeTo?: (options: { center: unknown; zoom?: number }) => void;
+  fitBounds?: (bounds: unknown, options?: { padding?: number }) => void;
   on?: (event: string, handler: (e: { latLng: TencentLatLngValue }) => void) => void;
 }
 
@@ -56,29 +58,48 @@ interface TencentMultiMarkerConstructor {
     geometries: Array<{
       id: string;
       position: unknown;
+      properties?: Record<string, unknown>;
     }>;
-  }): unknown;
+  }): {
+    setMap?: (map: TencentMapInstance | null) => void;
+    setGeometries?: (geometries: Array<{ id: string; position: unknown; properties?: Record<string, unknown> }>) => void;
+    on?: (event: string, handler: (event: { geometry?: { id?: string; properties?: Record<string, unknown> } }) => void) => void;
+  };
 }
 
 interface TencentMapApi {
   LatLng: TencentLatLng;
   Map: TencentMapConstructor;
   MultiMarker: TencentMultiMarkerConstructor;
+  LatLngBounds?: new () => {
+    extend?: (position: unknown) => void;
+  };
 }
+
+import type { MapDevicePoint } from "../types";
+
+const props = withDefaults(defineProps<{
+  points?: MapDevicePoint[];
+  selectedDeviceNumber?: string;
+}>(), {
+  points: () => [],
+  selectedDeviceNumber: "",
+});
+
+const emit = defineEmits<{
+  (e: "device-click", point: MapDevicePoint): void;
+  (e: "ready"): void;
+  (e: "error", message: string): void;
+}>();
 
 const mapContainer = ref<HTMLElement | null>(null);
 const mapError = ref("");
 let mapInstance: TencentMapInstance | null = null;
+let markerLayer: InstanceType<TencentMultiMarkerConstructor> | null = null;
 let sdkLoadingPromise: Promise<void> | null = null;
 let resizeTimer: ReturnType<typeof window.setTimeout> | null = null;
 let resizeFrame: number | null = null;
 let resizeObserver: ResizeObserver | null = null;
-
-declare global {
-  interface Window {
-    TMap?: TencentMapApi;
-  }
-}
 
 onMounted(() => {
   // #ifdef H5
@@ -113,7 +134,7 @@ onBeforeUnmount(() => {
  * 地图 SDK 通过 script 懒加载，避免登录页和非地图页面也加载地图资源。
  */
 function loadTencentMap() {
-  if (window.TMap) {
+  if (getTMap()) {
     return Promise.resolve();
   }
 
@@ -129,7 +150,7 @@ function loadTencentMap() {
     script.charset = "utf-8";
     script.src = TENCENT_MAP_SCRIPT_URL;
     script.onload = () => {
-      if (window.TMap) {
+      if (getTMap()) {
         resolve();
       } else {
         reject(new Error("Tencent map SDK is unavailable after script loaded"));
@@ -145,6 +166,10 @@ function loadTencentMap() {
   return sdkLoadingPromise;
 }
 
+function getTMap() {
+  return (window as unknown as { TMap?: TencentMapApi }).TMap;
+}
+
 /**
  * 初始化地图实例和中心标记。
  *
@@ -153,13 +178,14 @@ function loadTencentMap() {
 function initMap() {
   mapError.value = "";
 
-  if (!mapContainer.value || !window.TMap) {
+  const TMap = getTMap();
+  if (!mapContainer.value || !TMap) {
     mapError.value = "地图容器初始化失败";
     return;
   }
 
-  const center = new window.TMap.LatLng(31.2304, 121.4737);
-  const map = new window.TMap.Map(mapContainer.value, {
+  const center = new TMap.LatLng(31.2304, 121.4737);
+  const map = new TMap.Map(mapContainer.value, {
     center,
     zoom: 15,
     pitch: 45,
@@ -167,22 +193,123 @@ function initMap() {
   });
   mapInstance = map;
 
-  new window.TMap.MultiMarker({
-    map,
-    geometries: [
-      {
-        id: "leak-monitor-center",
-        position: center,
-      },
-    ],
-  });
+  renderMarkers();
 
   bindContainerResizeObserver();
   resizeTimer = window.setTimeout(() => {
     resizeTimer = null;
     mapInstance?.resize?.();
   }, MAP_RESIZE_DELAY);
+  emit("ready");
 }
+
+function getMarkerGeometries() {
+  const TMap = getTMap();
+  if (!TMap) {
+    return [];
+  }
+
+  return props.points.map((point) => ({
+    id: point.deviceNumber,
+    position: new TMap.LatLng(point.lat, point.lng),
+    properties: {
+      deviceNumber: point.deviceNumber,
+      status: point.status,
+    },
+  }));
+}
+
+function renderMarkers() {
+  const TMap = getTMap();
+  if (!mapInstance || !TMap) {
+    return;
+  }
+
+  const geometries = getMarkerGeometries();
+
+  if (!markerLayer) {
+    const layer = new TMap.MultiMarker({
+      map: mapInstance,
+      geometries,
+    });
+    layer.on?.("click", (event) => {
+      const deviceNumber = String(event.geometry?.id || event.geometry?.properties?.deviceNumber || "");
+      const point = props.points.find((item) => item.deviceNumber === deviceNumber);
+      if (point) {
+        emit("device-click", point);
+      }
+    });
+    markerLayer = layer;
+  } else {
+    markerLayer.setGeometries?.(geometries);
+  }
+}
+
+function focusDevice(deviceNumber: string) {
+  const TMap = getTMap();
+  if (!mapInstance || !TMap) {
+    return;
+  }
+
+  const point = props.points.find((item) => item.deviceNumber === deviceNumber);
+  if (!point) {
+    return;
+  }
+
+  mapInstance.easeTo?.({
+    center: new TMap.LatLng(point.lat, point.lng),
+    zoom: 17,
+  });
+}
+
+function fitDevices() {
+  const TMap = getTMap();
+  if (!mapInstance || !TMap || !props.points.length) {
+    return;
+  }
+
+  const firstPoint = props.points[0];
+  if (props.points.length === 1) {
+    mapInstance.easeTo?.({
+      center: new TMap.LatLng(firstPoint.lat, firstPoint.lng),
+      zoom: 16,
+    });
+    return;
+  }
+
+  if (!TMap.LatLngBounds || !mapInstance.fitBounds) {
+    return;
+  }
+
+  const bounds = new TMap.LatLngBounds();
+  props.points.forEach((point) => {
+    bounds.extend?.(new TMap.LatLng(point.lat, point.lng));
+  });
+  mapInstance.fitBounds(bounds, { padding: 80 });
+}
+
+watch(
+  () => props.points,
+  () => {
+    renderMarkers();
+  },
+  { deep: true },
+);
+
+watch(
+  () => props.selectedDeviceNumber,
+  (deviceNumber) => {
+    if (deviceNumber) {
+      focusDevice(deviceNumber);
+    }
+  },
+);
+
+defineExpose({
+  focusDevice,
+  fitDevices,
+  resize: () => mapInstance?.resize?.(),
+});
 
 function bindResizeEvents() {
   window.addEventListener("resize", scheduleMapResize);
@@ -234,6 +361,8 @@ function scheduleMapResize() {
 <style scoped lang="scss">
 .leak-map {
   position: relative;
+  z-index: 0;
+  isolation: isolate;
   width: 100%;
   height: 100%;
   min-height: var(--shell-content-min-height);
