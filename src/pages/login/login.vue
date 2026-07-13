@@ -5,7 +5,7 @@
     <view class="login-form" :class="`login-form--${activeMode}`">
       <view class="login-header">
         <text class="login-title">{{ modeTitle }}</text>
-        <text class="login-subtitle">{{ activeMode === "login" ? "Welcome" : "WELCOME" }}</text>
+        <text class="login-subtitle">{{ modeSubtitle }}</text>
       </view>
 
       <view class="mode-tabs">
@@ -68,7 +68,7 @@
             v-model="registerForm.username"
             class="field-input"
             type="text"
-            placeholder="请输入账号"
+            placeholder="账号 / Account"
             placeholder-class="field-placeholder"
           />
         </view>
@@ -79,7 +79,7 @@
             v-model="registerForm.password"
             class="field-input"
             :password="!passwordVisible"
-            placeholder="请输入密码"
+            placeholder="密码 / Password"
             placeholder-class="field-placeholder"
           />
           <view
@@ -97,7 +97,7 @@
             v-model="registerForm.confirmPassword"
             class="field-input"
             password
-            placeholder="请确认密码"
+            placeholder="确认密码 / Confirm password"
             placeholder-class="field-placeholder"
           />
         </view>
@@ -108,7 +108,7 @@
               v-model="registerForm.realName"
               class="field-input"
               type="text"
-              placeholder="真实姓名（选填）"
+              placeholder="姓名 / Name"
               placeholder-class="field-placeholder"
             />
           </view>
@@ -117,7 +117,7 @@
               v-model="registerForm.phone"
               class="field-input"
               type="text"
-              placeholder="手机号（选填）"
+              placeholder="手机 / Phone"
               placeholder-class="field-placeholder"
             />
           </view>
@@ -128,7 +128,7 @@
             v-model="registerForm.email"
             class="field-input"
             type="text"
-            placeholder="邮箱（选填）"
+            placeholder="邮箱 / Email"
             placeholder-class="field-placeholder"
           />
         </view>
@@ -139,10 +139,10 @@
           <view class="remember-login__box" :class="{ 'remember-login__box--checked': rememberLogin }">
             <view class="remember-login__tick"></view>
           </view>
-          <text class="remember-login__text">记住登录信息</text>
+          <text class="remember-login__text">记住 / Remember</text>
         </view>
         <text class="form-link" @click="switchMode(activeMode === 'register' ? 'login' : 'register')">
-          {{ activeMode === "register" ? "已有账号？返回登录" : "注册 / Register" }}
+          {{ activeMode === "register" ? "登录 / Sign in" : "注册 / Register" }}
         </text>
       </view>
 
@@ -153,11 +153,21 @@
         :disabled="submitting"
         @click="handleSubmit"
       >
-        {{ activeMode === "login" && !submitting ? "登录 / Sign in" : submitText }}
+        {{ submitText }}
       </button>
 
       <view v-if="notice" class="form-notice" :class="`form-notice--${notice.type}`">
         <text>{{ notice.text }}</text>
+      </view>
+    </view>
+
+    <view v-if="loginSuccessVisible" class="login-success-toast">
+      <view class="login-success-toast__icon">
+        <view class="login-success-toast__check"></view>
+      </view>
+      <view class="login-success-toast__content">
+        <text class="login-success-toast__title">登录成功</text>
+        <text class="login-success-toast__subtitle">Login successful</text>
       </view>
     </view>
   </view>
@@ -198,6 +208,7 @@ const PASSWORD_MAX_LENGTH = 20;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^1[3-9]\d{9}$/;
 const REMEMBER_LOGIN_KEY = "rememberLoginAccount";
+const LOGIN_SUCCESS_DELAY = 850;
 
 /**
  * 登录页同时承载登录和注册两个模式。
@@ -206,14 +217,15 @@ const REMEMBER_LOGIN_KEY = "rememberLoginAccount";
  * 会写入本地缓存，供 AppShell 和请求封装读取。
  */
 const modeOptions: Array<{ label: string; value: Mode }> = [
-  { label: "登录", value: "login" },
-  { label: "注册", value: "register" },
+  { label: "登录 / Login", value: "login" },
+  { label: "注册 / Register", value: "register" },
 ];
 
 const activeMode = ref<Mode>("login");
 const submitting = ref(false);
 const passwordVisible = ref(false);
 const rememberLogin = ref(false);
+const loginSuccessVisible = ref(false);
 const notice = ref<{ type: NoticeType; text: string } | null>(null);
 
 const loginForm = reactive<LoginForm>({
@@ -243,14 +255,23 @@ const modeTitle = computed(() => {
   return titleMap[activeMode.value];
 });
 
+const modeSubtitle = computed(() => {
+  const subtitleMap: Record<Mode, string> = {
+    login: "Welcome",
+    register: "Register",
+  };
+
+  return subtitleMap[activeMode.value];
+});
+
 const submitText = computed(() => {
   if (submitting.value) {
-    return "处理中";
+    return "处理中 / Processing";
   }
 
   const textMap: Record<Mode, string> = {
-    login: "登录",
-    register: "注 册",
+    login: "登录 / Sign in",
+    register: "注册 / Register",
   };
 
   return textMap[activeMode.value];
@@ -259,18 +280,12 @@ const submitText = computed(() => {
 function switchMode(mode: Mode) {
   activeMode.value = mode;
   passwordVisible.value = false;
+  loginSuccessVisible.value = false;
   notice.value = null;
 }
 
 function togglePasswordVisible() {
   passwordVisible.value = !passwordVisible.value;
-}
-
-function showToast(title: string, icon: "none" | "success" = "none") {
-  uni.showToast({
-    title,
-    icon,
-  });
 }
 
 function clearLoginAccount() {
@@ -333,27 +348,27 @@ function validateLoginForm() {
 
 function validateRegisterForm() {
   if (!registerForm.username.trim()) {
-    showNotice("error", "请输入账号");
+    showNotice("error", "请输入账号 / Please enter your account");
     return false;
   }
 
   if (!isPasswordValid(registerForm.password)) {
-    showNotice("error", `密码长度需为 ${PASSWORD_MIN_LENGTH}-${PASSWORD_MAX_LENGTH} 位`);
+    showNotice("error", `密码长度需为 ${PASSWORD_MIN_LENGTH}-${PASSWORD_MAX_LENGTH} 位 / Password must be ${PASSWORD_MIN_LENGTH}-${PASSWORD_MAX_LENGTH} characters`);
     return false;
   }
 
   if (registerForm.password !== registerForm.confirmPassword) {
-    showNotice("error", "两次输入的密码不一致");
+    showNotice("error", "两次输入的密码不一致 / Passwords do not match");
     return false;
   }
 
   if (registerForm.email && !EMAIL_PATTERN.test(registerForm.email)) {
-    showNotice("error", "请输入正确的邮箱");
+    showNotice("error", "请输入正确的邮箱 / Please enter a valid email");
     return false;
   }
 
   if (registerForm.phone && !PHONE_PATTERN.test(registerForm.phone)) {
-    showNotice("error", "请输入正确的手机号");
+    showNotice("error", "请输入正确的手机号 / Please enter a valid phone number");
     return false;
   }
 
@@ -452,7 +467,7 @@ async function handleLogin() {
 
     saveLoginData(response.data);
     saveRememberedLogin();
-    showToast("登录成功 / Login successful", "success");
+    loginSuccessVisible.value = true;
     // 确保登录后侧边栏为展开状态
     try {
       uni.setStorageSync(MENU_COLLAPSED_KEY, false);
@@ -460,6 +475,7 @@ async function handleLogin() {
     } catch (e) {
       // ignore
     }
+    await new Promise<void>((resolve) => setTimeout(resolve, LOGIN_SUCCESS_DELAY));
     uni.reLaunch({
       url: "/pages/leak-monitor/leak-monitor",
     });
@@ -489,16 +505,16 @@ async function handleRegister() {
     });
 
     if (!isSuccessResponse(response?.code)) {
-      showNotice("error", getResponseMessage(response, "注册失败，请检查填写信息"));
+      showNotice("error", getResponseMessage(response, "注册失败，请检查填写信息 / Registration failed. Please check your information."));
       return;
     }
 
     loginForm.username = registerForm.username.trim();
     loginForm.password = "";
     switchMode("login");
-    showNotice("success", "注册成功，请登录");
+    showNotice("success", "注册成功，请登录 / Registration successful. Please sign in.");
   } catch (error) {
-    showNotice("error", (error as RequestError)?.msg || "注册失败，请稍后重试");
+    showNotice("error", (error as RequestError)?.msg || "注册失败，请稍后重试 / Registration failed. Please try again later.");
   } finally {
     submitting.value = false;
   }
