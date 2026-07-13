@@ -3090,7 +3090,7 @@ function isValidId(value: unknown): value is string | number {
 
 .content-layout--dict {
   grid-template-columns: 1fr;
-  grid-template-rows: minmax(240px, 1fr) minmax(280px, 0.78fr);
+  grid-template-rows: minmax(220px, 1fr) minmax(320px, 0.9fr);
 }
 
 .content-layout--user {
@@ -3676,7 +3676,7 @@ function isValidId(value: unknown): value is string | number {
   }
 
   .content-layout--dict {
-    grid-template-rows: minmax(220px, 0.9fr) minmax(300px, 1fr);
+    grid-template-rows: minmax(200px, 0.8fr) minmax(320px, 1fr);
   }
 
   .content-layout--user {

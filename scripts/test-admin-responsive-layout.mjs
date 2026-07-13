@@ -32,9 +32,6 @@ test("detail forms constrain inputs to their panels", () => {
   assert.match(systemSource, /\.content-layout--user\s*\{[\s\S]*?grid-template-rows:\s*minmax\(160px, 0\.8fr\) minmax\(320px, 1\.2fr\);/);
   assert.match(systemSource, /\.content-layout--user \.form-grid--user\s*\{[\s\S]*?padding-bottom:\s*16px;/);
   assert.match(systemSource, /\.content-layout--user \.form-field\s*\{[\s\S]*?overflow:\s*visible;/);
-  assert.match(systemSource, /\.content-layout--dict\s*\{[\s\S]*?minmax\(280px, 0\.78fr\)/);
-  assert.match(systemSource, /\.detail-panel--dict \.form-grid\s*\{[\s\S]*?overflow-y:\s*auto;/);
-  assert.match(systemSource, /\.detail-panel--dict \.form-field\s*\{[\s\S]*?overflow:\s*visible;/);
   assert.match(systemSource, /\.check-grid\s*\{[\s\S]*?max-width:\s*100%;/);
 });
 
@@ -66,6 +63,10 @@ test("requested admin layout refinements remain in place", () => {
   assert.match(systemSource, /const visibleMenus = computed/);
   assert.match(systemSource, /v-for="item in visibleMenus"/);
   assert.match(systemSource, /class="menu-expand-arrow"/);
+  assert.match(systemSource, /\.content-layout--dict\s*\{[\s\S]*?minmax\(320px, 0\.9fr\)/);
+  assert.match(systemSource, /\.detail-panel--dict \.form-grid\s*\{[\s\S]*?overflow-y:\s*auto;/);
+  assert.match(systemSource, /\.detail-panel--dict \.form-field\s*\{[\s\S]*?overflow:\s*visible;/);
+  assert.match(systemSource, /\.detail-panel--dict \.form-actions\s*\{[\s\S]*?flex:\s*none;/);
   assert.match(dataReceiveSource, /\.row-actions\s*\{[\s\S]*?justify-content:\s*center;[\s\S]*?width:\s*100%;/);
 
   const protocolFieldIndex = searchTemplateSource.indexOf("pqt-form__item--protocol");
