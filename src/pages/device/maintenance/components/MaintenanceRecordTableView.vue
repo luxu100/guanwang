@@ -31,6 +31,7 @@
             <text class="data-cell data-cell--type">{{ t("maintain.maintainTable.type") }}</text>
             <text class="data-cell data-cell--time">{{ t("maintain.maintainTable.time") }}</text>
             <text class="data-cell data-cell--address">{{ t("maintain.maintainTable.address") }}</text>
+            <text class="data-cell data-cell--coord">{{ t('maintain.maintainTable.coordinate') }}</text>
             <text class="data-cell data-cell--status">{{ t("maintain.maintainTable.installMode") }}</text>
             <text class="data-cell data-cell--number">{{ t("maintain.maintainTable.tubeGroup") }}</text>
             <text class="data-cell data-cell--text">{{ t("maintain.maintainTable.tubeMaterial") }}</text>
@@ -72,6 +73,12 @@
 
             <text class="data-cell data-cell--address">
               {{ record.maintainAddress || '-' }}
+            </text>
+
+            <text
+                class="data-cell data-cell--coord data-cell--link"
+                @click.stop="handleCoordClick(record.maintainCoordinate)"          >
+              {{ record.maintainCoordinate || '-' }}
             </text>
 
             <text class="data-cell data-cell--status">
@@ -130,6 +137,13 @@
       @submit="handleSubmit"
       @cancel="dialogVisible = false"
   />
+
+  <XMapPopup
+      v-model:visible="showMap"
+      :lng="lng"
+      :lat="lat"
+      :title="t('map.dialogTitle')"
+  />
 </template>
 <script setup lang="ts">
 import {computed, ref, watch} from 'vue';
@@ -147,6 +161,7 @@ import XFloatingCollapseHandle from "@/pages/device/components/x/XFloatingCollap
 import XPaginationBar from "@/pages/device/components/x/XPaginationBar.vue";
 import {createScopedT} from "@/i18n";
 import {formatDate} from "@/utils/time";
+import XMapPopup from "@/pages/device/components/x/XMapPopup.vue";
 
 const t = createScopedT("devicePage");
 const isToolbarVisible = ref(true);
@@ -181,14 +196,29 @@ const formData = ref<MaintenanceCreateForm>({})
 const isEditMode = ref(false);
 const editingId = ref<number | null>(null);
 const addSchema = computed<FormSection[]>(() => [
-    {
+  {
     title: t("maintain.addSchema.basicInfo.title"),
     fields: [
       {
         key: "deviceNumber",
         label: t("maintain.addSchema.basicInfo.deviceNumber"),
         type: "input",
-        required: true
+        disabled: true,
+        placeholder: t("maintain.addSchema.basicInfo.deviceNumberPlaceholder")
+      },
+      {
+        key: "deviceAlias",
+        label: t("maintain.addSchema.basicInfo.deviceAlias"),
+        type: "input",
+        disabled: true,
+        placeholder: t("maintain.addSchema.basicInfo.deviceAliasPlaceholder")
+      },
+      {
+        key: "valveNumber",
+        label: t("maintain.addSchema.basicInfo.valveNumber"),
+        type: "input",
+        disabled: true,
+        placeholder: t("maintain.addSchema.basicInfo.valveNumberPlaceholder")
       },
       {
         key: "maintainType",
@@ -226,6 +256,11 @@ const addSchema = computed<FormSection[]>(() => [
         type: "input"
       },
       {
+        key: "coordinate",
+        label: t("maintain.addSchema.basicInfo.maintainCoordinate"),
+        type: "location"
+      },
+      {
         key: "installMode",
         label: t("maintain.addSchema.basicInfo.installMode"),
         type: "select",
@@ -241,19 +276,38 @@ const addSchema = computed<FormSection[]>(() => [
         ]
       },
       {
-        key: "tubeGroup",
-        label: t("maintain.addSchema.basicInfo.tubeGroup"),
-        type: "input"
+        key: "installState",
+        label: t("maintain.addSchema.basicInfo.installState"),
+        type: "select",
+        options: [
+          {
+            label: t("maintain.addSchema.option.installState.uninstalled"),
+            value: 0
+          },
+          {
+            label: t("maintain.addSchema.option.installState.installed"),
+            value: 1
+          }
+        ]
       },
       {
-        key: "tubeMaterial",
-        label: t("maintain.addSchema.basicInfo.tubeMaterial"),
-        type: "input"
-      },
-      {
-        key: "tubeBore",
-        label: t("maintain.addSchema.basicInfo.tubeBore"),
-        type: "input"
+        key: "uninstallType",
+        label: t("maintain.addSchema.basicInfo.uninstallType"),
+        type: "select",
+        options: [
+          {
+            label: t("maintain.addSchema.option.uninstallType.normal"),
+            value: 0
+          },
+          {
+            label: t("maintain.addSchema.option.uninstallType.fault"),
+            value: 1
+          },
+          {
+            label: t("maintain.addSchema.option.uninstallType.other"),
+            value: 2
+          }
+        ]
       },
       {
         key: "remark",
@@ -262,13 +316,15 @@ const addSchema = computed<FormSection[]>(() => [
       }
     ]
   },
+
   {
     title: t("maintain.addSchema.extendInfo.title"),
     fields: [
       {
         key: "maintainAccount",
         label: t("maintain.addSchema.extendInfo.maintainAccount"),
-        type: "input"
+        type: "input",
+        disabled: true
       },
       {
         key: "maintainFeedback",
@@ -277,9 +333,9 @@ const addSchema = computed<FormSection[]>(() => [
         large: true
       },
       {
-        key: "maintainCoordinate",
-        label: t("maintain.addSchema.extendInfo.maintainCoordinate"),
-        type: "input"
+        key: "maintainPicture",
+        label: t("maintain.addSchema.extendInfo.maintainPicture"),
+        type: "photo"
       }
     ]
   }
@@ -371,20 +427,35 @@ function handleAdd() {
   editingId.value = null;
 
   formData.value = {
+    // 设备信息
     deviceNumber: props.deviceData?.deviceNumber || "",
+    deviceAlias: props.deviceData?.deviceAlias || "",
+    valveNumber: props.deviceData?.valveNumber || "",
+
+    // 维护信息
     maintainType: undefined,
     maintainTime: "",
     maintainAddress: "",
-    installMode: undefined,
-    tubeGroup: "",
-    tubeMaterial: "",
-    tubeBore: "",
-    tubeOrder: undefined,
-    remark: "",
-    maintainAccount: "",
-    maintainFeedback: "",
     maintainCoordinate: "",
-    maintainPicture: ""
+    coordinate: "",
+
+    // 安装信息
+    installMode: undefined,
+    installState: undefined,
+
+    // 维护人员
+    maintainAccount:
+        uni.getStorageSync("userInfo")?.username || "",
+
+    // 维护结果
+    maintainFeedback: "",
+    maintainPicture: "",
+
+    // 拆卸信息
+    uninstallType: undefined,
+
+    // 其他
+    remark: ""
   };
 
   dialogVisible.value = true;
@@ -410,6 +481,8 @@ async function handleSubmit(form: MaintenanceCreateForm) {
 }
 
 async function submitCreate(form: MaintenanceCreateForm) {
+  if(form.coordinate) form.maintainCoordinate = form.coordinate;
+
   const res = await createMaintenanceRecordT(form);
 
   if (res.code !== 200) {
@@ -427,6 +500,7 @@ async function submitCreate(form: MaintenanceCreateForm) {
 }
 
 async function submitUpdate(form: MaintenanceCreateForm) {
+  if(form.coordinate) form.maintainCoordinate = form.coordinate;
   if (!editingId.value) return;
 
   const res = await updateMaintenanceRecordT(
@@ -490,6 +564,10 @@ async function handleEdit() {
 
   formData.value = { ...selectedRecord.value }
 
+  if(selectedRecord.value.maintainCoordinate){
+    formData.value.coordinate = selectedRecord.value.maintainCoordinate;
+  }
+
   dialogVisible.value = true;
 }
 
@@ -497,6 +575,35 @@ async function refreshList({ resetPage = false } = {}) {
   if (resetPage) pagination.value.current = 1;
 
   await fetchMaintenanceRecords();
+}
+
+const showMap = ref(false);
+const lng = ref(0);
+const lat = ref(0);
+
+function openCoord(longitude: number, latitude: number) {
+  lng.value = longitude;
+  lat.value = latitude;
+  showMap.value = true;
+}
+
+function handleCoordClick(coordinate?: string) {
+  if (coordinate) {
+    const [longitude, latitude] = coordinate.split(",").map(Number);
+
+    if (longitude && latitude) {
+      // 有坐标，打开地图
+      openCoord(longitude, latitude);
+      return;
+    }
+  }
+
+  // 没有坐标，弹出提示
+  uni.showToast({
+    title: t("map.noCoordinate"),
+    icon: "none",
+    duration: 2000
+  });
 }
 
 type MaintainTypeMeta = {

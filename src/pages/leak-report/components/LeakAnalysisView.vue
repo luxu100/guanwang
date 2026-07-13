@@ -17,41 +17,12 @@
           <input v-model="filters.deviceNumber" class="filter-input" placeholder="请输入设备编号" placeholder-class="input-placeholder" />
         </view>
 
-        <!-- 算法分析tab：算法状态 -->
-        <template v-if="dataType === 'algorithm'">
-          <view class="filter-group">
-            <text class="filter-label">算法状态</text>
-            <picker :range="algorithmStatusOptions" range-key="label" @change="handleAlgorithmStatusChange">
-              <view class="filter-select">
-                <text>{{ currentAlgorithmStatusLabel }}</text>
-                <text class="filter-select__arrow"></text>
-              </view>
-            </picker>
-          </view>
-        </template>
-
-        <!-- 渗漏记录tab：渗漏级别 + 检出人 -->
-        <template v-if="dataType === 'leakage'">
-          <view class="filter-group">
-            <text class="filter-label">渗漏级别</text>
-            <picker :range="leakLevelOptions" range-key="label" @change="handleLeakLevelChange">
-              <view class="filter-select">
-                <text>{{ currentLeakLevelLabel }}</text>
-                <text class="filter-select__arrow"></text>
-              </view>
-            </picker>
-          </view>
-          <view class="filter-group">
-            <text class="filter-label">检出人</text>
-            <input v-model="filters.inspector" class="filter-input" placeholder="请输入检出人" placeholder-class="input-placeholder" />
-          </view>
-        </template>
-
+        <!-- 算法状态 -->
         <view class="filter-group">
-          <text class="filter-label">数据类型</text>
-          <picker :range="dataTypeOptions" range-key="label" @change="handleDataTypeChange">
+          <text class="filter-label">算法状态</text>
+          <picker :range="algorithmStatusOptions" range-key="label" @change="handleAlgorithmStatusChange">
             <view class="filter-select">
-              <text>{{ currentDataTypeLabel }}</text>
+              <text>{{ currentAlgorithmStatusLabel }}</text>
               <text class="filter-select__arrow"></text>
             </view>
           </picker>
@@ -80,15 +51,17 @@
 
     <!-- 统计卡片 -->
     <view class="stats-grid">
-      <view v-for="item in statisticsCards" :key="item.label" class="stat-card">
-        <text class="stat-card__label">{{ item.label }}</text>
-        <text class="stat-card__value">{{ item.value }}</text>
+      <view v-for="item in statisticsCards" :key="item.label" class="stat-card" :class="`stat-card--${item.type}`">
+        <view class="stat-card__body">
+          <text class="stat-card__label">{{ item.label }}</text>
+          <text class="stat-card__value">{{ item.value }}</text>
+        </view>
       </view>
     </view>
 
     <!-- 主内容区 -->
     <LeakTableView
-      :title="`${dataTypeLabel}分析结果`"
+      title="算法分析结果"
       :total="total"
       :page-num="pagination.pageNum"
       :total-pages="totalPages"
@@ -96,10 +69,11 @@
       detail-empty-text="请选择左侧记录查看详情"
       @prev-page="changePage(-1)"
       @next-page="changePage(1)"
+      @jump-page="jumpToPage"
     >
       <view class="data-table">
         <!-- 算法分析列头 -->
-        <view v-if="dataType === 'algorithm'" class="data-row data-row--header data-row--algorithm">
+        <view class="data-row data-row--header data-row--algorithm">
           <text class="data-cell data-cell--index">序号</text>
           <text class="data-cell data-cell--device">设备编号</text>
           <text class="data-cell data-cell--time">音频时间</text>
@@ -107,18 +81,8 @@
           <text class="data-cell data-cell--noise">噪音计结果</text>
           <text class="data-cell data-cell--leakage">泄漏判定</text>
           <text class="data-cell data-cell--zj">浙大算法</text>
-        </view>
-
-        <!-- 渗漏记录列头 -->
-        <view v-else class="data-row data-row--header data-row--leakage">
-          <text class="data-cell data-cell--index">序号</text>
-          <text class="data-cell data-cell--time data-cell--sortable" @click.stop="toggleSort('detectedTime')">检出时间<text class="sort-arrow sort-arrow--active" v-if="sortField === 'detectedTime'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
-          <text class="data-cell data-cell--level data-cell--sortable" @click.stop="toggleSort('leakLevel')">渗漏级别<text class="sort-arrow sort-arrow--active" v-if="sortField === 'leakLevel'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
-          <text class="data-cell data-cell--address">漏点位置</text>
-          <text class="data-cell data-cell--coord">渗漏坐标</text>
-          <text class="data-cell data-cell--part">渗漏部位</text>
-          <text class="data-cell data-cell--material">管道材质</text>
-          <text class="data-cell data-cell--account">检出人</text>
+          <text class="data-cell data-cell--status">算法状态</text>
+          <text class="data-cell data-cell--error">失败原因</text>
         </view>
 
         <view v-if="loading" class="table-state">加载中...</view>
@@ -129,33 +93,22 @@
           v-for="(item, index) in records"
           v-else
           :key="getRowKey(item, index)"
-          :class="['data-row', dataType === 'algorithm' ? 'data-row--algorithm' : 'data-row--leakage', { 'data-row--active': selectedRecordKey === getRowKey(item, index) }]"
+          :class="['data-row', 'data-row--algorithm', { 'data-row--active': selectedRecordKey === getRowKey(item, index) }]"
           @click="selectRecord(item, index)"
         >
           <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
-          <template v-if="dataType === 'algorithm'">
-            <text class="data-cell data-cell--device">{{ getFieldValue(item, "deviceNumber") || "-" }}</text>
-            <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "audioTime")) }}</text>
-            <text class="data-cell data-cell--signal">{{ getFieldValue(item, "signalprocessingResult") || "-" }}</text>
-            <text class="data-cell data-cell--noise">{{ getFieldValue(item, "signalprocessingResult1") || "-" }}</text>
-            <text class="data-cell data-cell--leakage">
-              <text class="status-tag" :class="getLeakStatusTagClass(item, 'signalprocessingResult2')">
-                {{ getFieldValue(item, "signalprocessingResult2") || "-" }}
-              </text>
+          <text class="data-cell data-cell--device">{{ getFieldValue(item, "deviceNumber") || "-" }}</text>
+          <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "audioTime")) }}</text>
+          <text class="data-cell data-cell--signal">{{ getFieldValue(item, "signalprocessingResult") || "-" }}</text>
+          <text class="data-cell data-cell--noise">{{ getFieldValue(item, "signalprocessingResult1") || "-" }}</text>
+          <text class="data-cell data-cell--leakage">
+            <text class="status-tag" :class="getLeakStatusTagClass(item, 'signalprocessingResult2')">
+              {{ getFieldValue(item, "signalprocessingResult2") || "-" }}
             </text>
-            <text class="data-cell data-cell--zj">{{ getFieldValue(item, "signalprocessingResult3") || "-" }}</text>
-          </template>
-          <template v-else>
-            <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "detectedTime")) }}</text>
-            <text class="data-cell data-cell--level">
-              <text class="level-pill" :class="getLeakLevelClass(item)">{{ getLeakLevelLabel(item) }}</text>
-            </text>
-            <text class="data-cell data-cell--address">{{ getFieldValue(item, "leakAddress") || "-" }}</text>
-            <text class="data-cell data-cell--coord">{{ getFieldValue(item, "leakCoordinate") || "-" }}</text>
-            <text class="data-cell data-cell--part">{{ getFieldValue(item, "leakPart") || "-" }}</text>
-            <text class="data-cell data-cell--material">{{ getFieldValue(item, "tubeMaterial") || "-" }}</text>
-            <text class="data-cell data-cell--account">{{ getFieldValue(item, "detectAccount") || "-" }}</text>
-          </template>
+          </text>
+          <text class="data-cell data-cell--zj">{{ getFieldValue(item, "signalprocessingResult3") || "-" }}</text>
+          <text class="data-cell data-cell--status"><text v-if="getFieldValue(item, 'algorithmStatus')" class="status-tag" :class="getAlgorithmStatusTagClass(item)">{{ getAlgorithmStatusLabel(item) }}</text><text v-else>-</text></text>
+          <text class="data-cell data-cell--error" :title="getFieldValue(item, 'algorithmError')">{{ getFieldValue(item, "algorithmError") || "-" }}</text>
         </view>
       </view>
 
@@ -174,15 +127,73 @@
             </view>
           </view>
 
-          <view class="detail-section">
-            <view class="detail-grid">
-              <view v-for="item in currentDetailFields" :key="item.label" class="detail-item" :class="getDetailItemClass(item)">
+          <view v-if="activeDetailTab === 'base'" class="detail-section">
+            <view class="detail-summary">
+              <view class="detail-summary__main">
+                <text class="detail-summary__label">设备编号</text>
+                <text class="detail-summary__value">{{ getFieldValue(selectedRecord, 'deviceNumber') || '-' }}</text>
+              </view>
+              <view class="detail-summary__badges">
+                <text class="detail-summary__badge">{{ getFieldValue(selectedRecord, 'signalprocessingResult2') || '-' }}</text>
+              </view>
+              <view class="detail-summary__meta">
+                <view v-for="item in baseDetailFields" :key="item.label" class="detail-summary__meta-item">
+                  <text class="detail-summary__meta-label">{{ item.label }}</text>
+                  <text class="detail-summary__meta-value">{{ item.value }}</text>
+                </view>
+              </view>
+            </view>
+            <view class="time-section">
+              <text class="detail-section-title">时间信息</text>
+              <view class="time-list">
+                <view v-for="item in timeDetailFields" :key="item.label" class="time-row">
+                  <view class="time-row__marker"></view>
+                  <view class="time-row__content">
+                    <text class="time-row__label">{{ item.label }}</text>
+                    <text class="time-row__value">{{ item.value }}</text>
+                  </view>
+                </view>
+              </view>
+            </view>
+            <view v-if="locationDetailFields.length > 0" class="time-section time-section--location">
+              <text class="detail-section-title">地点信息</text>
+              <view v-for="item in locationDetailFields" :key="item.label" class="location-row">
+                <text class="location-row__label">{{ item.label }}</text>
+                <text class="location-row__value">{{ item.value }}</text>
+              </view>
+            </view>
+          </view>
+
+          <view v-if="activeDetailTab === 'detail'" class="detail-section">
+            <view class="detail-grid detail-grid--content">
+              <view v-for="item in detailDetailFields" :key="item.label" class="detail-item detail-item--note">
                 <text class="detail-item__label">{{ item.label }}</text>
                 <text class="detail-item__value">{{ item.value }}</text>
               </view>
             </view>
           </view>
-          <view v-if="selectedRecord && dataType === 'algorithm'" class="detail-audio-section">
+
+          <view v-if="activeDetailTab === 'pipe'" class="detail-section">
+            <view v-if="pipeDetailFields.length > 0" class="detail-grid detail-grid--content">
+              <view v-for="item in pipeDetailFields" :key="item.label" class="detail-item detail-item--note">
+                <text class="detail-item__label">{{ item.label }}</text>
+                <text class="detail-item__value">{{ item.value }}</text>
+              </view>
+            </view>
+            <view v-else class="detail-empty-text">暂无管道信息</view>
+          </view>
+
+          <view v-if="activeDetailTab === 'attach'" class="detail-section">
+            <view v-if="attachDetailFields.length > 0" class="detail-grid detail-grid--content">
+              <view v-for="item in attachDetailFields" :key="item.label" class="detail-item detail-item--note">
+                <text class="detail-item__label">{{ item.label }}</text>
+                <text class="detail-item__value">{{ item.value }}</text>
+              </view>
+            </view>
+            <view v-else class="detail-empty-text">暂无附件信息</view>
+          </view>
+
+          <view v-if="selectedRecord" class="detail-audio-section">
             <view class="detail-audio-header">
               <text class="detail-audio-title">关联音频</text>
               <button v-if="audioList.length > 0" class="audio-refresh-btn" hover-class="audio-refresh-btn--hover" @click="loadAudioList">刷新</button>
@@ -211,11 +222,10 @@
 <script setup lang="ts">
 import { computed, reactive, ref, onMounted } from "vue";
 import {
-  getLeakAnalysisPage,
   getAlgorithmAnalysisPage,
-  getLeakAnalysisDetail,
   getAlgorithmAnalysisDetail,
 } from "@/services/leak-report/leak-analysis";
+import { getAudioDataPage } from "@/services/data-analysis/audio";
 import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
 import LeakTableView from "@/pages/leak-report/components/LeakTableView.vue";
 
@@ -224,8 +234,7 @@ function getBaseUrl(): string {
 }
 
 type AnalysisRecord = Record<string, unknown>;
-type DataType = "algorithm" | "leakage";
-type DetailTab = "detail" | "extra";
+type DetailTab = "base" | "detail" | "pipe" | "attach";
 
 interface ApiResponseLike {
   code?: number;
@@ -236,19 +245,6 @@ interface ApiResponseLike {
   msg?: string;
 }
 
-const dataTypeOptions: Array<{ label: string; value: DataType }> = [
-  { label: "算法分析", value: "algorithm" },
-  { label: "渗漏记录", value: "leakage" },
-];
-
-const leakLevelOptions: Array<{ label: string; value: number | "" }> = [
-  { label: "不限", value: "" },
-  { label: "轻度", value: 0 },
-  { label: "中度", value: 1 },
-  { label: "重度", value: 2 },
-  { label: "疑点", value: 3 },
-];
-
 const algorithmStatusOptions: Array<{ label: string; value: string }> = [
   { label: "不限", value: "" },
   { label: "等待处理", value: "PENDING" },
@@ -258,7 +254,10 @@ const algorithmStatusOptions: Array<{ label: string; value: string }> = [
 ];
 
 const detailTabs: Array<{ label: string; value: DetailTab }> = [
-  { label: "详情", value: "detail" },
+  { label: "基本信息", value: "base" },
+  { label: "漏点详情", value: "detail" },
+  { label: "管道信息", value: "pipe" },
+  { label: "附件备注", value: "attach" },
 ];
 
 const sortField = ref("createdAt");
@@ -268,9 +267,6 @@ const filters = reactive({
   startTime: "",
   endTime: "",
   deviceNumber: "",
-  dataType: "algorithm" as DataType,
-  leakLevel: "" as number | "",
-  inspector: "",
   algorithmStatus: "" as string,
 });
 
@@ -284,124 +280,80 @@ const selectedRecord = ref<AnalysisRecord | null>(null);
 const selectedRecordKey = ref("");
 const total = ref(0);
 const loading = ref(false);
-const dataType = ref<DataType>("algorithm");
-const activeDetailTab = ref<DetailTab>("detail");
+const activeDetailTab = ref<DetailTab>("base");
 const exportMenuVisible = ref(false);
 const audioList = ref<Record<string, unknown>[]>([]);
 const audioLoading = ref(false);
 const playingAudioIndex = ref(-1);
 let audioPlayerInstance: HTMLAudioElement | null = null;
 
-const currentDataTypeLabel = computed(() =>
-  dataTypeOptions.find((o) => o.value === filters.dataType)?.label || "算法分析",
-);
-
-const currentLeakLevelLabel = computed(() =>
-  leakLevelOptions.find((o) => o.value === filters.leakLevel)?.label || "不限",
-);
-
 const currentAlgorithmStatusLabel = computed(() =>
   algorithmStatusOptions.find((o) => o.value === filters.algorithmStatus)?.label || "不限",
-);
-
-const dataTypeLabel = computed(() =>
-  dataType.value === "algorithm" ? "算法" : "渗漏记录",
 );
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pagination.pageSize)));
 
 const statisticsCards = computed(() => {
   const totalCount = total.value;
-  let leakCount = 0;
-  let normalCount = 0;
-
-  if (dataType.value === "algorithm") {
-    leakCount = records.value.filter(
-      (r) => String(getFieldValue(r, "signalprocessingResult2") || "").includes("Leakage") || String(getFieldValue(r, "signalprocessingResult2") || "").includes("leakage"),
-    ).length;
-  } else {
-    normalCount = records.value.filter((r) => Number(getFieldValue(r, "leakLevel")) === 0).length;
-    leakCount = records.value.filter((r) => Number(getFieldValue(r, "leakLevel")) !== 0).length;
-  }
+  const leakCount = records.value.filter(
+    (r) => String(getFieldValue(r, "signalprocessingResult2") || "").includes("Leakage") || String(getFieldValue(r, "signalprocessingResult2") || "").includes("leakage"),
+  ).length;
 
   return [
-    { label: dataTypeLabel.value + "记录数", value: String(totalCount) },
-    { label: "泄漏/异常", value: String(leakCount) },
-    { label: "正常/轻度", value: String(dataType.value === "algorithm" ? total.value - leakCount : normalCount) },
-    { label: "当前页条数", value: String(records.value.length) },
+    { label: "算法记录数", value: String(totalCount), type: "total" },
+    { label: "泄漏/异常", value: String(leakCount), type: "unrepaired" },
+    { label: "正常/轻度", value: String(total.value - leakCount), type: "repaired" },
+    { label: "当前页条数", value: String(records.value.length), type: "current" },
   ];
 });
 
-const currentDetailFields = computed(() => {
+const baseDetailFields = computed(() => {
   const r = selectedRecord.value || {};
-  if (dataType.value === "algorithm") {
-    return [
-      { label: "ID", value: String(getFieldValue(r, "id") || "-") },
-      { label: "设备ID", value: String(getFieldValue(r, "deviceId") || "-") },
-      { label: "设备编号", value: String(getFieldValue(r, "deviceNumber") || "-") },
-      { label: "采样记录ID", value: String(getFieldValue(r, "samplingId") || "-") },
-      { label: "音频文件ID", value: String(getFieldValue(r, "audioFileId") || "-") },
-      { label: "音频时间", value: formatDateTime(getFieldValue(r, "audioTime") || "-") },
-      { label: "信号处理结果(噪音计)", value: String(getFieldValue(r, "signalprocessingResult1") || "-") },
-      { label: "泄漏判定", value: String(getFieldValue(r, "signalprocessingResult2") || "-") },
-      { label: "浙大算法结果", value: String(getFieldValue(r, "signalprocessingResult3") || "-") },
-      { label: "信号处理频率3", value: String(getFieldValue(r, "signalprocessingFrequency3") || "-") },
-      { label: "信号处理结果", value: String(getFieldValue(r, "signalprocessingResult") || "-") },
-      { label: "算法状态", value: String(getFieldValue(r, "algorithmStatus") || "-") },
-      { label: "失败原因", value: String(getFieldValue(r, "algorithmError") || "-") },
-      { label: "创建时间", value: formatDateTime(getFieldValue(r, "createdAt") || "-") },
-    ];
-  }
   return [
     { label: "ID", value: String(getFieldValue(r, "id") || "-") },
-    { label: "检出时间", value: formatDateTime(getFieldValue(r, "detectedTime") || "-") },
-    { label: "渗漏级别", value: getLeakLevelLabel(r) },
-    { label: "状态", value: String(getFieldValue(r, "leakStatus") || "-") },
-    { label: "漏点位置", value: String(getFieldValue(r, "leakAddress") || "-") },
-    { label: "渗漏坐标", value: String(getFieldValue(r, "leakCoordinate") || "-") },
-    { label: "泄漏部位", value: String(getFieldValue(r, "leakPart") || "-") },
-    { label: "管道材质", value: String(getFieldValue(r, "tubeMaterial") || "-") },
-    { label: "管道口径", value: String(getFieldValue(r, "tubeBore") || "-") },
-    { label: "管道埋深", value: String(getFieldValue(r, "tubeDepth") || "-") },
-    { label: "管道年限", value: String(getFieldValue(r, "tubeAge") || "-") },
-    { label: "检出人", value: String(getFieldValue(r, "detectAccount") || "-") },
-    { label: "最近设备距离", value: String(getFieldValue(r, "closestDeviceDistance") || "-") },
-    { label: "关联设备", value: String(getFieldValue(r, "referenceDevices") || "-") },
-    { label: "关联工单ID", value: String(getFieldValue(r, "referenceWorksheetId") || "-") },
-    { label: "天气", value: String(getFieldValue(r, "weather") || "-") },
-    { label: "增益", value: String(getFieldValue(r, "gain") || "-") },
-    { label: "特征值", value: String(getFieldValue(r, "featureValue") || "-") },
-    { label: "蓝鲸分析", value: String(getFieldValue(r, "blueWhaleAnalysis") || "-") },
-    { label: "人工分析", value: String(getFieldValue(r, "manualAnalysis") || "-") },
-    { label: "原因分析", value: String(getFieldValue(r, "causeAnalysis") || "-") },
-    { label: "排查反馈", value: String(getFieldValue(r, "checkFeedback") || "-") },
-    { label: "算法类型", value: String(getFieldValue(r, "algorithmType") || "-") },
-    { label: "泄漏带宽", value: String(getFieldValue(r, "leakBandwidth") || "-") },
-    { label: "泄漏能量", value: String(getFieldValue(r, "leakEnergy") || "-") },
-    { label: "泄漏频率", value: String(getFieldValue(r, "leakFrequency") || "-") },
-    { label: "阀门编号", value: String(getFieldValue(r, "valveNumber") || "-") },
-    { label: "所属片区", value: String(getFieldValue(r, "areaName") || "-") },
-    { label: "安装人员", value: String(getFieldValue(r, "installPerson") || "-") },
-    { label: "安装地址", value: String(getFieldValue(r, "installAddress") || "-") },
-    { label: "坐标位置", value: String(getFieldValue(r, "coordinate") || "-") },
-    { label: "拆装", value: String(getFieldValue(r, "installStatus") || "-") },
-    { label: "备注", value: String(getFieldValue(r, "remark") || "-") },
+    { label: "设备ID", value: String(getFieldValue(r, "deviceId") || "-") },
+    { label: "设备编号", value: String(getFieldValue(r, "deviceNumber") || "-") },
+    { label: "采样记录ID", value: String(getFieldValue(r, "samplingId") || "-") },
+    { label: "音频文件ID", value: String(getFieldValue(r, "audioFileId") || "-") },
+    { label: "信号处理结果", value: String(getFieldValue(r, "signalprocessingResult") || "-") },
+    { label: "算法状态", value: String(getFieldValue(r, "algorithmStatus") || "-") },
+    { label: "失败原因", value: String(getFieldValue(r, "algorithmError") || "-") },
+  ];
+});
+
+const detailDetailFields = computed(() => {
+  const r = selectedRecord.value || {};
+  return [
+    { label: "信号处理结果(噪音计)", value: String(getFieldValue(r, "signalprocessingResult1") || "-") },
+    { label: "泄漏判定", value: String(getFieldValue(r, "signalprocessingResult2") || "-") },
+    { label: "浙大算法结果", value: String(getFieldValue(r, "signalprocessingResult3") || "-") },
+    { label: "信号处理频率3", value: String(getFieldValue(r, "signalprocessingFrequency3") || "-") },
+  ];
+});
+
+const pipeDetailFields = computed(() => {
+  return [];
+});
+
+const attachDetailFields = computed(() => {
+  return [];
+});
+
+const timeDetailFields = computed(() => {
+  const r = selectedRecord.value || {};
+  return [
+    { label: "音频时间", value: formatDateTime(getFieldValue(r, "audioTime") || "-") },
     { label: "创建时间", value: formatDateTime(getFieldValue(r, "createdAt") || "-") },
   ];
+});
+
+const locationDetailFields = computed(() => {
+  return [];
 });
 
 onMounted(() => {
   fetchAnalysisData();
 });
-
-function handleDataTypeChange(event: { detail: { value: number } }) {
-  filters.dataType = dataTypeOptions[event.detail.value]?.value ?? "algorithm";
-  searchAnalysis();
-}
-
-function handleLeakLevelChange(event: { detail: { value: number } }) {
-  filters.leakLevel = leakLevelOptions[event.detail.value]?.value ?? "";
-}
 
 function handleAlgorithmStatusChange(event: { detail: { value: number } }) {
   filters.algorithmStatus = algorithmStatusOptions[event.detail.value]?.value ?? "";
@@ -426,31 +378,22 @@ function buildQueryParams() {
     startTime: normalizeDateForApi(filters.startTime, false),
     endTime: normalizeDateForApi(filters.endTime, true),
     sortOrder: sortOrder.value || "desc",
-    sortField: sortField.value || (dataType.value === "algorithm" ? "createdAt" : "detectedTime"),
+    sortField: sortField.value || "createdAt",
   });
 
   if (filters.deviceNumber.trim()) {
     (baseParams as Record<string, unknown>).deviceNumber = filters.deviceNumber.trim();
   }
-  // 算法分析tab补充筛选
-  if (dataType.value === "algorithm") {
-    if (filters.algorithmStatus !== "") (baseParams as Record<string, unknown>).algorithmStatus = filters.algorithmStatus;
-  }
-  // 渗漏记录tab补充筛选
-  if (dataType.value === "leakage") {
-    if (filters.leakLevel !== "") (baseParams as Record<string, unknown>).leakLevel = filters.leakLevel;
-    if (filters.inspector.trim()) (baseParams as Record<string, unknown>).inspector = filters.inspector.trim();
-  }
+  // 算法状态筛选
+  if (filters.algorithmStatus !== "") (baseParams as Record<string, unknown>).algorithmStatus = filters.algorithmStatus;
 
   return baseParams;
 }
 
 async function fetchAnalysisData() {
   loading.value = true;
-  dataType.value = filters.dataType;
   try {
-    const apiFn = dataType.value === "algorithm" ? getAlgorithmAnalysisPage : getLeakAnalysisPage;
-    const response = (await apiFn(buildQueryParams())) as ApiResponseLike;
+    const response = (await getAlgorithmAnalysisPage(buildQueryParams())) as ApiResponseLike;
     assertSuccessResponse(response);
     const parsed = parsePageResponse(response);
     if (parsed.pageNum && parsed.pageNum !== pagination.pageNum) pagination.pageNum = parsed.pageNum;
@@ -479,9 +422,8 @@ async function handleExport(scope: "current" | "all") {
   let exportRecords = records.value;
   if (scope === "all") {
     try {
-      const apiFn = dataType.value === "algorithm" ? getAlgorithmAnalysisPage : getLeakAnalysisPage;
       const params = { ...buildQueryParams(), pageNum: 1, pageSize: 99999 };
-      const response = (await apiFn(params)) as ApiResponseLike;
+      const response = (await getAlgorithmAnalysisPage(params)) as ApiResponseLike;
       assertSuccessResponse(response);
       const parsed = parsePageResponse(response);
       exportRecords = parsed.records;
@@ -495,36 +437,20 @@ async function handleExport(scope: "current" | "all") {
     return;
   }
   // #ifdef H5
-  const isAlgorithm = dataType.value === "algorithm";
-  const headers = isAlgorithm
-    ? ["序号", "设备编号", "音频时间", "信号处理结果", "噪音计结果", "泄漏判定", "浙大算法"]
-    : ["序号", "检出时间", "渗漏级别", "漏点位置", "泄漏部位", "检出人", "渗漏次数"];
-  const levelMap: Record<number, string> = { 0: "轻度", 1: "中度", 2: "重度" };
+  const headers = ["序号", "设备编号", "音频时间", "信号处理结果", "噪音计结果", "泄漏判定", "浙大算法", "算法状态", "失败原因"];
   const rows = exportRecords.map((r, idx) => {
-    if (isAlgorithm) {
-      const keys = ["deviceNumber", "audioTime", "signalprocessingResult", "signalprocessingResult1", "signalprocessingResult2", "signalprocessingResult3"];
-      return [String(idx + 1), ...keys.map((k) => {
-        const v = getFieldValue(r, k);
-        return v === undefined || v === null ? "" : String(v).replace(/"/g, '""');
-      })];
-    }
-    const keys = ["detectedTime", "leakLevel", "leakAddress", "leakPart", "detectAccount"];
-    return [
-      String(idx + 1),
-      ...keys.map((k) => {
-        if (k === "leakLevel") return levelMap[Number(getFieldValue(r, k))] ?? "";
-        const v = getFieldValue(r, k);
-        return v === undefined || v === null ? "" : String(v).replace(/"/g, '""');
-      }),
-      "-",
-    ];
+    const keys = ["deviceNumber", "audioTime", "signalprocessingResult", "signalprocessingResult1", "signalprocessingResult2", "signalprocessingResult3", "algorithmStatus", "algorithmError"];
+    return [String(idx + 1), ...keys.map((k) => {
+      const v = getFieldValue(r, k);
+      return v === undefined || v === null ? "" : String(v).replace(/"/g, '""');
+    })];
   });
   const csv = [headers.join(","), ...rows.map((row) => row.map((c) => `"${c}"`).join(","))].join("\n");
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `${isAlgorithm ? "算法分析数据" : "渗漏记录数据"}_${new Date().toISOString().slice(0, 10)}.csv`;
+  link.download = `算法分析数据_${new Date().toISOString().slice(0, 10)}.csv`;
   link.click();
   URL.revokeObjectURL(url);
   uni.showToast({ title: "导出成功", icon: "success" });
@@ -538,9 +464,6 @@ function resetFilters() {
   filters.startTime = "";
   filters.endTime = "";
   filters.deviceNumber = "";
-  filters.dataType = "algorithm";
-  filters.leakLevel = "";
-  filters.inspector = "";
   filters.algorithmStatus = "";
   searchAnalysis();
 }
@@ -549,6 +472,12 @@ function changePage(step: number) {
   const nextPage = pagination.pageNum + step;
   if (nextPage < 1 || nextPage > totalPages.value) return;
   pagination.pageNum = nextPage;
+  fetchAnalysisData();
+}
+
+function jumpToPage(p: number) {
+  if (p < 1 || p > totalPages.value) return;
+  pagination.pageNum = p;
   fetchAnalysisData();
 }
 
@@ -561,20 +490,19 @@ function selectFirstRow() {
   const first = records.value[0];
   selectedRecord.value = first;
   selectedRecordKey.value = getRowKey(first, 0);
-  activeDetailTab.value = "detail";
+  activeDetailTab.value = "base";
 }
 
 function selectRecord(item: AnalysisRecord, index: number) {
   selectedRecord.value = item;
   selectedRecordKey.value = getRowKey(item, index);
-  activeDetailTab.value = "detail";
+  activeDetailTab.value = "base";
   loadAudioList();
 
   const id = getRowId(item);
   if (!id) return;
 
-  const apiFn = dataType.value === "algorithm" ? getAlgorithmAnalysisDetail : getLeakAnalysisDetail;
-  apiFn(id)
+  getAlgorithmAnalysisDetail(id)
     .then((response: unknown) => {
       assertSuccessResponse(response as ApiResponseLike);
       const detailData = (response as ApiResponseLike)?.data;
@@ -598,8 +526,7 @@ async function loadAudioList() {
   if (!deviceNumber) { audioList.value = []; return; }
   audioLoading.value = true;
   try {
-    const { postRequest } = await import("@/services/shared/crud");
-    const res = await postRequest("/api/sampling-audio/page", { pageNum: 1, pageSize: 10, deviceNumber }) as unknown as ApiResponseLike;
+    const res = await getAudioDataPage({ pageNum: 1, pageSize: 10, deviceNumber }) as unknown as ApiResponseLike;
     const p = parsePageResponse(res);
     audioList.value = (p.records || []) as Record<string, unknown>[];
   } catch { audioList.value = []; }
@@ -635,40 +562,35 @@ function getRowKey(item: AnalysisRecord, index: number) {
   return getRowId(item) || String(index);
 }
 
-function getFieldValue(item: AnalysisRecord, key: string): unknown {
+function getFieldValue(item: AnalysisRecord | null, key: string): unknown {
+  if (!item) return undefined;
   return Object.prototype.hasOwnProperty.call(item, key) ? item[key] : undefined;
-}
-
-function getLeakLevelLabel(item: AnalysisRecord) {
-  const val = Number(getFieldValue(item, "leakLevel"));
-  if (val === 0) return "轻度";
-  if (val === 1) return "中度";
-  if (val === 2) return "重度";
-  return "未知";
-}
-
-function getLeakLevelClass(item: AnalysisRecord) {
-  const val = Number(getFieldValue(item, "leakLevel"));
-  if (val === 0) return "level-pill--light";
-  if (val === 1) return "level-pill--medium";
-  if (val === 2) return "level-pill--heavy";
-  if (val === 3) return "level-pill--suspect";
-  return "";
-}
-
-function getDetailItemClass(item: { label: string }) {
-  if (item.label !== "渗漏级别" || !selectedRecord.value) return "";
-  const v = Number(getFieldValue(selectedRecord.value, "leakLevel"));
-  if (v === 0) return "detail-item--level-light";
-  if (v === 1) return "detail-item--level-medium";
-  if (v === 2) return "detail-item--level-heavy";
-  return "";
 }
 
 function getLeakStatusTagClass(item: AnalysisRecord, key: string) {
   const val = String(getFieldValue(item, key) || "").toLowerCase();
   if (val.includes("leakage")) return "status-tag--leak";
   if (val.includes("noleakage")) return "status-tag--normal";
+  return "status-tag--unknown";
+}
+
+function getAlgorithmStatusLabel(item: AnalysisRecord) {
+  const status = String(getFieldValue(item, "algorithmStatus") || "").toUpperCase();
+  const map: Record<string, string> = {
+    PENDING: "等待处理",
+    SUCCESS: "处理成功",
+    FAILED: "处理失败",
+    SKIPPED: "跳过",
+  };
+  return map[status] || status || "-";
+}
+
+function getAlgorithmStatusTagClass(item: AnalysisRecord) {
+  const status = String(getFieldValue(item, "algorithmStatus") || "").toUpperCase();
+  if (status === "SUCCESS") return "status-tag--success";
+  if (status === "FAILED") return "status-tag--failed";
+  if (status === "PENDING") return "status-tag--pending";
+  if (status === "SKIPPED") return "status-tag--skipped";
   return "status-tag--unknown";
 }
 
@@ -748,11 +670,7 @@ function applyLocalSort(list: AnalysisRecord[]): AnalysisRecord[] {
   return [...list].sort((a, b) => {
     let va: unknown = a[field];
     let vb: unknown = b[field];
-    if (field === "leakLevel") {
-      va = Number(va); vb = Number(vb);
-    } else {
-      va = String(va ?? ""); vb = String(vb ?? "");
-    }
+    va = String(va ?? ""); vb = String(vb ?? "");
     if (va === undefined || va === null) return 1;
     if (vb === undefined || vb === null) return -1;
     if (va < vb) return order === "asc" ? -1 : 1;
@@ -1038,23 +956,30 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 
 .stat-card {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 16px 12px;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 8px;
+  border: none;
+  box-shadow: 0 4px 16px rgba(33, 72, 108, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+  position: relative;
 }
 
-.stat-card__label {
-  color: #64748b;
-  font-size: 13px;
-}
-
-.stat-card__value {
-  color: #183755;
-  font-size: 24px;
-  font-weight: 900;
-}
+.stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(33, 72, 108, 0.15); }
+.stat-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+.stat-card--total { background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); }
+.stat-card--total::before { background: #3b82f6; }
+.stat-card--unrepaired { background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); }
+.stat-card--unrepaired::before { background: #ef4444; }
+.stat-card--repaired { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); }
+.stat-card--repaired::before { background: #22c55e; }
+.stat-card--current { background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%); }
+.stat-card--current::before { background: #a855f7; }
+.stat-card__body { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; width: 100%; }
+.stat-card__label { color: #64748b; font-size: 12px; font-weight: 700; }
+.stat-card__value { color: #1e293b; font-size: 28px; font-weight: 900; font-family: "DIN Alternate", "Arial", sans-serif; line-height: 1.2; }
 
 .main-layout {
   display: grid;
@@ -1140,7 +1065,7 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 
 .data-row {
   display: grid;
-  grid-template-columns: 58px minmax(110px, 2.2fr) minmax(160px, 3fr) minmax(160px, 3.8fr) minmax(110px, 2.2fr) minmax(96px, 1.6fr) minmax(110px, 2fr);
+  grid-template-columns: 58px minmax(110px, 2.2fr) minmax(160px, 3fr) minmax(160px, 3.8fr) minmax(110px, 2.2fr) minmax(96px, 1.6fr) minmax(110px, 2fr) minmax(96px, 1.6fr) minmax(140px, 2.4fr);
   min-height: 48px;
   border-bottom: 1px solid #edf1f5;
   cursor: pointer;
@@ -1148,12 +1073,9 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 }
 
 .data-row--algorithm {
-  grid-template-columns: 58px minmax(110px, 2.2fr) minmax(160px, 3fr) minmax(160px, 3.8fr) minmax(110px, 2.2fr) minmax(96px, 1.6fr) minmax(110px, 2fr);
+  grid-template-columns: 58px minmax(110px, 2.2fr) minmax(160px, 3fr) minmax(160px, 3.8fr) minmax(110px, 2.2fr) minmax(96px, 1.6fr) minmax(110px, 2fr) minmax(96px, 1.6fr) minmax(140px, 2.4fr);
 }
 
-.data-row--leakage {
-  grid-template-columns: 58px minmax(160px, 2.6fr) minmax(80px, 1fr) minmax(160px, 3fr) minmax(120px, 2fr) minmax(96px, 1.6fr) minmax(96px, 1.4fr) minmax(80px, 1fr);
-}
 
 .data-row--header {
   position: sticky;
@@ -1222,8 +1144,8 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 .data-cell:last-child { border-right: 0; }
 
 .data-cell--index { justify-content: center; color: #64748b; }
-.data-cell--device { color: #0f4c81; font-family: "DIN Alternate", "Arial", sans-serif; font-weight: 800; }
-.data-cell--time { color: #0f4c81; font-family: "DIN Alternate", "Arial", sans-serif; font-weight: 800; }
+.data-cell--device { color: #0f4c81; }
+.data-cell--time { color: #0f4c81; }
 .data-cell--address { justify-content: center; text-align: center; }
 
 .data-cell--sortable { cursor: pointer; user-select: none; }
@@ -1290,6 +1212,36 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   color: #f59e0b;
   background: #fffbeb;
   border: 1px solid #fde68a;
+}
+
+.status-tag--pending {
+  color: #d97706;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+
+.status-tag--success {
+  color: #16a34a;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.status-tag--failed {
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.status-tag--skipped {
+  color: #6b7280;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+}
+
+.data-cell--error {
+  color: #475569;
+  text-align: center;
+  justify-content: center;
 }
 
 .table-state {
@@ -1428,4 +1380,36 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 .audio-item__actions { display: flex; align-items: center; gap: 8px; }
 .audio-play-btn { min-width: 48px; height: 28px; padding: 0 10px; font-size: 12px; color: #3b82f6; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px; } .audio-play-btn--hover { background: #dbeafe; }
 .audio-download-link { font-size: 12px; color: #3b82f6; text-decoration: underline; }
+.detail-summary { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; margin-bottom: 12px; background: #ffffff; border: 1px solid #e2e8f0; border-left: 4px solid #3b82f6; border-radius: 6px; box-shadow: 0 8px 18px rgba(33, 72, 108, 0.045); }
+.detail-summary__main { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.detail-summary__label { color: #475569; font-size: 12px; font-weight: 800; }
+.detail-summary__value { color: #0f4c81; font-size: 17px; font-weight: 700; line-height: 1.25; word-break: normal; overflow-wrap: anywhere; }
+.detail-summary__badges { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-top: 6px; }
+.detail-summary__badge { display: inline-block; min-width: 64px; height: 26px; line-height: 26px; text-align: center; padding: 0 10px; font-size: 12px; font-weight: 700; border-radius: 10px; background: #eff6ff; color: #3b82f6; }
+.detail-summary__badge.level-pill--light { color: #22c55e; background: #f0fdf4; border: 1px solid #bbf7d0; }
+.detail-summary__badge.level-pill--medium { color: #f59e0b; background: #fffbeb; border: 1px solid #fde68a; }
+.detail-summary__badge.level-pill--heavy { color: #ef4444; background: #fef2f2; border: 1px solid #fecaca; }
+.detail-summary__badge.level-pill--suspect { color: #8c8c8c; background: #fafafa; border: 1px solid #d9d9d9; }
+.detail-summary__meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding-top: 10px; border-top: 1px solid #edf3f8; margin-top: 10px; }
+.detail-summary__meta-item { min-width: 0; padding: 8px 10px; background: #f8fafc; border-radius: 6px; border: 1px solid #e8eef5; }
+.detail-summary__meta-label { display: block; color: #475569; font-size: 11px; font-weight: 800; }
+.detail-summary__meta-value { display: block; margin-top: 4px; color: #0f172a; font-size: 14px; font-weight: 700; }
+.detail-grid--content { grid-template-columns: 1fr; gap: 8px; overflow: visible; background: transparent; border: 0; border-radius: 0; box-shadow: none; }
+.detail-grid--content .detail-item { display: grid; grid-template-columns: 86px minmax(0, 1fr); align-items: stretch; min-height: 0; padding: 0; overflow: hidden; background: #ffffff; border: 1px solid #dfebf5; border-radius: 6px; box-shadow: 0 8px 18px rgba(33, 72, 108, 0.055); }
+.detail-grid--content .detail-item__label { display: flex; align-items: center; padding: 0 12px; color: #5f7891; font-size: 12px; font-weight: 800; background: #f7fafc; border-left: 3px solid #b9dcff; }
+.detail-grid--content .detail-item__value { min-height: 52px; margin-top: 0; padding: 14px; color: #172033; font-size: 13px; font-weight: 700; line-height: 1.45; background: #fbfdff; border-left: 1px solid #edf3f8; border-radius: 0; box-shadow: none; white-space: pre-wrap; word-break: break-all; text-align: left; }
+.time-section { min-width: 0; margin-top: 14px; padding: 14px; background: rgba(255, 255, 255, 0.96); border: 1px solid #dfebf5; border-radius: 6px; box-shadow: 0 8px 18px rgba(33, 72, 108, 0.055); }
+.detail-section-title { display: block; margin-bottom: 12px; color: #183755; font-size: 14px; font-weight: 900; }
+.time-list { position: relative; display: grid; gap: 0; }
+.time-list::before { position: absolute; top: 16px; bottom: 16px; left: 6px; width: 2px; content: ""; background: #d7e8f6; }
+.time-row { position: relative; display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; min-width: 0; padding: 9px 0; }
+.time-row__marker { position: relative; z-index: 1; width: 10px; height: 10px; margin-top: 4px; background: #0d82ee; border: 3px solid #e8f4ff; border-radius: 50%; box-shadow: 0 0 0 1px #b9dcff; }
+.time-row__content { display: grid; grid-template-columns: 72px minmax(0, 1fr); align-items: center; gap: 10px; min-width: 0; }
+.time-row__label { color: #6b7f94; font-size: 12px; font-weight: 800; }
+.time-row__value { min-width: 0; color: #172033; font-size: 14px; font-weight: 700; line-height: 1.45; word-break: break-all; }
+.time-section--location { background: linear-gradient(90deg, rgba(13, 130, 238, 0.08), rgba(255, 255, 255, 0) 58%), rgba(255, 255, 255, 0.96); margin-top: 10px; }
+.location-row { display: grid; grid-template-columns: 60px minmax(0, 1fr); gap: 10px; min-width: 0; padding: 11px 0; border-bottom: 1px solid #edf3f8; &:last-child { border-bottom: 0; } }
+.location-row__label { color: #6b7f94; font-size: 12px; font-weight: 800; }
+.location-row__value { min-width: 0; color: #172033; font-size: 14px; font-weight: 700; word-break: break-all; }
+.detail-empty-text { display: flex; align-items: center; justify-content: center; padding: 40px 0; color: #7c8da1; font-size: 14px; }
 </style>

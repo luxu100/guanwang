@@ -1,4 +1,4 @@
-﻿﻿<template>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
   <view class="leak-management-view">
     <!-- 筛选栏 -->
     <view class="toolbar">
@@ -13,7 +13,7 @@
         </view>
         <view class="filter-group">
           <text class="filter-label">设备编号</text>
-          <input v-model="filters.deviceNumber" class="filter-input" placeholder="请输入设备编号" placeholder-class="input-placeholder" />
+          <input v-model="filters.deviceNumber" class="filter-input" placeholder="请输入关联设备编号" placeholder-class="input-placeholder" />
         </view>
         <view class="filter-group">
           <text class="filter-label">漏点类型</text>
@@ -22,6 +22,14 @@
         <view class="filter-group">
           <text class="filter-label">漏点区域</text>
           <input v-model="filters.leakArea" class="filter-input" placeholder="请输入漏点区域" placeholder-class="input-placeholder" />
+        </view>
+        <view class="filter-group">
+          <text class="filter-label">巡检人员</text>
+          <input v-model="filters.inspector" class="filter-input" placeholder="请输入巡检人员" placeholder-class="input-placeholder" />
+        </view>
+        <view class="filter-group">
+          <text class="filter-label">定漏人员</text>
+          <input v-model="filters.locator" class="filter-input" placeholder="请输入定漏人员" placeholder-class="input-placeholder" />
         </view>
       </view>
       <view class="toolbar-row toolbar-row--bottom">
@@ -41,9 +49,11 @@
 
     <!-- 统计卡片 -->
     <view class="stats-grid">
-      <view v-for="item in statisticsCards" :key="item.label" class="stat-card">
-        <text class="stat-card__label">{{ item.label }}</text>
-        <text class="stat-card__value">{{ item.value }}</text>
+      <view v-for="item in statisticsCards" :key="item.label" class="stat-card" :class="`stat-card--${item.type}`">
+        <view class="stat-card__body">
+          <text class="stat-card__label">{{ item.label }}</text>
+          <text class="stat-card__value">{{ item.value }}</text>
+        </view>
       </view>
     </view>
 
@@ -57,6 +67,7 @@
       detail-empty-text="请选择左侧漏点查看详情"
       @prev-page="changePage(-1)"
       @next-page="changePage(1)"
+      @jump-page="jumpToPage"
     >
       <view class="data-table">
         <view class="data-row data-row--header">
@@ -66,8 +77,13 @@
           <text class="data-cell data-cell--index">序号</text>
           <text class="data-cell data-cell--time data-cell--sortable" @click.stop="toggleSort('detectTime')">检出时间<text class="sort-arrow sort-arrow--active" v-if="sortField === 'detectTime'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
           <text class="data-cell data-cell--level data-cell--sortable" @click.stop="toggleSort('leakStatus')">渗漏状态<text class="sort-arrow sort-arrow--active" v-if="sortField === 'leakStatus'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
+          <text class="data-cell data-cell--type">漏点类型</text>
+          <text class="data-cell data-cell--leakpart">泄漏部位</text>
           <text class="data-cell data-cell--address">漏点位置</text>
           <text class="data-cell data-cell--account">巡检人员</text>
+          <text class="data-cell data-cell--locator">定漏人员</text>
+          <text class="data-cell data-cell--audio">音频</text>
+          <text class="data-cell data-cell--video">视频</text>
           <text class="data-cell data-cell--wsid">关联工单</text>
           <text class="data-cell data-cell--devices">关联设备</text>
         </view>
@@ -79,9 +95,14 @@
           </view>
           <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
           <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "detectTime")) }}</text>
-          <text class="data-cell data-cell--level"><text class="level-pill" :class="''">{{ getFieldValue(item, "leakStatus") || "-" }}</text></text>
+          <text class="data-cell data-cell--level"><text class="level-pill" :class="getLeakStatusClass(item)">{{ getFieldValue(item, "leakStatus") || "-" }}</text></text>
+          <text class="data-cell data-cell--type">{{ getFieldValue(item, "leakPointType") || "-" }}</text>
+          <text class="data-cell data-cell--leakpart">{{ getFieldValue(item, "leakPart") || "-" }}</text>
           <text class="data-cell data-cell--address">{{ getFieldValue(item, "leakPointPosition") || "-" }}</text>
           <text class="data-cell data-cell--account">{{ getFieldValue(item, "inspector") || "-" }}</text>
+          <text class="data-cell data-cell--locator">{{ getFieldValue(item, "locator") || "-" }}</text>
+          <text class="data-cell data-cell--audio" @click.stop="toggleAudioPlay(item, index)"><text v-if="getFieldValue(item, 'audioFile')" class="audio-play-btn">{{ playingAudioIndex === index ? '暂停' : '播放' }}</text><text v-else>-</text></text>
+          <text class="data-cell data-cell--video" @click.stop="toggleVideoPlay(item)"><text v-if="getFieldValue(item, 'sceneVideo')" class="video-play-btn">播放</text><text v-else>-</text></text>
           <text class="data-cell data-cell--wsid" @click.stop="handleWorkOrderJump(item)"><text v-if="getFieldValue(item, 'workOrderId')" class="link-text">{{ getFieldValue(item, "workOrderId") }}</text><text v-else>-</text></text>
           <text class="data-cell data-cell--devices">{{ getFieldValue(item, "deviceNumber") || "-" }}</text>
         </view>
@@ -95,15 +116,86 @@
           <view v-if="activeDetailTab === 'base'" class="detail-section">
             <view class="detail-summary">
               <view class="detail-summary__main"><text class="detail-summary__label">漏点位置</text><text class="detail-summary__value">{{ getFieldValue(selectedRecord, "leakPointPosition") || "-" }}</text></view>
-              <view class="detail-summary__badges"><text class="detail-summary__badge" :class="''">{{ getFieldValue(selectedRecord, "leakStatus") || "-" }}</text></view>
+              <view class="detail-summary__badges"><text class="detail-summary__badge" :class="getLeakStatusBadgeClass(selectedRecord)">{{ getFieldValue(selectedRecord, "leakStatus") || "-" }}</text></view>
+              <view class="detail-summary__meta">
+                <view class="detail-summary__meta-item"><text class="detail-summary__meta-label">漏点类型</text><text class="detail-summary__meta-value">{{ getFieldValue(selectedRecord, "leakPointType") || "-" }}</text></view>
+                <view class="detail-summary__meta-item"><text class="detail-summary__meta-label">检出类型</text><text class="detail-summary__meta-value">{{ getFieldValue(selectedRecord, "detectType") || "-" }}</text></view>
+                <view class="detail-summary__meta-item"><text class="detail-summary__meta-label">检出难度</text><text class="detail-summary__meta-value">{{ getFieldValue(selectedRecord, "detectDifficulty") || "-" }}</text></view>
+                <view class="detail-summary__meta-item"><text class="detail-summary__meta-label">巡检人员</text><text class="detail-summary__meta-value">{{ getFieldValue(selectedRecord, "inspector") || "-" }}</text></view>
+              </view>
             </view>
-            <view class="detail-grid"><view v-for="item in baseDetailFields" :key="item.label" class="detail-item" :class="getDetailItemClass(item)"><text class="detail-item__label">{{ item.label }}</text><text class="detail-item__value">{{ item.value }}</text></view></view>
+            <view class="time-section">
+              <text class="detail-section-title">时间信息</text>
+              <view class="time-list">
+                <view v-for="item in timeDetailFields" :key="item.label" class="time-row">
+                  <view class="time-row__marker"></view>
+                  <view class="time-row__content">
+                    <text class="time-row__label">{{ item.label }}</text>
+                    <text class="time-row__value">{{ item.value }}</text>
+                  </view>
+                </view>
+              </view>
+            </view>
+            <view class="time-section time-section--location">
+              <text class="detail-section-title">地点信息</text>
+              <view class="location-row"><text class="location-row__label">坐标位置</text><text class="location-row__value">{{ getFieldValue(selectedRecord, "coordinatePosition") || "-" }}</text></view>
+              <view class="location-row"><text class="location-row__label">漏点区域</text><text class="location-row__value">{{ getFieldValue(selectedRecord, "leakArea") || "-" }}</text></view>
+              <view class="location-row"><text class="location-row__label">漏点位置</text><text class="location-row__value">{{ getFieldValue(selectedRecord, "leakPointPosition") || "-" }}</text></view>
+            </view>
+          </view>
+          <view v-if="activeDetailTab === 'detail'" class="detail-section">
+            <view class="detail-grid detail-grid--content">
+              <view v-for="item in detailDetailFields" :key="item.label" class="detail-item detail-item--note">
+                <text class="detail-item__label">{{ item.label }}</text>
+                <text class="detail-item__value">{{ item.value }}</text>
+              </view>
+            </view>
           </view>
           <view v-if="activeDetailTab === 'pipe'" class="detail-section">
-            <view class="detail-grid detail-grid--pipe"><view v-for="item in pipeDetailFields" :key="item.label" class="detail-item" :class="getItemAccentClass(item.label)"><text class="detail-item__label">{{ item.label }}</text><text class="detail-item__value">{{ item.value }}</text></view></view>
+            <view class="detail-grid detail-grid--content">
+              <view v-for="item in pipeDetailFields" :key="item.label" class="detail-item detail-item--note">
+                <text class="detail-item__label">{{ item.label }}</text>
+                <text class="detail-item__value">{{ item.value }}</text>
+              </view>
+            </view>
           </view>
           <view v-if="activeDetailTab === 'attach'" class="detail-section">
-            <view class="detail-grid detail-grid--attach"><view v-for="item in attachDetailFields" :key="item.label" class="detail-item detail-item--note" :class="getItemAccentClass(item.label)"><text class="detail-item__label">{{ item.label }}</text><text class="detail-item__value">{{ item.value }}</text></view></view>
+            <view class="attach-media">
+              <view class="attach-media__item">
+                <text class="attach-media__label">音频文件</text>
+                <view v-if="detailAudioList.length" class="attach-audio-list">
+                  <view v-for="(audio, ai) in detailAudioList" :key="ai" class="attach-audio-item">
+                    <text class="attach-audio-item__time">{{ formatDateTime(getFieldValue(audio, "audioTime")) }}</text>
+                    <button class="attach-play-btn" hover-class="attach-play-btn--hover" @click="toggleDetailAudioPlay(ai)">{{ detailAudioPlayingIndex === ai ? '暂停' : '播放' }}</button>
+                  </view>
+                </view>
+                <text v-else-if="detailAudioLoading" class="attach-media__empty">加载中...</text>
+                <text v-else class="attach-media__empty">暂未上传音频</text>
+              </view>
+              <view class="attach-media__item">
+                <text class="attach-media__label">现场照片</text>
+                <view v-if="detailPhotoIds.length" class="attach-media__photos">
+                  <view v-for="(pid, pi) in detailPhotoIds" :key="pi" class="attach-photo">
+                    <image :src="getPreviewUrl(pid)" mode="aspectFill" class="attach-photo__img" @click="previewDetailPhoto(pi)" />
+                  </view>
+                </view>
+                <text v-else class="attach-media__empty">暂未上传图片</text>
+              </view>
+              <view class="attach-media__item">
+                <text class="attach-media__label">现场视频</text>
+                <view v-if="getFieldValue(selectedRecord, 'sceneVideo')" class="attach-media__player">
+                  <button class="attach-play-btn" hover-class="attach-play-btn--hover" @click="playDetailVideo">播放</button>
+                  <text class="attach-media__id">ID: {{ getFieldValue(selectedRecord, 'sceneVideo') }}</text>
+                </view>
+                <text v-else class="attach-media__empty">暂未上传视频</text>
+              </view>
+            </view>
+            <view class="detail-grid detail-grid--content">
+              <view v-for="item in attachTextFields" :key="item.label" class="detail-item detail-item--note">
+                <text class="detail-item__label">{{ item.label }}</text>
+                <text class="detail-item__value">{{ item.value }}</text>
+              </view>
+            </view>
           </view>
           <view class="detail-actions">
             <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="openEditDialog">编辑</button>
@@ -113,6 +205,20 @@
       </template>
     </LeakTableView>
 
+    <!-- ========== 视频播放浮层 ========== -->
+    <view v-if="videoDialogVisible" class="video-dialog-mask" @click="closeVideoDialog">
+      <view class="video-dialog" @click.stop>
+        <view class="video-dialog__head">
+          <text class="video-dialog__title">现场视频播放</text>
+          <button class="icon-button" hover-class="icon-button--hover" aria-label="关闭" @click="closeVideoDialog"><text class="close-icon"></text></button>
+        </view>
+        <view class="video-dialog__body">
+          <video v-if="currentVideoUrl" :src="currentVideoUrl" class="video-player" controls autoplay></video>
+          <view v-else class="video-empty">视频加载失败</view>
+        </view>
+      </view>
+    </view>
+
     <!-- ========== 新增/编辑弹窗 ========== -->
     <view v-if="dialogVisible" class="dialog-mask" @click="closeDialog">
       <view class="dialog-panel" @click.stop>
@@ -121,168 +227,196 @@
           <button class="icon-button" hover-class="icon-button--hover" aria-label="关闭" @click="closeDialog"><text class="close-icon"></text></button>
         </view>
         <view class="dialog-body">
-          <!-- 基础信息 -->
-          <view class="form-section">
-            <view class="section-head"><text class="section-title">基础信息</text></view>
-            <view class="form-grid form-grid--two">
-              <view class="form-field">
-                <text class="form-label form-label--required">检出时间</text>
-                <WorkOrderDatetimePicker v-model="form.detectTime" title="选择检出时间" placeholder="请选择检出时间" :clearable="false" />
-              </view>
-              <view class="form-field">
-                <text class="form-label">检出类型</text>
-                <input v-model="form.detectType" class="form-input" placeholder="如 人工/算法" placeholder-class="input-placeholder" />
-              </view>
-              <view class="form-field">
-                <text class="form-label">检出难度</text>
-                <input v-model="form.detectDifficulty" class="form-input" placeholder="如 简单/中/难" placeholder-class="input-placeholder" />
-              </view>
-              <view class="form-field">
-                <text class="form-label form-label--required">漏点类型</text>
-                <input v-model="form.leakPointType" class="form-input" :class="{ 'form-control--error': validationErrors.leakPointType }" placeholder="如 腐蚀/破裂" placeholder-class="input-placeholder" />
-                <text v-if="validationErrors.leakPointType" class="form-error">{{ validationErrors.leakPointType }}</text>
-              </view>
-              <view class="form-field form-field--wide">
-                <text class="form-label form-label--required">漏点位置</text>
-                <input v-model="form.leakPointPosition" class="form-input" placeholder="请输入漏点位置" placeholder-class="input-placeholder" />
-                <text v-if="validationErrors.leakPointPosition" class="form-error">{{ validationErrors.leakPointPosition }}</text>
-              </view>
-              <view class="form-field">
-                <text class="form-label form-label--required">泄漏部位</text>
-                <input v-model="form.leakPart" class="form-input" :class="{ 'form-control--error': validationErrors.leakPart }" placeholder="请输入泄漏部位" placeholder-class="input-placeholder" />
-                <text v-if="validationErrors.leakPart" class="form-error">{{ validationErrors.leakPart }}</text>
-              </view>
-              <view class="form-field">
-                <text class="form-label">漏量</text>
-                <input v-model="form.leakVolume" class="form-input" placeholder="如 2.5L/min" placeholder-class="input-placeholder" />
-              </view>
-              <view class="form-field">
-                <text class="form-label">漏点区域</text>
-                <input v-model="form.leakArea" class="form-input" placeholder="如 城北" placeholder-class="input-placeholder" />
-              </view>
-              <view class="form-field">
-                <text class="form-label">渗漏状态</text>
-                <input v-model="form.leakStatus" class="form-input" placeholder="如 未修复/已修复" placeholder-class="input-placeholder" />
-              </view>
-              <view class="form-field">
-                <text class="form-label form-label--required">巡检人员</text>
-                <input v-model="form.inspector" class="form-input" :class="{ 'form-control--error': validationErrors.inspector }" placeholder="请输入巡检人员" placeholder-class="input-placeholder" />
-                <text v-if="validationErrors.inspector" class="form-error">{{ validationErrors.inspector }}</text>
-              </view>
-              <view class="form-field">
-                <text class="form-label">定漏人员</text>
-                <input v-model="form.locator" class="form-input" placeholder="请输入定漏人员" placeholder-class="input-placeholder" />
-              </view>
-              <view class="form-field">
-                <text class="form-label">产生漏点原因</text>
-                <input v-model="form.leakReason" class="form-input" placeholder="如 管道老化" placeholder-class="input-placeholder" />
-              </view>
-              <view class="form-field">
-                <text class="form-label">费用</text>
-                <input v-model="form.cost" class="form-input" type="number" placeholder="请输入费用" placeholder-class="input-placeholder" />
-              </view>
-              <view class="form-field">
-                <text class="form-label">人工复核次数</text>
-                <input v-model="form.manualReviewCount" class="form-input" type="number" placeholder="请输入次数" placeholder-class="input-placeholder" />
-              </view>
-              <view class="form-field">
-                <text class="form-label">维修处理方式</text>
-                <input v-model="form.repairMethod" class="form-input" placeholder="如 更换管道" placeholder-class="input-placeholder" />
-              </view>
-              <view class="form-field">
-                <text class="form-label">修复时间</text>
-                <WorkOrderDatetimePicker v-model="form.repairTime" title="选择修复时间" placeholder="请选择修复时间" />
-              </view>
-            </view>
-          </view>
-          <!-- 渗漏坐标 -->
-          <view class="form-section">
-            <view class="section-head"><text class="section-title">坐标位置</text><text class="section-hint">可手动输入或点击地图拾取</text></view>
-            <view class="form-field">
-              <view class="form-row">
-                <input v-model="form.coordinatePosition" class="form-input form-input--flex" placeholder="格式: 经度,纬度 (如 121.4737,31.2304)" placeholder-class="input-placeholder" />
-                <button class="form-action-btn" hover-class="form-action-btn--hover" @click="openMapPicker">
-                  <text class="form-action-btn__icon form-action-btn__icon--map"></text><text>地图拾取</text>
-                </button>
-              </view>
-              <!-- 地图选点面板 -->
-              <view v-if="mapPickerVisible" class="map-picker-panel">
-                <view class="map-picker-head">
-                  <text class="map-picker-title">点击地图选取坐标</text>
-                  <text class="map-picker-coord" :class="{ 'map-picker-coord--active': mapPickedCoord }">{{ mapPickedCoord || "请在地图上点击选择" }}</text>
-                </view>
-                <view class="map-picker-body">
-                  <!-- #ifdef H5 -->
-                  <view class="map-picker-body">
-                    <LocaleCoordinateMap
-                      :lng="mapPickerCenter.lng"
-                      :lat="mapPickerCenter.lat"
-                      selectable
-                      @pick="handleMapPick"
-                    />
+          <view class="form-layout">
+            <!-- 左栏 -->
+            <view class="form-main">
+              <!-- 基础信息 -->
+              <view class="form-section">
+                <view class="section-head"><text class="section-title">基础信息</text></view>
+                <view class="form-grid form-grid--three">
+                  <view class="form-field">
+                    <text class="form-label form-label--required">检出时间</text>
+                    <WorkOrderDatetimePicker v-model="form.detectTime" title="选择检出时间" placeholder="请选择检出时间" :clearable="false" />
                   </view>
-                  <!-- #endif -->
-                  <!-- #ifndef H5 -->
-                  <view class="map-picker-canvas map-picker-canvas--fallback">地图选点仅支持 H5 端</view>
-                  <!-- #endif -->
-                </view>
-                <view class="map-picker-actions">
-                  <button class="dialog-btn dialog-btn--cancel" hover-class="dialog-btn--hover" @click="closeMapPicker">取消</button>
-                  <button class="dialog-btn dialog-btn--primary" :disabled="!mapPickedCoord" hover-class="dialog-btn--hover" @click="confirmMapPick">确认选点</button>
-                </view>
-              </view>
-            </view>
-          </view>
-          <!-- 管道信息 -->
-          <view class="form-section">
-            <view class="section-head"><text class="section-title">管道信息</text></view>
-            <view class="form-grid form-grid--two">
-              <view class="form-field"><text class="form-label form-label--required">管道材质</text><input v-model="form.tubeMaterial" class="form-input" :class="{ 'form-control--error': validationErrors.tubeMaterial }" placeholder="如 PE / 钢管 / 铸铁" placeholder-class="input-placeholder" /><text v-if="validationErrors.tubeMaterial" class="form-error">{{ validationErrors.tubeMaterial }}</text></view>
-              <view class="form-field"><text class="form-label form-label--required">管道口径</text><input v-model="form.tubeBore" class="form-input" :class="{ 'form-control--error': validationErrors.tubeBore }" placeholder="如 DN200" placeholder-class="input-placeholder" /><text v-if="validationErrors.tubeBore" class="form-error">{{ validationErrors.tubeBore }}</text></view>
-              <view class="form-field"><text class="form-label form-label--required">管道埋深</text><input v-model="form.tubeBuriedDepth" class="form-input" :class="{ 'form-control--error': validationErrors.tubeBuriedDepth }" placeholder="单位: 米" placeholder-class="input-placeholder" /><text v-if="validationErrors.tubeBuriedDepth" class="form-error">{{ validationErrors.tubeBuriedDepth }}</text></view>
-              <view class="form-field"><text class="form-label">管道年限</text><input v-model="form.tubeAge" class="form-input" placeholder="如 15年" placeholder-class="input-placeholder" /></view>
-            </view>
-          </view>
-          <!-- 设备与音频 -->
-          <view class="form-section">
-            <view class="section-head"><text class="section-title">设备与音频</text></view>
-            <view class="form-grid form-grid--two">
-              <view class="form-field"><text class="form-label">设备编号</text><input v-model="form.deviceNumber" class="form-input" placeholder="请输入设备编号" placeholder-class="input-placeholder" /></view>
-              <view class="form-field"><text class="form-label">漏点距离</text><input v-model="form.leakDistance" class="form-input" placeholder="请输入距离" placeholder-class="input-placeholder" /></view>
-              <view class="form-field"><text class="form-label">噪音样本</text><input v-model="form.noiseSample" class="form-input" placeholder="请输入噪音样本" placeholder-class="input-placeholder" /></view>
-              <view class="form-field"><text class="form-label">噪声时间</text><WorkOrderDatetimePicker v-model="form.noiseTime" title="选择噪声时间" placeholder="请选择噪声时间" /></view>
-              <view class="form-field"><text class="form-label">特征值</text><input v-model="form.featureValue" class="form-input" placeholder="请输入特征值" placeholder-class="input-placeholder" /></view>
-              <view class="form-field">
-                <text class="form-label">音频文件</text>
-                <view class="form-row"><input v-model="form.audioFile" class="form-input form-input--flex" placeholder="音频文件ID" placeholder-class="input-placeholder" /><button class="form-action-btn form-action-btn--small" hover-class="form-action-btn--hover" @click="handleUploadAudio"><text>上传</text></button></view>
-              </view>
-            </view>
-          </view>
-          <!-- 现场照片 -->
-          <view class="form-section">
-            <view class="section-head"><text class="section-title">现场照片</text><text class="section-hint">支持 JPG/PNG，每张不超过 10MB</text></view>
-            <view class="form-field">
-              <view class="form-photo-area">
-                <view v-if="photoList.length > 0" class="photo-preview-list">
-                  <view v-for="(photo, idx) in photoList" :key="idx" class="photo-preview-item">
-                    <image :src="photo.url" class="photo-thumb" mode="aspectFill" />
-                    <button class="photo-remove-btn" hover-class="photo-remove-btn--hover" @click="removePhoto(idx)"><text class="photo-remove-icon"></text></button>
+                  <view class="form-field">
+                    <text class="form-label">检出类型</text>
+                    <input v-model="form.detectType" class="form-input" placeholder="如 人工/算法" placeholder-class="input-placeholder" />
+                  </view>
+                  <view class="form-field">
+                    <text class="form-label">检出难度</text>
+                    <input v-model="form.detectDifficulty" class="form-input" placeholder="如 简单/中/难" placeholder-class="input-placeholder" />
+                  </view>
+                  <view class="form-field">
+                    <text class="form-label form-label--required">漏点类型</text>
+                    <input v-model="form.leakPointType" class="form-input" :class="{ 'form-control--error': validationErrors.leakPointType }" placeholder="如 腐蚀/破裂" placeholder-class="input-placeholder" />
+                    <text v-if="validationErrors.leakPointType" class="form-error">{{ validationErrors.leakPointType }}</text>
+                  </view>
+                  <view class="form-field form-field--wide">
+                    <text class="form-label form-label--required">漏点位置</text>
+                    <input v-model="form.leakPointPosition" class="form-input" placeholder="请输入漏点位置" placeholder-class="input-placeholder" />
+                    <text v-if="validationErrors.leakPointPosition" class="form-error">{{ validationErrors.leakPointPosition }}</text>
+                  </view>
+                  <view class="form-field">
+                    <text class="form-label form-label--required">泄漏部位</text>
+                    <input v-model="form.leakPart" class="form-input" :class="{ 'form-control--error': validationErrors.leakPart }" placeholder="请输入泄漏部位" placeholder-class="input-placeholder" />
+                    <text v-if="validationErrors.leakPart" class="form-error">{{ validationErrors.leakPart }}</text>
+                  </view>
+                  <view class="form-field">
+                    <text class="form-label">漏量</text>
+                    <input v-model="form.leakVolume" class="form-input" placeholder="如 2.5L/min" placeholder-class="input-placeholder" />
+                  </view>
+                  <view class="form-field">
+                    <text class="form-label">漏点区域</text>
+                    <input v-model="form.leakArea" class="form-input" placeholder="如 城北" placeholder-class="input-placeholder" />
+                  </view>
+                  <view class="form-field">
+                    <text class="form-label">渗漏状态</text>
+                    <input v-model="form.leakStatus" class="form-input" placeholder="如 未修复/已修复" placeholder-class="input-placeholder" />
+                  </view>
+                  <view class="form-field">
+                    <text class="form-label form-label--required">巡检人员</text>
+                    <input v-model="form.inspector" class="form-input" :class="{ 'form-control--error': validationErrors.inspector }" placeholder="请输入巡检人员" placeholder-class="input-placeholder" />
+                    <text v-if="validationErrors.inspector" class="form-error">{{ validationErrors.inspector }}</text>
+                  </view>
+                  <view class="form-field">
+                    <text class="form-label">定漏人员</text>
+                    <input v-model="form.locator" class="form-input" placeholder="请输入定漏人员" placeholder-class="input-placeholder" />
+                  </view>
+                  <view class="form-field">
+                    <text class="form-label">产生漏点原因</text>
+                    <input v-model="form.leakReason" class="form-input" placeholder="如 管道老化" placeholder-class="input-placeholder" />
+                  </view>
+                  <view class="form-field">
+                    <text class="form-label">费用</text>
+                    <input v-model="form.cost" class="form-input" type="number" placeholder="请输入费用" placeholder-class="input-placeholder" />
+                  </view>
+                  <view class="form-field">
+                    <text class="form-label">人工复核次数</text>
+                    <input v-model="form.manualReviewCount" class="form-input" type="number" placeholder="请输入次数" placeholder-class="input-placeholder" />
+                  </view>
+                  <view class="form-field">
+                    <text class="form-label">维修处理方式</text>
+                    <input v-model="form.repairMethod" class="form-input" placeholder="如 更换管道" placeholder-class="input-placeholder" />
+                  </view>
+                  <view class="form-field">
+                    <text class="form-label">修复时间</text>
+                    <WorkOrderDatetimePicker v-model="form.repairTime" title="选择修复时间" placeholder="请选择修复时间" />
                   </view>
                 </view>
-                <view v-if="photoList.length < 9" class="photo-add-box" @click="handleUploadPhoto"><text class="photo-add-icon">+</text><text class="photo-add-label">{{ photoList.length === 0 ? "上传照片" : "继续添加" }}</text></view>
               </view>
-              <input v-model="photoIdListText" class="form-input form-input--hidden-id" placeholder="照片ID (自动生成)" placeholder-class="input-placeholder" />
+              <!-- 坐标位置 -->
+              <view class="form-section">
+                <view class="section-head"><text class="section-title">坐标位置</text><text class="section-hint">可手动输入或点击地图拾取</text></view>
+                <view class="form-field">
+                  <view class="form-row">
+                    <input v-model="form.coordinatePosition" class="form-input form-input--flex" placeholder="格式: 经度,纬度 (如 121.4737,31.2304)" placeholder-class="input-placeholder" />
+                    <button class="form-action-btn" hover-class="form-action-btn--hover" @click="openMapPicker">
+                      <text class="form-action-btn__icon form-action-btn__icon--map"></text><text>地图拾取</text>
+                    </button>
+                  </view>
+                  <!-- 地图选点面板 -->
+                  <view v-if="mapPickerVisible" class="map-picker-panel">
+                    <view class="map-picker-head">
+                      <text class="map-picker-title">点击地图选取坐标</text>
+                      <text class="map-picker-coord" :class="{ 'map-picker-coord--active': mapPickedCoord }">{{ mapPickedCoord || "请在地图上点击选择" }}</text>
+                    </view>
+                    <view class="map-picker-body">
+                      <!-- #ifdef H5 -->
+                      <view class="map-picker-body">
+                        <LocaleCoordinateMap
+                          :lng="mapPickerCenter.lng"
+                          :lat="mapPickerCenter.lat"
+                          selectable
+                          @pick="handleMapPick"
+                        />
+                      </view>
+                      <!-- #endif -->
+                      <!-- #ifndef H5 -->
+                      <view class="map-picker-canvas map-picker-canvas--fallback">地图选点仅支持 H5 端</view>
+                      <!-- #endif -->
+                    </view>
+                    <view class="map-picker-actions">
+                      <button class="dialog-btn dialog-btn--cancel" hover-class="dialog-btn--hover" @click="closeMapPicker">取消</button>
+                      <button class="dialog-btn dialog-btn--primary" :disabled="!mapPickedCoord" hover-class="dialog-btn--hover" @click="confirmMapPick">确认选点</button>
+                    </view>
+                  </view>
+                </view>
+              </view>
+              <!-- 现场照片与视频 -->
+              <view class="form-section">
+                <view class="section-head"><text class="section-title">现场照片与视频</text></view>
+                <view class="form-grid form-grid--two">
+                  <view class="form-field">
+                    <text class="form-label">现场照片</text>
+                    <view class="form-photo-area">
+                      <view v-if="photoList.length > 0" class="photo-preview-list">
+                        <view v-for="(photo, idx) in photoList" :key="idx" class="photo-preview-item">
+                          <image :src="photo.url" class="photo-thumb" mode="aspectFill" />
+                          <button class="photo-remove-btn" hover-class="photo-remove-btn--hover" @click="removePhoto(idx)"><text class="photo-remove-icon"></text></button>
+                        </view>
+                      </view>
+                      <view v-if="photoList.length < 9" class="photo-add-box" @click="handleUploadPhoto"><text class="photo-add-icon">+</text><text class="photo-add-label">{{ photoList.length === 0 ? "上传照片" : "继续添加" }}</text></view>
+                    </view>
+                    <input v-model="photoIdListText" class="form-input form-input--hidden-id" placeholder="照片ID (自动生成)" placeholder-class="input-placeholder" />
+                  </view>
+                  <view class="form-field" style="margin-bottom: 8px;">
+                    <text class="form-label">现场视频</text>
+                    <view class="form-photo-area">
+                      <view v-if="videoList.length > 0" class="photo-preview-list">
+                        <view v-for="(video, vidx) in videoList" :key="vidx" class="photo-preview-item photo-preview-item--video">
+                          <video :src="video.url" class="photo-thumb" />
+                          <button class="photo-remove-btn" hover-class="photo-remove-btn--hover" @click="removeVideo"><text class="photo-remove-icon"></text></button>
+                        </view>
+                      </view>
+                      <view v-if="videoList.length === 0" class="photo-add-box" @click="handleUploadVideo"><text class="photo-add-icon">+</text><text class="photo-add-label">上传视频</text></view>
+                    </view>
+                    <input v-model="form.sceneVideo" class="form-input form-input--hidden-id" placeholder="视频ID (自动生成)" placeholder-class="input-placeholder" />
+                  </view>
+                </view>
+              </view>
+              <!-- 备注 -->
+              <view class="form-section">
+                <view class="section-head"><text class="section-title">备注</text></view>
+                <view class="form-field"><textarea v-model="form.description" class="form-textarea" placeholder="请输入备注信息（漏点原因、处理建议等）" placeholder-class="input-placeholder" /></view>
+              </view>
             </view>
-          </view>
-          <!-- 现场视频 -->
-          <view class="form-section">
-            <view class="section-head"><text class="section-title">现场视频</text></view>
-            <view class="form-field"><input v-model="form.sceneVideo" class="form-input" placeholder="请输入视频URL" placeholder-class="input-placeholder" /></view>
-          </view>
-          <!-- 备注 -->
-          <view class="form-section">
-            <view class="section-head"><text class="section-title">备注</text></view>
-            <view class="form-field"><textarea v-model="form.description" class="form-textarea" placeholder="请输入备注信息（漏点原因、处理建议等）" placeholder-class="input-placeholder" /></view>
+            <!-- 右栏 -->
+            <view class="form-side">
+              <!-- 管道信息 -->
+              <view class="form-section">
+                <view class="section-head"><text class="section-title">管道信息</text></view>
+                <view class="form-grid form-grid--side">
+                  <view class="form-field"><text class="form-label form-label--required">管道材质</text><input v-model="form.tubeMaterial" class="form-input" :class="{ 'form-control--error': validationErrors.tubeMaterial }" placeholder="如 PE / 钢管 / 铸铁" placeholder-class="input-placeholder" /><text v-if="validationErrors.tubeMaterial" class="form-error">{{ validationErrors.tubeMaterial }}</text></view>
+                  <view class="form-field"><text class="form-label form-label--required">管道口径</text><input v-model="form.tubeBore" class="form-input" :class="{ 'form-control--error': validationErrors.tubeBore }" placeholder="如 DN200" placeholder-class="input-placeholder" /><text v-if="validationErrors.tubeBore" class="form-error">{{ validationErrors.tubeBore }}</text></view>
+                  <view class="form-field"><text class="form-label form-label--required">管道埋深</text><input v-model="form.tubeBuriedDepth" class="form-input" :class="{ 'form-control--error': validationErrors.tubeBuriedDepth }" placeholder="单位: 米" placeholder-class="input-placeholder" /><text v-if="validationErrors.tubeBuriedDepth" class="form-error">{{ validationErrors.tubeBuriedDepth }}</text></view>
+                  <view class="form-field"><text class="form-label">管道年限</text><input v-model="form.tubeAge" class="form-input" placeholder="如 15年" placeholder-class="input-placeholder" /></view>
+                </view>
+              </view>
+              <!-- 设备与音频 -->
+              <view class="form-section">
+                <view class="section-head"><text class="section-title">设备与音频</text></view>
+                <view class="form-grid form-grid--side">
+                  <view class="form-field"><text class="form-label">设备编号</text><input v-model="form.deviceNumber" class="form-input" placeholder="请输入设备编号" placeholder-class="input-placeholder" /></view>
+                  <view class="form-field"><text class="form-label">漏点距离</text><input v-model="form.leakDistance" class="form-input" placeholder="请输入距离" placeholder-class="input-placeholder" /></view>
+                  <view class="form-field"><text class="form-label">噪音样本</text><input v-model="form.noiseSample" class="form-input" placeholder="请输入噪音样本" placeholder-class="input-placeholder" /></view>
+                  <view class="form-field"><text class="form-label">噪声时间</text><WorkOrderDatetimePicker v-model="form.noiseTime" title="选择噪声时间" placeholder="请选择噪声时间" /></view>
+                  <view class="form-field"><text class="form-label">特征值</text><input v-model="form.featureValue" class="form-input" placeholder="请输入特征值" placeholder-class="input-placeholder" /></view>
+                  <view class="form-field">
+                    <text class="form-label">音频文件</text>
+                    <view class="form-photo-area">
+                      <view v-if="audioList.length > 0" class="photo-preview-list">
+                        <view v-for="(audio, aidx) in audioList" :key="aidx" class="photo-preview-item photo-preview-item--audio">
+                          <view class="audio-thumb"><text class="audio-thumb__icon">♪</text></view>
+                          <button class="photo-remove-btn" hover-class="photo-remove-btn--hover" @click="removeAudio"><text class="photo-remove-icon"></text></button>
+                        </view>
+                      </view>
+                      <view v-if="audioList.length === 0" class="photo-add-box" @click="handleUploadAudio"><text class="photo-add-icon">+</text><text class="photo-add-label">上传音频</text></view>
+                    </view>
+                    <input v-model="form.audioFile" class="form-input form-input--hidden-id" placeholder="音频ID (自动生成)" placeholder-class="input-placeholder" />
+                  </view>
+                </view>
+              </view>
+            </view>
           </view>
         </view>
         <view class="dialog-actions">
@@ -308,6 +442,12 @@ import {
 } from "@/services/leak-report/leak-management";
 import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
 import LeakTableView from "@/pages/leak-report/components/LeakTableView.vue";
+import { uploadFile } from "@/services/leak-report/file-upload";
+import { getAudioDataPage } from "@/services/data-analysis/audio";
+
+function getBaseUrl(): string {
+  return (import.meta as unknown as { env: { VITE_API_BASE_URL?: string } }).env?.VITE_API_BASE_URL || "";
+}
 
 type RecordItem = Record<string, unknown>;
 
@@ -324,8 +464,15 @@ interface PhotoItem {
   id: string;
 }
 
+interface VideoItem {
+  url: string;
+  id: string;
+  name: string;
+}
+
 const detailTabs: Array<{ label: string; value: DetailTab }> = [
   { label: "基本信息", value: "base" },
+  { label: "漏点详情", value: "detail" },
   { label: "管道信息", value: "pipe" },
   { label: "附件备注", value: "attach" },
 ];
@@ -333,7 +480,7 @@ const detailTabs: Array<{ label: string; value: DetailTab }> = [
 const sortField = ref("detectTime");
 const sortOrder = ref("desc");
 
-const filters = reactive({ startTime: "", endTime: "", deviceNumber: "", leakPointType: "", leakArea: "" });
+const filters = reactive({ startTime: "", endTime: "", deviceNumber: "", leakPointType: "", leakArea: "", inspector: "", locator: "" });
 const pagination = reactive({ pageNum: 1, pageSize: 10 });
 const records = ref<RecordItem[]>([]);
 const selectedRecord = ref<RecordItem | null>(null);
@@ -348,6 +495,8 @@ const submitting = ref(false);
 const activeDetailTab = ref<DetailTab>("base");
 const photoList = ref<PhotoItem[]>([]);
 const photoIdListText = ref("");
+const videoList = ref<VideoItem[]>([]);
+const audioList = ref<VideoItem[]>([]);
 
 const validationErrors = reactive({
   detectTime: "",
@@ -401,10 +550,10 @@ const statisticsCards = computed(() => {
   const unrepaired = records.value.filter((r) => String(gv(r, "leakStatus") || "") === "未修复").length;
   const repaired = records.value.filter((r) => String(gv(r, "leakStatus") || "") === "已修复").length;
   return [
-    { label: "总记录数", value: String(total.value) },
-    { label: "未修复", value: String(unrepaired) },
-    { label: "已修复", value: String(repaired) },
-    { label: "当前页条数", value: String(records.value.length) },
+    { label: "总记录数", value: String(total.value), type: "total" },
+    { label: "未修复", value: String(unrepaired), type: "unrepaired" },
+    { label: "已修复", value: String(repaired), type: "repaired" },
+    { label: "当前页条数", value: String(records.value.length), type: "current" },
   ];
 });
 
@@ -416,30 +565,28 @@ function mkFields(r: RecordItem | null, defs: Array<[string, string, boolean?, s
   }));
 }
 
-const baseDetailFields = computed(() => mkFields(selectedRecord.value, [
-  ["检出时间", "detectTime", true],
+const detailDetailFields = computed(() => mkFields(selectedRecord.value, [
   ["渗漏状态", "leakStatus"],
-  ["检出类型", "detectType"],
-  ["检出难度", "detectDifficulty"],
-  ["漏点类型", "leakPointType"],
-  ["漏点位置", "leakPointPosition"],
-  ["坐标位置", "coordinatePosition"],
   ["泄漏部位", "leakPart"],
   ["漏点距离", "leakDistance"],
   ["漏量", "leakVolume"],
-  ["漏点区域", "leakArea"],
-  ["巡检人员", "inspector"],
   ["定漏人员", "locator"],
   ["产生漏点原因", "leakReason"],
   ["费用", "cost"],
   ["人工复核次数", "manualReviewCount"],
   ["维修处理方式", "repairMethod"],
-  ["备注", "description"],
-  ["噪声时间", "noiseTime", true],
   ["特征值", "featureValue"],
-  ["修复时间", "repairTime", true],
-  ["创建时间", "createdAt", true],
 ]));
+
+const timeDetailFields = computed(() => {
+  const r = selectedRecord.value || {};
+  return [
+    { label: "检出时间", value: fmtDt(gv(r, "detectTime")) },
+    { label: "噪声时间", value: fmtDt(gv(r, "noiseTime")) },
+    { label: "创建时间", value: fmtDt(gv(r, "createdAt")) },
+    { label: "修复时间", value: fmtDt(gv(r, "repairTime")) },
+  ];
+});
 
 const pipeDetailFields = computed(() => mkFields(selectedRecord.value, [
   ["管道材质", "tubeMaterial"],
@@ -455,7 +602,79 @@ const attachDetailFields = computed(() => mkFields(selectedRecord.value, [
   ["噪音样本", "noiseSample"],
   ["频谱", "spectrum"],
   ["下载", "downloadUrl"],
+  ["备注", "description"],
 ]));
+
+const attachTextFields = computed(() => mkFields(selectedRecord.value, [
+  ["噪音样本", "noiseSample"],
+  ["频谱", "spectrum"],
+  ["下载", "downloadUrl"],
+  ["备注", "description"],
+]));
+
+const detailPhotoIds = computed<string[]>(() => {
+  const raw = getFieldValue(selectedRecord.value, "sceneImages");
+  if (!raw) return [];
+  return String(raw).split(",").map((s) => s.trim()).filter(Boolean);
+});
+
+const detailAudioList = ref<RecordItem[]>([]);
+const detailAudioLoading = ref(false);
+const detailAudioPlayingIndex = ref(-1);
+let detailAudioInstance: HTMLAudioElement | null = null;
+
+async function loadDetailAudioList() {
+  const dn = getFieldValue(selectedRecord.value, "deviceNumber");
+  if (!dn) { detailAudioList.value = []; return; }
+  detailAudioLoading.value = true;
+  try {
+    const res = await getAudioDataPage({ pageNum: 1, pageSize: 10, deviceNumber: dn }) as unknown as { code?: number; data?: unknown; records?: unknown[]; rows?: unknown[]; total?: number };
+    const data = (res as Record<string, unknown>)?.data ?? res;
+    const pageData = (data && typeof data === "object" ? data : {}) as Record<string, unknown>;
+    const recs = (pageData.records as RecordItem[]) || (pageData.rows as RecordItem[]) || (res.records as RecordItem[]) || (res.rows as RecordItem[]) || [];
+    detailAudioList.value = recs;
+  } catch { detailAudioList.value = []; }
+  finally { detailAudioLoading.value = false; }
+}
+
+function toggleDetailAudioPlay(index: number) {
+  const audio = detailAudioList.value[index];
+  if (!audio) return;
+  const aid = getFieldValue(audio, "id");
+  if (!aid) return;
+  // #ifdef H5
+  if (detailAudioPlayingIndex.value === index) { detailAudioInstance?.pause(); detailAudioPlayingIndex.value = -1; return; }
+  detailAudioInstance?.pause();
+  detailAudioInstance = new Audio(`${getBaseUrl()}/api/sampling-audio/${aid}/wav`);
+  detailAudioInstance.onended = () => { detailAudioPlayingIndex.value = -1; };
+  detailAudioInstance.play();
+  detailAudioPlayingIndex.value = index;
+  // #endif
+  // #ifndef H5
+  uni.showToast({ title: "音频播放仅支持 H5 端", icon: "none" });
+  // #endif
+}
+
+function getPreviewUrl(id: string): string {
+  return `${getBaseUrl()}/api/file/preview/${id}`;
+}
+
+function previewDetailPhoto(index: number) {
+  const urls = detailPhotoIds.value.map(getPreviewUrl);
+  // #ifdef H5
+  window.open(urls[index], "_blank");
+  // #endif
+  // #ifndef H5
+  uni.previewImage({ current: urls[index], urls });
+  // #endif
+}
+
+function playDetailVideo() {
+  const vid = getFieldValue(selectedRecord.value, "sceneVideo");
+  if (!vid) return;
+  videoDialogUrl.value = `${getBaseUrl()}/api/file/preview/${vid}`;
+  videoDialogVisible.value = true;
+}
 
 function gv(item: RecordItem, k: string) { return Object.hasOwn(item, k) ? item[k] : undefined; }
 function getRowId(item: RecordItem): string { const v = gv(item, "id"); return typeof v === "string" || typeof v === "number" ? String(v) : ""; }
@@ -486,6 +705,8 @@ function buildQuery(): Record<string, unknown> {
     deviceNumber: filters.deviceNumber.trim() || undefined,
     leakPointType: filters.leakPointType.trim() || undefined,
     leakArea: filters.leakArea.trim() || undefined,
+    inspector: filters.inspector.trim() || undefined,
+    locator: filters.locator.trim() || undefined,
   });
 }
 
@@ -497,8 +718,9 @@ async function fetchLeakPoints() {
     const p = parsePage(res);
     if (p.pageNum && p.pageNum !== pagination.pageNum) pagination.pageNum = p.pageNum;
     if (p.pageSize && p.pageSize !== pagination.pageSize) pagination.pageSize = p.pageSize;
-    records.value = applyLocalSort(p.records);
-    total.value = p.total;
+    const filteredRecords = applyLocalFilters(p.records);
+    records.value = applyLocalSort(filteredRecords);
+    total.value = filteredRecords.length !== p.records.length ? filteredRecords.length : p.total;
     selectedIds.value = new Set();
     selectFirstRow();
   } catch (e: unknown) {
@@ -508,8 +730,9 @@ async function fetchLeakPoints() {
 }
 
 function searchLeakPoints() { pagination.pageNum = 1; fetchLeakPoints(); }
-function resetFilters() { filters.startTime = ""; filters.endTime = ""; filters.deviceNumber = ""; filters.leakPointType = ""; filters.leakArea = ""; searchLeakPoints(); }
+function resetFilters() { filters.startTime = ""; filters.endTime = ""; filters.deviceNumber = ""; filters.leakPointType = ""; filters.leakArea = ""; filters.inspector = ""; filters.locator = ""; searchLeakPoints(); }
 function changePage(s: number) { const n = pagination.pageNum + s; if (n < 1 || n > totalPages.value) return; pagination.pageNum = n; fetchLeakPoints(); }
+function jumpToPage(p: number) { if (p < 1 || p > totalPages.value) return; pagination.pageNum = p; fetchLeakPoints(); }
 
 function selectFirstRow() {
   if (!records.value.length) { selectedRecord.value = null; selectedRecordKey.value = ""; return; }
@@ -520,13 +743,16 @@ function selectFirstRow() {
 
 function selectRecord(item: RecordItem, i: number) {
   selectedRecord.value = item; selectedRecordKey.value = getRowKey(item, i); activeDetailTab.value = "base";
+  detailAudioList.value = []; detailAudioPlayingIndex.value = -1; detailAudioInstance?.pause();
   const id = getRowId(item);
   if (!id) return;
   getLeakPointDetail(id).then((res: unknown) => {
     ok(res as Res);
     const d = (res as Res)?.data;
     if (isObj(d)) selectedRecord.value = { ...item, ...(d as RecordItem) };
+    loadDetailAudioList();
   }).catch(() => {});
+  loadDetailAudioList();
 }
 
 function isItemSelected(item: RecordItem) { return selectedIds.value.has(getRowKey(item, records.value.indexOf(item))); }
@@ -552,7 +778,7 @@ function resetForm() {
   form.sceneImages = ""; form.sceneVideo = ""; form.manualReviewCount = ""; form.deviceNumber = "";
   form.noiseTime = ""; form.leakStatus = ""; form.featureValue = ""; form.audioFile = "";
   form.repairMethod = ""; form.description = "";
-  photoList.value = []; photoIdListText.value = ""; clearValidationErrors();
+  photoList.value = []; photoIdListText.value = ""; videoList.value = []; audioList.value = []; clearValidationErrors();
 }
 
 function fillForm(item: RecordItem) {
@@ -588,6 +814,10 @@ function fillForm(item: RecordItem) {
   form.description = String(gv(item, "description") ?? "");
   const picId = String(gv(item, "sceneImages") ?? ""); form.sceneImages = picId; photoIdListText.value = picId;
   photoList.value = picId ? [{ url: `/api/file/preview/${picId}`, id: picId }] : [];
+  const vidId = String(gv(item, "sceneVideo") ?? "");
+  videoList.value = vidId ? [{ url: `/api/file/preview/${vidId}`, id: vidId, name: `视频_${vidId}` }] : [];
+  const audId = String(gv(item, "audioFile") ?? "");
+  audioList.value = audId ? [{ url: `/api/file/preview/${audId}`, id: audId, name: `音频_${audId}` }] : [];
   clearValidationErrors();
 }
 
@@ -607,30 +837,68 @@ function validateForm(): boolean {
 }
 
 function handleUploadPhoto() {
-  uni.chooseImage({
-    count: 9 - photoList.value.length, sizeType: ["compressed"], sourceType: ["album", "camera"],
-    success: (res) => {
+  const remaining = 9 - photoList.value.length;
+  if (remaining <= 0) { uni.showToast({ title: "最多上传9张照片", icon: "none" }); return; }
+  // #ifdef H5
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/*";
+  input.multiple = remaining > 1;
+  input.onchange = async () => {
+    const files = Array.from(input.files || []).slice(0, remaining);
+    if (!files.length) return;
+    uni.showToast({ title: "照片上传中...", icon: "loading" });
+    try {
       const newPhotos: PhotoItem[] = [];
-      const paths: string[] = Array.isArray(res.tempFilePaths) ? res.tempFilePaths : [res.tempFilePaths];
-      paths.forEach((path: string, idx: number) => { newPhotos.push({ url: path, id: `img_${Date.now()}_${idx}` }); });
+      for (const file of files) {
+        const res = await uploadFile(file, file.name) as { data?: { filePath?: string; id?: string } };
+        const pid = String(res?.data?.filePath || res?.data?.id || "");
+        if (pid) newPhotos.push({ url: `${getBaseUrl()}/api/file/preview/${pid}`, id: pid });
+      }
       photoList.value = [...photoList.value, ...newPhotos];
       form.sceneImages = photoList.value.map((p) => p.id).join(","); photoIdListText.value = form.sceneImages;
+      uni.showToast({ title: "上传成功", icon: "success" });
+    } catch {
+      uni.showToast({ title: "上传失败", icon: "none" });
+    }
+  };
+  input.click();
+  // #endif
+  // #ifndef H5
+  uni.chooseImage({
+    count: remaining, sizeType: ["compressed"], sourceType: ["album", "camera"],
+    success: async (res) => {
+      const paths: string[] = Array.isArray(res.tempFilePaths) ? res.tempFilePaths : [res.tempFilePaths];
+      uni.showToast({ title: "照片上传中...", icon: "loading" });
+      try {
+        const newPhotos: PhotoItem[] = [];
+        for (const path of paths) {
+          const fileName = path.split("/").pop() || "image.jpg";
+          const r = await uploadFile(path, fileName) as { data?: { filePath?: string; id?: string } };
+          const pid = String(r?.data?.filePath || r?.data?.id || "");
+          if (pid) newPhotos.push({ url: `${getBaseUrl()}/api/file/preview/${pid}`, id: pid });
+        }
+        photoList.value = [...photoList.value, ...newPhotos];
+        form.sceneImages = photoList.value.map((p) => p.id).join(","); photoIdListText.value = form.sceneImages;
+        uni.showToast({ title: "上传成功", icon: "success" });
+      } catch {
+        uni.showToast({ title: "上传失败", icon: "none" });
+      }
     },
     fail: () => { uni.showToast({ title: "取消选择", icon: "none" }); },
   });
+  // #endif
 }
 
 function removePhoto(idx: number) { photoList.value.splice(idx, 1); form.sceneImages = photoList.value.map((p) => p.id).join(","); photoIdListText.value = form.sceneImages; }
 function handleExport() {
   if (!records.value.length) { uni.showToast({ title: "暂无数据可导出", icon: "none" }); return; }
   // #ifdef H5
-  const headers = ["检出时间", "渗漏级别", "漏点位置", "泄漏部位", "检出人", "管道材质", "管道口径", "管道埋深", "渗漏坐标", "关联设备", "备注"];
-  const keys = ["detectTime", "leakLevel", "leakPointPosition", "leakPart", "inspector", "tubeMaterial", "tubeBore", "tubeBuriedDepth", "coordinatePosition", "deviceNumber", "description"];
-  const levelMap: Record<number, string> = { 0: "轻度", 1: "中度", 2: "重度" };
+  const headers = ["检出时间", "渗漏状态", "漏点类型", "泄漏部位", "漏点位置", "巡检人员", "定漏人员", "音频文件ID", "现场视频ID", "关联工单", "关联设备"];
+  const keys = ["detectTime", "leakStatus", "leakPointType", "leakPart", "leakPointPosition", "inspector", "locator", "audioFile", "sceneVideo", "workOrderId", "deviceNumber"];
   const rows = records.value.map((r) =>
     keys.map((k) => {
-      let v = gv(r, k);
-      if (k === "leakLevel") return levelMap[Number(v)] ?? "";
+      const v = gv(r, k);
       if (v === undefined || v === null) return "";
       return String(v).replace(/"/g, '""');
     })
@@ -650,6 +918,9 @@ function handleExport() {
   // #endif
 }
 
+function removeVideo() { videoList.value = []; form.sceneVideo = ""; }
+function removeAudio() { audioList.value = []; form.audioFile = ""; }
+
 function handleImport() {
   // #ifdef H5
   const input = document.createElement("input");
@@ -667,7 +938,92 @@ function handleImport() {
   // #endif
 }
 
-function handleUploadAudio() { uni.showToast({ title: "音频上传功能开发中", icon: "none" }); }
+function handleUploadAudio() {
+  // #ifdef H5
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "audio/*";
+  input.onchange = async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    uni.showToast({ title: "音频上传中...", icon: "loading" });
+    try {
+      const res = await uploadFile(file, file.name) as { data?: { filePath?: string; id?: string }; msg?: string };
+      const aid = String(res?.data?.filePath || res?.data?.id || "");
+      if (!aid) { uni.showToast({ title: res?.msg || "上传失败", icon: "none" }); return; }
+      form.audioFile = aid;
+      audioList.value = [{ url: `${getBaseUrl()}/api/file/preview/${aid}`, id: aid, name: `音频_${aid}` }];
+      uni.showToast({ title: "上传成功", icon: "success" });
+    } catch {
+      uni.showToast({ title: "上传失败", icon: "none" });
+    }
+  };
+  input.click();
+  // #endif
+  // #ifndef H5
+  uni.chooseMessageFile({
+    count: 1,
+    type: "file",
+    success: async (res) => {
+      const file = res.tempFiles?.[0];
+      if (!file) return;
+      uni.showToast({ title: "音频上传中...", icon: "loading" });
+      try {
+        const r = await uploadFile(file.path, file.name || "audio") as { data?: { filePath?: string; id?: string }; msg?: string };
+        const aid = String(r?.data?.filePath || r?.data?.id || "");
+        if (!aid) { uni.showToast({ title: r?.msg || "上传失败", icon: "none" }); return; }
+        form.audioFile = aid;
+        audioList.value = [{ url: `${getBaseUrl()}/api/file/preview/${aid}`, id: aid, name: `音频_${aid}` }];
+        uni.showToast({ title: "上传成功", icon: "success" });
+      } catch {
+        uni.showToast({ title: "上传失败", icon: "none" });
+      }
+    },
+  });
+  // #endif
+}
+
+function handleUploadVideo() {
+  // #ifdef H5
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "video/*";
+  input.onchange = async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    uni.showToast({ title: "视频上传中...", icon: "loading" });
+    try {
+      const res = await uploadFile(file, file.name) as { data?: { filePath?: string; id?: string }; msg?: string };
+      const vid = String(res?.data?.filePath || res?.data?.id || "");
+      if (!vid) { uni.showToast({ title: res?.msg || "上传失败", icon: "none" }); return; }
+      form.sceneVideo = vid;
+      videoList.value = [{ url: `${getBaseUrl()}/api/file/preview/${vid}`, id: vid, name: `视频_${vid}` }];
+      uni.showToast({ title: "上传成功", icon: "success" });
+    } catch {
+      uni.showToast({ title: "上传失败", icon: "none" });
+    }
+  };
+  input.click();
+  // #endif
+  // #ifndef H5
+  uni.chooseVideo({
+    success: async (res) => {
+      uni.showToast({ title: "视频上传中...", icon: "loading" });
+      try {
+        const fileName = (res.name || "video.mp4") as string;
+        const r = await uploadFile(res.tempFilePath, fileName) as { data?: { filePath?: string; id?: string }; msg?: string };
+        const vid = String(r?.data?.filePath || r?.data?.id || "");
+        if (!vid) { uni.showToast({ title: r?.msg || "上传失败", icon: "none" }); return; }
+        form.sceneVideo = vid;
+        videoList.value = [{ url: `${getBaseUrl()}/api/file/preview/${vid}`, id: vid, name: `视频_${vid}` }];
+        uni.showToast({ title: "上传成功", icon: "success" });
+      } catch {
+        uni.showToast({ title: "上传失败", icon: "none" });
+      }
+    },
+  });
+  // #endif
+}
 
 const mapPickerVisible = ref(false);
 const mapPickedCoord = ref("");
@@ -824,24 +1180,55 @@ function handleWorkOrderJump(item: RecordItem) {
 function getFieldValue(item: RecordItem | null, key: string): string { if (!item) return ""; const v = gv(item, key); if (v === undefined || v === null) return ""; return String(v); }
 function formatDateTime(v: unknown): string { return fmtDt(v); }
 
-function getLeakLevelLabel(item: RecordItem | null): string { if (!item) return "-"; return getFieldValue(item, "leakStatus") || "-"; }
-function getLeakLevelClass(item: RecordItem): string { return ""; }
-function getLeakLevelBadgeClass(item: RecordItem | null): string { return ""; }
-function getDetailItemClass(item: { label: string }): string { if (item.label !== "渗漏状态") return ""; return ""; }
+const playingAudioIndex = ref(-1);
+let audioPlayerInstance: HTMLAudioElement | null = null;
 
-function getItemAccentClass(label: string): string {
-  // 管道属性类（蓝）
-  if (["管道材质", "管道口径"].includes(label)) return "detail-item--accent-blue";
-  // 管道状态类（青）
-  if (["管道埋深", "管道年限"].includes(label)) return "detail-item--accent-cyan";
-  // 音频类（紫）
-  if (["关联音频", "音频文件", "噪声时间", "噪音样本"].includes(label)) return "detail-item--accent-purple";
-  // 媒体类（粉）
-  if (["渗漏照片", "现场照片", "现场视频"].includes(label)) return "detail-item--accent-pink";
-  // 状态类（橙）
-  if (["渗漏状态", "特征值"].includes(label)) return "detail-item--accent-orange";
-  // 其他（灰）
-  if (["备注"].includes(label)) return "detail-item--accent-gray";
+function toggleAudioPlay(item: RecordItem, index: number) {
+  const aid = getFieldValue(item, "audioFile");
+  if (!aid) return;
+  // #ifdef H5
+  if (playingAudioIndex.value === index) {
+    audioPlayerInstance?.pause();
+    playingAudioIndex.value = -1;
+    return;
+  }
+  audioPlayerInstance?.pause();
+  audioPlayerInstance = new Audio(`${getBaseUrl()}/api/file/preview/${aid}`);
+  audioPlayerInstance.onended = () => { playingAudioIndex.value = -1; };
+  audioPlayerInstance.play();
+  playingAudioIndex.value = index;
+  // #endif
+  // #ifndef H5
+  uni.showToast({ title: "音频播放仅支持 H5 端", icon: "none" });
+  // #endif
+}
+
+const videoDialogVisible = ref(false);
+const currentVideoUrl = ref("");
+
+function toggleVideoPlay(item: RecordItem) {
+  const vid = getFieldValue(item, "sceneVideo");
+  if (!vid) return;
+  currentVideoUrl.value = `${getBaseUrl()}/api/file/preview/${vid}`;
+  videoDialogVisible.value = true;
+}
+
+function closeVideoDialog() {
+  videoDialogVisible.value = false;
+  currentVideoUrl.value = "";
+}
+
+function getLeakStatusClass(item: RecordItem | null): string {
+  const s = getFieldValue(item, "leakStatus");
+  if (s === "未修复") return "level-pill--heavy";
+  if (s === "已修复") return "level-pill--light";
+  return "";
+}
+
+function getLeakStatusBadgeClass(item: RecordItem | null): string {
+  const s = getFieldValue(item, "leakStatus");
+  if (s === "未修复") return "detail-summary__badge--heavy";
+  if (s === "已修复") return "detail-summary__badge--light";
   return "";
 }
 
@@ -871,6 +1258,17 @@ function arr(v: unknown, ks: string[]): unknown[] { if (!isObj(v)) return []; fo
 function num(v: unknown, ks: string[]): number | undefined { if (!isObj(v)) return undefined; for (const k of ks) { const a = (v as RecordItem)[k]; if (typeof a === "number") return a; if (typeof a === "string" && a.trim() && !isNaN(Number(a))) return Number(a); } return undefined; }
 function isObj(v: unknown): v is RecordItem { return Boolean(v && typeof v === "object" && !Array.isArray(v)); }
 function rmEmpty(obj: RecordItem): RecordItem { return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== "" && v !== undefined && v !== null)); }
+function applyLocalFilters(list: RecordItem[]): RecordItem[] {
+  const inspectorKey = filters.inspector.trim().toLowerCase();
+  const locatorKey = filters.locator.trim().toLowerCase();
+  if (!inspectorKey && !locatorKey) return list;
+  return list.filter((item) => {
+    if (inspectorKey && !String(getFieldValue(item, "inspector") || "").toLowerCase().includes(inspectorKey)) return false;
+    if (locatorKey && !String(getFieldValue(item, "locator") || "").toLowerCase().includes(locatorKey)) return false;
+    return true;
+  });
+}
+
 function applyLocalSort(list: RecordItem[]): RecordItem[] {
   if (!sortField.value || !sortOrder.value) return list;
   const field = sortField.value;
@@ -878,10 +1276,7 @@ function applyLocalSort(list: RecordItem[]): RecordItem[] {
   return [...list].sort((a, b) => {
     let va = gv(a, field);
     let vb = gv(b, field);
-    if (field === "leakLevel") {
-      va = Number(va);
-      vb = Number(vb);
-    } else if (field === "detectTime" || field === "createdAt") {
+    if (field === "detectTime" || field === "createdAt") {
       va = String(va ?? "");
       vb = String(vb ?? "");
     }
@@ -899,7 +1294,7 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 <style scoped lang="scss">
 .leak-management-view { display: flex; flex-direction: column; box-sizing: border-box; height: 100%; min-height: 0; padding: 0 14px 14px; overflow: hidden; background: #eef4f8; }
 
-.toolbar, .table-panel, .detail-panel, .stat-card { background: #fff; border: 1px solid #d8e5ef; border-radius: 6px; box-shadow: 0 12px 26px rgba(35,72,104,0.09); }
+.toolbar, .table-panel, .detail-panel { background: #fff; border: 1px solid #d8e5ef; border-radius: 6px; box-shadow: 0 12px 26px rgba(35,72,104,0.09); }
 .toolbar { flex: none; display: flex; flex-direction: column; gap: 12px; padding: 14px; margin-bottom: 12px; background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%); border-radius: 6px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06); }
 .toolbar-row { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
 .toolbar-row--filters { display: flex; flex-wrap: wrap; align-items: end; gap: 10px 12px; }
@@ -922,9 +1317,20 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .icon-refresh { display: block; width: 18px; height: 18px; border: 2px solid #7f8fa3; border-top-color: transparent; border-radius: 50%; }
 
 .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; flex: none; margin-bottom: 12px; }
-.stat-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 16px 12px; }
-.stat-card__label { color: #64748b; font-size: 13px; }
-.stat-card__value { color: #183755; font-size: 24px; font-weight: 900; }
+.stat-card { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 8px; border: none; box-shadow: 0 4px 16px rgba(33, 72, 108, 0.1); transition: transform 0.2s ease, box-shadow 0.2s ease; overflow: hidden; position: relative; }
+.stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(33, 72, 108, 0.15); }
+.stat-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+.stat-card--total { background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); }
+.stat-card--total::before { background: #3b82f6; }
+.stat-card--unrepaired { background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); }
+.stat-card--unrepaired::before { background: #ef4444; }
+.stat-card--repaired { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); }
+.stat-card--repaired::before { background: #22c55e; }
+.stat-card--current { background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%); }
+.stat-card--current::before { background: #a855f7; }
+.stat-card__body { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; width: 100%; }
+.stat-card__label { color: #64748b; font-size: 12px; font-weight: 700; }
+.stat-card__value { color: #1e293b; font-size: 28px; font-weight: 900; font-family: "DIN Alternate", "Arial", sans-serif; line-height: 1.2; }
 
 .main-layout { display: grid; grid-template-columns: minmax(0, 1fr) clamp(380px, 20vw, 420px); flex: 1; min-height: 0; gap: 12px; overflow: hidden; }
 .table-panel { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
@@ -937,7 +1343,7 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .table-scroll::-webkit-scrollbar-thumb, .detail-section::-webkit-scrollbar-thumb { background: linear-gradient(90deg, #9fb4c8, #6f8ba8); border: 2px solid #edf3f8; border-radius: 999px; }
 .table-scroll::-webkit-scrollbar-thumb:hover, .detail-section::-webkit-scrollbar-thumb:hover { background: linear-gradient(90deg, #7f9ab4, #4d6f91); }
 .data-table { display: flex; flex-direction: column; background: #ffffff; }
-.data-row { display: grid; grid-template-columns: 40px 56px minmax(160px, 1.6fr) minmax(96px, 1fr) minmax(160px, 1.8fr) minmax(96px, 1fr) minmax(130px, 1fr) minmax(120px, 1fr); min-height: 48px; border-bottom: 1px solid #edf1f5; cursor: pointer; transition: background 0.18s ease, box-shadow 0.18s ease; &--header { position: sticky; top: 0; z-index: 1; min-height: 50px; color: #20384f; font-weight: 800; background: #fafafa; cursor: default; box-shadow: 0 1px 0 #dbe7f0; } &--active { position: relative; background: #eff6ff !important; box-shadow: inset 0 0 0 1px #bfdbfe; } }
+.data-row { display: grid; grid-template-columns: 40px 52px minmax(140px, 1.4fr) minmax(86px, 0.85fr) minmax(96px, 0.95fr) minmax(100px, 1fr) minmax(140px, 1.6fr) minmax(86px, 0.85fr) minmax(86px, 0.85fr) 72px 72px minmax(110px, 0.85fr) minmax(100px, 0.85fr); min-height: 48px; border-bottom: 1px solid #edf1f5; cursor: pointer; transition: background 0.18s ease, box-shadow 0.18s ease; &--header { position: sticky; top: 0; z-index: 1; min-height: 50px; color: #20384f; font-weight: 800; background: #fafafa; cursor: default; box-shadow: 0 1px 0 #dbe7f0; } &--active { position: relative; background: #eff6ff !important; box-shadow: inset 0 0 0 1px #bfdbfe; } }
 .data-row:not(.data-row--header):hover { background: #eff6ff !important; }
 .data-row:not(.data-row--header):nth-child(odd) { background: #fff; }
 .data-row:not(.data-row--header):nth-child(even) { background: #fbfdff; }
@@ -950,9 +1356,25 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .data-cell--sortable:hover { color: #3b82f6; }
 .data-cell--checkbox { justify-content: center; }
 .data-cell--index { justify-content: center; color: #64748b; }
-.data-cell--time { color: #0f4c81; font-family: "DIN Alternate", "Arial", sans-serif; font-weight: 800; }
+.data-cell--time { color: #0f4c81; }
 .data-cell--address { justify-content: center; text-align: center; }
-.data-cell--remark { justify-content: center; text-align: center; }
+.data-cell--leakpart { justify-content: center; text-align: center; color: #475569; }
+.data-cell--type { justify-content: center; text-align: center; color: #475569; }
+.data-cell--locator { justify-content: center; text-align: center; color: #475569; }
+
+.data-cell--audio { justify-content: center; }
+.audio-play-btn { color: #3b82f6; font-size: 12px; font-weight: 700; cursor: pointer; }
+.audio-play-btn:hover { color: #2563eb; }
+.data-cell--video { justify-content: center; }
+.video-play-btn { color: #16a34a; font-size: 12px; font-weight: 700; cursor: pointer; }
+.video-play-btn:hover { color: #15803d; }
+.video-dialog-mask { position: fixed; inset: 0; z-index: 2200; display: flex; align-items: center; justify-content: center; background: rgba(15, 35, 55, 0.55); }
+.video-dialog { width: min(900px, 92vw); background: #fff; border-radius: 10px; box-shadow: 0 12px 36px rgba(15, 35, 55, 0.25); overflow: hidden; }
+.video-dialog__head { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid #edf1f5; }
+.video-dialog__title { color: #0f172a; font-size: 15px; font-weight: 700; }
+.video-dialog__body { padding: 16px; background: #000; }
+.video-player { display: block; width: 100%; max-height: 70vh; background: #000; }
+.video-empty { padding: 40px; color: #94a3b8; font-size: 14px; text-align: center; background: #fff; }
 /* 排序箭头 */
 .sort-arrow { flex: none; font-size: 10px; line-height: 1; margin-left: 2px; color: #bcc7d6; transition: color 0.18s ease; &--active { color: #3b82f6; } &--idle { opacity: 0.4; } }
 .data-cell--sortable:hover .sort-arrow:not(.sort-arrow--active) { color: #7f8fa3; }
@@ -972,51 +1394,41 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .detail-section { flex: 1; min-height: 0; padding: 16px; overflow-y: auto; background: linear-gradient(180deg, #f8fafc 0, #ffffff 142px), #ffffff; }
 .detail-summary { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; margin-bottom: 12px; background: #ffffff; border: 1px solid #e2e8f0; border-left: 4px solid #3b82f6; border-radius: 6px; box-shadow: 0 8px 18px rgba(33, 72, 108, 0.045); }
 .detail-summary__main { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
-.detail-summary__label { color: #6b7f94; font-size: 12px; font-weight: 800; }
+.detail-summary__label { color: #475569; font-size: 12px; font-weight: 800; }
 .detail-summary__value { color: #0f4c81; font-family: "DIN Alternate", "Arial", sans-serif; font-size: 17px; font-weight: 900; line-height: 1.25; word-break: normal; overflow-wrap: anywhere; }
 .detail-summary__badges { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
 .detail-summary__badge { display: inline-block; min-width: 64px; height: 26px; line-height: 26px; text-align: center; padding: 0 10px; font-size: 12px; font-weight: 700; border-radius: 10px; background: #eff6ff; color: #3b82f6; &--light { color: #22c55e; background: #dcfce7; } &--medium { color: #f59e0b; background: #fef3c7; } &--heavy { color: #ef4444; background: #fee2e2; } }
+.detail-summary__meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding-top: 10px; border-top: 1px solid #edf3f8; }
+.detail-summary__meta-item { min-width: 0; padding: 8px 10px; background: #f8fafc; border-radius: 6px; border: 1px solid #e8eef5; }
+.detail-summary__meta-label { display: block; color: #475569; font-size: 11px; font-weight: 800; }
+.detail-summary__meta-value { display: block; margin-top: 4px; color: #0f172a; font-size: 14px; font-weight: 700; }
 .detail-grid { display: grid; gap: 0; overflow: hidden; background: #ffffff; border: 1px solid #dfebf5; border-radius: 6px; box-shadow: 0 8px 18px rgba(33, 72, 108, 0.045); }
-.detail-item { display: grid; grid-template-columns: 92px minmax(0, 1fr); align-items: center; min-height: 48px; padding: 8px 14px; border-bottom: 1px solid #edf3f8; &--note { display: flex; flex-direction: column; gap: 4px; min-height: 0; padding: 12px 14px; border-bottom: 1px solid #edf3f8; } }
+.detail-item { display: grid; grid-template-columns: 92px minmax(0, 1fr); align-items: center; min-height: 48px; padding: 8px 14px; border-bottom: 1px solid #edf3f8; }
 .detail-grid .detail-item:last-child { border-bottom: 0; }
-.detail-grid--pipe,
-.detail-grid--attach { gap: 8px; overflow: visible; background: transparent; border: 0; border-radius: 0; box-shadow: none; }
-.detail-grid--pipe .detail-item,
-.detail-grid--attach .detail-item { border: 1px solid #dfebf5; border-bottom: 1px solid #dfebf5; border-radius: 6px; box-shadow: 0 8px 18px rgba(33, 72, 108, 0.055); }
-.detail-grid--pipe .detail-item { border-left: 4px solid #60a5fa; }
-.detail-grid--attach .detail-item { border-left: 4px solid #f59e0b; }
-.detail-item--accent-blue { border-left-color: #60a5fa !important; }
-.detail-item--accent-cyan { border-left-color: #06b6d4 !important; }
-.detail-item--accent-purple { border-left-color: #8b5cf6 !important; }
-.detail-item--accent-pink { border-left-color: #ec4899 !important; }
-.detail-item--accent-orange { border-left-color: #f59e0b !important; }
-.detail-item--accent-gray { border-left-color: #8c8c8c !important; }
-.detail-grid--pipe .detail-item:last-child,
-.detail-grid--attach .detail-item:last-child { border-bottom: 1px solid #dfebf5; }
+.detail-grid--content { grid-template-columns: 1fr; gap: 8px; overflow: visible; background: transparent; border: 0; border-radius: 0; box-shadow: none; }
+.detail-grid--content .detail-item { display: grid; grid-template-columns: 86px minmax(0, 1fr); align-items: stretch; min-height: 0; padding: 0; overflow: hidden; background: #ffffff; border: 1px solid #dfebf5; border-radius: 6px; box-shadow: 0 8px 18px rgba(33, 72, 108, 0.055); }
+.detail-grid--content .detail-item__label { display: flex; align-items: center; padding: 0 12px; color: #5f7891; font-size: 12px; font-weight: 800; background: #f7fafc; border-left: 3px solid #b9dcff; }
+.detail-grid--content .detail-item__value { min-height: 52px; margin-top: 0; padding: 14px; color: #172033; font-size: 13px; font-weight: 700; line-height: 1.45; background: #fbfdff; border-left: 1px solid #edf3f8; border-radius: 0; box-shadow: none; white-space: pre-wrap; word-break: break-all; text-align: left; }
 .detail-item__label { display: flex; align-items: center; color: #71869b; font-size: 12px; font-weight: 800; line-height: 1.3; }
 .detail-item__value { color: #172033; font-size: 14px; font-weight: 700; line-height: 1.45; text-align: right; word-break: break-all; }
-.detail-item--note .detail-item__value { text-align: left; }
-.detail-item--level-light { border-left: 4px solid #22c55e; padding-left: 10px; background: #f0fdf4; }
-.detail-item--level-medium { border-left: 4px solid #f59e0b; padding-left: 10px; background: #fffbeb; }
-.detail-item--level-heavy { border-left: 4px solid #ef4444; padding-left: 10px; background: #fef2f2; }
 .link-text { color: #3b82f6; text-decoration: underline; cursor: pointer; }
 .detail-actions { display: flex; gap: 10px; flex: none; padding: 12px 14px; border-top: 1px solid #edf3f8; }
 
 .dialog-mask { position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center; background: rgba(15,35,55,0.22); }
-.dialog-panel { display: flex; flex-direction: column; width: 720px; max-width: calc(100vw - 28px); max-height: 86vh; overflow: hidden; background: #fff; border-radius: 8px; box-shadow: 0 18px 46px rgba(15,35,55,0.2); }
+.dialog-panel { display: flex; flex-direction: column; width: 1200px; max-width: calc(100vw - 40px); max-height: 86vh; overflow: hidden; background: #fff; border-radius: 8px; box-shadow: 0 18px 46px rgba(15,35,55,0.2); }
 .dialog-head { display: flex; align-items: center; justify-content: space-between; flex: none; padding: 18px 24px; background: #f8fbfe; border-bottom: 1px solid #edf3f8; }
 .dialog-title { display: block; color: #183755; font-size: 22px; font-weight: 900; }
 .dialog-subtitle { display: block; margin-top: 4px; color: #5f7188; font-size: 13px; }
 .icon-button { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; margin: 0; background: #f6fbff; border: 1px solid #d9e7f3; border-radius: 6px; cursor: pointer; &--hover { background: #eff6ff; border-color: #3b82f6; } }
 .close-icon { position: relative; width: 14px; height: 14px; &::before, &::after { position: absolute; top: 6px; left: 0; width: 14px; height: 2px; content: ""; background: #64748b; border-radius: 2px; } &::before { transform: rotate(45deg); } &::after { transform: rotate(-45deg); } }
-.dialog-body { flex: 1; min-height: 0; max-height: none; overflow-y: auto; padding: 18px 24px 16px; background: #fff; }
+.dialog-body { flex: 1; min-height: 0; max-height: none; overflow-y: auto; padding: 16px 20px; background: #fff; }
 
 .form-section { margin-bottom: 14px; padding: 0; background: #fff; border: 0; border-radius: 0; &:last-child { margin-bottom: 0; } }
 .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 11px; padding-bottom: 9px; border-bottom: 1px solid #eef4fa; }
 .section-title { position: relative; padding-left: 10px; color: #183755; font-size: 16px; font-weight: 900; &::before { position: absolute; top: 50%; left: 0; width: 3px; height: 16px; content: ""; background: #3b82f6; border-radius: 999px; transform: translateY(-50%); } }
 .section-hint { color: #94a3b8; font-size: 12px; }
 
-.form-grid { display: grid; gap: 12px 18px; &--two { grid-template-columns: repeat(2, 1fr); } }
+.form-grid { display: grid; gap: 12px 18px; &--two { grid-template-columns: repeat(2, 1fr); } &--three { grid-template-columns: repeat(3, 1fr); } }
 .form-field { min-width: 0; &--wide { grid-column: span 2; } }
 .form-label { display: block; margin-bottom: 5px; color: #34495e; font-size: 13px; font-weight: 700; &--required::after { margin-left: 4px; color: #ef4444; content: "*"; } }
 .form-error { display: block; margin-top: 4px; color: #ef4444; font-size: 12px; }
@@ -1039,13 +1451,15 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .form-action-btn { display: flex; align-items: center; gap: 4px; flex: none; height: 38px; padding: 0 14px; color: #3b82f6; font-size: 13px; font-weight: 700; white-space: nowrap; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px; cursor: pointer; &--small { height: 38px; padding: 0 12px; font-size: 12px; } &--hover { background: #dbeafe; border-color: #3b82f6; } }
 .form-action-btn__icon--map { display: inline-block; width: 14px; height: 14px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233b82f6'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z'/%3E%3C/svg%3E") center/contain no-repeat; }
 
-.form-photo-area { display: flex; flex-wrap: wrap; gap: 10px; }
+.form-photo-area { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; justify-content: center; }
 .photo-preview-list { display: flex; flex-wrap: wrap; gap: 10px; }
-.photo-preview-item { position: relative; width: 88px; height: 88px; border-radius: 6px; overflow: hidden; }
+.photo-preview-item { position: relative; width: 88px; height: 88px; border-radius: 6px; overflow: hidden; &--video { width: 120px; height: 88px; } &--audio { width: 88px; height: 88px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; } }
+.audio-thumb { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+.audio-thumb__icon { font-size: 32px; color: #3b82f6; }
 .photo-thumb { width: 100%; height: 100%; }
 .photo-remove-btn { position: absolute; top: 2px; right: 2px; display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; padding: 0; margin: 0; background: rgba(0,0,0,0.55); border: 0; border-radius: 50%; cursor: pointer; &--hover { background: rgba(0,0,0,0.75); } }
 .photo-remove-icon { position: relative; width: 10px; height: 10px; &::before, &::after { position: absolute; top: 4px; left: 0; width: 10px; height: 2px; content: ""; background: #fff; border-radius: 1px; } &::before { transform: rotate(45deg); } &::after { transform: rotate(-45deg); } }
-.photo-add-box { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; width: 88px; height: 88px; border: 2px dashed #c5d2e2; border-radius: 6px; background: #fbfdff; cursor: pointer; transition: border-color 0.16s ease, background 0.16s ease; &:hover { border-color: #3b82f6; background: #eff6ff; } }
+.photo-add-box { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; width: 100%; height: 88px; border: 2px dashed #c5d2e2; border-radius: 6px; background: #fbfdff; cursor: pointer; transition: border-color 0.16s ease, background 0.16s ease; &:hover { border-color: #3b82f6; background: #eff6ff; } }
 .photo-add-icon { font-size: 26px; font-weight: 300; color: #94a3b8; line-height: 1; }
 .photo-add-label { font-size: 11px; color: #94a3b8; }
 .form-input--hidden-id { margin-top: 10px; height: 32px; font-size: 12px; color: #94a3b8; background: #f9fafb; }
@@ -1116,5 +1530,40 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 }
 
 @media (max-width: 1024px) { .main-layout { flex-direction: column; } .detail-panel { width: 100%; max-height: 340px; } .stats-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 640px) { .form-grid--two { grid-template-columns: 1fr; } .form-field--wide { grid-column: span 1; } }
+@media (max-width: 1024px) { .form-grid--three { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px) { .form-grid--two, .form-grid--three { grid-template-columns: 1fr; } .form-field--wide { grid-column: span 1; } }
+
+.form-layout { display: grid; grid-template-columns: 1fr 320px; gap: 20px; min-height: 100%; }
+.form-main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.form-side { min-width: 0; padding-left: 20px; border-left: 1px solid #e4edf6; display: flex; flex-direction: column; gap: 14px; }
+.form-grid--side { grid-template-columns: 1fr; }
+
+@media (max-width: 1024px) { .form-layout { grid-template-columns: 1fr; } .form-side { padding-left: 0; border-left: 0; } .form-grid--three { grid-template-columns: repeat(2, 1fr); } }
+
+.time-section { min-width: 0; margin-top: 14px; padding: 14px; background: rgba(255, 255, 255, 0.96); border: 1px solid #dfebf5; border-radius: 6px; box-shadow: 0 8px 18px rgba(33, 72, 108, 0.055); }
+.detail-section-title { display: block; margin-bottom: 12px; color: #183755; font-size: 14px; font-weight: 900; }
+.attach-media { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
+.attach-media__item { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; background: #f8fafc; border: 1px solid #dfebf5; border-radius: 6px; }
+.attach-media__label { color: #475569; font-size: 12px; font-weight: 800; }
+.attach-media__player { display: flex; align-items: center; gap: 10px; }
+.attach-media__id { color: #64748b; font-size: 12px; }
+.attach-media__empty { color: #94a3b8; font-size: 13px; text-align: center; padding: 8px 0; }
+.attach-media__photos { display: flex; flex-wrap: wrap; gap: 8px; }
+.attach-photo { width: 80px; height: 80px; border-radius: 4px; overflow: hidden; border: 1px solid #dfebf5; cursor: pointer; }
+.attach-photo__img { width: 100%; height: 100%; }
+.attach-play-btn { min-width: 56px; height: 28px; padding: 0 12px; font-size: 12px; font-weight: 700; color: #3b82f6; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px; cursor: pointer; &--hover { background: #dbeafe; } }
+.attach-audio-list { display: flex; flex-direction: column; gap: 6px; }
+.attach-audio-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 8px; background: #fff; border: 1px solid #e3ebf2; border-radius: 4px; }
+.attach-audio-item__time { color: #475569; font-size: 12px; }
+.time-list { position: relative; display: grid; gap: 0; }
+.time-list::before { position: absolute; top: 16px; bottom: 16px; left: 6px; width: 2px; content: ""; background: #d7e8f6; }
+.time-row { position: relative; display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; min-width: 0; padding: 9px 0; }
+.time-row__marker { position: relative; z-index: 1; width: 10px; height: 10px; margin-top: 4px; background: #0d82ee; border: 3px solid #e8f4ff; border-radius: 50%; box-shadow: 0 0 0 1px #b9dcff; }
+.time-row__content { display: grid; grid-template-columns: 72px minmax(0, 1fr); align-items: center; gap: 10px; min-width: 0; }
+.time-row__label { color: #6b7f94; font-size: 12px; font-weight: 800; }
+.time-row__value { min-width: 0; color: #172033; font-size: 14px; font-weight: 700; line-height: 1.45; word-break: break-all; }
+.time-section--location { background: linear-gradient(90deg, rgba(13, 130, 238, 0.08), rgba(255, 255, 255, 0) 58%), rgba(255, 255, 255, 0.96); margin-top: 10px; }
+.location-row { display: grid; grid-template-columns: 60px minmax(0, 1fr); gap: 10px; min-width: 0; padding: 11px 0; border-bottom: 1px solid #edf3f8; &:last-child { border-bottom: 0; } }
+.location-row__label { color: #6b7f94; font-size: 12px; font-weight: 800; }
+.location-row__value { min-width: 0; color: #172033; font-size: 14px; font-weight: 700; word-break: break-all; }
 </style>

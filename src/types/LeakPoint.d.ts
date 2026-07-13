@@ -1,4 +1,4 @@
-﻿/** 渗漏级别枚举 */
+/** 渗漏级别枚举 */
 export type LeakLevel = 0 | 1 | 2;
 
 /** 渗漏级别选项 */
@@ -73,4 +73,4 @@ export interface LeakPointFilters {
 export type DialogMode = "create" | "edit";
 
 /** 详情 Tab */
-export type DetailTab = "base" | "pipe" | "attach";
+export type DetailTab = "base" | "pipe" | "attach" | "detail";
