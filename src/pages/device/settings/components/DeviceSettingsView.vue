@@ -17,16 +17,14 @@
           :class="[layoutClass, { collapsed: isDetailCollapsed }]">
 
       <!-- 左侧 table（固定不变） -->
-      <view class="table-panel">
-        <DeviceSettingsTableView
-            :device-settings="deviceSettingList"
-            :pagination="pagination"
-            @view="handleView"
-            @select="handleSelect"
-            @page-change="handlePageChange"
-            @page-size-change="handlePageSizeChange"
-        />
-      </view>
+      <DeviceSettingsTableView
+          :device-settings="deviceSettingList"
+          :pagination="pagination"
+          @view="handleView"
+          @select="handleSelect"
+          @page-change="handlePageChange"
+          @page-size-change="handlePageSizeChange"
+      />
 
       <view class="split-handle" @mousedown="startResize">
         {{ isDetailCollapsed ? '⟨' : '⟩' }}
@@ -258,7 +256,6 @@ onMounted(() => {
   grid-template-columns: 1fr 24px 2fr;
 }
 
-.table-panel,
 .detail-panel {
   display: flex;
   flex-direction: column;
