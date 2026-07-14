@@ -77,3 +77,23 @@ export type ToolbarButtons = {
 
     detail?:boolean;
 };
+
+export interface XDataColumn {
+    key:string;
+    label:string;
+    width?:number;
+    align?:'left'|'center'|'right';
+    type?:
+        | 'text'
+        | 'number'
+        | 'time'
+        | 'coord'
+        | 'link'
+        | 'image';
+    className?:string;
+    formatter?:(value:any,row:any)=>any;
+    onClick?:(
+        value:any,
+        row:any
+    )=>void;
+}

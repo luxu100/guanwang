@@ -218,6 +218,7 @@ import { TOKEN_KEY } from "@/utils/request";
 import LocaleLeakMap from "@/pages/leak-monitor/components/LocaleLeakMap.vue";
 import { applyUserLocale } from "@/i18n";
 import ValveView from "@/pages/device/valve/components/ValveView.vue";
+import DeviceParameterView from "@/pages/device/parameter/components/DeviceParameterView.vue";
 interface MenuItem {
   label: string;
   path: string;
@@ -260,7 +261,8 @@ const menuItems: MenuItem[] = [
       { label: "设备信息", path: "/pages/device/info/info", icon: "device", keywords: ["设备", "信息"] },
       { label: "拆装维护", path: "/pages/device/maintenance/maintenance", icon: "device", keywords: ["拆装", "维护"] },
       { label: "协议绑定", path: "/pages/device/protocol/protocol", icon: "device", keywords: ["协议"] },
-      { label: "设备参数", path: "/pages/device/settings/settings", icon: "device", keywords: ["参数"] },
+      // { label: "设备参数", path: "/pages/device/settings/settings", icon: "device", keywords: ["参数"] },
+      { label: "设备参数", path: "/pages/device/parameter/parameter", icon: "device", keywords: ["参数"] },
       { label: "阀门管理", path: "/pages/device/valve/valve", icon: "device", keywords: ["阀门"] },
     ],
   },
@@ -373,7 +375,8 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/device/info/info": { component: DeviceManagementView, props: { mode: "info" } },
   "/pages/device/maintenance/maintenance": { component: DeviceManagementView, props: { mode: "maintenance" } },
   // "/pages/device/status/status": { component: DeviceManagementView, props: { mode: "status" } },
-  "/pages/device/settings/settings": { component: DeviceSettingsView },
+  // "/pages/device/settings/settings": { component: DeviceSettingsView },
+  "/pages/device/parameter/parameter": { component: DeviceParameterView },
   "/pages/device/protocol/protocol": { component: DeviceManagementView, props: { mode: "protocol" } },
   "/pages/device/valve/valve": { component: ValveView },
   "/pages/command/commandManage": { component: CommandManagePage },
