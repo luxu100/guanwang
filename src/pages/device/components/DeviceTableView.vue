@@ -31,7 +31,7 @@
             v-for="(device, index) in filteredDevices"
             :key="device.id"
             class="data-row"
-            :class="{ 'data-row--active': selectedId === device.id }"
+            :class="{ 'data-row--active': props.selectedId === device.id }"
             @click="selectRow(device)"
         >
 
@@ -145,7 +145,7 @@
   />
 </template>
 <script setup lang="ts">
-import {ref, computed, reactive} from 'vue';
+import {ref, computed, watch} from 'vue';
 import type { Device } from '@/services/device/types';
 import type {Pagination} from "@/types/api";
 import XMapPopup from "@/pages/device/components/x/XMapPopup.vue";
@@ -157,6 +157,7 @@ const tc = createScopedT("devicePage.common");
 
 const props = defineProps<{
   devices: Device[];
+  selectedId: number | null;
   pagination: Pagination;
   mode:"info" | "maintenance" | "status" | "protocol";
 }>();
@@ -246,11 +247,9 @@ const emit = defineEmits<{
 }>();
 
 const searchKeyword = ref('');
-const selectedId = ref<number | null>(null);
 
 // ✅ 点击行：选中 + 查看
 function selectRow(device: Device) {
-  selectedId.value = device.id;
   emit('view', device);
   emit('select', device);
 }

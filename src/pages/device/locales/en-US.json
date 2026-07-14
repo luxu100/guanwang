@@ -37,7 +37,7 @@
         "placeholder": "Please enter"
       },
       "bindValve": "bindValve",
-      "bindDept": "bindDept",
+      "bindDept": "bindPartition",
       "deviceNumber": "deviceNumber",
       "startTime": "startTime",
       "endTime": "endTime",
@@ -118,8 +118,8 @@
       "selectDevice": "Please select a device from the left to view its details.",
       "addDevice": "Add Device",
       "editDevice": "Edit Device",
-      "bindDeptTitle": "Bind Department",
-      "bindDeptSubtitle": "Please select the department to bind",
+      "bindDeptTitle": "Bind Partition",
+      "bindDeptSubtitle": "Please select the partition to bind",
       "bindValveTitle": "Bind Valve",
       "bindValveSubtitle": "Please select the valve to bind."
     },
@@ -149,11 +149,12 @@
       "confirmDeleteTitle": "Confirm",
       "confirmDeleteContent": "Are you sure you want to delete device {deviceNumber}?",
       "operationFailed": "Operation failed",
-      "alreadyBoundToThisDept": "Already bound to this department",
+      "alreadyBoundToThisDept": "Already bound to this partition",
       "bindSuccess": "Bound successfully",
       "bindFailed": "Binding failed",
       "requestError": "Request error",
-      "fetchDeptTreeFailed": "Failed to fetch department tree"
+      "fetchDeptTreeFailed": "Failed to fetch partition tree",
+      "noPartitionAssigned":"No partition is assigned to the current device. Please bind a partition first."
     },
     "status": {
       "product": {
@@ -355,7 +356,7 @@
         },
 
         "dept": {
-          "deptName": "Department",
+          "deptName": "Partition",
           "administrator": "Administrator",
           "description": "Description"
         }

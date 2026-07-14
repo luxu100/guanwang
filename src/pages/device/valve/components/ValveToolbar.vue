@@ -35,7 +35,7 @@
         <!-- date -->
         <XDatetimePicker
             v-else-if="item.type === 'date'"
-            :model-value="String(model[item.key] ?? '')"
+            v-model="model[item.key]"
             class="filter-datetime"
             :title="t(item.labelKey)"
             :placeholder="t(item.labelKey)"
@@ -83,7 +83,7 @@ type Field =
     | { key: string; labelKey: string; type: "date" }
     | { key: string; labelKey: string; type: "select"; dict: DictKey };
 
-type DeviceForm = Record<string, string | number>;
+type DeviceForm = Record<string, any>;
 
 /**
  * =========================

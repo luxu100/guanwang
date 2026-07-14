@@ -35,7 +35,7 @@
         <!-- date -->
         <XDatetimePicker
             v-else-if="item.type === 'date'"
-            :model-value="String(model[item.key] ?? '')"
+            v-model="model[item.key]"
             class="filter-datetime"
             :title="t(item.labelKey)"
             :placeholder="t(item.labelKey)"
@@ -57,10 +57,10 @@
         :show-refresh="buttons.refresh"
     >
       <template #left>
-        <button v-if="buttons.bindDept" class = "toolbar-button" @click="emit('bindDept')">{{t("toolbar.bindDept")}}</button>
-        <button v-if="buttons.bindValve" class= "toolbar-button" @click="emit('bindValve')">{{t("toolbar.bindValve")}}</button>
-        <button v-if="buttons.import" class = "toolbar-button toolbar-button--green" @click="emit('onImport')">{{t("toolbar.import")}}</button>
-        <button v-if="buttons.export" class = "toolbar-button toolbar-button--green" @click="emit('onExport')">{{t("toolbar.export")}}</button>
+        <button v-if="buttons.bindDept" class = "toolbar-button" hover-class="toolbar-button--hover" @click="emit('bindDept')">{{t("toolbar.bindDept")}}</button>
+        <button v-if="buttons.bindValve" class= "toolbar-button" hover-class="toolbar-button--hover" @click="emit('bindValve')">{{t("toolbar.bindValve")}}</button>
+        <button v-if="buttons.import" class = "toolbar-button toolbar-button--green" hover-class="toolbar-button--hover" @click="emit('onImport')">{{t("toolbar.import")}}</button>
+        <button v-if="buttons.export" class = "toolbar-button toolbar-button--green" hover-class="toolbar-button--hover" @click="emit('onExport')">{{t("toolbar.export")}}</button>
       </template>
       <template #right>
         <button v-if="buttons.detail" class = "toolbar-button" @click="emit('showDetail')">{{t("toolbar.showDetail")}}</button>
@@ -82,7 +82,7 @@ const t = createScopedT("devicePage");
  * types
  * =========================
  */
-type Option = { labelKey: string; value: string | number };
+type Option = { labelKey: string; value: string | number | null };
 
 type DictKey = "product" | "enable" | "install" | "online" | "leak" | "maintain" | "receive";
 
@@ -91,7 +91,7 @@ type Field =
     | { key: string; labelKey: string; type: "date" }
     | { key: string; labelKey: string; type: "select"; dict: DictKey };
 
-type DeviceForm = Record<string, string | number>;
+type DeviceForm = Record<string, any>;
 
 /**
  * =========================
@@ -421,12 +421,6 @@ function getLabel(item: Field) {
 
   font-weight: 700;
   transition: all 0.2s ease;
-}
-
-.toolbar-button--green:hover {
-  color: #15803d;
-  background: #dcfce7;
-  border-color: #86efac;
 }
 
 .toolbar-button--hover,

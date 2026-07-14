@@ -32,13 +32,13 @@
             @click="selectRow(valve)"
         >
           <text class="data-cell data-cell--index">{{ (pagination.current - 1) * pagination.size + index + 1 }}</text>
-          <text class="data-cell data-cell--device">{{ valve.pipelineName || '-' }}</text>
-          <text class="data-cell data-cell--device">{{ valve.valveNumber || '-' }}</text>
-          <text class="data-cell data-cell--device">{{ valve.valveName || '-' }}</text>
-          <text class="data-cell data-cell--device">{{ valve.coordinatePosition || '-' }}</text>
-          <text class="data-cell data-cell--status">{{ valve.branchCompany || '-' }}</text>
-          <text class="data-cell data-cell--status">{{ valve.region || '-' }}</text>
-          <text class="data-cell data-cell--number">{{ valve.tubeBore || '-' }}</text>
+          <text class="data-cell data-cell--text">{{ valve.pipelineName || '-' }}</text>
+          <text class="data-cell data-cell--text">{{ valve.valveNumber || '-' }}</text>
+          <text class="data-cell data-cell--text">{{ valve.valveName || '-' }}</text>
+          <text class="data-cell data-cell--address">{{ valve.coordinatePosition || '-' }}</text>
+          <text class="data-cell data-cell--text">{{ valve.branchCompany || '-' }}</text>
+          <text class="data-cell data-cell--text">{{ valve.region || '-' }}</text>
+          <text class="data-cell data-cell--text">{{ valve.tubeBore || '-' }}</text>
           <text class="data-cell data-cell--status">{{ valve.tubeMaterial || '-' }}</text>
           <text
               class="data-cell data-cell--coord data-cell--link"
@@ -70,7 +70,7 @@
   />
 </template>
 <script setup lang="ts">
-import {ref, computed} from 'vue';
+import {ref, computed, watch} from 'vue';
 import type {Valve} from '@/services/device/types';
 import type {Pagination} from "@/types/api";
 import XPaginationBar from "@/pages/device/components/x/XPaginationBar.vue";
@@ -84,6 +84,18 @@ const props = defineProps<{
   valves: Valve[];
   pagination: Pagination;
 }>();
+
+watch(
+    () => props.valves,
+    (list) => {
+      if (list.length > 0 && selectedId.value === null) {
+        const first = list[0];
+        selectRow(first);
+      }
+    },
+    { immediate: true }
+);
+
 
 const loading = ref(false);
 

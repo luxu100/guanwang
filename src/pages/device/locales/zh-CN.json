@@ -37,7 +37,7 @@
         "placeholder": "请输入"
       },
       "bindValve": "绑定阀门",
-      "bindDept": "绑定部门",
+      "bindDept": "绑定分区",
       "deviceNumber": "设备编号",
       "startTime": "开始时间",
       "endTime": "结束时间",
@@ -118,8 +118,8 @@
       "selectDevice": "请选择左侧设备查看详情",
       "addDevice": "新增设备",
       "editDevice": "编辑设备",
-      "bindDeptTitle": "绑定部门",
-      "bindDeptSubtitle": "请选择想要绑定的部门",
+      "bindDeptTitle": "绑定分区",
+      "bindDeptSubtitle": "请选择想要绑定的分区",
       "bindValveTitle": "绑定阀门",
       "bindValveSubtitle": "请选择想要绑定的阀门"
     },
@@ -149,11 +149,12 @@
       "confirmDeleteTitle": "提示",
       "confirmDeleteContent": "确定要删除设备 {deviceNumber} 吗？",
       "operationFailed": "操作失败",
-      "alreadyBoundToThisDept": "已绑定此部门",
+      "alreadyBoundToThisDept": "已绑定此分区",
       "bindSuccess": "绑定成功",
       "bindFailed": "绑定失败",
       "requestError": "请求异常",
-      "fetchDeptTreeFailed": "获取部门树失败"
+      "fetchDeptTreeFailed": "获取分区树失败",
+      "noPartitionAssigned":"当前设备没有分区信息, 请先绑定分区"
     },
     "status": {
       "product": {
@@ -362,7 +363,7 @@
 
 
         "dept":{
-          "deptName":"所属部门",
+          "deptName":"所属分区",
           "administrator": "负责人",
           "description": "描述"
         }
