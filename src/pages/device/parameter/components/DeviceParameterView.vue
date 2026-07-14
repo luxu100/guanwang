@@ -2,7 +2,6 @@
   <view class="device-page">
     <DeviceParameterToolbar
         v-model="searchForm"
-        :fields="toolbarConfig"
         @search="handleSearch"
         @reset="handleReset"
         @refresh="fetchParameters"
@@ -43,16 +42,24 @@ import DeviceParameterToolbar from "@/pages/device/parameter/components/DevicePa
 
 const t=createScopedT("devicePage");
 
-const deviceParameterConfig={
-  searchForm:{deviceNumber:""},
-  toolbar:[
-    {key:"deviceNumber",labelKey:"toolbar.deviceNumber",type:"input"},
-  ]
-}as const;
+const deviceParameterConfig = {
+  searchForm: {
+    startTime: "",
+    endTime: "",
+    deviceNumber: "",
+    deviceType: "",
+    productId: null,
+    onlineStatus: null,
+    installState: null,
+    leakStatus: null,
+    deptId: null,
+    todayNew: null,
+    latestInstalled: null,
+    parseStatus: ""
+  }
+} as const;
 
 const searchForm=ref({...deviceParameterConfig.searchForm});
-const toolbarConfig=computed(()=>deviceParameterConfig.toolbar);
-
 const deviceParameterList=ref<DeviceParameterPageVO[]>([]);
 const currentDeviceParameter=ref<DeviceParameterPageVO|null>(null);
 const selectedDeviceParameter=ref<DeviceParameterPageVO|null>(null);

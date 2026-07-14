@@ -52,9 +52,26 @@ export interface FormSection {
 }
 
 export type Field =
-    | { key: string; label?: string; labelKey: string; type: "input" }
-    | { key: string; label?: string; labelKey: string; type: "date" }
-    | { key: string; label?: string; labelKey: string; type: "select"; dict: string };
+    | {
+    key: string;
+    label?: string;
+    labelKey: string;
+    type: "input";
+}
+    | {
+    key: string;
+    label?: string;
+    labelKey: string;
+    type: "date";
+}
+    | {
+    key: string;
+    label?: string;
+    labelKey: string;
+    type: "select";
+    dict?: string;
+    options?: DictItem[];
+};
 
 export type DictItem = {
     label?: string;
