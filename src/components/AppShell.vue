@@ -721,9 +721,7 @@ function isCollapsedSubmenuVisible(item: MenuItem) {
 function handleLogout() {
   // 登录态和权限信息都保存在本地缓存，退出时必须全部清理，避免下次进入误判已登录。
   clearAuthStorage(uni, [OPENED_TABS_KEY]);
-  uni.reLaunch({
-    url: LOGIN_PATH,
-  });
+  redirectToLogin();
 }
 
 function ensureAuthenticatedRoute() {
@@ -738,10 +736,26 @@ function ensureAuthenticatedRoute() {
   }
 
   clearAuthStorage(uni, [OPENED_TABS_KEY]);
-  uni.reLaunch({
-    url: decision.redirectUrl,
-  });
+  redirectToLogin(decision.redirectUrl);
   return false;
+}
+
+function redirectToLogin(url = LOGIN_PATH) {
+  // #ifdef H5
+  // 生产环境使用 history 路由时，深层登录地址依赖服务器的 SPA fallback。
+  // 通过根地址加登录页 hash 重新加载，服务器只需提供应用入口，不再请求深层 URL。
+  const appBaseUrl = import.meta.env.BASE_URL || "/";
+  const loginUrl = new URL(appBaseUrl, window.location.origin);
+  loginUrl.hash = url;
+  window.location.replace(loginUrl.toString());
+  return;
+  // #endif
+
+  // #ifndef H5
+  uni.reLaunch({
+    url,
+  });
+  // #endif
 }
 
 function getCurrentAuthPath() {
