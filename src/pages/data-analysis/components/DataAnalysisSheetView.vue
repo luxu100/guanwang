@@ -85,10 +85,10 @@
                 <text class="data-cell data-cell--time">{{ ((item as AudioDataItem).audioTime || '').replace('T', ' ') }}</text>
                 <text class="data-cell data-cell--dept">{{ (item as AudioDataItem).deptName }}</text>
                 <text class="data-cell data-cell--spectrum">
-                  <text class="data-link" @click.stop="openSpectrumDialog(item as AudioDataItem)">分析</text>
+                  <text class="data-link" @click.stop="openSpectrumDialog(item as AudioDataItem)"><text class="spectrum-icon"></text>分析</text>
                 </text>
                 <text class="data-cell data-cell--download">
-                  <text class="data-link" @click.stop="onDownload(item as AudioDataItem)">音频</text>
+                  <text class="data-link" @click.stop="onDownload(item as AudioDataItem)"><text class="download-icon"></text>音频</text>
                 </text>
                 <text class="data-cell data-cell--status">{{ (item as AudioDataItem).status }}</text>
                 <text class="data-cell data-cell--location">
@@ -190,17 +190,17 @@
                   <text class="detail-item__label">阀门编号</text>
                   <text class="detail-item__value">{{ (selectedItem as AudioDataItem).valveNumber }}</text>
                 </view>
-                <view class="detail-item detail-item--base">
-                  <text class="detail-item__label">所属片区</text>
-                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).deptName }}</text>
+              </view>
+
+              <view class="detail-location-card">
+                <text class="detail-section-title">地址信息</text>
+                <view class="location-row">
+                  <text class="location-row__label">地址</text>
+                  <text class="location-row__value">{{ (selectedItem as AudioDataItem).address }}</text>
                 </view>
-                <view class="detail-item detail-item--base">
-                  <text class="detail-item__label">安装人员</text>
-                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).installer }}</text>
-                </view>
-                <view class="detail-item detail-item--base">
-                  <text class="detail-item__label">安装地址</text>
-                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).address }}</text>
+                <view class="location-row">
+                  <text class="location-row__label">坐标</text>
+                  <text class="location-row__value">{{ (selectedItem as AudioDataItem).location }}</text>
                 </view>
               </view>
             </view>
@@ -239,7 +239,8 @@
                 </view>
               </view>
 
-              <view v-if="leakageDetailTab === 'base'" class="detail-grid detail-grid--base">
+              <view v-if="leakageDetailTab === 'base'">
+              <view class="detail-grid detail-grid--base">
                 <view class="detail-item detail-item--base">
                   <text class="detail-item__label">时间</text>
                   <text class="detail-item__value">{{ ((selectedItem as LeakItem).detectedTime || '').replace(/\.\d+/, '').replace('T', ' ') }}</text>
@@ -256,29 +257,24 @@
                   <text class="detail-item__label">阀门编号</text>
                   <text class="detail-item__value">{{ (selectedItem as LeakItem).valveNumber }}</text>
                 </view>
-                <view class="detail-item detail-item--base">
-                  <text class="detail-item__label">所属片区</text>
-                  <text class="detail-item__value">{{ (selectedItem as LeakItem).deptName }}</text>
+              </view>
+
+              <view class="detail-location-card">
+                <text class="detail-section-title">地址信息</text>
+                <view class="location-row">
+                  <text class="location-row__label">地址</text>
+                  <text class="location-row__value">{{ (selectedItem as LeakItem).address }}</text>
                 </view>
-                <view class="detail-item detail-item--base">
-                  <text class="detail-item__label">安装人员</text>
-                  <text class="detail-item__value">{{ (selectedItem as LeakItem).installer }}</text>
+                <view class="location-row">
+                  <text class="location-row__label">坐标</text>
+                  <text class="location-row__value">{{ (selectedItem as LeakItem).location }}</text>
                 </view>
-                <view class="detail-item detail-item--base">
-                  <text class="detail-item__label">安装地址</text>
-                  <text class="detail-item__value">{{ (selectedItem as LeakItem).address }}</text>
-                </view>
+              </view>
               </view>
 
               <view v-else-if="leakageDetailTab === 'analysis'">
                 <view class="leak-sub-card">
                   <text class="leak-sub-card__header">渗漏分析</text>
-                  <view class="detail-item detail-item--base">
-                    <text class="detail-item__label">状态</text>
-                    <text class="detail-item__value">
-                      <text class="status-pill" :class="getLeakageStatusClass(selectedItem as LeakItem)">{{ (selectedItem as LeakItem).leakageStatus }}</text>
-                    </text>
-                  </view>
                   <view class="detail-item detail-item--base">
                     <text class="detail-item__label">增益</text>
                     <text class="detail-item__value">{{ (selectedItem as LeakItem).gain }}</text>
@@ -1326,7 +1322,7 @@ watch(
 
 .data-table--leakage {
   width: 100%;
-  min-width: 760px;
+  min-width: 860px;
 }
 
 .data-row {
@@ -1501,6 +1497,13 @@ watch(
   font-weight: 700;
   cursor: pointer;
 }
+
+.download-icon { position: relative; display: inline-block; width: 12px; height: 14px; margin-right: 4px; vertical-align: middle; background: linear-gradient(to right, transparent 5px, currentColor 5px, currentColor 7px, transparent 7px) no-repeat top center / 100% 8px; }
+.download-icon::before { content: ""; position: absolute; top: 5px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 5px solid currentColor; }
+.download-icon::after { content: ""; position: absolute; bottom: 0; left: 0; right: 0; height: 0; border-top: 2px solid currentColor; }
+
+.spectrum-icon { display: inline-block; width: 16px; height: 16px; margin-right: 4px; vertical-align: middle; border: 2px solid currentColor; border-radius: 50%; position: relative; }
+.spectrum-icon::after { content: ""; position: absolute; top: 50%; left: 50%; transform: translate(-30%, -50%); width: 0; height: 0; border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 8px solid currentColor; }
 
 .status-pill {
   display: inline-flex;
@@ -1839,11 +1842,11 @@ watch(
 }
 
 .leak-sub-card {
-  background: #ffffff;
-  border: 1px solid #dce9f4;
+  padding: 14px;
+  background: linear-gradient(90deg, rgba(13, 130, 238, 0.08), rgba(255, 255, 255, 0) 58%), rgba(255, 255, 255, 0.96);
+  border: 1px solid #dfebf5;
   border-radius: 6px;
-  overflow: hidden;
-  box-shadow: 0 8px 18px rgba(33, 72, 108, 0.045);
+  box-shadow: 0 8px 18px rgba(33, 72, 108, 0.055);
 }
 
 .leak-sub-card + .leak-sub-card {
@@ -1851,17 +1854,25 @@ watch(
 }
 
 .leak-sub-card__header {
-  position: relative;
   display: block;
-  padding: 12px 14px 8px;
+  margin-bottom: 10px;
   color: #183755;
   font-size: 14px;
   font-weight: 900;
-  background: linear-gradient(180deg, rgba(13, 130, 238, 0.04), transparent);
+  background: none;
+  padding: 0;
 }
 
 .leak-sub-card .detail-item--base {
   border-bottom: 1px solid #edf3f8;
+  background: transparent;
+  padding: 10px 0;
+  min-height: auto;
+  grid-template-columns: 72px minmax(0, 1fr);
+}
+
+.leak-sub-card .detail-item--base .detail-item__value {
+  text-align: left;
 }
 
 .leak-sub-card .detail-item--base:last-child {
@@ -2015,6 +2026,19 @@ watch(
   line-height: 1.5;
   word-break: break-all;
 }
+
+.detail-location-card {
+  margin-top: 12px;
+  padding: 14px;
+  background: linear-gradient(90deg, rgba(13, 130, 238, 0.08), rgba(255, 255, 255, 0) 58%), rgba(255, 255, 255, 0.96);
+  border: 1px solid #dfebf5;
+  border-radius: 6px;
+  box-shadow: 0 8px 18px rgba(33, 72, 108, 0.055);
+}
+.detail-section-title { display: block; margin-bottom: 10px; color: #183755; font-size: 14px; font-weight: 900; }
+.location-row { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 10px; min-width: 0; padding: 10px 0; border-top: 1px solid #edf3f8; }
+.location-row__label { color: #6b7f94; font-size: 12px; font-weight: 800; }
+.location-row__value { color: #172033; font-size: 13px; font-weight: 700; line-height: 1.5; word-break: break-all; }
 
 @media (max-width: 1280px) {
   .toolbar-row--filters {
