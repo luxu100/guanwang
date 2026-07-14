@@ -2,6 +2,8 @@
   "devicePage": {
     "common": {
       "all": "All",
+      "yes": "Yes",
+      "no": "No",
       "cancel": "Cancel",
       "confirm": "Confirm",
       "close": "Close",
@@ -127,12 +129,16 @@
       "deviceNumber": "Device No.",
       "deviceType": "Product Model",
       "onlineStatus": "Online Status",
+      "installState": "Installation Status",
       "enableState": "Enable Status",
       "leakStatus": "Leak Status",
       "startTime": "Start Time",
       "endTime": "End Time",
       "maintainType": "Maintenance Type",
-      "receiveStatus": "Receive Status"
+      "receiveStatus": "Receive Status",
+      "todayNew": "Today's New",
+      "latestInstalled": "Latest Installed",
+      "parseStatus": "Parsing Status"
     },
     "message": {
       "addSuccess": "Created successfully",
@@ -202,6 +208,10 @@
         "1": "Main Line",
         "2": "Secondary Branch",
         "3": "Tertiary Branch"
+      },
+      "parse": {
+        "success": "Parsed Successfully",
+        "fail": "Parsing Failed"
       }
     },
     "deviceTable": {

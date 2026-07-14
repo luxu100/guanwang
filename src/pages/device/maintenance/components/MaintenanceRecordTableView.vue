@@ -64,7 +64,8 @@
 
             <text
                 class="data-cell data-cell--coord data-cell--link"
-                @click.stop="handleCoordClick(record.maintainCoordinate)"          >
+                @click.stop="handleCoordClick(record.maintainCoordinate)"
+            >
               {{ record.maintainCoordinate || '-' }}
             </text>
 

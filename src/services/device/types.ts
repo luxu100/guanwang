@@ -913,3 +913,38 @@ export interface SysFileVO {
     fileCategory: number;
     createdAt: string;
 }
+
+export interface DeviceParameterPageVO {
+    /** 设备ID */
+    deviceId?: number;
+
+    /** 设备编号 */
+    deviceNumber?: string;
+
+    /** 分区ID */
+    deptId?: number;
+
+    /** 分区名称 */
+    deptName?: string;
+
+    /** 分区类型 */
+    regionType?: string;
+
+    /** GIS最小级别 */
+    gisMinLevel?: number;
+
+    /** GIS最大级别 */
+    gisMaxLevel?: number;
+
+    /** 音频时长(毫秒) */
+    audioDurationMs?: number;
+
+    /**
+     * 动态协议字段
+     * 后端 @JsonAnyGetter 打平后的字段
+     * 例如:
+     * pressure: 0.3
+     * temperature: 25
+     */
+    [key:string]: any;
+}
