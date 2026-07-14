@@ -8,7 +8,9 @@ export interface SearchTemplateItem {
   code?: string;
   scopeType?: string;
   protocolId?: number | string;
+  protocolName?: string;
   deviceId?: number | string;
+  deviceNumber?: string;
   fieldNames?: string[];
   enabled?: boolean;
   remark?: string;

@@ -39,8 +39,13 @@
       <view class="data-toolbar__actions">
         <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="searchRecords">查询</button>
         <button class="toolbar-button" hover-class="toolbar-button--hover" @click="resetFilters">重置</button>
-        <button class="toolbar-icon-button" hover-class="toolbar-icon-button--hover" aria-label="刷新" @click="fetchRecords">
-          <text class="icon-refresh"></text>
+        <button class="toolbar-icon-button" :disabled="refreshing" hover-class="toolbar-icon-button--hover" aria-label="刷新" @click="handleRefresh">
+          <svg class="icon-refresh" :class="{ 'icon-refresh--spinning': refreshing }" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M21 2v6h-6" />
+            <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+            <path d="M3 22v-6h6" />
+            <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+          </svg>
         </button>
         <button v-if="activeConfig.formFields?.length" class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="isProtocolFieldEditor ? addInlineFieldRecord() : startCreate()">
           {{ createActionText }}
@@ -55,7 +60,7 @@
       <view class="protocol-editor-head">
         <view>
           <text class="protocol-editor-title">当前协议信息</text>
-          <text class="protocol-editor-subtitle">端口号使用协议ID，保存时会同步保存协议和字段列表</text>
+          <text class="protocol-editor-subtitle">保存时会同步更新协议信息和字段列表</text>
         </view>
         <view class="protocol-editor-actions">
           <button class="secondary-button" hover-class="secondary-button--hover" @click="openProtocolTemplateImportDialog">导入模板</button>
@@ -70,7 +75,7 @@
       </view>
       <view class="protocol-editor-grid">
         <view class="form-field">
-          <text class="form-label form-label--required">协议ID</text>
+          <text class="form-label form-label--required">ID</text>
           <input v-model="fieldCommonForm.protocolId" class="form-input" type="number" />
         </view>
 
@@ -87,10 +92,6 @@
               <text class="select-arrow"></text>
             </view>
           </picker>
-        </view>
-        <view class="form-field">
-          <text class="form-label form-label--required">端口号</text>
-          <input v-model="fieldProtocolForm.id" class="form-input" type="number" placeholder="如 9001" placeholder-class="input-placeholder" />
         </view>
         <view class="form-field">
           <text class="form-label form-label--required">协议编码</text>
@@ -135,7 +136,13 @@
         
 
 
-    <view class="data-layout" :class="{ 'data-layout--field-editor': isProtocolFieldEditor }">
+    <view
+      class="data-layout"
+      :class="{
+        'data-layout--field-editor': isProtocolFieldEditor,
+        'data-layout--parse': props.mode === 'parse' && !isProtocolFieldEditor,
+      }"
+    >
       <view class="table-panel">
         <view class="table-head">
           <view>
@@ -250,7 +257,11 @@
         </view>
 
         <scroll-view class="detail-body" scroll-y>
-          <view v-if="activeConfig.formFields?.length" class="form-grid">
+          <view
+            v-if="activeConfig.formFields?.length"
+            class="form-grid"
+            :class="{ 'form-grid--two-column': props.mode === 'parse' }"
+          >
             <view v-for="field in activeConfig.formFields" :key="field.key" class="form-field" :class="{ 'form-field--wide': field.type === 'textarea' }">
               <text class="form-label" :class="{ 'form-label--required': field.required }">{{ field.label }}</text>
               <textarea
@@ -407,8 +418,6 @@ import {
   createProtocolDefinition,
   deleteDeviceProtocolRelation,
   deleteProtocolDefinition,
-  getDeviceProtocolRelationByDevice,
-  getDeviceProtocolRelationByProtocol,
   getDeviceProtocolRelationDetail,
   getDeviceProtocolRelationPage,
   getProtocolDefinitionDetail,
@@ -547,9 +556,8 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     description: "维护动态协议、端口标识、字段配置和启用状态",
     columns: [
       { key: "protocolName", label: "协议名称", width: 180 },
-      { key: "id", label: "端口", width: 90 },
-      { key: "enabled", label: "端口状态", type: "status", width: 100 },
-      { key: "description", label: "描述", width: 220 },
+      { key: "id", label: "ID", width: 100 },
+      { key: "enabled", label: "状态", type: "status", width: 100 },
       { key: "createdAt", label: "创建时间", type: "datetime", width: 170 },
       { key: "actions", label: "操作", type: "actions", width: 170 },
     ],
@@ -558,10 +566,10 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     formFields: [
       { key: "protocolCode", label: "协议编码", required: true },
       { key: "protocolName", label: "协议名称", required: true },
-      { key: "id", label: "端口", type: "number", placeholder: "如 9001" },
+      { key: "id", label: "ID", type: "number", placeholder: "如 9001" },
       { key: "protocolVersion", label: "协议版本" },
       { key: "priority", label: "优先级", type: "number" },
-      { key: "enabled", label: "端口状态", type: "boolean" },
+      { key: "enabled", label: "状态", type: "boolean" },
       { key: "description", label: "协议说明", type: "textarea" },
     ],
     loadRecords: (query) => getProtocolDefinitionPage(query),
@@ -587,8 +595,8 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     ],
     detailFields: [],
     filters: [
-      { key: "deviceId", label: "设备ID", type: "number" },
-      { key: "protocolId", label: "协议ID", type: "number" },
+      { key: "deviceNumber", label: "设备编号" },
+      { key: "protocolName", label: "协议名称" },
       ...baseTimeFilters,
     ],
     formFields: [
@@ -600,15 +608,7 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
       { key: "priority", label: "优先级", type: "number" },
       { key: "enabled", label: "启用状态", type: "boolean" },
     ],
-    loadRecords: (query, filters) => {
-      if (filters.deviceId) {
-        return getDeviceProtocolRelationByDevice(filters.deviceId);
-      }
-      if (filters.protocolId) {
-        return getDeviceProtocolRelationByProtocol(filters.protocolId);
-      }
-      return getDeviceProtocolRelationPage(query);
-    },
+    loadRecords: (query) => getDeviceProtocolRelationPage(query),
     getDetail: (id) => getDeviceProtocolRelationDetail(id),
     createRecord: (data) => createDeviceProtocolRelation(data),
     updateRecord: (id, data) => updateDeviceProtocolRelation(id, data),
@@ -633,7 +633,7 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     ],
     detailFields: [],
     filters: [
-      { key: "protocolId", label: "协议ID", type: "number" },
+      { key: "protocolName", label: "协议名称" },
       ...baseTimeFilters,
     ],
     formFields: [
@@ -697,7 +697,7 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     ],
     filters: [
       { key: "deviceNumber", label: "设备编号" },
-      { key: "protocolId", label: "协议ID", type: "number" },
+      { key: "protocolName", label: "协议名称" },
       { key: "afn", label: "AFN" },
       { key: "taskType", label: "任务类型" },
       { key: "contentPrefix", label: "内容前缀" },
@@ -738,8 +738,6 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     ],
     filters: [
       { key: "deviceNumber", label: "设备编号" },
-      { key: "deviceId", label: "设备ID", type: "number" },
-      { key: "samplingId", label: "采样ID", type: "number" },
       ...baseTimeFilters,
     ],
     loadRecords: (query) => getAlgorithmResultPage(query),
@@ -757,7 +755,6 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     { key: "pressure", label: "压力", width: 100 },
   ], [
     { key: "deviceNumber", label: "设备编号" },
-    { key: "deviceId", label: "设备ID", type: "number" },
     { key: "tubeGroup", label: "管组" },
     { key: "leakStatus", label: "渗漏状态", type: "select", options: leakStatusOptions },
   ]),
@@ -770,7 +767,6 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     { key: "leakFrequency", label: "频率", width: 100 },
     { key: "createdAt", label: "创建时间", type: "datetime", width: 170 },
   ], [
-    { key: "samplingId", label: "采样ID", type: "number" },
     { key: "deviceNumber", label: "设备编号" },
   ]),
   samplingDaily: createRecordSection("samplingDaily", "record", "采样日报", "查询日维度渗漏属性、状态和采样位置", getSamplingDailyPage, getSamplingDailyDetail, [
@@ -782,7 +778,6 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     { key: "samplingAddress", label: "采样地址", width: 240 },
   ], [
     { key: "deviceNumber", label: "设备编号" },
-    { key: "deviceId", label: "设备ID", type: "number" },
     { key: "leakStatus", label: "渗漏状态", type: "select", options: leakStatusOptions },
   ]),
   samplingPressure: createRecordSection("samplingPressure", "record", "采样压力", "查询压力文件、压力时间和采集位置", getSamplingPressurePage, getSamplingPressureDetail, [
@@ -794,7 +789,6 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     { key: "createdAt", label: "创建时间", type: "datetime", width: 170 },
   ], [
     { key: "deviceNumber", label: "设备编号" },
-    { key: "deviceId", label: "设备ID", type: "number" },
   ]),
   samplingCss: createRecordSection("samplingCss", "record", "CSS采样数据", "查询井内温压、电池和分析结论", getSamplingCssDataPage, getSamplingCssDataDetail, [
     { key: "deviceId", label: "设备ID", width: 100 },
@@ -808,13 +802,13 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     { key: "batteryLevel", label: "电量", width: 90 },
     { key: "analysisConclusion", label: "分析结论", width: 180 },
   ], [
-    { key: "deviceId", label: "设备ID", type: "number" },
+    { key: "deviceNumber", label: "设备编号" },
   ]),
 };
 
 const modeSectionKeys: Record<DataReceiveMode, SectionKey[]> = {
   access: ["protocol", "relation"],
-  parse: ["field", "parseRecord", "algorithmResult"],
+  parse: ["parseRecord", "algorithmResult"],
   record: ["samplingRecord", "samplingDetail", "samplingDaily", "samplingPressure", "samplingCss"],
 };
 
@@ -825,6 +819,7 @@ const selectedRecord = ref<RecordLike | null>(null);
 const selectedKey = ref("");
 const total = ref(0);
 const loading = ref(false);
+const refreshing = ref(false);
 const submitting = ref(false);
 const importingProtocolJson = ref(false);
 const ENABLE_PROTOCOL_FIELD_REORDER = false;
@@ -1309,12 +1304,12 @@ function handleFieldProtocolEnabledChange(event: { detail: { value: number } }) 
 }
 
 function getActiveFieldProtocolId() {
-  return fieldProtocolForm.id || getId(activeFieldProtocol.value);
+  return fieldCommonForm.protocolId || fieldProtocolForm.id || getId(activeFieldProtocol.value);
 }
 
 function buildActiveFieldProtocolPayload() {
   return removeEmptyFields({
-    id: normalizeImportNumber(fieldProtocolForm.id),
+    id: normalizeImportNumber(fieldCommonForm.protocolId || fieldProtocolForm.id),
     protocolCode: fieldProtocolForm.protocolCode.trim(),
     protocolName: fieldProtocolForm.protocolName.trim(),
     protocolVersion: fieldProtocolForm.protocolVersion.trim(),
@@ -1329,7 +1324,7 @@ async function saveProtocolAndFields() {
   const formId = getActiveFieldProtocolId();
 
   if (!formId) {
-    uni.showToast({ title: "请填写端口号", icon: "none" });
+    uni.showToast({ title: "请填写ID", icon: "none" });
     return;
   }
 
@@ -2352,6 +2347,22 @@ function resetRuntimeState() {
   fieldRecordBaselines.value = new Map();
   selectRecord(null, 0);
 }
+
+async function handleRefresh() {
+  if (refreshing.value) {
+    return;
+  }
+
+  refreshing.value = true;
+  try {
+    await Promise.all([
+      fetchRecords(),
+      new Promise((resolve) => setTimeout(resolve, 500)),
+    ]);
+  } finally {
+    refreshing.value = false;
+  }
+}
 </script>
 
 <style scoped lang="scss">
@@ -2508,6 +2519,10 @@ function resetRuntimeState() {
   grid-template-columns: minmax(0, 1fr);
 }
 
+.data-layout--parse {
+  grid-template-columns: minmax(0, 1fr) minmax(390px, 0.44fr);
+}
+
 .table-panel,
 .detail-panel {
   display: flex;
@@ -2583,7 +2598,7 @@ function resetRuntimeState() {
   table-layout: auto;
   border-collapse: separate;
   border-spacing: 0;
-  width: max-content;
+  width: 100%;
   min-width: 100%;
 }
 
@@ -2805,24 +2820,31 @@ function resetRuntimeState() {
 }
 
 .icon-refresh {
-  position: relative;
-  width: 16px;
-  height: 16px;
-  border: 2px solid currentColor;
-  border-right-color: transparent;
-  border-radius: 50%;
+  display: block;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.icon-refresh::after {
-  position: absolute;
-  top: -3px;
-  right: -2px;
-  width: 0;
-  height: 0;
-  content: "";
-  border: 4px solid transparent;
-  border-left-color: currentColor;
-  transform: rotate(-20deg);
+.icon-refresh--spinning {
+  animation: data-receive-refresh-spin 0.75s linear infinite;
+}
+
+@keyframes data-receive-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.toolbar-icon-button[disabled] {
+  color: var(--admin-primary, #0d82ee);
+  background: #edf7ff;
+  opacity: 1;
 }
 
 .page-button[disabled],
@@ -2941,6 +2963,10 @@ function resetRuntimeState() {
   width: 100%;
   max-width: 100%;
   min-width: 0;
+}
+
+.form-grid--two-column {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .form-field {
@@ -3162,6 +3188,7 @@ function resetRuntimeState() {
 }
 
 @media (max-width: 680px) {
+  .form-grid--two-column,
   .modal-form-grid {
     grid-template-columns: 1fr;
   }

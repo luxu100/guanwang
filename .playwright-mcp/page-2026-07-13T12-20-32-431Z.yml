@@ -1,0 +1,18 @@
+- generic [ref=e8]:
+  - generic [ref=e9]:
+    - generic [ref=e10]: 欢迎登录
+    - generic [ref=e11]: Welcome
+  - generic [ref=e12]:
+    - generic [ref=e13] [cursor=pointer]: 登录 / Login
+    - generic [ref=e14] [cursor=pointer]: 注册 / Register
+  - generic [ref=e15]:
+    - generic [ref=e19]:
+      - generic: 账号 / Account
+      - textbox [ref=e20]
+    - generic [ref=e24]:
+      - generic: 密码 / Password
+      - textbox [ref=e25]
+  - generic [ref=e28]:
+    - generic [ref=e29] [cursor=pointer]: 记住 / Remember
+    - generic [ref=e33] [cursor=pointer]: 注册 / Register
+  - generic [ref=e34] [cursor=pointer]: 登录 / Sign in

@@ -29,23 +29,21 @@
           </picker>
         </view>
         <view class="pqt-filter">
-          <text class="pqt-filter__label">协议 ID</text>
+          <text class="pqt-filter__label">协议名称</text>
           <input
-            v-model="filters.protocolId"
+            v-model="filters.protocolName"
             class="pqt-filter__control"
-            type="number"
-            placeholder="全部"
+            placeholder="请输入协议名称"
             placeholder-class="pqt-placeholder"
             @confirm="searchCurrent"
           />
         </view>
         <view class="pqt-filter">
-          <text class="pqt-filter__label">设备 ID</text>
+          <text class="pqt-filter__label">设备编号</text>
           <input
-            v-model="filters.deviceId"
+            v-model="filters.deviceNumber"
             class="pqt-filter__control"
-            type="number"
-            placeholder="全部"
+            placeholder="请输入设备编号"
             placeholder-class="pqt-placeholder"
             @confirm="searchCurrent"
           />
@@ -61,8 +59,13 @@
       <view class="pqt-toolbar__actions">
         <button class="pqt-btn pqt-btn--primary" hover-class="pqt-btn--hover" @click="searchCurrent">查询</button>
         <button class="pqt-btn" hover-class="pqt-btn--hover" @click="resetFilters">重置</button>
-        <button class="pqt-icon-btn" hover-class="pqt-icon-btn--hover" aria-label="刷新" @click="refreshCurrent">
-          <image class="pqt-icon-refresh" src="/static/icons/refresh-cw.svg" mode="aspectFit" />
+        <button class="pqt-icon-btn" :disabled="refreshing" hover-class="pqt-icon-btn--hover" aria-label="刷新" @click="handleRefresh">
+          <svg class="pqt-icon-refresh" :class="{ 'pqt-icon-refresh--spinning': refreshing }" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M21 2v6h-6" />
+            <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+            <path d="M3 22v-6h6" />
+            <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+          </svg>
         </button>
         <button class="pqt-btn pqt-btn--primary" hover-class="pqt-btn--hover" @click="startCreate">新增模板</button>
         <button
@@ -174,21 +177,21 @@
                 <view class="pqt-form__control pqt-form__control--picker">{{ currentProtocolLabel }}</view>
               </picker>
             </view>
+            <view class="pqt-form__item pqt-form__item--full pqt-form__item--template-code">
+              <text class="pqt-form__label pqt-form__label--required">模板编码</text>
+              <input
+                v-model="form.templateCode"
+                class="pqt-form__control"
+                placeholder="例如 protocol_default"
+                placeholder-class="pqt-placeholder"
+              />
+            </view>
             <view class="pqt-form__item">
               <text class="pqt-form__label pqt-form__label--required">模板名称</text>
               <input
                 v-model="form.templateName"
                 class="pqt-form__control"
                 placeholder="请输入模板名称"
-                placeholder-class="pqt-placeholder"
-              />
-            </view>
-            <view class="pqt-form__item">
-              <text class="pqt-form__label pqt-form__label--required">模板编码</text>
-              <input
-                v-model="form.templateCode"
-                class="pqt-form__control"
-                placeholder="例如 protocol_default"
                 placeholder-class="pqt-placeholder"
               />
             </view>
@@ -365,6 +368,7 @@ const selectedTemplate = ref<SearchTemplateItem | null>(null);
 const selectedIndex = ref(-1);
 const total = ref(0);
 const loading = ref(false);
+const refreshing = ref(false);
 const fieldLoading = ref(false);
 const saving = ref(false);
 const isCreating = ref(false);
@@ -374,8 +378,8 @@ const filters = reactive({
   templateName: "",
   templateCode: "",
   scopeType: "",
-  protocolId: "",
-  deviceId: "",
+  protocolName: "",
+  deviceNumber: "",
   enabled: "" as string | boolean,
 });
 
@@ -701,12 +705,28 @@ function searchCurrent() {
   void refreshCurrent();
 }
 
+async function handleRefresh() {
+  if (refreshing.value) {
+    return;
+  }
+
+  refreshing.value = true;
+  try {
+    await Promise.all([
+      refreshCurrent(),
+      new Promise((resolve) => setTimeout(resolve, 500)),
+    ]);
+  } finally {
+    refreshing.value = false;
+  }
+}
+
 function resetFilters() {
   filters.templateName = "";
   filters.templateCode = "";
   filters.scopeType = "";
-  filters.protocolId = "";
-  filters.deviceId = "";
+  filters.protocolName = "";
+  filters.deviceNumber = "";
   filters.enabled = "";
   pagination.pageNum = 1;
   void refreshCurrent();
@@ -803,8 +823,8 @@ async function refreshCurrent() {
         templateName: filters.templateName.trim() || undefined,
         templateCode: filters.templateCode.trim() || undefined,
         scopeType: filters.scopeType || undefined,
-        protocolId: parseNumber(filters.protocolId),
-        deviceId: parseNumber(filters.deviceId),
+        protocolName: filters.protocolName.trim() || undefined,
+        deviceNumber: filters.deviceNumber.trim() || undefined,
         enabled: filters.enabled,
       }),
     )) as ApiResponseLike;
@@ -1125,10 +1145,32 @@ async function deleteCurrent() {
   background: #dff0ff;
 }
 
+.pqt-icon-btn[disabled] {
+  color: #0d82ee;
+  background: #edf7ff;
+  opacity: 1;
+}
+
 .pqt-icon-refresh {
   display: block;
-  width: 16px;
-  height: 16px;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pqt-icon-refresh--spinning {
+  animation: pqt-refresh-spin 0.75s linear infinite;
+}
+
+@keyframes pqt-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .pqt-layout {
@@ -1380,7 +1422,8 @@ async function deleteCurrent() {
   grid-column: 1 / -1;
 }
 
-.pqt-form__item--protocol {
+.pqt-form__item--protocol,
+.pqt-form__item--template-code {
   width: 100%;
 }
 

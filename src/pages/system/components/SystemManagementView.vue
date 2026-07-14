@@ -4,8 +4,13 @@
       <view class="side-panel">
         <view class="panel-head">
           <text class="panel-title">{{ sideTitle }}</text>
-          <button class="icon-button" hover-class="icon-button--hover" aria-label="刷新" @click="refreshCurrent">
-            <text class="icon-refresh"></text>
+          <button class="icon-button" :disabled="refreshing" hover-class="icon-button--hover" aria-label="刷新" @click="handleRefresh">
+            <svg class="icon-refresh" :class="{ 'icon-refresh--spinning': refreshing }" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M21 2v6h-6" />
+              <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+              <path d="M3 22v-6h6" />
+              <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+            </svg>
           </button>
         </view>
 
@@ -59,7 +64,6 @@
               <text v-else class="side-list__tree-spacer"></text>
               <text class="side-list__title">{{ getPermissionName(item) }}</text>
             </view>
-            <text class="side-list__sub">{{ getText(item, ['path'], '目录节点') }}</text>
           </view>
           <view v-if="!menus.length && !loading" class="empty-tip">暂无菜单数据</view>
         </scroll-view>
@@ -229,15 +233,16 @@
               <view class="form-field form-field--wide">
                 <view class="binding-field-head">
                   <text class="form-label">用户绑定分区（Region接口）</text>
-                  <button class="mini-button" hover-class="mini-button--hover" @click="openUserPartitionDialog">新增绑定</button>
+                  <button class="mini-button" :disabled="isSuperAdminSelected" hover-class="mini-button--hover" @click="openUserPartitionDialog">新增绑定</button>
                 </view>
                 <view class="bound-partition-list">
                   <view v-for="id in selectedUserPartitionIds" :key="id" class="bound-partition-tag">
                     <text>{{ getPartitionNameById(id) }}</text>
-                    <text class="bound-partition-tag__remove" @click="removeUserPartition(id)">×</text>
+                    <text v-if="!isSuperAdminSelected" class="bound-partition-tag__remove" @click="removeUserPartition(id)">×</text>
                   </view>
                   <text v-if="!selectedUserPartitionIds.length" class="empty-inline">暂未绑定分区</text>
                 </view>
+                <text v-if="isSuperAdminSelected" class="binding-lock-tip">超级管理员自动绑定全部分区，不可手动修改</text>
               </view>
             </view>
             <view class="form-actions">
@@ -303,7 +308,7 @@
                       'check-box--partial': isPermissionPartialChecked(item),
                     }"
                   ></text>
-                <text>{{ getPermissionName(item) }}</text>
+                <text class="permission-node__name">{{ getPermissionName(item) }}</text>
                 <text class="permission-node__code">{{ getText(item, ['permissionCode'], '') }}</text>
               </view>
               <view v-if="!permissions.length && !loading" class="empty-tip">暂无权限树数据</view>
@@ -835,6 +840,7 @@ const menuSource = ref<"api" | "local">("api");
 const total = ref(0);
 const loading = ref(false);
 const saving = ref(false);
+const refreshing = ref(false);
 const isCreating = ref(false);
 const showUserPassword = ref(false);
 const showUserPartitionDialog = ref(false);
@@ -934,6 +940,12 @@ const isAllUserPartitionDraftSelected = computed(() => {
   const ids = availableUserPartitionOptions.value.map((item) => getId(item)).filter(isValidId);
   return ids.length > 0 && ids.every((id) => userPartitionDraftIds.value.includes(String(id)));
 });
+const isSuperAdminSelected = computed(() =>
+  selectedRoleIds.value.some((id) => {
+    const role = roles.value.find((item) => String(getId(item)) === String(id));
+    return role ? isSuperAdminRole(role) : false;
+  }),
+);
 const canDelete = computed(() => {
   if (props.mode === "user") {
     return Boolean(getId(selectedUser.value));
@@ -1068,6 +1080,22 @@ async function refreshCurrent() {
   await loadDictTypes();
 }
 
+async function handleRefresh() {
+  if (refreshing.value) {
+    return;
+  }
+
+  refreshing.value = true;
+  try {
+    await Promise.all([
+      refreshCurrent(),
+      new Promise((resolve) => setTimeout(resolve, 500)),
+    ]);
+  } finally {
+    refreshing.value = false;
+  }
+}
+
 async function loadUserDepts(userId: string | number) {
   if (!userId) return;
 
@@ -1075,6 +1103,7 @@ async function loadUserDepts(userId: string | number) {
     const response = await getUserDepts(userId);
     assertSuccessResponse(response as ApiResponseLike);
     selectedUserPartitionIds.value = normalizeIds(parseListResponse(response as ApiResponseLike));
+    syncSuperAdminPartitions();
   
   } catch {
     // 查询失败时保留 /api/user/page 返回的部门兜底数据
@@ -1209,6 +1238,7 @@ async function loadRoles() {
     const response = await getRoleList() as ApiResponseLike;
     assertSuccessResponse(response);
     roles.value = parseListResponse(response);
+    syncSuperAdminPartitions();
   } catch {
     roles.value = [];
   }
@@ -1219,6 +1249,7 @@ async function loadPartitions() {
     const response = await getRegionList() as ApiResponseLike;
     assertSuccessResponse(response);
     partitionOptions.value = parseListResponse(response);
+    syncSuperAdminPartitions();
     // console.log("partitionOptions.value", partitionOptions.value);
   } catch {
     partitionOptions.value = [];
@@ -1422,6 +1453,7 @@ function selectUser(item: RecordLike | null) {
     selectedRoleIds.value = [];
   }
   selectedUserPartitionIds.value = normalizeIds(getArrayValue(item || {}, ["deptIds", "departmentIds", "partitionIds", "depts", "departments", "partitions"]));
+  syncSuperAdminPartitions();
 
   userPartitionDraftIds.value = [];
   showUserPartitionDialog.value = false;
@@ -1697,6 +1729,7 @@ async function saveUser() {
 
   saving.value = true;
   try {
+    syncSuperAdminPartitions();
     let savedMessage = "用户信息已保存";
     let savedIcon: "success" | "none" = "success";
     const payload = removeEmptyFields({
@@ -2217,10 +2250,14 @@ async function clearPermissionSelection() {
 }
 
 function toggleUserRole(id: string | number) {
- selectedRoleIds.value = selectedRoleIds.value.includes(id) ? [] : [id];
+  selectedRoleIds.value = selectedRoleIds.value.includes(id) ? [] : [id];
+  syncSuperAdminPartitions();
 }
 
 function openUserPartitionDialog() {
+  if (isSuperAdminSelected.value) {
+    return;
+  }
   userPartitionDraftIds.value = [];
   showUserPartitionDialog.value = true;
   if (!partitionOptions.value.length) {
@@ -2256,7 +2293,34 @@ function confirmUserPartitionBinding() {
 }
 
 function removeUserPartition(id: string | number) {
+  if (isSuperAdminSelected.value) {
+    return;
+  }
   selectedUserPartitionIds.value = selectedUserPartitionIds.value.filter((item) => item !== String(id));
+}
+
+function isSuperAdminRole(item: RecordLike) {
+  const values = [
+    getText(item, ["roleCode", "code", "roleKey", "key"], ""),
+    getRoleName(item),
+  ].map((value) => value.trim().toLowerCase());
+
+  return values.some((value) =>
+    ["super_admin", "superadmin", "role_super_admin", "超级管理员"].includes(value),
+  );
+}
+
+function getAllPartitionIds() {
+  return partitionOptions.value.map((item) => normalizeId(item)).filter(Boolean);
+}
+
+function syncSuperAdminPartitions() {
+  if (!isSuperAdminSelected.value) {
+    return;
+  }
+
+  selectedUserPartitionIds.value = getAllPartitionIds();
+  closeUserPartitionDialog();
 }
 
 const selectedPermissionIdSet = computed<Set<string>>(() =>
@@ -2737,6 +2801,8 @@ function isValidId(value: unknown): value is string | number {
 }
 
 .side-list__item--tree {
+  align-items: center;
+  flex-direction: row;
   box-sizing: border-box;
 }
 
@@ -3045,24 +3111,31 @@ function isValidId(value: unknown): value is string | number {
 }
 
 .icon-refresh {
-  position: relative;
-  width: 15px;
-  height: 15px;
-  border: 2px solid currentColor;
-  border-right-color: transparent;
-  border-radius: 50%;
+  display: block;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.icon-refresh::after {
-  position: absolute;
-  top: -4px;
-  right: -2px;
-  width: 6px;
-  height: 6px;
-  content: "";
-  border-top: 2px solid currentColor;
-  border-right: 2px solid currentColor;
-  transform: rotate(25deg);
+.icon-refresh--spinning {
+  animation: system-refresh-spin 0.75s linear infinite;
+}
+
+@keyframes system-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.icon-button[disabled] {
+  color: $color-admin-primary;
+  background: transparent;
+  opacity: 1;
 }
 
 .content-layout {
@@ -3121,7 +3194,7 @@ function isValidId(value: unknown): value is string | number {
   table-layout: auto;
   border-collapse: separate;
   border-spacing: 0;
-  width: max-content;
+  width: 100%;
   min-width: 100%;
 }
 
@@ -3428,6 +3501,12 @@ function isValidId(value: unknown): value is string | number {
   border-color: #0d82ee;
 }
 
+.mini-button[disabled] {
+  color: #94a3b8;
+  background: #f1f5f9;
+  border-color: #d7e0e8;
+}
+
 .bound-partition-list {
   display: flex;
   flex-wrap: wrap;
@@ -3467,6 +3546,14 @@ function isValidId(value: unknown): value is string | number {
   flex: none;
   color: #d92d20;
   cursor: pointer;
+}
+
+.binding-lock-tip {
+  display: block;
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .check-item,
@@ -3657,9 +3744,21 @@ function isValidId(value: unknown): value is string | number {
 }
 
 .permission-node__code {
+  flex: none;
   margin-left: auto;
+  padding-left: 24px;
   color: #8a9aab;
   font-size: 12px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.permission-node__name {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (max-width: 1360px) {

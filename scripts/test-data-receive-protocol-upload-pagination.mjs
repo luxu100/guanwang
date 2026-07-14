@@ -6,7 +6,7 @@ const source = readFileSync(new URL("../src/pages/data-receive/components/DataRe
 
 test("protocol management moves JSON upload into the field editor dialog", () => {
   assert.match(source, /当前协议信息/);
-  assert.match(source, /端口号使用协议ID，保存时会同步保存协议和字段列表/);
+  assert.match(source, /保存时会同步更新协议信息和字段列表/);
   assert.match(source, /上传JSON/);
   assert.match(source, /保存全部/);
   assert.match(source, /saveProtocolAndFields/);
@@ -17,7 +17,6 @@ test("protocol management moves JSON upload into the field editor dialog", () =>
   assert.match(source, /handleProtocolJsonDialogFileChange/);
   assert.match(source, /updateProtocolDefinition\(targetProtocolId, payload\)/);
   assert.match(source, /saveProtocolFieldRecordsIndividually\(fieldPayload\)/);
-  assert.doesNotMatch(source, /batchSaveProtocolFields/);
   assert.doesNotMatch(source, /@click="triggerProtocolJsonUpload"/);
   assert.doesNotMatch(source, /ref="protocolJsonInputRef"/);
   assert.doesNotMatch(source, /@click="saveActiveFieldProtocol"/);
@@ -30,7 +29,8 @@ test("protocol management follows the provided table actions and import aliases"
   assert.match(source, /openProtocolFieldEditor/);
   assert.doesNotMatch(source, /查看字段/);
   assert.doesNotMatch(source, /viewProtocolFields/);
-  assert.match(source, /\{ key: "id", label: "端口"/);
+  assert.match(source, /\{ key: "id", label: "ID"/);
+  assert.doesNotMatch(source, /\{ key: "description", label: "描述"/);
   assert.match(source, /id: normalizeImportNumber\(getFirstImportValue\(protocol, \["id", "port", "portNumber", "listenPort"\]\)\)/);
   assert.match(source, /portNumber/);
   assert.match(source, /normalizeProtocolFieldImportPayload/);

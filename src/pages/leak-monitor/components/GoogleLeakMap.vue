@@ -10,38 +10,38 @@
     <!-- #endif -->
   </view>
 </template>
+
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
-import { loadGoogleMaps} from "@/utils/googleMapsLoader";
-import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
-
+import {
+  getGoogleMapsErrorMessage,
+  loadGoogleMaps,
+} from "@/utils/googleMapsLoader";
 
 const mapContainer = ref<HTMLElement | null>(null);
 const mapError = ref("");
 
-const props = withDefaults(defineProps<{
-    lat?:number;
-    lng?:number;
-}>(), {
+const props = withDefaults(
+  defineProps<{
+    lat?: number;
+    lng?: number;
+  }>(),
+  {
     lat: 31.2304,
-    lng: 121.4737
-});
- 
-
+    lng: 121.4737,
+  },
+);
 
 let mapInstance: google.maps.Map | null = null;
 
-onMounted(()=> {
-  nextTick(()=>{
-    initMap();
-
+onMounted(() => {
+  void nextTick(() => {
+    void initMap();
   });
 });
 
-
 onBeforeUnmount(() => {
   if (mapInstance) {
-    // 清理地图实例
     google.maps.event.clearInstanceListeners(mapInstance);
   }
   mapInstance = null;
@@ -51,18 +51,17 @@ onBeforeUnmount(() => {
   }
 });
 
+async function initMap() {
+  if (!mapContainer.value) {
+    mapError.value = "Google 地图容器初始化失败";
+    return;
+  }
 
-async function initMap(){
-
-    if (!mapContainer.value) {
-      mapError.value = "Google 地图容器初始化失败";
-      return;
-    }
-    try{
-        const {Map} = await loadGoogleMaps();
-        mapError.value = "";
-        mapInstance  = new Map(mapContainer.value, {
-            center: {
+  try {
+    const { Map } = await loadGoogleMaps();
+    mapError.value = "";
+    mapInstance = new Map(mapContainer.value, {
+      center: {
         lat: props.lat,
         lng: props.lng,
       },
@@ -70,15 +69,14 @@ async function initMap(){
       mapTypeControl: true,
       streetViewControl: false,
       fullscreenControl: true,
-        });
-    }catch(error){
-        mapError.value = "Google 地图加载失败，请检查 Key、域名限制和网络";
-    }
-
+    });
+  } catch (error) {
+    console.error("Google Maps initialization failed:", error);
+    mapError.value = getGoogleMapsErrorMessage(error);
+  }
 }
-
-
 </script>
+
 <style scoped lang="scss">
 .google-map {
   position: relative;
