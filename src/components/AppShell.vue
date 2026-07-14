@@ -263,7 +263,7 @@ const menuItems: MenuItem[] = [
       { labelKey: "deviceMaintenance", path: "/pages/device/maintenance/maintenance", icon: "device", keywords: ["拆装", "维护"] },
       { labelKey: "deviceProtocol", path: "/pages/device/protocol/protocol", icon: "device", keywords: ["协议"] },
       // { labelKey: "deviceSettings", path: "/pages/device/settings/settings", icon: "device", keywords: ["参数"] },
-      { label: "deviceParameter", path: "/pages/device/parameter/parameter", icon: "device", keywords: ["参数"] },
+      { labelKey: "deviceParameter", path: "/pages/device/parameter/parameter", icon: "device", keywords: ["参数"] },
       { labelKey: "deviceValve", path: "/pages/device/valve/valve", icon: "device", keywords: ["阀门"] },
     ],
   },
