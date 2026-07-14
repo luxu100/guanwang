@@ -9,16 +9,16 @@
       <view class="data-table">
         <view class="data-row data-row--header">
           <text class="data-cell data-cell--index">{{ t('valve.table.index') }}</text>
-          <text class="data-cell data-cell--device">{{ t('valve.table.pipelineName') }}</text>
-          <text class="data-cell data-cell--device">{{ t('valve.table.valveNumber') }}</text>
-          <text class="data-cell data-cell--device">{{ t('valve.table.valveName') }}</text>
-          <text class="data-cell data-cell--device">{{ t('valve.table.coordinatePosition') }}</text>
-          <text class="data-cell data-cell--status">{{ t('valve.table.branchCompany') }}</text>
-          <text class="data-cell data-cell--status">{{ t('valve.table.region') }}</text>
-          <text class="data-cell data-cell--number">{{ t('valve.table.tubeBore') }}</text>
-          <text class="data-cell data-cell--status">{{ t('valve.table.tubeMaterial') }}</text>
-          <text class="data-cell data-cell--coord">{{ t('valve.table.coordinate') }}</text>
-          <text class="data-cell data-cell--time">{{ t('valve.table.createdAt') }}</text>
+          <text class="data-cell ">{{ t('valve.table.pipelineName') }}</text>
+          <text class="data-cell ">{{ t('valve.table.valveNumber') }}</text>
+          <text class="data-cell ">{{ t('valve.table.valveName') }}</text>
+          <text class="data-cell ">{{ t('valve.table.coordinatePosition') }}</text>
+          <text class="data-cell ">{{ t('valve.table.branchCompany') }}</text>
+          <text class="data-cell ">{{ t('valve.table.region') }}</text>
+          <text class="data-cell ">{{ t('valve.table.tubeBore') }}</text>
+          <text class="data-cell ">{{ t('valve.table.tubeMaterial') }}</text>
+          <text class="data-cell ">{{ t('valve.table.coordinate') }}</text>
+          <text class="data-cell ">{{ t('valve.table.createdAt') }}</text>
         </view>
 
         <view v-if="loading" class="table-state">{{ t('valve.table.loading') }}</view>

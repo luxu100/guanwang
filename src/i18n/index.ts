@@ -3,6 +3,8 @@ import enUS from "./locales/en-US";
 import zhCN from "./locales/zh-CN";
 import deviceZhCN from "@/pages/device/locales/zh-CN.json";
 import deviceEnUS from "@/pages/device/locales/en-US.json";
+import appShellZhCN from "@/components/locales/zh-CN.json";
+import appShellEnUS from "@/components/locales/en-US.json";
 import type { I18nParams, LocaleCode, LocaleOption } from "./types";
 
 export const LOCALE_STORAGE_KEY = "locale";
@@ -16,6 +18,8 @@ export const localeOptions: LocaleOption[] = [
 
 Object.assign(zhCN, deviceZhCN);
 Object.assign(enUS, deviceEnUS);
+Object.assign(zhCN, appShellZhCN);
+Object.assign(enUS, appShellEnUS);
 
 const messages = {
   "zh-CN": zhCN,

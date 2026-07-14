@@ -27,16 +27,17 @@
         <view class="data-table">
           <view class="data-row data-row--header">
             <text class="data-cell data-cell--index">{{ t("common.table.index") }}</text>
-            <text class="data-cell data-cell--device">{{ t("maintain.maintainTable.deviceNumber") }}</text>
-            <text class="data-cell data-cell--type">{{ t("maintain.maintainTable.type") }}</text>
-            <text class="data-cell data-cell--time">{{ t("maintain.maintainTable.time") }}</text>
-            <text class="data-cell data-cell--address">{{ t("maintain.maintainTable.address") }}</text>
-            <text class="data-cell data-cell--coord">{{ t('maintain.maintainTable.coordinate') }}</text>
-            <text class="data-cell data-cell--status">{{ t("maintain.maintainTable.installMode") }}</text>
-            <text class="data-cell data-cell--number">{{ t("maintain.maintainTable.tubeGroup") }}</text>
-            <text class="data-cell data-cell--text">{{ t("maintain.maintainTable.tubeMaterial") }}</text>
-            <text class="data-cell data-cell--text">{{ t("maintain.maintainTable.tubeBore") }}</text>
-            <text class="data-cell data-cell--text">{{ t("maintain.maintainTable.remark") }}</text>
+            <text class="data-cell ">{{ t("maintain.maintainTable.deviceNumber") }}</text>
+            <text class="data-cell ">{{ t("maintain.maintainTable.type") }}</text>
+            <text class="data-cell ">{{ t("maintain.maintainTable.time") }}</text>
+            <text class="data-cell ">{{ t("maintain.maintainTable.address") }}</text>
+            <text class="data-cell ">{{ t('maintain.maintainTable.coordinate') }}</text>
+            <text class="data-cell ">{{ t("maintain.maintainTable.installMode") }}</text>
+            <text class="data-cell ">{{ t("maintain.maintainTable.maintainPicture") }}</text>
+            <text class="data-cell ">{{ t("maintain.maintainTable.tubeGroup") }}</text>
+            <text class="data-cell ">{{ t("maintain.maintainTable.tubeMaterial") }}</text>
+            <text class="data-cell ">{{ t("maintain.maintainTable.tubeBore") }}</text>
+            <text class="data-cell ">{{ t("maintain.maintainTable.remark") }}</text>
           </view>
 
           <view v-if="loading" class="loading-mask">{{ t('common.table.loading') }}</view>
@@ -71,7 +72,10 @@
               {{ formatDate(record.maintainTime) || '-' }}
             </text>
 
-            <text class="data-cell data-cell--address">
+            <text class="data-cell data-cell--address"
+                  @mouseenter="showTooltip($event,record.maintainAddress)"
+                  @mouseleave="hideTooltip"
+            >
               {{ record.maintainAddress || '-' }}
             </text>
 
@@ -99,6 +103,19 @@
               </text>
             </text>
 
+            <text
+                class="data-cell data-cell--link"
+                @click.stop="handlePicture(record)"
+            >
+              {{
+                record.maintainPicture
+                    ? t("common.viewImages", {
+                      count: getPictureList(record.maintainPicture).length
+                    })
+                    : '-'
+              }}
+            </text>
+
             <text class="data-cell data-cell--number">
               {{ record.tubeGroup || '-' }}
             </text>
@@ -111,7 +128,10 @@
               {{ record.tubeBore || '-' }}
             </text>
 
-            <text class="data-cell data-cell--text">
+            <text class="data-cell data-cell--remark"
+                  @mouseenter="showTooltip($event,record.remark)"
+                  @mouseleave="hideTooltip"
+            >
               {{ record.remark || '-' }}
             </text>
 
@@ -125,6 +145,13 @@
           :total="pagination.total"
           @change-page="handlePageChange"
           @change-size="handlePageSizeChange"
+      />
+
+      <XTooltip
+          :visible="tooltipVisible"
+          :text="tooltipText"
+          :x="tooltipX"
+          :y="tooltipY"
       />
     </view>
   </view>
@@ -144,6 +171,11 @@
       :lat="lat"
       :title="t('map.dialogTitle')"
   />
+
+  <XImageViewerDialog
+      v-model:visible="imageDialogVisible"
+      :file-ids="currentPictureIds"
+  />
 </template>
 <script setup lang="ts">
 import {computed, ref, watch} from 'vue';
@@ -162,6 +194,8 @@ import XPaginationBar from "@/pages/device/components/x/XPaginationBar.vue";
 import {createScopedT} from "@/i18n";
 import {formatDate} from "@/utils/time";
 import XMapPopup from "@/pages/device/components/x/XMapPopup.vue";
+import XImageViewerDialog from "@/pages/device/components/x/XImageViewerDialog.vue";
+import XTooltip from "@/pages/device/components/x/XTooltip.vue";
 
 const t = createScopedT("devicePage");
 const isToolbarVisible = ref(true);
@@ -604,6 +638,54 @@ function handleCoordClick(coordinate?: string) {
     icon: "none",
     duration: 2000
   });
+}
+
+/*
+图片展示
+ */
+const imageDialogVisible = ref(false);
+const currentPictureIds = ref("");
+
+function getPictureList(picture?: string) {
+  return picture
+      ? picture.split(",").filter(Boolean)
+      : [];
+}
+
+function handlePicture(record: MaintenanceRecord) {
+  if (!record.maintainPicture) {
+    uni.showToast({
+      title: "暂无图片",
+      icon: "none"
+    });
+    return;
+  }
+
+  currentPictureIds.value = record.maintainPicture;
+  imageDialogVisible.value = true;
+}
+
+const tooltipText = ref('');
+const tooltipVisible = ref(false);
+const tooltipX = ref(0);
+const tooltipY = ref(0);
+
+function showTooltip(e:any,text?:string){
+  if(!text || text === '-') return;
+  tooltipText.value=text;
+  tooltipX.value =
+      e.clientX ??
+      e.detail?.x ??
+      0;
+  tooltipY.value =
+      (e.clientY ??
+          e.detail?.y ??
+          0) + 10;
+  tooltipVisible.value=true;
+}
+
+function hideTooltip(){
+  tooltipVisible.value = false;
 }
 
 type MaintainTypeMeta = {

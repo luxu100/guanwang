@@ -1,29 +1,32 @@
 ﻿<template>
   <view class="device-page">
 <!--    全局toolbar-->
-    <DeviceToolbar  v-if="showGlobalToolbar"
-        v-model="searchForm"
-        :fields="toolbarConfig"
-        :product-options="productOptions"
-        :enable-state-options="enableStateOptions"
-        :install-state-options="installStateOptions"
-        :online-status-options="onlineStatusOptions"
-        :leak-status-options="leakStatusOptions"
-        :maintain-type-options="maintainTypeOptions"
-        :receive-status-options="receiveStatusOptions"
-        :buttons="showButtonConfig"
-        @search="handleSearch"
-        @reset="handleReset"
-        @refresh="fetchDevices"
-        @delete="handleDelete"
-        @add="handleAdd"
-        @edit="handleEdit"
-        @on-export="handleExport"
-        @on-import="handleImport"
-        @bind-dept="handleBindDept"
-        @bind-valve="handleBindValve"
-        @show-detail="handleShowDetail"
-    />
+    <view class="global-toolbar" v-if="showGlobalToolbar">
+      <DeviceToolbar
+          v-model="searchForm"
+          :fields="toolbarConfig"
+          :product-options="productOptions"
+          :enable-state-options="enableStateOptions"
+          :install-state-options="installStateOptions"
+          :online-status-options="onlineStatusOptions"
+          :leak-status-options="leakStatusOptions"
+          :maintain-type-options="maintainTypeOptions"
+          :receive-status-options="receiveStatusOptions"
+          :buttons="showButtonConfig"
+          @search="handleSearch"
+          @reset="handleReset"
+          @refresh="fetchDevices"
+          @delete="handleDelete"
+          @add="handleAdd"
+          @edit="handleEdit"
+          @on-export="handleExport"
+          @on-import="handleImport"
+          @bind-dept="handleBindDept"
+          @bind-valve="handleBindValve"
+          @show-detail="handleShowDetail"
+      />
+    </view>
+
     <view
         class="worksheet-layout"
         :class="[layoutClass, { collapsed: isDetailCollapsed }]"
@@ -33,7 +36,8 @@
       <view class="table-panel">
 
         <!-- 左侧设备Toolbar -->
-        <DeviceToolbar v-if="showLeftToolbar"
+        <DeviceToolbar
+            v-if="showLeftToolbar"
             v-model="searchForm"
             :fields="toolbarConfig"
             :product-options="productOptions"
@@ -1062,6 +1066,11 @@ onMounted(() => {
   background: #eef4f8;
 }
 
+.global-toolbar {
+  margin-bottom:14px;
+  flex-shrink:0;
+}
+
 /* ===========================
    主布局
 =========================== */
@@ -1069,8 +1078,6 @@ onMounted(() => {
 .worksheet-layout {
   flex: 1;
   display: grid;
-  gap: 0;
-  margin-top: 14px;
   min-height: 0;
   overflow: hidden;
 }
@@ -1103,10 +1110,11 @@ onMounted(() => {
 .detail-panel {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+  background: #eef4f8;
 }
 
 /* Panel内容区域 */

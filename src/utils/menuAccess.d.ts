@@ -1,5 +1,6 @@
 export interface AccessMenuItem {
-  label: string;
+  label?: string;
+  labelKey?: string;
   path: string;
   icon?: string;
   keywords?: string[];

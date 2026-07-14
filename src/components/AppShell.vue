@@ -89,12 +89,12 @@
                 'side-menu__item--active': isMenuItemActive(item),
                 'side-menu__item--popover-open': isCollapsedSubmenuVisible(item),
               }"
-              :data-label="item.label"
+              :data-label="getMenuLabel(item)"
               :data-menu-path="item.path"
               @click="goMenuItem(item)"
             >
               <text class="side-menu__icon" :class="`side-menu__icon--${item.icon}`"></text>
-              <text class="side-menu__label">{{ item.label }}</text>
+              <text class="side-menu__label">{{ getMenuLabel(item) }}</text>
             </view>
 
             <view v-if="item.children?.length && isMenuItemExpanded(item)" class="side-menu__children">
@@ -107,7 +107,7 @@
                 @click.stop="goPage(child.path)"
               >
                 <text class="side-menu__child-dot"></text>
-                <text class="side-menu__child-label">{{ child.label }}</text>
+                <text class="side-menu__child-label">{{ getMenuLabel(child) }}</text>
               </view>
             </view>
 
@@ -120,7 +120,7 @@
                 :data-menu-path="child.path"
                 @click.stop="goChildPage(child.path)"
               >
-                {{ child.label }}
+                {{ getMenuLabel(child) }}
               </view>
             </view>
           </view>
@@ -146,7 +146,7 @@
               @click="activateTab(tab.path)"
             >
               <text class="page-tab__icon" :class="`page-tab__icon--${tab.icon}`"></text>
-              <text class="page-tab__label">{{ tab.label }}</text>
+              <text class="page-tab__label">{{ getMenuLabelByPath(tab.path) }}</text>
               <button class="page-tab__close" hover-class="page-tab__close--hover" @click.stop="closeTab(tab.path)">
                 <text class="page-tab__close-icon"></text>
               </button>
@@ -190,7 +190,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import type { Component } from "vue";
 import logoImage from "@/assets/images/logo.webp";
 import AdminPlaceholderView from "@/components/admin/AdminPlaceholderView.vue";
@@ -216,10 +216,10 @@ import { clearAuthStorage, createProtectedRouteDecision, LOGIN_PATH } from "@/ut
 import { filterMenuItemsByAccess, flattenMenuPaths, getMenuAccessSummary } from "@/utils/menuAccess";
 import { TOKEN_KEY } from "@/utils/request";
 import LocaleLeakMap from "@/pages/leak-monitor/components/LocaleLeakMap.vue";
-import { applyUserLocale } from "@/i18n";
+import { applyUserLocale, createScopedT, useI18n } from "@/i18n";
 import ValveView from "@/pages/device/valve/components/ValveView.vue";
 interface MenuItem {
-  label: string;
+  labelKey: string;
   path: string;
   icon: string;
   permissionCode?: string;
@@ -229,7 +229,6 @@ interface MenuItem {
 
 interface PageTab {
   icon: string;
-  label: string;
   path: string;
 }
 
@@ -240,6 +239,8 @@ interface ShellContentDefinition {
 
 const LEAK_MONITOR_PATH = "/pages/leak-monitor/leak-monitor";
 const DEFAULT_PAGE_PATH = LEAK_MONITOR_PATH;
+const menuT = createScopedT("appShellMenu");
+const { locale } = useI18n();
 
 /**
  * 后台侧边栏菜单配置。
@@ -248,121 +249,117 @@ const DEFAULT_PAGE_PATH = LEAK_MONITOR_PATH;
  * side-menu__icon--xxx / page-tab__icon--xxx 的掩码图标。
  */
 const menuItems: MenuItem[] = [
-  { label: "我的收藏", path: "/pages/index/index", icon: "star", keywords: ["首页", "收藏"] },
-  { label: "渗漏监测", path: "/pages/leak-monitor/leak-monitor", icon: "monitor", keywords: ["渗漏", "监测"] },
-  { label: "分区管理", path: "/pages/partition/partition", icon: "partition", keywords: ["分区", "部门", "管理"] },
+  { labelKey: "favorite", path: "/pages/index/index", icon: "star", keywords: ["首页", "收藏"] },
+  { labelKey: "leakMonitor", path: "/pages/leak-monitor/leak-monitor", icon: "monitor", keywords: ["渗漏", "监测"] },
+  { labelKey: "partition", path: "/pages/partition/partition", icon: "partition", keywords: ["分区", "部门", "管理"] },
   {
-    label: "设备管理",
+    labelKey: "device",
     path: "/pages/device/info/info",
     icon: "device",
     keywords: ["设备"],
     children: [
-      { label: "设备信息", path: "/pages/device/info/info", icon: "device", keywords: ["设备", "信息"] },
-      { label: "拆装维护", path: "/pages/device/maintenance/maintenance", icon: "device", keywords: ["拆装", "维护"] },
-      { label: "协议绑定", path: "/pages/device/protocol/protocol", icon: "device", keywords: ["协议"] },
-      { label: "设备参数", path: "/pages/device/settings/settings", icon: "device", keywords: ["参数"] },
-      { label: "阀门管理", path: "/pages/device/valve/valve", icon: "device", keywords: ["阀门"] },
+      { labelKey: "deviceInfo", path: "/pages/device/info/info", icon: "device", keywords: ["设备", "信息"] },
+      { labelKey: "deviceMaintenance", path: "/pages/device/maintenance/maintenance", icon: "device", keywords: ["拆装", "维护"] },
+      { labelKey: "deviceProtocol", path: "/pages/device/protocol/protocol", icon: "device", keywords: ["协议"] },
+      { labelKey: "deviceSettings", path: "/pages/device/settings/settings", icon: "device", keywords: ["参数"] },
+      { labelKey: "deviceValve", path: "/pages/device/valve/valve", icon: "device", keywords: ["阀门"] },
     ],
   },
   {
-    label: "指令管理",
+    labelKey: "command",
     path: "/pages/command/commandManage",
     icon: "device",
     permissionCode: "module:command",
     keywords: ["指令"],
     children: [
-      { label: "指令管理", path: "/pages/command/commandManage", icon: "device", permissionCode: "page:command:manage", keywords: ["指令", "管理"] },
-      { label: "指令配置", path: "/pages/command/commandConfiguration", icon: "device", permissionCode: "page:command:configuration", keywords: ["指令", "配置"] },
-    ],
-  },
-  { 
-    label: "统计分析", 
-    path: "/pages/statistics/statistics", icon: "trend", 
-    keywords: ["统计"],
-    children: [
-       { label: "疑漏模块总览", path: "/pages/leak-report/history-overview/history-overview", icon: "report", keywords: ["历史"] },
-       { label: "数据系统总览", path: "/pages/data-analysis/overview/overview", icon: "chart", keywords: ["系统", "总览"] },
-
+      { labelKey: "commandManage", path: "/pages/command/commandManage", icon: "device", permissionCode: "page:command:manage", keywords: ["指令", "管理"] },
+      { labelKey: "commandConfiguration", path: "/pages/command/commandConfiguration", icon: "device", permissionCode: "page:command:configuration", keywords: ["指令", "配置"] },
     ],
   },
   {
-    label: "数据分析",
+    labelKey: "statistics",
+    path: "/pages/statistics/statistics", icon: "trend",
+    keywords: ["统计"],
+    children: [
+      { labelKey: "statisticsLeakOverview", path: "/pages/leak-report/history-overview/history-overview", icon: "report", keywords: ["历史"] },
+      { labelKey: "statisticsDataOverview", path: "/pages/data-analysis/overview/overview", icon: "chart", keywords: ["系统", "总览"] },
+    ],
+  },
+  {
+    labelKey: "dataAnalysis",
     path: "/pages/data-analysis/overview/overview",
     icon: "chart",
     keywords: ["分析", "数据"],
     children: [
-      // { label: "系统总览", path: "/pages/data-analysis/overview/overview", icon: "chart", keywords: ["系统", "总览"] },
-      { label: "音频数据", path: "/pages/data-analysis/audio/audio", icon: "chart", keywords: ["音频"] },
-      { label: "渗漏数据", path: "/pages/data-analysis/leakage/leakage", icon: "chart", keywords: ["渗漏"] },
+      { labelKey: "dataAnalysisAudio", path: "/pages/data-analysis/audio/audio", icon: "chart", keywords: ["音频"] },
+      { labelKey: "dataAnalysisLeakage", path: "/pages/data-analysis/leakage/leakage", icon: "chart", keywords: ["渗漏"] },
     ],
   },
   {
-    label: "疑漏点上报",
+    labelKey: "leakReport",
     path: "/pages/leak-report/suspect-management/suspect-management",
     icon: "report",
     keywords: ["疑漏点", "上报", "疑点", "漏点"],
     children: [
-      { label: "疑点管理", path: "/pages/leak-report/suspect-management/suspect-management", icon: "report", keywords: ["疑点"] },
-      { label: "疑点处理", path: "/pages/leak-report/suspect-processing/suspect-processing", icon: "report", keywords: ["处理"] },
-      { label: "漏点管理", path: "/pages/leak-report/leak-management/leak-management", icon: "report", keywords: ["漏点"] },
-      { label: "漏点分析", path: "/pages/leak-report/leak-analysis/leak-analysis", icon: "report", keywords: ["分析"] },
-      // { label: "历史总览", path: "/pages/leak-report/history-overview/history-overview", icon: "report", keywords: ["历史"] },
+      { labelKey: "suspectManagement", path: "/pages/leak-report/suspect-management/suspect-management", icon: "report", keywords: ["疑点"] },
+      { labelKey: "suspectProcessing", path: "/pages/leak-report/suspect-processing/suspect-processing", icon: "report", keywords: ["处理"] },
+      { labelKey: "leakManagement", path: "/pages/leak-report/leak-management/leak-management", icon: "report", keywords: ["漏点"] },
+      { labelKey: "leakAnalysis", path: "/pages/leak-report/leak-analysis/leak-analysis", icon: "report", keywords: ["分析"] },
     ],
   },
   {
-    label: "工单管理",
+    labelKey: "workOrder",
     path: "/pages/work-order/create/create",
     icon: "order",
     keywords: ["工单"],
     children: [
-      { label: "工单创建", path: "/pages/work-order/create/create", icon: "order", keywords: ["创建"] },
-      { label: "工单处理", path: "/pages/work-order/processing/processing", icon: "order", keywords: ["处理"] },
-      // { label: "工单查询与统计", path: "/pages/work-order/statistics/statistics", icon: "order", keywords: ["查询", "统计"] },
+      { labelKey: "workOrderCreate", path: "/pages/work-order/create/create", icon: "order", keywords: ["创建"] },
+      { labelKey: "workOrderProcessing", path: "/pages/work-order/processing/processing", icon: "order", keywords: ["处理"] },
     ],
   },
   {
-    label: "实时报警",
+    labelKey: "alarm",
     path: "/pages/alarm/strategy/strategy",
     icon: "alarm",
     keywords: ["告警", "报警"],
     children: [
-      { label: "报警策略", path: "/pages/alarm/strategy/strategy", icon: "alarm", keywords: ["策略"] },
-      { label: "报警处理", path: "/pages/alarm/processing/processing", icon: "alarm", keywords: ["处理"] },
+      { labelKey: "alarmStrategy", path: "/pages/alarm/strategy/strategy", icon: "alarm", keywords: ["策略"] },
+      { labelKey: "alarmProcessing", path: "/pages/alarm/processing/processing", icon: "alarm", keywords: ["处理"] },
     ],
   },
   {
-    label: "统计报表",
+    labelKey: "report",
     path: "/pages/report/generate/generate",
     icon: "report",
     keywords: ["报表"],
     children: [
-      { label: "报表生成", path: "/pages/report/generate/generate", icon: "report", keywords: ["生成"] },
-      { label: "报表操作", path: "/pages/report/operation/operation", icon: "report", keywords: ["操作"] },
+      { labelKey: "reportGenerate", path: "/pages/report/generate/generate", icon: "report", keywords: ["生成"] },
+      { labelKey: "reportOperation", path: "/pages/report/operation/operation", icon: "report", keywords: ["操作"] },
     ],
   },
   {
-    label: "系统设置",
+    labelKey: "system",
     path: "/pages/system/user/user",
     icon: "setting",
     keywords: ["设置", "用户"],
     children: [
-      { label: "用户配置", path: "/pages/system/user/user", icon: "setting", keywords: ["用户"] },
-      { label: "权限管理", path: "/pages/system/auth/auth", icon: "setting", keywords: ["权限"] },
-      { label: "菜单管理", path: "/pages/system/menu/menu", icon: "setting", keywords: ["菜单"] },
-      { label: "数据字典", path: "/pages/system/dict/dict", icon: "setting", keywords: ["字典"] },
-      { label: "查询模板", path: "/pages/system/search/search", icon: "setting", keywords: ["模板"] },
+      { labelKey: "systemUser", path: "/pages/system/user/user", icon: "setting", keywords: ["用户"] },
+      { labelKey: "systemAuth", path: "/pages/system/auth/auth", icon: "setting", keywords: ["权限"] },
+      { labelKey: "systemMenu", path: "/pages/system/menu/menu", icon: "setting", keywords: ["菜单"] },
+      { labelKey: "systemDict", path: "/pages/system/dict/dict", icon: "setting", keywords: ["字典"] },
+      { labelKey: "systemSearch", path: "/pages/system/search/search", icon: "setting", keywords: ["模板"] },
     ],
   },
   {
-    label: "数据接收和解析",
+    labelKey: "dataReceive",
     path: "/pages/data-receive/access/access",
     icon: "command",
     keywords: ["数据接收", "解析", "接入"],
     permissionCode: "module:data-receive",
     children: [
-      { label: "协议管理", path: "/pages/data-receive/access/access", icon: "command", permissionCode: "page:data-receive:protocol", keywords: ["协议", "接入", "定义", "绑定"] },
-      { label: "数据解析", path: "/pages/data-receive/parse/parse", icon: "command", permissionCode: "page:data-receive:parse", keywords: ["解析"] },
-      { label: "数据记录", path: "/pages/data-receive/record/record", icon: "command", permissionCode: "page:data-receive:record", keywords: ["记录"] },
+      { labelKey: "dataReceiveProtocol", path: "/pages/data-receive/access/access", icon: "command", permissionCode: "page:data-receive:protocol", keywords: ["协议", "接入", "定义", "绑定"] },
+      { labelKey: "dataReceiveParse", path: "/pages/data-receive/parse/parse", icon: "command", permissionCode: "page:data-receive:parse", keywords: ["解析"] },
+      { labelKey: "dataReceiveRecord", path: "/pages/data-receive/record/record", icon: "command", permissionCode: "page:data-receive:record", keywords: ["记录"] },
     ],
   },
 ];
@@ -787,11 +784,13 @@ function getInitialOpenedTabs() {
     return Boolean(
       tab &&
         typeof tab.path === "string" &&
-        typeof tab.label === "string" &&
         typeof tab.icon === "string" &&
         getMenuLabelByPath(tab.path),
     );
-  });
+  }).map((tab) => ({
+    icon: tab.icon,
+    path: tab.path,
+  }));
 }
 
 function getHashPath() {
@@ -884,15 +883,19 @@ function updateDocumentTitle(path: string) {
   }
 }
 
+function getMenuLabel(item: MenuItem) {
+  return menuT(item.labelKey, item.labelKey);
+}
+
 function getMenuLabelByPath(path: string) {
   for (const item of menuItems) {
     const child = item.children?.find((childItem) => childItem.path === path);
     if (child) {
-      return child.label;
+      return getMenuLabel(child);
     }
 
     if (item.path === path) {
-      return item.label;
+      return getMenuLabel(item);
     }
   }
 
@@ -920,7 +923,7 @@ function ensureTab(path: string) {
     return;
   }
 
-  openedTabs.value.push({ icon: getMenuIconByPath(path), label, path });
+  openedTabs.value.push({ icon: getMenuIconByPath(path), path });
   persistOpenedTabs();
 }
 
@@ -960,6 +963,10 @@ function syncExpandedMenuByPath(path: string) {
   const parent = filteredMenuItems.value.find((item) => item.children?.some((child) => child.path === path));
   expandedMenuPaths.value = parent ? [parent.path] : [];
 }
+
+watch(locale, () => {
+  updateDocumentTitle(currentPath.value);
+});
 
 function syncPathFromBrowser() {
   const path = getBrowserPath();

@@ -9,8 +9,8 @@ export type MapProvider = "tencent" | "google";
 
 
 export const MAP_CONFIG = {
-  tencentKey: import.meta.env.VITE_TENCENT_MAP_KEY?.trim() || "",
-  googleKey: import.meta.env.VITE_GOOGLE_MAP_KEY?.trim() || "",
+  tencentKey: tencentMapKey,
+  googleKey: googleMapKey,
 };
 
 export function getMapProvider(locale: LocaleCode): MapProvider {

@@ -554,6 +554,7 @@ interface AudioItem {
   name: string;
   durationText: string;
   id: string;
+  filePath?: string;
   file?: File;
 }
 
@@ -827,6 +828,7 @@ interface UploadItem {
   url: string;
   id: string;
   file?: File;
+  filePath?: string;
 }
 
 const suspectSceneImageList = ref<UploadItem[]>([]);
@@ -849,8 +851,10 @@ async function uploadPendingMedia(): Promise<boolean> {
         const name = (file as File).name || "image";
         tasks.push(async () => {
           uploadProgressText.value = `正在上传 ${name}`;
-          const id = await uploadSingleFile(file, name);
-          item.id = id;
+          const result = await uploadSingleFile(file, name);
+          item.id = result.id;
+          item.filePath = result.filePath;
+          item.url = addBaseUrl(result.filePath);
         });
       }
     }
@@ -863,8 +867,10 @@ async function uploadPendingMedia(): Promise<boolean> {
     const name = (file as File).name || "video";
     tasks.push(async () => {
       uploadProgressText.value = `正在上传 ${name}`;
-      const id = await uploadSingleFile(file, name);
-      videoItem.id = id;
+      const result = await uploadSingleFile(file, name);
+      videoItem.id = result.id;
+      videoItem.filePath = result.filePath;
+      videoItem.url = addBaseUrl(result.filePath);
     });
   }
 
@@ -874,8 +880,12 @@ async function uploadPendingMedia(): Promise<boolean> {
     const name = (file as File).name || "audio";
     tasks.push(async () => {
       uploadProgressText.value = `正在上传 ${name}`;
-      const id = await uploadSingleFile(file, name);
-      if (audioItem.value) audioItem.value.id = id;
+      const result = await uploadSingleFile(file, name);
+      if (audioItem.value) {
+        audioItem.value.id = result.id;
+        audioItem.value.filePath = result.filePath;
+        audioItem.value.url = addBaseUrl(result.filePath);
+      }
     });
   }
 
@@ -896,24 +906,35 @@ async function uploadPendingMedia(): Promise<boolean> {
   }
 }
 
-/** 同步 form 中的媒体字段（用已上传的 ID 填充） */
+/** 同步 form 中的媒体字段（用已上传的 filePath 填充） */
 function syncMediaFormFields() {
-  form.suspectSceneImages = suspectSceneImageList.value.map(i => i.id).filter(Boolean).join(",");
-  form.leakSceneImages = leakSceneImageList.value.map(i => i.id).filter(Boolean).join(",");
-  form.sceneVideo = sceneVideoItem.value?.id || "";
-  form.audioFile = audioItem.value?.id || "";
+  form.suspectSceneImages = suspectSceneImageList.value.map(i => i.filePath).filter(Boolean).join(",");
+  form.leakSceneImages = leakSceneImageList.value.map(i => i.filePath).filter(Boolean).join(",");
+  form.sceneVideo = sceneVideoItem.value?.filePath || sceneVideoItem.value?.id || "";
+  form.audioFile = audioItem.value?.filePath || audioItem.value?.id || "";
 }
 
-async function uploadSingleFile(fileSource: File | string, fileName: string): Promise<string> {
+interface UploadResult {
+  id: string;
+  filePath: string;
+}
+
+async function uploadSingleFile(fileSource: File | string, fileName: string): Promise<UploadResult> {
   const callback = (pct: number) => {
     uploadProgressText.value = `正在上传 ${fileName} (${pct}%)`;
   };
-  const res: { code?: number; data?: { id?: string; url?: string } } =
-    await uploadFile(fileSource, fileName, callback as (...args: unknown[]) => void);
+  const res = await uploadFile(fileSource, fileName, callback as (...args: unknown[]) => void) as Record<string, unknown>;
   if (res && res.code !== undefined && res.code !== 0 && res.code !== 200) {
     throw res;
   }
-  return (res as { data?: { id?: string } })?.data?.id || "";
+  // 后端返回 filePath（如 /files/images/xxx）
+  const resData = (res?.data || {}) as Record<string, unknown>;
+  const id = String(resData.id || "");
+  const filePath = String(resData.filePath || resData.file_path || "");
+  if (!filePath) {
+    console.warn("[uploadSingleFile] 后端未返回 filePath，响应数据：", resData);
+  }
+  return { id, filePath };
 }
 
 /** 选择图片（仅本地预览，不上传） */
@@ -970,10 +991,20 @@ function removeLeakSceneImage(idx: number) {
   updateFormImageIds(leakSceneImageList.value, "leakSceneImages");
 }
 
+/** 给相对路径加上 API 基础地址 */
+function addBaseUrl(path: string): string {
+  if (!path) return "";
+  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("blob:") || path.startsWith("file://")) {
+    return path;
+  }
+  const base = import.meta.env.VITE_API_BASE_URL || "";
+  const cleanBase = typeof base === "string" ? base.replace(/\/$/, "") : "";
+  return `${cleanBase}${path}`;
+}
+
 function previewImageItem(list: UploadItem[], idx: number) {
-  const urls = list.map((item) => item.url);
   uni.previewImage({
-    urls,
+    urls: list.map((item) => addBaseUrl(item.filePath || item.url)),
     current: idx,
   });
 }
@@ -1171,43 +1202,46 @@ function fillForm(suspect: Record<string, unknown>) {
   form.maintenanceUnit = String(suspect.maintenanceUnit ?? "");
   form.remark = String(suspect.remark ?? "");
 
+  // 判断值是文件路径（/files/...）还是纯数字 ID
+  function isFilePath(v: string) { return v.startsWith("/files/") || v.startsWith("http"); }
+
   // 回填音频
-  const audioId = form.audioFile;
-  if (audioId) {
+  const audioFile = form.audioFile;
+  if (audioFile) {
     audioItem.value = {
-      url: `/api/file/preview/${audioId}`,
-      name: `音频_${audioId}`,
+      url: isFilePath(audioFile) ? addBaseUrl(audioFile) : `/api/file/preview/${audioFile}`,
+      name: `音频_${audioFile}`,
       durationText: "--:--",
-      id: audioId,
+      id: audioFile,
+      filePath: isFilePath(audioFile) ? audioFile : "",
     };
   } else {
     audioItem.value = null;
   }
 
   // 回填图片/视频
-  const suspectIds = form.suspectSceneImages;
-  if (suspectIds) {
-    suspectSceneImageList.value = suspectIds.split(",").filter(Boolean).map((id) => ({
-      url: `/api/file/preview/${id}`,
-      id,
-    }));
-  } else {
-    suspectSceneImageList.value = [];
+  function parseMediaPaths(raw: string): UploadItem[] {
+    if (!raw) return [];
+    const parts = raw.split(",").filter(Boolean);
+    return parts.map((p) => {
+      const isPath = isFilePath(p);
+      return {
+        url: isPath ? addBaseUrl(p) : `/api/file/preview/${p}`,
+        id: p,
+        filePath: isPath ? p : "",
+      };
+    });
   }
-  const leakIds = form.leakSceneImages;
-  if (leakIds) {
-    leakSceneImageList.value = leakIds.split(",").filter(Boolean).map((id) => ({
-      url: `/api/file/preview/${id}`,
-      id,
-    }));
-  } else {
-    leakSceneImageList.value = [];
-  }
-  const videoId = form.sceneVideo;
-  if (videoId) {
+
+  suspectSceneImageList.value = parseMediaPaths(form.suspectSceneImages);
+  leakSceneImageList.value = parseMediaPaths(form.leakSceneImages);
+
+  const videoFile = form.sceneVideo;
+  if (videoFile) {
     sceneVideoItem.value = {
-      url: `/api/file/preview/${videoId}`,
-      id: videoId,
+      url: isFilePath(videoFile) ? addBaseUrl(videoFile) : `/api/file/preview/${videoFile}`,
+      id: videoFile,
+      filePath: isFilePath(videoFile) ? videoFile : "",
     };
   } else {
     sceneVideoItem.value = null;

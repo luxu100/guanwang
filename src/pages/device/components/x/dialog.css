@@ -1,0 +1,126 @@
+/* =========================
+   Dialog Mask
+========================= */
+
+.dialog__mask {
+    position: fixed;
+    inset: 0;
+
+    z-index: 10;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 14px;
+
+    background: rgba(15, 35, 55, .36);
+}
+
+
+/* =========================
+   Dialog Panel
+========================= */
+
+.dialog__panel {
+    width: 60vw;
+    max-width: 900px;
+    min-width: 320px;
+
+    height: min(620px, calc(100vh - 28px));
+
+    display: flex;
+    flex-direction: column;
+
+    overflow: hidden;
+
+    background: #fff;
+
+    border: 1px solid #d8e6f2;
+    border-radius: 6px;
+
+    box-shadow: 0 18px 46px rgba(15, 35, 55, .2);
+}
+
+
+/* =========================
+   Header
+========================= */
+
+.dialog__header {
+    flex: none;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 18px 24px;
+
+    background: #f8fbfe;
+    border-bottom: 1px solid #edf3f8;
+}
+
+
+.dialog__header-content {
+    flex: 1;
+    min-width: 0;
+}
+
+
+.dialog__title {
+    color: #183755;
+
+    font-size: 20px;
+    font-weight: 900;
+    line-height: 1.2;
+}
+
+
+.dialog__subtitle {
+    margin-top: 4px;
+
+    color: #5f7188;
+
+    font-size: 13px;
+}
+
+
+/* =========================
+   Body
+========================= */
+
+.dialog__body {
+    flex: 1;
+
+    min-height: 0;
+
+    padding: 18px 24px 16px;
+
+    background: #fff;
+}
+
+
+/* =========================
+   Footer
+========================= */
+
+.dialog__footer {
+    flex: none;
+
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+
+    gap: 12px;
+
+    padding: 16px 24px;
+
+    background: #fff;
+
+    border-top: 1px solid #edf3f8;
+}
+
+.dialog__footer .button {
+    width: auto;
+    margin: 0;
+}

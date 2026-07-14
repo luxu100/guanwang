@@ -72,7 +72,7 @@ export function getDeviceProductByIdT(id: string | number) {
 export const getTubeNetworkListT = tubeNetworkApi.getList;
 
 export function getDeptByIdT(id: string | number) {
-  return getRequestT<ApiResponse<Dept>>(`/api/dept/${id}`);
+  return getRequestT<Dept>(`/api/dept/${id}`);
 }
 
 const deptApi = createCrudServiceTyped<Dept>("/api/dept");

@@ -26,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-import {ref,watch} from "vue";
+import {ref,watch,onUnmounted} from "vue";
 import {uploadImageT,getFileDetail} from "@/services/device/sysFile";
 
 const BASE_URL=import.meta.env.VITE_API_BASE_URL||import.meta.env.VITE_DEV_PROXY_TARGET||"";
@@ -129,6 +129,14 @@ function preview(i:number){
     indicator:"number"
   });
 }
+
+onUnmounted(() => {
+  if(uploading.value){
+    uploading.value=false;
+    uni.hideLoading();
+  }
+});
+
 </script>
 <style scoped lang="scss">
 .form-photo-area { display: flex; flex-wrap: wrap; gap: 10px; }
