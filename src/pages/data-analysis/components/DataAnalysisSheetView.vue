@@ -83,6 +83,7 @@
                 <text class="data-cell data-cell--index">{{ index + 1 }}</text>
                 <text class="data-cell data-cell--device">{{ (item as AudioDataItem).deviceId }}</text>
                 <text class="data-cell data-cell--time">{{ ((item as AudioDataItem).audioTime || '').replace('T', ' ') }}</text>
+                <text class="data-cell data-cell--dept">{{ (item as AudioDataItem).deptName }}</text>
                 <text class="data-cell data-cell--spectrum">
                   <text class="data-link" @click.stop="openSpectrumDialog(item as AudioDataItem)">分析</text>
                 </text>
@@ -99,6 +100,7 @@
                 <text class="data-cell data-cell--index">{{ index + 1 }}</text>
                 <text class="data-cell data-cell--device">{{ (item as LeakItem).deviceId }}</text>
                 <text class="data-cell data-cell--time">{{ ((item as LeakItem).detectedTime || '').replace(/\.\d+/, '').replace('T', ' ') }}</text>
+                <text class="data-cell data-cell--dept">{{ (item as LeakItem).deptName }}</text>
                 <text class="data-cell data-cell--status">
                   <text class="status-pill" :class="getLeakageStatusClass(item as LeakItem)">{{ (item as LeakItem).leakageStatus }}</text>
                 </text>
@@ -575,6 +577,7 @@ const tableColumns = computed<TableColumn[]>(() => {
       { key: "index", label: "序号", className: "data-header-cell--index" },
       { key: "deviceNumber", label: "设备编号", className: "data-header-cell--device", sortable: true },
       { key: "audioTime", label: "时间", className: "data-header-cell--time", sortable: true },
+      { key: "deptName", label: "所属分区", className: "data-header-cell--dept" },
       { key: "spectrum", label: "频谱", className: "data-header-cell--spectrum" },
       { key: "download", label: "下载", className: "data-header-cell--download" },
       { key: "status", label: "拆/装", className: "data-header-cell--status", sortable: true },
@@ -587,6 +590,7 @@ const tableColumns = computed<TableColumn[]>(() => {
       { key: "index", label: "序号", className: "data-header-cell--index" },
       { key: "deviceNumber", label: "设备编号", className: "data-header-cell--device", sortable: true },
       { key: "detectedTime", label: "时间", className: "data-header-cell--time", sortable: true },
+      { key: "deptName", label: "所属分区", className: "data-header-cell--dept" },
       { key: "leakageStatus", label: "状态", className: "data-header-cell--status", sortable: true },
       { key: "installStatus", label: "拆/装", className: "data-header-cell--install", sortable: true },
       { key: "blueWhaleAnalysis", label: "蓝鲸分析", className: "data-header-cell--bluewhale", sortable: true },
@@ -707,7 +711,7 @@ async function fetchAudioData() {
       valveNumber: record.valveNumber ?? "--",
     }));
     audioTotal.value = parsed.total;
-    selectedId.value = 0;
+    selectedId.value = audioDataList.value.length > 0 ? audioDataList.value[0].id : 0;
     selectedKey.value = "";
   } catch (error) {
     console.error("获取音频数据失败:", error);
@@ -768,7 +772,7 @@ async function fetchLeakageData() {
 
     }));
     leakTotal.value = parsed.total;
-    selectedId.value = 0;
+    selectedId.value = leakDataList.value.length > 0 ? leakDataList.value[0].id : 0;
     selectedKey.value = "";
   } catch (error) {
     console.error("获取渗漏数据失败:", error);
@@ -1316,7 +1320,7 @@ watch(
 
 .data-table {
   width: 100%;
-  min-width: 900px;
+  min-width: 1000px;
   background: #ffffff;
 }
 
@@ -1327,10 +1331,10 @@ watch(
 
 .data-row {
   display: grid;
-  grid-template-columns: 58px minmax(130px, 1.3fr) minmax(140px, 1.4fr) minmax(70px, 0.7fr) minmax(70px, 0.7fr) minmax(90px, 0.9fr) minmax(180px, 1.6fr) minmax(140px, 1.2fr);
+  grid-template-columns: 58px minmax(130px, 1.3fr) minmax(140px, 1.4fr) minmax(100px, 1fr) minmax(70px, 0.7fr) minmax(70px, 0.7fr) minmax(90px, 0.9fr) minmax(180px, 1.6fr) minmax(140px, 1.2fr);
   min-height: 42px;
   width: 100%;
-  min-width: 900px;
+  min-width: 1000px;
   border-bottom: 1px solid #edf1f5;
   cursor: pointer;
   transition:
@@ -1381,8 +1385,8 @@ watch(
 }
 
 .data-row--leakage {
-  grid-template-columns: 58px minmax(130px, 1.3fr) minmax(140px, 1.4fr) minmax(70px, 0.7fr) minmax(70px, 0.7fr) minmax(70px, 0.7fr) minmax(70px, 0.7fr) minmax(180px, 1.6fr);
-  min-width: 760px;
+  grid-template-columns: 58px minmax(130px, 1.3fr) minmax(140px, 1.4fr) minmax(100px, 1fr) minmax(70px, 0.7fr) minmax(70px, 0.7fr) minmax(70px, 0.7fr) minmax(70px, 0.7fr) minmax(180px, 1.6fr);
+  min-width: 860px;
 }
 
 .data-cell {
@@ -1476,6 +1480,10 @@ watch(
 .data-cell--device {
   color: #0f4c81;
   font-weight: 800;
+}
+
+.data-cell--dept {
+  justify-content: center;
 }
 
 .data-cell--address {
@@ -2030,7 +2038,7 @@ watch(
 
   .data-table,
   .data-row {
-    min-width: 760px;
+  min-width: 860px;
   }
 
   .data-row {

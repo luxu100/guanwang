@@ -19,6 +19,12 @@
         <button class="toolbar-button toolbar-button--primary" :disabled="playing || loading" @click="onPlay">播放</button>
         <button v-if="playing" class="toolbar-button" @click="onStop">停止</button>
       </view>
+      <view class="spectrum-dialog__progress">
+        <view class="progress-bar">
+          <view class="progress-bar__fill" :style="{ width: progress + '%' }"></view>
+        </view>
+        <text class="progress-time">{{ formatTime(currentTime) }} / {{ formatTime(duration) }}</text>
+      </view>
     </view>
   </view>
 </template>
@@ -58,12 +64,24 @@ const containerRef = ref<HTMLElement | null>(null);
 const loading = ref(false);
 const errorMsg = ref("");
 const playing = ref(false);
+const progress = ref(0);
+const currentTime = ref(0);
+const duration = ref(0);
 
 // #ifdef H5
 let audioContext: AudioContext | null = null;
 let audioBuffer: AudioBuffer | null = null;
 let sourceNode: AudioBufferSourceNode | null = null;
 let chartInstance: echarts.ECharts | null = null;
+let progressTimer: number | null = null;
+let playbackStartTime: number = 0;
+
+function formatTime(seconds: number): string {
+  if (!seconds || !isFinite(seconds)) return "00:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+}
 
 function close() {
   stopPlayback();
@@ -71,11 +89,17 @@ function close() {
 }
 
 function stopPlayback() {
+  if (progressTimer) {
+    clearInterval(progressTimer);
+    progressTimer = null;
+  }
   if (sourceNode) {
     try { sourceNode.stop(); } catch (_) {}
     sourceNode = null;
   }
   playing.value = false;
+  progress.value = 0;
+  currentTime.value = 0;
 }
 
 function getAudioCtx(): AudioContext {
@@ -221,9 +245,24 @@ function onPlay() {
   sourceNode.onended = () => {
     playing.value = false;
     sourceNode = null;
+    progress.value = 100;
+    currentTime.value = audioBuffer?.duration || 0;
+    if (progressTimer) {
+      clearInterval(progressTimer);
+      progressTimer = null;
+    }
   };
+  playbackStartTime = ctx.currentTime;
+  duration.value = audioBuffer.duration;
   sourceNode.start(0);
   playing.value = true;
+
+  progressTimer = window.setInterval(() => {
+    if (!audioBuffer) return;
+    const elapsed = ctx.currentTime - playbackStartTime;
+    currentTime.value = Math.min(elapsed, audioBuffer.duration);
+    progress.value = Math.min((elapsed / audioBuffer.duration) * 100, 100);
+  }, 100);
 }
 
 function onStop() {
@@ -371,5 +410,34 @@ onUnmounted(() => {
 
 .toolbar-button[disabled] {
   opacity: 0.5;
+}
+
+.spectrum-dialog__progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 18px 12px;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 6px;
+  background: #e8edf2;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-bar__fill {
+  height: 100%;
+  background: #0d82ee;
+  border-radius: 3px;
+  transition: width 0.1s linear;
+}
+
+.progress-time {
+  flex: none;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
 }
 </style>
