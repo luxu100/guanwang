@@ -720,7 +720,7 @@ function isCollapsedSubmenuVisible(item: MenuItem) {
 
 function handleLogout() {
   // 登录态和权限信息都保存在本地缓存，退出时必须全部清理，避免下次进入误判已登录。
-  clearAuthStorage(uni, [OPENED_TABS_KEY]);
+  clearAuthStorage([OPENED_TABS_KEY]);
   redirectToLogin();
 }
 
@@ -735,7 +735,7 @@ function ensureAuthenticatedRoute() {
     return true;
   }
 
-  clearAuthStorage(uni, [OPENED_TABS_KEY]);
+  clearAuthStorage([OPENED_TABS_KEY]);
   redirectToLogin(decision.redirectUrl);
   return false;
 }

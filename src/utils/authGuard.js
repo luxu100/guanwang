@@ -25,9 +25,9 @@ export function createProtectedRouteDecision({ currentPath, token }) {
   };
 }
 
-export function clearAuthStorage(storage, extraKeys = []) {
+export function clearAuthStorage(extraKeys = []) {
   [...AUTH_STORAGE_KEYS, ...extraKeys].forEach((key) => {
-    storage.removeStorageSync(key);
+    uni.removeStorageSync(key);
   });
 }
 
