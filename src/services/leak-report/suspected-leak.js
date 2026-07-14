@@ -1,7 +1,5 @@
 /**
  * 疑点上报接口封装，围绕 /api/suspected-leak 资源提供 CRUD + 派单 + 确认漏点能力。
- *
- * 后端已完成独立疑点实体 SuspectedLeakReport，不再与 leakage-record 共用资源。
  */
 import { createCrudService } from "@/services/shared/crud";
 import { postRequest, getRequest } from "@/services/shared/crud";

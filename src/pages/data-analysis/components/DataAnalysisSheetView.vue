@@ -159,6 +159,16 @@
                   <text class="detail-summary__label">设备编号</text>
                   <text class="detail-summary__number">{{ (selectedItem as AudioDataItem).deviceId }}</text>
                 </view>
+                <view class="detail-summary__meta">
+                  <view class="detail-summary__meta-item">
+                    <text class="detail-summary__meta-label">安装人员</text>
+                    <text class="detail-summary__meta-value">{{ (selectedItem as AudioDataItem).installer }}</text>
+                  </view>
+                  <view class="detail-summary__meta-item">
+                    <text class="detail-summary__meta-label">所属片区</text>
+                    <text class="detail-summary__meta-value">{{ (selectedItem as AudioDataItem).deptName }}</text>
+                  </view>
+                </view>
               </view>
 
               <view class="detail-grid detail-grid--base">
@@ -199,6 +209,19 @@
                 <view class="detail-summary__main">
                   <text class="detail-summary__label">设备编号</text>
                   <text class="detail-summary__number">{{ (selectedItem as LeakItem).deviceId }}</text>
+                </view>
+                <view class="detail-summary__badges">
+                  <text class="detail-summary__badge status-pill" :class="getLeakageStatusClass(selectedItem as LeakItem)">{{ (selectedItem as LeakItem).leakageStatus }}</text>
+                </view>
+                <view class="detail-summary__meta">
+                  <view class="detail-summary__meta-item">
+                    <text class="detail-summary__meta-label">安装人员</text>
+                    <text class="detail-summary__meta-value">{{ (selectedItem as LeakItem).installer }}</text>
+                  </view>
+                  <view class="detail-summary__meta-item">
+                    <text class="detail-summary__meta-label">所属片区</text>
+                    <text class="detail-summary__meta-value">{{ (selectedItem as LeakItem).deptName }}</text>
+                  </view>
                 </view>
               </view>
 
@@ -1703,6 +1726,7 @@ watch(
   display: block;
   margin-top: 7px;
   color: #0f4c81;
+  font-family: "DIN Alternate", "Arial", sans-serif;
   font-size: 17px;
   font-weight: 900;
   line-height: 1.25;
@@ -1710,51 +1734,67 @@ watch(
   overflow-wrap: anywhere;
 }
 
+.detail-summary__badges {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.detail-summary__badge {
+  min-width: 64px;
+  height: 26px;
+  line-height: 26px;
+}
+
+.detail-summary__meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid #edf3f8;
+}
+
+.detail-summary__meta-item {
+  min-width: 0;
+}
+
+.detail-summary__meta-label {
+  display: block;
+  color: #71869b;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.detail-summary__meta-value {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  color: #172033;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .leak-tabs {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   gap: 6px;
+  height: 54px;
   padding: 8px;
   background: #f6fafe;
   border: 1px solid #dce9f4;
   border-radius: 6px;
 }
 
-.leak-sub-card {
-  background: #ffffff;
-  border: 1px solid #dfebf5;
-  border-radius: 6px;
-  overflow: hidden;
-  box-shadow: 0 8px 18px rgba(33, 72, 108, 0.045);
-}
-
-.leak-sub-card + .leak-sub-card {
-  margin-top: 10px;
-}
-
-.leak-sub-card__header {
-  display: block;
-  padding: 10px 14px;
-  color: #183755;
-  font-size: 14px;
-  font-weight: 900;
-  background: #f7fafc;
-  border-bottom: 1px solid #e3edf6;
-}
-
-.leak-sub-card .detail-item--base {
-  border-bottom: 1px solid #edf3f8;
-}
-
-.leak-sub-card .detail-item--base:last-child {
-  border-bottom: 0;
-}
-
 .leak-tab {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 34px;
+  height: auto;
   color: #5d7188;
   font-size: 13px;
   font-weight: 800;
@@ -1773,6 +1813,51 @@ watch(
   background: #ffffff;
   border-color: #cfe7fb;
   box-shadow: 0 6px 14px rgba(13, 130, 238, 0.1);
+}
+
+.urgent-pill--normal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 54px;
+  padding: 0 9px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #177245;
+  background: #eaf8ef;
+  border-color: #bfe8ce;
+}
+
+.leak-sub-card {
+  background: #ffffff;
+  border: 1px solid #dce9f4;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 8px 18px rgba(33, 72, 108, 0.045);
+}
+
+.leak-sub-card + .leak-sub-card {
+  margin-top: 12px;
+}
+
+.leak-sub-card__header {
+  position: relative;
+  display: block;
+  padding: 12px 14px 8px;
+  color: #183755;
+  font-size: 14px;
+  font-weight: 900;
+  background: linear-gradient(180deg, rgba(13, 130, 238, 0.04), transparent);
+}
+
+.leak-sub-card .detail-item--base {
+  border-bottom: 1px solid #edf3f8;
+}
+
+.leak-sub-card .detail-item--base:last-child {
+  border-bottom: 0;
 }
 
 .detail-grid {
