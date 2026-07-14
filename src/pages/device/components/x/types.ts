@@ -8,12 +8,42 @@ export interface FieldOption {
 export interface FormField {
     key: string;
     label: string;
-    type: "input" | "select" | "datetime" | "textarea" | "location" | "photo";
+    type: "input" | "select" | "datetime" | "textarea" | "location" | "photo" | "image" | "tag" | "text";
     required?: boolean;
     placeholder?: string;
     options?: FieldOption[];
     large?: boolean;
     disabled?: boolean;
+    /**
+     * 展示布局
+     * half: 默认两列
+     * full: 占满一行
+     */
+    layout?: "half" | "full";
+
+
+    /**
+     * 展示格式化
+     * entity detail 使用
+     */
+    formatter?: (
+        value: any,
+        entity: Record<string, any>
+    ) => string;
+
+
+    /**
+     * tag 类型样式
+     * 例如 status 状态展示
+     */
+    tagClass?: string;
+
+
+    /**
+     * 日期格式
+     * entity detail 使用
+     */
+    format?: string;
 }
 
 export interface FormSection {

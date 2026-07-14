@@ -10,8 +10,8 @@
         <view class="data-table">
           <view class="data-row data-row--header">
             <text class="data-cell data-cell--index">{{ t("common.table.index") }}</text>
-            <text class="data-cell">{{ t("deviceProtocol.table.protocolCode") }}</text>
-            <text class="data-cell">{{ t("deviceProtocol.table.protocolName") }}</text>
+            <text class="data-cell data-cell--large">{{ t("deviceProtocol.table.protocolCode") }}</text>
+            <text class="data-cell data-cell--large">{{ t("deviceProtocol.table.protocolName") }}</text>
             <text class="data-cell">{{ t("deviceProtocol.table.protocolVersion") }}</text>
             <text class="data-cell">{{ t("deviceProtocol.table.afn") }}</text>
             <text class="data-cell">{{ t("deviceProtocol.table.taskType") }}</text>
@@ -37,15 +37,14 @@
               {{ index + 1 }}
             </text>
 
-            <text class="data-cell data-cell--remark"
-                  @mouseenter="showTooltip($event,record.protocolCode)"
-                  @mouseleave="hideTooltip">
+            <text class="data-cell data-cell--remark data-cell--large"
+            >
               {{ record.protocolCode || '-' }}
             </text>
-
-            <text class="data-cell data-cell--remark"
-                  @mouseenter="showTooltip($event,record.protocolName)"
-                  @mouseleave="hideTooltip">
+            <!--                  @mouseenter="showTooltip($event,record.protocolName)"-->
+            <!--                  @mouseleave="hideTooltip"-->
+            <text class="data-cell data-cell--remark data-cell--large"
+            >
               {{ record.protocolName || '-' }}
             </text>
 
@@ -81,9 +80,10 @@
               </text>
             </text>
 
+<!--            @mouseenter="showTooltip($event,record.description)"-->
+<!--            @mouseleave="hideTooltip"-->
             <text class="data-cell data-cell--remark"
-                  @mouseenter="showTooltip($event,record.description)"
-                  @mouseleave="hideTooltip">
+            >
               {{ record.description || '-' }}
             </text>
 
@@ -110,6 +110,13 @@
       :title="isEditMode ? t('deviceProtocol.page.editProtocol') : t('deviceProtocol.page.addProtocol')"
       @submit="handleSubmit"
       @cancel="dialogVisible = false"
+  />
+
+  <XEntityDetailDialog
+      v-model="detailData"
+      v-model:visible="detailVisible"
+      title="协议绑定详情"
+      :schema="deviceProtocolRelationDetailSchema"
   />
 </template>
 <script setup lang="ts">
@@ -141,13 +148,15 @@ import {formatDate} from "@/utils/time";
 import {createDeviceProtocolT} from "@/services/device/info.typed";
 import {getProtocolDefinitionList} from "@/services/data-receive/access";
 import XTooltip from "@/pages/device/components/x/XTooltip.vue";
+import XEntityDetailDialog from "@/pages/device/components/x/XEntityDetailDialog.vue";
 
 const t = createScopedT("devicePage");
 
 defineExpose({
   handleAdd,
   handleEdit,
-  handleDelete
+  handleDelete,
+  handleShowDetail
 });
 
 // ===== 数据 =====
@@ -249,20 +258,12 @@ watch(
 );
 
 // ===== 选中行 =====
-const selectedRecord = ref<DeviceProtocol | null>(null);
+const selectedRecord = ref<DeviceProtocolRelationVO | null>(null);
 
 function selectRow(record: DeviceProtocolRelationVO) {
+  if(!record) return;
   selectedRecord.value = {
-    id: record.id,
-    afn: record.afn,
-    taskType: record.taskType,
-    contentPrefix: record.contentPrefix,
-    priority: record.priority,
-    enabled: record.enabled,
-    createdAt: record.createdAt,
-    updatedAt: record.updatedAt,
-    deviceId: record.deviceId,
-    protocolId: record.protocolId
+    ...record
   };
 }
 
@@ -454,6 +455,124 @@ function hideTooltip(){
   tooltipVisible.value = false;
 }
 
+/**
+ * 设备协议关系详情表单配置
+ */
+const deviceProtocolRelationDetailSchema: FormSection[] = [
+  {
+    title: "基础信息",
+    fields: [
+      {
+        key: "deviceId",
+        label: "设备ID",
+        type: "text"
+      },
+      {
+        key: "protocolId",
+        label: "协议ID",
+        type: "text"
+      }
+    ]
+  },
+  {
+    title: "协议信息",
+    fields: [
+      {
+        key: "protocolCode",
+        label: "协议编码",
+        type: "text"
+      },
+      {
+        key: "protocolName",
+        label: "协议名称",
+        type: "text"
+      },
+      {
+        key: "protocolVersion",
+        label: "协议版本",
+        type: "text"
+      },
+      {
+        key: "description",
+        label: "描述",
+        type: "text",
+        layout: "full"
+      }
+    ]
+  },
+  {
+    title: "绑定规则",
+    fields: [
+      {
+        key: "afn",
+        label: "AFN",
+        type: "text"
+      },
+      {
+        key: "taskType",
+        label: "任务类型",
+        type: "text"
+      },
+      {
+        key: "contentPrefix",
+        label: "内容前缀",
+        type: "text",
+        layout: "full"
+      },
+      {
+        key: "priority",
+        label: "优先级",
+        type: "text"
+      },
+      {
+        key: "enabled",
+        label: "启用状态",
+        type: "tag",
+        options: [
+          {
+            label: "启用",
+            value: true
+          },
+          {
+            label: "禁用",
+            value: false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    title: "时间信息",
+    fields: [
+      {
+        key: "createdAt",
+        label: "创建时间",
+        type: "datetime"
+      },
+      {
+        key: "updatedAt",
+        label: "更新时间",
+        type: "datetime"
+      }
+    ]
+  }
+];
+const detailVisible = ref(false);
+const detailData = ref<DeviceProtocolRelationVO | null>(null);
+
+function handleShowDetail(){
+  if (!selectedRecord.value) {
+    uni.showToast({
+      title:t("message.selectRecord"),
+      icon:"none"
+    });
+    return;
+  }
+
+  detailData.value = selectedRecord.value;
+  detailVisible.value = true;
+}
+
 </script>
 <style scoped lang="scss">
 @import "@/pages/device/components/x/status.css";
@@ -463,5 +582,8 @@ function hideTooltip(){
 
 .toolbar-wrapper {
   padding-bottom: 12px;
+}
+.data-cell--large{
+  width: 240px;
 }
 </style>

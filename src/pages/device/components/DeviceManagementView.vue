@@ -233,7 +233,7 @@ const deviceModuleConfig = {
       bindValve: true,
       import: true,
       export: true,
-      detail:true
+      detail:false
     },
   },
 
@@ -310,7 +310,8 @@ const deviceModuleConfig = {
       bindDept: false,
       bindValve: false,
       import: false,
-      export: false
+      export: false,
+      detail:true
     },
   },
 
@@ -364,12 +365,6 @@ watch(
  * options（字典）
  * =========================
  */
-type SelectOption = {
-  label: string;
-  value: string | number;
-};
-
-
 const productOptions = ref([
   { labelKey: "common.all", value: "" },
   { labelKey: "status.product.LD18", value: "LD18" },
@@ -909,6 +904,10 @@ function handleImport() {
 }
 
 function handleShowDetail() {
+  if(props.mode !== "info"){
+    currentPanelRef.value?.handleShowDetail();
+    return;
+  }
   toggleDetailPanel();
 }
 /**
