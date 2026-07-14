@@ -1,11 +1,6 @@
 <template>
   <view class="page-container">
     <view class="data-table-container">
-
-      <XFloatingCollapseHandle v-if="isFloatingVisible"
-                               v-model="isToolbarVisible"
-      />
-
       <view class="table-head">
         <text>{{ t("maintain.maintainTable.title") }}</text>
         <text class="table-head__meta">  {{ t('common.pagination.totalRecords', { total: pagination.total }) }}</text>
@@ -29,10 +24,10 @@
           </view>
 
           <view v-if="loading" class="loading-mask">{{ t('common.table.loading') }}</view>
-          <view v-else-if="deviceList.length === 0" class="table-state">{{ t('common.table.empty') }}</view>
+          <view v-else-if="recordList.length === 0" class="table-state">{{ t('common.table.empty') }}</view>
 
           <view
-              v-for="(record, index) in deviceList"
+              v-for="(record, index) in recordList"
               :key="record.id"
               class="data-row"
               :class="{ 'data-row--active': selectedRecord?.id === record.id }"
@@ -176,7 +171,6 @@ import {
 } from "@/services/device/maintenance.typed";
 import type {FormSection} from "@/pages/device/components/x/types";
 import XDynamicDialog from "@/pages/device/components/x/XDynamicDialog.vue";
-import XFloatingCollapseHandle from "@/pages/device/components/x/XFloatingCollapseHandle.vue";
 import XPaginationBar from "@/pages/device/components/x/XPaginationBar.vue";
 import {createScopedT} from "@/i18n";
 import {formatDate} from "@/utils/time";
@@ -185,9 +179,6 @@ import XImageViewerDialog from "@/pages/device/components/x/XImageViewerDialog.v
 import XTooltip from "@/pages/device/components/x/XTooltip.vue";
 
 const t = createScopedT("devicePage");
-const isToolbarVisible = ref(true);
-const isFloatingVisible = ref(false);
-
 
 defineExpose({
   handleAdd,
@@ -198,7 +189,7 @@ defineExpose({
 // ===== 数据 =====
 const loading = ref(false);
 
-const deviceList = ref<MaintenanceRecord[]>([]);
+const recordList = ref<MaintenanceRecord[]>([]);
 
 const pagination = ref<Pagination>({
   current: 1,
@@ -426,13 +417,13 @@ async function fetchMaintenanceRecords(requestId?: number) {
 
     const pageData = res.data;
 
-    deviceList.value = pageData?.records ?? [];
+    recordList.value = pageData?.records ?? [];
 
     pagination.value.total = pageData?.total ?? 0;
     pagination.value.current = pageData?.current ?? 1;
     pagination.value.size = pageData?.size ?? 10;
 
-    selectRow(deviceList.value[0] || null);
+    selectRow(recordList.value[0] || null);
 
   } finally {
     loading.value = false;

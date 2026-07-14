@@ -298,12 +298,14 @@ const deviceModuleConfig = {
 
     toolbar: [
       { key: "deviceNumber", labelKey: "fields.deviceNumber", type: "input" ,queryScope: "device"},
+      { key: "startTime", labelKey: "fields.startTime", type: "date",queryScope: "protocol"},
+      { key: "endTime", labelKey: "fields.endTime", type: "date",queryScope: "protocol"},
     ],
 
     buttons: {
-      add: false,
-      edit: false,
-      delete: false,
+      add: true,
+      edit: true,
+      delete: true,
       refresh: true,
       bindDept: false,
       bindValve: false,
