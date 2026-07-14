@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
+﻿﻿<template>
   <view class="leak-management-view">
     <!-- 筛选栏 -->
     <view class="toolbar">
@@ -31,28 +31,27 @@
           <text class="filter-label">定漏人员</text>
           <input v-model="filters.locator" class="filter-input" placeholder="请输入定漏人员" placeholder-class="input-placeholder" />
         </view>
+        <view class="filter-group">
+          <text class="filter-label">渗漏状态</text>
+          <picker :range="leakStatusOptions" range-key="label" @change="handleLeakStatusChange">
+            <view class="filter-select">
+              <text>{{ currentLeakStatusLabel }}</text>
+              <text class="filter-select__arrow"></text>
+            </view>
+          </picker>
+        </view>
       </view>
       <view class="toolbar-row toolbar-row--bottom">
-        <view class="toolbar-actions">
+        <view class="toolbar-actions toolbar-actions--right">
           <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="searchLeakPoints">查询</button>
           <button class="toolbar-button" hover-class="toolbar-button--hover" @click="resetFilters">重置</button>
           <button class="toolbar-icon-button" hover-class="toolbar-icon-button--hover" aria-label="刷新" @click="fetchLeakPoints"><text class="icon-refresh"></text></button>
-        </view>
-        <view class="toolbar-actions toolbar-actions--right">
           <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="handleExport">导出</button>
           <button class="toolbar-button" hover-class="toolbar-button--hover" @click="handleImport">导入</button>
           <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="openCreateDialog">新增漏点</button>
+          <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" :disabled="!selectedRecord" @click="openEditDialog">编辑</button>
+          <button class="toolbar-button toolbar-button--danger" hover-class="toolbar-button--hover" :disabled="!selectedRecord" @click="handleDelete">删除</button>
           <button class="toolbar-button toolbar-button--danger" hover-class="toolbar-button--hover" :disabled="selectedIds.size === 0" @click="handleBatchDelete">批量删除</button>
-        </view>
-      </view>
-    </view>
-
-    <!-- 统计卡片 -->
-    <view class="stats-grid">
-      <view v-for="item in statisticsCards" :key="item.label" class="stat-card" :class="`stat-card--${item.type}`">
-        <view class="stat-card__body">
-          <text class="stat-card__label">{{ item.label }}</text>
-          <text class="stat-card__value">{{ item.value }}</text>
         </view>
       </view>
     </view>
@@ -62,12 +61,14 @@
       title="漏点列表"
       :total="total"
       :page-num="pagination.pageNum"
+      :page-size="pagination.pageSize"
       :total-pages="totalPages"
       :has-detail="!!selectedRecord"
       detail-empty-text="请选择左侧漏点查看详情"
       @prev-page="changePage(-1)"
       @next-page="changePage(1)"
       @jump-page="jumpToPage"
+      @page-size-change="handlePageSizeChange"
     >
       <view class="data-table">
         <view class="data-row data-row--header">
@@ -101,9 +102,9 @@
           <text class="data-cell data-cell--address">{{ getFieldValue(item, "leakPointPosition") || "-" }}</text>
           <text class="data-cell data-cell--account">{{ getFieldValue(item, "inspector") || "-" }}</text>
           <text class="data-cell data-cell--locator">{{ getFieldValue(item, "locator") || "-" }}</text>
-          <text class="data-cell data-cell--audio" @click.stop="toggleAudioPlay(item, index)"><text v-if="getFieldValue(item, 'audioFile')" class="audio-play-btn">{{ playingAudioIndex === index ? '暂停' : '播放' }}</text><text v-else>-</text></text>
-          <text class="data-cell data-cell--video" @click.stop="toggleVideoPlay(item)"><text v-if="getFieldValue(item, 'sceneVideo')" class="video-play-btn">播放</text><text v-else>-</text></text>
-          <text class="data-cell data-cell--wsid" @click.stop="handleWorkOrderJump(item)"><text v-if="getFieldValue(item, 'workOrderId')" class="link-text">{{ getFieldValue(item, "workOrderId") }}</text><text v-else>-</text></text>
+          <text class="data-cell data-cell--audio" @click.stop="toggleAudioPlay(item, index)"><text v-if="getFieldValue(item, 'audioFile')" class="play-icon" :class="playingAudioIndex === index ? 'icon-pause' : 'icon-play'"></text><text v-else>-</text></text>
+          <text class="data-cell data-cell--video" @click.stop="toggleVideoPlay(item)"><text v-if="getFieldValue(item, 'sceneVideo')" class="play-icon icon-play video-icon"></text><text v-else>-</text></text>
+          <text class="data-cell data-cell--wsid" @click.stop="handleWorkOrderJump(item)"><text v-if="getFieldValue(item, 'worksheetNumber')" class="link-text" :title="getWorkOrderDisplay(item)">{{ getWorkOrderDisplay(item) }}</text><text v-else-if="getFieldValue(item, 'workOrderId')" class="work-order-missing">工单不存在</text><text v-else>-</text></text>
           <text class="data-cell data-cell--devices">{{ getFieldValue(item, "deviceNumber") || "-" }}</text>
         </view>
       </view>
@@ -111,7 +112,7 @@
       <template #detail>
         <view class="detail-body">
           <view class="detail-tabs">
-            <view v-for="tab in detailTabs" :key="tab.value" class="detail-tab" :class="{ 'detail-tab--active': activeDetailTab === tab.value }" @click="activeDetailTab = tab.value">{{ tab.label }}</view>
+            <view v-for="tab in visibleDetailTabs" :key="tab.value" class="detail-tab" :class="{ 'detail-tab--active': activeDetailTab === tab.value }" @click="activeDetailTab = tab.value">{{ tab.label }}</view>
           </view>
           <view v-if="activeDetailTab === 'base'" class="detail-section">
             <view class="detail-summary">
@@ -144,18 +145,18 @@
             </view>
           </view>
           <view v-if="activeDetailTab === 'detail'" class="detail-section">
-            <view class="detail-grid detail-grid--content">
-              <view v-for="item in detailDetailFields" :key="item.label" class="detail-item detail-item--note">
-                <text class="detail-item__label">{{ item.label }}</text>
-                <text class="detail-item__value">{{ item.value }}</text>
+            <view class="detail-fields-grid">
+              <view v-for="item in detailDetailFields" :key="item.label" class="detail-field-card">
+                <text class="detail-field-card__label">{{ item.label }}</text>
+                <text class="detail-field-card__value">{{ item.value }}</text>
               </view>
             </view>
           </view>
           <view v-if="activeDetailTab === 'pipe'" class="detail-section">
-            <view class="detail-grid detail-grid--content">
-              <view v-for="item in pipeDetailFields" :key="item.label" class="detail-item detail-item--note">
-                <text class="detail-item__label">{{ item.label }}</text>
-                <text class="detail-item__value">{{ item.value }}</text>
+            <view class="detail-fields-grid">
+              <view v-for="item in pipeDetailFields" :key="item.label" class="detail-field-card">
+                <text class="detail-field-card__label">{{ item.label }}</text>
+                <text class="detail-field-card__value">{{ item.value }}</text>
               </view>
             </view>
           </view>
@@ -163,13 +164,10 @@
             <view class="attach-media">
               <view class="attach-media__item">
                 <text class="attach-media__label">音频文件</text>
-                <view v-if="detailAudioList.length" class="attach-audio-list">
-                  <view v-for="(audio, ai) in detailAudioList" :key="ai" class="attach-audio-item">
-                    <text class="attach-audio-item__time">{{ formatDateTime(getFieldValue(audio, "audioTime")) }}</text>
-                    <button class="attach-play-btn" hover-class="attach-play-btn--hover" @click="toggleDetailAudioPlay(ai)">{{ detailAudioPlayingIndex === ai ? '暂停' : '播放' }}</button>
-                  </view>
+                <view v-if="getFieldValue(selectedRecord, 'audioFile')" class="attach-media__player">
+                  <button class="attach-play-btn" hover-class="attach-play-btn--hover" @click="openAudioDialog(getPreviewUrl(getFieldValue(selectedRecord, 'audioFile')), '漏点音频')"><text class="play-icon icon-play"></text></button>
+                  <text class="attach-media__hint">点击播放</text>
                 </view>
-                <text v-else-if="detailAudioLoading" class="attach-media__empty">加载中...</text>
                 <text v-else class="attach-media__empty">暂未上传音频</text>
               </view>
               <view class="attach-media__item">
@@ -184,22 +182,18 @@
               <view class="attach-media__item">
                 <text class="attach-media__label">现场视频</text>
                 <view v-if="getFieldValue(selectedRecord, 'sceneVideo')" class="attach-media__player">
-                  <button class="attach-play-btn" hover-class="attach-play-btn--hover" @click="playDetailVideo">播放</button>
-                  <text class="attach-media__id">ID: {{ getFieldValue(selectedRecord, 'sceneVideo') }}</text>
+                  <button class="attach-play-btn" hover-class="attach-play-btn--hover" @click="playDetailVideo"><text class="play-icon icon-play"></text></button>
+                  <text class="attach-media__hint">点击播放</text>
                 </view>
                 <text v-else class="attach-media__empty">暂未上传视频</text>
               </view>
             </view>
-            <view class="detail-grid detail-grid--content">
-              <view v-for="item in attachTextFields" :key="item.label" class="detail-item detail-item--note">
-                <text class="detail-item__label">{{ item.label }}</text>
-                <text class="detail-item__value">{{ item.value }}</text>
+            <view class="detail-fields-grid">
+              <view v-for="item in attachTextFields" :key="item.label" class="detail-field-card">
+                <text class="detail-field-card__label">{{ item.label }}</text>
+                <text class="detail-field-card__value">{{ item.value }}</text>
               </view>
             </view>
-          </view>
-          <view class="detail-actions">
-            <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="openEditDialog">编辑</button>
-            <button class="toolbar-button toolbar-button--danger" hover-class="toolbar-button--hover" @click="handleDelete">删除</button>
           </view>
         </view>
       </template>
@@ -213,8 +207,77 @@
           <button class="icon-button" hover-class="icon-button--hover" aria-label="关闭" @click="closeVideoDialog"><text class="close-icon"></text></button>
         </view>
         <view class="video-dialog__body">
-          <video v-if="currentVideoUrl" :src="currentVideoUrl" class="video-player" controls autoplay></video>
+          <video
+            v-if="currentVideoUrl"
+            :src="currentVideoUrl"
+            class="video-player"
+            controls
+            playsinline
+            webkit-playsinline
+            @loadedmetadata="onVideoLoadedMeta"
+            @timeupdate="onVideoTimeUpdate"
+            @waiting="onVideoWaiting"
+            @playing="onVideoPlaying"
+          ></video>
           <view v-else class="video-empty">视频加载失败</view>
+          <view v-if="videoLoading && currentVideoUrl" class="video-loading">视频缓冲中...</view>
+        </view>
+        <view v-if="currentVideoUrl" class="video-dialog__info">
+          <view class="video-info-row">
+            <text class="video-info-label">时长</text>
+            <text class="video-info-value">{{ formatVideoTime(videoDuration) }}</text>
+          </view>
+          <view class="video-info-row">
+            <text class="video-info-label">进度</text>
+            <text class="video-info-value">{{ formatVideoTime(videoCurrentTime) }} / {{ formatVideoTime(videoDuration) }}</text>
+          </view>
+          <view class="video-progress-bar">
+            <view class="video-progress-filled" :style="{ width: videoProgress + '%' }"></view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- ========== 音频播放浮层 ========== -->
+    <view v-if="audioDialogVisible" class="audio-dialog-mask" @click="closeAudioDialog">
+      <view class="audio-dialog" @click.stop>
+        <view class="audio-dialog__head">
+          <text class="audio-dialog__title">{{ currentAudioTitle || "音频播放" }}</text>
+          <button class="icon-button" hover-class="icon-button--hover" aria-label="关闭" @click="closeAudioDialog"><text class="close-icon"></text></button>
+        </view>
+        <view class="audio-dialog__body">
+          <view v-if="!currentAudioUrl" class="audio-empty">音频加载失败</view>
+          <view v-else class="audio-player">
+            <view class="audio-player__icon">
+              <view class="audio-cover">
+                <view class="audio-cover__ring"></view>
+                <view class="audio-cover__dot"></view>
+              </view>
+            </view>
+            <view class="audio-player__info">
+              <text class="audio-player__title">{{ currentAudioTitle }}</text>
+              <view v-if="audioLoading" class="audio-player__loading">缓冲中...</view>
+              <view class="audio-player__progress">
+                <text class="audio-time">{{ formatVideoTime(audioCurrentTime) }}</text>
+                <view class="audio-seek-bar">
+                  <view class="audio-seek-filled" :style="{ width: audioProgress + '%' }"></view>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    :value="audioProgress"
+                    class="audio-seek-input"
+                    @input="seekAudio"
+                  />
+                </view>
+                <text class="audio-time">{{ formatVideoTime(audioDuration) }}</text>
+              </view>
+              <button class="audio-play-btn" hover-class="audio-play-btn--hover" @click="toggleAudioPlayState">
+                <text class="play-icon-large" :class="audioPlaying ? 'icon-pause-large' : 'icon-play-large'"></text>
+              </button>
+            </view>
+          </view>
         </view>
       </view>
     </view>
@@ -396,7 +459,27 @@
               <view class="form-section">
                 <view class="section-head"><text class="section-title">设备与音频</text></view>
                 <view class="form-grid form-grid--side">
-                  <view class="form-field"><text class="form-label">设备编号</text><input v-model="form.deviceNumber" class="form-input" placeholder="请输入设备编号" placeholder-class="input-placeholder" /></view>
+                  <view class="form-field form-field--device-search">
+                    <text class="form-label form-label--required">设备编号</text>
+                    <input
+                      v-model="form.deviceNumber"
+                      class="form-input"
+                      :class="{ 'form-control--error': validationErrors.deviceNumber }"
+                      placeholder="请输入或搜索设备编号"
+                      placeholder-class="input-placeholder"
+                      @focus="showDeviceSuggestions = true"
+                      @blur="hideDeviceSuggestions"
+                    />
+                    <text v-if="validationErrors.deviceNumber" class="form-error">{{ validationErrors.deviceNumber }}</text>
+                    <view v-if="showDeviceSuggestions && filteredDeviceNumbers.length > 0" class="device-suggestions">
+                      <view
+                        v-for="num in filteredDeviceNumbers"
+                        :key="num"
+                        class="device-suggestion-item"
+                        @mousedown.prevent="selectDeviceNumber(num)"
+                      >{{ num }}</view>
+                    </view>
+                  </view>
                   <view class="form-field"><text class="form-label">漏点距离</text><input v-model="form.leakDistance" class="form-input" placeholder="请输入距离" placeholder-class="input-placeholder" /></view>
                   <view class="form-field"><text class="form-label">噪音样本</text><input v-model="form.noiseSample" class="form-input" placeholder="请输入噪音样本" placeholder-class="input-placeholder" /></view>
                   <view class="form-field"><text class="form-label">噪声时间</text><WorkOrderDatetimePicker v-model="form.noiseTime" title="选择噪声时间" placeholder="请选择噪声时间" /></view>
@@ -440,13 +523,15 @@ import {
   updateLeakPoint,
   deleteLeakPoint,
 } from "@/services/leak-report/leak-management";
+import { getWorksheetProcessDetail } from "@/services/work-order/processing";
 import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
 import LeakTableView from "@/pages/leak-report/components/LeakTableView.vue";
 import { uploadFile } from "@/services/leak-report/file-upload";
-import { getAudioDataPage } from "@/services/data-analysis/audio";
+import { getVisibleDeviceList } from "@/services/device/info";
 
 function getBaseUrl(): string {
-  return (import.meta as unknown as { env: { VITE_API_BASE_URL?: string } }).env?.VITE_API_BASE_URL || "";
+  const env = (import.meta as unknown as { env: { VITE_API_BASE_URL?: string; VITE_DEV_PROXY_TARGET?: string } }).env;
+  return env?.VITE_API_BASE_URL || env?.VITE_DEV_PROXY_TARGET || "";
 }
 
 type RecordItem = Record<string, unknown>;
@@ -470,6 +555,14 @@ interface VideoItem {
   name: string;
 }
 
+const MAX_VIDEO_SIZE = 500 * 1024 * 1024;
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return bytes + "B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + "KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + "MB";
+}
+
 const detailTabs: Array<{ label: string; value: DetailTab }> = [
   { label: "基本信息", value: "base" },
   { label: "漏点详情", value: "detail" },
@@ -477,10 +570,32 @@ const detailTabs: Array<{ label: string; value: DetailTab }> = [
   { label: "附件备注", value: "attach" },
 ];
 
+function hasFieldValues(fields: Array<{ label: string; value: string }>): boolean {
+  return fields.some((f) => f.value && f.value !== "-" && f.value !== "NaN-NaN-NaN NaN:NaN");
+}
+
+const visibleDetailTabs = computed(() => {
+  const tabs: Array<{ label: string; value: DetailTab }> = [{ label: "基本信息", value: "base" }];
+  if (hasFieldValues(detailDetailFields.value)) tabs.push({ label: "漏点详情", value: "detail" });
+  if (hasFieldValues(pipeDetailFields.value)) tabs.push({ label: "管道信息", value: "pipe" });
+  const hasMedia = getFieldValue(selectedRecord.value, "sceneImages") || getFieldValue(selectedRecord.value, "sceneVideo") || hasFieldValues(attachTextFields.value);
+  if (hasMedia) tabs.push({ label: "附件备注", value: "attach" });
+  return tabs;
+});
+
 const sortField = ref("detectTime");
 const sortOrder = ref("desc");
 
-const filters = reactive({ startTime: "", endTime: "", deviceNumber: "", leakPointType: "", leakArea: "", inspector: "", locator: "" });
+const filters = reactive({ startTime: "", endTime: "", deviceNumber: "", leakPointType: "", leakArea: "", inspector: "", locator: "", leakStatus: "" });
+const leakStatusOptions: Array<{ label: string; value: string }> = [
+  { label: "全部", value: "" },
+  { label: "已修复", value: "已修复" },
+  { label: "未修复", value: "未修复" },
+];
+const currentLeakStatusLabel = computed(() => leakStatusOptions.find((o) => o.value === filters.leakStatus)?.label || "全部");
+function handleLeakStatusChange(e: { detail: { value: number } }) {
+  filters.leakStatus = leakStatusOptions[e.detail.value]?.value || "";
+}
 const pagination = reactive({ pageNum: 1, pageSize: 10 });
 const records = ref<RecordItem[]>([]);
 const selectedRecord = ref<RecordItem | null>(null);
@@ -507,6 +622,7 @@ const validationErrors = reactive({
   tubeMaterial: "",
   tubeBore: "",
   tubeBuriedDepth: "",
+  deviceNumber: "",
 });
 
 const form = reactive({
@@ -546,17 +662,6 @@ const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pagination
 const allSelectable = computed(() => records.value.length > 0);
 const isAllSelected = computed(() => records.value.length > 0 && records.value.every((r) => isItemSelected(r)));
 
-const statisticsCards = computed(() => {
-  const unrepaired = records.value.filter((r) => String(gv(r, "leakStatus") || "") === "未修复").length;
-  const repaired = records.value.filter((r) => String(gv(r, "leakStatus") || "") === "已修复").length;
-  return [
-    { label: "总记录数", value: String(total.value), type: "total" },
-    { label: "未修复", value: String(unrepaired), type: "unrepaired" },
-    { label: "已修复", value: String(repaired), type: "repaired" },
-    { label: "当前页条数", value: String(records.value.length), type: "current" },
-  ];
-});
-
 function mkFields(r: RecordItem | null, defs: Array<[string, string, boolean?, string?]>) {
   const item = r || {};
   return defs.map(([label, key, fmt, override]) => ({
@@ -595,20 +700,8 @@ const pipeDetailFields = computed(() => mkFields(selectedRecord.value, [
   ["管道年限", "tubeAge"],
 ]));
 
-const attachDetailFields = computed(() => mkFields(selectedRecord.value, [
-  ["音频文件", "audioFile"],
-  ["现场照片", "sceneImages"],
-  ["现场视频", "sceneVideo"],
-  ["噪音样本", "noiseSample"],
-  ["频谱", "spectrum"],
-  ["下载", "downloadUrl"],
-  ["备注", "description"],
-]));
-
 const attachTextFields = computed(() => mkFields(selectedRecord.value, [
   ["噪音样本", "noiseSample"],
-  ["频谱", "spectrum"],
-  ["下载", "downloadUrl"],
   ["备注", "description"],
 ]));
 
@@ -618,45 +711,11 @@ const detailPhotoIds = computed<string[]>(() => {
   return String(raw).split(",").map((s) => s.trim()).filter(Boolean);
 });
 
-const detailAudioList = ref<RecordItem[]>([]);
-const detailAudioLoading = ref(false);
-const detailAudioPlayingIndex = ref(-1);
-let detailAudioInstance: HTMLAudioElement | null = null;
-
-async function loadDetailAudioList() {
-  const dn = getFieldValue(selectedRecord.value, "deviceNumber");
-  if (!dn) { detailAudioList.value = []; return; }
-  detailAudioLoading.value = true;
-  try {
-    const res = await getAudioDataPage({ pageNum: 1, pageSize: 10, deviceNumber: dn }) as unknown as { code?: number; data?: unknown; records?: unknown[]; rows?: unknown[]; total?: number };
-    const data = (res as Record<string, unknown>)?.data ?? res;
-    const pageData = (data && typeof data === "object" ? data : {}) as Record<string, unknown>;
-    const recs = (pageData.records as RecordItem[]) || (pageData.rows as RecordItem[]) || (res.records as RecordItem[]) || (res.rows as RecordItem[]) || [];
-    detailAudioList.value = recs;
-  } catch { detailAudioList.value = []; }
-  finally { detailAudioLoading.value = false; }
-}
-
-function toggleDetailAudioPlay(index: number) {
-  const audio = detailAudioList.value[index];
-  if (!audio) return;
-  const aid = getFieldValue(audio, "id");
-  if (!aid) return;
-  // #ifdef H5
-  if (detailAudioPlayingIndex.value === index) { detailAudioInstance?.pause(); detailAudioPlayingIndex.value = -1; return; }
-  detailAudioInstance?.pause();
-  detailAudioInstance = new Audio(`${getBaseUrl()}/api/sampling-audio/${aid}/wav`);
-  detailAudioInstance.onended = () => { detailAudioPlayingIndex.value = -1; };
-  detailAudioInstance.play();
-  detailAudioPlayingIndex.value = index;
-  // #endif
-  // #ifndef H5
-  uni.showToast({ title: "音频播放仅支持 H5 端", icon: "none" });
-  // #endif
-}
-
-function getPreviewUrl(id: string): string {
-  return `${getBaseUrl()}/api/file/preview/${id}`;
+function getPreviewUrl(filePath: string): string {
+  if (!filePath) return "";
+  if (filePath.startsWith("http://") || filePath.startsWith("https://")) return filePath;
+  if (filePath.startsWith("/")) return `${getBaseUrl()}${filePath}`;
+  return `${getBaseUrl()}/${filePath}`;
 }
 
 function previewDetailPhoto(index: number) {
@@ -672,7 +731,10 @@ function previewDetailPhoto(index: number) {
 function playDetailVideo() {
   const vid = getFieldValue(selectedRecord.value, "sceneVideo");
   if (!vid) return;
-  videoDialogUrl.value = `${getBaseUrl()}/api/file/preview/${vid}`;
+  videoDuration.value = 0;
+  videoCurrentTime.value = 0;
+  videoLoading.value = true;
+  currentVideoUrl.value = getPreviewUrl(String(vid));
   videoDialogVisible.value = true;
 }
 
@@ -680,7 +742,34 @@ function gv(item: RecordItem, k: string) { return Object.hasOwn(item, k) ? item[
 function getRowId(item: RecordItem): string { const v = gv(item, "id"); return typeof v === "string" || typeof v === "number" ? String(v) : ""; }
 function getRowKey(item: RecordItem, i: number): string { return getRowId(item) || String(i); }
 
-onMounted(() => fetchLeakPoints());
+const deviceNumberList = ref<string[]>([]);
+const showDeviceSuggestions = ref(false);
+const filteredDeviceNumbers = computed(() => {
+  const kw = form.deviceNumber.trim().toLowerCase();
+  if (!kw) return deviceNumberList.value.slice(0, 20);
+  return deviceNumberList.value.filter((d) => d.toLowerCase().includes(kw)).slice(0, 20);
+});
+
+async function fetchDeviceNumbers() {
+  try {
+    const res = await getVisibleDeviceList() as unknown as Res;
+    const data = res?.data as RecordItem[] | RecordItem | undefined;
+    const list = Array.isArray(data) ? data : Array.isArray((data as RecordItem)?.records) ? (data as RecordItem).records as RecordItem[] : [];
+    deviceNumberList.value = list.map((d) => String(gv(d, "deviceNumber") || "")).filter(Boolean);
+  } catch { deviceNumberList.value = []; }
+}
+
+function selectDeviceNumber(num: string) {
+  form.deviceNumber = num;
+  showDeviceSuggestions.value = false;
+  validationErrors.deviceNumber = "";
+}
+
+function hideDeviceSuggestions() {
+  setTimeout(() => { showDeviceSuggestions.value = false; }, 200);
+}
+
+onMounted(() => { fetchLeakPoints(); fetchDeviceNumbers(); });
 
 function toggleSort(field: string) {
   if (sortField.value === field) {
@@ -723,16 +812,41 @@ async function fetchLeakPoints() {
     total.value = filteredRecords.length !== p.records.length ? filteredRecords.length : p.total;
     selectedIds.value = new Set();
     selectFirstRow();
+    fillWorkOrderNumbers();
   } catch (e: unknown) {
     records.value = []; total.value = 0; selectedRecord.value = null; selectedRecordKey.value = "";
     uni.showToast({ title: (e as { msg?: string }).msg || "加载失败", icon: "none" });
   } finally { loading.value = false; }
 }
 
+async function fillWorkOrderNumbers() {
+  const needFetch = records.value.filter((r) => {
+    const wid = getFieldValue(r, "workOrderId");
+    return wid && !getFieldValue(r, "worksheetNumber");
+  });
+  if (needFetch.length === 0) return;
+  await Promise.all(needFetch.map(async (item) => {
+    const wid = getFieldValue(item, "workOrderId");
+    try {
+      const res = (await getWorksheetProcessDetail(wid)) as Res;
+      const d = res?.data;
+      if (isObj(d)) {
+        item.worksheetNumber = String(gv(d as RecordItem, "worksheetNumber") || "");
+      } else {
+        item.worksheetNumber = "";
+      }
+    } catch {
+      item.worksheetNumber = "";
+    }
+  }));
+  records.value = [...records.value];
+}
+
 function searchLeakPoints() { pagination.pageNum = 1; fetchLeakPoints(); }
-function resetFilters() { filters.startTime = ""; filters.endTime = ""; filters.deviceNumber = ""; filters.leakPointType = ""; filters.leakArea = ""; filters.inspector = ""; filters.locator = ""; searchLeakPoints(); }
+function resetFilters() { filters.startTime = ""; filters.endTime = ""; filters.deviceNumber = ""; filters.leakPointType = ""; filters.leakArea = ""; filters.inspector = ""; filters.locator = ""; filters.leakStatus = ""; searchLeakPoints(); }
 function changePage(s: number) { const n = pagination.pageNum + s; if (n < 1 || n > totalPages.value) return; pagination.pageNum = n; fetchLeakPoints(); }
 function jumpToPage(p: number) { if (p < 1 || p > totalPages.value) return; pagination.pageNum = p; fetchLeakPoints(); }
+function handlePageSizeChange(size: number) { pagination.pageSize = size; pagination.pageNum = 1; fetchLeakPoints(); }
 
 function selectFirstRow() {
   if (!records.value.length) { selectedRecord.value = null; selectedRecordKey.value = ""; return; }
@@ -743,16 +857,13 @@ function selectFirstRow() {
 
 function selectRecord(item: RecordItem, i: number) {
   selectedRecord.value = item; selectedRecordKey.value = getRowKey(item, i); activeDetailTab.value = "base";
-  detailAudioList.value = []; detailAudioPlayingIndex.value = -1; detailAudioInstance?.pause();
   const id = getRowId(item);
   if (!id) return;
   getLeakPointDetail(id).then((res: unknown) => {
     ok(res as Res);
     const d = (res as Res)?.data;
     if (isObj(d)) selectedRecord.value = { ...item, ...(d as RecordItem) };
-    loadDetailAudioList();
   }).catch(() => {});
-  loadDetailAudioList();
 }
 
 function isItemSelected(item: RecordItem) { return selectedIds.value.has(getRowKey(item, records.value.indexOf(item))); }
@@ -765,9 +876,11 @@ function toggleSelectAll() { selectedIds.value = isAllSelected.value ? new Set()
 function openCreateDialog() { isEditing.value = false; resetForm(); dialogVisible.value = true; }
 function openEditDialog() {
   if (!selectedRecord.value) { uni.showToast({ title: "请先选择漏点记录", icon: "none" }); return; }
-  isEditing.value = true; fillForm(selectedRecord.value); dialogVisible.value = true;
+  isEditing.value = true; resetForm(); fillForm(selectedRecord.value); dialogVisible.value = true;
 }
-function closeDialog() { dialogVisible.value = false; }
+function closeDialog() { dialogVisible.value = false; resetForm(); }
+
+function revokeBlobUrl(url: string) { if (url.startsWith("blob:")) URL.revokeObjectURL(url); }
 
 function resetForm() {
   form.detectType = ""; form.detectTime = ""; form.detectDifficulty = ""; form.leakPointType = "";
@@ -778,6 +891,9 @@ function resetForm() {
   form.sceneImages = ""; form.sceneVideo = ""; form.manualReviewCount = ""; form.deviceNumber = "";
   form.noiseTime = ""; form.leakStatus = ""; form.featureValue = ""; form.audioFile = "";
   form.repairMethod = ""; form.description = "";
+  photoList.value.forEach((p) => revokeBlobUrl(p.url));
+  videoList.value.forEach((v) => revokeBlobUrl(v.url));
+  audioList.value.forEach((a) => revokeBlobUrl(a.url));
   photoList.value = []; photoIdListText.value = ""; videoList.value = []; audioList.value = []; clearValidationErrors();
 }
 
@@ -812,16 +928,17 @@ function fillForm(item: RecordItem) {
   form.audioFile = String(gv(item, "audioFile") ?? "");
   form.repairMethod = String(gv(item, "repairMethod") ?? "");
   form.description = String(gv(item, "description") ?? "");
-  const picId = String(gv(item, "sceneImages") ?? ""); form.sceneImages = picId; photoIdListText.value = picId;
-  photoList.value = picId ? [{ url: `/api/file/preview/${picId}`, id: picId }] : [];
+  const picPaths = String(gv(item, "sceneImages") ?? "").split(",").map((s: string) => s.trim()).filter(Boolean);
+  form.sceneImages = picPaths.join(","); photoIdListText.value = form.sceneImages;
+  photoList.value = picPaths.map((p: string) => ({ url: getPreviewUrl(p), id: p }));
   const vidId = String(gv(item, "sceneVideo") ?? "");
-  videoList.value = vidId ? [{ url: `/api/file/preview/${vidId}`, id: vidId, name: `视频_${vidId}` }] : [];
+  videoList.value = vidId ? [{ url: getPreviewUrl(vidId), id: vidId, name: `视频_${vidId}` }] : [];
   const audId = String(gv(item, "audioFile") ?? "");
-  audioList.value = audId ? [{ url: `/api/file/preview/${audId}`, id: audId, name: `音频_${audId}` }] : [];
+  audioList.value = audId ? [{ url: getPreviewUrl(audId), id: audId, name: `音频_${audId}` }] : [];
   clearValidationErrors();
 }
 
-function clearValidationErrors() { validationErrors.detectTime = ""; validationErrors.leakPointType = ""; validationErrors.leakPointPosition = ""; validationErrors.leakPart = ""; validationErrors.inspector = ""; validationErrors.tubeMaterial = ""; validationErrors.tubeBore = ""; validationErrors.tubeBuriedDepth = ""; }
+function clearValidationErrors() { validationErrors.detectTime = ""; validationErrors.leakPointType = ""; validationErrors.leakPointPosition = ""; validationErrors.leakPart = ""; validationErrors.inspector = ""; validationErrors.tubeMaterial = ""; validationErrors.tubeBore = ""; validationErrors.tubeBuriedDepth = ""; validationErrors.deviceNumber = ""; }
 
 function validateForm(): boolean {
   clearValidationErrors(); let valid = true;
@@ -833,6 +950,7 @@ function validateForm(): boolean {
   if (!form.tubeMaterial.trim()) { validationErrors.tubeMaterial = "请选择管道材质"; valid = false; }
   if (!form.tubeBore.trim()) { validationErrors.tubeBore = "请输入管道口径"; valid = false; }
   if (!form.tubeBuriedDepth.trim()) { validationErrors.tubeBuriedDepth = "请输入管道埋深"; valid = false; }
+  if (!form.deviceNumber.trim()) { validationErrors.deviceNumber = "请输入设备编号"; valid = false; }
   return valid;
 }
 
@@ -851,18 +969,26 @@ function handleUploadPhoto() {
     try {
       const newPhotos: PhotoItem[] = [];
       for (const file of files) {
-        const res = await uploadFile(file, file.name) as { data?: { filePath?: string; id?: string } };
-        const pid = String(res?.data?.filePath || res?.data?.id || "");
-        if (pid) newPhotos.push({ url: `${getBaseUrl()}/api/file/preview/${pid}`, id: pid });
+        const localUrl = URL.createObjectURL(file);
+        const res = await uploadFile(file, file.name) as { data?: { filePath?: string; id?: string }; msg?: string };
+        const filePath = String(res?.data?.filePath || "");
+        if (!filePath) { uni.showToast({ title: res?.msg || "上传失败", icon: "none" }); URL.revokeObjectURL(localUrl); continue; }
+        newPhotos.push({ url: localUrl, id: filePath });
       }
-      photoList.value = [...photoList.value, ...newPhotos];
-      form.sceneImages = photoList.value.map((p) => p.id).join(","); photoIdListText.value = form.sceneImages;
-      uni.showToast({ title: "上传成功", icon: "success" });
-    } catch {
-      uni.showToast({ title: "上传失败", icon: "none" });
+      if (newPhotos.length > 0) {
+        photoList.value = [...photoList.value, ...newPhotos];
+        form.sceneImages = photoList.value.map((p) => p.id).join(","); photoIdListText.value = form.sceneImages;
+        uni.showToast({ title: `上传成功 ${newPhotos.length} 张`, icon: "success" });
+      }
+    } catch (err) {
+      const errMsg = (err as { msg?: string })?.msg || (err as { status?: number })?.status ? `错误码: ${(err as { status?: number }).status}` : "上传失败";
+      uni.showToast({ title: errMsg, icon: "none" });
     }
   };
+  document.body.appendChild(input);
+  input.style.display = "none";
   input.click();
+  setTimeout(() => { document.body.removeChild(input); }, 1000);
   // #endif
   // #ifndef H5
   uni.chooseImage({
@@ -874,15 +1000,19 @@ function handleUploadPhoto() {
         const newPhotos: PhotoItem[] = [];
         for (const path of paths) {
           const fileName = path.split("/").pop() || "image.jpg";
-          const r = await uploadFile(path, fileName) as { data?: { filePath?: string; id?: string } };
-          const pid = String(r?.data?.filePath || r?.data?.id || "");
-          if (pid) newPhotos.push({ url: `${getBaseUrl()}/api/file/preview/${pid}`, id: pid });
+          const r = await uploadFile(path, fileName) as { data?: { filePath?: string; id?: string }; msg?: string };
+          const filePath = String(r?.data?.filePath || "");
+          if (!filePath) { uni.showToast({ title: r?.msg || "上传失败", icon: "none" }); continue; }
+          newPhotos.push({ url: path, id: filePath });
         }
-        photoList.value = [...photoList.value, ...newPhotos];
-        form.sceneImages = photoList.value.map((p) => p.id).join(","); photoIdListText.value = form.sceneImages;
-        uni.showToast({ title: "上传成功", icon: "success" });
-      } catch {
-        uni.showToast({ title: "上传失败", icon: "none" });
+        if (newPhotos.length > 0) {
+          photoList.value = [...photoList.value, ...newPhotos];
+          form.sceneImages = photoList.value.map((p) => p.id).join(","); photoIdListText.value = form.sceneImages;
+          uni.showToast({ title: `上传成功 ${newPhotos.length} 张`, icon: "success" });
+        }
+      } catch (err) {
+        const errMsg = (err as { msg?: string })?.msg || "上传失败";
+        uni.showToast({ title: errMsg, icon: "none" });
       }
     },
     fail: () => { uni.showToast({ title: "取消选择", icon: "none" }); },
@@ -939,6 +1069,7 @@ function handleImport() {
 }
 
 function handleUploadAudio() {
+  if (!form.deviceNumber.trim()) { uni.showToast({ title: "请先输入设备编号", icon: "none" }); validationErrors.deviceNumber = "请输入设备编号"; return; }
   // #ifdef H5
   const input = document.createElement("input");
   input.type = "file";
@@ -949,16 +1080,19 @@ function handleUploadAudio() {
     uni.showToast({ title: "音频上传中...", icon: "loading" });
     try {
       const res = await uploadFile(file, file.name) as { data?: { filePath?: string; id?: string }; msg?: string };
-      const aid = String(res?.data?.filePath || res?.data?.id || "");
+      const aid = String(res?.data?.filePath || "");
       if (!aid) { uni.showToast({ title: res?.msg || "上传失败", icon: "none" }); return; }
       form.audioFile = aid;
-      audioList.value = [{ url: `${getBaseUrl()}/api/file/preview/${aid}`, id: aid, name: `音频_${aid}` }];
+      audioList.value = [{ url: getPreviewUrl(aid), id: aid, name: `音频_${aid}` }];
       uni.showToast({ title: "上传成功", icon: "success" });
     } catch {
       uni.showToast({ title: "上传失败", icon: "none" });
     }
   };
+  document.body.appendChild(input);
+  input.style.display = "none";
   input.click();
+  setTimeout(() => { document.body.removeChild(input); }, 1000);
   // #endif
   // #ifndef H5
   uni.chooseMessageFile({
@@ -970,10 +1104,10 @@ function handleUploadAudio() {
       uni.showToast({ title: "音频上传中...", icon: "loading" });
       try {
         const r = await uploadFile(file.path, file.name || "audio") as { data?: { filePath?: string; id?: string }; msg?: string };
-        const aid = String(r?.data?.filePath || r?.data?.id || "");
+        const aid = String(r?.data?.filePath || "");
         if (!aid) { uni.showToast({ title: r?.msg || "上传失败", icon: "none" }); return; }
         form.audioFile = aid;
-        audioList.value = [{ url: `${getBaseUrl()}/api/file/preview/${aid}`, id: aid, name: `音频_${aid}` }];
+        audioList.value = [{ url: getPreviewUrl(aid), id: aid, name: `音频_${aid}` }];
         uni.showToast({ title: "上传成功", icon: "success" });
       } catch {
         uni.showToast({ title: "上传失败", icon: "none" });
@@ -991,19 +1125,25 @@ function handleUploadVideo() {
   input.onchange = async () => {
     const file = input.files?.[0];
     if (!file) return;
-    uni.showToast({ title: "视频上传中...", icon: "loading" });
+    if (file.size > MAX_VIDEO_SIZE) { uni.showToast({ title: `视频过大(${formatFileSize(file.size)})，上限${formatFileSize(MAX_VIDEO_SIZE)}`, icon: "none" }); return; }
+    uni.showToast({ title: `视频上传中...(${formatFileSize(file.size)})`, icon: "loading" });
     try {
+      const localUrl = URL.createObjectURL(file);
       const res = await uploadFile(file, file.name) as { data?: { filePath?: string; id?: string }; msg?: string };
-      const vid = String(res?.data?.filePath || res?.data?.id || "");
-      if (!vid) { uni.showToast({ title: res?.msg || "上传失败", icon: "none" }); return; }
+      const vid = String(res?.data?.filePath || "");
+      if (!vid) { uni.showToast({ title: res?.msg || "上传失败", icon: "none" }); URL.revokeObjectURL(localUrl); return; }
       form.sceneVideo = vid;
-      videoList.value = [{ url: `${getBaseUrl()}/api/file/preview/${vid}`, id: vid, name: `视频_${vid}` }];
+      videoList.value = [{ url: localUrl, id: vid, name: `视频_${vid}` }];
       uni.showToast({ title: "上传成功", icon: "success" });
-    } catch {
-      uni.showToast({ title: "上传失败", icon: "none" });
+    } catch (err) {
+      const errMsg = (err as { msg?: string })?.msg || (err as { status?: number })?.status ? `错误码: ${(err as { status?: number }).status}` : "上传失败";
+      uni.showToast({ title: errMsg, icon: "none" });
     }
   };
+  document.body.appendChild(input);
+  input.style.display = "none";
   input.click();
+  setTimeout(() => { document.body.removeChild(input); }, 1000);
   // #endif
   // #ifndef H5
   uni.chooseVideo({
@@ -1012,13 +1152,14 @@ function handleUploadVideo() {
       try {
         const fileName = (res.name || "video.mp4") as string;
         const r = await uploadFile(res.tempFilePath, fileName) as { data?: { filePath?: string; id?: string }; msg?: string };
-        const vid = String(r?.data?.filePath || r?.data?.id || "");
+        const vid = String(r?.data?.filePath || "");
         if (!vid) { uni.showToast({ title: r?.msg || "上传失败", icon: "none" }); return; }
         form.sceneVideo = vid;
-        videoList.value = [{ url: `${getBaseUrl()}/api/file/preview/${vid}`, id: vid, name: `视频_${vid}` }];
+        videoList.value = [{ url: getPreviewUrl(vid), id: vid, name: `视频_${vid}` }];
         uni.showToast({ title: "上传成功", icon: "success" });
-      } catch {
-        uni.showToast({ title: "上传失败", icon: "none" });
+      } catch (err) {
+        const errMsg = (err as { msg?: string })?.msg || "上传失败";
+        uni.showToast({ title: errMsg, icon: "none" });
       }
     },
   });
@@ -1145,7 +1286,7 @@ function buildPayload() {
 }
 
 async function submitForm() {
-  if (!validateForm()) { const fe = validationErrors.detectTime || validationErrors.leakPointType || validationErrors.leakPointPosition || validationErrors.leakPart || validationErrors.inspector || validationErrors.tubeMaterial || validationErrors.tubeBore || validationErrors.tubeBuriedDepth; if (fe) uni.showToast({ title: fe, icon: "none" }); return; }
+  if (!validateForm()) { const fe = validationErrors.detectTime || validationErrors.leakPointType || validationErrors.leakPointPosition || validationErrors.leakPart || validationErrors.inspector || validationErrors.tubeMaterial || validationErrors.tubeBore || validationErrors.tubeBuriedDepth || validationErrors.deviceNumber; if (fe) uni.showToast({ title: fe, icon: "none" }); return; }
   submitting.value = true;
   try {
     const payload = buildPayload(); let res: Res;
@@ -1177,26 +1318,109 @@ function handleWorkOrderJump(item: RecordItem) {
   uni.navigateTo({ url: `/pages/work-order/processing/processing?id=${wid}` });
 }
 
+function getWorkOrderDisplay(item: RecordItem): string {
+  const no = getFieldValue(item, "worksheetNumber");
+  if (no) return String(no);
+  const wid = getFieldValue(item, "workOrderId");
+  if (wid) return "工单不存在";
+  return "-";
+}
+
 function getFieldValue(item: RecordItem | null, key: string): string { if (!item) return ""; const v = gv(item, key); if (v === undefined || v === null) return ""; return String(v); }
 function formatDateTime(v: unknown): string { return fmtDt(v); }
 
 const playingAudioIndex = ref(-1);
 let audioPlayerInstance: HTMLAudioElement | null = null;
 
+const audioDialogVisible = ref(false);
+const currentAudioUrl = ref("");
+const currentAudioTitle = ref("");
+const audioDuration = ref(0);
+const audioCurrentTime = ref(0);
+const audioPlaying = ref(false);
+const audioLoading = ref(false);
+let audioDialogElement: HTMLAudioElement | null = null;
+
+const audioProgress = computed(() => {
+  if (!audioDuration.value) return 0;
+  return Math.min(100, (audioCurrentTime.value / audioDuration.value) * 100);
+});
+
+function onAudioLoadedMeta() {
+  if (!audioDialogElement) return;
+  audioDuration.value = audioDialogElement.duration || 0;
+  audioLoading.value = false;
+}
+
+function onAudioTimeUpdate() {
+  if (!audioDialogElement) return;
+  audioCurrentTime.value = audioDialogElement.currentTime || 0;
+}
+
+function onAudioEnded() {
+  audioPlaying.value = false;
+  audioCurrentTime.value = 0;
+}
+
+function toggleAudioPlayState() {
+  if (!audioDialogElement) return;
+  if (audioDialogElement.paused) { audioDialogElement.play(); }
+  else { audioDialogElement.pause(); }
+}
+
+function seekAudio(e: Event) {
+  if (!audioDialogElement || !audioDuration.value) return;
+  const target = e.target as HTMLInputElement;
+  const time = (Number(target.value) / 100) * audioDuration.value;
+  audioDialogElement.currentTime = time;
+  audioCurrentTime.value = time;
+}
+
+function openAudioDialog(url: string, title: string) {
+  if (audioDialogElement) { audioDialogElement.pause(); audioDialogElement = null; }
+  currentAudioUrl.value = url;
+  currentAudioTitle.value = title;
+  audioDuration.value = 0;
+  audioCurrentTime.value = 0;
+  audioPlaying.value = false;
+  audioLoading.value = true;
+  audioDialogVisible.value = true;
+  audioDialogElement = new Audio(url);
+  audioDialogElement.addEventListener("loadedmetadata", onAudioLoadedMeta);
+  audioDialogElement.addEventListener("timeupdate", onAudioTimeUpdate);
+  audioDialogElement.addEventListener("ended", onAudioEnded);
+  audioDialogElement.addEventListener("waiting", () => { audioLoading.value = true; });
+  audioDialogElement.addEventListener("playing", () => { audioLoading.value = false; audioPlaying.value = true; });
+  audioDialogElement.addEventListener("play", () => { audioPlaying.value = true; });
+  audioDialogElement.addEventListener("pause", () => { audioPlaying.value = false; });
+  audioDialogElement.addEventListener("canplay", () => { audioLoading.value = false; });
+  audioDialogElement.play().catch(() => { audioLoading.value = false; });
+}
+
+function closeAudioDialog() {
+  if (audioDialogElement) {
+    audioDialogElement.pause();
+    audioDialogElement.src = "";
+    audioDialogElement = null;
+  }
+  audioDialogVisible.value = false;
+  currentAudioUrl.value = "";
+  audioDuration.value = 0;
+  audioCurrentTime.value = 0;
+  audioPlaying.value = false;
+  audioLoading.value = false;
+  playingAudioIndex.value = -1;
+}
+
 function toggleAudioPlay(item: RecordItem, index: number) {
   const aid = getFieldValue(item, "audioFile");
   if (!aid) return;
   // #ifdef H5
-  if (playingAudioIndex.value === index) {
-    audioPlayerInstance?.pause();
-    playingAudioIndex.value = -1;
-    return;
-  }
   audioPlayerInstance?.pause();
-  audioPlayerInstance = new Audio(`${getBaseUrl()}/api/file/preview/${aid}`);
-  audioPlayerInstance.onended = () => { playingAudioIndex.value = -1; };
-  audioPlayerInstance.play();
+  const url = getPreviewUrl(String(aid));
+  const title = `漏点音频 - ${getFieldValue(item, "leakPointPosition") || getFieldValue(item, "deviceNumber") || ""}`;
   playingAudioIndex.value = index;
+  openAudioDialog(url, title);
   // #endif
   // #ifndef H5
   uni.showToast({ title: "音频播放仅支持 H5 端", icon: "none" });
@@ -1205,17 +1429,56 @@ function toggleAudioPlay(item: RecordItem, index: number) {
 
 const videoDialogVisible = ref(false);
 const currentVideoUrl = ref("");
+const videoDuration = ref(0);
+const videoCurrentTime = ref(0);
+const videoLoading = ref(false);
+
+function formatVideoTime(seconds: number): string {
+  if (!seconds || !isFinite(seconds)) return "00:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  if (m >= 60) {
+    const h = Math.floor(m / 60);
+    return `${String(h).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+const videoProgress = computed(() => {
+  if (!videoDuration.value) return 0;
+  return Math.min(100, (videoCurrentTime.value / videoDuration.value) * 100);
+});
+
+function onVideoLoadedMeta(e: Event) {
+  const v = e.target as HTMLVideoElement;
+  videoDuration.value = v.duration || 0;
+  videoLoading.value = false;
+}
+
+function onVideoTimeUpdate(e: Event) {
+  const v = e.target as HTMLVideoElement;
+  videoCurrentTime.value = v.currentTime || 0;
+}
+
+function onVideoWaiting() { videoLoading.value = true; }
+function onVideoPlaying() { videoLoading.value = false; }
 
 function toggleVideoPlay(item: RecordItem) {
   const vid = getFieldValue(item, "sceneVideo");
   if (!vid) return;
-  currentVideoUrl.value = `${getBaseUrl()}/api/file/preview/${vid}`;
+  videoDuration.value = 0;
+  videoCurrentTime.value = 0;
+  videoLoading.value = true;
+  currentVideoUrl.value = getPreviewUrl(String(vid));
   videoDialogVisible.value = true;
 }
 
 function closeVideoDialog() {
   videoDialogVisible.value = false;
   currentVideoUrl.value = "";
+  videoDuration.value = 0;
+  videoCurrentTime.value = 0;
+  videoLoading.value = false;
 }
 
 function getLeakStatusClass(item: RecordItem | null): string {
@@ -1261,10 +1524,12 @@ function rmEmpty(obj: RecordItem): RecordItem { return Object.fromEntries(Object
 function applyLocalFilters(list: RecordItem[]): RecordItem[] {
   const inspectorKey = filters.inspector.trim().toLowerCase();
   const locatorKey = filters.locator.trim().toLowerCase();
-  if (!inspectorKey && !locatorKey) return list;
+  const statusKey = filters.leakStatus.trim();
+  if (!inspectorKey && !locatorKey && !statusKey) return list;
   return list.filter((item) => {
     if (inspectorKey && !String(getFieldValue(item, "inspector") || "").toLowerCase().includes(inspectorKey)) return false;
     if (locatorKey && !String(getFieldValue(item, "locator") || "").toLowerCase().includes(locatorKey)) return false;
+    if (statusKey && String(getFieldValue(item, "leakStatus") || "") !== statusKey) return false;
     return true;
   });
 }
@@ -1316,22 +1581,6 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .toolbar-icon-button { display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; margin: 0; padding: 0; color: #31506d; background: #f6fbff; border: 1px solid #cbdced; border-radius: 5px; cursor: pointer; &--hover { color: #3b82f6; background: #eff6ff; border-color: #bfdbfe; } }
 .icon-refresh { display: block; width: 18px; height: 18px; border: 2px solid #7f8fa3; border-top-color: transparent; border-radius: 50%; }
 
-.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; flex: none; margin-bottom: 12px; }
-.stat-card { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 8px; border: none; box-shadow: 0 4px 16px rgba(33, 72, 108, 0.1); transition: transform 0.2s ease, box-shadow 0.2s ease; overflow: hidden; position: relative; }
-.stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(33, 72, 108, 0.15); }
-.stat-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
-.stat-card--total { background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); }
-.stat-card--total::before { background: #3b82f6; }
-.stat-card--unrepaired { background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); }
-.stat-card--unrepaired::before { background: #ef4444; }
-.stat-card--repaired { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); }
-.stat-card--repaired::before { background: #22c55e; }
-.stat-card--current { background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%); }
-.stat-card--current::before { background: #a855f7; }
-.stat-card__body { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; width: 100%; }
-.stat-card__label { color: #64748b; font-size: 12px; font-weight: 700; }
-.stat-card__value { color: #1e293b; font-size: 28px; font-weight: 900; font-family: "DIN Alternate", "Arial", sans-serif; line-height: 1.2; }
-
 .main-layout { display: grid; grid-template-columns: minmax(0, 1fr) clamp(380px, 20vw, 420px); flex: 1; min-height: 0; gap: 12px; overflow: hidden; }
 .table-panel { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
 .table-head, .pagination-bar { display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
@@ -1342,13 +1591,12 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .table-scroll::-webkit-scrollbar-track, .detail-section::-webkit-scrollbar-track { background: #edf3f8; border-radius: 999px; }
 .table-scroll::-webkit-scrollbar-thumb, .detail-section::-webkit-scrollbar-thumb { background: linear-gradient(90deg, #9fb4c8, #6f8ba8); border: 2px solid #edf3f8; border-radius: 999px; }
 .table-scroll::-webkit-scrollbar-thumb:hover, .detail-section::-webkit-scrollbar-thumb:hover { background: linear-gradient(90deg, #7f9ab4, #4d6f91); }
-.data-table { display: flex; flex-direction: column; background: #ffffff; }
-.data-row { display: grid; grid-template-columns: 40px 52px minmax(140px, 1.4fr) minmax(86px, 0.85fr) minmax(96px, 0.95fr) minmax(100px, 1fr) minmax(140px, 1.6fr) minmax(86px, 0.85fr) minmax(86px, 0.85fr) 72px 72px minmax(110px, 0.85fr) minmax(100px, 0.85fr); min-height: 48px; border-bottom: 1px solid #edf1f5; cursor: pointer; transition: background 0.18s ease, box-shadow 0.18s ease; &--header { position: sticky; top: 0; z-index: 1; min-height: 50px; color: #20384f; font-weight: 800; background: #fafafa; cursor: default; box-shadow: 0 1px 0 #dbe7f0; } &--active { position: relative; background: #eff6ff !important; box-shadow: inset 0 0 0 1px #bfdbfe; } }
-.data-row:not(.data-row--header):hover { background: #eff6ff !important; }
+.data-table { display: flex; flex-direction: column; width: 100%; min-width: 1200px; background: #ffffff; }
+.data-row { display: grid; grid-template-columns: 40px 52px minmax(140px, 1.4fr) minmax(86px, 0.85fr) minmax(96px, 0.95fr) minmax(100px, 1fr) minmax(140px, 1.6fr) minmax(86px, 0.85fr) minmax(86px, 0.85fr) 72px 72px minmax(110px, 0.85fr) minmax(100px, 0.85fr); min-height: 42px; width: 100%; min-width: 1200px; border-bottom: 1px solid #edf1f5; cursor: pointer; transition: background 0.18s ease, box-shadow 0.18s ease; &--header { position: sticky; top: 0; z-index: 1; min-height: 44px; color: #20384f; font-weight: 800; background: #f6f9fc; cursor: default; box-shadow: 0 1px 0 #dbe7f0; } &--active { position: relative; background: #e7f3ff !important; box-shadow: inset 0 0 0 1px #b9dcff; } }
 .data-row:not(.data-row--header):nth-child(odd) { background: #fff; }
 .data-row:not(.data-row--header):nth-child(even) { background: #fbfdff; }
-.data-row:not(.data-row--header):hover { background: #eff6ff; box-shadow: inset 0 0 0 1px #cbd5e1; }
-.data-row--active::before { position: absolute; top: 7px; bottom: 7px; left: 0; width: 3px; content: ""; background: #3b82f6; border-radius: 0 999px 999px 0; }
+.data-row:not(.data-row--header):hover { background: #f1f8ff; box-shadow: inset 0 0 0 1px #d7ebfb; }
+.data-row--active::before { position: absolute; top: 7px; bottom: 7px; left: 0; width: 3px; content: ""; background: #0d82ee; border-radius: 0 999px 999px 0; }
 .data-cell { display: flex; align-items: center; justify-content: center; min-width: 0; padding: 0 12px; overflow: hidden; color: #24384d; font-size: 13px; line-height: 1.35; text-align: center; white-space: nowrap; text-overflow: ellipsis; border-right: 1px solid #edf1f5; }
 .data-row--header .data-cell { color: #415a73; font-size: 12px; letter-spacing: 0; }
 .data-cell:last-child { border-right: 0; }
@@ -1363,18 +1611,50 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .data-cell--locator { justify-content: center; text-align: center; color: #475569; }
 
 .data-cell--audio { justify-content: center; }
-.audio-play-btn { color: #3b82f6; font-size: 12px; font-weight: 700; cursor: pointer; }
-.audio-play-btn:hover { color: #2563eb; }
+.play-icon { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.icon-play { width: 0; height: 0; border-style: solid; border-width: 6px 0 6px 10px; border-color: transparent transparent transparent #3b82f6; }
+.video-icon { border-color: transparent transparent transparent #16a34a; }
+.icon-pause { width: 10px; height: 12px; position: relative; &::before, &::after { content: ""; position: absolute; top: 0; width: 3px; height: 100%; background: #3b82f6; border-radius: 1px; } &::before { left: 0; } &::after { right: 0; } }
 .data-cell--video { justify-content: center; }
-.video-play-btn { color: #16a34a; font-size: 12px; font-weight: 700; cursor: pointer; }
-.video-play-btn:hover { color: #15803d; }
 .video-dialog-mask { position: fixed; inset: 0; z-index: 2200; display: flex; align-items: center; justify-content: center; background: rgba(15, 35, 55, 0.55); }
 .video-dialog { width: min(900px, 92vw); background: #fff; border-radius: 10px; box-shadow: 0 12px 36px rgba(15, 35, 55, 0.25); overflow: hidden; }
 .video-dialog__head { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid #edf1f5; }
 .video-dialog__title { color: #0f172a; font-size: 15px; font-weight: 700; }
-.video-dialog__body { padding: 16px; background: #000; }
-.video-player { display: block; width: 100%; max-height: 70vh; background: #000; }
+.video-dialog__body { position: relative; padding: 16px; background: #000; }
+.video-player { display: block; width: 100%; max-height: 60vh; background: #000; }
 .video-empty { padding: 40px; color: #94a3b8; font-size: 14px; text-align: center; background: #fff; }
+.video-loading { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); padding: 6px 16px; color: #fff; font-size: 12px; background: rgba(0, 0, 0, 0.6); border-radius: 4px; }
+.video-dialog__info { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 12px 18px; border-top: 1px solid #edf1f5; background: #f8fafc; }
+.video-info-row { display: flex; align-items: center; gap: 6px; }
+.video-info-label { color: #64748b; font-size: 12px; font-weight: 700; }
+.video-info-value { color: #0f172a; font-size: 13px; font-weight: 700; font-family: monospace; }
+.video-progress-bar { flex: 1; min-width: 120px; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+.video-progress-filled { height: 100%; background: linear-gradient(90deg, #3b82f6, #2563eb); border-radius: 3px; transition: width 0.2s ease; }
+
+.audio-dialog-mask { position: fixed; inset: 0; z-index: 2200; display: flex; align-items: center; justify-content: center; background: rgba(15, 35, 55, 0.55); }
+.audio-dialog { width: min(520px, 92vw); background: #fff; border-radius: 10px; box-shadow: 0 12px 36px rgba(15, 35, 55, 0.25); overflow: hidden; }
+.audio-dialog__head { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid #edf1f5; }
+.audio-dialog__title { color: #0f172a; font-size: 15px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 400px; }
+.audio-dialog__body { padding: 24px; background: linear-gradient(135deg, #f0f7ff 0%, #faf5ff 100%); }
+.audio-empty { padding: 40px; color: #94a3b8; font-size: 14px; text-align: center; }
+.audio-player { display: flex; align-items: center; gap: 20px; }
+.audio-player__icon { flex-shrink: 0; }
+.audio-cover { position: relative; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; }
+.audio-cover__ring { position: absolute; inset: 0; border: 3px solid #bfdbfe; border-top-color: #3b82f6; border-radius: 50%; animation: audio-spin 2s linear infinite; }
+.audio-cover__dot { width: 12px; height: 12px; background: #3b82f6; border-radius: 50%; box-shadow: 0 0 12px rgba(59, 130, 246, 0.4); }
+@keyframes audio-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.audio-player__info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.audio-player__title { color: #0f172a; font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.audio-player__loading { color: #f59e0b; font-size: 12px; font-weight: 600; }
+.audio-player__progress { display: flex; align-items: center; gap: 8px; }
+.audio-time { color: #64748b; font-size: 12px; font-weight: 700; font-family: monospace; min-width: 40px; text-align: center; flex-shrink: 0; }
+.audio-seek-bar { position: relative; flex: 1; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+.audio-seek-filled { position: absolute; top: 0; left: 0; height: 100%; background: linear-gradient(90deg, #3b82f6, #2563eb); border-radius: 3px; pointer-events: none; }
+.audio-seek-input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.audio-play-btn { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; margin: 0; background: #3b82f6; border: 0; border-radius: 50%; cursor: pointer; flex-shrink: 0; &--hover { background: #2563eb; } }
+.play-icon-large { display: inline-flex; align-items: center; justify-content: center; }
+.icon-play-large { width: 0; height: 0; border-style: solid; border-width: 8px 0 8px 14px; border-color: transparent transparent transparent #fff; margin-left: 3px; }
+.icon-pause-large { width: 14px; height: 16px; position: relative; &::before, &::after { content: ""; position: absolute; top: 0; width: 4px; height: 100%; background: #fff; border-radius: 1px; } &::before { left: 0; } &::after { right: 0; } }
 /* 排序箭头 */
 .sort-arrow { flex: none; font-size: 10px; line-height: 1; margin-left: 2px; color: #bcc7d6; transition: color 0.18s ease; &--active { color: #3b82f6; } &--idle { opacity: 0.4; } }
 .data-cell--sortable:hover .sort-arrow:not(.sort-arrow--active) { color: #7f8fa3; }
@@ -1405,14 +1685,16 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .detail-grid { display: grid; gap: 0; overflow: hidden; background: #ffffff; border: 1px solid #dfebf5; border-radius: 6px; box-shadow: 0 8px 18px rgba(33, 72, 108, 0.045); }
 .detail-item { display: grid; grid-template-columns: 92px minmax(0, 1fr); align-items: center; min-height: 48px; padding: 8px 14px; border-bottom: 1px solid #edf3f8; }
 .detail-grid .detail-item:last-child { border-bottom: 0; }
-.detail-grid--content { grid-template-columns: 1fr; gap: 8px; overflow: visible; background: transparent; border: 0; border-radius: 0; box-shadow: none; }
-.detail-grid--content .detail-item { display: grid; grid-template-columns: 86px minmax(0, 1fr); align-items: stretch; min-height: 0; padding: 0; overflow: hidden; background: #ffffff; border: 1px solid #dfebf5; border-radius: 6px; box-shadow: 0 8px 18px rgba(33, 72, 108, 0.055); }
-.detail-grid--content .detail-item__label { display: flex; align-items: center; padding: 0 12px; color: #5f7891; font-size: 12px; font-weight: 800; background: #f7fafc; border-left: 3px solid #b9dcff; }
-.detail-grid--content .detail-item__value { min-height: 52px; margin-top: 0; padding: 14px; color: #172033; font-size: 13px; font-weight: 700; line-height: 1.45; background: #fbfdff; border-left: 1px solid #edf3f8; border-radius: 0; box-shadow: none; white-space: pre-wrap; word-break: break-all; text-align: left; }
+.detail-fields-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.detail-field-card { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 12px 14px; background: #ffffff; border: 1px solid #c4d3e3; border-radius: 8px; box-shadow: 0 2px 8px rgba(33, 72, 108, 0.08); transition: border-color 0.18s ease, box-shadow 0.18s ease; }
+.detail-field-card:hover { border-color: #4a90d9; box-shadow: 0 4px 12px rgba(33, 72, 108, 0.12); }
+.detail-field-card__label { display: flex; align-items: center; gap: 6px; color: #4a5e73; font-size: 11px; font-weight: 800; letter-spacing: 0.3px; }
+.detail-field-card__label::before { content: ""; width: 3px; height: 12px; background: #4a90d9; border-radius: 999px; flex-shrink: 0; }
+.detail-field-card__value { color: #0f172a; font-size: 14px; font-weight: 700; line-height: 1.45; word-break: break-all; padding-left: 9px; }
 .detail-item__label { display: flex; align-items: center; color: #71869b; font-size: 12px; font-weight: 800; line-height: 1.3; }
 .detail-item__value { color: #172033; font-size: 14px; font-weight: 700; line-height: 1.45; text-align: right; word-break: break-all; }
 .link-text { color: #3b82f6; text-decoration: underline; cursor: pointer; }
-.detail-actions { display: flex; gap: 10px; flex: none; padding: 12px 14px; border-top: 1px solid #edf3f8; }
+.work-order-missing { color: #94a3b8; font-size: 12px; }
 
 .dialog-mask { position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center; background: rgba(15,35,55,0.22); }
 .dialog-panel { display: flex; flex-direction: column; width: 1200px; max-width: calc(100vw - 40px); max-height: 86vh; overflow: hidden; background: #fff; border-radius: 8px; box-shadow: 0 18px 46px rgba(15,35,55,0.2); }
@@ -1429,9 +1711,11 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .section-hint { color: #94a3b8; font-size: 12px; }
 
 .form-grid { display: grid; gap: 12px 18px; &--two { grid-template-columns: repeat(2, 1fr); } &--three { grid-template-columns: repeat(3, 1fr); } }
-.form-field { min-width: 0; &--wide { grid-column: span 2; } }
+.form-field { min-width: 0; &--wide { grid-column: span 2; } &--device-search { position: relative; } }
 .form-label { display: block; margin-bottom: 5px; color: #34495e; font-size: 13px; font-weight: 700; &--required::after { margin-left: 4px; color: #ef4444; content: "*"; } }
 .form-error { display: block; margin-top: 4px; color: #ef4444; font-size: 12px; }
+.device-suggestions { position: absolute; top: 100%; left: 0; right: 0; z-index: 100; max-height: 200px; overflow-y: auto; margin-top: 4px; background: #fff; border: 1px solid #d5e2ee; border-radius: 4px; box-shadow: 0 8px 20px rgba(15, 35, 55, 0.12); }
+.device-suggestion-item { padding: 8px 12px; color: #31506d; font-size: 13px; cursor: pointer; &:hover { background: #eff6ff; color: #3b82f6; } }
 .form-input, .form-select { box-sizing: border-box; min-width: 0; width: 100%; max-width: 100%; height: 38px; padding: 0 12px; overflow: hidden; color: #172033; font-size: 14px; line-height: 38px; text-overflow: ellipsis; background: #fbfdff; border: 1px solid #d5e2ee; border-radius: 4px; transition: border-color 0.16s ease, box-shadow 0.16s ease; &--flex { flex: 1; } }
 .form-input:focus, .form-textarea:focus { background: #fff; border-color: #8fc8f8; box-shadow: 0 0 0 3px rgba(13,130,238,0.1); }
 .form-select { display: flex; align-items: center; justify-content: space-between; &--dropdown { background: #f7fbff; box-shadow: inset 0 -1px 0 rgba(13,130,238,0.03); } &__placeholder { color: #9aa9b8; } }
@@ -1543,15 +1827,15 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .time-section { min-width: 0; margin-top: 14px; padding: 14px; background: rgba(255, 255, 255, 0.96); border: 1px solid #dfebf5; border-radius: 6px; box-shadow: 0 8px 18px rgba(33, 72, 108, 0.055); }
 .detail-section-title { display: block; margin-bottom: 12px; color: #183755; font-size: 14px; font-weight: 900; }
 .attach-media { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
-.attach-media__item { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; background: #f8fafc; border: 1px solid #dfebf5; border-radius: 6px; }
+.attach-media__item { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 12px; background: #f8fafc; border: 1px solid #dfebf5; border-radius: 6px; }
 .attach-media__label { color: #475569; font-size: 12px; font-weight: 800; }
-.attach-media__player { display: flex; align-items: center; gap: 10px; }
-.attach-media__id { color: #64748b; font-size: 12px; }
+.attach-media__player { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.attach-media__hint { color: #64748b; font-size: 12px; }
 .attach-media__empty { color: #94a3b8; font-size: 13px; text-align: center; padding: 8px 0; }
-.attach-media__photos { display: flex; flex-wrap: wrap; gap: 8px; }
+.attach-media__photos { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 .attach-photo { width: 80px; height: 80px; border-radius: 4px; overflow: hidden; border: 1px solid #dfebf5; cursor: pointer; }
 .attach-photo__img { width: 100%; height: 100%; }
-.attach-play-btn { min-width: 56px; height: 28px; padding: 0 12px; font-size: 12px; font-weight: 700; color: #3b82f6; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px; cursor: pointer; &--hover { background: #dbeafe; } }
+.attach-play-btn { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; margin: 0; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 50%; cursor: pointer; &--hover { background: #dbeafe; } }
 .attach-audio-list { display: flex; flex-direction: column; gap: 6px; }
 .attach-audio-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 8px; background: #fff; border: 1px solid #e3ebf2; border-radius: 4px; }
 .attach-audio-item__time { color: #475569; font-size: 12px; }

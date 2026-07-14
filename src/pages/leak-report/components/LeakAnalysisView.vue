@@ -27,17 +27,16 @@
             </view>
           </picker>
         </view>
+
       </view>
 
       <view class="toolbar-row toolbar-row--bottom">
-        <view class="toolbar-actions">
+        <view class="toolbar-actions toolbar-actions--right">
           <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="searchAnalysis">查询</button>
           <button class="toolbar-button" hover-class="toolbar-button--hover" @click="resetFilters">重置</button>
           <button class="toolbar-icon-button" hover-class="toolbar-icon-button--hover" aria-label="刷新" @click="fetchAnalysisData">
             <text class="icon-refresh"></text>
           </button>
-        </view>
-        <view class="toolbar-actions toolbar-actions--right">
           <view class="export-dropdown">
             <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="exportMenuVisible = !exportMenuVisible">导出</button>
             <view v-if="exportMenuVisible" class="export-menu">
@@ -49,27 +48,19 @@
       </view>
     </view>
 
-    <!-- 统计卡片 -->
-    <view class="stats-grid">
-      <view v-for="item in statisticsCards" :key="item.label" class="stat-card" :class="`stat-card--${item.type}`">
-        <view class="stat-card__body">
-          <text class="stat-card__label">{{ item.label }}</text>
-          <text class="stat-card__value">{{ item.value }}</text>
-        </view>
-      </view>
-    </view>
-
     <!-- 主内容区 -->
     <LeakTableView
       title="算法分析结果"
       :total="total"
       :page-num="pagination.pageNum"
+      :page-size="pagination.pageSize"
       :total-pages="totalPages"
       :has-detail="!!selectedRecord"
       detail-empty-text="请选择左侧记录查看详情"
       @prev-page="changePage(-1)"
       @next-page="changePage(1)"
       @jump-page="jumpToPage"
+      @page-size-change="handlePageSizeChange"
     >
       <view class="data-table">
         <!-- 算法分析列头 -->
@@ -78,9 +69,6 @@
           <text class="data-cell data-cell--device">设备编号</text>
           <text class="data-cell data-cell--time">音频时间</text>
           <text class="data-cell data-cell--signal">信号处理结果</text>
-          <text class="data-cell data-cell--noise">噪音计结果</text>
-          <text class="data-cell data-cell--leakage">泄漏判定</text>
-          <text class="data-cell data-cell--zj">浙大算法</text>
           <text class="data-cell data-cell--status">算法状态</text>
           <text class="data-cell data-cell--error">失败原因</text>
         </view>
@@ -100,13 +88,6 @@
           <text class="data-cell data-cell--device">{{ getFieldValue(item, "deviceNumber") || "-" }}</text>
           <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "audioTime")) }}</text>
           <text class="data-cell data-cell--signal">{{ getFieldValue(item, "signalprocessingResult") || "-" }}</text>
-          <text class="data-cell data-cell--noise">{{ getFieldValue(item, "signalprocessingResult1") || "-" }}</text>
-          <text class="data-cell data-cell--leakage">
-            <text class="status-tag" :class="getLeakStatusTagClass(item, 'signalprocessingResult2')">
-              {{ getFieldValue(item, "signalprocessingResult2") || "-" }}
-            </text>
-          </text>
-          <text class="data-cell data-cell--zj">{{ getFieldValue(item, "signalprocessingResult3") || "-" }}</text>
           <text class="data-cell data-cell--status"><text v-if="getFieldValue(item, 'algorithmStatus')" class="status-tag" :class="getAlgorithmStatusTagClass(item)">{{ getAlgorithmStatusLabel(item) }}</text><text v-else>-</text></text>
           <text class="data-cell data-cell--error" :title="getFieldValue(item, 'algorithmError')">{{ getFieldValue(item, "algorithmError") || "-" }}</text>
         </view>
@@ -133,9 +114,6 @@
                 <text class="detail-summary__label">设备编号</text>
                 <text class="detail-summary__value">{{ getFieldValue(selectedRecord, 'deviceNumber') || '-' }}</text>
               </view>
-              <view class="detail-summary__badges">
-                <text class="detail-summary__badge">{{ getFieldValue(selectedRecord, 'signalprocessingResult2') || '-' }}</text>
-              </view>
               <view class="detail-summary__meta">
                 <view v-for="item in baseDetailFields" :key="item.label" class="detail-summary__meta-item">
                   <text class="detail-summary__meta-label">{{ item.label }}</text>
@@ -155,61 +133,35 @@
                 </view>
               </view>
             </view>
+            <view v-if="selectedRecord" class="time-section">
+              <view class="detail-audio-header">
+                <text class="detail-section-title">关联音频</text>
+                <button v-if="audioList.length > 0" class="audio-refresh-btn" hover-class="audio-refresh-btn--hover" @click="loadAudioList">刷新</button>
+              </view>
+              <view v-if="audioLoading" class="audio-state">加载中...</view>
+              <view v-else-if="audioList.length === 0" class="audio-state">暂无关联音频</view>
+              <view v-else class="audio-list">
+                <view v-for="(audio, ai) in visibleAudioList" :key="ai" class="audio-item">
+                  <view class="audio-item__info">
+                    <text class="audio-item__time">{{ formatDateTime(getFieldValue(audio, "audioTime")) }}</text>
+                    <text class="audio-item__rate">采样率: {{ getFieldValue(audio, "samplingRate") || "-" }}</text>
+                  </view>
+                  <view class="audio-item__actions">
+                    <button class="audio-play-btn" hover-class="audio-play-btn--hover" @click="toggleAudioPlay(audio, ai)">{{ playingAudioIndex === ai ? '暂停' : '播放' }}</button>
+                    <a :href="getAudioWavUrl(audio, true)" class="audio-download-link">下载</a>
+                  </view>
+                </view>
+                <view v-if="audioList.length > AUDIO_COLLAPSED_LIMIT" class="audio-toggle" @click="audioListExpanded = !audioListExpanded">
+                  <text class="audio-toggle__text">{{ audioListExpanded ? '收起' : `展开全部(${audioList.length})` }}</text>
+                  <text class="audio-toggle__arrow" :class="{ 'audio-toggle__arrow--up': audioListExpanded }"></text>
+                </view>
+              </view>
+            </view>
             <view v-if="locationDetailFields.length > 0" class="time-section time-section--location">
               <text class="detail-section-title">地点信息</text>
               <view v-for="item in locationDetailFields" :key="item.label" class="location-row">
                 <text class="location-row__label">{{ item.label }}</text>
                 <text class="location-row__value">{{ item.value }}</text>
-              </view>
-            </view>
-          </view>
-
-          <view v-if="activeDetailTab === 'detail'" class="detail-section">
-            <view class="detail-grid detail-grid--content">
-              <view v-for="item in detailDetailFields" :key="item.label" class="detail-item detail-item--note">
-                <text class="detail-item__label">{{ item.label }}</text>
-                <text class="detail-item__value">{{ item.value }}</text>
-              </view>
-            </view>
-          </view>
-
-          <view v-if="activeDetailTab === 'pipe'" class="detail-section">
-            <view v-if="pipeDetailFields.length > 0" class="detail-grid detail-grid--content">
-              <view v-for="item in pipeDetailFields" :key="item.label" class="detail-item detail-item--note">
-                <text class="detail-item__label">{{ item.label }}</text>
-                <text class="detail-item__value">{{ item.value }}</text>
-              </view>
-            </view>
-            <view v-else class="detail-empty-text">暂无管道信息</view>
-          </view>
-
-          <view v-if="activeDetailTab === 'attach'" class="detail-section">
-            <view v-if="attachDetailFields.length > 0" class="detail-grid detail-grid--content">
-              <view v-for="item in attachDetailFields" :key="item.label" class="detail-item detail-item--note">
-                <text class="detail-item__label">{{ item.label }}</text>
-                <text class="detail-item__value">{{ item.value }}</text>
-              </view>
-            </view>
-            <view v-else class="detail-empty-text">暂无附件信息</view>
-          </view>
-
-          <view v-if="selectedRecord" class="detail-audio-section">
-            <view class="detail-audio-header">
-              <text class="detail-audio-title">关联音频</text>
-              <button v-if="audioList.length > 0" class="audio-refresh-btn" hover-class="audio-refresh-btn--hover" @click="loadAudioList">刷新</button>
-            </view>
-            <view v-if="audioLoading" class="audio-state">加载中...</view>
-            <view v-else-if="audioList.length === 0" class="audio-state">暂无关联音频</view>
-            <view v-else class="audio-list">
-              <view v-for="(audio, ai) in audioList" :key="ai" class="audio-item">
-                <view class="audio-item__info">
-                  <text class="audio-item__time">{{ formatDateTime(getFieldValue(audio, "audioTime")) }}</text>
-                  <text class="audio-item__rate">采样率: {{ getFieldValue(audio, "samplingRate") || "-" }}</text>
-                </view>
-                <view class="audio-item__actions">
-                  <button class="audio-play-btn" hover-class="audio-play-btn--hover" @click="toggleAudioPlay(audio, ai)">{{ playingAudioIndex === ai ? '暂停' : '播放' }}</button>
-                  <a :href="getAudioWavUrl(audio, true)" class="audio-download-link">下载</a>
-                </view>
               </view>
             </view>
           </view>
@@ -255,9 +207,6 @@ const algorithmStatusOptions: Array<{ label: string; value: string }> = [
 
 const detailTabs: Array<{ label: string; value: DetailTab }> = [
   { label: "基本信息", value: "base" },
-  { label: "漏点详情", value: "detail" },
-  { label: "管道信息", value: "pipe" },
-  { label: "附件备注", value: "attach" },
 ];
 
 const sortField = ref("createdAt");
@@ -287,25 +236,18 @@ const audioLoading = ref(false);
 const playingAudioIndex = ref(-1);
 let audioPlayerInstance: HTMLAudioElement | null = null;
 
+const AUDIO_COLLAPSED_LIMIT = 3;
+const audioListExpanded = ref(false);
+const visibleAudioList = computed(() => {
+  if (audioListExpanded.value) return audioList.value;
+  return audioList.value.slice(0, AUDIO_COLLAPSED_LIMIT);
+});
+
 const currentAlgorithmStatusLabel = computed(() =>
   algorithmStatusOptions.find((o) => o.value === filters.algorithmStatus)?.label || "不限",
 );
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pagination.pageSize)));
-
-const statisticsCards = computed(() => {
-  const totalCount = total.value;
-  const leakCount = records.value.filter(
-    (r) => String(getFieldValue(r, "signalprocessingResult2") || "").includes("Leakage") || String(getFieldValue(r, "signalprocessingResult2") || "").includes("leakage"),
-  ).length;
-
-  return [
-    { label: "算法记录数", value: String(totalCount), type: "total" },
-    { label: "泄漏/异常", value: String(leakCount), type: "unrepaired" },
-    { label: "正常/轻度", value: String(total.value - leakCount), type: "repaired" },
-    { label: "当前页条数", value: String(records.value.length), type: "current" },
-  ];
-});
 
 const baseDetailFields = computed(() => {
   const r = selectedRecord.value || {};
@@ -319,24 +261,6 @@ const baseDetailFields = computed(() => {
     { label: "算法状态", value: String(getFieldValue(r, "algorithmStatus") || "-") },
     { label: "失败原因", value: String(getFieldValue(r, "algorithmError") || "-") },
   ];
-});
-
-const detailDetailFields = computed(() => {
-  const r = selectedRecord.value || {};
-  return [
-    { label: "信号处理结果(噪音计)", value: String(getFieldValue(r, "signalprocessingResult1") || "-") },
-    { label: "泄漏判定", value: String(getFieldValue(r, "signalprocessingResult2") || "-") },
-    { label: "浙大算法结果", value: String(getFieldValue(r, "signalprocessingResult3") || "-") },
-    { label: "信号处理频率3", value: String(getFieldValue(r, "signalprocessingFrequency3") || "-") },
-  ];
-});
-
-const pipeDetailFields = computed(() => {
-  return [];
-});
-
-const attachDetailFields = computed(() => {
-  return [];
 });
 
 const timeDetailFields = computed(() => {
@@ -437,9 +361,9 @@ async function handleExport(scope: "current" | "all") {
     return;
   }
   // #ifdef H5
-  const headers = ["序号", "设备编号", "音频时间", "信号处理结果", "噪音计结果", "泄漏判定", "浙大算法", "算法状态", "失败原因"];
+  const headers = ["序号", "设备编号", "音频时间", "信号处理结果", "算法状态", "失败原因"];
   const rows = exportRecords.map((r, idx) => {
-    const keys = ["deviceNumber", "audioTime", "signalprocessingResult", "signalprocessingResult1", "signalprocessingResult2", "signalprocessingResult3", "algorithmStatus", "algorithmError"];
+    const keys = ["deviceNumber", "audioTime", "signalprocessingResult", "algorithmStatus", "algorithmError"];
     return [String(idx + 1), ...keys.map((k) => {
       const v = getFieldValue(r, k);
       return v === undefined || v === null ? "" : String(v).replace(/"/g, '""');
@@ -481,16 +405,24 @@ function jumpToPage(p: number) {
   fetchAnalysisData();
 }
 
+function handlePageSizeChange(size: number) {
+  pagination.pageSize = size;
+  pagination.pageNum = 1;
+  fetchAnalysisData();
+}
+
 function selectFirstRow() {
   if (records.value.length === 0) {
     selectedRecord.value = null;
     selectedRecordKey.value = "";
+    audioList.value = [];
     return;
   }
   const first = records.value[0];
   selectedRecord.value = first;
   selectedRecordKey.value = getRowKey(first, 0);
   activeDetailTab.value = "base";
+  loadAudioList();
 }
 
 function selectRecord(item: AnalysisRecord, index: number) {
@@ -523,14 +455,14 @@ function getAudioWavUrl(audio: Record<string, unknown>, download = false): strin
 async function loadAudioList() {
   if (!selectedRecord.value) return;
   const deviceNumber = getFieldValue(selectedRecord.value, "deviceNumber");
-  if (!deviceNumber) { audioList.value = []; return; }
+  if (!deviceNumber) { audioList.value = []; audioListExpanded.value = false; return; }
   audioLoading.value = true;
   try {
     const res = await getAudioDataPage({ pageNum: 1, pageSize: 10, deviceNumber }) as unknown as ApiResponseLike;
     const p = parsePageResponse(res);
     audioList.value = (p.records || []) as Record<string, unknown>[];
   } catch { audioList.value = []; }
-  finally { audioLoading.value = false; }
+  finally { audioLoading.value = false; audioListExpanded.value = false; }
 }
 
 function toggleAudioPlay(audio: Record<string, unknown>, index: number) {
@@ -565,13 +497,6 @@ function getRowKey(item: AnalysisRecord, index: number) {
 function getFieldValue(item: AnalysisRecord | null, key: string): unknown {
   if (!item) return undefined;
   return Object.prototype.hasOwnProperty.call(item, key) ? item[key] : undefined;
-}
-
-function getLeakStatusTagClass(item: AnalysisRecord, key: string) {
-  const val = String(getFieldValue(item, key) || "").toLowerCase();
-  if (val.includes("leakage")) return "status-tag--leak";
-  if (val.includes("noleakage")) return "status-tag--normal";
-  return "status-tag--unknown";
 }
 
 function getAlgorithmStatusLabel(item: AnalysisRecord) {
@@ -700,8 +625,7 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 
 .toolbar,
 .table-panel,
-.detail-panel,
-.stat-card {
+.detail-panel {
   background: #ffffff;
   border: 1px solid #d8e5ef;
   border-radius: 6px;
@@ -946,41 +870,6 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   border-radius: 50%;
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  flex: none;
-  margin-bottom: 12px;
-}
-
-.stat-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px 18px;
-  border-radius: 8px;
-  border: none;
-  box-shadow: 0 4px 16px rgba(33, 72, 108, 0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  overflow: hidden;
-  position: relative;
-}
-
-.stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(33, 72, 108, 0.15); }
-.stat-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
-.stat-card--total { background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); }
-.stat-card--total::before { background: #3b82f6; }
-.stat-card--unrepaired { background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); }
-.stat-card--unrepaired::before { background: #ef4444; }
-.stat-card--repaired { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); }
-.stat-card--repaired::before { background: #22c55e; }
-.stat-card--current { background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%); }
-.stat-card--current::before { background: #a855f7; }
-.stat-card__body { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; width: 100%; }
-.stat-card__label { color: #64748b; font-size: 12px; font-weight: 700; }
-.stat-card__value { color: #1e293b; font-size: 28px; font-weight: 900; font-family: "DIN Alternate", "Arial", sans-serif; line-height: 1.2; }
-
 .main-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) clamp(380px, 20vw, 420px);
@@ -1060,20 +949,24 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 .data-table {
   display: flex;
   flex-direction: column;
+  width: 100%;
+  min-width: 780px;
   background: #ffffff;
 }
 
 .data-row {
   display: grid;
-  grid-template-columns: 58px minmax(110px, 2.2fr) minmax(160px, 3fr) minmax(160px, 3.8fr) minmax(110px, 2.2fr) minmax(96px, 1.6fr) minmax(110px, 2fr) minmax(96px, 1.6fr) minmax(140px, 2.4fr);
-  min-height: 48px;
+  grid-template-columns: 58px minmax(110px, 2.2fr) minmax(160px, 3fr) minmax(160px, 3.8fr) minmax(96px, 1.6fr) minmax(140px, 2.4fr);
+  min-height: 42px;
+  width: 100%;
+  min-width: 780px;
   border-bottom: 1px solid #edf1f5;
   cursor: pointer;
   transition: background 0.18s ease, box-shadow 0.18s ease;
 }
 
 .data-row--algorithm {
-  grid-template-columns: 58px minmax(110px, 2.2fr) minmax(160px, 3fr) minmax(160px, 3.8fr) minmax(110px, 2.2fr) minmax(96px, 1.6fr) minmax(110px, 2fr) minmax(96px, 1.6fr) minmax(140px, 2.4fr);
+  grid-template-columns: 58px minmax(110px, 2.2fr) minmax(160px, 3fr) minmax(160px, 3.8fr) minmax(96px, 1.6fr) minmax(140px, 2.4fr);
 }
 
 
@@ -1081,10 +974,10 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   position: sticky;
   top: 0;
   z-index: 1;
-  min-height: 50px;
+  min-height: 44px;
   color: #20384f;
   font-weight: 800;
-  background: #fafafa;
+  background: #f6f9fc;
   cursor: default;
   box-shadow: 0 1px 0 #dbe7f0;
 }
@@ -1098,14 +991,14 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 }
 
 .data-row:not(.data-row--header):hover {
-  background: #eff6ff;
-  box-shadow: inset 0 0 0 1px #cbd5e1;
+  background: #f1f8ff;
+  box-shadow: inset 0 0 0 1px #d7ebfb;
 }
 
 .data-row--active {
   position: relative;
-  background: #eff6ff !important;
-  box-shadow: inset 0 0 0 1px #bfdbfe;
+  background: #e7f3ff !important;
+  box-shadow: inset 0 0 0 1px #b9dcff;
 }
 
 .data-row--active::before {
@@ -1115,7 +1008,7 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   left: 0;
   width: 3px;
   content: "";
-  background: #3b82f6;
+  background: #0d82ee;
   border-radius: 0 999px 999px 0;
 }
 
@@ -1367,9 +1260,10 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   }
 }
 .detail-audio-section { flex: none; padding: 12px 16px; border-top: 1px solid #edf3f8; max-height: 280px; overflow-y: auto; }
-.detail-audio-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.detail-audio-header { display: flex; align-items: center; justify-content: flex-start; gap: 2px; margin-bottom: 8px; }
+.detail-audio-header .detail-section-title { margin-bottom: 0; }
 .detail-audio-title { font-size: 13px; font-weight: 800; color: #415a73; }
-.audio-refresh-btn { min-width: 48px; height: 24px; padding: 0 8px; font-size: 12px; color: #3b82f6; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px; }
+.audio-refresh-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 48px; height: 22px; margin: 0; padding: 0 8px; font-size: 12px; line-height: 1; color: #3b82f6; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px; cursor: pointer; }
 .audio-refresh-btn--hover { background: #dbeafe; }
 .audio-state { padding: 16px; text-align: center; color: #a0aec0; font-size: 13px; }
 .audio-list { display: flex; flex-direction: column; gap: 8px; }
@@ -1380,6 +1274,11 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 .audio-item__actions { display: flex; align-items: center; gap: 8px; }
 .audio-play-btn { min-width: 48px; height: 28px; padding: 0 10px; font-size: 12px; color: #3b82f6; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px; } .audio-play-btn--hover { background: #dbeafe; }
 .audio-download-link { font-size: 12px; color: #3b82f6; text-decoration: underline; }
+.audio-toggle { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 6px; padding: 6px 10px; cursor: pointer; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 4px; transition: background 0.16s ease, border-color 0.16s ease; }
+.audio-toggle:hover { background: #eff6ff; border-color: #93c5fd; }
+.audio-toggle__text { font-size: 12px; font-weight: 700; color: #3b82f6; }
+.audio-toggle__arrow { width: 0; height: 0; border-style: solid; border-width: 5px 4px 0 4px; border-color: #3b82f6 transparent transparent transparent; transition: transform 0.18s ease; }
+.audio-toggle__arrow--up { transform: rotate(180deg); }
 .detail-summary { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; margin-bottom: 12px; background: #ffffff; border: 1px solid #e2e8f0; border-left: 4px solid #3b82f6; border-radius: 6px; box-shadow: 0 8px 18px rgba(33, 72, 108, 0.045); }
 .detail-summary__main { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
 .detail-summary__label { color: #475569; font-size: 12px; font-weight: 800; }
