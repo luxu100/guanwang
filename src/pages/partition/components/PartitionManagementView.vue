@@ -1,15 +1,65 @@
 <template>
-    <view class="dept">
+	<view class="dept-view">
+	  <view class="toolbar-panel">
+		<view class="dept-toolbar">
+			<view class="filter-group">
+			  <text class="filter-label">分区名称</text>
+			  <input v-model="filters.deptName" class="filter-input" placeholder="请输入分区名称" placeholder-class="input-placeholder" />
+			</view>
+			
+			<view class="filter-group">
+			  <text class="filter-label">分区类型</text>
+			  <picker :range="deptTypeOptions" range-key="label" :value="currentTypeIndex" @change="handleTypeChange">
+			    <view class="filter-select">
+			      <!-- <text>{{ currentTypeLabel }}</text> -->
+				  <text>{{ getDeptTypeLabel(filters.regionType, "不限") }}</text>
+				  
+			      <text class="filter-select__arrow"></text>
+			    </view>
+			  </picker>
+			</view>
+			
+			<view class="toolbar-actions">
+				  <button class="primary-button "  @click="searchDept">查询</button>
+				  <button class="secondary-button"  @click="resetFilters">重置</button>
+				  <button class="secondary-button" aria-label="刷新" @click="deptRefresh">
+				    <text class="icon-refresh"></text>
+				  </button>
+				  <button class="secondary-button" @click="handleCreateDept"> 新增分区 </button>
+				  <button class="secondary-button" :disabled="!currentDeptId || currentDeptId === 0" @click="handleEditDept"> 编辑分区 </button>
+				  <button class="danger-button" :disabled="!currentDeptId || currentDeptId === 0" @click="handleDeleteDept"> 删除分区 </button>
+			</view>
+		</view>
+		
+		<view class="dept-toolbar">
+			<view class="filter-group">
+			  <text class="filter-label">设备编号</text>
+			  <input v-model="deviceKeyword" class="filter-input" placeholder="请输入设备编号" placeholder-class="input-placeholder"/>
+			</view>
+			<view class="toolbar-actions">
+			  <button class="primary-button" @click="handleDeviceSearch"> 查询 </button>
+			</view>
+		</view>
+		  
+		  
+		  
+		  
+<!-- 		  <view class="filter-group">
+		    <text class="filter-label">gis显示</text>
+		    <picker :range="worksheetStatusOptions" range-key="label" :value="currentStatusIndex" @change="handleStatusChange">
+		      <view class="filter-select">
+		        <text>{{ currentStatusLabel }}</text>
+		        <text class="filter-select__arrow"></text>
+		      </view>
+		    </picker>
+		  </view> -->
+	  </view>
+      <view class="dept">
 		<!-- 分区信息 -->
 		<view class="dept-layout">
 			<view class="table-head">
 				<text> 分区信息 </text>
-				<view class="toolbar-panel">
-					  <button class="secondary-button" @click="deptRefresh"> 刷新 </button>
-					  <button class="secondary-button" @click="handleCreateDept"> 新增 </button>
-					  <button class="secondary-button" :disabled="!currentDeptId || currentDeptId === 0" @click="handleEditDept"> 编辑 </button>
-					  <button class="danger-button" :disabled="!currentDeptId || currentDeptId === 0" @click="handleDeleteDept"> 删除 </button>
-				</view>
+				<text class="table-head__meta">共 {{ deptPagination.total }} 条</text>
 			</view>
 
 			<scroll-view class="table-scroll" scroll-x scroll-y>
@@ -41,7 +91,7 @@
 					  <text class="table-cell col-dept-name " :title="item.deptName"> {{ item.deptName }} </text>
 					  <text class="table-cell col-region-type " :title="item.regionType"> {{ getDeptTypeLabel(item.regionType, "-") }} </text>
 					  <text class="table-cell col-region-color " :title="item.regionType"> 
-						<view v-if="item.regionColor !== null" class="color-preview" :style="{ backgroundColor: item.regionColor }"></view>
+						<view v-if="item.regionColor !== null && item.regionColor !== '' " class="color-preview" :style="{ backgroundColor: item.regionColor }"></view>
 						<text v-else>-</text>
 					  </text>
 					  <text class="table-cell col-min-level "> {{ item.gisMinLevel || '-' }} </text>
@@ -61,6 +111,10 @@
 			  <button class="page-btn" :disabled="deptPagination.current >= Math.ceil(deptPagination.total / deptPagination.size)" @click="handlePageChange(deptPagination, deptPagination.current + 1)">
 				下一页
 			  </button>
+			  <text class="page-info">到第</text>
+			    <input class="page-input" type="number" v-model.number="jumpDeptPage" @keyup.enter="handlePageChange(deptPagination,jumpDeptPage)" />
+			    <text class="page-info">页</text>
+			    <button class="page-btn" :disabled="jumpDeptPage === null || jumpDeptPage < 1 || jumpDeptPage > Math.ceil(deptPagination.total / deptPagination.size) " @click="handlePageChange(deptPagination,jumpDeptPage)">跳转</button>
 			</view>
 		</view> 
 		
@@ -68,12 +122,7 @@
 		<view class="device-layout">
 			<view class="table-head">
 				<text> 设备列表 </text>
-				<view class="toolbar-panel">
-					<!-- 查询 -->
-					<input v-model="deviceKeyword" class="toolbar-input" placeholder="请输入设备编号" placeholder-class="input-placeholder"/>
-					<button class="primary-button" @click="handleDeviceSearch"> 查询 </button>
-					<button class="secondary-button" @click="handleDeviceRefresh"> 刷新 </button>
-				</view>
+				<text class="table-head__meta">共 {{ deptDevicePagination.total }} 条</text>
 			</view>
 
 			<scroll-view class="table-scroll" scroll-x scroll-y>
@@ -110,7 +159,7 @@
 						</text> 
 					  </view>
 					  <view class="table-cell col-action ">
-						  <button class="table-action-btn" @click.stop="handleCheckDevice(item)" > 查看详情 </button>
+						  <button class="table-action-btn"  @click.stop="handleCheckDevice(item)" > 查看详情 </button>
 					  </view>		  
 					</view>
 					
@@ -126,11 +175,15 @@
 			  <button class="page-btn" :disabled="deptDevicePagination.current >= Math.ceil(deptDevicePagination.total / deptDevicePagination.size)" @click="handlePageChange(deptDevicePagination, deptDevicePagination.current + 1)">
 				下一页
 			  </button>
+			  <text class="page-info">到第</text>
+			  <input class="page-input" type="number" v-model.number="jumpDevicePage" @keyup.enter="handlePageChange(deptDevicePagination,jumpDevicePage)" />
+			  <text class="page-info">页</text>
+			  <button class="page-btn" :disabled="jumpDevicePage === null || jumpDevicePage < 1 || jumpDevicePage > Math.ceil(deptDevicePagination.total / deptDevicePagination.size) " @click="handlePageChange(deptDevicePagination,jumpDevicePage)">跳转</button>
 			</view>
 		</view>
 		
 		<view v-if="deptDialogVisible" class="dialog-mask" @click="closeDeptDialog">
-			<view class="dialog-panel" @click.stop>
+			<view class="dialog-panel" @click.stop="closeSelect">
 			 <view class="dialog-head">
 			   <view>
 				 <text class="dialog-title">
@@ -150,12 +203,12 @@
 				  <view class="form-field">
 				    <text class="form-label">分区类型</text>
 				    <view class="select-field">
-					    <view class="form-select form-select--dropdown" :class="{ 'form-select--open': activeSelect }" @click.stop="toggleSelect()">
+					    <view class="form-select form-select--dropdown" :class="{ 'form-select--open': activeSelect }" @click.stop="toggleSelect">
 						   <text :class="{ 'select-placeholder': deptForm.regionType === '' || deptForm.regionType === null}">{{getDeptTypeLabel(deptForm.regionType, "请选择分区类型") }}</text>
 						   <text class="select-arrow"></text>
 					    </view>
-					    <view v-if="activeSelect" class="select-menu">
-						   <view v-for="item in deptTypeOptions" :key="item.value" class="select-option" 
+					    <view v-if="activeSelect" class="select-menu" >
+						   <view v-for="item in deptTypeOptions.slice(1)" :key="item.value" class="select-option" 
 						   :class="{ 'select-option--active': deptForm.regionType === item.value}" @click.stop="selectDeptType(item.value)">{{item.label}}</view>
 					    </view>
 				    </view>
@@ -231,8 +284,11 @@
 				  <view class="form-field">
 				    <text class="form-label">分区图标</text>
 					<view class="input-icon">
-						 <input v-model="deptForm.regionIcon" class="form-input form-input-icon" placeholder="请输入分区图标" placeholder-class="input-placeholder" />
-						 <button class="icon-button input-icon-button" @click="handleChooseDeptIcon" >
+						 <input v-model="regionIconFileName" class="form-input form-input-icon" placeholder="请输入分区图标" placeholder-class="input-placeholder" />
+						 <button v-if="regionIconFileName" class="field-clear" hover-class="field-clear--hover" @click.stop="removeRegionIcon">
+							<view class="clear-icon"></view>
+						 </button>
+						 <button class="icon-button input-icon-button" @click="handleChooseRegionIcon" >
 							<text>...</text>
 						 </button>
 					</view>
@@ -373,7 +429,7 @@
 			    </view>
 			  </view>
 		</view>
-	
+	  </view>
     </view>
 </template>
 
@@ -486,9 +542,10 @@ const loadDeptList = async (page: number) => {
 	};
 	
     deptList.value = pageData.records || [];
-	// console.log("分区列表", deptList.value);
+	console.log("分区列表", deptList.value);
 	deptPagination.current = page;
 	deptPagination.total = pageData.total || 0;
+	jumpDeptPage.value = null;
 	
 	if(currentDeptId.value == null && deptList.value.length){
 		currentDeptId.value = deptList.value[0].id;
@@ -512,7 +569,10 @@ const loadDeptDeviceList = async (page = 1) => {
     };
 
     if (currentDeptId.value === undefined) {
-      uni.showToast({ title: "请先选择分区", icon: "none" });
+		deptDeviceList.value = [];
+		deptDevicePagination.total = 0;
+		deptDevicePagination.current = page;
+		jumpDevicePage.value = null;
       return;
 	}
     const res = await getDeptDevicePage(currentDeptId.value, params) as ApiResponseLike;
@@ -526,6 +586,7 @@ const loadDeptDeviceList = async (page = 1) => {
 	console.log("设备列表",deptDeviceList.value);
     deptDevicePagination.total = pageData.total || 0;
     deptDevicePagination.current = page;
+	jumpDevicePage.value = null;
   } catch (error){
 	  uni.showToast({
 	  	title: (error as {msg?: string })?.msg || "加载设备列表失败", 
@@ -609,6 +670,8 @@ const fillDeptForm = (item: DeptApiItem) => {
 	regionIcon: item.regionIcon,
 	organizationId: item.organizationId,
   });
+  clearDeptIconTempFile();
+  regionIconFileName.value = getFileName(item.regionIcon);
 };
 
 const currentDeptId = ref<number>();
@@ -628,8 +691,11 @@ const deptLoading = ref(false);
 const deptDeviceLoading = ref(false);
 const deptDeviceList = ref<DeptDeviceItem[]>([]);
 const deviceKeyword = ref("");
+const jumpDeptPage = ref<number | null>(null);
+const jumpDevicePage = ref<number | null>(null);
 
 const openDeptDialog = () => {
+  activeSelect.value = false;
   deptDialogVisible.value = true;
 };
 
@@ -658,8 +724,64 @@ const deptDeviceColumns: DeptDeviceColumn[] = [
   { key: "detail", label: "详细信息", className: "col-detail" },
 ];
 
+const filters = reactive({
+  deptName: "",
+  regionType: "" as string,
+  gisVisible: "" as number | "",
+});
+
 const getDeptById = (id: number): DeptApiItem | undefined => {
   return deptList.value.find(item => item.id === id);
+};
+
+function handleTypeChange(event: { detail: { value: number } }) {
+  filters.regionType = deptTypeOptions[event.detail.value]?.value ?? "";
+}
+
+const searchDept = async () => {
+  deptLoading.value = true;
+  deptPagination.current = 1;
+  
+  const params: any = {
+	  pageNum: 1,
+	  pageSize: deptPagination.size,
+  };
+  
+  const deptName = filters.deptName.trim();
+  if(deptName){
+	  params.deptName = deptName;
+  }
+  if(filters.regionType != undefined) {
+	  params.regionType = filters.regionType;
+  }
+  
+  try{
+	const res = await getDeptPage(params) as ApiResponseLike;
+	assertSuccessResponse(res);
+	const pageData = res.data as {
+		records: DeptApiItem[];
+		total: number;
+	};
+	console.log("sous", res);
+	deptList.value = pageData.records || [];
+	deptPagination.total = pageData.total || 0;
+	loadDeptDeviceList(1);
+	jumpDeptPage.value = null;
+  }catch (error){
+	uni.showToast({
+		title: (error as {msg?: string })?.msg || "查询分区失败", 
+		icon: "none",
+	});
+  }finally{
+	deptLoading.value = false;
+  }
+};
+
+const resetFilters = async () => {
+  filters.deptName = "";
+  filters.regionType = "";
+  filters.gisVisible = "";
+  searchDept();
 };
 
 const handleDeptTableRowClick = async (item: DeptTableItem) => {
@@ -694,10 +816,10 @@ const handleDeviceSearch = async () => {
 		records: DeptDeviceItem[];
 		total: number;
 	};
-	console.log("sous", res);
 	deptDeviceList.value = pageData.records || [];
 	deptDevicePagination.current = 1;
 	deptDevicePagination.total = pageData.total || 0;
+	jumpDevicePage.value = null;
   }catch (error){
 	uni.showToast({
 		title: (error as {msg?: string })?.msg || "搜索失败", 
@@ -727,17 +849,25 @@ const handlePageChange = async (pagination: any, page:number) => {
 	console.log("current", deptPagination.current);
 	if(pagination == deptPagination){
 		await loadDeptList(deptPagination.current);
-		console.log("cuurent", deptPagination.current);
+		jumpDeptPage.value = null;
 	}else if(pagination == deptDevicePagination){
 		await loadDeptDeviceList(deptDevicePagination.current);
+		jumpDevicePage.value = null;
 	}
 };
 
 type ValidationKey =
   | "deptName"
   | "sort";
-  
-const deptTypeOptions = [
+
+// type OptionValue = number | string;
+type SelectOption = {
+  label: string;
+  value: string;
+};
+
+const deptTypeOptions: SelectOption[] = [
+  { label: "不限", value: "" },	
   { label: "漏水噪音监测终端", value: "0" },
   { label: "测压点", value: "1" },
   { label: "测流点", value: "2" },
@@ -759,6 +889,17 @@ const activeSelect = ref(false);
 const isDeptCreating = ref(false);
 const firstDeptFormError = computed(() => Object.values(validationErrors).find(Boolean) || "");
 const validationErrors = reactive<Record<ValidationKey, string>>(getEmptyValidationErrors());
+const currentTypeIndex = computed(() => getOptionIndex(deptTypeOptions, filters.regionType));
+
+function getOptionIndex(options: SelectOption[], value: unknown) {
+  const normalized = typeof value === "string" && value.trim() !== "" ? Number(value) : value;
+  return Math.max(0, options.findIndex((item) => item.value === normalized));
+}
+
+function getOptionLabel(options: SelectOption[], value: unknown, fallback: string) {
+  const normalized = typeof value === "string" && value.trim() !== "" ? Number(value) : value;
+  return options.find((item) => item.value === normalized)?.label || fallback;
+}
 
 const defaultDeptForm: DeptForm =  {
 	regionType: "",
@@ -787,14 +928,17 @@ function getEmptyValidationErrors(): Record<ValidationKey, string> {
 
 const resetDeptForm = () => {
 	Object.assign(deptForm, defaultDeptForm);
+	activeSelect.value = false;
 	clearErrors();
 };
 
 const handleCreateDept = () => {
   currentDeptId.value = undefined;
-  deptDeviceList.value = [];
+  loadDeptDeviceList(1);
   isDeptCreating.value = true;
   resetDeptForm();
+  clearDeptIconTempFile();
+  regionIconFileName.value = "";
   openDeptDialog();
 };
 
@@ -819,11 +963,16 @@ function selectDeptType(value: string) {
   activeSelect.value = false;
 }
 
+const closeSelect = () => {
+  activeSelect.value = false;
+};
+
 const closeDeptDialog = () => {
   if (submitting.value) {
     return;
   }
   deptDialogVisible.value = false;
+  activeSelect.value = false;
   clearErrors();
 };
 
@@ -832,6 +981,9 @@ const closeDeviceDialog = () => {
 }
 
 const getDeptTypeLabel = (value: any, fallback:string) => {
+  if(value === ""){
+	  return fallback;
+  }
   return deptTypeOptions.find((item) => item.value === value)?.label || fallback;
 };
 
@@ -848,42 +1000,82 @@ const openCenterDialog = () => {
   uni.showToast({ title: "分区中心待接入", icon: "none" });
 };
 
-const handleChooseDeptIcon = () => {
+
+interface UploadItem {
+  url: string;
+  id: string;
+  file?: File;
+}
+
+const regionIconFileName = ref("");
+const regionIconFile = ref<UploadItem | null>(null);
+
+const clearDeptIconTempFile = () => {
+  // #ifdef H5
+  if (regionIconFile.value?.url.startsWith("blob:")) {
+    URL.revokeObjectURL(regionIconFile.value.url);
+  }
+  // #endif
+
+  regionIconFile.value = null;
+};
+
+const removeRegionIcon = () => {
+  clearDeptIconTempFile();
+
+  regionIconFileName.value = "";
+
+};
+
+const getFileName = (url?: string) => {
+  if (!url) return "";
+
+  const cleanUrl = url.split("?")[0];
+  return decodeURIComponent(cleanUrl.split("/").pop() || "");
+};
+
+/** 选择图片（仅本地预览，不上传） */
+const handleChooseRegionIcon = () => {
+  // #ifdef H5
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/*";
+  input.multiple = false;
+  input.onchange = () => {
+    const file = input.files?.[0];
+    if (!file) return;
+	//释放上一次创建的临时预览地址
+	if(regionIconFile.value?.url && regionIconFile.value.url.startsWith("blob:")){
+		URL.revokeObjectURL(regionIconFile.value.url);
+	}
+	regionIconFile.value = {
+		url: URL.createObjectURL(file),
+		id: "",
+		file: file,
+	};
+	regionIconFileName.value = file.name;
+  };
+  input.click();
+  // #endif
+  // #ifndef H5
   uni.chooseImage({
     count: 1,
-    sizeType: ["original", "compressed"],
+    sizeType: ["compressed"],
     sourceType: ["album", "camera"],
-    success: async (res) => {
-      const filePath = res.tempFilePaths[0];
-	  const fileName = filePath.split("/").pop() || "";
-	  
-	        // input 显示文件名
-	        deptForm.regionIcon = fileName;
-      // uni.uploadFile({
-      //   url: "你的上传接口地址",
-      //   filePath,
-      //   name: "file",
-      //   success: (uploadRes) => {
-      //     const data = JSON.parse(uploadRes.data);
-
-      //     // 假设后端返回图片地址 data.url
-      //     deptForm.deptIcon = data.url;
-
-      //     uni.showToast({
-      //       title: "上传成功",
-      //       icon: "success",
-      //     });
-      //   },
-      //   fail: () => {
-      //     uni.showToast({
-      //       title: "上传失败",
-      //       icon: "none",
-      //     });
-      //   },
-      // });
+    success: (res) => {
+	  const filePath = res.tempFilePaths[0];
+	  if(!filePath) return;
+	  regionIconFile.value = {
+		  url: filePath,
+		  id: "",
+		  file: undefined,
+	  }
+	  //从临时路径中提取文件名
+	  regionIconFileName.value = filePath.split("/").pop() || filePath.split("\\").pop() || "图标";
     },
+    fail: () => uni.showToast({ title: "取消选择", icon: "none" }),
   });
-  uni.showToast({ title: "图标上传待接入", icon: "none" });
+  // #endif
 };
 
 const openOrgDialog = () => {
@@ -924,6 +1116,14 @@ const handleSaveDept = async () => {
   }
   
   submitting.value = true;
+  
+  // 用户本次重新选择了图片,或取消了图片
+      // if (regionIconFile.value) {
+      //   const uploadedUrl = await uploadDeptIcon(regionIconFile.value);
+      //   deptForm.regionIcon = uploadedUrl;
+      // }
+
+  
   const payload = {
     ...deptForm,
   };
@@ -932,7 +1132,7 @@ const handleSaveDept = async () => {
       if (isDeptCreating.value) {
         res = await createDept(payload) as ApiResponseLike;
         uni.showToast({ title: "新增成功", icon: "success" });
-		await loadDeptList(1);
+		
       } else {
 		if (!deptForm.id) {
 		  return;
@@ -941,6 +1141,7 @@ const handleSaveDept = async () => {
         uni.showToast({ title: "保存成功", icon: "success" });
       }
 	  assertSuccessResponse(res);
+	  await loadDeptList(1);
 	  deptDialogVisible.value = false;
     } catch (error) {
       uni.showToast({
@@ -1075,12 +1276,12 @@ function getStatusClass(value: number) {
   align-items: center;
   justify-content: center;
   flex: none;
-  min-width: 40px;
-  height: 30px;
-  padding: 0 5px;
+  min-width: 64px;
+  height: 36px;
+  padding: 0 12px;
   margin: 0;
 
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   border-radius: 4px;
   max-width: 100px;
@@ -1100,10 +1301,9 @@ function getStatusClass(value: number) {
   line-height: 36px;
   background: #0d82ee;
   border: 1px solid #0d82ee;
-
 }
 
-.primary-button--hover {
+.primary-button:hover {
   background: #0674d8;
   border-color: #0674d8;
 }
@@ -1124,7 +1324,7 @@ function getStatusClass(value: number) {
   border: 1px solid #cbdced;
 }
 
-.secondary-button--hover {
+.secondary-button:hover {
   color: #0d82ee;
   background: #edf7ff;
   border-color: #a9d7ff;
@@ -1144,6 +1344,27 @@ function getStatusClass(value: number) {
   border-color: #dc2626;
 }
 
+.icon-refresh {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+}
+
+.icon-refresh::after {
+  position: absolute;
+  top: -3px;
+  right: -2px;
+  width: 0;
+  height: 0;
+  content: "";
+  border: 4px solid transparent;
+  border-left-color: currentColor;
+  transform: rotate(-20deg);
+}
+
 /* 区域标题栏 */
 .table-head {
   display: flex;
@@ -1157,6 +1378,23 @@ function getStatusClass(value: number) {
   font-weight: 800;
   background: #ffffff;
   border-bottom: 1px solid #edf3ed;
+}
+
+.pagination-bar,
+.table-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.table-head__meta {
+  padding: 4px 10px;
+  color: #6a7f94;
+  font-size: 13px;
+  font-weight: 800;
+  background: #f7fafc;
+  border: 1px solid #e3ebf2;
+  border-radius: 999px;
 }
 
 /* 标题文字 */
@@ -1181,35 +1419,52 @@ function getStatusClass(value: number) {
   transform: translateY(-50%);
 }
 
-.text-hidden{
-	flex: 1;
+.dept-view{
+	display: flex;
+	flex-direction: column;
+	box-sizing: border-box;
+	height: 100%;
+	min-height: 0;
+	padding: 0 14px 14px;
 	overflow: hidden;
-	white-space: nowrap;
-	text-overflow: ellipsis;
+	background: #eef4f8;
 }
 
 .dept {
   display: grid;
   grid-template-columns: 66% 34%;
-  height: 100%;
-  min-height: 0;
-  padding: 14px;
+  flex: 1;
   gap: 14px;
-  overflow: hidden;
-  background: #eef4f8;
+  margin-top: 14px;
+  min-height: 0;
+}
+
+.toolbar-panel{
+	flex: none;
+	display: flex;
+	gap: 12px;
+	min-height: 0;
+	padding: 14px;
+	overflow: visible;
+	justify-content: space-between;
+	background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+}
+
+.toolbar-panel,
+.dept-layout,
+.device-layout{
+	background: #ffffff;
+	border: 1px solid #d8e6f2;
+	border-radius: 6px;
+	box-shadow: 0 12px 26px rgba(35, 72, 104, 0.09);
 }
 
 .dept-layout,
 .device-layout{
 	display: flex;
 	flex-direction: column;
-	gap: 12px;
 	min-height: 0;
 	min-width: 0;
-	background: #ffffff;
-	border: 1px solid #d8e6f2;
-	border-radius: 6px;
-	box-shadow: 0 12px 26px rgba(35, 72, 104, 0.09);
 	overflow: hidden;
 }
 
@@ -1253,23 +1508,121 @@ function getStatusClass(value: number) {
   opacity: 0.46;
 }
 
-.toolbar-panel {
+.dept-toolbar {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 5px 10px;
-  justify-content: space-between;
   flex-wrap: wrap;
 }
 
-.toolbar-input {
-  width: 120px;
-  height: 30px;
-  padding: 0 12px;
+.filter-group {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  flex: 0 0 136px;
+  min-width: 0;
+}
+
+.dept-toolbar .filter-group:first-child {
+  flex-basis: 236px;
+}
+
+.filter-label {
+  color: #52677b;
   font-size: 12px;
-  background: #fbfdff;
-  border: 1px solid #d5e2ee;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.filter-input {
+  box-sizing: border-box;
+  width: 100%;
+  color: #172033;
+  font-size: 13px;
+  background: #f9fcff;
+  border: 1px solid #cbdced;
   border-radius: 4px;
+  height: 27px;
+  padding: 0 10px;
+  line-height: 27px;
+}
+
+.filter-input,
+.filter-select {
+  box-sizing: border-box;
+  width: 100%;
+  color: #172033;
+  font-size: 14px;
+  background: #f9fcff;
+  border: 1px solid #cbdced;
+  border-radius: 4px;
+}
+
+.filter-input,
+.filter-select {
+  height: 34px;
+  padding: 0 10px;
+  line-height: 34px;
+}
+
+.filter-input,
+.filter-select {
+  height: 30px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 30px;
+}
+
+.dept-toolbar .filter-input,
+.dept-toolbar .filter-select {
+  height: 28px;
+  line-height: 28px;
+}
+
+.dept-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px 12px;
+  min-width: 0;
+}
+
+.device-toolbar {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  width: 100%;
+}
+
+.filter-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.filter-select__arrow {
+  width: 8px;
+  height: 8px;
+  border: solid #74879c;
+  border-width: 0 2px 2px 0;
+  transform: translateY(-2px) rotate(45deg);
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+  justify-content: flex-start;
+  width: auto;
+  margin-left: 0;
+}
+
+.toolbar-actions {
+  align-self: end;
 }
 
 .table-scroll {
@@ -1361,13 +1714,6 @@ function getStatusClass(value: number) {
   box-shadow: inset 0 0 0 1px #d7ebfb;
 }
 
-// .table-row > view {
-//   display: flex;
-//   align-items: center;
-//   padding: 0 5px;
-//   box-sizing: border-box;
-// }
-
 .table-row--active {
 	position: relative;
 	background: #e7f3ff !important;
@@ -1454,13 +1800,27 @@ function getStatusClass(value: number) {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-
+  margin-right: 5px;
+  flex-shrink: 0;
 }
 
 .page-info {
   color: #64748b;
   font-size: 13px;
   padding: 10px;
+}
+
+.page-input {
+  width: 40px;
+  height: 30px;
+  color: #31506d;
+  font-size: 13px;
+  padding: 0 6px;
+  text-align: center;
+  background: #f6fbff;
+  border: 1px solid #cbdced;
+  border-radius: 4px;
+  outline: none;
 }
 
 .page-btn {
@@ -1509,9 +1869,6 @@ function getStatusClass(value: number) {
 .dialog-panel {
   display: flex;
   flex-direction: column;
-  // width: min(1120px, calc(100vw - 44px));
-  // height: min(730px, calc(100vh - 28px));
-  // max-height: calc(100vh - 28px);
   overflow: hidden;
   background: #ffffff;
   border: 1px solid #d8e6f2;
@@ -1605,6 +1962,51 @@ function getStatusClass(value: number) {
   height: 14px;
 }
 
+.field-clear {
+  position: absolute;
+  right: 46px;
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  margin-left: 8px;
+  color: #8b95a3;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.field-clear--hover {
+  background: rgba(24, 105, 227, 0.08);
+  color: var(--login-primary);
+}
+
+.clear-icon {
+  position: relative;
+  width: 18px;
+  height: 12px;
+}
+
+.clear-icon::before,
+.clear-icon::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 2px;
+  content: "";
+  background: currentColor;
+  border-radius: 2px;
+  transform-origin: center;
+}
+
+.clear-icon::before { transform: translate(-50%, -50%) rotate(45deg); }
+.clear-icon::after { transform: translate(-50%, -50%) rotate(-45deg); }
+
 .close-icon::before,
 .close-icon::after {
   position: absolute;
@@ -1667,12 +2069,16 @@ function getStatusClass(value: number) {
 }
 
 .input-icon {
+	position: relative;
 	display: flex;
 	flex-wrap: nowrap;
+	align-items: center;
 }
 
 .form-input-icon {
+  flex: 1;
   margin-right: 5px;
+  padding-right:34px;
   width: 82%;
 }
 
@@ -1875,7 +2281,48 @@ function getStatusClass(value: number) {
   box-sizing: border-box;
 }
 
+@media (max-width: 1280px) {
+  .dept-toolbar {
+    gap: 10px;
+  }
+  
+  .toolbar-actions {
+    justify-content: flex-start;
+  }
+}
 
+@media (max-width: 760px) {
+  .toolbar-panel {
+    padding: 12px;
+  }
+
+  .dept-toolbar {
+    display: grid;
+  }
+
+  .filter-group,
+  .filter-group:first-child {
+    flex-basis: auto;
+  }
+
+  // .date-range {
+  //   display: grid;
+  //   grid-template-columns: 1fr;
+  // }
+
+  // .filter-datetime {
+  //   flex-basis: auto;
+  //   width: 100%;
+  // }
+
+  // .filter-separator {
+  //   display: none;
+  // }
+
+  .toolbar-actions {
+    flex-wrap: wrap;
+  }
+}
 
 @media (max-width: 980px) {
   .dept-table-row {
@@ -1890,8 +2337,8 @@ function getStatusClass(value: number) {
 }
 
 @media (max-height: 960px) and (min-width: 981px) {
-  .dept {
-    padding: 10px;
+  .dept-view {
+	  padding: 0 10px 10px;
   }
 
   // .stats-grid {
@@ -1958,31 +2405,31 @@ function getStatusClass(value: number) {
   //   padding: 7px 9px;
   // }
 
-  // .worksheet-toolbar {
-  //   gap: 8px;
-  //   padding: 10px 12px;
-  // }
+  .toolbar-panel {
+    gap: 8px;
+    padding: 10px 12px;
+  }
 
-  // .toolbar-row--filters {
-  //   gap: 8px 10px;
-  // }
+  .dept-toolbar {
+    gap: 8px 10px;
+  }
 
-  // .filter-group {
-  //   gap: 4px;
-  // }
+  .filter-group {
+    gap: 4px;
+  }
 
-  // .filter-label {
-  //   font-size: 11px;
-  // }
+  .filter-label {
+    font-size: 11px;
+  }
 
-  // .filter-input,
-  // .filter-select,
-  // .toolbar-row--filters .filter-input,
-  // .toolbar-row--filters .filter-select {
-  //   height: 27px;
-  //   font-size: 12px;
-  //   line-height: 27px;
-  // }
+  .filter-input,
+  .filter-select,
+  .dept-toolbar .filter-input,
+  .dept-toolbar .filter-select{
+    height: 27px;
+    font-size: 12px;
+    line-height: 27px;
+  }
 
   // .filter-datetime {
   //   flex-basis: 184px;
@@ -1995,13 +2442,15 @@ function getStatusClass(value: number) {
   //   line-height: 28px;
   // }
 
-  // .toolbar-actions .toolbar-button,
-  // .toolbar-actions .toolbar-icon-button {
-  //   height: 34px;
-  // }
+  .primary-button,
+  .secondary-button,
+  .danger-button{
+    height: 34px;
+  }
 
   .dept {
     gap: 10px;
+	margin-top: 10px;
   }
 
   .table-head {
@@ -2267,6 +2716,14 @@ function getStatusClass(value: number) {
   //   grid-template-columns: 1fr;
   //   gap: 5px;
   // }
+}
+
+.dept-icon-preview {
+  width: 80px;
+  height: 80px;
+  margin-top: 10px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
 }
 
 </style>
