@@ -1,17 +1,5 @@
 <template>
   <view class="page-container">
-    <view class="toolbar-wrapper">
-      <MaintenanceRecordToolbar
-          v-model="searchForm"
-          @search="handleSearch"
-          @reset="handleSearch"
-          @refresh="fetchMaintenanceRecords"
-          @add="handleAdd"
-          @delete="handleDelete"
-          @edit="handleEdit"
-          :visible="isToolbarVisible"
-      />
-    </view>
     <view class="data-table-container">
 
       <XFloatingCollapseHandle v-if="isFloatingVisible"
@@ -186,7 +174,6 @@ import {
   deleteMaintenanceRecordT,
   getMaintenanceRecordPageT, updateMaintenanceRecordT
 } from "@/services/device/maintenance.typed";
-import MaintenanceRecordToolbar from "@/pages/device/maintenance/components/MaintenanceRecordToolbar.vue";
 import type {FormSection} from "@/pages/device/components/x/types";
 import XDynamicDialog from "@/pages/device/components/x/XDynamicDialog.vue";
 import XFloatingCollapseHandle from "@/pages/device/components/x/XFloatingCollapseHandle.vue";
@@ -201,6 +188,13 @@ const t = createScopedT("devicePage");
 const isToolbarVisible = ref(true);
 const isFloatingVisible = ref(false);
 
+
+defineExpose({
+  handleAdd,
+  handleEdit,
+  handleDelete
+});
+
 // ===== 数据 =====
 const loading = ref(false);
 
@@ -214,16 +208,23 @@ const pagination = ref<Pagination>({
 
 let currentRequestId = 0;
 
-const props = defineProps<{
-  deviceData: Partial<Device>;
-}>();
-
-// ===== 查询条件（后端过滤）=====
-const searchForm = ref({
-  maintainType: null as number | null,
-  startTime: '',
-  endTime: ''
-});
+const props = withDefaults(
+    defineProps<{
+      deviceData: Partial<Device>;
+      query?: {
+        maintainType?: number | null;
+        startTime?: string;
+        endTime?: string;
+      };
+    }>(),
+    {
+      query:()=>({
+        maintainType:null,
+        startTime:"",
+        endTime:""
+      })
+    }
+);
 
 const dialogVisible = ref(false);
 const formData = ref<MaintenanceCreateForm>({})
@@ -376,26 +377,25 @@ const addSchema = computed<FormSection[]>(() => [
 ]);
 
 watch(
-    // 1. 直接监听具体的字段
-    () => props.deviceData?.deviceNumber,
-    async (newVal, oldVal) => {
-      // 2. 增加判断：只有当值真正存在时才请求
-      if (!newVal) return;
+    [
+      () => props.deviceData?.deviceNumber,
+      () => props.query?.maintainType,
+      () => props.query?.startTime,
+      () => props.query?.endTime,
+    ],
+    async () => {
+      if (!props.deviceData?.deviceNumber) return;
 
-      // 3. 防止重复触发：如果正在加载中，且是同一个设备编号，不要重复请求
-      if (loading.value && newVal === oldVal) {
-        return;
-      }
-
-      // 重置分页
       pagination.value.current = 1;
 
-      // 4. 【重要】竞态处理：记录当前请求ID
       const requestId = ++currentRequestId;
 
       await fetchMaintenanceRecords(requestId);
+
     },
-    { immediate: true }
+    {
+      immediate: true
+    }
 );
 
 // ===== 选中行 =====
@@ -414,9 +414,9 @@ async function fetchMaintenanceRecords(requestId?: number) {
       pageNum: pagination.value.current,
       pageSize: pagination.value.size,
       deviceNumber: props.deviceData.deviceNumber || undefined,
-      maintainType: searchForm.value.maintainType,
-      startTime: searchForm.value.startTime || undefined,
-      endTime: searchForm.value.endTime || undefined,
+      maintainType: props.query.maintainType,
+      startTime: props.query.startTime || undefined,
+      endTime: props.query.endTime || undefined,
     });
 
     // 如果在 await 期间触发了新的 watch，requestId 会变大，当前的响应应该被丢弃
@@ -431,6 +431,8 @@ async function fetchMaintenanceRecords(requestId?: number) {
     pagination.value.total = pageData?.total ?? 0;
     pagination.value.current = pageData?.current ?? 1;
     pagination.value.size = pageData?.size ?? 10;
+
+    selectRow(deviceList.value[0] || null);
 
   } finally {
     loading.value = false;

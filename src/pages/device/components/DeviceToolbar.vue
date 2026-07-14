@@ -82,7 +82,7 @@ const t = createScopedT("devicePage");
  * types
  * =========================
  */
-type Option = { labelKey: string; value: string | number };
+type Option = { labelKey: string; value: string | number | null };
 
 type DictKey = "product" | "enable" | "install" | "online" | "leak" | "maintain" | "receive";
 

@@ -31,7 +31,7 @@
             v-for="(device, index) in filteredDevices"
             :key="device.id"
             class="data-row"
-            :class="{ 'data-row--active': selectedId === device.id }"
+            :class="{ 'data-row--active': props.selectedId === device.id }"
             @click="selectRow(device)"
         >
 
@@ -157,20 +157,10 @@ const tc = createScopedT("devicePage.common");
 
 const props = defineProps<{
   devices: Device[];
+  selectedId: number | null;
   pagination: Pagination;
   mode:"info" | "maintenance" | "status" | "protocol";
 }>();
-
-watch(
-    () => props.devices,
-    (list) => {
-      if (list.length > 0 && selectedId.value === null) {
-        const first = list[0];
-        selectRow(first);
-      }
-    },
-    { immediate: true }
-);
 
 const columnVisible = computed(() => ({
   // 基础
@@ -257,11 +247,9 @@ const emit = defineEmits<{
 }>();
 
 const searchKeyword = ref('');
-const selectedId = ref<number | null>(null);
 
 // ✅ 点击行：选中 + 查看
 function selectRow(device: Device) {
-  selectedId.value = device.id;
   emit('view', device);
   emit('select', device);
 }

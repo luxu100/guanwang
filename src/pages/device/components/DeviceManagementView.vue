@@ -1,7 +1,7 @@
 ﻿<template>
   <view class="device-page">
 <!--    全局toolbar-->
-    <view class="global-toolbar" v-if="showGlobalToolbar">
+    <view class="global-toolbar">
       <DeviceToolbar
           v-model="searchForm"
           :fields="toolbarConfig"
@@ -35,31 +35,6 @@
       <!-- 左侧 -->
       <view class="table-panel">
 
-        <!-- 左侧设备Toolbar -->
-        <DeviceToolbar
-            v-if="showLeftToolbar"
-            v-model="searchForm"
-            :fields="toolbarConfig"
-            :product-options="productOptions"
-            :enable-state-options="enableStateOptions"
-            :install-state-options="installStateOptions"
-            :online-status-options="onlineStatusOptions"
-            :leak-status-options="leakStatusOptions"
-            :maintain-type-options="maintainTypeOptions"
-            :receive-status-options="receiveStatusOptions"
-            :buttons="showButtonConfig"
-            @search="handleSearch"
-            @reset="handleReset"
-            @refresh="fetchDevices"
-            @delete="handleDelete"
-            @add="handleAdd"
-            @edit="handleEdit"
-            @on-export="handleExport"
-            @on-import="handleImport"
-            @bind-dept="handleBindDept"
-            @bind-valve="handleBindValve"
-        />
-
         <!-- 左侧表格区域 -->
         <view class="panel-body">
 
@@ -67,6 +42,7 @@
               :devices="deviceList"
               :pagination="pagination"
               :mode="props.mode"
+              :selected-id="selectedDeviceId"
               @view="handleView"
               @select="handleSelect"
               @page-change="handlePageChange"
@@ -113,9 +89,11 @@
                 Table
           -->
           <component
+              ref="currentPanelRef"
               :is="CurrentPanel"
               :device-data="currentDevice"
               :visible="isDetailPanelVisible"
+              :query="panelQuery"
           />
 
         </view>
@@ -208,6 +186,7 @@ const props = defineProps<{
  */
 const deviceList = ref<Device[]>([]);
 const currentDevice = ref<Device | null>(null);
+const selectedDeviceId = ref<number | null>(null);
 const selectedDevice = ref<Device | null>(null);
 const pagination = ref({
   current: 1,
@@ -236,13 +215,13 @@ const deviceModuleConfig = {
     },
 
     toolbar: [
-      { key: "deviceNumber", labelKey: "fields.deviceNumber", type: "input" },
-      { key: "deviceType", labelKey: "fields.deviceType", type: "select", dict: "product" },
-      { key: "onlineStatus", labelKey: "fields.onlineStatus", type: "select", dict: "online" },
-      { key: "enableState", labelKey: "fields.enableState", type: "select", dict: "enable" },
-      { key: "leakStatus", labelKey: "fields.leakStatus", type: "select", dict: "leak" },
-      { key: "startTime", labelKey: "fields.startTime", type: "date" },
-      { key: "endTime", labelKey: "fields.endTime", type: "date" },
+      { key: "deviceNumber", labelKey: "fields.deviceNumber", type: "input",queryScope: "device"},
+      { key: "deviceType", labelKey: "fields.deviceType", type: "select", dict: "product",queryScope: "device"},
+      { key: "onlineStatus", labelKey: "fields.onlineStatus", type: "select", dict: "online",queryScope: "device"},
+      { key: "enableState", labelKey: "fields.enableState", type: "select", dict: "enable" ,queryScope: "device"},
+      { key: "leakStatus", labelKey: "fields.leakStatus", type: "select", dict: "leak",queryScope: "device"},
+      { key: "startTime", labelKey: "fields.startTime", type: "date",queryScope: "device"},
+      { key: "endTime", labelKey: "fields.endTime", type: "date",queryScope: "device"},
     ],
 
     buttons: {
@@ -263,28 +242,22 @@ const deviceModuleConfig = {
 
     searchForm: {
       deviceNumber: "",
-      deviceType: "",
-      // enableState: "",
-      // onlineStatus: "",
-      // leakStatus: "",
-      // startTime: "",
-      // endTime: "",
+      maintainType: null as number | null,
+      startTime: '',
+      endTime: ''
     },
 
     toolbar: [
-      { key: "deviceNumber", labelKey: "fields.deviceNumber", type: "input" },
-      { key: "deviceType", labelKey: "fields.deviceType", type: "select", dict: "product" },
-      // { key: "onlineStatus", labelKey: "fields.onlineStatus", type: "select", dict: "online" },
-      // { key: "enableState", labelKey: "fields.enableState", type: "select", dict: "enable" },
-      // { key: "leakStatus", labelKey: "fields.leakStatus", type: "select", dict: "leak" },
-      // { key: "startTime", labelKey: "fields.startTime", type: "date" },
-      // { key: "endTime", labelKey: "fields.endTime", type: "date" },
+      { key: "deviceNumber", labelKey: "fields.deviceNumber", type: "input" ,queryScope: "device"},
+      { key: "maintainType", labelKey: "fields.maintainType", type: "select",dict: "maintain",queryScope: "maintenance"},
+      { key: "startTime", labelKey: "fields.startTime", type: "date",queryScope: "maintenance"},
+      { key: "endTime", labelKey: "fields.endTime", type: "date",queryScope: "maintenance"},
     ],
 
     buttons: {
-      add: false,
-      edit: false,
-      delete: false,
+      add: true,
+      edit: true,
+      delete: true,
       refresh: true,
       bindDept: false,
       bindValve: false,
@@ -298,26 +271,10 @@ const deviceModuleConfig = {
 
     searchForm: {
       deviceNumber: "",
-      deviceType: "",
-      // enableState: "",
-      // onlineStatus: "",
-      // leakStatus: "",
-      // startTime: "",
-      // endTime: "",
-      // receiveStatus: "",
-      // maintainType: ""
     },
 
     toolbar: [
-      { key: "deviceNumber", labelKey: "fields.deviceNumber", type: "input" },
-      { key: "deviceType", labelKey: "fields.deviceType", type: "select", dict: "product" },
-      // { key: "onlineStatus", labelKey: "fields.onlineStatus", type: "select", dict: "online" },
-      // { key: "enableState", labelKey: "fields.enableState", type: "select", dict: "enable" },
-      // { key: "leakStatus", labelKey: "fields.leakStatus", type: "select", dict: "leak" },
-      // { key: "startTime", labelKey: "fields.startTime", type: "date" },
-      // { key: "endTime", labelKey: "fields.endTime", type: "date" },
-      // { key: "maintainType", labelKey: "fields.maintainType", type: "select", dict: "maintain" },
-      // { key: "receiveStatus", labelKey: "fields.receiveStatus", type: "select", dict: "receive" }
+      { key: "deviceNumber", labelKey: "fields.deviceNumber", type: "input" ,queryScope: "device"},
     ],
 
     buttons: {
@@ -337,26 +294,10 @@ const deviceModuleConfig = {
 
     searchForm: {
       deviceNumber: "",
-      deviceType: "",
-      // enableState: "",
-      // onlineStatus: "",
-      // leakStatus: "",
-      // startTime: "",
-      // endTime: "",
-      // receiveStatus: "",
-      // maintainType: ""
     },
 
     toolbar: [
-      { key: "deviceNumber", labelKey: "fields.deviceNumber", type: "input" },
-      { key: "deviceType", labelKey: "fields.deviceType", type: "select", dict: "product" },
-      // { key: "onlineStatus", labelKey: "fields.onlineStatus", type: "select", dict: "online" },
-      // { key: "enableState", labelKey: "fields.enableState", type: "select", dict: "enable" },
-      // { key: "leakStatus", labelKey: "fields.leakStatus", type: "select", dict: "leak" },
-      // { key: "startTime", labelKey: "fields.startTime", type: "date" },
-      // { key: "endTime", labelKey: "fields.endTime", type: "date" },
-      // { key: "maintainType", labelKey: "fields.maintainType", type: "select", dict: "maintain" },
-      // { key: "receiveStatus", labelKey: "fields.receiveStatus", type: "select", dict: "receive" }
+      { key: "deviceNumber", labelKey: "fields.deviceNumber", type: "input" ,queryScope: "device"},
     ],
 
     buttons: {
@@ -403,9 +344,6 @@ const searchForm = ref<any>({
   ...currentModule.value.searchForm,
 });
 
-const showGlobalToolbar = ref<boolean>(true);
-const showLeftToolbar = ref<boolean>(false);
-
 /**
  * mode变化重置
  */
@@ -415,16 +353,6 @@ watch(
       searchForm.value = {
         ...currentModule.value.searchForm,
       };
-
-      if (props.mode === "info") {
-        showGlobalToolbar.value = true;
-        showLeftToolbar.value = false;
-      }else{
-        showGlobalToolbar.value = false;
-        showLeftToolbar.value = true;
-      }
-
-      fetchDevices();
     },
     { immediate: true }
 );
@@ -454,7 +382,7 @@ const enableStateOptions = [
 ];
 
 const maintainTypeOptions = [
-  { labelKey: "common.all", value: "" },
+  { labelKey: "common.all", value: null },
   { labelKey: "status.maintain.remove", value: 0 },
   { labelKey: "status.maintain.install", value: 1 },
   { labelKey: "status.maintain.maintenance", value: 2 },
@@ -508,6 +436,7 @@ async function fetchDevices() {
   pagination.value.size = pageData?.size ?? 10;
 
   currentDevice.value = deviceList.value[0] || {};
+  selectedDeviceId.value = currentDevice.value.id;
 }
 
 const deviceProductOptions = ref<{ label: string; value: number }[]>([]);
@@ -525,8 +454,100 @@ async function fetchProductOptions() {
  * actions
  * =========================
  */
-function handleSearch() {
-  fetchDevices();
+/**
+ * =========================
+ * query
+ * =========================
+ */
+const currentPanelRef = ref();
+const lastQuery = ref({
+  device: {
+    deviceNumber: ''
+  },
+  info: {},
+  maintenance: {},
+  status: {},
+  protocol: {}
+});
+
+function isQueryChanged(a:any,b:any){
+  return JSON.stringify(a)!==JSON.stringify(b);
+}
+
+/**
+ * 获取设备查询条件
+ */
+function getDeviceQuery(){
+  const query:any={};
+  toolbarConfig.value.forEach(item=>{
+    if(item.queryScope==="device"){
+      query[item.key]=searchForm.value[item.key];
+    }
+  });
+  return query;
+}
+
+/**
+ * 获取当前模块查询条件
+ */
+function getPanelQuery(){
+  const query:any={};
+  toolbarConfig.value.forEach(item=>{
+    if(item.queryScope===props.mode){
+      query[item.key]=searchForm.value[item.key];
+    }
+  });
+  return query;
+}
+
+
+/**
+ * panel query
+ * 传递给 MaintenancePanel 等
+ */
+const panelQuery = ref<Record<string,any>>({});
+
+/**
+ * 搜索
+ */
+async function handleSearch(){
+  const deviceQuery=getDeviceQuery();
+  const query=getPanelQuery();
+
+  const deviceChanged =
+      isQueryChanged(
+          deviceQuery,
+          lastQuery.value.device
+      );
+
+  const panelChanged =
+      isQueryChanged(
+          query,
+          lastQuery.value[props.mode]
+      );
+
+  if(deviceChanged){
+    lastQuery.value.device={
+      ...deviceQuery
+    };
+    lastQuery.value[props.mode]={
+      ...query
+    };
+    panelQuery.value={
+      ...query
+    };
+    await fetchDevices();
+    return;
+  }
+
+  if(panelChanged){
+    lastQuery.value[props.mode]={
+      ...query
+    };
+    panelQuery.value={
+      ...query
+    };
+  }
 }
 
 function handleReset() {
@@ -543,6 +564,7 @@ function handleView(device: Device) {
 
 function handleSelect(device: Device) {
   selectedDevice.value = device;
+  selectedDeviceId.value = device.id;
 }
 
 const dialogVisible = ref(false);
@@ -702,6 +724,11 @@ const addSchema = computed<FormSection[]>(() => [
 ]);
 
 function handleAdd() {
+  if(props.mode !== "info"){
+    currentPanelRef.value?.handleAdd();
+    return;
+  }
+
   selectedDevice.value = null;
   isEditMode.value = false;
   editingId.value = null;
@@ -801,6 +828,11 @@ async function submitUpdate(form: DeviceCreateForm) {
 }
 
 function handleEdit() {
+  if(props.mode !== "info"){
+    currentPanelRef.value?.handleEdit();
+    return;
+  }
+
   if (!selectedDevice.value) {
     uni.showToast({ title: t('message.selectRecord'), icon: 'none' });
     return;
