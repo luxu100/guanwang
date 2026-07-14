@@ -55,7 +55,7 @@ function getAuthHeader() {
  * 标准化请求地址。
  * service 可以传完整 URL，也可以传 /api/user/login 这类相对路径。
  */
-function normalizeUrl(url) {
+export function normalizeUrl(url) {
   if (/^https?:\/\//.test(url)) {
     return url;
   }
