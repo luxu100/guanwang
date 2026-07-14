@@ -111,6 +111,12 @@ function uploadFileMp(filePath, fileName, onProgress) {
 /**
  * H5 环境上传
  */
+function getTimeoutByType(fileType) {
+  if (fileType === "video") return 300000;   // 视频 5 分钟
+  if (fileType === "audio") return 180000;   // 音频 3 分钟
+  return 60000;                               // 图片 1 分钟
+}
+
 function uploadFileH5(file, fileName, onProgress) {
   return new Promise((resolve, reject) => {
     const fileType = getFileType(fileName);
@@ -122,7 +128,7 @@ function uploadFileH5(file, fileName, onProgress) {
 
     const xhr = new XMLHttpRequest();
     xhr.open("POST", getUploadUrl(fileType));
-    xhr.timeout = 30000;
+    xhr.timeout = getTimeoutByType(fileType);
 
     // 添加认证头
     const authHeaders = getAuthHeader();

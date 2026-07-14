@@ -158,7 +158,10 @@
                 <text class="data-cell data-cell--position">{{ getTextValue(item, ["leakPointPosition"], "-") }}</text>
                 <text class="data-cell data-cell--time">{{ formatDateTime(getTextValue(item, ["reportTime"], "-")) }}</text>
                 <text class="data-cell data-cell--reporter">{{ getTextValue(item, ["reporter"], "-") }}</text>
-                <text class="data-cell data-cell--worksheet">{{ getTextValue(item, ["workOrderNo"], "-") }}</text>
+                <text
+                  class="data-cell data-cell--worksheet data-cell--link"
+                  @click.stop="navigateToWorkOrderFromRow(item)"
+                >{{ getTextValue(item, ["workOrderNo"], "-") }}</text>
               </view>
             </view>
           </view>
@@ -168,6 +171,12 @@
           <button class="page-button" hover-class="page-button--hover" :disabled="pagination.pageNum <= 1" @click="changePage(-1)">上一页</button>
           <text class="page-info">第 {{ pagination.pageNum }} / {{ totalPages }} 页</text>
           <button class="page-button" hover-class="page-button--hover" :disabled="pagination.pageNum >= totalPages" @click="changePage(1)">下一页</button>
+          <view class="page-jump">
+            <text class="page-jump__prefix">到 第</text>
+            <input v-model="jumpPageInput" class="page-jump__input" type="number" min="1" :max="totalPages" placeholder="" @confirm="jumpToPage" />
+            <text class="page-jump__suffix">页</text>
+            <button class="page-button" hover-class="page-button--hover" :disabled="!jumpPageInput" @click="jumpToPage">跳转</button>
+          </view>
         </view>
       </view>
 
@@ -189,22 +198,40 @@
         <view v-else class="detail-body">
           <!-- 疑点详情 Tab -->
           <view v-if="activeTab === 'base'" class="detail-base-panel">
-            <view class="detail-summary-card">
-              <view class="detail-summary-card__head">
-                <view class="detail-summary-card__id-group">
-                  <text class="detail-summary-card__label">疑点编号</text>
-                  <text class="detail-summary-card__number">{{ getId(selectedSuspect) }}</text>
-                </view>
-                <view class="detail-summary-card__badges">
-                  <text class="status-tag" :class="getProcessStatusClass(selectedSuspect)">{{ getProcessStatusLabel(selectedSuspect) }}</text>
+            <view class="detail-summary">
+              <view class="detail-summary__main">
+                <text class="detail-summary__label">疑点编号</text>
+                <text class="detail-summary__number">{{ getId(selectedSuspect) }}</text>
+              </view>
+              <view class="detail-summary__badges">
+                <text class="detail-summary__badge status-pill" :class="getProcessStatusClass(selectedSuspect)">{{ getProcessStatusLabel(selectedSuspect) }}</text>
+                <text class="detail-summary__badge urgency-pill" :class="getIsLeakPointClass(selectedSuspect)">{{ getIsLeakPointLabel(selectedSuspect) }}</text>
+              </view>
+              <view class="detail-summary__meta">
+                <view v-for="item in baseSummaryMeta" :key="item.label" class="detail-summary__meta-item">
+                  <text class="detail-summary__meta-label">{{ item.label }}</text>
+                  <text class="detail-summary__meta-value">{{ item.value }}</text>
                 </view>
               </view>
             </view>
 
-            <view class="detail-fields-grid">
-              <view v-for="item in baseDetailFields" :key="item.label" class="detail-field-card">
-                <text class="detail-field-card__label">{{ item.label }}</text>
-                <text class="detail-field-card__value">{{ item.value }}</text>
+            <view class="detail-grid detail-grid--base">
+              <view v-for="item in baseDetailFields" :key="item.label" class="detail-item detail-item--base">
+                <text class="detail-item__label">{{ item.label }}</text>
+                <text class="detail-item__value">{{ item.value }}</text>
+              </view>
+            </view>
+
+            <view class="detail-time-panel detail-time-panel--embedded">
+              <text class="detail-section-title">时间信息</text>
+              <view class="time-list">
+                <view v-for="item in timeInfoFields" :key="item.label" class="time-row">
+                  <view class="time-row__marker"></view>
+                  <view class="time-row__content">
+                    <text class="time-row__label">{{ item.label }}</text>
+                    <text class="time-row__value">{{ item.value }}</text>
+                  </view>
+                </view>
               </view>
             </view>
           </view>
@@ -224,13 +251,16 @@
             <view class="detail-fields-grid">
               <view v-for="item in relatedDetailFields" :key="item.label" class="detail-field-card">
                 <text class="detail-field-card__label">{{ item.label }}</text>
-                <view v-if="item.type === 'images'" class="detail-field-card__value detail-field-card__value--link" @click="previewMediaFiles(item.ids ?? [], 'image')">
+                <view v-if="item.type === 'images'" class="detail-field-card__value detail-field-card__value--link" @click="previewMediaFiles(item.paths ?? [], 'image')">
                   {{ item.value }}
                 </view>
-                <view v-else-if="item.type === 'video'" class="detail-field-card__value detail-field-card__value--link" @click="previewMediaFiles([item.id ?? ''], 'video')">
+                <view v-else-if="item.type === 'video'" class="detail-field-card__value detail-field-card__value--link" @click="previewMediaFiles([item.path ?? ''], 'video')">
                   {{ item.value }}
                 </view>
-                <view v-else-if="item.type === 'audio'" class="detail-field-card__value detail-field-card__value--link" @click="previewAudioFile(item.id ?? '')">
+                <view v-else-if="item.type === 'audio'" class="detail-field-card__value detail-field-card__value--link" @click="previewAudioFile(item.path ?? '')">
+                  {{ item.value }}
+                </view>
+                <view v-else-if="item.type === 'workOrder'" class="detail-field-card__value detail-field-card__value--link" @click="viewWorkOrder">
                   {{ item.value }}
                 </view>
                 <text v-else class="detail-field-card__value">{{ item.value }}</text>
@@ -313,13 +343,24 @@
               <input v-model="dispatchForm.leakageStatus" class="form-input" placeholder="请输入渗漏状态" placeholder-class="input-placeholder" />
             </view>
             <view class="form-field">
-              <text class="form-label">安装图片</text>
-              <input v-model="dispatchForm.installImage" class="form-input" placeholder="请输入安装图片地址" placeholder-class="input-placeholder" />
+              <text class="form-label">安装地址</text>
+              <input v-model="dispatchForm.installAddress" class="form-input" placeholder="请输入安装地址" placeholder-class="input-placeholder" />
             </view>
           </view>
           <view class="form-field">
-            <text class="form-label">安装地址</text>
-            <input v-model="dispatchForm.installAddress" class="form-input" placeholder="请输入安装地址" placeholder-class="input-placeholder" />
+            <text class="form-label">安装图片</text>
+            <view class="upload-area">
+              <view v-if="dispatchImageItem.url" class="upload-preview-grid">
+                <view class="upload-preview-item">
+                  <image :src="dispatchImageItem.url" class="upload-preview-img" mode="aspectFill" @click="previewDispatchImage" />
+                  <view class="upload-preview-remove" @click.stop="removeDispatchImage">×</view>
+                </view>
+              </view>
+              <view v-else class="upload-placeholder" @click="pickDispatchImage">
+                <text class="upload-placeholder__title">点击上传图片</text>
+                <text class="upload-placeholder__hint">支持 jpg、png 格式</text>
+              </view>
+            </view>
           </view>
           <view class="form-field">
             <text class="form-label">备注</text>
@@ -505,6 +546,7 @@ import { getSuspectPage, getSuspectDetail, deleteSuspect } from "@/services/leak
 import { dispatchSuspect, confirmLeakPoint, excludeSuspect } from "@/services/leak-report/suspected-leak";
 import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
 import { getRegionList } from "@/services/leak-report/region";
+import { uploadFile } from "@/services/leak-report/file-upload";
 
 // ========== 类型定义 ==========
 type SuspectMode = "management" | "processing";
@@ -633,6 +675,41 @@ const dispatchForm = reactive({
   installAddress: "",
 });
 
+/** 转工单安装图片（本地预览，提交时上传） */
+const dispatchImageItem = ref<{ file?: File; url: string; id: string }>({ url: "", id: "" });
+function pickDispatchImage() {
+  // #ifdef H5
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/*";
+  input.onchange = () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    dispatchImageItem.value = { file, url: URL.createObjectURL(file), id: "" };
+  };
+  input.click();
+  // #endif
+  // #ifndef H5
+  uni.chooseImage({
+    count: 1,
+    sizeType: ["compressed"],
+    sourceType: ["album", "camera"],
+    success: (res) => {
+      dispatchImageItem.value = { url: res.tempFilePaths[0], id: "" };
+    },
+  });
+  // #endif
+}
+function removeDispatchImage() {
+  dispatchImageItem.value = { url: "", id: "" };
+}
+function previewDispatchImage() {
+  const url = dispatchImageItem.value.id
+    ? addBaseUrl(dispatchImageItem.value.id)
+    : dispatchImageItem.value.url;
+  if (url) uni.previewImage({ urls: [url] });
+}
+
 const confirmLeakDialogVisible = ref(false);
 const detectDifficultySelectOpen = ref(false);
 const confirmLeakForm = reactive({
@@ -704,6 +781,17 @@ const dispatchUrgencyLabel = computed(() => {
 const dispatchSuspectId = computed(() => (selectedSuspect.value ? getRowId(selectedSuspect.value) : ""));
 const confirmLeakSuspectId = computed(() => (selectedSuspect.value ? getRowId(selectedSuspect.value) : ""));
 
+// 疑点详情——摘要卡片元信息
+const baseSummaryMeta = computed(() => {
+  const item = selectedSuspect.value || {};
+  return [
+    { label: "上报时间", value: formatDateTime(getTextValue(item, ["reportTime"], "-")) },
+    { label: "上报人员", value: getTextValue(item, ["reporter"], "-") },
+    { label: "检出类型", value: getTextValue(item, ["detectType"], "-") },
+    { label: "巡检编号", value: getTextValue(item, ["patrolNo"], "-") },
+  ];
+});
+
 // 疑点详情字段（列表已显示的字段不再重复展示）
 const baseDetailFields = computed(() => {
   const item = selectedSuspect.value || {};
@@ -713,8 +801,19 @@ const baseDetailFields = computed(() => {
     { label: "漏点大小", value: getTextValue(item, ["leakPointSize"], "-") },
     { label: "漏点路面", value: getTextValue(item, ["leakRoadSurface"], "-") },
     { label: "坐标位置", value: getTextValue(item, ["coordinatePosition"], "-") },
-    { label: "巡查编号", value: getTextValue(item, ["patrolNo"], "-") },
+    { label: "漏点位置", value: getTextValue(item, ["leakPointPosition"], "-") },
     { label: "备注信息", value: getTextValue(item, ["remark"], "-") },
+  ];
+});
+
+// 时间信息（从关联信息Tab移入疑点详情Tab）
+const timeInfoFields = computed(() => {
+  const item = selectedSuspect.value || {};
+  return [
+    { label: "创建时间", value: formatDateTime(getTextValue(item, ["createdAt"], "-")) },
+    { label: "更新时间", value: formatDateTime(getTextValue(item, ["updatedAt"], "-")) },
+    { label: "噪声时间", value: formatDateTime(getTextValue(item, ["noiseTime"], "-")) },
+    { label: "修复时间", value: formatDateTime(getTextValue(item, ["repairTime"], "-")) },
   ];
 });
 
@@ -742,37 +841,37 @@ const pipeDetailFields = computed(() => {
 interface DetailField {
   label: string;
   value: string;
-  type?: "images" | "video" | "audio";
-  ids?: string[];
-  id?: string;
+  type?: "images" | "video" | "audio" | "workOrder";
+  /** 文件路径列表（如 ["/files/images/xxx", "/files/images/yyy"]） */
+  paths?: string[];
+  /** 单个文件路径 */
+  path?: string;
 }
 
 // 关联信息字段
 const relatedDetailFields = computed((): DetailField[] => {
   const item = selectedSuspect.value || {};
-  const suspectImageIds = getTextValue(item, ["suspectSceneImages"], "");
-  const leakImageIds = getTextValue(item, ["leakSceneImages"], "");
-  const videoId = getTextValue(item, ["sceneVideo"], "");
-  const audioId = getTextValue(item, ["audioFile"], "");
-  const suspectIdList = suspectImageIds ? suspectImageIds.split(",").filter(Boolean) : [];
-  const leakIdList = leakImageIds ? leakImageIds.split(",").filter(Boolean) : [];
+  const suspectPaths = getTextValue(item, ["suspectSceneImages"], "");
+  const leakPaths = getTextValue(item, ["leakSceneImages"], "");
+  const videoPath = getTextValue(item, ["sceneVideo"], "");
+  const audioPath = getTextValue(item, ["audioFile"], "");
+  const suspectPathList = suspectPaths ? suspectPaths.split(",").filter(Boolean) : [];
+  const leakPathList = leakPaths ? leakPaths.split(",").filter(Boolean) : [];
   return [
-    { label: "关联工单ID", value: getTextValue(item, ["workOrderId"], "-") },
+    { label: "关联工单ID", value: getTextValue(item, ["workOrderId"], "-"), type: "workOrder" as const },
     { label: "关联漏点记录ID", value: getTextValue(item, ["leakPointRecordId"], "-") },
-    ...(suspectIdList.length > 0
-      ? [{ label: "疑点现场照片", value: `${suspectIdList.length} 张`, type: "images" as const, ids: suspectIdList }]
+    ...(suspectPathList.length > 0
+      ? [{ label: "疑点现场照片", value: `${suspectPathList.length} 张`, type: "images" as const, paths: suspectPathList }]
       : [{ label: "疑点现场照片", value: "-" }]),
-    ...(leakIdList.length > 0
-      ? [{ label: "漏点现场照片", value: `${leakIdList.length} 张`, type: "images" as const, ids: leakIdList }]
+    ...(leakPathList.length > 0
+      ? [{ label: "漏点现场照片", value: `${leakPathList.length} 张`, type: "images" as const, paths: leakPathList }]
       : [{ label: "漏点现场照片", value: "-" }]),
-    ...(videoId
-      ? [{ label: "现场视频", value: "已上传", type: "video" as const, id: videoId }]
+    ...(videoPath
+      ? [{ label: "现场视频", value: "已上传", type: "video" as const, path: videoPath }]
       : [{ label: "现场视频", value: "-" }]),
-    ...(audioId
-      ? [{ label: "音频文件", value: "已上传", type: "audio" as const, id: audioId }]
+    ...(audioPath
+      ? [{ label: "音频文件", value: "已上传", type: "audio" as const, path: audioPath }]
       : [{ label: "音频文件", value: "-" }]),
-    { label: "创建时间", value: formatDateTime(getTextValue(item, ["createdAt"], "-")) },
-    { label: "更新时间", value: formatDateTime(getTextValue(item, ["updatedAt"], "-")) },
   ];
 });
 
@@ -912,6 +1011,8 @@ function getSortClass(field: string) {
 }
 
 // ========== 分页 ==========
+const jumpPageInput = ref("");
+
 function changePage(step: number) {
   const nextPage = pagination.pageNum + step;
   if (nextPage < 1 || nextPage > totalPages.value) {
@@ -919,6 +1020,17 @@ function changePage(step: number) {
   }
 
   pagination.pageNum = nextPage;
+  void fetchSuspects();
+}
+
+function jumpToPage() {
+  const page = parseInt(jumpPageInput.value, 10);
+  if (isNaN(page) || page < 1 || page > totalPages.value) {
+    uni.showToast({ title: `请输入 1~${totalPages.value} 的页码`, icon: "none" });
+    return;
+  }
+  jumpPageInput.value = "";
+  pagination.pageNum = page;
   void fetchSuspects();
 }
 
@@ -1015,6 +1127,7 @@ function openDispatchDialog() {
   dispatchForm.installAddress = "";
   dispatchUrgencySelectOpen.value = false;
   dispatchUrgencyError.value = "";
+  dispatchImageItem.value = { url: "", id: "" };
   dispatchDialogVisible.value = true;
 }
 
@@ -1022,6 +1135,7 @@ function closeDispatchDialog() {
   dispatchDialogVisible.value = false;
   dispatchUrgencySelectOpen.value = false;
   dispatchUrgencyError.value = "";
+  dispatchImageItem.value = { url: "", id: "" };
 }
 
 function selectDispatchUrgency(value: OptionValue) {
@@ -1039,12 +1153,24 @@ async function submitDispatch() {
 
   processing.value = true;
   try {
+    // 先上传安装图片
+    let installImageId = dispatchForm.installImage.trim();
+    const imgItem = dispatchImageItem.value;
+    if (imgItem.file && !imgItem.id) {
+      const res: { code?: number; data?: { id?: string } } = await uploadFile(imgItem.file, "install_image");
+      if (res && (res.code === undefined || res.code === 0 || res.code === 200)) {
+        imgItem.id = res.data?.id || "";
+        installImageId = imgItem.id;
+      }
+    } else if (imgItem.id) {
+      installImageId = imgItem.id;
+    }
+
     const payload: Record<string, unknown> = {};
     const woNo = dispatchForm.workOrderNo.trim();
     if (woNo) {
       payload.workOrderNo = woNo;
     } else {
-      // 不填则自动生成，格式与工单创建一致：GD+年月日时分秒
       const now = new Date();
       const pad = (n: number) => String(n).padStart(2, "0");
       payload.workOrderNo = `GD${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
@@ -1056,7 +1182,7 @@ async function submitDispatch() {
     if (dispatchForm.remark.trim()) payload.remark = dispatchForm.remark.trim();
     if (dispatchForm.deviceNo.trim()) payload.deviceNo = dispatchForm.deviceNo.trim();
     if (dispatchForm.leakageStatus.trim()) payload.leakageStatus = dispatchForm.leakageStatus.trim();
-    if (dispatchForm.installImage.trim()) payload.installImage = dispatchForm.installImage.trim();
+    if (installImageId) payload.installImage = installImageId;
     if (dispatchForm.installAddress.trim()) payload.installAddress = dispatchForm.installAddress.trim();
 
     const response = (await dispatchSuspect(id, payload)) as ApiResponseLike;
@@ -1245,47 +1371,59 @@ function viewWorkOrder() {
   });
 }
 
+/** 从表格行直接跳转工单（点击关联工单列） */
+function navigateToWorkOrderFromRow(item: SuspectRecord) {
+  const workOrderId = getWorkOrderId(item);
+  if (!workOrderId) {
+    uni.showToast({ title: "无关联工单", icon: "none" });
+    return;
+  }
+  uni.navigateTo({
+    url: `/pages/work-order/processing/processing?id=${workOrderId}`,
+  });
+}
+
 // ========== 媒体预览 ==========
+/** 给相对路径加上 API 基础地址 */
+function addBaseUrl(path: string): string {
+  if (!path) return "";
+  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("blob:") || path.startsWith("file://")) {
+    return path;
+  }
+  const base = import.meta.env.VITE_API_BASE_URL || "";
+  const cleanBase = typeof base === "string" ? base.replace(/\/$/, "") : "";
+  return `${cleanBase}${path}`;
+}
+
 /** 预览图片列表 */
-function previewMediaFiles(ids: string[], type: "image" | "video") {
-  if (!ids.length) {
+function previewMediaFiles(paths: string[], type: "image" | "video") {
+  if (!paths.length) {
     uni.showToast({ title: "暂无文件", icon: "none" });
     return;
   }
   if (type === "video") {
-    // 视频直接用 plus 打开
-    const url = `/api/file/preview/${ids[0]}`;
     // #ifdef H5
-    window.open(url, "_blank");
+    window.open(addBaseUrl(paths[0]), "_blank");
     // #endif
     // #ifndef H5
-    uni.downloadFile({
-      url,
-      success: (res) => {
-        uni.openDocument({ filePath: res.tempFilePath });
-      },
-    });
+    uni.showToast({ title: "请使用 H5 端播放视频", icon: "none" });
     // #endif
     return;
   }
-  // 图片：使用 uni.previewImage
-  const urls = ids.map((id) => `/api/file/preview/${id}`);
-  uni.previewImage({ urls, current: 0 });
+  uni.previewImage({ urls: paths.map((p) => addBaseUrl(p)), current: 0 });
 }
 
 /** 播放音频 */
-function previewAudioFile(id: string) {
-  if (!id) {
+function previewAudioFile(path: string) {
+  if (!path) {
     uni.showToast({ title: "暂无音频", icon: "none" });
     return;
   }
-  const url = `/api/file/preview/${id}`;
   // #ifdef H5
-  const audio = new Audio(url);
-  audio.play();
+  new Audio(addBaseUrl(path)).play();
   // #endif
   // #ifndef H5
-  uni.playVoice({ filePath: url });
+  uni.showToast({ title: "请使用 H5 端播放音频", icon: "none" });
   // #endif
 }
 
@@ -2086,6 +2224,19 @@ defineExpose({
   font-weight: 800;
 }
 
+.data-cell--link {
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: #b0c8e0;
+  text-underline-offset: 2px;
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+
+.data-cell--link:hover {
+  color: #0d82ee;
+  text-decoration-color: #0d82ee;
+}
+
 .data-cell--reporter {
   color: #24384d;
 }
@@ -2195,6 +2346,36 @@ defineExpose({
   font-size: 13px;
 }
 
+.page-jump {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+}
+.page-jump__prefix,
+.page-jump__suffix {
+  color: #64748b;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.page-jump__input {
+  width: 52px;
+  height: 30px;
+  padding: 0 6px;
+  color: #172033;
+  font-size: 13px;
+  text-align: center;
+  background: #f9fcff;
+  border: 1px solid #cbdced;
+  border-radius: 4px;
+  outline: none;
+  transition: border-color 0.18s ease;
+}
+.page-jump__input:focus {
+  border-color: #5ba4f0;
+  box-shadow: 0 0 0 3px rgba(13, 130, 238, 0.08);
+}
+
 /* ========== 详情面板 ========== */
 .detail-tabs {
   flex: none;
@@ -2256,51 +2437,255 @@ defineExpose({
   min-width: 0;
 }
 
-/* ========== 摘要卡片 ========== */
-.detail-summary-card {
+/* ========== 摘要卡片（仿工单详情设计） ========== */
+.detail-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: stretch;
+  min-width: 0;
+  padding: 14px 16px;
   background: #ffffff;
   border: 1px solid #dce9f4;
   border-left: 4px solid #0d82ee;
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(33, 72, 108, 0.07);
-  overflow: hidden;
+  border-radius: 6px;
+  box-shadow: 0 8px 18px rgba(33, 72, 108, 0.045);
 }
 
-.detail-summary-card__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 18px;
-}
-
-.detail-summary-card__id-group {
-  display: grid;
-  gap: 4px;
+.detail-summary__main {
   min-width: 0;
 }
 
-.detail-summary-card__label {
+.detail-summary__label {
+  display: block;
   color: #6b7f94;
   font-size: 12px;
   font-weight: 800;
 }
 
-.detail-summary-card__number {
+.detail-summary__number {
+  display: block;
+  margin-top: 7px;
   color: #0f4c81;
   font-family: "DIN Alternate", "Arial", sans-serif;
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 900;
   line-height: 1.25;
   word-break: normal;
   overflow-wrap: anywhere;
 }
 
-.detail-summary-card__badges {
+.detail-summary__badges {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.detail-summary__badge {
+  min-width: 64px;
+  height: 26px;
+  line-height: 26px;
+}
+
+.detail-summary__meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid #edf3f8;
+}
+
+.detail-summary__meta-item {
+  min-width: 0;
+}
+
+.detail-summary__meta-label {
+  display: block;
+  color: #71869b;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.detail-summary__meta-value {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  color: #172033;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ========== 详情网格（base 字段） ========== */
+.detail-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.detail-grid--base {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #e8eef4;
+  border-radius: 5px;
+}
+
+.detail-item__label {
+  color: #71869b;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.detail-item__value {
+  color: #172033;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  word-break: break-all;
+}
+
+/* ========== 时间信息面板 ========== */
+.detail-time-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 1px solid #e8eef4;
+  border-radius: 6px;
+}
+
+.detail-section-title {
+  color: #0f4c81;
+  font-size: 13px;
+  font-weight: 800;
+  margin-bottom: 2px;
+}
+
+.time-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.time-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid #edf1f5;
+}
+
+.time-row:last-child {
+  border-bottom: none;
+}
+
+.time-row__marker {
+  width: 8px;
+  height: 8px;
+  margin-top: 4px;
   flex-shrink: 0;
+  background: #0d82ee;
+  border-radius: 50%;
+}
+
+.time-row__content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.time-row__label {
+  color: #71869b;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.time-row__value {
+  color: #172033;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+/* ========== 状态标签（胶囊） ========== */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+
+.status-pill.status-tag--pending {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.status-pill.status-tag--dispatched {
+  color: #1e40af;
+  background: #dbeafe;
+}
+
+.status-pill.status-tag--processing {
+  color: #065f46;
+  background: #d1fae5;
+}
+
+.status-pill.status-tag--completed {
+  color: #1e3a5f;
+  background: #e0e7ff;
+}
+
+.status-pill.status-tag--excluded {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.urgency-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+
+.urgency-pill.status-tag--yes {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.urgency-pill.status-tag--no {
+  color: #065f46;
+  background: #d1fae5;
+}
+
+.urgency-pill.status-tag--pending-confirm {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.urgency-pill.status-tag--default {
+  color: #64748b;
+  background: #f1f5f9;
 }
 
 /* ========== 字段卡片网格 ========== */
@@ -2742,6 +3127,91 @@ defineExpose({
   color: #a0aec0;
   font-size: 14px;
   font-weight: 400;
+}
+
+/* 安装图片上传 — 与新增疑点表单一致 */
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 96px;
+  padding: 20px 16px;
+  background: #f8fbfe;
+  border: 2px dashed #c8dae8;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+.upload-placeholder:hover {
+  background: #edf7ff;
+  border-color: #0d82ee;
+}
+.upload-placeholder__title {
+  color: #183755;
+  font-size: 14px;
+  font-weight: 700;
+}
+.upload-placeholder__hint {
+  color: #8799ad;
+  font-size: 12px;
+}
+.upload-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 8px;
+}
+.upload-preview-item {
+  position: relative;
+  width: 100%;
+  padding-bottom: 100%;
+  overflow: hidden;
+  border: 1px solid #d5e2ee;
+  border-radius: 6px;
+  background: #f6fafe;
+  transition: border-color 0.2s;
+}
+.upload-preview-item:hover {
+  border-color: #0d82ee;
+}
+.upload-preview-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  cursor: pointer;
+}
+.upload-preview-remove {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  background: rgba(180, 35, 24, 0.82);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.upload-preview-remove:hover {
+  background: rgba(180, 35, 24, 0.95);
+  transform: scale(1.1);
+}
+.upload-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 96px;
 }
 
 .dialog-footer {
