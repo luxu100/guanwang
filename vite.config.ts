@@ -21,10 +21,6 @@ export default defineConfig(({ mode }) => {
           target: apiProxyTarget,
           changeOrigin: true,
         },
-        "/files": {
-          target: apiProxyTarget,
-          changeOrigin: true,
-        },
       },
     },
     css: {
