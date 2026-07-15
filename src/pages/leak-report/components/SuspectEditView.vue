@@ -508,6 +508,7 @@ import LocaleCoordinateMap from "@/components/map/LocaleCoordinateMap.vue";
 import { createSuspect, updateSuspect } from "@/services/leak-report/suspected-leak";
 import { getRegionList } from "@/services/leak-report/region";
 import { getDeviceVisibleList } from "@/services/leak-report/device";
+import { getPartitionDeviceList } from "@/services/partition/partition";
 import { uploadFile } from "@/services/leak-report/file-upload";
 
 interface SuspectForm {
@@ -756,19 +757,35 @@ const filteredDeviceOptions = computed(() => {
 });
 
 function loadDeviceOptions() {
-  getDeviceVisibleList({}).then((res: { data?: DeviceOption[] }) => {
-    if (res && Array.isArray(res.data)) {
-      deviceOptions.value = res.data;
-    }
-  }).catch(() => {
-    // 静默处理
-  });
+  if (form.deptId != null) {
+    // 选择分区后按分区过滤设备
+    getPartitionDeviceList(form.deptId, {}).then((res: any) => {
+      const data = res?.data;
+      if (Array.isArray(data)) {
+        deviceOptions.value = data as DeviceOption[];
+      }
+    }).catch(() => {});
+  } else {
+    // 未选分区时加载全部可见设备
+    getDeviceVisibleList({}).then((res: { data?: DeviceOption[] }) => {
+      if (res && Array.isArray(res.data)) {
+        deviceOptions.value = res.data;
+      }
+    }).catch(() => {});
+  }
 }
 
 function selectDevice(item: DeviceOption) {
   form.deviceNumber = item.deviceNumber;
   deviceSelectOpen.value = false;
 }
+
+// 分区切换时刷新设备列表
+watch(() => form.deptId, () => {
+  form.deviceNumber = "";
+  deviceSearch.value = "";
+  loadDeviceOptions();
+});
 
 // 管道材质下拉
 const materialSelectOpen = ref(false);
