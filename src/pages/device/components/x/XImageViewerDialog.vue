@@ -75,12 +75,8 @@
 import { ref, watch } from "vue";
 import { getFileDetail } from "@/services/device/sysFile";
 import {createScopedT} from "@/i18n";
+import {normalizeUrl} from "@/utils/request";
 const t = createScopedT("devicePage");
-
-const BASE_URL =
-    import.meta.env.VITE_API_BASE_URL ||
-    import.meta.env.VITE_DEV_PROXY_TARGET ||
-    "";
 
 const props = defineProps({
   visible: {
@@ -158,7 +154,7 @@ async function loadImages() {
       id: r.data.id,
       url: r.data.filePath.startsWith("http")
           ? r.data.filePath
-          : BASE_URL + r.data.filePath
+          : normalizeUrl(r.data.filePath)
     });
   }
 

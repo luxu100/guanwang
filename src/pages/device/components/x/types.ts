@@ -52,9 +52,26 @@ export interface FormSection {
 }
 
 export type Field =
-    | { key: string; label?: string; labelKey: string; type: "input" }
-    | { key: string; label?: string; labelKey: string; type: "date" }
-    | { key: string; label?: string; labelKey: string; type: "select"; dict: string };
+    | {
+    key: string;
+    label?: string;
+    labelKey: string;
+    type: "input";
+}
+    | {
+    key: string;
+    label?: string;
+    labelKey: string;
+    type: "date";
+}
+    | {
+    key: string;
+    label?: string;
+    labelKey: string;
+    type: "select";
+    dict?: string;
+    options?: DictItem[];
+};
 
 export type DictItem = {
     label?: string;
@@ -77,3 +94,23 @@ export type ToolbarButtons = {
 
     detail?:boolean;
 };
+
+export interface XDataColumn {
+    key:string;
+    label:string;
+    width?:number;
+    align?:'left'|'center'|'right';
+    type?:
+        | 'text'
+        | 'number'
+        | 'time'
+        | 'coord'
+        | 'link'
+        | 'image';
+    className?:string;
+    formatter?:(value:any,row:any)=>any;
+    onClick?:(
+        value:any,
+        row:any
+    )=>void;
+}

@@ -257,8 +257,21 @@
                 <view v-else-if="item.type === 'video'" class="detail-field-card__value detail-field-card__value--link" @click="previewMediaFiles([item.path ?? ''], 'video')">
                   {{ item.value }}
                 </view>
-                <view v-else-if="item.type === 'audio'" class="detail-field-card__value detail-field-card__value--link" @click="previewAudioFile(item.path ?? '')">
-                  {{ item.value }}
+                <view v-else-if="item.type === 'audio'" class="detail-field-card__value">
+                  <view class="audio-inline-player">
+                    <view class="audio-inline-player__btn" @click="toggleAudio(item.path ?? '')">
+                      <text class="audio-inline-player__icon">{{ audioSrc === item.path && audioPlaying ? '⏸' : '▶' }}</text>
+                    </view>
+                    <view
+                      class="audio-inline-player__track"
+                      @click.stop="seekAudio($event, item.path ?? '')"
+                    >
+                      <view class="audio-inline-player__bar" :style="{ width: (audioSrc === item.path ? audioProgress : 0) + '%' }"></view>
+                    </view>
+                    <text class="audio-inline-player__time">
+                      {{ audioSrc === item.path ? formatAudioTime(audioCurrentTime) + ' / ' + formatAudioTime(audioDuration) : '00:00 / 00:00' }}
+                    </text>
+                  </view>
                 </view>
                 <view v-else-if="item.type === 'workOrder'" class="detail-field-card__value detail-field-card__value--link" @click="viewWorkOrder">
                   {{ item.value }}
@@ -324,7 +337,17 @@
             </view>
             <view class="form-field">
               <text class="form-label">处理流程</text>
-              <input v-model="dispatchForm.processFlow" class="form-input" placeholder="请输入处理流程" placeholder-class="input-placeholder" />
+              <view class="select-field">
+                <view class="form-select form-select--dropdown" :class="{ 'form-select--open': processFlowSelectOpen }" @click.stop="processFlowSelectOpen = !processFlowSelectOpen">
+                  <text :class="{ 'select-placeholder': !dispatchForm.processFlow }">{{ dispatchForm.processFlow || "请选择处理流程" }}</text>
+                  <text class="select-arrow"></text>
+                </view>
+                <view v-if="processFlowSelectOpen" class="select-menu">
+                  <view v-for="item in processFlowOptions" :key="item" class="select-option" :class="{ 'select-option--active': dispatchForm.processFlow === item }" @click.stop="selectProcessFlow(item)">
+                    <text>{{ item }}</text>
+                  </view>
+                </view>
+              </view>
             </view>
           </view>
           <view class="form-grid form-grid--two">
@@ -340,7 +363,17 @@
           <view class="form-grid form-grid--two">
             <view class="form-field">
               <text class="form-label">渗漏状态</text>
-              <input v-model="dispatchForm.leakageStatus" class="form-input" placeholder="请输入渗漏状态" placeholder-class="input-placeholder" />
+              <view class="select-field">
+                <view class="form-select form-select--dropdown" :class="{ 'form-select--open': leakageStatusSelectOpen }" @click.stop="leakageStatusSelectOpen = !leakageStatusSelectOpen">
+                  <text :class="{ 'select-placeholder': !dispatchForm.leakageStatus }">{{ dispatchForm.leakageStatus || "请选择渗漏状态" }}</text>
+                  <text class="select-arrow"></text>
+                </view>
+                <view v-if="leakageStatusSelectOpen" class="select-menu">
+                  <view v-for="item in leakageStatusOptions" :key="item" class="select-option" :class="{ 'select-option--active': dispatchForm.leakageStatus === item }" @click.stop="selectLeakageStatus(item)">
+                    <text>{{ item }}</text>
+                  </view>
+                </view>
+              </view>
             </view>
             <view class="form-field">
               <text class="form-label">安装地址</text>
@@ -541,7 +574,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { getSuspectPage, getSuspectDetail, deleteSuspect } from "@/services/leak-report/suspected-leak";
 import { dispatchSuspect, confirmLeakPoint, excludeSuspect } from "@/services/leak-report/suspected-leak";
 import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
@@ -626,6 +659,13 @@ const urgencyOptions: SelectOption[] = [
   { label: "紧急", value: "urgent" },
 ];
 
+// 转工单下拉选项
+const processFlowSelectOpen = ref(false);
+const processFlowOptions = ["噪声工单", "消火栓工单", "水锤工单", "温振工单"];
+
+const leakageStatusSelectOpen = ref(false);
+const leakageStatusOptions = ["正常", "疑似", "渗漏", "未抄", "新装"];
+
 const detailTabs: Array<{ label: string; value: DetailTab }> = [
   { label: "疑点详情", value: "base" },
   { label: "管道信息", value: "pipe" },
@@ -657,7 +697,18 @@ const activeTab = ref<DetailTab>("base");
 const sortField = ref<string>("");
 const sortOrder = ref<"asc" | "desc" | "">("");
 
-// 对话框状态
+// ========== 音频播放器状态 ==========
+const audioEl = ref<HTMLAudioElement | null>(null);
+const audioPlaying = ref(false);
+const audioCurrentTime = ref(0);
+const audioDuration = ref(0);
+const audioSrc = ref("");
+const audioProgress = computed(() => {
+  if (audioDuration.value <= 0) return 0;
+  return (audioCurrentTime.value / audioDuration.value) * 100;
+});
+
+// ========== 对话框状态 ==========
 const processing = ref(false);
 const dispatchDialogVisible = ref(false);
 const dispatchUrgencySelectOpen = ref(false);
@@ -676,7 +727,7 @@ const dispatchForm = reactive({
 });
 
 /** 转工单安装图片（本地预览，提交时上传） */
-const dispatchImageItem = ref<{ file?: File; url: string; id: string }>({ url: "", id: "" });
+const dispatchImageItem = ref<{ file?: File; url: string; id: string; filePath?: string }>({ url: "", id: "" });
 function pickDispatchImage() {
   // #ifdef H5
   const input = document.createElement("input");
@@ -1127,6 +1178,8 @@ function openDispatchDialog() {
   dispatchForm.installAddress = "";
   dispatchUrgencySelectOpen.value = false;
   dispatchUrgencyError.value = "";
+  processFlowSelectOpen.value = false;
+  leakageStatusSelectOpen.value = false;
   dispatchImageItem.value = { url: "", id: "" };
   dispatchDialogVisible.value = true;
 }
@@ -1134,6 +1187,8 @@ function openDispatchDialog() {
 function closeDispatchDialog() {
   dispatchDialogVisible.value = false;
   dispatchUrgencySelectOpen.value = false;
+  processFlowSelectOpen.value = false;
+  leakageStatusSelectOpen.value = false;
   dispatchUrgencyError.value = "";
   dispatchImageItem.value = { url: "", id: "" };
 }
@@ -1142,6 +1197,16 @@ function selectDispatchUrgency(value: OptionValue) {
   dispatchForm.urgencyLevel = String(value);
   dispatchUrgencySelectOpen.value = false;
   dispatchUrgencyError.value = "";
+}
+
+function selectProcessFlow(value: string) {
+  dispatchForm.processFlow = value;
+  processFlowSelectOpen.value = false;
+}
+
+function selectLeakageStatus(value: string) {
+  dispatchForm.leakageStatus = value;
+  leakageStatusSelectOpen.value = false;
 }
 
 async function submitDispatch() {
@@ -1153,17 +1218,22 @@ async function submitDispatch() {
 
   processing.value = true;
   try {
-    // 先上传安装图片
-    let installImageId = dispatchForm.installImage.trim();
+    // 先上传安装图片，获取 filePath
+    let installImagePath = dispatchForm.installImage.trim();
     const imgItem = dispatchImageItem.value;
     if (imgItem.file && !imgItem.id) {
-      const res: { code?: number; data?: { id?: string } } = await uploadFile(imgItem.file, "install_image");
+      const res = await uploadFile(imgItem.file, "install_image") as Record<string, unknown>;
       if (res && (res.code === undefined || res.code === 0 || res.code === 200)) {
-        imgItem.id = res.data?.id || "";
-        installImageId = imgItem.id;
+        const resData = (res?.data || {}) as Record<string, unknown>;
+        const filePath = String(resData.filePath || resData.file_path || "");
+        if (filePath) {
+          imgItem.id = String(resData.id || "");
+          imgItem.filePath = filePath;
+          installImagePath = filePath;
+        }
       }
-    } else if (imgItem.id) {
-      installImageId = imgItem.id;
+    } else if (imgItem.filePath) {
+      installImagePath = imgItem.filePath;
     }
 
     const payload: Record<string, unknown> = {};
@@ -1182,7 +1252,7 @@ async function submitDispatch() {
     if (dispatchForm.remark.trim()) payload.remark = dispatchForm.remark.trim();
     if (dispatchForm.deviceNo.trim()) payload.deviceNo = dispatchForm.deviceNo.trim();
     if (dispatchForm.leakageStatus.trim()) payload.leakageStatus = dispatchForm.leakageStatus.trim();
-    if (installImageId) payload.installImage = installImageId;
+    if (installImagePath) payload.installImage = installImagePath;
     if (dispatchForm.installAddress.trim()) payload.installAddress = dispatchForm.installAddress.trim();
 
     const response = (await dispatchSuspect(id, payload)) as ApiResponseLike;
@@ -1413,19 +1483,114 @@ function previewMediaFiles(paths: string[], type: "image" | "video") {
   uni.previewImage({ urls: paths.map((p) => addBaseUrl(p)), current: 0 });
 }
 
-/** 播放音频 */
-function previewAudioFile(path: string) {
+// ========== 音频播放器 ==========
+/** 格式化时间 mm:ss */
+function formatAudioTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return "00:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+/** 创建或获取 Audio 实例 */
+function getOrCreateAudio(): HTMLAudioElement {
+  if (!audioEl.value) {
+    audioEl.value = new Audio();
+    audioEl.value.addEventListener("timeupdate", () => {
+      if (audioEl.value) {
+        audioCurrentTime.value = audioEl.value.currentTime;
+      }
+    });
+    audioEl.value.addEventListener("loadedmetadata", () => {
+      if (audioEl.value) {
+        audioDuration.value = audioEl.value.duration;
+      }
+    });
+    audioEl.value.addEventListener("ended", () => {
+      audioPlaying.value = false;
+      audioCurrentTime.value = 0;
+    });
+    audioEl.value.addEventListener("error", () => {
+      audioPlaying.value = false;
+      uni.showToast({ title: "音频加载失败", icon: "none" });
+    });
+  }
+  return audioEl.value;
+}
+
+/** 播放/暂停音频 */
+function toggleAudio(path: string) {
   if (!path) {
     uni.showToast({ title: "暂无音频", icon: "none" });
     return;
   }
-  // #ifdef H5
-  new Audio(addBaseUrl(path)).play();
-  // #endif
-  // #ifndef H5
-  uni.showToast({ title: "请使用 H5 端播放音频", icon: "none" });
-  // #endif
+  const audio = getOrCreateAudio();
+  const url = addBaseUrl(path);
+
+  // 同一音频 → 切换播放/暂停
+  if (audioSrc.value === path) {
+    if (audioPlaying.value) {
+      audio.pause();
+      audioPlaying.value = false;
+    } else {
+      audio.play().catch(() => {
+        uni.showToast({ title: "播放失败", icon: "none" });
+      });
+      audioPlaying.value = true;
+    }
+    return;
+  }
+
+  // 不同音频 → 切换音源
+  audio.pause();
+  audio.src = url;
+  audioSrc.value = path;
+  audioCurrentTime.value = 0;
+  audioDuration.value = 0;
+  audio.play().then(() => {
+    audioPlaying.value = true;
+  }).catch(() => {
+    audioPlaying.value = false;
+    uni.showToast({ title: "播放失败", icon: "none" });
+  });
 }
+
+/** 点击进度条跳转 */
+function seekAudio(e: MouseEvent, path: string) {
+  if (!path || audioSrc.value !== path) return;
+  const target = e.currentTarget as HTMLElement;
+  const rect = target.getBoundingClientRect();
+  const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  const audio = getOrCreateAudio();
+  audio.currentTime = ratio * (audioDuration.value || 0);
+  audioCurrentTime.value = audio.currentTime;
+}
+
+/** 停止并销毁音频 */
+function stopAudio() {
+  if (audioEl.value) {
+    audioEl.value.pause();
+    audioEl.value.src = "";
+    audioEl.value.removeEventListener("timeupdate", () => {});
+    audioEl.value.removeEventListener("loadedmetadata", () => {});
+    audioEl.value.removeEventListener("ended", () => {});
+    audioEl.value.removeEventListener("error", () => {});
+    audioEl.value = null;
+  }
+  audioPlaying.value = false;
+  audioCurrentTime.value = 0;
+  audioDuration.value = 0;
+  audioSrc.value = "";
+}
+
+onUnmounted(() => {
+  stopAudio();
+});
+
+// 切换选中项时停止音频
+watch(selectedSuspect, () => {
+  stopAudio();
+});
 
 // ========== 辅助函数：状态标签 ==========
 function getProcessStatus(item: SuspectRecord | null): number {
@@ -2751,6 +2916,74 @@ defineExpose({
 .detail-field-card__value--link:hover {
   color: #0674d8;
   text-decoration: underline;
+}
+
+/* ========== 音频内联播放器 ========== */
+.audio-inline-player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 0;
+}
+
+.audio-inline-player__btn {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #0d82ee;
+  cursor: pointer;
+  transition: background 0.16s ease, transform 0.12s ease;
+  user-select: none;
+}
+
+.audio-inline-player__btn:hover {
+  background: #0674d8;
+}
+
+.audio-inline-player__btn:active {
+  transform: scale(0.92);
+}
+
+.audio-inline-player__icon {
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.audio-inline-player__track {
+  flex: 1;
+  height: 6px;
+  min-width: 0;
+  background: #e2e8f0;
+  border-radius: 3px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.audio-inline-player__track:hover {
+  background: #d0dce8;
+}
+
+.audio-inline-player__bar {
+  height: 100%;
+  background: #0d82ee;
+  border-radius: 3px;
+  transition: width 0.15s linear;
+  pointer-events: none;
+}
+
+.audio-inline-player__time {
+  flex: none;
+  font-size: 11px;
+  color: #7b8da0;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ========== 疑点处理区 ========== */

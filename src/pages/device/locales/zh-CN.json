@@ -2,6 +2,8 @@
   "devicePage": {
     "common": {
       "all": "全部",
+      "yes": "是",
+      "no": "否",
       "cancel": "取消",
       "confirm": "确定",
       "close": "关闭",
@@ -127,12 +129,16 @@
       "deviceNumber": "设备编号",
       "deviceType": "产品型号",
       "onlineStatus": "在线状态",
+      "installState": "安装状态",
       "enableState": "启用状态",
       "leakStatus": "渗漏状态",
       "startTime": "开始时间",
       "endTime": "结束时间",
       "maintainType": "维护类型",
-      "receiveStatus": "接受状态"
+      "receiveStatus": "接受状态",
+      "todayNew": "今日新增",
+      "latestInstalled": "最新安装",
+      "parseStatus": "解析状态"
     },
     "message": {
       "addSuccess": "创建成功",
@@ -202,6 +208,10 @@
         "1": "主线",
         "2": "二级支线",
         "3": "三级支线"
+      },
+      "parse": {
+        "success": "解析成功",
+        "fail": "解析失败"
       }
     },
     "deviceTable": {
