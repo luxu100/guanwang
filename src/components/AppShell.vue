@@ -747,7 +747,7 @@ function ensureAuthenticatedRoute() {
   return false;
 }
 
-function redirectToLogin(url = LOGIN_PATH) {
+function redirectToLogin(url: string = LOGIN_PATH) {
   // #ifdef H5
   // 生产环境使用 history 路由时，深层登录地址依赖服务器的 SPA fallback。
   // 通过根地址加登录页 hash 重新加载，服务器只需提供应用入口，不再请求深层 URL。
