@@ -284,6 +284,10 @@
           "opticalFiber": "光纤",
           "serialPort": "串口",
           "networkPort": "网口"
+        },
+        "algorithmType": {
+          "Hydrophone": "水听器",
+          "NoiseMeter": "噪音计"
         }
       }
     },

@@ -696,7 +696,17 @@ const addSchema = computed<FormSection[]>(() => [
       {
         key: "algorithmType",
         label: t("addSchema.algorithm.algorithmType"),
-        type: "input"
+        type: "select",
+        options: [
+          {
+            label: t("addSchema.option.algorithmType.Hydrophone"),
+            value: "RN-3H"
+          },
+          {
+            label: t("addSchema.option.algorithmType.NoiseMeter"),
+            value: null
+          }
+        ]
       },
       {
         key: "algorithmVersion",

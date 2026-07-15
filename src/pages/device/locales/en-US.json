@@ -284,6 +284,10 @@
           "opticalFiber": "Optical Fiber",
           "serialPort": "Serial Port",
           "networkPort": "Ethernet"
+        },
+        "algorithmType": {
+          "Hydrophone": "Hydrophone",
+          "NoiseMeter": "Noise Meter"
         }
       }
     },
