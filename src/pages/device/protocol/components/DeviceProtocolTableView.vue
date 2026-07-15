@@ -22,7 +22,7 @@
             <text class="data-cell">{{ t("deviceProtocol.table.updatedAt") }}</text>
           </view>
 
-          <view v-if="loading" class="loading-mask">{{ t('common.table.loading') }}</view>
+          <view v-if="loading" class="table-state table-state--loading">{{ t('common.table.loading') }}</view>
           <view v-else-if="deviceProtocolList.length === 0" class="table-state">{{ t('common.table.empty') }}</view>
 
           <view
@@ -585,5 +585,22 @@ function handleShowDetail(){
 }
 .data-cell--large{
   width: 240px;
+}
+
+.data-table {
+  min-width: 100%;
+  min-height: 100%;
+}
+
+.table-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  width: 100%;
+  min-height: 180px;
+  box-sizing: border-box;
+  line-height: 1.5;
+  text-align: center;
 }
 </style>

@@ -9,6 +9,7 @@ const parseTypeSource = readFileSync(new URL("../src/services/data-receive/parse
 const accessSource = readFileSync(new URL("../src/services/data-receive/access.js", import.meta.url), "utf8");
 const accessTypeSource = readFileSync(new URL("../src/services/data-receive/access.d.ts", import.meta.url), "utf8");
 const dataReceiveViewSource = readFileSync(new URL("../src/pages/data-receive/components/DataReceiveView.vue", import.meta.url), "utf8");
+const deviceProtocolViewSource = readFileSync(new URL("../src/pages/device/protocol/components/DeviceProtocolTableView.vue", import.meta.url), "utf8");
 
 test("partition semantic exports use region endpoints", () => {
   assert.match(source, /const regionApi = createCrudService\("\/api\/region"\)/);
@@ -64,6 +65,12 @@ test("device protocol creation binds by device_number instead of deviceId", () =
   assert.doesNotMatch(dataReceiveViewSource, /\{ key: "deviceId", label: "设备ID", type: "number", required: true \}/);
   assert.match(dataReceiveViewSource, /const detailRecord = mergeSelectedRecord\(item, response\.data\)/);
   assert.match(dataReceiveViewSource, /getValue\(listRecord \|\| \{\}, \["deviceNumber", "device_number"\]\)/);
+});
+
+test("device protocol loading states are centered in both module views", () => {
+  assert.match(dataReceiveViewSource, /\.table-state \{[\s\S]*display: flex;[\s\S]*align-items: center;[\s\S]*justify-content: center;/);
+  assert.match(deviceProtocolViewSource, /v-if="loading" class="table-state table-state--loading"/);
+  assert.match(deviceProtocolViewSource, /\.data-table \{[\s\S]*min-width: 100%;[\s\S]*min-height: 100%;/);
 });
 
 test("updated protocol parse service wraps list detail and parsed-json endpoints", () => {

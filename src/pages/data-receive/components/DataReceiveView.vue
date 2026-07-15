@@ -2839,10 +2839,17 @@ async function handleRefresh() {
 }
 
 .table-state {
-  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 100%;
+  height: 100%;
+  min-height: 180px;
+  box-sizing: border-box;
   color: var(--admin-muted-color, #7c8da1);
   font-size: 14px;
-  line-height: 180px;
+  line-height: 1.5;
   text-align: center;
 }
 
