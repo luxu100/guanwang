@@ -343,7 +343,12 @@
           "installMode":"安装模式",
           "installAddress":"安装地址",
           "installLongitude":"安装经度",
-          "installLatitude":"安装纬度"
+          "installLatitude":"安装纬度",
+
+          "algorithmType":"算法类型",
+          "algorithmVersion":"算法版本",
+          "pressureSensorModel":"压力传感器型号",
+          "pressureSensorSerialNumber":"压力传感器序列号"
         },
 
 

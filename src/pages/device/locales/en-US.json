@@ -341,7 +341,12 @@
           "installMode": "Installation Mode",
           "installAddress": "Installation Address",
           "installLongitude": "Installation Longitude",
-          "installLatitude": "Installation Latitude"
+          "installLatitude": "Installation Latitude",
+
+          "algorithmType": "Algorithm Type",
+          "algorithmVersion": "Algorithm Version",
+          "pressureSensorModel": "Pressure Sensor Model",
+          "pressureSensorSerialNumber": "Pressure Sensor Serial Number"
         },
 
         "communication": {
