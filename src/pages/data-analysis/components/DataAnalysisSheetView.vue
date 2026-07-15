@@ -1437,8 +1437,8 @@ watch(
 }
 
 .data-row--leakage {
-  grid-template-columns: 58px minmax(130px, 1.3fr) minmax(140px, 1.4fr) minmax(100px, 1fr) minmax(70px, 0.7fr) minmax(70px, 0.7fr) minmax(70px, 0.7fr) minmax(70px, 0.7fr) minmax(180px, 1.6fr);
-  min-width: 860px;
+  grid-template-columns: 58px minmax(130px, 1.3fr) minmax(140px, 1.4fr) minmax(100px, 1fr) minmax(70px, 0.7fr) minmax(70px, 0.7fr) minmax(90px, 0.9fr) minmax(90px, 0.9fr) minmax(180px, 1.6fr);
+  min-width: 920px;
 }
 
 .data-cell {
@@ -2172,8 +2172,8 @@ watch(
   }
 
   .data-row--leakage {
-    grid-template-columns: 46px minmax(110px, 1.1fr) minmax(120px, 1.2fr) minmax(60px, 0.6fr) minmax(60px, 0.6fr) minmax(60px, 0.6fr) minmax(60px, 0.6fr) minmax(140px, 1.3fr);
-    min-width: 670px;
+    grid-template-columns: 46px minmax(110px, 1.1fr) minmax(120px, 1.2fr) minmax(60px, 0.6fr) minmax(60px, 0.6fr) minmax(60px, 0.6fr) minmax(70px, 0.7fr) minmax(70px, 0.7fr) minmax(140px, 1.3fr);
+    min-width: 700px;
   }
 }
 

@@ -11,7 +11,6 @@
               <text class="spectrum-dialog__title">频谱分析</text>
               <text class="spectrum-device-tag">{{ item?.deviceId || "未知设备" }}</text>
             </view>
-            <text class="spectrum-dialog__subtitle">AUDIO SPECTRUM · 0—2,000 HZ SIGNAL INSIGHT</text>
           </view>
         </view>
         <view class="header-status">
@@ -48,7 +47,6 @@
           <view class="chart-corner chart-corner--bottom-right"></view>
           <view class="chart-topline">
             <view><text class="chart-topline__pulse"></text><text>实时频域特征</text></view>
-            <text>FFT 2048 · HANN WINDOW</text>
           </view>
           <view v-if="loading" class="spectrum-dialog__loading">
             <text class="loading-radar"><text></text></text>
@@ -374,21 +372,21 @@ function renderChart(freqData: Uint8Array, sampleRate: number) {
       animationEasing: "cubicOut",
       tooltip: {
         trigger: "axis",
-        backgroundColor: "rgba(5, 22, 39, 0.96)",
-        borderColor: "rgba(55, 196, 255, 0.46)",
+        backgroundColor: "rgba(255, 255, 255, 0.96)",
+        borderColor: "rgba(60, 160, 200, 0.5)",
         borderWidth: 1,
         padding: [9, 12],
-        textStyle: { color: "#dff6ff", fontSize: 11 },
+        textStyle: { color: "#234a66", fontSize: 11 },
         axisPointer: {
           type: "cross",
-          lineStyle: { color: "rgba(76, 205, 255, 0.55)", type: "dashed" },
-          crossStyle: { color: "rgba(76, 205, 255, 0.55)" },
-          label: { backgroundColor: "#0877a8", color: "#fff" },
+          lineStyle: { color: "rgba(60, 160, 200, 0.5)", type: "dashed" },
+          crossStyle: { color: "rgba(60, 160, 200, 0.5)" },
+          label: { backgroundColor: "#d0e8f4", color: "#234a66" },
         },
         formatter: (params: any) => {
           const point = Array.isArray(params) ? params[0] : params;
           if (!point?.value) return "";
-          return `<div style="color:#7edcff;font-size:10px;margin-bottom:4px">FREQUENCY RESPONSE</div><b>${Number(point.value[0]).toFixed(1)} Hz</b><span style="margin-left:14px;color:#8faec0">${Number(point.value[1]).toFixed(0)} dB</span>`;
+          return `频率 ${Number(point.value[0]).toFixed(1)}Hz 幅度 ${Number(point.value[1]).toFixed(0)}dB`;
         },
       },
       grid: { left: 62, right: 28, top: 34, bottom: 48, containLabel: false },
@@ -400,18 +398,18 @@ function renderChart(freqData: Uint8Array, sampleRate: number) {
         name: "频率 / Hz",
         nameLocation: "middle",
         nameGap: 30,
-        nameTextStyle: { color: "#6e9bb4", fontSize: 9, letterSpacing: 1.5 },
-        axisLine: { lineStyle: { color: "rgba(99, 158, 190, 0.52)" } },
+        nameTextStyle: { color: "#4a7d96", fontSize: 9, letterSpacing: 1.5 },
+        axisLine: { lineStyle: { color: "rgba(99, 158, 190, 0.65)" } },
         axisTick: { show: false },
         axisLabel: {
-          color: "#789db2",
+          color: "#5a8096",
           fontSize: 10,
           margin: 11,
           formatter: (value: number) => (value >= 1000 ? `${(value / 1000).toFixed(value % 1000 === 0 ? 0 : 1)}k` : `${Math.round(value)}`),
         },
-        splitLine: { show: true, lineStyle: { color: "rgba(76, 138, 171, 0.14)", type: "dashed" } },
-        minorTick: { show: true, splitNumber: 5, lineStyle: { color: "rgba(76, 138, 171, 0.2)" } },
-        minorSplitLine: { show: true, lineStyle: { color: "rgba(76, 138, 171, 0.045)" } },
+        splitLine: { show: true, lineStyle: { color: "rgba(100, 160, 185, 0.2)", type: "dashed" } },
+        minorTick: { show: true, splitNumber: 5, lineStyle: { color: "rgba(100, 160, 185, 0.25)" } },
+        minorSplitLine: { show: true, lineStyle: { color: "rgba(100, 160, 185, 0.07)" } },
       },
       yAxis: {
         type: "value",
@@ -421,11 +419,11 @@ function renderChart(freqData: Uint8Array, sampleRate: number) {
         name: "幅度 / dB",
         nameGap: 42,
         nameLocation: "middle",
-        nameTextStyle: { color: "#6e9bb4", fontSize: 9, letterSpacing: 1.2 },
-        axisLine: { lineStyle: { color: "rgba(99, 158, 190, 0.52)" } },
+        nameTextStyle: { color: "#4a7d96", fontSize: 9, letterSpacing: 1.2 },
+        axisLine: { lineStyle: { color: "rgba(99, 158, 190, 0.65)" } },
         axisTick: { show: false },
-        axisLabel: { color: "#789db2", fontSize: 10, margin: 10 },
-        splitLine: { lineStyle: { color: "rgba(76, 138, 171, 0.14)", type: "dashed" } },
+        axisLabel: { color: "#5a8096", fontSize: 10, margin: 10 },
+        splitLine: { lineStyle: { color: "rgba(100, 160, 185, 0.2)", type: "dashed" } },
       },
       series: [
         {
@@ -451,7 +449,7 @@ function renderChart(freqData: Uint8Array, sampleRate: number) {
             symbol: "circle",
             symbolSize: 9,
             label: { show: false },
-            itemStyle: { color: "#7fe8ff", borderColor: "#073f62", borderWidth: 2, shadowColor: "#39d6ff", shadowBlur: 12 },
+            itemStyle: { color: "#4ab8e0", borderColor: "#2d6d8a", borderWidth: 2, shadowColor: "#39b0d6", shadowBlur: 12 },
             data: [{ coord: [maxValueFrequency, maxValue] }],
           },
           markLine: {
@@ -464,9 +462,9 @@ function renderChart(freqData: Uint8Array, sampleRate: number) {
               color: "#69bddf",
               fontSize: 9,
               padding: [3, 5],
-              backgroundColor: "rgba(5, 37, 60, 0.82)",
+              backgroundColor: "rgba(40, 85, 115, 0.78)",
             },
-            lineStyle: { color: "rgba(63, 202, 255, 0.38)", type: "dashed", width: 1 },
+            lineStyle: { color: "rgba(60, 180, 220, 0.48)", type: "dashed", width: 1 },
             data: [{ xAxis: spectralCentroid.value }],
           },
         },
@@ -546,8 +544,8 @@ onUnmounted(() => {
   justify-content: center;
   padding: 20px;
   background:
-    radial-gradient(circle at 50% 25%, rgba(30, 106, 160, 0.13), transparent 42%),
-    rgba(11, 29, 46, 0.48);
+    radial-gradient(circle at 50% 25%, rgba(30, 106, 160, 0.08), transparent 42%),
+    rgba(60, 95, 120, 0.35);
   backdrop-filter: blur(3px);
   box-sizing: border-box;
 }
@@ -609,10 +607,10 @@ onUnmounted(() => {
   height: 38px;
   gap: 3px;
   padding: 8px 7px;
-  background: linear-gradient(145deg, #0878cf, #08a3dd);
-  border: 1px solid rgba(35, 147, 212, 0.72);
+  background: linear-gradient(145deg, #a3ddf8, #70c9f2);
+  border: 1px solid rgba(160, 215, 240, 0.7);
   border-radius: 6px;
-  box-shadow: 0 7px 15px rgba(12, 120, 191, 0.22);
+  box-shadow: 0 7px 15px rgba(70, 170, 220, 0.18);
   box-sizing: border-box;
 }
 
@@ -669,36 +667,36 @@ onUnmounted(() => {
   min-height: clamp(280px, 40vh, 620px);
   overflow: hidden;
   background:
-    radial-gradient(circle at 75% 15%, rgba(14, 123, 173, 0.17), transparent 30%),
-    linear-gradient(145deg, #071a2b, #09253a 58%, #061a2a);
-  border: 1px solid #1a526f;
+    radial-gradient(circle at 75% 15%, rgba(14, 123, 173, 0.08), transparent 30%),
+    linear-gradient(145deg, #e8f2f7, #dceaf2 58%, #eaf3f8);
+  border: 1px solid #bcd5e6;
   border-radius: 6px;
-  box-shadow: 0 13px 26px rgba(7, 35, 54, 0.18), 0 0 0 1px rgba(91, 200, 244, 0.05) inset;
+  box-shadow: 0 13px 26px rgba(7, 35, 54, 0.06), 0 0 0 1px rgba(180, 215, 235, 0.08) inset;
 }
-.spectrum-chart-panel::before { position: absolute; inset: 0; pointer-events: none; content: ""; background-image: linear-gradient(rgba(91, 189, 229, 0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(91, 189, 229, 0.025) 1px, transparent 1px); background-size: 22px 22px; }
-.chart-topline { position: absolute; top: 9px; left: 14px; right: 14px; z-index: 3; display: flex; align-items: center; justify-content: space-between; color: #537f98; font-size: 8px; font-family: Consolas, monospace; letter-spacing: 1px; pointer-events: none; }
-.chart-topline > view { display: flex; align-items: center; gap: 6px; color: #68c8eb; }
-.chart-topline__pulse { width: 5px; height: 5px; background: #36d3ff; border-radius: 50%; box-shadow: 0 0 8px #36d3ff; animation: pulse-dot 1.2s ease-out infinite; }
-@keyframes pulse-dot { 70% { box-shadow: 0 0 0 6px rgba(54, 211, 255, 0); } }
+.spectrum-chart-panel::before { position: absolute; inset: 0; pointer-events: none; content: ""; background-image: linear-gradient(rgba(100, 180, 210, 0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(100, 180, 210, 0.06) 1px, transparent 1px); background-size: 22px 22px; }
+.chart-topline { position: absolute; top: 9px; left: 14px; right: 14px; z-index: 3; display: flex; align-items: center; justify-content: space-between; color: #5a8ca5; font-size: 8px; font-family: Consolas, monospace; letter-spacing: 1px; pointer-events: none; }
+.chart-topline > view { display: flex; align-items: center; gap: 6px; color: #3a8cb5; }
+.chart-topline__pulse { width: 5px; height: 5px; background: #36b8d3; border-radius: 50%; box-shadow: 0 0 8px #36b8d3; animation: pulse-dot 1.2s ease-out infinite; }
+@keyframes pulse-dot { 70% { box-shadow: 0 0 0 6px rgba(54, 180, 210, 0); } }
 .chart-corner { position: absolute; z-index: 3; width: 16px; height: 16px; pointer-events: none; }
-.chart-corner--top-left { top: 5px; left: 5px; border-top: 1px solid #32bde9; border-left: 1px solid #32bde9; }
-.chart-corner--top-right { top: 5px; right: 5px; border-top: 1px solid #32bde9; border-right: 1px solid #32bde9; }
-.chart-corner--bottom-left { bottom: 5px; left: 5px; border-bottom: 1px solid #32bde9; border-left: 1px solid #32bde9; }
-.chart-corner--bottom-right { right: 5px; bottom: 5px; border-right: 1px solid #32bde9; border-bottom: 1px solid #32bde9; }
+.chart-corner--top-left { top: 5px; left: 5px; border-top: 1px solid #4faccf; border-left: 1px solid #4faccf; }
+.chart-corner--top-right { top: 5px; right: 5px; border-top: 1px solid #4faccf; border-right: 1px solid #4faccf; }
+.chart-corner--bottom-left { bottom: 5px; left: 5px; border-bottom: 1px solid #4faccf; border-left: 1px solid #4faccf; }
+.chart-corner--bottom-right { right: 5px; bottom: 5px; border-right: 1px solid #4faccf; border-bottom: 1px solid #4faccf; }
 .spectrum-canvas-container { position: relative; z-index: 1; width: 100%; height: clamp(280px, 40vh, 620px); }
 
-.spectrum-dialog__loading { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: clamp(280px, 40vh, 620px); color: #82a9be; }
-.loading-radar { position: relative; display: block; width: 56px; height: 56px; margin-bottom: 13px; border: 1px solid rgba(54, 203, 255, 0.25); border-radius: 50%; box-shadow: 0 0 20px rgba(27, 165, 215, 0.12) inset; }
+.spectrum-dialog__loading { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: clamp(280px, 40vh, 620px); color: #5a8ca0; }
+.loading-radar { position: relative; display: block; width: 56px; height: 56px; margin-bottom: 13px; border: 1px solid rgba(40, 160, 200, 0.3); border-radius: 50%; box-shadow: 0 0 20px rgba(27, 140, 190, 0.1) inset; }
 .loading-radar::before,
-.loading-radar::after { position: absolute; content: ""; background: rgba(54, 203, 255, 0.22); }
+.loading-radar::after { position: absolute; content: ""; background: rgba(40, 160, 200, 0.25); }
 .loading-radar::before { top: 50%; left: 5px; right: 5px; height: 1px; }
 .loading-radar::after { top: 5px; bottom: 5px; left: 50%; width: 1px; }
 .loading-radar > text { position: absolute; inset: 5px; display: block; overflow: hidden; border-radius: 50%; }
-.loading-radar > text::before { position: absolute; top: 50%; left: 50%; width: 50%; height: 1px; content: ""; background: linear-gradient(90deg, #38d2ff, transparent); transform-origin: left center; animation: radar-spin 1.25s linear infinite; }
+.loading-radar > text::before { position: absolute; top: 50%; left: 50%; width: 50%; height: 1px; content: ""; background: linear-gradient(90deg, #28a8d6, transparent); transform-origin: left center; animation: radar-spin 1.25s linear infinite; }
 @keyframes radar-spin { to { transform: rotate(360deg); } }
-.loading-title { color: #b9dae8; font-size: 13px; font-weight: 800; }
-.loading-hint { margin-top: 5px; color: #648ba0; font-size: 10px; }
-.spectrum-dialog__loading--error .loading-title { color: #f0bdbe; }
+.loading-title { color: #3a6d85; font-size: 13px; font-weight: 800; }
+.loading-hint { margin-top: 5px; color: #5a7d92; font-size: 10px; }
+.spectrum-dialog__loading--error .loading-title { color: #c94545; }
 .error-symbol { display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; margin-bottom: 12px; color: #ffb2b2; font-size: 22px; font-weight: 900; background: rgba(197, 65, 65, 0.12); border: 1px solid rgba(237, 110, 110, 0.35); border-radius: 50%; }
 .spectrum-dialog__empty { display: block; padding: 80px 0; color: #8a9aab; font-size: 14px; text-align: center; }
 
@@ -727,9 +725,9 @@ onUnmounted(() => {
 .seek-button__icon--plus::before { top: 50%; left: 0; right: 0; height: 2px; transform: translateY(-50%); }
 .seek-button__icon--plus::after { left: 50%; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); }
 .seek-button__text { font-size: 14px; font-family: Consolas, monospace; font-weight: 900; }
-.play-button { display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; margin: 0; padding: 0; background: linear-gradient(145deg, #1297e8, #0872ca); border: 1px solid #0871bd; border-radius: 50%; box-shadow: 0 8px 18px rgba(8, 117, 191, 0.3), 0 0 0 5px rgba(22, 154, 222, 0.08); }
-.play-button:hover:not([disabled]) { transform: translateY(-1px); box-shadow: 0 10px 22px rgba(8, 117, 191, 0.36), 0 0 0 6px rgba(22, 154, 222, 0.1); }
-.play-button--playing { background: linear-gradient(145deg, #08a6cc, #087fb4); }
+.play-button { display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; margin: 0; padding: 0; background: linear-gradient(145deg, #78cdf5, #4bb4eb); border: 1px solid #6abce5; border-radius: 50%; box-shadow: 0 8px 18px rgba(70, 160, 210, 0.22), 0 0 0 5px rgba(130, 210, 240, 0.08); }
+.play-button:hover:not([disabled]) { transform: translateY(-1px); box-shadow: 0 10px 22px rgba(70, 160, 210, 0.28), 0 0 0 6px rgba(130, 210, 240, 0.1); }
+.play-button--playing { background: linear-gradient(145deg, #68caea, #3fafdb); }
 .play-icon { width: 0; height: 0; margin-left: 3px; border-top: 8px solid transparent; border-bottom: 8px solid transparent; border-left: 12px solid #fff; }
 .pause-icon { display: flex; gap: 4px; }
 .pause-icon text { display: block; width: 4px; height: 15px; background: #fff; border-radius: 1px; }
@@ -740,16 +738,5 @@ onUnmounted(() => {
 .player-side-info__dot { width: 8px; height: 8px; background: #9babb6; border-radius: 50%; }
 .player-side-info__dot--active { background: #21b786; box-shadow: 0 0 7px rgba(33, 183, 134, 0.65); }
 .player-side-info__duration { color: #345d77; font-size: 17px; font-family: Consolas, monospace; font-weight: 900; }
-
-
-@media (max-width: 1020px) {
-  .spectrum-dialog { width: 92vw; }
-  .spectrum-metrics { grid-template-columns: repeat(2, 1fr); gap: 7px; }
-  .spectrum-chart-panel,
-  .spectrum-canvas-container,
-  .spectrum-dialog__loading { min-height: clamp(240px, 35vh, 380px); height: clamp(240px, 35vh, 380px); }
-  .spectrum-dialog__header { padding: 0 14px; }
-  .spectrum-dialog__subtitle { display: none; }
-}
 
 </style>
