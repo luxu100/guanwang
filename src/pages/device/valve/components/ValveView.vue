@@ -56,9 +56,9 @@ import type {DeptTreeVO, DeviceProtocolCreateFrom, Valve, ValveCreateFrom} from 
 import {createDeviceProtocolT, getDeptTreeT} from "@/services/device/info.typed";
 
 import {createScopedT} from "@/i18n";
-import type {PartitionNode} from "@/pages/device/components/x/XTreeNode.vue";
-import XTreeSelectDialog from "@/pages/device/components/x/XTreeSelectDialog.vue";
-import XDynamicDialog from "@/pages/device/components/x/XDynamicDialog.vue";
+import type {PartitionNode} from "@/pages/device/components/x/tree/XTreeNode.vue";
+import XTreeSelectDialog from "@/pages/device/components/x/dialog/XTreeSelectDialog.vue";
+import XDynamicDialog from "@/pages/device/components/x/dialog/XDynamicDialog.vue";
 import {deleteDeviceProtocolT, updateDeviceProtocolT} from "@/services/device/protocol.typed";
 import type {FormSection} from "@/pages/device/components/x/types";
 import {createValve, updateValve} from "@/services/device/info";

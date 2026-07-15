@@ -66,8 +66,8 @@
 <script setup lang="ts">
 import { reactive, watch } from "vue";
 import XToolbarActions from "./XToolbarActions.vue";
-import XDatetimePicker from "./XDatetimePicker.vue";
-import type { Field, DictItem } from "./types";
+import XDatetimePicker from "../form/XDatetimePicker.vue";
+import type { Field, DictItem } from "../types";
 import { createScopedT } from "@/i18n";
 
 const t=createScopedT("devicePage");

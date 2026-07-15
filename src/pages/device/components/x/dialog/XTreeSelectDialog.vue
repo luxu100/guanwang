@@ -46,7 +46,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import XTreeNode, { type PartitionNode } from "./XTreeNode.vue";
+import XTreeNode, { type PartitionNode } from "../tree/XTreeNode.vue";
 import {createScopedT} from "@/i18n";
 const t = createScopedT("devicePage");
 
@@ -145,8 +145,8 @@ function findNode(
 </script>
 
 <style scoped lang="scss">
-@import "@/pages/device/components/x/dialog.css";
-@import "@/pages/device/components/x/button.css";
+@import "@/pages/device/components/x/dialog/styles/dialog.css";
+@import "@/pages/device/components/x/common/button.css";
 
 /* 动画 */
 @keyframes fadeIn {

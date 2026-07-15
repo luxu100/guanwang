@@ -15,7 +15,7 @@
 
 <script setup lang="ts">
 import {computed, ref} from "vue";
-import XConfigToolbar from "@/pages/device/components/x/XConfigToolbar.vue";
+import XConfigToolbar from "@/pages/device/components/x/toolbar/XConfigToolbar.vue";
 import type { Field } from "@/pages/device/components/x/types";
 import { createScopedT } from "@/i18n";
 

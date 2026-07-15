@@ -88,7 +88,7 @@
 <script setup lang="ts">
 import { reactive, watch, ref } from "vue";
 import XToolbarActions from "./XToolbarActions.vue";
-import XDatetimePicker from "./XDatetimePicker.vue";
+import XDatetimePicker from "../form/XDatetimePicker.vue";
 import type { Field, DictItem } from "@/pages/device/components/x/types";
 
 import {createScopedT} from "@/i18n";

@@ -176,14 +176,14 @@ import {
   getMaintenanceRecordPageT, updateMaintenanceRecordT
 } from "@/services/device/maintenance.typed";
 import type {FormSection} from "@/pages/device/components/x/types";
-import XDynamicDialog from "@/pages/device/components/x/XDynamicDialog.vue";
-import XPaginationBar from "@/pages/device/components/x/XPaginationBar.vue";
+import XDynamicDialog from "@/pages/device/components/x/dialog/XDynamicDialog.vue";
+import XPaginationBar from "@/pages/device/components/x/table/XPaginationBar.vue";
 import {createScopedT} from "@/i18n";
 import {formatDate} from "@/utils/time";
-import XMapPopup from "@/pages/device/components/x/XMapPopup.vue";
-import XImageViewerDialog from "@/pages/device/components/x/XImageViewerDialog.vue";
-import XTooltip from "@/pages/device/components/x/XTooltip.vue";
-import XEntityDetailDialog from "@/pages/device/components/x/XEntityDetailDialog.vue";
+import XMapPopup from "@/pages/device/components/x/map/XMapPopup.vue";
+import XImageViewerDialog from "@/pages/device/components/x/dialog/XImageViewerDialog.vue";
+import XTooltip from "@/pages/device/components/x/table/XTooltip.vue";
+import XEntityDetailDialog from "@/pages/device/components/x/dialog/XEntityDetailDialog.vue";
 import {installStateOptions, maintainTypeOptions} from "@/pages/device/components/common";
 
 const t = createScopedT("devicePage");
@@ -912,10 +912,10 @@ const getMaintainTypeMeta = (type?: number): MaintainTypeMeta => {
 
 </script>
 <style scoped lang="scss">
-@import "@/pages/device/components/x/status.css";
-@import "@/pages/device/components/x/table-cell.css";
-@import "@/pages/device/components/x/table.css";
-@import "@/pages/device/components/x/table-row.css";
+@import "@/pages/device/components/x/common/status.css";
+@import "@/pages/device/components/x/table/styles/table-cell.css";
+@import "@/pages/device/components/x/table/styles/table.css";
+@import "@/pages/device/components/x/table/styles/table-row.css";
 .toolbar-wrapper {
   padding-bottom: 12px;
 }
