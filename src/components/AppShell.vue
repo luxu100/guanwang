@@ -200,8 +200,8 @@ import DeviceManagementView from "@/pages/device/components/DeviceManagementView
 import DeviceSettingsView from "@/pages/device/settings/components/DeviceSettingsView.vue";
 import SystemManagementView from "@/pages/system/components/SystemManagementView.vue";
 import SearchTemplateView from "@/pages/system/search/components/SearchTemplateView.vue";
-import CommandManagePage from "@/pages/command/commandManage.vue";
-import CommandConfigurationPage from "@/pages/command/commandConfiguration.vue";
+import CommandManageView from "@/pages/command/components/CommandManageView.vue";
+import CommandConfigurationView from "@/pages/command/components/CommandConfigurationView.vue";
 import DataReceiveView from "@/pages/data-receive/components/DataReceiveView.vue";
 import WorkOrderCreateView from "@/pages/work-order/components/WorkOrderCreateView.vue";
 import WorksheetTableView from "@/pages/work-order/components/WorksheetTableView.vue";
@@ -376,8 +376,8 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/device/parameter/parameter": { component: DeviceParameterView },
   "/pages/device/protocol/protocol": { component: DeviceManagementView, props: { mode: "protocol" } },
   "/pages/device/valve/valve": { component: ValveView },
-  "/pages/command/commandManage": { component: CommandManagePage },
-  "/pages/command/commandConfiguration": { component: CommandConfigurationPage },
+  "/pages/command/commandManage": { component: CommandManageView },
+  "/pages/command/commandConfiguration": { component: CommandConfigurationView },
   "/pages/data-analysis/overview/overview": createPlaceholderContent("/pages/data-analysis/overview/overview"),
   "/pages/data-analysis/audio/audio": { component: DataAnalysisSheetView, props: { mode: "audio" } },
   "/pages/data-analysis/leakage/leakage": { component: DataAnalysisSheetView, props: { mode: "leakage" } },

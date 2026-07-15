@@ -254,7 +254,7 @@
 				  <view class="form-field">
 				    <text class="form-label">分区中心</text>
 					<view class="input-icon">
-						 <input v-model="deptForm.regionCenter" class="form-input form-input-icon" placeholder="请选择分区中心" placeholder-class="input-placeholder" />
+						 <input v-model="deptForm.regionCenter" class="form-input form-input-icon" disabled placeholder="请选择分区中心" placeholder-class="input-placeholder" />
 						 <button class="icon-button input-icon-button" @click="openCenterDialog" >
 							<text>...</text>
 						 </button>
@@ -430,11 +430,194 @@
 			  </view>
 		</view>
 	  </view>
+
+	  <view v-if="colorDialogVisible" class="dialog-mask" @click="closeColorDialog">
+	    <view class="dialog-panel color-picker-panel" @click.stop>
+	      <view class="dialog-head">
+	        <text class="dialog-title">选择分区颜色</text>
+			<button class="icon-button" hover-class="icon-button--hover" aria-label="关闭" @click="closeColorDialog">
+				<text class="close-icon"></text>
+			</button>
+	      </view>
+
+	      <view class="dialog-body color-picker-body">
+	        <view class="color-picker-content">
+	          <view
+	            id="partition-color-board"
+	            ref="colorBoardRef"
+	            class="color-board"
+	            :style="{ backgroundColor: colorHueBase }"
+	            @click.stop="handleColorBoardClick"
+	            @tap.stop="handleColorBoardTap"
+	            @mousedown="handleColorBoardMouseDown"
+	            @touchstart.stop.prevent="handleColorBoardTouch"
+	            @touchmove.stop.prevent="handleColorBoardTouch"
+	          >
+	            <view class="color-board__white"></view>
+	            <view class="color-board__black"></view>
+	            <view
+	              class="color-board__cursor"
+	              :style="{ left: `${colorSaturation}%`, top: `${100 - colorValue}%` }"
+	            ></view>
+	          </view>
+	
+	          <view
+	            id="partition-color-hue"
+	            ref="colorHueRef"
+	            class="color-hue-slider"
+	            @click.stop="handleColorHueClick"
+	            @tap.stop="handleColorHueTap"
+	            @mousedown="handleColorHueMouseDown"
+	            @touchstart.stop.prevent="handleColorHueTouch"
+	            @touchmove.stop.prevent="handleColorHueTouch"
+	          >
+	            <view
+	              class="color-hue-slider__cursor"
+	              :style="{ top: `${(colorHue / 360) * 100}%` }"
+	            ></view>
+	          </view>
+	
+	          <view class="color-control-panel">
+	            <view class="color-current" :style="{ backgroundColor: colorTempHex }"></view>
+	
+	            <view class="color-input-list">
+	              <view class="color-input-row">
+	                <text class="color-input-label">R</text>
+	                <input
+	                  class="color-number-input"
+	                  type="number"
+	                  :value="colorRgb.r"
+	                  @input="handleColorRgbInput('r', $event)"
+	                />
+	              </view>
+	              <view class="color-input-row">
+	                <text class="color-input-label">G</text>
+	                <input
+	                  class="color-number-input"
+	                  type="number"
+	                  :value="colorRgb.g"
+	                  @input="handleColorRgbInput('g', $event)"
+	                />
+	              </view>
+	              <view class="color-input-row">
+	                <text class="color-input-label">B</text>
+	                <input
+	                  class="color-number-input"
+	                  type="number"
+	                  :value="colorRgb.b"
+	                  @input="handleColorRgbInput('b', $event)"
+	                />
+	              </view>
+	              <view class="color-input-row color-input-row--hex">
+	                <text class="color-input-label">#</text>
+	                <input
+	                  class="color-hex-input"
+	                  type="text"
+	                  maxlength="6"
+	                  :value="colorHexInput"
+	                  @input="handleColorHexInput"
+	                  @blur="normalizeColorHexInput"
+	                />
+	              </view>
+	            </view>
+	          </view>
+	        </view>
+	      </view>
+
+	      <view class="dialog-actions">
+	        <button class="primary-button" @click="confirmColor">确定</button>
+	        <button class="secondary-button" @click="closeColorDialog">取消</button>
+	      </view>
+	    </view>
+	  </view>
+
+	  <view v-if="centerDialogVisible" class="dialog-mask" @click="closeCenterDialog">
+	    <view class="center-dialog" @click.stop>
+	      <view class="dialog-head">
+	        <view>
+	          <text class="dialog-title">选择分区中心</text>
+	        </view>
+	        <button class="icon-button" hover-class="icon-button--hover" aria-label="关闭" @click="closeCenterDialog">
+	          <text class="close-icon"></text>
+	        </button>
+	      </view>
+
+	      <view class="center-dialog-body">
+	        <view class="center-map-wrap" :class="{ 'center-map-wrap--drawing': centerDrawing }">
+	          <!-- #ifdef H5 -->
+	          <LocaleCoordinateMap
+	            :key="centerMapKey"
+	            :lng="centerMapCoordinate.lng"
+	            :lat="centerMapCoordinate.lat"
+	            :selectable="centerDrawing"
+	            @pick="handleCenterPick"
+	          />
+	          <!-- #endif -->
+	          <!-- #ifndef H5 -->
+	          <view class="center-map-fallback">地图选点仅支持 H5 端</view>
+	          <!-- #endif -->
+	        </view>
+
+	        <view class="center-coordinate-form">
+	          <view class="form-field center-coordinate-form__location">
+	            <text class="form-label">位置</text>
+	            <input
+	              v-model="centerLocationText"
+	              class="form-input"
+	              confirm-type="search"
+	              placeholder="请输入地点或公司名称"
+	              placeholder-class="input-placeholder"
+	              @input="markCenterLocationEdited"
+	              @confirm="searchCenterLocation"
+	            />
+	          </view>
+	          <view class="form-field">
+	            <text class="form-label">经度</text>
+	            <input
+	              v-model="centerLngText"
+	              class="form-input"
+	              confirm-type="search"
+	              @input="markCenterCoordinateEdited"
+	              @confirm="searchCenterLocation"
+	            />
+	          </view>
+	          <view class="form-field">
+	            <text class="form-label">纬度</text>
+	            <view class="center-search-row">
+	              <input
+	                v-model="centerLatText"
+	                class="form-input center-search-row__input"
+	                confirm-type="search"
+	                @input="markCenterCoordinateEdited"
+	                @confirm="searchCenterLocation"
+	              />
+	              <button
+	                class="secondary-button center-search-button"
+	                :disabled="centerSearchDisabled"
+	                hover-class="secondary-button--hover"
+	                @click="searchCenterLocation"
+	              >
+	                {{ centerSearching ? "搜索中" : "搜索" }}
+	              </button>
+	            </view>
+	          </view>
+	        </view>
+	      </view>
+
+	      <view class="dialog-actions">
+	        <button class="secondary-button" hover-class="secondary-button--hover" @click="startCenterDrawing">绘制</button>
+	        <button class="primary-button" :disabled="centerConfirmDisabled" hover-class="primary-button--hover" @click="confirmCenterPick">确定</button>
+	        <button class="secondary-button" hover-class="secondary-button--hover" @click="closeCenterDialog">取消</button>
+	      </view>
+	    </view>
+	  </view>
     </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, reactive } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount, reactive } from "vue";
+import LocaleCoordinateMap from "@/components/map/LocaleCoordinateMap.vue";
+import { MAP_CONFIG } from "@/services/map/map";
 import { 
 	getDeptList, 
 	getDeptDetail,
@@ -992,13 +1175,711 @@ const openRangeDialog = () => {
   // rangeDialogVisible.value = true;
 };
 
-const openColorDialog = () => {
-  uni.showToast({ title: "颜色选择待接入", icon: "none" });
+const colorDialogVisible = ref(false);
+const colorBoardRef = ref<HTMLElement | null>(null);
+const colorHueRef = ref<HTMLElement | null>(null);
+const colorHue = ref(0);
+const colorSaturation = ref(100);
+const colorValue = ref(100);
+const colorTempHex = ref("#ff0000");
+const colorHexInput = ref("ff0000");
+const activeColorDrag = ref<"board" | "hue" | null>(null);
+const activeColorRect = ref<ColorRect | null>(null);
+
+type ColorChannel = "r" | "g" | "b";
+type ColorAreaType = "board" | "hue";
+
+type ColorPointerEvent = Event & {
+  clientX?: number;
+  clientY?: number;
+  pageX?: number;
+  pageY?: number;
+  offsetX?: number;
+  offsetY?: number;
+  touches?: ArrayLike<ColorTouchPoint>;
+  changedTouches?: ArrayLike<ColorTouchPoint>;
+  detail?: unknown;
 };
 
-const openCenterDialog = () => {
-  uni.showToast({ title: "分区中心待接入", icon: "none" });
+interface ColorPointerDetail {
+  x?: number;
+  y?: number;
+  clientX?: number;
+  clientY?: number;
+  pageX?: number;
+  pageY?: number;
+}
+
+interface ColorTouchPoint {
+  clientX?: number;
+  clientY?: number;
+  pageX?: number;
+  pageY?: number;
+}
+
+interface ColorRect {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+interface RgbColor {
+  r: number;
+  g: number;
+  b: number;
+}
+
+interface HsvColor {
+  h: number;
+  s: number;
+  v: number;
+}
+
+const colorHueBase = computed(() => hsvToHex(colorHue.value, 100, 100));
+const colorRgb = computed(() => hexToRgb(colorTempHex.value));
+
+const openColorDialog = () => {
+  setColorFromHex(deptForm.regionColor || "#000000", false);
+  colorDialogVisible.value = true;
 };
+
+const confirmColor = () => {
+  deptForm.regionColor = normalizeHexColor(colorTempHex.value);
+  closeColorDialog();
+};
+
+const closeColorDialog = () => {
+  colorDialogVisible.value = false;
+  stopColorDrag();
+};
+
+const handleColorBoardClick = (event: ColorPointerEvent) => {
+  updateColorByPointer("board", event);
+};
+
+const handleColorHueClick = (event: ColorPointerEvent) => {
+  updateColorByPointer("hue", event);
+};
+
+const handleColorBoardTap = (event: ColorPointerEvent) => {
+  updateColorByPointer("board", event);
+};
+
+const handleColorHueTap = (event: ColorPointerEvent) => {
+  updateColorByPointer("hue", event);
+};
+
+const handleColorBoardMouseDown = (event: ColorPointerEvent) => {
+  startColorDrag("board", event);
+};
+
+const handleColorHueMouseDown = (event: ColorPointerEvent) => {
+  startColorDrag("hue", event);
+};
+
+const handleColorBoardTouch = (event: ColorPointerEvent) => {
+  updateColorByPointer("board", event, getColorRect(event, "board"));
+};
+
+const handleColorHueTouch = (event: ColorPointerEvent) => {
+  updateColorByPointer("hue", event, getColorRect(event, "hue"));
+};
+
+const handleColorMouseMove = (event: MouseEvent) => {
+  if (activeColorDrag.value) {
+    updateColorByPointer(activeColorDrag.value, event, activeColorRect.value);
+  }
+};
+
+function startColorDrag(type: ColorAreaType, event: ColorPointerEvent) {
+  event.preventDefault();
+  activeColorDrag.value = type;
+  activeColorRect.value = getColorRect(event, type);
+  updateColorByPointer(type, event, activeColorRect.value);
+
+  if (typeof document !== "undefined") {
+    document.addEventListener("mousemove", handleColorMouseMove);
+    document.addEventListener("mouseup", stopColorDrag);
+  }
+}
+
+function stopColorDrag() {
+  activeColorDrag.value = null;
+  activeColorRect.value = null;
+
+  if (typeof document !== "undefined") {
+    document.removeEventListener("mousemove", handleColorMouseMove);
+    document.removeEventListener("mouseup", stopColorDrag);
+  }
+}
+
+function updateColorByPointer(type: ColorAreaType, event: ColorPointerEvent, rect: ColorRect | null = null) {
+  const point = getPointerPoint(event);
+  const offset = point ? null : getPointerOffset(event);
+  const targetRect = rect || getColorRect(event, type);
+
+  if ((!point && !offset) || !targetRect || targetRect.width <= 0 || targetRect.height <= 0) {
+    return;
+  }
+
+  const localX = point ? point.x - targetRect.left : offset!.x;
+  const localY = point ? point.y - targetRect.top : offset!.y;
+
+  if (type === "board") {
+    const nextSaturation = clamp((localX / targetRect.width) * 100, 0, 100);
+    const nextValue = clamp(100 - (localY / targetRect.height) * 100, 0, 100);
+    setColorFromHsv(colorHue.value, nextSaturation, nextValue);
+    return;
+  }
+
+  const nextHue = clamp((localY / targetRect.height) * 360, 0, 360);
+  setColorFromHsv(nextHue, colorSaturation.value, colorValue.value);
+}
+
+function getColorRect(event: ColorPointerEvent, type: ColorAreaType): ColorRect | null {
+  const target = event.currentTarget as (Element & { $el?: Element }) | null;
+  const targetElement = target?.$el || target;
+  const targetRect = targetElement?.getBoundingClientRect?.();
+
+  if (targetRect && targetRect.width > 0 && targetRect.height > 0) {
+    return {
+      left: targetRect.left,
+      top: targetRect.top,
+      width: targetRect.width,
+      height: targetRect.height,
+    };
+  }
+
+  const selector = type === "board" ? "#partition-color-board" : "#partition-color-hue";
+  const domElement = typeof document !== "undefined" ? document.querySelector(selector) : null;
+  const domRect = domElement?.getBoundingClientRect?.();
+
+  if (domRect && domRect.width > 0 && domRect.height > 0) {
+    return {
+      left: domRect.left,
+      top: domRect.top,
+      width: domRect.width,
+      height: domRect.height,
+    };
+  }
+
+  const fallbackElement = type === "board" ? colorBoardRef.value : colorHueRef.value;
+  const fallbackRect = fallbackElement?.getBoundingClientRect?.();
+
+  if (!fallbackRect || fallbackRect.width <= 0 || fallbackRect.height <= 0) {
+    return null;
+  }
+
+  return {
+    left: fallbackRect.left,
+    top: fallbackRect.top,
+    width: fallbackRect.width,
+    height: fallbackRect.height,
+  };
+}
+
+function getPointerPoint(event: ColorPointerEvent) {
+  const touch = event.touches?.[0] || event.changedTouches?.[0];
+
+  if (touch) {
+    const x = touch.clientX ?? touch.pageX;
+    const y = touch.clientY ?? touch.pageY;
+
+    return Number.isFinite(x) && Number.isFinite(y) ? { x: Number(x), y: Number(y) } : null;
+  }
+
+  const detail = isColorPointerDetail(event.detail) ? event.detail : null;
+  const detailX = detail?.clientX ?? detail?.x ?? detail?.pageX;
+  const detailY = detail?.clientY ?? detail?.y ?? detail?.pageY;
+
+  if (Number.isFinite(detailX) && Number.isFinite(detailY)) {
+    return { x: Number(detailX), y: Number(detailY) };
+  }
+
+  const eventX = event.clientX ?? event.pageX;
+  const eventY = event.clientY ?? event.pageY;
+
+  return Number.isFinite(eventX) && Number.isFinite(eventY)
+    ? { x: Number(eventX), y: Number(eventY) }
+    : null;
+}
+
+function isColorPointerDetail(value: unknown): value is ColorPointerDetail {
+  return value !== null && typeof value === "object";
+}
+
+function getPointerOffset(event: ColorPointerEvent) {
+  return Number.isFinite(event.offsetX) && Number.isFinite(event.offsetY)
+    ? { x: Number(event.offsetX), y: Number(event.offsetY) }
+    : null;
+}
+
+function handleColorRgbInput(channel: ColorChannel, event: Event) {
+  const current = colorRgb.value;
+  const nextValue = clamp(parseInt(getInputValue(event), 10) || 0, 0, 255);
+  const nextRgb = { ...current, [channel]: nextValue };
+  setColorFromRgb(nextRgb);
+}
+
+function handleColorHexInput(event: Event) {
+  const nextValue = getInputValue(event).replace(/[^0-9a-fA-F]/g, "").slice(0, 6);
+  colorHexInput.value = nextValue;
+
+  if (nextValue.length === 3 || nextValue.length === 6) {
+    setColorFromHex(`#${nextValue}`);
+  }
+}
+
+function normalizeColorHexInput() {
+  colorHexInput.value = normalizeHexColor(colorTempHex.value).slice(1);
+}
+
+function getInputValue(event: Event) {
+  const detailValue = (event as { detail?: { value?: string | number } }).detail?.value;
+  const targetValue = (event.target as HTMLInputElement | null)?.value;
+  return String(detailValue ?? targetValue ?? "");
+}
+
+function setColorFromHsv(h: number, s: number, v: number) {
+  colorHue.value = clamp(h, 0, 360);
+  colorSaturation.value = clamp(s, 0, 100);
+  colorValue.value = clamp(v, 0, 100);
+  syncColorTempFromHsv();
+}
+
+function syncColorTempFromHsv() {
+  const nextHex = hsvToHex(colorHue.value, colorSaturation.value, colorValue.value);
+  colorTempHex.value = nextHex;
+  colorHexInput.value = nextHex.slice(1);
+}
+
+function setColorFromRgb(rgb: RgbColor) {
+  const normalizedRgb = {
+    r: clamp(rgb.r, 0, 255),
+    g: clamp(rgb.g, 0, 255),
+    b: clamp(rgb.b, 0, 255),
+  };
+  const hsv = rgbToHsv(normalizedRgb);
+  colorHue.value = hsv.s === 0 ? colorHue.value : hsv.h;
+  colorSaturation.value = hsv.s;
+  colorValue.value = hsv.v;
+  colorTempHex.value = rgbToHex(normalizedRgb);
+  colorHexInput.value = colorTempHex.value.slice(1);
+}
+
+function setColorFromHex(value: string, preserveGrayHue = true) {
+  const nextHex = normalizeHexColor(value);
+  const rgb = hexToRgb(nextHex);
+  const hsv = rgbToHsv(rgb);
+
+  colorHue.value = hsv.s === 0 && preserveGrayHue ? colorHue.value : hsv.h;
+  colorSaturation.value = hsv.s;
+  colorValue.value = hsv.v;
+  colorTempHex.value = nextHex;
+  colorHexInput.value = nextHex.slice(1);
+}
+
+function normalizeHexColor(value?: string, fallback = "#000000") {
+  const rawValue = String(value || "").trim().replace(/^#/, "");
+  const fallbackValue = String(fallback || "#000000").trim().replace(/^#/, "");
+  const normalizedFallback = /^[0-9a-fA-F]{6}$/.test(fallbackValue) ? fallbackValue : "000000";
+
+  if (/^[0-9a-fA-F]{3}$/.test(rawValue)) {
+    return `#${rawValue.split("").map((item) => item + item).join("").toLowerCase()}`;
+  }
+
+  if (/^[0-9a-fA-F]{6}$/.test(rawValue)) {
+    return `#${rawValue.toLowerCase()}`;
+  }
+
+  return `#${normalizedFallback.toLowerCase()}`;
+}
+
+function hexToRgb(value: string): RgbColor {
+  const normalized = normalizeHexColor(value).slice(1);
+  return {
+    r: parseInt(normalized.slice(0, 2), 16),
+    g: parseInt(normalized.slice(2, 4), 16),
+    b: parseInt(normalized.slice(4, 6), 16),
+  };
+}
+
+function rgbToHex(rgb: RgbColor) {
+  const toHex = (value: number) => clamp(Math.round(value), 0, 255).toString(16).padStart(2, "0");
+  return `#${toHex(rgb.r)}${toHex(rgb.g)}${toHex(rgb.b)}`;
+}
+
+function hsvToHex(h: number, s: number, v: number) {
+  return rgbToHex(hsvToRgb({ h, s, v }));
+}
+
+function hsvToRgb(hsv: HsvColor): RgbColor {
+  const h = ((hsv.h % 360) + 360) % 360;
+  const s = clamp(hsv.s, 0, 100) / 100;
+  const v = clamp(hsv.v, 0, 100) / 100;
+  const c = v * s;
+  const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+  const m = v - c;
+  let r = 0;
+  let g = 0;
+  let b = 0;
+
+  if (h < 60) {
+    r = c;
+    g = x;
+  } else if (h < 120) {
+    r = x;
+    g = c;
+  } else if (h < 180) {
+    g = c;
+    b = x;
+  } else if (h < 240) {
+    g = x;
+    b = c;
+  } else if (h < 300) {
+    r = x;
+    b = c;
+  } else {
+    r = c;
+    b = x;
+  }
+
+  return {
+    r: Math.round((r + m) * 255),
+    g: Math.round((g + m) * 255),
+    b: Math.round((b + m) * 255),
+  };
+}
+
+function rgbToHsv(rgb: RgbColor): HsvColor {
+  const r = clamp(rgb.r, 0, 255) / 255;
+  const g = clamp(rgb.g, 0, 255) / 255;
+  const b = clamp(rgb.b, 0, 255) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const delta = max - min;
+  let h = 0;
+
+  if (delta !== 0) {
+    if (max === r) {
+      h = 60 * (((g - b) / delta) % 6);
+    } else if (max === g) {
+      h = 60 * ((b - r) / delta + 2);
+    } else {
+      h = 60 * ((r - g) / delta + 4);
+    }
+  }
+
+  return {
+    h: h < 0 ? h + 360 : h,
+    s: max === 0 ? 0 : (delta / max) * 100,
+    v: max * 100,
+  };
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, Number.isFinite(value) ? value : min));
+}
+
+onBeforeUnmount(() => {
+  stopColorDrag();
+});
+
+interface CoordinateValue {
+  lng: number;
+  lat: number;
+}
+
+const defaultCenterCoordinate: CoordinateValue = {
+  lng: 121.4737,
+  lat: 31.2304,
+};
+
+const centerDialogVisible = ref(false);
+const centerDrawing = ref(false);
+const centerMapCoordinate = ref<CoordinateValue>({ ...defaultCenterCoordinate });
+const centerPickedCoordinate = ref<CoordinateValue | null>(null);
+const centerLocationText = ref("");
+const centerLngText = ref("");
+const centerLatText = ref("");
+const centerSearching = ref(false);
+const centerLastEdited = ref<"location" | "coordinate" | "">("");
+const centerMapKey = computed(() => {
+  const mode = centerDrawing.value ? "select" : "preview";
+  return `${mode}-${centerMapCoordinate.value.lng}-${centerMapCoordinate.value.lat}`;
+});
+const centerInputCoordinate = computed(() => parseCoordinateInputs());
+const centerHasSearchText = computed(() => centerLocationText.value.trim() !== "");
+const centerHasCoordinateText = computed(() => {
+  return centerLngText.value.trim() !== "" || centerLatText.value.trim() !== "";
+});
+const centerSearchDisabled = computed(() => {
+  return (
+    centerSearching.value ||
+    (!centerHasSearchText.value && !centerHasCoordinateText.value)
+  );
+});
+const centerConfirmDisabled = computed(() => !centerInputCoordinate.value);
+
+const openCenterDialog = () => {
+  activeSelect.value = false;
+  const currentCoordinate = parseCoordinateText(deptForm.regionCenter);
+
+  centerPickedCoordinate.value = currentCoordinate;
+  centerMapCoordinate.value = currentCoordinate
+    ? { ...currentCoordinate }
+    : { ...defaultCenterCoordinate };
+  centerLocationText.value = "";
+  centerLastEdited.value = "";
+  syncCenterCoordinateInputs(currentCoordinate);
+  centerDrawing.value = false;
+  centerDialogVisible.value = true;
+};
+
+const closeCenterDialog = () => {
+  centerDialogVisible.value = false;
+  centerDrawing.value = false;
+  centerPickedCoordinate.value = null;
+  centerSearching.value = false;
+  centerLastEdited.value = "";
+};
+
+const startCenterDrawing = () => {
+  centerDrawing.value = true;
+};
+
+const markCenterLocationEdited = () => {
+  centerLastEdited.value = "location";
+};
+
+const markCenterCoordinateEdited = () => {
+  centerLastEdited.value = "coordinate";
+};
+
+const handleCenterPick = (coordinate: CoordinateValue) => {
+  const nextCoordinate = normalizeCoordinate(coordinate);
+
+  updateCenterMapCoordinate(nextCoordinate);
+};
+
+const confirmCenterPick = () => {
+  const coordinate = centerInputCoordinate.value;
+
+  if (!coordinate) {
+    uni.showToast({ title: "请先填写有效经纬度", icon: "none" });
+    return;
+  }
+
+  deptForm.regionCenter = formatCoordinate(coordinate);
+  closeCenterDialog();
+};
+
+const searchCenterLocation = async () => {
+  const coordinate = centerInputCoordinate.value;
+  const keyword = centerLocationText.value.trim();
+
+  if (centerLastEdited.value === "location" && keyword) {
+    await searchCenterByKeyword(keyword);
+    return;
+  }
+
+  if (coordinate) {
+    updateCenterMapCoordinate(coordinate);
+    uni.showToast({ title: "已定位到输入坐标", icon: "success" });
+    return;
+  }
+
+  if (centerHasCoordinateText.value) {
+    uni.showToast({ title: "请输入有效经纬度", icon: "none" });
+    return;
+  }
+
+  if (!keyword) {
+    uni.showToast({ title: "请输入位置或经纬度", icon: "none" });
+    return;
+  }
+
+  await searchCenterByKeyword(keyword);
+};
+
+const searchCenterByKeyword = async (keyword: string) => {
+  centerSearching.value = true;
+
+  try {
+    const result = await searchTencentPlace(keyword);
+
+    updateCenterMapCoordinate(result.coordinate);
+    uni.showToast({ title: "已定位到搜索结果", icon: "success" });
+  } catch (error) {
+    uni.showToast({
+      title: (error as Error)?.message || "地点搜索失败",
+      icon: "none",
+    });
+  } finally {
+    centerSearching.value = false;
+  }
+};
+
+function parseCoordinateText(value?: string): CoordinateValue | null {
+  if (!value) {
+    return null;
+  }
+
+  const matchedValues = value.match(/-?\d+(?:\.\d+)?/g);
+
+  if (!matchedValues || matchedValues.length < 2) {
+    return null;
+  }
+
+  const lng = Number(matchedValues[0]);
+  const lat = Number(matchedValues[1]);
+
+  if (!Number.isFinite(lng) || !Number.isFinite(lat)) {
+    return null;
+  }
+
+  return normalizeCoordinate({ lng, lat });
+}
+
+function normalizeCoordinate(coordinate: CoordinateValue): CoordinateValue {
+  return {
+    lng: Number(coordinate.lng.toFixed(6)),
+    lat: Number(coordinate.lat.toFixed(6)),
+  };
+}
+
+function formatCoordinate(coordinate: CoordinateValue) {
+  return `${coordinate.lng.toFixed(6)},${coordinate.lat.toFixed(6)}`;
+}
+
+function parseCoordinateInputs(): CoordinateValue | null {
+  const lngText = centerLngText.value.trim();
+  const latText = centerLatText.value.trim();
+
+  if (!lngText || !latText) {
+    return null;
+  }
+
+  const lng = Number(lngText);
+  const lat = Number(latText);
+
+  if (!isValidCoordinate(lng, lat)) {
+    return null;
+  }
+
+  return normalizeCoordinate({ lng, lat });
+}
+
+function isValidCoordinate(lng: number, lat: number) {
+  return (
+    Number.isFinite(lng) &&
+    Number.isFinite(lat) &&
+    lng >= -180 &&
+    lng <= 180 &&
+    lat >= -90 &&
+    lat <= 90
+  );
+}
+
+function syncCenterCoordinateInputs(coordinate: CoordinateValue | null) {
+  centerLngText.value = coordinate ? coordinate.lng.toFixed(6) : "";
+  centerLatText.value = coordinate ? coordinate.lat.toFixed(6) : "";
+}
+
+function updateCenterMapCoordinate(coordinate: CoordinateValue) {
+  const nextCoordinate = normalizeCoordinate(coordinate);
+
+  centerPickedCoordinate.value = nextCoordinate;
+  centerMapCoordinate.value = nextCoordinate;
+  centerLastEdited.value = "coordinate";
+  syncCenterCoordinateInputs(nextCoordinate);
+}
+
+interface TencentPlaceSearchResponse {
+  status: number;
+  message?: string;
+  data?: Array<{
+    title?: string;
+    address?: string;
+    location?: {
+      lng?: number;
+      lat?: number;
+    };
+  }>;
+}
+
+function searchTencentPlace(keyword: string): Promise<{
+  coordinate: CoordinateValue;
+  title: string;
+}> {
+  if (typeof document === "undefined") {
+    return Promise.reject(new Error("地点搜索仅支持 H5 端"));
+  }
+
+  if (!MAP_CONFIG.tencentKey) {
+    return Promise.reject(new Error("地图 Key 未配置"));
+  }
+
+  return new Promise((resolve, reject) => {
+    const callbackName = `__partitionCenterSearch_${Date.now()}_${Math.random()
+      .toString(36)
+      .slice(2)}`;
+    const script = document.createElement("script");
+    const runtimeWindow = window as unknown as Record<string, unknown>;
+    const timeout = window.setTimeout(() => {
+      cleanup();
+      reject(new Error("地点搜索超时"));
+    }, 10000);
+
+    const cleanup = () => {
+      window.clearTimeout(timeout);
+      delete runtimeWindow[callbackName];
+      script.remove();
+    };
+
+    runtimeWindow[callbackName] = (
+      response: TencentPlaceSearchResponse,
+    ) => {
+      cleanup();
+
+      const firstPlace = response.data?.find((item) => {
+        const lng = item.location?.lng;
+        const lat = item.location?.lat;
+        return lng !== undefined && lat !== undefined && isValidCoordinate(lng, lat);
+      });
+
+      if (response.status !== 0 || !firstPlace?.location) {
+        reject(new Error(response.message || "未搜索到地点"));
+        return;
+      }
+
+      resolve({
+        coordinate: normalizeCoordinate({
+          lng: firstPlace.location.lng!,
+          lat: firstPlace.location.lat!,
+        }),
+        title: firstPlace.title || firstPlace.address || keyword,
+      });
+    };
+
+    const params = new URLSearchParams({
+      keyword,
+      boundary: "region(全国,0)",
+      key: MAP_CONFIG.tencentKey,
+      output: "jsonp",
+      callback: callbackName,
+    });
+
+    script.src = `https://apis.map.qq.com/ws/place/v1/search?${params.toString()}`;
+    script.onerror = () => {
+      cleanup();
+      reject(new Error("地点搜索失败"));
+    };
+
+    document.head.appendChild(script);
+  });
+}
 
 
 interface UploadItem {
@@ -2204,24 +3085,263 @@ function getStatusClass(value: number) {
   border-color: #dbe4ec;
 }
 
-.color-dialog {
-  width: 460px;
-  background: #fff;
+.center-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(920px, 94vw);
+  height: min(720px, 88vh);
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #d8e6f2;
   border-radius: 6px;
+  box-shadow: 0 18px 46px rgba(15, 35, 55, 0.2);
 }
 
-.color-dialog-body {
-  padding: 16px 24px;
+.center-dialog-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  padding: 18px 24px 16px;
+  background: #ffffff;
+}
+
+.center-map-wrap {
+  flex: 1;
+  min-height: 360px;
+  overflow: hidden;
+  background: #f4f8fb;
+  border: 1px solid #d5e2ee;
+  border-radius: 4px;
+}
+
+.center-map-wrap--drawing,
+.center-map-wrap--drawing :deep(*) {
+  cursor: crosshair !important;
+}
+
+.center-map-fallback {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 360px;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 700;
 }
 
-.native-color-picker {
-  width: 120px;
-  height: 80px;
-  padding: 0;
-  border: none;
+.center-coordinate-form {
+  display: grid;
+  grid-template-columns: 268px 152px 230px;
+  gap: 14px;
+  flex: none;
+  justify-content: start;
+}
+
+.center-coordinate-form__location {
+  min-width: 0;
+}
+
+.center-search-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.center-search-row__input {
+  flex: 1;
+  min-width: 0;
+}
+
+.center-search-button {
+  min-width: 70px;
+  max-width: none;
+}
+
+.center-search-button[disabled] {
+  color: #98a6b5;
+  background: #eef3f7;
+  border-color: #d7e2ec;
+  opacity: 0.72;
+}
+
+.color-picker-panel {
+  width: 452px;
+  max-width: calc(100vw - 28px);
+}
+
+.color-picker-body {
+  padding: 10px 12px 12px;
+}
+
+.color-picker-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.color-board {
+  position: relative;
+  flex: none;
+  width: 236px;
+  height: 236px;
+  overflow: hidden;
+  cursor: crosshair;
+  border: 1px solid #b7c0cb;
+  box-sizing: border-box;
+}
+
+.color-board__white,
+.color-board__black {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.color-board__white {
+  background: linear-gradient(90deg, #ffffff 0%, rgba(255, 255, 255, 0) 100%);
+}
+
+.color-board__black {
+  background: linear-gradient(0deg, #000000 0%, rgba(0, 0, 0, 0) 100%);
+}
+
+.color-board__cursor {
+  position: absolute;
+  z-index: 2;
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.72);
+  transform: translate(-50%, -50%);
+  box-sizing: border-box;
+}
+
+.color-hue-slider {
+  position: relative;
+  flex: none;
+  width: 28px;
+  height: 236px;
+  cursor: ns-resize;
+  background: linear-gradient(
+    180deg,
+    #ff0000 0%,
+    #ffff00 16.66%,
+    #00ff00 33.33%,
+    #00ffff 50%,
+    #0000ff 66.66%,
+    #ff00ff 83.33%,
+    #ff0000 100%
+  );
+  border: 1px solid #c7d0d9;
+  box-sizing: border-box;
+}
+
+.color-hue-slider__cursor {
+  position: absolute;
+  left: -6px;
+  right: -6px;
+  height: 0;
+  pointer-events: none;
+  border-top: 2px solid rgba(255, 255, 255, 0.95);
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45));
+  transform: translateY(-1px);
+}
+
+.color-hue-slider__cursor::before,
+.color-hue-slider__cursor::after {
+  position: absolute;
+  top: -5px;
+  width: 0;
+  height: 0;
+  content: "";
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+}
+
+.color-hue-slider__cursor::before {
+  left: -1px;
+  border-left: 0;
+  border-right: 6px solid #8a8f98;
+}
+
+.color-hue-slider__cursor::after {
+  right: -1px;
+  border-right: 0;
+  border-left: 6px solid #8a8f98;
+}
+
+.color-control-panel {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 12px;
+  width: 104px;
+}
+
+.color-current {
+  width: 104px;
+  height: 42px;
+  border: 1px solid #c7d0d9;
+  box-sizing: border-box;
+}
+
+.color-input-list {
+  display: grid;
+  gap: 10px;
+}
+
+.color-input-row {
+  display: flex;
+  align-items: center;
+  width: 104px;
+  height: 30px;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #cfd7df;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.color-input-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 25px;
+  height: 100%;
+  flex: none;
+  color: #53687f;
+  font-size: 16px;
+  font-weight: 700;
+  background: #f5f7fa;
+  border-right: 1px solid #d7dfe7;
+  box-sizing: border-box;
+}
+
+.color-number-input,
+.color-hex-input {
+  min-width: 0;
+  height: 100%;
+  flex: 1;
+  padding: 0 7px;
+  color: #2f4054;
+  font-size: 15px;
+  line-height: 30px;
+  text-align: right;
+  background: #ffffff;
+  border: 0;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.color-hex-input {
+  text-align: left;
+  text-transform: lowercase;
 }
 
 .color-preview {
@@ -2321,6 +3441,52 @@ function getStatusClass(value: number) {
 
   .toolbar-actions {
     flex-wrap: wrap;
+  }
+
+  .center-dialog {
+    width: 94vw;
+    height: 86vh;
+  }
+
+  .center-dialog-body {
+    padding: 14px;
+  }
+
+  .center-map-wrap,
+  .center-map-fallback {
+    min-height: 280px;
+  }
+
+  .center-coordinate-form {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .color-picker-panel {
+    width: 94vw;
+  }
+
+  .color-picker-content {
+    flex-wrap: wrap;
+  }
+
+  .color-board {
+    width: min(236px, calc(94vw - 110px));
+    height: min(236px, calc(94vw - 110px));
+  }
+
+  .color-hue-slider {
+    height: min(236px, calc(94vw - 110px));
+  }
+
+  .color-control-panel {
+    width: 100%;
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .color-input-list {
+    grid-template-columns: repeat(2, 104px);
   }
 }
 
