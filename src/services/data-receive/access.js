@@ -8,6 +8,20 @@ import { createCrudService, getRequest } from "@/services/shared/crud";
 const protocolDefinitionApi = createCrudService("/api/protocol-definition");
 const deviceProtocolRelationApi = createCrudService("/api/device-protocol-relation");
 
+function normalizeDeviceProtocolRelationPayload(data = {}) {
+  const {
+    deviceId: _deviceId,
+    deviceNumber,
+    device_number: deviceNumberSnakeCase,
+    ...payload
+  } = data;
+
+  return {
+    ...payload,
+    device_number: deviceNumberSnakeCase ?? deviceNumber,
+  };
+}
+
 export const getProtocolDefinitionPage = protocolDefinitionApi.getPage;
 export const getProtocolDefinitionList = protocolDefinitionApi.getList;
 export const getProtocolDefinitionDetail = protocolDefinitionApi.getDetail;
@@ -19,8 +33,12 @@ export const batchDeleteProtocolDefinition = protocolDefinitionApi.batchDelete;
 export const getDeviceProtocolRelationPage = deviceProtocolRelationApi.getPage;
 export const getDeviceProtocolRelationList = deviceProtocolRelationApi.getList;
 export const getDeviceProtocolRelationDetail = deviceProtocolRelationApi.getDetail;
-export const createDeviceProtocolRelation = deviceProtocolRelationApi.create;
-export const updateDeviceProtocolRelation = deviceProtocolRelationApi.update;
+export function createDeviceProtocolRelation(data) {
+  return deviceProtocolRelationApi.create(normalizeDeviceProtocolRelationPayload(data));
+}
+export function updateDeviceProtocolRelation(id, data) {
+  return deviceProtocolRelationApi.update(id, normalizeDeviceProtocolRelationPayload(data));
+}
 export const deleteDeviceProtocolRelation = deviceProtocolRelationApi.delete;
 export const batchDeleteDeviceProtocolRelation = deviceProtocolRelationApi.batchDelete;
 

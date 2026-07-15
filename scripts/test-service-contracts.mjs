@@ -6,6 +6,8 @@ const source = readFileSync(new URL("../src/services/partition/partition.js", im
 const typeSource = readFileSync(new URL("../src/services/partition/partition.d.ts", import.meta.url), "utf8");
 const parseSource = readFileSync(new URL("../src/services/data-receive/parse.js", import.meta.url), "utf8");
 const parseTypeSource = readFileSync(new URL("../src/services/data-receive/parse.d.ts", import.meta.url), "utf8");
+const accessSource = readFileSync(new URL("../src/services/data-receive/access.js", import.meta.url), "utf8");
+const accessTypeSource = readFileSync(new URL("../src/services/data-receive/access.d.ts", import.meta.url), "utf8");
 const dataReceiveViewSource = readFileSync(new URL("../src/pages/data-receive/components/DataReceiveView.vue", import.meta.url), "utf8");
 
 test("partition semantic exports use region endpoints", () => {
@@ -52,6 +54,16 @@ test("protocol field format metadata endpoint is wrapped and used", () => {
   assert.match(parseTypeSource, /interface FieldFormatMetadata/);
   assert.match(dataReceiveViewSource, /getProtocolFieldFormats/);
   assert.match(dataReceiveViewSource, /startPosition: normalizeImportNumber\(getFirstImportValue\(field, \["startPosition", "startBit", "offset", "start"\]\)\)/);
+});
+
+test("device protocol creation binds by device_number instead of deviceId", () => {
+  assert.match(accessSource, /device_number: deviceNumberSnakeCase \?\? deviceNumber/);
+  assert.match(accessSource, /deviceId: _deviceId/);
+  assert.match(accessTypeSource, /device_number: string/);
+  assert.match(dataReceiveViewSource, /\{ key: "deviceNumber", label: "设备编号", required: true \}/);
+  assert.doesNotMatch(dataReceiveViewSource, /\{ key: "deviceId", label: "设备ID", type: "number", required: true \}/);
+  assert.match(dataReceiveViewSource, /const detailRecord = mergeSelectedRecord\(item, response\.data\)/);
+  assert.match(dataReceiveViewSource, /getValue\(listRecord \|\| \{\}, \["deviceNumber", "device_number"\]\)/);
 });
 
 test("updated protocol parse service wraps list detail and parsed-json endpoints", () => {

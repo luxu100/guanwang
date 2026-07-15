@@ -602,7 +602,7 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
       ...baseTimeFilters,
     ],
     formFields: [
-      { key: "deviceId", label: "设备ID", type: "number", required: true },
+      { key: "deviceNumber", label: "设备编号", required: true },
       { key: "protocolId", label: "协议ID", type: "number", required: true },
       { key: "afn", label: "AFN" },
       { key: "taskType", label: "任务类型" },
@@ -1060,7 +1060,7 @@ function parseResponseRecords(response: ApiResponseLike) {
 function normalizeDeviceProtocolRelations(items: RecordLike[]) {
   return items.map((item) => ({
     ...item,
-    deviceNumber: getText(item, ["deviceNumber"], "-"),
+    deviceNumber: getText(item, ["deviceNumber", "device_number"], "-"),
     protocolName:
       getValue(item, ["protocolName"]) ??
       getValue(item, ["protocol", "protocolName"]) ??
@@ -1233,7 +1233,8 @@ function jumpToPage(page: number) {
 
 async function selectRecord(item: RecordLike | null, index: number) {
   selectedRecord.value = item;
-  selectedKey.value = item ? getRowKey(item, index) : "";
+  const rowKey = item ? getRowKey(item, index) : "";
+  selectedKey.value = rowKey;
   fillForm(item);
 
   if (isProtocolFieldEditor.value) {
@@ -1252,13 +1253,33 @@ async function selectRecord(item: RecordLike | null, index: number) {
   try {
     const response = await activeConfig.value.getDetail(id);
     assertSuccessResponse(response);
-    if (isObject(response.data)) {
-      selectedRecord.value = response.data;
-      fillForm(response.data);
+    if (isObject(response.data) && selectedKey.value === rowKey) {
+      const detailRecord = mergeSelectedRecord(item, response.data);
+      selectedRecord.value = detailRecord;
+      fillForm(detailRecord);
     }
   } catch {
     // 详情接口失败时保留列表行，避免影响主表查看。
   }
+}
+
+function mergeSelectedRecord(listRecord: RecordLike | null, detailRecord: RecordLike) {
+  const merged = {
+    ...(listRecord || {}),
+    ...detailRecord,
+  };
+
+  if (activeConfig.value.key === "relation") {
+    const deviceNumber =
+      getValue(detailRecord, ["deviceNumber", "device_number"]) ??
+      getValue(listRecord || {}, ["deviceNumber", "device_number"]);
+
+    if (deviceNumber !== undefined && deviceNumber !== null && deviceNumber !== "") {
+      merged.deviceNumber = deviceNumber;
+    }
+  }
+
+  return merged;
 }
 
 function fillForm(item: RecordLike | null) {
@@ -1268,6 +1289,9 @@ function fillForm(item: RecordLike | null) {
 
   for (const field of activeConfig.value.formFields || []) {
     let value = item ? getValue(item, [field.key]) : undefined;
+    if (activeConfig.value.key === "relation" && field.key === "deviceNumber" && (value === undefined || value === null || value === "")) {
+      value = item ? getValue(item, ["device_number"]) : undefined;
+    }
     if (activeConfig.value.key === "protocol" && field.key === "id" && (value === undefined || value === null || value === "")) {
       value = item ? getValue(item, ["port"]) : undefined;
     }
