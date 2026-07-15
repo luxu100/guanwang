@@ -462,7 +462,11 @@ function clearSearch() {
 }
 
 function isMenuItemActive(item: MenuItem) {
-  return currentPath.value === item.path || Boolean(item.children?.some((child) => currentPath.value === child.path));
+  if (item.children?.length) {
+    return item.children.some((child) => currentPath.value === child.path);
+  }
+
+  return currentPath.value === item.path;
 }
 
 function isMenuItemExpanded(item: MenuItem) {

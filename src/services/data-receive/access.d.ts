@@ -34,7 +34,11 @@ export interface DeviceProtocolRelation {
   updatedAt?: string;
   isDeleted?: boolean;
   deviceId?: ServiceId;
+  deviceName?: string;
+  deviceAlias?: string;
+  deviceNumber?: string;
   protocolId?: ServiceId;
+  protocolName?: string;
   afn?: string;
   taskType?: string;
   contentPrefix?: string;

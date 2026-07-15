@@ -10,6 +10,8 @@ export interface SearchTemplateItem {
   protocolId?: number | string;
   protocolName?: string;
   deviceId?: number | string;
+  deviceName?: string;
+  deviceAlias?: string;
   deviceNumber?: string;
   fieldNames?: string[];
   enabled?: boolean;

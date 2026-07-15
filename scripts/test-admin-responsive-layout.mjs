@@ -95,10 +95,24 @@ test("refresh animations and super admin partition locking remain enabled", () =
 test("query filters use business names instead of ids and parse hides the field tab", () => {
   assert.match(searchTemplateSource, /协议名称/);
   assert.match(searchTemplateSource, /v-model="filters\.protocolName"/);
-  assert.match(searchTemplateSource, /设备编号/);
-  assert.match(searchTemplateSource, /v-model="filters\.deviceNumber"/);
+  assert.match(searchTemplateSource, /设备名称/);
+  assert.match(searchTemplateSource, /v-model="filters\.deviceName"/);
+  assert.match(searchTemplateSource, /getTemplateDeviceName/);
+  assert.match(searchTemplateSource, /getTemplateProtocolName/);
   assert.match(dataReceiveSource, /parse:\s*\["parseRecord", "algorithmResult"\]/);
   assert.doesNotMatch(dataReceiveSource, /parse:\s*\["field",/);
   assert.match(dataReceiveSource, /\{ key: "protocolName", label: "协议名称" \}/);
-  assert.match(dataReceiveSource, /\{ key: "deviceNumber", label: "设备编号" \}/);
+  assert.match(dataReceiveSource, /\{ key: "deviceName", label: "设备名称" \}/);
+  assert.doesNotMatch(dataReceiveSource, /\{ key: "deviceId", label: "设备ID" \},\s*\.\.\.baseTimeFilters/);
+  assert.doesNotMatch(dataReceiveSource, /\{ key: "protocolId", label: "协议ID" \},\s*\.\.\.baseTimeFilters/);
+});
+
+test("data records render as a table without detail requests", () => {
+  assert.match(dataReceiveSource, /const isTableOnly = computed\(\(\) => props\.mode === "record"\)/);
+  assert.match(dataReceiveSource, /v-if="!isProtocolFieldEditor && !isTableOnly"/);
+  assert.match(dataReceiveSource, /'data-layout--table-only': isTableOnly/);
+  assert.match(dataReceiveSource, /if \(isTableOnly\.value\) \{\s*return;\s*\}/);
+  assert.match(dataReceiveSource, /samplingRecord: createRecordSection\([\s\S]*?getSamplingRecordPage,\s*\[/);
+  assert.doesNotMatch(dataReceiveSource, /samplingRecord: createRecordSection\([\s\S]*?getSamplingRecordDetail/);
+  assert.doesNotMatch(dataReceiveSource, /samplingDetail: createRecordSection\([\s\S]*?getSamplingDetailDetail/);
 });
