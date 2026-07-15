@@ -18,34 +18,23 @@
       </view>
 
       <view v-else>
-        <view class="detail-panel__summary">
-          <view class="detail-panel__summary-main">
-            <text class="detail-panel__summary-label">{{ ti('title') }}</text>
-            <text class="detail-panel__summary-number">{{ deviceData.deviceNumber || '--' }}</text>
-          </view>
+          <view
+              v-if="activeTab !== 'relation'"
+              class="detail-panel__summary"
+          >
+            <view class="detail-panel__summary-main">
+              <text class="detail-panel__summary-label">{{ ti('title') }}</text>
+              <text class="detail-panel__summary-number">{{ deviceData.deviceNumber || '--' }}</text>
+            </view>
 
-          <view class="detail-panel__summary-badges">
-            <text class="detail-panel__summary-badge detail-panel__tag detail-panel__tag--status" :class="statusClass">
-              {{ getDeviceStatusLabel }}
-            </text>
-            <text class="detail-panel__summary-badge detail-panel__tag detail-panel__tag--level">
-              {{ getDeviceTypeLabel }}
-            </text>
-          </view>
-
-<!--          <view class="detail-panel__summary-meta">-->
-<!--            <view-->
-<!--                v-for="item in [-->
-<!--              {label:ti('summary.type'),value:getDeviceTypeLabel},-->
-<!--              {label:ti('summary.online'),value:getDeviceStatusLabel}-->
-<!--            ]"-->
-<!--                :key="item.label"-->
-<!--                class="detail-panel__summary-meta-item"-->
-<!--            >-->
-<!--              <text class="detail-panel__summary-meta-label">{{ item.label }}</text>-->
-<!--              <text class="detail-panel__summary-meta-value">{{ item.value }}</text>-->
-<!--            </view>-->
-<!--          </view>-->
+            <view class="detail-panel__summary-badges">
+              <text class="detail-panel__summary-badge detail-panel__tag detail-panel__tag--status" :class="statusClass">
+                {{ getDeviceStatusLabel }}
+              </text>
+              <text class="detail-panel__summary-badge detail-panel__tag detail-panel__tag--level">
+                {{ getDeviceTypeLabel }}
+              </text>
+            </view>
         </view>
 
         <view class="detail-panel__timeline">
@@ -53,6 +42,9 @@
               v-for="section in currentSections"
               :key="section.key"
               class="detail-panel__timeline-section"
+              :class="{
+                'detail-panel__timeline-section--flat': !section.title
+              }"
           >
             <text class="detail-panel__timeline-title">{{ section.title }}</text>
 
@@ -61,6 +53,9 @@
                   v-for="item in section.fields"
                   :key="item.key"
                   class="detail-panel__item detail-panel__item--base"
+                  :class="{
+                     'detail-panel__item--half': item.span==='half'
+                   }"
               >
                 <text class="detail-panel__item-label">{{ item.label }}</text>
                 <text class="detail-panel__item-value">{{ item.value || '--' }}</text>
@@ -104,11 +99,29 @@ const emit=defineEmits<{
   (e:'edit',data:Partial<Device>):void;
 }>();
 
-const activeTab=ref('detail');
+const activeTab=ref('base');
 
 const detailTabs = computed(() => [
-  {label:ti('tabs.detail'),value:'detail'},
-  {label:ti('tabs.relation'),value:'relation'}
+  {
+    label: ti('tabs.base'),
+    value: 'base'
+  },
+  {
+    label: ti('tabs.status'),
+    value: 'status'
+  },
+  {
+    label: ti('tabs.install'),
+    value: 'install'
+  },
+  {
+    label: ti('tabs.communication'),
+    value: 'communication'
+  },
+  {
+    label: ti('tabs.relation'),
+    value: 'relation'
+  }
 ]);
 
 const DICT_MAPS: Record<string, Record<number, string>> = {
@@ -141,6 +154,7 @@ interface FieldConfig{
   label:string;
   type:'text'|'dict'|'date';
   dict?:string;
+  span?: 'full' | 'half';
 }
 
 interface SectionConfig{
@@ -150,58 +164,179 @@ interface SectionConfig{
 }
 
 
-const detailSectionsConfig = computed<SectionConfig[]>(()=>[
-  {
-    key:'base',
-    title:ti('section.base'),
-    fields:[
-      {key:'deviceNumber',label:ti('fields.device.deviceNumber'),type:'text'},
-      {key:'deviceAlias',label:ti('fields.device.deviceAlias'),type:'text'},
-      {key:'deviceType',label:ti('fields.device.deviceType'),type:'text'},
-      {key:'nbNumber',label:ti('fields.device.nbNumber'),type:'text'},
-      {key:'deviceImei',label:ti('fields.device.deviceImei'),type:'text'},
-      {key:'deviceImsi',label:ti('fields.device.deviceImsi'),type:'text'},
-      {key:'serialNumber',label:ti('fields.device.serialNumber'),type:'text'},
-      {key:'hardwareVersion',label:ti('fields.device.hardwareVersion'),type:'text'},
-      {key:'softwareVersion',label:ti('fields.device.softwareVersion'),type:'text'}
-    ]
-  },
-  {
-    key:'status',
-    title:ti('section.status'),
-    fields:[
-      {key:'enableState',label:ti('fields.device.enableState'),type:'dict',dict:'enableState'},
-      {key:'onlineStatus',label:ti('fields.device.onlineStatus'),type:'dict',dict:'onlineStatus'},
-      {key:'leakStatus',label:ti('fields.device.leakStatus'),type:'dict',dict:'leakStatus'},
-      {key:'lastSamplingTime',label:ti('fields.device.lastSamplingTime'),type:'date'}
-    ]
-  },
-  {
-    key:'install',
-    title:ti('section.install'),
-    fields:[
-      {key:'installState',label:ti('fields.device.installState'),type:'dict',dict:'installState'},
-      {key:'installMode',label:ti('fields.device.installMode'),type:'dict',dict:'installMode'},
-      {key:'installAddress',label:ti('fields.device.installAddress'),type:'text'},
-      {key:'installLongitude',label:ti('fields.device.installLongitude'),type:'text'},
-      {key:'installLatitude',label:ti('fields.device.installLatitude'),type:'text'}
-    ]
-  },
-  {
-    key:'communication',
-    title:ti('section.communication'),
-    fields:[
-      {key:'wifiName',label:ti('fields.communication.wifiName'),type:'text'},
-      {key:'wifiMac',label:ti('fields.communication.wifiMac'),type:'text'},
-      {key:'serverIp',label:ti('fields.communication.serverIp'),type:'text'},
-      {key:'serverPort',label:ti('fields.communication.serverPort'),type:'text'},
-      {key:'tcpSessionId',label:ti('fields.communication.tcpSessionId'),type:'text'},
-      {key:'tcpLastSeenAt',label:ti('fields.communication.tcpLastSeenAt'),type:'date'},
-      {key:'aepProtocol',label:ti('fields.communication.aepProtocol'),type:'text'}
-    ]
-  }
-]);
+const detailTabConfig = computed<Record<string,SectionConfig[]>>(()=>({
+  base:[
+    {
+      key:'base',
+      title:'',
+      fields:[
+        {
+          key:'deviceNumber',
+          label:ti('fields.device.deviceNumber'),
+          type:'text'
+        },
+        {
+          key:'deviceAlias',
+          label:ti('fields.device.deviceAlias'),
+          type:'text'
+        },
+        {
+          key:'deviceType',
+          label:ti('fields.device.deviceType'),
+          type:'text'
+        },
+        {
+          key:'nbNumber',
+          label:ti('fields.device.nbNumber'),
+          type:'text'
+        },
+        {
+          key:'deviceImei',
+          label:ti('fields.device.deviceImei'),
+          type:'text'
+        },
+        {
+          key:'deviceImsi',
+          label:ti('fields.device.deviceImsi'),
+          type:'text'
+        },
+        {
+          key:'serialNumber',
+          label:ti('fields.device.serialNumber'),
+          type:'text'
+        },
+        {
+          key:'hardwareVersion',
+          label:ti('fields.device.hardwareVersion'),
+          type:'text'
+        },
+        {
+          key:'softwareVersion',
+          label:ti('fields.device.softwareVersion'),
+          type:'text'
+        }
+      ]
+    }
+  ],
 
+
+  status:[
+    {
+      key:'status',
+      title:'',
+      fields:[
+        {
+          key:'enableState',
+          label:ti('fields.device.enableState'),
+          type:'dict',
+          dict:'enableState'
+        },
+        {
+          key:'onlineStatus',
+          label:ti('fields.device.onlineStatus'),
+          type:'dict',
+          dict:'onlineStatus'
+        },
+        {
+          key:'leakStatus',
+          label:ti('fields.device.leakStatus'),
+          type:'dict',
+          dict:'leakStatus'
+        },
+        {
+          key:'lastSamplingTime',
+          label:ti('fields.device.lastSamplingTime'),
+          type:'date'
+        }
+      ]
+    }
+  ],
+
+
+  install:[
+    {
+      key:'install',
+      title:'',
+      fields:[
+        {
+          key:'installState',
+          label:ti('fields.device.installState'),
+          type:'dict',
+          dict:'installState'
+        },
+        {
+          key:'installMode',
+          label:ti('fields.device.installMode'),
+          type:'dict',
+          dict:'installMode'
+        },
+        {
+          key:'installAddress',
+          label:ti('fields.device.installAddress'),
+          type:'text'
+        },
+        {
+          key:'installLongitude',
+          label:ti('fields.device.installLongitude'),
+          type:'text'
+        },
+        {
+          key:'installLatitude',
+          label:ti('fields.device.installLatitude'),
+          type:'text'
+        }
+      ]
+    }
+  ],
+
+
+  communication:[
+    {
+      key:'communication',
+      title:'',
+      fields:[
+        {
+          key:'wifiName',
+          label:ti('fields.communication.wifiName'),
+          type:'text'
+        },
+        {
+          key:'wifiMac',
+          label:ti('fields.communication.wifiMac'),
+          type:'text'
+        },
+        {
+          key:'serverIp',
+          label:ti('fields.communication.serverIp'),
+          type:'text'
+        },
+        {
+          key:'serverPort',
+          label:ti('fields.communication.serverPort'),
+          type:'text'
+        },
+        {
+          key:'tcpSessionId',
+          label:ti('fields.communication.tcpSessionId'),
+          type:'text'
+        },
+        {
+          key:'tcpLastSeenAt',
+          label:ti('fields.communication.tcpLastSeenAt'),
+          type:'date'
+        },
+        {
+          key:'aepProtocol',
+          label:ti('fields.communication.aepProtocol'),
+          type:'text'
+        }
+      ]
+    }
+  ],
+
+
+  relation:relationSectionsConfig.value
+}));
 
 const relationSectionsConfig = computed<SectionConfig[]>(()=>[
   {
@@ -210,8 +345,8 @@ const relationSectionsConfig = computed<SectionConfig[]>(()=>[
     fields:[
       {key:'productName',label:ti('fields.product.productName'),type:'text'},
       {key:'productCode',label:ti('fields.product.productCode'),type:'text'},
-      {key:'protocolVersion',label:ti('fields.product.protocolVersion'),type:'text'},
-      {key:'aepProtocol',label:ti('fields.product.aepProtocol'),type:'text'}
+      {key:'protocolVersion',label:ti('fields.product.protocolVersion'),type:'text', span:'half'},
+      {key:'aepProtocol',label:ti('fields.product.aepProtocol'),type:'text', span:'half'}
     ]
   },
   {
@@ -219,8 +354,8 @@ const relationSectionsConfig = computed<SectionConfig[]>(()=>[
     title:ti('section.tube'),
     fields:[
       {key:'tubeName',label:ti('fields.tube.tubeName'),type:'text'},
-      {key:'tubeMaterial',label:ti('fields.tube.tubeMaterial'),type:'text'},
-      {key:'tubeBore',label:ti('fields.tube.tubeBore'),type:'text'},
+      {key:'tubeMaterial',label:ti('fields.tube.tubeMaterial'),type:'text', span:'half'},
+      {key:'tubeBore',label:ti('fields.tube.tubeBore'),type:'text', span:'half'},
       {key:'tubeNumber',label:ti('fields.tube.tubeNumber'),type:'text'},
       {key:'administrator',label:ti('fields.tube.administrator'),type:'text'}
     ]
@@ -262,16 +397,20 @@ function resolveSections(config:SectionConfig[]){
     fields:section.fields.map(field=>({
       key:field.key,
       label:field.label,
-      value:resolveValue(field)
+      value:resolveValue(field),
+      span:field.span || 'full'
     }))
   }));
 }
 
 
 const currentSections=computed(()=>{
-  return activeTab.value==='detail'
-      ? resolveSections(detailSectionsConfig.value)
-      : resolveSections(relationSectionsConfig.value);
+  const sections =
+      detailTabConfig.value[activeTab.value];
+  if(!sections){
+    return [];
+  }
+  return resolveSections(sections);
 });
 
 
@@ -309,7 +448,6 @@ async function loadRelationData(device: Partial<Device>) {
   dept.value = res.data?.dept;
 }
 </script>
-
 
 <style scoped lang="scss">
 @import "@/pages/device/components/x/detail-panel.css";

@@ -291,7 +291,10 @@
       "title":"设备详情",
 
       "tabs":{
-        "detail":"设备详情",
+        "base":"基础信息",
+        "status":"状态信息",
+        "install":"安装信息",
+        "communication":"通信信息",
         "relation":"关联信息"
       },
 

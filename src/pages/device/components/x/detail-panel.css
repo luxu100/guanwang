@@ -12,8 +12,9 @@
     overflow: hidden;
     background: #ffffff;
     border: 1px solid #d8e5ef;
-    border-radius: 6px;
-    box-shadow: 0 12px 26px rgba(35, 72, 104, 0.09);
+    height: 100%;
+    border-radius:8px;
+    box-shadow: 0 10px 24px rgba(35,72,104,.08);
 }
 
 /* --- 2. 标签页 (Tabs) --- */
@@ -21,11 +22,12 @@
     flex: none;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-    gap: 6px;
-    height: 54px;
-    padding: 8px;
+    height:46px;
+    padding:6px;
+    gap:5px;
     background: #f6fafe;
     border-bottom: 1px solid #e3edf6;
+    box-sizing:border-box;
 }
 
 .detail-panel__tab {
@@ -43,19 +45,19 @@
 }
 
 .detail-panel__tab--active {
-    color: #0d82ee;
-    background: #ffffff;
-    border-color: #cfe7fb;
-    box-shadow: 0 6px 14px rgba(13, 130, 238, 0.1);
+    color:#0d82ee;
+    background:#ffffff;
+    border-color:#cfe7fb;
+    box-shadow: 0 4px 12px rgba(13,130,238,.12);
 }
 
 /* --- 3. 内容主体 (Body) --- */
 .detail-panel__body {
     flex:1;
     min-height:0;
-    padding:0 16px 16px;
+    padding:12px 14px 16px;
     overflow-y:auto;
-    background:#ffffff;
+    background:linear-gradient(180deg,#f5faff 0,#ffffff 120px), #ffffff;
 }
 
 .detail-panel__empty {
@@ -73,13 +75,13 @@
     gap: 12px;
     align-items: stretch;
     min-width: 0;
-    padding: 14px 16px;
-    margin-bottom: 12px;
     background: #ffffff;
     border: 1px solid #dce9f4;
-    border-left: 4px solid #0d82ee;
-    border-radius: 6px;
-    box-shadow: 0 8px 18px rgba(33, 72, 108, 0.045);
+    padding:12px 14px;
+    margin-bottom:10px;
+    border-radius:8px;
+    box-shadow: 0 6px 16px rgba(33,72,108,.06);
+    border-left:4px solid #0d82ee;
 }
 
 .detail-panel__summary-main {
@@ -157,13 +159,14 @@
 }
 
 .detail-panel__grid--base {
-    grid-template-columns: 1fr;
     gap: 0;
     overflow: hidden;
     background: #ffffff;
     border: 1px solid #dfebf5;
     border-radius: 6px;
     box-shadow: 0 8px 18px rgba(33, 72, 108, 0.045);
+    display:grid;
+    grid-template-columns: repeat(2, minmax(0,1fr));
 }
 
 .detail-panel__grid--content {
@@ -188,15 +191,18 @@
 .detail-panel__item--base {
     position: relative;
     display: grid;
-    grid-template-columns: 92px minmax(0, 1fr);
     align-items: center;
-    min-height: 48px;
-    padding: 8px 14px;
+    grid-template-columns: 78px minmax(0, 1fr);
+
+    min-height: 34px;
+
     background: #ffffff;
     border: 0;
     border-bottom: 1px solid #edf3f8;
     border-radius: 0;
     box-shadow: none;
+    padding: 5px 10px;
+    grid-column: 1 / -1;
 }
 
 .detail-panel__grid--base .detail-panel__item--base:last-child {
@@ -220,7 +226,7 @@
     color: #6b7f94;
     font-size: 12px;
     font-weight: 800;
-    line-height: 1.3;
+    line-height: 1.2;
 }
 
 .detail-panel__item--base .detail-panel__item-label {
@@ -231,15 +237,18 @@
     display: block;
     margin-top: 8px;
     color: #172033;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
-    line-height: 1.45;
+    line-height: 1.25;
     word-break: break-all;
 }
 
 .detail-panel__item--base .detail-panel__item-value {
     margin-top: 0;
     text-align: right;
+    color:#172033;
+    font-size:13px;
+    font-weight:700;
 }
 
 .detail-panel__item--content .detail-panel__item-value {
@@ -292,11 +301,13 @@
 .detail-panel__tag--status {
     color: #0d5ea6;
     background: #eaf4ff;
+    border:1px solid #cfe7fb;
 }
 
 .detail-panel__tag--level {
     color: #15803d;
     background: #eaf8ef;
+    border:1px solid #c8ebd4;
 }
 
 /* --- 6. 时间轴 (Timeline) --- */
@@ -308,19 +319,20 @@
 
 .detail-panel__timeline-section {
     min-width: 0;
-    padding: 14px;
     background: rgba(255, 255, 255, 0.96);
     border: 1px solid #dfebf5;
-    border-radius: 6px;
-    box-shadow: 0 8px 18px rgba(33, 72, 108, 0.055);
+    padding:12px;
+    background:#ffffff;
+    border-radius:8px;
+    box-shadow: 0 6px 16px rgba(33,72,108,.05);
 }
 
 .detail-panel__timeline-title {
     display: block;
-    margin-bottom: 12px;
     color: #183755;
-    font-size: 14px;
     font-weight: 900;
+    margin-bottom:10px;
+    font-size:13px;
 }
 
 .detail-panel__timeline-list {
@@ -548,4 +560,94 @@
     color: #b42318;
     background: #fff5f3;
     border-color: #ffc9c0;
+}
+
+/* =========================================
+   Detail Panel 高度补全
+   通用详情面板扩展
+   ========================================= */
+
+
+/* 父级 flex 容器高度传递 */
+.detail-panel {
+    height: 100%;
+    box-sizing: border-box;
+}
+
+
+/* 内容主体占满剩余空间 */
+.detail-panel__body {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+
+/* 内容为空时撑满 */
+.detail-panel__empty {
+    height: 100%;
+    min-height: 260px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: normal;
+}
+
+
+/* 详情内部主要区域撑满 */
+.detail-panel__body > view,
+.detail-panel__body > .detail-panel__timeline,
+.detail-panel__body > .detail-panel__grid {
+    min-height: 0;
+}
+
+
+/* 时间轴区域允许扩展 */
+.detail-panel__timeline {
+    flex: 1;
+}
+
+
+/* 每个详情分区避免高度塌陷 */
+.detail-panel__timeline-section {
+    box-sizing: border-box;
+}
+
+
+/* 基础信息区域 */
+.detail-panel__grid--base {
+    flex: none;
+}
+
+
+/* 内容详情区域填充 */
+.detail-panel__grid--content {
+    min-height: 100%;
+}
+
+
+/* 防止滚动区域出现底色断层 */
+.detail-panel__body::after {
+    content: "";
+    display: block;
+    min-height: 1px;
+}
+
+.detail-panel__timeline-section--flat {
+    padding:0;
+    background:transparent;
+    border:0;
+    border-radius:0;
+    box-shadow:none;
+}
+
+.detail-panel__item--half{
+    grid-column: span 1;
+    border-bottom:1px solid #edf3f8;
+}
+
+.detail-panel__item--half:nth-last-child(-n+2){
+    border-bottom:0;
 }

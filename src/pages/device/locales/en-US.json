@@ -292,7 +292,11 @@
 
       "tabs": {
         "detail": "Device Details",
-        "relation": "Related Information"
+        "relation": "Related Information",
+        "base": "Basic Information",
+        "status": "Status Information",
+        "install": "Installation Information",
+        "communication": "Communication Information"
       },
 
       "empty": "No Data",
