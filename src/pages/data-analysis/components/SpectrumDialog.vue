@@ -397,7 +397,7 @@ function renderChart(freqData: Uint8Array, sampleRate: number) {
         min: 0,
         max: maxFreq,
         interval: 250,
-        name: "FREQUENCY / Hz",
+        name: "频率 / Hz",
         nameLocation: "middle",
         nameGap: 30,
         nameTextStyle: { color: "#6e9bb4", fontSize: 9, letterSpacing: 1.5 },
@@ -418,7 +418,7 @@ function renderChart(freqData: Uint8Array, sampleRate: number) {
         min: 0,
         max: 255,
         interval: 50,
-        name: "AMPLITUDE / dB",
+        name: "幅度 / dB",
         nameGap: 42,
         nameLocation: "middle",
         nameTextStyle: { color: "#6e9bb4", fontSize: 9, letterSpacing: 1.2 },
@@ -501,7 +501,7 @@ async function loadAndDraw() {
     loading.value = false;
     await nextTick();
     const freqData = await computeSpectrum(audioBuffer, 2048);
-    renderChart(freqData, ctx.sampleRate);
+    renderChart(freqData, audioBuffer.sampleRate);
   } catch (error: any) {
     errorMsg.value = error?.message || "音频加载失败";
     loading.value = false;
