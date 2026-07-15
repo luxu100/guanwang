@@ -1,5 +1,5 @@
 <template>
-  <view v-if="visible" class="detail-panel">
+  <view v-if="visible" class="detail-panel__layout">
     <view class="detail-panel__tabs">
       <view
           v-for="tab in detailTabs"
@@ -124,28 +124,32 @@ const detailTabs = computed(() => [
   }
 ]);
 
-const DICT_MAPS: Record<string, Record<number, string>> = {
+const DICT_MAPS: Record<string, Record<string, string>> = {
   enableState: {
-    0: 'status.disabled',
-    1: 'status.enabled'
+    '0': 'status.disabled',
+    '1': 'status.enabled'
   },
   onlineStatus: {
-    0: 'online.offline',
-    1: 'online.online'
+    '0': 'online.offline',
+    '1': 'online.online'
   },
   installState: {
-    0: 'install.uninstalled',
-    1: 'install.installed'
+    '0': 'install.uninstalled',
+    '1': 'install.installed'
   },
   installMode: {
-    0: 'installMode.fixed',
-    1: 'installMode.mobile'
+    '0': 'installMode.fixed',
+    '1': 'installMode.mobile'
   },
   leakStatus: {
-    0: 'leak.leak',
-    1: 'leak.normal',
-    2: 'leak.suspected',
-    3: 'leak.unknown'
+    '0': 'leak.leak',
+    '1': 'leak.normal',
+    '2': 'leak.suspected',
+    '3': 'leak.unknown'
+  },
+  algorithmType: {
+    'RN-3H': 'addSchema.option.algorithmType.Hydrophone',
+    '': 'addSchema.option.algorithmType.NoiseMeter'
   }
 };
 
@@ -193,12 +197,14 @@ const detailTabConfig = computed<Record<string,SectionConfig[]>>(()=>({
         {
           key:'deviceImei',
           label:ti('fields.device.deviceImei'),
-          type:'text'
+          type:'text',
+          span:'half'
         },
         {
           key:'deviceImsi',
           label:ti('fields.device.deviceImsi'),
-          type:'text'
+          type:'text',
+          span:'half'
         },
         {
           key:'serialNumber',
@@ -208,12 +214,35 @@ const detailTabConfig = computed<Record<string,SectionConfig[]>>(()=>({
         {
           key:'hardwareVersion',
           label:ti('fields.device.hardwareVersion'),
-          type:'text'
+          type:'text',
+          span:'half'
         },
         {
           key:'softwareVersion',
           label:ti('fields.device.softwareVersion'),
+          type:'text',
+          span:'half'
+        },
+        {
+          key:'algorithmType',
+          label:ti('fields.device.algorithmType'),
+          type:'dict',
+          dict:'algorithmType'
+        },
+        {
+          key:'algorithmVersion',
+          label:ti('fields.device.algorithmVersion'),
           type:'text'
+        },
+        {
+          key: 'pressureSensorModel',
+          label: ti('fields.device.pressureSensorModel'),
+          type: 'text'
+        },
+        {
+          key: 'pressureSensorSerialNumber',
+          label: ti('fields.device.pressureSensorSerialNumber'),
+          type: 'text'
         }
       ]
     }
