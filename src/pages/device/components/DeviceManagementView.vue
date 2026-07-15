@@ -262,7 +262,8 @@ const deviceModuleConfig = {
       bindDept: false,
       bindValve: false,
       import: false,
-      export: false
+      export: false,
+      detail:true
     },
   },
 

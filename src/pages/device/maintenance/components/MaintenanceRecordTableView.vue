@@ -54,10 +54,9 @@
             <text class="data-cell data-cell--time">
               {{ formatDate(record.maintainTime) || '-' }}
             </text>
-
+<!--            @mouseenter="showTooltip($event,record.maintainAddress)"-->
+<!--            @mouseleave="hideTooltip"-->
             <text class="data-cell data-cell--address"
-                  @mouseenter="showTooltip($event,record.maintainAddress)"
-                  @mouseleave="hideTooltip"
             >
               {{ record.maintainAddress || '-' }}
             </text>
@@ -111,10 +110,9 @@
             <text class="data-cell data-cell--text">
               {{ record.tubeBore || '-' }}
             </text>
-
+<!--            @mouseenter="showTooltip($event,record.remark)"-->
+<!--            @mouseleave="hideTooltip"-->
             <text class="data-cell data-cell--remark"
-                  @mouseenter="showTooltip($event,record.remark)"
-                  @mouseleave="hideTooltip"
             >
               {{ record.remark || '-' }}
             </text>
@@ -160,10 +158,17 @@
       v-model:visible="imageDialogVisible"
       :file-ids="currentPictureIds"
   />
+
+  <XEntityDetailDialog
+      v-model="detailData"
+      v-model:visible="detailVisible"
+      :title="t('maintain.maintainTable.title')"
+      :schema="maintenanceRecordDetailSchema"
+  />
 </template>
 <script setup lang="ts">
 import {computed, ref, watch} from 'vue';
-import type {Device, MaintenanceRecord,MaintenanceCreateForm} from '@/services/device/types';
+import type {Device, MaintenanceRecord, MaintenanceCreateForm, DeviceProtocolRelationVO} from '@/services/device/types';
 import type { Pagination } from '@/types/api';
 import {
   createMaintenanceRecordT,
@@ -178,13 +183,16 @@ import {formatDate} from "@/utils/time";
 import XMapPopup from "@/pages/device/components/x/XMapPopup.vue";
 import XImageViewerDialog from "@/pages/device/components/x/XImageViewerDialog.vue";
 import XTooltip from "@/pages/device/components/x/XTooltip.vue";
+import XEntityDetailDialog from "@/pages/device/components/x/XEntityDetailDialog.vue";
+import {installStateOptions, maintainTypeOptions} from "@/pages/device/components/common";
 
 const t = createScopedT("devicePage");
 
 defineExpose({
   handleAdd,
   handleEdit,
-  handleDelete
+  handleDelete,
+  handleShowDetail
 });
 
 // ===== 数据 =====
@@ -680,6 +688,192 @@ function showTooltip(e:any,text?:string){
 
 function hideTooltip(){
   tooltipVisible.value = false;
+}
+
+/**
+ * 维护记录详情表单配置
+ */
+const maintenanceRecordDetailSchema: FormSection[] = [
+  {
+    titleKey:"maintain.maintainTable.deviceInfo",
+    fields:[
+      {
+        key:"deviceNumber",
+        labelKey:"maintain.maintainTable.deviceNumber",
+        type:"text"
+      },
+      {
+        key:"deviceAlias",
+        labelKey:"maintain.maintainTable.deviceAlias",
+        type:"text"
+      }
+    ]
+  },
+  {
+    titleKey:"maintain.maintainTable.maintainInfo",
+    fields:[
+      {
+        key:"maintainType",
+        labelKey:"maintain.maintainTable.type",
+        type:"tag",
+        options:maintainTypeOptions
+      },
+      {
+        key:"maintainTime",
+        labelKey:"maintain.maintainTable.time",
+        type:"datetime"
+      },
+      {
+        key:"maintainAddress",
+        labelKey:"maintain.maintainTable.address",
+        type:"text",
+        layout:"full"
+      },
+      {
+        key:"maintainCoordinate",
+        labelKey:"maintain.maintainTable.coordinate",
+        type:"text",
+        layout:"full"
+      }
+    ]
+  },
+  {
+    titleKey:"maintain.maintainTable.installInfo",
+    fields:[
+      {
+        key:"installMode",
+        labelKey:"maintain.maintainTable.installMode",
+        type:"tag",
+        options:installStateOptions
+      },
+      {
+        key:"installState",
+        labelKey:"maintain.maintainTable.installState",
+        type:"tag",
+        options:installStateOptions
+      }
+    ]
+  },
+  {
+    titleKey:"maintain.maintainTable.maintainer",
+    fields:[
+      {
+        key:"maintainAccount",
+        labelKey:"maintain.maintainTable.maintainer",
+        type:"text"
+      }
+    ]
+  },
+  {
+    titleKey:"maintain.maintainTable.result",
+    fields:[
+      {
+        key:"maintainFeedback",
+        labelKey:"maintain.maintainTable.feedback",
+        type:"text",
+        layout:"full"
+      },
+      {
+        key:"maintainPicture",
+        labelKey:"maintain.maintainTable.maintainPicture",
+        type:"image",
+        layout:"full"
+      }
+    ]
+  },
+  {
+    titleKey:"maintain.maintainTable.tubeInfo",
+    fields:[
+      {
+        key:"tubeGroup",
+        labelKey:"maintain.maintainTable.tubeGroup",
+        type:"text"
+      },
+      {
+        key:"tubeMaterial",
+        labelKey:"maintain.maintainTable.tubeMaterial",
+        type:"text"
+      },
+      {
+        key:"tubeBore",
+        labelKey:"maintain.maintainTable.tubeBore",
+        type:"text"
+      },
+      {
+        key:"tubeOrder",
+        labelKey:"maintain.maintainTable.tubeOrder",
+        type:"text"
+      }
+    ]
+  },
+  {
+    titleKey:"maintain.maintainTable.valveInfo",
+    fields:[
+      {
+        key:"valveNumber",
+        labelKey:"maintain.maintainTable.valveNumber",
+        type:"text"
+      },
+      {
+        key:"valveName",
+        labelKey:"maintain.maintainTable.valveName",
+        type:"text"
+      }
+    ]
+  },
+  {
+    titleKey:"maintain.maintainTable.uninstallInfo",
+    fields:[
+      {
+        key:"uninstallType",
+        labelKey:"maintain.maintainTable.uninstallType",
+        type:"tag",
+        options:maintainTypeOptions
+      }
+    ]
+  },
+  {
+    titleKey:"maintain.maintainTable.otherInfo",
+    fields:[
+      {
+        key:"remark",
+        labelKey:"maintain.maintainTable.remark",
+        type:"text",
+        layout:"full"
+      }
+    ]
+  },
+  {
+    titleKey:"maintain.maintainTable.timeInfo",
+    fields:[
+      {
+        key:"createdAt",
+        labelKey:"maintain.maintainTable.createdAt",
+        type:"datetime"
+      },
+      {
+        key:"updatedAt",
+        labelKey:"maintain.maintainTable.updatedAt",
+        type:"datetime"
+      }
+    ]
+  }
+];
+
+const detailVisible = ref(false);
+const detailData = ref<MaintenanceRecord | null>(null);
+
+function handleShowDetail(){
+  if (!selectedRecord.value) {
+    uni.showToast({
+      title:t("message.selectRecord"),
+      icon:"none"
+    });
+    return;
+  }
+
+  detailData.value = selectedRecord.value;
+  detailVisible.value = true;
 }
 
 type MaintainTypeMeta = {

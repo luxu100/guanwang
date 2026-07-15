@@ -418,19 +418,48 @@
         "startTime" : "开始时间",
         "endTime" : "结束时间"
       },
-      "maintainTable": {
-        "title": "拆装维护详情",
-        "deviceNumber": "设备编号",
-        "type": "维护类型",
-        "time": "维护时间",
-        "address": "维护地址",
-        "installMode": "安装模式",
-        "tubeGroup": "管组编号",
-        "tubeMaterial": "管材",
-        "tubeBore": "管径",
-        "remark": "备注",
-        "coordinate": "坐标位置",
-        "maintainPicture": "维护图片"
+      "maintainTable":{
+        "title":"拆装维护详情",
+
+        "deviceInfo":"设备信息",
+        "deviceNumber":"设备编号",
+        "deviceAlias":"设备别名",
+
+        "maintainInfo":"维护信息",
+        "type":"维护类型",
+        "time":"维护时间",
+        "address":"维护地址",
+        "coordinate":"坐标位置",
+        "feedback":"维护反馈",
+
+        "installInfo":"安装信息",
+        "installMode":"安装模式",
+        "installState":"安装状态",
+
+        "maintainer":"维护人员",
+
+        "result":"维护结果",
+        "maintainPicture":"维护图片",
+
+        "tubeInfo":"管网信息",
+        "tubeGroup":"管组编号",
+        "tubeMaterial":"管材",
+        "tubeBore":"管径",
+        "tubeOrder":"管序",
+
+        "valveInfo":"阀门信息",
+        "valveNumber":"阀门编号",
+        "valveName":"阀门名称",
+
+        "uninstallInfo":"拆卸信息",
+        "uninstallType":"拆卸类型",
+
+        "otherInfo":"其他信息",
+        "remark":"备注",
+
+        "timeInfo":"时间信息",
+        "createdAt":"创建时间",
+        "updatedAt":"更新时间"
       },
       "page": {
         "addMaintenance": "新增维护记录",
@@ -722,18 +751,28 @@
       }
     },
     "deviceProtocol":{
-      "table": {
-        "title": "设备协议绑定",
-        "protocolCode": "协议编码",
-        "protocolName": "协议名称",
-        "protocolVersion": "协议版本",
-        "afn": "AFN",
-        "taskType": "任务类型",
-        "contentPrefix": "内容前缀",
-        "priority": "优先级",
-        "enabled": "状态",
-        "description": "描述",
-        "updatedAt": "更新时间"
+      "table":{
+        "title":"协议绑定列表",
+        "basicInfo":"基础信息",
+        "deviceId":"设备ID",
+        "protocolId":"协议ID",
+
+        "protocolInfo":"协议信息",
+        "protocolCode":"协议编码",
+        "protocolName":"协议名称",
+        "protocolVersion":"协议版本",
+        "description":"描述",
+
+        "bindingRule":"绑定规则",
+        "afn":"AFN",
+        "taskType":"任务类型",
+        "contentPrefix":"内容前缀",
+        "priority":"优先级",
+        "enabled":"启用状态",
+
+        "timeInfo":"时间信息",
+        "createdAt":"创建时间",
+        "updatedAt":"更新时间"
       },
       "addSchema": {
         "basicInfo": {

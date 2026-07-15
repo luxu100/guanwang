@@ -405,19 +405,48 @@
         "startTime": "Start Time",
         "endTime": "End Time"
       },
-      "maintainTable": {
-        "title": "Maintenance Records",
-        "deviceNumber": "Device No.",
-        "type": "Maintenance Type",
-        "time": "Maintenance Time",
-        "address": "Address",
-        "installMode": "Install Mode",
-        "tubeGroup": "Tube Group",
-        "tubeMaterial": "Material",
-        "tubeBore": "Diameter",
-        "remark": "Remark",
-        "coordinate": "Coordinates",
-        "maintainPicture": "Maintenance Picture"
+      "maintainTable":{
+        "title":"Maintenance Detail",
+
+        "deviceInfo":"Device Information",
+        "deviceNumber":"Device Number",
+        "deviceAlias":"Device Alias",
+
+        "maintainInfo":"Maintenance Information",
+        "type":"Maintenance Type",
+        "time":"Maintenance Time",
+        "address":"Maintenance Address",
+        "coordinate":"Coordinates",
+        "feedback":"Maintenance Feedback",
+
+        "installInfo":"Installation Information",
+        "installMode":"Installation Mode",
+        "installState":"Installation Status",
+
+        "maintainer":"Maintenance Personnel",
+
+        "result":"Maintenance Result",
+        "maintainPicture":"Maintenance Image",
+
+        "tubeInfo":"Pipeline Information",
+        "tubeGroup":"Pipeline Group Number",
+        "tubeMaterial":"Pipe Material",
+        "tubeBore":"Pipe Diameter",
+        "tubeOrder":"Pipeline Sequence",
+
+        "valveInfo":"Valve Information",
+        "valveNumber":"Valve Number",
+        "valveName":"Valve Name",
+
+        "uninstallInfo":"Removal Information",
+        "uninstallType":"Removal Type",
+
+        "otherInfo":"Other Information",
+        "remark":"Remark",
+
+        "timeInfo":"Time Information",
+        "createdAt":"Created Time",
+        "updatedAt":"Updated Time"
       },
       "page": {
         "addMaintenance": "Add Maintenance",
@@ -707,18 +736,28 @@
       }
     },
     "deviceProtocol": {
-      "table": {
-        "title": "Device Protocol Bindings",
-        "protocolCode": "Protocol Code",
-        "protocolName": "Protocol Name",
-        "protocolVersion": "Protocol Version",
-        "afn": "AFN",
-        "taskType": "Task Type",
-        "contentPrefix": "Content Prefix",
-        "priority": "Priority",
-        "enabled": "Status",
-        "description": "Description",
-        "updatedAt": "Updated At"
+      "table":{
+        "title":"Protocol Binding List",
+        "basicInfo":"Basic Information",
+        "deviceId":"Device ID",
+        "protocolId":"Protocol ID",
+
+        "protocolInfo":"Protocol Information",
+        "protocolCode":"Protocol Code",
+        "protocolName":"Protocol Name",
+        "protocolVersion":"Protocol Version",
+        "description":"Description",
+
+        "bindingRule":"Binding Rules",
+        "afn":"AFN",
+        "taskType":"Task Type",
+        "contentPrefix":"Content Prefix",
+        "priority":"Priority",
+        "enabled":"Enabled Status",
+
+        "timeInfo":"Time Information",
+        "createdAt":"Created Time",
+        "updatedAt":"Updated Time"
       },
       "addSchema": {
         "basicInfo": {
