@@ -279,5 +279,5 @@ const workModeLabel=computed(()=>{
 </script>
 
 <style scoped lang="scss">
-@import "@/pages/device/components/x/detail-panel.css";
+@import "@/pages/device/components/x/dialog/styles/detail-panel.css";
 </style>

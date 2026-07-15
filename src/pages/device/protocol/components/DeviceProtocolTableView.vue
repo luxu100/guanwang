@@ -134,8 +134,8 @@ import {
   getMaintenanceRecordPageT, updateMaintenanceRecordT
 } from "@/services/device/maintenance.typed";
 import type {FieldOption, FormSection} from "@/pages/device/components/x/types";
-import XDynamicDialog from "@/pages/device/components/x/XDynamicDialog.vue";
-import XPaginationBar from "@/pages/device/components/x/XPaginationBar.vue";
+import XDynamicDialog from "@/pages/device/components/x/dialog/XDynamicDialog.vue";
+import XPaginationBar from "@/pages/device/components/x/table/XPaginationBar.vue";
 import {createScopedT} from "@/i18n";
 import DeviceProtocolToolbar from "@/pages/device/protocol/components/DeviceProtocolToolbar.vue";
 import {
@@ -147,8 +147,8 @@ import {
 import {formatDate} from "@/utils/time";
 import {createDeviceProtocolT} from "@/services/device/info.typed";
 import {getProtocolDefinitionList} from "@/services/data-receive/access";
-import XTooltip from "@/pages/device/components/x/XTooltip.vue";
-import XEntityDetailDialog from "@/pages/device/components/x/XEntityDetailDialog.vue";
+import XTooltip from "@/pages/device/components/x/table/XTooltip.vue";
+import XEntityDetailDialog from "@/pages/device/components/x/dialog/XEntityDetailDialog.vue";
 
 const t = createScopedT("devicePage");
 
@@ -460,99 +460,99 @@ function hideTooltip(){
  */
 const deviceProtocolRelationDetailSchema: FormSection[] = [
   {
-    title: "基础信息",
-    fields: [
+    titleKey:"deviceProtocol.table.basicInfo",
+    fields:[
       {
-        key: "deviceId",
-        label: "设备ID",
-        type: "text"
+        key:"deviceId",
+        labelKey:"deviceProtocol.table.deviceId",
+        type:"text"
       },
       {
-        key: "protocolId",
-        label: "协议ID",
-        type: "text"
+        key:"protocolId",
+        labelKey:"deviceProtocol.table.protocolId",
+        type:"text"
       }
     ]
   },
   {
-    title: "协议信息",
-    fields: [
+    titleKey:"deviceProtocol.table.protocolInfo",
+    fields:[
       {
-        key: "protocolCode",
-        label: "协议编码",
-        type: "text"
+        key:"protocolCode",
+        labelKey:"deviceProtocol.table.protocolCode",
+        type:"text"
       },
       {
-        key: "protocolName",
-        label: "协议名称",
-        type: "text"
+        key:"protocolName",
+        labelKey:"deviceProtocol.table.protocolName",
+        type:"text"
       },
       {
-        key: "protocolVersion",
-        label: "协议版本",
-        type: "text"
+        key:"protocolVersion",
+        labelKey:"deviceProtocol.table.protocolVersion",
+        type:"text"
       },
       {
-        key: "description",
-        label: "描述",
-        type: "text",
-        layout: "full"
+        key:"description",
+        labelKey:"deviceProtocol.table.description",
+        type:"text",
+        layout:"full"
       }
     ]
   },
   {
-    title: "绑定规则",
-    fields: [
+    titleKey:"deviceProtocol.table.bindingRule",
+    fields:[
       {
-        key: "afn",
-        label: "AFN",
-        type: "text"
+        key:"afn",
+        labelKey:"deviceProtocol.table.afn",
+        type:"text"
       },
       {
-        key: "taskType",
-        label: "任务类型",
-        type: "text"
+        key:"taskType",
+        labelKey:"deviceProtocol.table.taskType",
+        type:"text"
       },
       {
-        key: "contentPrefix",
-        label: "内容前缀",
-        type: "text",
-        layout: "full"
+        key:"contentPrefix",
+        labelKey:"deviceProtocol.table.contentPrefix",
+        type:"text",
+        layout:"full"
       },
       {
-        key: "priority",
-        label: "优先级",
-        type: "text"
+        key:"priority",
+        labelKey:"deviceProtocol.table.priority",
+        type:"text"
       },
       {
-        key: "enabled",
-        label: "启用状态",
-        type: "tag",
-        options: [
+        key:"enabled",
+        labelKey:"deviceProtocol.table.enabled",
+        type:"tag",
+        options:[
           {
-            label: "启用",
-            value: true
+            labelKey:"status.status.enabled",
+            value:true
           },
           {
-            label: "禁用",
-            value: false
+            labelKey:"status.status.disabled",
+            value:false
           }
         ]
       }
     ]
   },
   {
-    title: "时间信息",
-    fields: [
+    titleKey:"deviceProtocol.table.timeInfo",
+    fields:[
       {
-        key: "createdAt",
-        label: "创建时间",
-        type: "datetime"
+        key:"createdAt",
+        labelKey:"deviceProtocol.table.createdAt",
+        type:"datetime"
       },
       {
-        key: "updatedAt",
-        label: "更新时间",
-        type: "datetime"
+        key:"updatedAt",
+        labelKey:"deviceProtocol.table.updatedAt",
+        type:"datetime"
       }
     ]
   }
@@ -575,10 +575,10 @@ function handleShowDetail(){
 
 </script>
 <style scoped lang="scss">
-@import "@/pages/device/components/x/status.css";
-@import "@/pages/device/components/x/table-cell.css";
-@import "@/pages/device/components/x/table.css";
-@import "@/pages/device/components/x/table-row.css";
+@import "@/pages/device/components/x/common/status.css";
+@import "@/pages/device/components/x/table/styles/table-cell.css";
+@import "@/pages/device/components/x/table/styles/table.css";
+@import "@/pages/device/components/x/table/styles/table-row.css";
 
 .toolbar-wrapper {
   padding-bottom: 12px;

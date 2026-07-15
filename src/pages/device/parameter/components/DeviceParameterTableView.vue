@@ -15,8 +15,8 @@
 
 <script setup lang="ts">
 import {computed,ref,watch} from 'vue';
-import XDataTable from '@/pages/device/components/x/XDataTable.vue';
-import XPaginationBar from '@/pages/device/components/x/XPaginationBar.vue';
+import XDataTable from '@/pages/device/components/x/table/XDataTable.vue';
+import XPaginationBar from '@/pages/device/components/x/table/XPaginationBar.vue';
 import type {Pagination} from '@/types/api';
 import type {DeviceParameterPageVO} from '@/services/device/types';
 import type {XDataColumn} from '@/pages/device/components/x/types';
@@ -97,7 +97,7 @@ function selectRow(row:DeviceParameterPageVO){
 </script>
 
 <style scoped lang="scss">
-@import "@/pages/device/components/x/table.css";
-@import "@/pages/device/components/x/table-cell.css";
-@import "@/pages/device/components/x/table-row.css";
+@import "@/pages/device/components/x/table/styles/table.css";
+@import "@/pages/device/components/x/table/styles/table-cell.css";
+@import "@/pages/device/components/x/table/styles/table-row.css";
 </style>

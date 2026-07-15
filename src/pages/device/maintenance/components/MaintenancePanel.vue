@@ -37,6 +37,10 @@ defineExpose({
 
   handleDelete(){
     tableRef.value?.handleDelete();
+  },
+
+  handleShowDetail(){
+    tableRef.value?.handleShowDetail();
   }
 });
 

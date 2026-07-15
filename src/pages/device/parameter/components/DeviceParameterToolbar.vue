@@ -15,7 +15,7 @@
 
 <script setup lang="ts">
 import {computed, ref} from "vue";
-import XConfigToolbar from "@/pages/device/components/x/XConfigToolbar.vue";
+import XConfigToolbar from "@/pages/device/components/x/toolbar/XConfigToolbar.vue";
 import type { Field } from "@/pages/device/components/x/types";
 import { createScopedT } from "@/i18n";
 
@@ -66,6 +66,13 @@ const leakStatusOptions = [
   { labelKey: "status.leak.unknown", value: 3 },
 ];
 
+const deviceTypeOptions = [
+  { labelKey: "common.all", value: "" },
+  { labelKey: "status.product.TCP", value: "TCP" },
+  { labelKey: "status.product.NB", value: "NB" },
+];
+
+
 const fields:Field[]=[
   {
     key:"deviceNumber",
@@ -75,7 +82,8 @@ const fields:Field[]=[
   {
     key:"deviceType",
     labelKey:"fields.deviceType",
-    type:"input"
+    type:"select",
+    options:deviceTypeOptions
   },
   {
     key:"onlineStatus",

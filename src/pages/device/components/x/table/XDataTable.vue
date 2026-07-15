@@ -58,8 +58,8 @@
 
 <script setup lang="ts">
 import {ref,watch} from 'vue';
-import type {XDataColumn} from './types';
-import XMapPopup from "@/pages/device/components/x/XMapPopup.vue";
+import type {XDataColumn} from '../types';
+import XMapPopup from "@/pages/device/components/x/map/XMapPopup.vue";
 import {createScopedT} from "@/i18n";
 const t = createScopedT("devicePage");
 
@@ -170,8 +170,8 @@ function handleCoordinate(coordinate?: string) {
 </script>
 
 <style scoped lang="scss">
-@import "@/pages/device/components/x/status.css";
-@import "@/pages/device/components/x/table-cell.css";
-@import "@/pages/device/components/x/table.css";
-@import "@/pages/device/components/x/table-row.css";
+@import "@/pages/device/components/x/common/status.css";
+@import "@/pages/device/components/x/table/styles/table-cell.css";
+@import "@/pages/device/components/x/table/styles/table.css";
+@import "@/pages/device/components/x/table/styles/table-row.css";
 </style>
