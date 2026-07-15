@@ -365,9 +365,8 @@ watch(
  */
 const productOptions = ref([
   { labelKey: "common.all", value: "" },
-  { labelKey: "status.product.LD18", value: "LD18" },
-  { labelKey: "status.product.LD18E_FM", value: "LD18E-FM" },
-  { labelKey: "status.product.LD18HE_FM", value: "LD18HE-FM" },
+  { labelKey: "status.product.TCP", value: "TCP" },
+  { labelKey: "status.product.NB", value: "NB" },
 ]);
 
 const enableStateOptions = [

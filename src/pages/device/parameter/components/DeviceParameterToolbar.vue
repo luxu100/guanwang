@@ -66,6 +66,13 @@ const leakStatusOptions = [
   { labelKey: "status.leak.unknown", value: 3 },
 ];
 
+const deviceTypeOptions = [
+  { labelKey: "common.all", value: "" },
+  { labelKey: "status.product.TCP", value: "TCP" },
+  { labelKey: "status.product.NB", value: "NB" },
+];
+
+
 const fields:Field[]=[
   {
     key:"deviceNumber",
@@ -75,7 +82,8 @@ const fields:Field[]=[
   {
     key:"deviceType",
     labelKey:"fields.deviceType",
-    type:"input"
+    type:"select",
+    options:deviceTypeOptions
   },
   {
     key:"onlineStatus",

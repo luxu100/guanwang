@@ -127,7 +127,7 @@
     },
     "fields": {
       "deviceNumber": "设备编号",
-      "deviceType": "产品型号",
+      "deviceType": "设备类型",
       "onlineStatus": "在线状态",
       "installState": "安装状态",
       "enableState": "启用状态",
@@ -164,9 +164,8 @@
     },
     "status": {
       "product": {
-        "LD18": "LD18",
-        "LD18E_FM": "LD18E-FM",
-        "LD18HE_FM": "LD18HE-FM"
+        "TCP": "TCP",
+        "NB": "NB"
       },
       "status": {
         "enabled": "启用",
