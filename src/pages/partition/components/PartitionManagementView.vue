@@ -296,14 +296,6 @@
 				 
 				  <view class="form-field">
 				    <text class="form-label">所属组织</text>
-					<!-- <view class="org-select-wrap" @click="openOrgDialog">
-					    <input
-					      class="form-input org-select-input"
-					     :value="selectedOrgName"
-					      placeholder="请选择所属组织"
-					      disabled
-					    />
-					</view> -->
 				    <input v-model="deptForm.organizationId" class="form-input" placeholder="请输入所属组织" />
 				  </view>
 				 
@@ -317,7 +309,7 @@
 			 </view>
 			</view>
 		</view> 
-		
+
 		<view v-if="deviceDialogVisible" class="dialog-mask" @click="closeDeviceDialog">
 			<view class="dialog-panel" @click.stop>
 			    <view class="dialog-head">
@@ -531,6 +523,131 @@
 	    </view>
 	  </view>
 
+	  <view v-if="rangeDialogVisible" class="dialog-mask" @click="closeRangeDialog">
+	    <view class="range-dialog" @click.stop>
+	      <view class="dialog-head">
+	        <view>
+	          <text class="dialog-title">选择分区范围</text>
+	        </view>
+	        <button class="icon-button" hover-class="icon-button--hover" aria-label="关闭" @click="closeRangeDialog">
+	          <text class="close-icon"></text>
+	        </button>
+	      </view>
+
+	      <view class="range-dialog-body">
+	        <view ref="rangeMapWrapRef" class="range-map-wrap" :class="{ 'range-map-wrap--drawing': rangeDrawing }">
+	          <!-- #ifdef H5 -->
+	          <LocaleCoordinateMap
+	            :key="rangeMapKey"
+	            :lng="rangeMapCenter.lng"
+	            :lat="rangeMapCenter.lat"
+	            :selectable="false"
+	          />
+	          <view
+	            ref="rangeOverlayRef"
+	            class="range-drawing-layer"
+	            :class="{ 'range-drawing-layer--active': rangeDrawing || rangePoints.length > 0 }"
+	            @click="handleRangeOverlayClick"
+	            @pointerdown="handleRangeOverlayPointerDown"
+	            @mousedown="handleRangeOverlayPointerDown"
+	            @touchstart="handleRangeOverlayPointerDown"
+	          >
+	            <svg v-if="rangePointPositions.length > 1" class="range-vector" xmlns="http://www.w3.org/2000/svg">
+	              <polygon
+	                v-if="rangePointPositions.length > 2"
+	                class="range-polygon"
+	                :points="rangePolygonPoints"
+	              />
+	              <polyline class="range-polyline" :points="rangePolylinePoints" />
+	            </svg>
+	            <button
+	              v-for="point in rangePointPositions"
+	              :key="point.id"
+	              class="range-point-marker"
+	              :class="{ 'range-point-marker--active': selectedRangePointId === point.id }"
+	              :style="{ left: `${point.x}px`, top: `${point.y}px` }"
+	              @click.stop="selectRangePoint(point.id)"
+	              @pointerdown.stop.prevent="startRangePointDrag(point.id, $event)"
+	            >
+	              <text>{{ point.index + 1 }}</text>
+	            </button>
+	          </view>
+	          <!-- #endif -->
+	          <!-- #ifndef H5 -->
+	          <view class="center-map-fallback">地图绘制仅支持 H5 端</view>
+	          <!-- #endif -->
+	        </view>
+
+	        <view class="range-coordinate-form">
+	          <view class="form-field range-coordinate-form__location">
+	            <text class="form-label">位置</text>
+	            <input
+	              v-model="rangeLocationText"
+	              class="form-input"
+	              confirm-type="search"
+	              placeholder="请输入地点或公司名称"
+	              placeholder-class="input-placeholder"
+	              @input="markRangeLocationEdited"
+	              @confirm="searchRangeLocation"
+	            />
+	          </view>
+	          <view class="form-field">
+	            <text class="form-label">经度</text>
+	            <input
+	              v-model="rangeLngText"
+	              class="form-input"
+	              confirm-type="search"
+	              @input="markRangeCoordinateEdited"
+	              @confirm="searchRangeLocation"
+	            />
+	          </view>
+	          <view class="form-field">
+	            <text class="form-label">纬度</text>
+	            <input
+	              v-model="rangeLatText"
+	              class="form-input"
+	              confirm-type="search"
+	              @input="markRangeCoordinateEdited"
+	              @confirm="searchRangeLocation"
+	            />
+	          </view>
+	          <view class="form-field">
+	            <text class="form-label">&nbsp;</text>
+	            <button
+	              class="secondary-button range-search-button"
+	              :disabled="rangeSearchDisabled"
+	              hover-class="secondary-button--hover"
+	              @click="searchRangeLocation"
+	            >
+	              {{ rangeSearching ? "搜索中" : "搜索" }}
+	            </button>
+	          </view>
+	        </view>
+	      </view>
+
+	      <view class="dialog-actions">
+	        <button
+	          class="secondary-button"
+	          :class="{ 'secondary-button--active': rangeDrawing }"
+	          hover-class="secondary-button--hover"
+	          @click="startRangeDrawing"
+	        >
+	          绘制
+	        </button>
+	        <button
+	          class="danger-button"
+	          :disabled="rangePoints.length === 0"
+	          hover-class="danger-button--hover"
+	          @click="deleteRangeDrawing"
+	        >
+	          删除
+	        </button>
+	        <button class="primary-button" hover-class="primary-button--hover" @click="confirmRangePick">确定</button>
+	        <button class="secondary-button" hover-class="secondary-button--hover" @click="closeRangeDialog">取消</button>
+	      </view>
+	    </view>
+	  </view>
+
 	  <view v-if="centerDialogVisible" class="dialog-mask" @click="closeCenterDialog">
 	    <view class="center-dialog" @click.stop>
 	      <view class="dialog-head">
@@ -615,7 +732,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, reactive } from "vue";
+import { ref, computed, nextTick, onMounted, onBeforeUnmount, reactive } from "vue";
 import LocaleCoordinateMap from "@/components/map/LocaleCoordinateMap.vue";
 import { MAP_CONFIG } from "@/services/map/map";
 import { 
@@ -645,7 +762,7 @@ interface DeptApiItem {
   gisMinLevel?: number;
   gisMaxLevel?: number;
   regionIcon?: string;
-  organizationId?: number;
+  organizationId?: number | null;
   parentId?: number;
 }
 
@@ -766,7 +883,7 @@ const loadDeptDeviceList = async (page = 1) => {
     };
 
     deptDeviceList.value = pageData.records || [];
-	console.log("设备列表",deptDeviceList.value);
+	// console.log("设备列表",deptDeviceList.value);
     deptDevicePagination.total = pageData.total || 0;
     deptDevicePagination.current = page;
 	jumpDevicePage.value = null;
@@ -1168,11 +1285,6 @@ const getDeptTypeLabel = (value: any, fallback:string) => {
 	  return fallback;
   }
   return deptTypeOptions.find((item) => item.value === value)?.label || fallback;
-};
-
-const openRangeDialog = () => {
-  uni.showToast({ title: "范围选择待接入", icon: "none" });
-  // rangeDialogVisible.value = true;
 };
 
 const colorDialogVisible = ref(false);
@@ -1584,6 +1696,9 @@ function clamp(value: number, min: number, max: number) {
 
 onBeforeUnmount(() => {
   stopColorDrag();
+  stopRangePointDrag();
+  unbindRangeMapNativeEvents();
+  unbindRangeOverlayResize();
 });
 
 interface CoordinateValue {
@@ -1595,6 +1710,653 @@ const defaultCenterCoordinate: CoordinateValue = {
   lng: 121.4737,
   lat: 31.2304,
 };
+
+type RangePoint = CoordinateValue & {
+  id: string;
+};
+
+type RangePointPosition = RangePoint & {
+  index: number;
+  x: number;
+  y: number;
+};
+
+const RANGE_MAP_ZOOM = 15;
+const RANGE_WORLD_TILE_SIZE = 256;
+const RANGE_MAX_MERCATOR_LAT = 85.05112878;
+
+const rangeDialogVisible = ref(false);
+const rangeDrawing = ref(false);
+const rangeMapCenter = ref<CoordinateValue>({ ...defaultCenterCoordinate });
+const rangePoints = ref<RangePoint[]>([]);
+const selectedRangePointId = ref("");
+const rangeLocationText = ref("");
+const rangeLngText = ref("");
+const rangeLatText = ref("");
+const rangeSearching = ref(false);
+const rangeLastEdited = ref<"location" | "coordinate" | "">("");
+const rangeMapWrapRef = ref<HTMLElement | null>(null);
+const rangeOverlayRef = ref<HTMLElement | null>(null);
+const rangeOverlaySize = ref({ width: 0, height: 0 });
+const activeRangeDragId = ref("");
+const suppressNextRangeClick = ref(false);
+let rangeNativeEventsBound = false;
+let lastRangeNativeEventTime = 0;
+
+const rangeMapKey = computed(() => {
+  return `range-${rangeMapCenter.value.lng}-${rangeMapCenter.value.lat}`;
+});
+
+const rangeInputCoordinate = computed(() => parseRangeCoordinateInputs());
+
+const rangeHasSearchText = computed(() => rangeLocationText.value.trim() !== "");
+
+const rangeHasCoordinateText = computed(() => {
+  return rangeLngText.value.trim() !== "" || rangeLatText.value.trim() !== "";
+});
+
+const rangeSearchDisabled = computed(() => {
+  return (
+    rangeSearching.value ||
+    (!rangeHasSearchText.value && !rangeHasCoordinateText.value)
+  );
+});
+
+const rangePointPositions = computed<RangePointPosition[]>(() => {
+  return rangePoints.value.map((point, index) => {
+    const position = projectRangeCoordinate(point);
+
+    return {
+      ...point,
+      index,
+      x: position.x,
+      y: position.y,
+    };
+  });
+});
+
+const rangePolylinePoints = computed(() => {
+  return rangePointPositions.value
+    .map((point) => `${point.x},${point.y}`)
+    .join(" ");
+});
+
+const rangePolygonPoints = computed(() => rangePolylinePoints.value);
+
+const openRangeDialog = () => {
+  activeSelect.value = false;
+
+  const savedPoints = parseRangeScope(deptForm.regionScope);
+  const fallbackCenter =
+    savedPoints[0] ||
+    parseCoordinateText(deptForm.regionCenter) ||
+    defaultCenterCoordinate;
+
+  rangePoints.value = savedPoints.map((point, index) => createRangePoint(point, index));
+  selectedRangePointId.value =
+    rangePoints.value[rangePoints.value.length - 1]?.id || "";
+  rangeMapCenter.value = { ...fallbackCenter };
+  rangeLocationText.value = "";
+  rangeLastEdited.value = "";
+  rangeDrawing.value = false;
+  rangeSearching.value = false;
+  activeRangeDragId.value = "";
+  syncRangeCoordinateInputs(fallbackCenter);
+  rangeDialogVisible.value = true;
+  bindRangeOverlayResize();
+  void nextTick(() => {
+    refreshRangeOverlaySize();
+    bindRangeMapNativeEvents();
+  });
+};
+
+const closeRangeDialog = () => {
+  rangeDialogVisible.value = false;
+  rangeDrawing.value = false;
+  rangeSearching.value = false;
+  rangeLastEdited.value = "";
+  selectedRangePointId.value = "";
+  activeRangeDragId.value = "";
+  stopRangePointDrag();
+  unbindRangeMapNativeEvents();
+  unbindRangeOverlayResize();
+};
+
+const startRangeDrawing = () => {
+  rangeDrawing.value = true;
+  uni.showToast({ title: "请在地图上点击添加范围点", icon: "none" });
+  void nextTick(() => {
+    refreshRangeOverlaySize();
+    bindRangeMapNativeEvents();
+  });
+};
+
+const markRangeLocationEdited = () => {
+  rangeLastEdited.value = "location";
+};
+
+const markRangeCoordinateEdited = () => {
+  rangeLastEdited.value = "coordinate";
+};
+
+const selectRangePoint = (id: string) => {
+  selectedRangePointId.value = id;
+
+  const point = rangePoints.value.find((item) => item.id === id);
+  if (point) {
+    syncRangeCoordinateInputs(point);
+  }
+};
+
+const handleRangeOverlayClick = (event: Event) => {
+  if (suppressNextRangeClick.value) {
+    suppressNextRangeClick.value = false;
+    return;
+  }
+
+  addRangePointFromEvent(event);
+};
+
+const handleRangeOverlayPointerDown = (event: Event) => {
+  if (!rangeDrawing.value) {
+    return;
+  }
+
+  const target = event.target as HTMLElement | null;
+  if (target?.closest?.(".range-point-marker")) {
+    return;
+  }
+
+  event.preventDefault?.();
+  event.stopPropagation?.();
+  suppressNextRangeClick.value = true;
+  addRangePointFromEvent(event);
+};
+
+function addRangePointFromEvent(event: Event) {
+  if (!rangeDrawing.value) {
+    return;
+  }
+
+  const target = event.target as HTMLElement | null;
+  if (target?.closest?.(".range-point-marker")) {
+    return;
+  }
+
+  const coordinate = getRangeCoordinateFromPointerEvent(event);
+
+  if (!coordinate) {
+    return;
+  }
+
+  const point = createRangePoint(coordinate);
+  rangePoints.value = [...rangePoints.value, point];
+  selectedRangePointId.value = point.id;
+  syncRangeCoordinateInputs(point);
+}
+
+const startRangePointDrag = (id: string, event: Event) => {
+  const pointerEvent = event as PointerEvent;
+  selectedRangePointId.value = id;
+  activeRangeDragId.value = id;
+
+  const target = pointerEvent.currentTarget as HTMLElement | null;
+  target?.setPointerCapture?.(pointerEvent.pointerId);
+
+  window.addEventListener("pointermove", handleRangePointDrag);
+  window.addEventListener("pointerup", stopRangePointDrag);
+  window.addEventListener("pointercancel", stopRangePointDrag);
+};
+
+const handleRangePointDrag = (event: PointerEvent) => {
+  if (!activeRangeDragId.value) {
+    return;
+  }
+
+  const coordinate = getRangeCoordinateFromPointerEvent(event);
+
+  if (!coordinate) {
+    return;
+  }
+
+  rangePoints.value = rangePoints.value.map((point) => {
+    if (point.id !== activeRangeDragId.value) {
+      return point;
+    }
+
+    return {
+      ...point,
+      ...coordinate,
+    };
+  });
+  syncRangeCoordinateInputs(coordinate);
+};
+
+const stopRangePointDrag = () => {
+  activeRangeDragId.value = "";
+
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.removeEventListener("pointermove", handleRangePointDrag);
+  window.removeEventListener("pointerup", stopRangePointDrag);
+  window.removeEventListener("pointercancel", stopRangePointDrag);
+};
+
+const searchRangeLocation = async () => {
+  const coordinate = rangeInputCoordinate.value;
+  const keyword = rangeLocationText.value.trim();
+
+  if (rangeLastEdited.value === "location" && keyword) {
+    await searchRangeByKeyword(keyword);
+    return;
+  }
+
+  if (coordinate) {
+    updateRangeMapCenter(coordinate);
+    uni.showToast({ title: "已定位到输入坐标", icon: "success" });
+    return;
+  }
+
+  if (rangeHasCoordinateText.value) {
+    uni.showToast({ title: "请输入有效经纬度", icon: "none" });
+    return;
+  }
+
+  if (!keyword) {
+    uni.showToast({ title: "请输入位置或经纬度", icon: "none" });
+    return;
+  }
+
+  await searchRangeByKeyword(keyword);
+};
+
+const searchRangeByKeyword = async (keyword: string) => {
+  rangeSearching.value = true;
+
+  try {
+    const result = await searchTencentPlace(keyword);
+
+    updateRangeMapCenter(result.coordinate);
+    rangeLocationText.value = result.title;
+    uni.showToast({ title: "已定位到搜索结果", icon: "success" });
+  } catch (error) {
+    uni.showToast({
+      title: (error as Error)?.message || "地点搜索失败",
+      icon: "none",
+    });
+  } finally {
+    rangeSearching.value = false;
+  }
+};
+
+const deleteRangeDrawing = () => {
+  if (rangePoints.value.length === 0) {
+    uni.showToast({ title: "暂无绘制内容", icon: "none" });
+    return;
+  }
+
+  uni.showModal({
+    title: "删除确认",
+    content: "确认删除已绘制的分区范围吗？",
+    confirmText: "删除",
+    confirmColor: "#ef4444",
+    success: (res) => {
+      if (!res.confirm) {
+        return;
+      }
+
+      rangePoints.value = [];
+      selectedRangePointId.value = "";
+      rangeDrawing.value = false;
+      uni.showToast({ title: "绘制内容已删除", icon: "success" });
+    },
+  });
+};
+
+const confirmRangePick = () => {
+  deptForm.regionScope = formatRangeScope(rangePoints.value);
+  closeRangeDialog();
+};
+
+function parseRangeCoordinateInputs(): CoordinateValue | null {
+  const lngText = rangeLngText.value.trim();
+  const latText = rangeLatText.value.trim();
+
+  if (!lngText || !latText) {
+    return null;
+  }
+
+  const lng = Number(lngText);
+  const lat = Number(latText);
+
+  if (!isValidCoordinate(lng, lat)) {
+    return null;
+  }
+
+  return normalizeCoordinate({ lng, lat });
+}
+
+function syncRangeCoordinateInputs(coordinate: CoordinateValue | null) {
+  rangeLngText.value = coordinate ? coordinate.lng.toFixed(6) : "";
+  rangeLatText.value = coordinate ? coordinate.lat.toFixed(6) : "";
+}
+
+function updateRangeMapCenter(coordinate: CoordinateValue) {
+  const nextCoordinate = normalizeCoordinate(coordinate);
+
+  rangeMapCenter.value = nextCoordinate;
+  rangeLastEdited.value = "coordinate";
+  syncRangeCoordinateInputs(nextCoordinate);
+  void nextTick(refreshRangeOverlaySize);
+}
+
+function createRangePoint(coordinate: CoordinateValue, index = Date.now()): RangePoint {
+  const point = normalizeCoordinate(coordinate);
+
+  return {
+    id: `range-point-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`,
+    ...point,
+  };
+}
+
+function parseRangeScope(value?: string): CoordinateValue[] {
+  const text = String(value || "").trim();
+
+  if (!text) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(text) as unknown;
+    const jsonPoints = collectRangeCoordinates(parsed);
+
+    if (jsonPoints.length > 0) {
+      return jsonPoints;
+    }
+  } catch {
+    // 非 JSON 格式继续按普通坐标串解析。
+  }
+
+  const numbers = text.match(/-?\d+(?:\.\d+)?/g);
+
+  if (!numbers || numbers.length < 2) {
+    return [];
+  }
+
+  const points: CoordinateValue[] = [];
+
+  for (let index = 0; index < numbers.length - 1; index += 2) {
+    const lng = Number(numbers[index]);
+    const lat = Number(numbers[index + 1]);
+
+    if (isValidCoordinate(lng, lat)) {
+      points.push(normalizeCoordinate({ lng, lat }));
+    }
+  }
+
+  return points;
+}
+
+function collectRangeCoordinates(value: unknown): CoordinateValue[] {
+  const points: CoordinateValue[] = [];
+
+  appendRangeCoordinates(value, points);
+
+  return points;
+}
+
+function appendRangeCoordinates(value: unknown, points: CoordinateValue[]) {
+  if (Array.isArray(value)) {
+    const lng = toCoordinateNumber(value[0]);
+    const lat = toCoordinateNumber(value[1]);
+
+    if (isValidCoordinate(lng, lat)) {
+      points.push(normalizeCoordinate({ lng, lat }));
+      return;
+    }
+
+    value.forEach((item) => appendRangeCoordinates(item, points));
+    return;
+  }
+
+  if (!value || typeof value !== "object") {
+    return;
+  }
+
+  const record = value as Record<string, unknown>;
+  const lng = pickCoordinateNumber(record.lng, record.longitude, record.x);
+  const lat = pickCoordinateNumber(record.lat, record.latitude, record.y);
+
+  if (isValidCoordinate(lng, lat)) {
+    points.push(normalizeCoordinate({ lng, lat }));
+    return;
+  }
+
+  ["points", "coordinates", "path", "range", "regionScope"].forEach((key) => {
+    appendRangeCoordinates(record[key], points);
+  });
+}
+
+function toCoordinateNumber(value: unknown): number {
+  if (typeof value === "number") {
+    return value;
+  }
+
+  if (typeof value === "string" && value.trim() !== "") {
+    return Number(value);
+  }
+
+  return Number.NaN;
+}
+
+function pickCoordinateNumber(...values: unknown[]) {
+  const result = values
+    .map((value) => toCoordinateNumber(value))
+    .find((value) => Number.isFinite(value));
+
+  return result ?? Number.NaN;
+}
+
+function formatRangeScope(points: CoordinateValue[]) {
+  return points.map((point) => formatCoordinate(point)).join(";");
+}
+
+function refreshRangeOverlaySize() {
+  const rect =
+    rangeOverlayRef.value?.getBoundingClientRect() ||
+    rangeMapWrapRef.value?.getBoundingClientRect();
+
+  if (!rect) {
+    return;
+  }
+
+  rangeOverlaySize.value = {
+    width: rect.width,
+    height: rect.height,
+  };
+}
+
+function bindRangeOverlayResize() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.addEventListener("resize", refreshRangeOverlaySize);
+}
+
+function unbindRangeOverlayResize() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.removeEventListener("resize", refreshRangeOverlaySize);
+}
+
+function bindRangeMapNativeEvents() {
+  const target = rangeMapWrapRef.value;
+
+  if (!target || rangeNativeEventsBound) {
+    return;
+  }
+
+  target.addEventListener("pointerdown", handleRangeMapNativePointerDown, true);
+  target.addEventListener("mousedown", handleRangeMapNativePointerDown, true);
+  target.addEventListener("touchstart", handleRangeMapNativePointerDown, {
+    capture: true,
+    passive: false,
+  });
+  rangeNativeEventsBound = true;
+}
+
+function unbindRangeMapNativeEvents() {
+  const target = rangeMapWrapRef.value;
+
+  if (!target || !rangeNativeEventsBound) {
+    rangeNativeEventsBound = false;
+    return;
+  }
+
+  target.removeEventListener("pointerdown", handleRangeMapNativePointerDown, true);
+  target.removeEventListener("mousedown", handleRangeMapNativePointerDown, true);
+  target.removeEventListener(
+    "touchstart",
+    handleRangeMapNativePointerDown,
+    true,
+  );
+  rangeNativeEventsBound = false;
+}
+
+function handleRangeMapNativePointerDown(event: MouseEvent | PointerEvent | TouchEvent) {
+  if (!rangeDrawing.value) {
+    return;
+  }
+
+  const target = event.target as HTMLElement | null;
+
+  if (target?.closest?.(".range-point-marker")) {
+    return;
+  }
+
+  const now = Date.now();
+
+  if (now - lastRangeNativeEventTime < 80) {
+    return;
+  }
+
+  lastRangeNativeEventTime = now;
+  event.preventDefault?.();
+  event.stopPropagation?.();
+  suppressNextRangeClick.value = true;
+  addRangePointFromEvent(event);
+}
+
+function getRangeCoordinateFromPointerEvent(event: Event): CoordinateValue | null {
+  const clientPosition = getRangeEventClientPosition(event);
+  const rect =
+    rangeOverlayRef.value?.getBoundingClientRect() ||
+    rangeMapWrapRef.value?.getBoundingClientRect();
+
+  if (!clientPosition || !rect || rect.width <= 0 || rect.height <= 0) {
+    return null;
+  }
+
+  const x = clamp(clientPosition.x - rect.left, 0, rect.width);
+  const y = clamp(clientPosition.y - rect.top, 0, rect.height);
+
+  rangeOverlaySize.value = {
+    width: rect.width,
+    height: rect.height,
+  };
+
+  return unprojectRangeCoordinate(x, y);
+}
+
+function getRangeEventClientPosition(event: Event) {
+  const mouseEvent = event as MouseEvent;
+
+  if (Number.isFinite(mouseEvent.clientX) && Number.isFinite(mouseEvent.clientY)) {
+    return {
+      x: mouseEvent.clientX,
+      y: mouseEvent.clientY,
+    };
+  }
+
+  const touchEvent = event as TouchEvent;
+  const touch = touchEvent.touches?.[0] || touchEvent.changedTouches?.[0];
+
+  if (touch && Number.isFinite(touch.clientX) && Number.isFinite(touch.clientY)) {
+    return {
+      x: touch.clientX,
+      y: touch.clientY,
+    };
+  }
+
+  const detail = (event as { detail?: { x?: number; y?: number } }).detail;
+
+  if (Number.isFinite(detail?.x) && Number.isFinite(detail?.y)) {
+    return {
+      x: detail!.x!,
+      y: detail!.y!,
+    };
+  }
+
+  return null;
+}
+
+function projectRangeCoordinate(coordinate: CoordinateValue) {
+  const { width, height } = rangeOverlaySize.value;
+
+  if (width <= 0 || height <= 0) {
+    return { x: 0, y: 0 };
+  }
+
+  const centerWorld = coordinateToRangeWorld(rangeMapCenter.value);
+  const pointWorld = coordinateToRangeWorld(coordinate);
+
+  return {
+    x: width / 2 + pointWorld.x - centerWorld.x,
+    y: height / 2 + pointWorld.y - centerWorld.y,
+  };
+}
+
+function unprojectRangeCoordinate(x: number, y: number): CoordinateValue {
+  const { width, height } = rangeOverlaySize.value;
+  const centerWorld = coordinateToRangeWorld(rangeMapCenter.value);
+
+  return rangeWorldToCoordinate(
+    centerWorld.x + x - width / 2,
+    centerWorld.y + y - height / 2,
+  );
+}
+
+function coordinateToRangeWorld(coordinate: CoordinateValue) {
+  const mapSize = RANGE_WORLD_TILE_SIZE * 2 ** RANGE_MAP_ZOOM;
+  const lat = clamp(
+    coordinate.lat,
+    -RANGE_MAX_MERCATOR_LAT,
+    RANGE_MAX_MERCATOR_LAT,
+  );
+  const sinLat = Math.sin((lat * Math.PI) / 180);
+
+  return {
+    x: ((coordinate.lng + 180) / 360) * mapSize,
+    y:
+      (0.5 -
+        Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) *
+      mapSize,
+  };
+}
+
+function rangeWorldToCoordinate(x: number, y: number): CoordinateValue {
+  const mapSize = RANGE_WORLD_TILE_SIZE * 2 ** RANGE_MAP_ZOOM;
+  const lng = (x / mapSize) * 360 - 180;
+  const n = Math.PI - (2 * Math.PI * y) / mapSize;
+  const lat = (Math.atan(Math.sinh(n)) * 180) / Math.PI;
+
+  return normalizeCoordinate({ lng, lat });
+}
 
 const centerDialogVisible = ref(false);
 const centerDrawing = ref(false);
@@ -1959,10 +2721,6 @@ const handleChooseRegionIcon = () => {
   // #endif
 };
 
-const openOrgDialog = () => {
-  uni.showToast({ title: "所属组织待接入", icon: "none" });
-};
-
 function validateCreateForm() {
   clearErrors();
   if (deptForm.deptName === "") {
@@ -2004,7 +2762,7 @@ const handleSaveDept = async () => {
       //   deptForm.regionIcon = uploadedUrl;
       // }
 
-  
+
   const payload = {
     ...deptForm,
   };
@@ -3085,6 +3843,171 @@ function getStatusClass(value: number) {
   border-color: #dbe4ec;
 }
 
+.secondary-button--active {
+  color: #0d82ee;
+  background: #edf7ff;
+  border-color: #8fc8f8;
+}
+
+.danger-button[disabled] {
+  color: #ffd9d9;
+  background: #f6a0a0;
+  border-color: #f6a0a0;
+  opacity: 0.72;
+}
+
+.range-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(1180px, 96vw);
+  height: min(760px, 90vh);
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #d8e6f2;
+  border-radius: 6px;
+  box-shadow: 0 18px 46px rgba(15, 35, 55, 0.2);
+}
+
+.range-dialog-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  padding: 18px 24px 16px;
+  background: #ffffff;
+}
+
+.range-map-wrap {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+  flex: 1;
+  min-height: 430px;
+  overflow: hidden;
+  background: #f4f8fb;
+  border: 1px solid #d5e2ee;
+  border-radius: 4px;
+}
+
+.range-map-wrap :deep(.locale-coordinate-map) {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.range-map-wrap--drawing,
+.range-map-wrap--drawing :deep(*) {
+  cursor: crosshair !important;
+}
+
+.range-drawing-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 999;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.001);
+  pointer-events: none;
+  touch-action: none;
+}
+
+.range-drawing-layer--active {
+  pointer-events: auto;
+}
+
+.range-vector {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.range-polygon {
+  fill: rgba(239, 68, 68, 0.22);
+  stroke: rgba(239, 68, 68, 0.28);
+  stroke-width: 1;
+}
+
+.range-polyline {
+  fill: none;
+  stroke: #ef4444;
+  stroke-dasharray: 8 6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.range-point-marker {
+  position: absolute;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  margin: 0;
+  color: #ef4444;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 20px;
+  user-select: none;
+  touch-action: none;
+  cursor: grab;
+  background: #ffffff;
+  border: 2px solid #ef4444;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(15, 35, 55, 0.2);
+  transform: translate(-50%, -50%);
+}
+
+.range-point-marker::after {
+  border: 0;
+}
+
+.range-point-marker:active {
+  cursor: grabbing;
+}
+
+.range-point-marker--active {
+  color: #ffffff;
+  background: #0d82ee;
+  border-color: #ffffff;
+  box-shadow:
+    0 0 0 3px rgba(13, 130, 238, 0.38),
+    0 4px 12px rgba(15, 35, 55, 0.28);
+}
+
+.range-point-marker text {
+  pointer-events: none;
+}
+
+.range-coordinate-form {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) 160px 160px 78px;
+  gap: 14px;
+  flex: none;
+  align-items: end;
+}
+
+.range-coordinate-form__location {
+  min-width: 0;
+}
+
+.range-search-button {
+  width: 78px;
+  min-width: 78px;
+  max-width: none;
+}
+
+.range-search-button[disabled] {
+  color: #98a6b5;
+  background: #eef3f7;
+  border-color: #d7e2ec;
+  opacity: 0.72;
+}
+
 .center-dialog {
   display: flex;
   flex-direction: column;
@@ -3443,23 +4366,32 @@ function getStatusClass(value: number) {
     flex-wrap: wrap;
   }
 
+  .range-dialog,
   .center-dialog {
     width: 94vw;
     height: 86vh;
   }
 
+  .range-dialog-body,
   .center-dialog-body {
     padding: 14px;
   }
 
+  .range-map-wrap,
   .center-map-wrap,
   .center-map-fallback {
     min-height: 280px;
   }
 
+  .range-coordinate-form,
   .center-coordinate-form {
     grid-template-columns: 1fr;
     gap: 10px;
+  }
+
+  .range-search-button {
+    width: 100%;
+    min-width: 0;
   }
 
   .color-picker-panel {
