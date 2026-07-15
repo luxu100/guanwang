@@ -28,9 +28,6 @@
           </picker>
         </view>
 
-      </view>
-
-      <view class="toolbar-row toolbar-row--bottom">
         <view class="toolbar-actions toolbar-actions--right">
           <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="searchAnalysis">查询</button>
           <button class="toolbar-button" hover-class="toolbar-button--hover" @click="resetFilters">重置</button>
@@ -73,8 +70,8 @@
           <text class="data-cell data-cell--error">失败原因</text>
         </view>
 
-        <view v-if="loading" class="table-state">加载中...</view>
-        <view v-else-if="records.length === 0" class="table-state">暂无分析数据</view>
+        <view v-if="loading" class="table-state table-state--loading"><view class="state-spinner"></view><text class="state-text">加载中...</text></view>
+        <view v-else-if="records.length === 0" class="table-state table-state--empty"><view class="state-icon-empty"></view><text class="state-text">暂无分析数据</text></view>
 
         <!-- 算法分析行 -->
         <view
@@ -252,13 +249,13 @@ const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pagination
 const baseDetailFields = computed(() => {
   const r = selectedRecord.value || {};
   return [
-    { label: "ID", value: String(getFieldValue(r, "id") || "-") },
-    { label: "设备ID", value: String(getFieldValue(r, "deviceId") || "-") },
+    { label: "ID", value: String(getFieldValue(r, "id") ?? "-") },
+    { label: "设备ID", value: String(getFieldValue(r, "deviceId") ?? "-") },
     { label: "设备编号", value: String(getFieldValue(r, "deviceNumber") || "-") },
-    { label: "采样记录ID", value: String(getFieldValue(r, "samplingId") || "-") },
-    { label: "音频文件ID", value: String(getFieldValue(r, "audioFileId") || "-") },
+    { label: "采样记录ID", value: String(getFieldValue(r, "samplingId") ?? "-") },
+    { label: "音频文件ID", value: String(getFieldValue(r, "audioFileId") ?? "-") },
     { label: "信号处理结果", value: String(getFieldValue(r, "signalprocessingResult") || "-") },
-    { label: "算法状态", value: String(getFieldValue(r, "algorithmStatus") || "-") },
+    { label: "算法状态", value: getAlgorithmStatusLabel(r) },
     { label: "失败原因", value: String(getFieldValue(r, "algorithmError") || "-") },
   ];
 });
@@ -271,7 +268,7 @@ const timeDetailFields = computed(() => {
   ];
 });
 
-const locationDetailFields = computed(() => {
+const locationDetailFields = computed<Array<{ label: string; value: string }>>(() => {
   return [];
 });
 
@@ -365,6 +362,7 @@ async function handleExport(scope: "current" | "all") {
   const rows = exportRecords.map((r, idx) => {
     const keys = ["deviceNumber", "audioTime", "signalprocessingResult", "algorithmStatus", "algorithmError"];
     return [String(idx + 1), ...keys.map((k) => {
+      if (k === "audioTime") return formatDateTime(getFieldValue(r, k));
       const v = getFieldValue(r, k);
       return v === undefined || v === null ? "" : String(v).replace(/"/g, '""');
     })];
@@ -658,10 +656,6 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   gap: 10px 12px;
 }
 
-.toolbar-row--bottom {
-  justify-content: space-between;
-}
-
 .filter-group {
   display: grid;
   align-content: start;
@@ -689,6 +683,8 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   border-radius: 4px;
   line-height: 28px;
 }
+
+.filter-input:focus, .filter-select:hover { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
 
 .filter-input::placeholder,
 .input-placeholder {
@@ -863,8 +859,8 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 
 .icon-refresh {
   display: block;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   border: 2px solid #7f8fa3;
   border-top-color: transparent;
   border-radius: 50%;
@@ -1138,10 +1134,46 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 }
 
 .table-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
   padding: 48px 32px;
   color: #a0aec0;
   font-size: 14px;
   text-align: center;
+}
+
+.state-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: state-spin 0.7s linear infinite;
+}
+
+@keyframes state-spin {
+  to { transform: rotate(360deg); }
+}
+
+.state-icon-empty {
+  width: 40px;
+  height: 40px;
+  border: 2px dashed #cbd5e1;
+  border-radius: 50%;
+  position: relative;
+}
+
+.state-icon-empty::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 2px;
+  background: #cbd5e1;
+  transform: translate(-50%, -50%);
 }
 
 .pagination-bar {
