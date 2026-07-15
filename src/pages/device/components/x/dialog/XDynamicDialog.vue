@@ -276,11 +276,11 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from "vue";
 import type {FieldOption, FormSection} from "@/pages/device/components/x/types";
-import XDatetimePicker from "@/pages/device/components/x/XDatetimePicker.vue";
-import XSelectCoordinateMap from "@/pages/device/components/x/XSelectCoordinateMap.vue";
+import XDatetimePicker from "@/pages/device/components/x/form/XDatetimePicker.vue";
+import XSelectCoordinateMap from "@/pages/device/components/x/form/XSelectCoordinateMap.vue";
 
 import {createScopedT} from "@/i18n";
-import XUploadPhoto from "@/pages/device/components/x/XUploadPhoto.vue";
+import XUploadPhoto from "@/pages/device/components/x/upload/XUploadPhoto.vue";
 const t = createScopedT("devicePage");
 
 interface Props {
@@ -583,7 +583,7 @@ function closeMapPicker() {
 .dialog-mask {
   position: fixed;
   inset: 0;
-  z-index: 10;
+  z-index: 30;
   display: flex;
   align-items: center;
   justify-content: center;

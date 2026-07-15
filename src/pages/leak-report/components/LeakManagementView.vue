@@ -1,4 +1,4 @@
-﻿﻿<template>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
   <view class="leak-management-view">
     <!-- 筛选栏 -->
     <view class="toolbar">
@@ -40,13 +40,17 @@
             </view>
           </picker>
         </view>
-      </view>
-      <view class="toolbar-row toolbar-row--bottom">
         <view class="toolbar-actions toolbar-actions--right">
           <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="searchLeakPoints">查询</button>
           <button class="toolbar-button" hover-class="toolbar-button--hover" @click="resetFilters">重置</button>
           <button class="toolbar-icon-button" hover-class="toolbar-icon-button--hover" aria-label="刷新" @click="fetchLeakPoints"><text class="icon-refresh"></text></button>
-          <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="handleExport">导出</button>
+          <view class="export-dropdown">
+            <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="exportMenuVisible = !exportMenuVisible">导出</button>
+            <view v-if="exportMenuVisible" class="export-menu">
+              <view class="export-menu__item" @click="handleExport('current')">导出当前页</view>
+              <view class="export-menu__item" @click="handleExport('all')">导出全部</view>
+            </view>
+          </view>
           <button class="toolbar-button" hover-class="toolbar-button--hover" @click="handleImport">导入</button>
           <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="openCreateDialog">新增漏点</button>
           <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" :disabled="!selectedRecord" @click="openEditDialog">编辑</button>
@@ -88,8 +92,8 @@
           <text class="data-cell data-cell--wsid">关联工单</text>
           <text class="data-cell data-cell--devices">关联设备</text>
         </view>
-        <view v-if="loading" class="table-state">加载中...</view>
-        <view v-else-if="records.length === 0" class="table-state">暂无漏点数据</view>
+        <view v-if="loading" class="table-state table-state--loading"><view class="state-spinner"></view><text class="state-text">加载中...</text></view>
+        <view v-else-if="records.length === 0" class="table-state table-state--empty"><view class="state-icon-empty"></view><text class="state-text">暂无漏点数据</text></view>
         <view v-for="(item, index) in records" v-else :key="getRowKey(item, index)" class="data-row data-row--body" :class="{ 'data-row--active': selectedRecordKey === getRowKey(item, index) }" @click="selectRecord(item, index)">
           <view class="data-cell data-cell--checkbox" @click.stop="toggleSelectItem(item)">
             <view v-if="allSelectable" class="checkbox" :class="{ 'checkbox--checked': isItemSelected(item) }"><text v-if="isItemSelected(item)" class="checkbox__mark"></text></view>
@@ -289,7 +293,7 @@
           <view><text class="dialog-title">{{ isEditing ? "编辑漏点" : "新增漏点" }}</text><text class="dialog-subtitle">填写渗漏记录的基本信息、管道信息和关联数据</text></view>
           <button class="icon-button" hover-class="icon-button--hover" aria-label="关闭" @click="closeDialog"><text class="close-icon"></text></button>
         </view>
-        <view class="dialog-body">
+        <view class="dialog-body" @click="formLeakStatusDropdownVisible = false">
           <view class="form-layout">
             <!-- 左栏 -->
             <view class="form-main">
@@ -334,7 +338,19 @@
                   </view>
                   <view class="form-field">
                     <text class="form-label">渗漏状态</text>
-                    <input v-model="form.leakStatus" class="form-input" placeholder="如 未修复/已修复" placeholder-class="input-placeholder" />
+                    <view class="form-select form-select--clickable" @click.stop="formLeakStatusDropdownVisible = !formLeakStatusDropdownVisible">
+                      <text>{{ currentFormLeakStatusLabel }}</text>
+                      <text class="filter-select__arrow"></text>
+                    </view>
+                    <view v-if="formLeakStatusDropdownVisible" class="form-select-dropdown" @click.stop>
+                      <view
+                        v-for="(opt, oi) in formLeakStatusOptions"
+                        :key="oi"
+                        class="form-select-dropdown__item"
+                        :class="{ 'form-select-dropdown__item--active': form.leakStatus === opt.value }"
+                        @click="handleFormLeakStatusSelect(opt.value)"
+                      >{{ opt.label }}</view>
+                    </view>
                   </view>
                   <view class="form-field">
                     <text class="form-label form-label--required">巡检人员</text>
@@ -570,17 +586,13 @@ const detailTabs: Array<{ label: string; value: DetailTab }> = [
   { label: "附件备注", value: "attach" },
 ];
 
-function hasFieldValues(fields: Array<{ label: string; value: string }>): boolean {
-  return fields.some((f) => f.value && f.value !== "-" && f.value !== "NaN-NaN-NaN NaN:NaN");
-}
-
 const visibleDetailTabs = computed(() => {
-  const tabs: Array<{ label: string; value: DetailTab }> = [{ label: "基本信息", value: "base" }];
-  if (hasFieldValues(detailDetailFields.value)) tabs.push({ label: "漏点详情", value: "detail" });
-  if (hasFieldValues(pipeDetailFields.value)) tabs.push({ label: "管道信息", value: "pipe" });
-  const hasMedia = getFieldValue(selectedRecord.value, "sceneImages") || getFieldValue(selectedRecord.value, "sceneVideo") || hasFieldValues(attachTextFields.value);
-  if (hasMedia) tabs.push({ label: "附件备注", value: "attach" });
-  return tabs;
+  return [
+    { label: "基本信息", value: "base" as DetailTab },
+    { label: "漏点详情", value: "detail" as DetailTab },
+    { label: "管道信息", value: "pipe" as DetailTab },
+    { label: "附件备注", value: "attach" as DetailTab },
+  ];
 });
 
 const sortField = ref("detectTime");
@@ -592,9 +604,19 @@ const leakStatusOptions: Array<{ label: string; value: string }> = [
   { label: "已修复", value: "已修复" },
   { label: "未修复", value: "未修复" },
 ];
+const formLeakStatusOptions: Array<{ label: string; value: string }> = [
+  { label: "已修复", value: "已修复" },
+  { label: "未修复", value: "未修复" },
+];
 const currentLeakStatusLabel = computed(() => leakStatusOptions.find((o) => o.value === filters.leakStatus)?.label || "全部");
 function handleLeakStatusChange(e: { detail: { value: number } }) {
   filters.leakStatus = leakStatusOptions[e.detail.value]?.value || "";
+}
+const currentFormLeakStatusLabel = computed(() => formLeakStatusOptions.find((o) => o.value === form.leakStatus)?.label || "请选择");
+const formLeakStatusDropdownVisible = ref(false);
+function handleFormLeakStatusSelect(value: string) {
+  form.leakStatus = value;
+  formLeakStatusDropdownVisible.value = false;
 }
 const pagination = reactive({ pageNum: 1, pageSize: 10 });
 const records = ref<RecordItem[]>([]);
@@ -603,6 +625,7 @@ const selectedRecordKey = ref("");
 const selectedIds = ref(new Set<string>());
 const total = ref(0);
 const loading = ref(false);
+const exportMenuVisible = ref(false);
 
 const dialogVisible = ref(false);
 const isEditing = ref(false);
@@ -681,6 +704,7 @@ const detailDetailFields = computed(() => mkFields(selectedRecord.value, [
   ["人工复核次数", "manualReviewCount"],
   ["维修处理方式", "repairMethod"],
   ["特征值", "featureValue"],
+  ["疑点ID", "suspectedLeakId"],
 ]));
 
 const timeDetailFields = computed(() => {
@@ -878,7 +902,7 @@ function openEditDialog() {
   if (!selectedRecord.value) { uni.showToast({ title: "请先选择漏点记录", icon: "none" }); return; }
   isEditing.value = true; resetForm(); fillForm(selectedRecord.value); dialogVisible.value = true;
 }
-function closeDialog() { dialogVisible.value = false; resetForm(); }
+function closeDialog() { dialogVisible.value = false; formLeakStatusDropdownVisible.value = false; resetForm(); }
 
 function revokeBlobUrl(url: string) { if (url.startsWith("blob:")) URL.revokeObjectURL(url); }
 
@@ -1021,13 +1045,28 @@ function handleUploadPhoto() {
 }
 
 function removePhoto(idx: number) { photoList.value.splice(idx, 1); form.sceneImages = photoList.value.map((p) => p.id).join(","); photoIdListText.value = form.sceneImages; }
-function handleExport() {
-  if (!records.value.length) { uni.showToast({ title: "暂无数据可导出", icon: "none" }); return; }
+async function handleExport(scope: "current" | "all") {
+  exportMenuVisible.value = false;
+  let exportRecords = records.value;
+  if (scope === "all") {
+    try {
+      const params = { ...buildQuery(), pageNum: 1, pageSize: 99999 };
+      const response = (await getLeakPointPage(params)) as Res;
+      ok(response);
+      const p = parsePage(response);
+      exportRecords = p.records;
+    } catch {
+      uni.showToast({ title: "获取全部数据失败", icon: "none" });
+      return;
+    }
+  }
+  if (!exportRecords.length) { uni.showToast({ title: "暂无数据可导出", icon: "none" }); return; }
   // #ifdef H5
   const headers = ["检出时间", "渗漏状态", "漏点类型", "泄漏部位", "漏点位置", "巡检人员", "定漏人员", "音频文件ID", "现场视频ID", "关联工单", "关联设备"];
-  const keys = ["detectTime", "leakStatus", "leakPointType", "leakPart", "leakPointPosition", "inspector", "locator", "audioFile", "sceneVideo", "workOrderId", "deviceNumber"];
-  const rows = records.value.map((r) =>
+  const keys = ["detectTime", "leakStatus", "leakPointType", "leakPart", "leakPointPosition", "inspector", "locator", "audioFile", "sceneVideo", "worksheetNumber", "deviceNumber"];
+  const rows = exportRecords.map((r) =>
     keys.map((k) => {
+      if (k === "detectTime") return fmtDt(gv(r, k));
       const v = gv(r, k);
       if (v === undefined || v === null) return "";
       return String(v).replace(/"/g, '""');
@@ -1277,7 +1316,7 @@ function buildPayload() {
     manualReviewCount: form.manualReviewCount.trim() ? Number(form.manualReviewCount) : undefined,
     deviceNumber: form.deviceNumber.trim(),
     noiseTime: normDt(form.noiseTime) || undefined,
-    leakStatus: form.leakStatus.trim(),
+    leakStatus: form.leakStatus,
     featureValue: form.featureValue.trim(),
     audioFile: form.audioFile.trim(),
     repairMethod: form.repairMethod.trim(),
@@ -1563,10 +1602,10 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .toolbar { flex: none; display: flex; flex-direction: column; gap: 12px; padding: 14px; margin-bottom: 12px; background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%); border-radius: 6px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06); }
 .toolbar-row { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
 .toolbar-row--filters { display: flex; flex-wrap: wrap; align-items: end; gap: 10px 12px; }
-.toolbar-row--bottom { justify-content: space-between; }
 .filter-group { display: grid; align-content: start; gap: 6px; }
 .filter-label { color: #52677b; font-size: 12px; font-weight: 800; line-height: 1.2; white-space: nowrap; }
 .filter-input { box-sizing: border-box; width: 140px; height: 28px; padding: 0 10px; color: #172033; font-size: 13px; font-weight: 600; background: #f9fcff; border: 1px solid #cbdced; border-radius: 4px; line-height: 28px; }
+.filter-input:focus, .filter-select:hover { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
 .input-placeholder { color: #9aa9b8; font-size: 13px; }
 .filter-select { display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; min-width: 100px; height: 28px; padding: 0 10px; color: #172033; font-size: 13px; font-weight: 600; background: #f9fcff; border: 1px solid #cbdced; border-radius: 4px; cursor: pointer; line-height: 28px; }
 .filter-select__arrow { width: 8px; height: 8px; margin-left: 8px; border: solid #74879c; border-width: 0 2px 2px 0; transform: translateY(-2px) rotate(45deg); }
@@ -1579,7 +1618,11 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .toolbar-actions { display: flex; align-items: center; gap: 7px; &--right { margin-left: auto; } }
 .toolbar-button { display: flex; align-items: center; justify-content: center; box-sizing: border-box; min-width: 64px; height: 38px; margin: 0; padding: 0 15px; color: #31506d; font-size: 13px; font-weight: 700; line-height: 1.2; background: #f6fbff; border: 1px solid #cbdced; border-radius: 5px; cursor: pointer; &--primary { color: #fff; background: #3b82f6; border-color: #3b82f6; } &--danger { color: #dc2626; background: #fef2f2; border-color: #fecaca; } &--hover { color: #3b82f6; background: #eff6ff; border-color: #bfdbfe; } &--primary.toolbar-button--hover { color: #fff; background: #2563eb; border-color: #2563eb; } &:disabled { color: #9aa9b8; background: #eff6ff; border-color: #d7e0e8; cursor: not-allowed; } }
 .toolbar-icon-button { display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; margin: 0; padding: 0; color: #31506d; background: #f6fbff; border: 1px solid #cbdced; border-radius: 5px; cursor: pointer; &--hover { color: #3b82f6; background: #eff6ff; border-color: #bfdbfe; } }
-.icon-refresh { display: block; width: 18px; height: 18px; border: 2px solid #7f8fa3; border-top-color: transparent; border-radius: 50%; }
+.icon-refresh { display: block; width: 16px; height: 16px; border: 2px solid #7f8fa3; border-top-color: transparent; border-radius: 50%; }
+.export-dropdown { position: relative; }
+.export-menu { position: absolute; top: 100%; right: 0; z-index: 20; margin-top: 4px; background: #ffffff; border: 1px solid #d5e2ee; border-radius: 6px; box-shadow: 0 8px 20px rgba(15, 35, 55, 0.12); overflow: hidden; }
+.export-menu__item { padding: 10px 18px; color: #24384d; font-size: 13px; white-space: nowrap; cursor: pointer; }
+.export-menu__item:hover { background: #eff6ff; color: #3b82f6; }
 
 .main-layout { display: grid; grid-template-columns: minmax(0, 1fr) clamp(380px, 20vw, 420px); flex: 1; min-height: 0; gap: 12px; overflow: hidden; }
 .table-panel { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
@@ -1661,7 +1704,11 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .checkbox { display: flex; align-items: center; justify-content: center; width: 18px; height: 18px; border: 2px solid #cdd7e4; border-radius: 4px; cursor: pointer; &--checked { background: #3b82f6; border-color: #3b82f6; } }
 .checkbox__mark { display: block; width: 6px; height: 10px; border-right: 2px solid #fff; border-bottom: 2px solid #fff; transform: rotate(45deg) translate(-1px, -1px); }
 .level-pill { display: inline-block; padding: 2px 10px; font-size: 12px; font-weight: 700; border-radius: 10px; &--light { color: #22c55e; background: #f0fdf4; border: 1px solid #bbf7d0; } &--medium { color: #f59e0b; background: #fffbeb; border: 1px solid #fde68a; } &--heavy { color: #ef4444; background: #fef2f2; border: 1px solid #fecaca; } &--suspect { color: #8c8c8c; background: #fafafa; border: 1px solid #d9d9d9; } }
-.table-state { padding: 48px 32px; color: #a0aec0; font-size: 14px; text-align: center; }
+.table-state { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 48px 32px; color: #a0aec0; font-size: 14px; text-align: center; }
+.state-spinner { width: 28px; height: 28px; border: 3px solid #e2e8f0; border-top-color: #3b82f6; border-radius: 50%; animation: state-spin 0.7s linear infinite; }
+@keyframes state-spin { to { transform: rotate(360deg); } }
+.state-icon-empty { width: 40px; height: 40px; border: 2px dashed #cbd5e1; border-radius: 50%; position: relative; }
+.state-icon-empty::after { content: ""; position: absolute; top: 50%; left: 50%; width: 14px; height: 2px; background: #cbd5e1; transform: translate(-50%, -50%); }
 .pagination-bar { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-top: 1px solid #edf3f8; }
 .page-button { display: flex; align-items: center; justify-content: center; min-width: 64px; height: 34px; margin: 0; padding: 0 14px; color: #183755; font-size: 13px; font-weight: 700; background: #fff; border: 1px solid #d5e2ee; border-radius: 6px; cursor: pointer; &--hover { background: #eff6ff; } &:disabled { opacity: 0.4; cursor: not-allowed; } }
 .page-info { color: #64748b; font-size: 13px; font-weight: 600; }
@@ -1711,7 +1758,7 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .section-hint { color: #94a3b8; font-size: 12px; }
 
 .form-grid { display: grid; gap: 12px 18px; &--two { grid-template-columns: repeat(2, 1fr); } &--three { grid-template-columns: repeat(3, 1fr); } }
-.form-field { min-width: 0; &--wide { grid-column: span 2; } &--device-search { position: relative; } }
+.form-field { min-width: 0; position: relative; &--wide { grid-column: span 2; } &--device-search { position: relative; } }
 .form-label { display: block; margin-bottom: 5px; color: #34495e; font-size: 13px; font-weight: 700; &--required::after { margin-left: 4px; color: #ef4444; content: "*"; } }
 .form-error { display: block; margin-top: 4px; color: #ef4444; font-size: 12px; }
 .device-suggestions { position: absolute; top: 100%; left: 0; right: 0; z-index: 100; max-height: 200px; overflow-y: auto; margin-top: 4px; background: #fff; border: 1px solid #d5e2ee; border-radius: 4px; box-shadow: 0 8px 20px rgba(15, 35, 55, 0.12); }
@@ -1719,6 +1766,9 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .form-input, .form-select { box-sizing: border-box; min-width: 0; width: 100%; max-width: 100%; height: 38px; padding: 0 12px; overflow: hidden; color: #172033; font-size: 14px; line-height: 38px; text-overflow: ellipsis; background: #fbfdff; border: 1px solid #d5e2ee; border-radius: 4px; transition: border-color 0.16s ease, box-shadow 0.16s ease; &--flex { flex: 1; } }
 .form-input:focus, .form-textarea:focus { background: #fff; border-color: #8fc8f8; box-shadow: 0 0 0 3px rgba(13,130,238,0.1); }
 .form-select { display: flex; align-items: center; justify-content: space-between; &--dropdown { background: #f7fbff; box-shadow: inset 0 -1px 0 rgba(13,130,238,0.03); } &__placeholder { color: #9aa9b8; } }
+.form-select--clickable { cursor: pointer; &:hover { border-color: #8fc8f8; } }
+.form-select-dropdown { position: absolute; top: 100%; left: 0; right: 0; z-index: 2100; margin-top: 4px; background: #ffffff; border: 1px solid #d5e2ee; border-radius: 6px; box-shadow: 0 8px 20px rgba(15, 35, 55, 0.12); overflow: hidden; }
+.form-select-dropdown__item { padding: 8px 12px; font-size: 14px; color: #24384d; cursor: pointer; &:hover { background: #eff6ff; } &--active { background: #dbeafe; color: #3b82f6; font-weight: 700; } }
 .form-textarea { box-sizing: border-box; width: 100%; max-width: 100%; min-height: 88px; padding: 9px 12px; color: #172033; font-size: 14px; line-height: 1.45; background: #fbfdff; border: 1px solid #d5e2ee; border-radius: 4px; }
 
 .select-arrow { width: 8px; height: 8px; border: solid #74879c; border-width: 0 2px 2px 0; transform: translateY(-2px) rotate(45deg); &--up { transform: translateY(2px) rotate(-135deg); } }

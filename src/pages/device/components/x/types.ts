@@ -1,13 +1,15 @@
 /* ===================== types ===================== */
 
 export interface FieldOption {
-    label: string;
-    value: number | string | boolean;
+    label?: string;
+    labelKey?: string;
+    value: number | string | boolean | null;
 }
 
 export interface FormField {
     key: string;
-    label: string;
+    label?: string;
+    labelKey?: string;
     type: "input" | "select" | "datetime" | "textarea" | "location" | "photo" | "image" | "tag" | "text";
     required?: boolean;
     placeholder?: string;
@@ -47,7 +49,8 @@ export interface FormField {
 }
 
 export interface FormSection {
-    title: string;
+    title?: string;
+    titleKey?: string;
     fields: FormField[];
 }
 

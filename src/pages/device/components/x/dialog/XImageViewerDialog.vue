@@ -181,8 +181,8 @@ function preview(index: number) {
 </script>
 
 <style scoped lang="scss">
-@import "@/pages/device/components/x/dialog.css";
-@import "@/pages/device/components/x/button.css";
+@import "@/pages/device/components/x/dialog/styles/dialog.css";
+@import "@/pages/device/components/x/common/button.css";
 
 .image-grid{
   display:flex;

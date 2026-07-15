@@ -5,12 +5,12 @@
  */
 import { createCrudService } from "@/services/shared/crud";
 
-const leakageRecordApi = createCrudService("/api/leakage-record");
+const leakageRecordApi = createCrudService("/api/leak-point");
 const deviceStatusUploadApi = createCrudService("/api/device-status-upload");
-const algorithmResultApi = createCrudService("/api/algorithm-result");
+const algorithmResultApi = createCrudService("/api/algorithm-invoke-log");
 const samplingRecordApi = createCrudService("/api/sampling-record");
 const samplingDetailApi = createCrudService("/api/sampling-detail");
-const samplingDailyApi = createCrudService("/api/sampling-daily");
+const samplingDailyApi = createCrudService("/api/device-daily-data");
 
 // 渗漏记录
 export const getLeakageHistoryPage = leakageRecordApi.getPage;

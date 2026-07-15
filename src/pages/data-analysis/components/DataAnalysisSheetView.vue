@@ -148,14 +148,27 @@
       </view>
 
       <view class="sheet-detail-panel">
-        <view class="table-head">
-          <text>{{ detailTitle }}</text>
+        <view class="detail-tabs">
+          <template v-if="props.mode === 'audio'">
+            <view class="detail-tab detail-tab--active">音频详情</view>
+          </template>
+          <template v-else>
+            <view
+              v-for="tab in leakageDetailTabs"
+              :key="tab.value"
+              class="detail-tab"
+              :class="{ 'detail-tab--active': leakageDetailTab === tab.value }"
+              @click="leakageDetailTab = tab.value"
+            >
+              {{ tab.label }}
+            </view>
+          </template>
         </view>
 
         <view v-if="!selectedItem" class="detail-empty">请选择左侧数据查看详情</view>
         <view v-else class="detail-body">
           <template v-if="props.mode === 'audio'">
-            <view class="detail-base-panel">
+            <view class="detail-base-panel leak-tab-body">
               <view class="detail-summary">
                 <view class="detail-summary__main">
                   <text class="detail-summary__label">设备编号</text>
@@ -175,10 +188,6 @@
 
               <view class="detail-grid detail-grid--base">
                 <view class="detail-item detail-item--base">
-                  <text class="detail-item__label">时间</text>
-                  <text class="detail-item__value">{{ ((selectedItem as AudioDataItem).audioTime || '').replace('T', ' ') }}</text>
-                </view>
-                <view class="detail-item detail-item--base">
                   <text class="detail-item__label">天气</text>
                   <text class="detail-item__value">{{ (selectedItem as AudioDataItem).weather }}</text>
                 </view>
@@ -189,6 +198,26 @@
                 <view class="detail-item detail-item--base">
                   <text class="detail-item__label">阀门编号</text>
                   <text class="detail-item__value">{{ (selectedItem as AudioDataItem).valveNumber }}</text>
+                </view>
+              </view>
+
+              <view class="time-section">
+                <text class="detail-section-title">时间信息</text>
+                <view class="time-list">
+                  <view class="time-row">
+                    <view class="time-row__marker"></view>
+                    <view class="time-row__content">
+                      <text class="time-row__label">创建时间</text>
+                      <text class="time-row__value">{{ ((selectedItem as AudioDataItem).audioTime || '').replace('T', ' ') }}</text>
+                    </view>
+                  </view>
+                  <view class="time-row">
+                    <view class="time-row__marker"></view>
+                    <view class="time-row__content">
+                      <text class="time-row__label">修复时间</text>
+                      <text class="time-row__value">{{ ((selectedItem as AudioDataItem).repairTime || '').replace('T', ' ') }}</text>
+                    </view>
+                  </view>
                 </view>
               </view>
 
@@ -207,44 +236,25 @@
           </template>
           <template v-else-if="props.mode === 'leakage'">
             <view class="detail-base-panel">
-              <view class="detail-summary">
-                <view class="detail-summary__main">
-                  <text class="detail-summary__label">设备编号</text>
-                  <text class="detail-summary__number">{{ (selectedItem as LeakItem).deviceId }}</text>
-                </view>
-                <view class="detail-summary__badges">
-                  <text class="detail-summary__badge status-pill" :class="getLeakageStatusClass(selectedItem as LeakItem)">{{ (selectedItem as LeakItem).leakageStatus }}</text>
-                </view>
-                <view class="detail-summary__meta">
-                  <view class="detail-summary__meta-item">
-                    <text class="detail-summary__meta-label">安装人员</text>
-                    <text class="detail-summary__meta-value">{{ (selectedItem as LeakItem).installer }}</text>
+              <view v-if="leakageDetailTab === 'base'" class="leak-tab-body">
+                <view class="detail-summary">
+                  <view class="detail-summary__main">
+                    <text class="detail-summary__label">设备编号</text>
+                    <text class="detail-summary__number">{{ (selectedItem as LeakItem).deviceId }}</text>
                   </view>
-                  <view class="detail-summary__meta-item">
-                    <text class="detail-summary__meta-label">所属片区</text>
-                    <text class="detail-summary__meta-value">{{ (selectedItem as LeakItem).deptName }}</text>
+                  <view class="detail-summary__meta">
+                    <view class="detail-summary__meta-item">
+                      <text class="detail-summary__meta-label">安装人员</text>
+                      <text class="detail-summary__meta-value">{{ (selectedItem as LeakItem).installer }}</text>
+                    </view>
+                    <view class="detail-summary__meta-item">
+                      <text class="detail-summary__meta-label">所属片区</text>
+                      <text class="detail-summary__meta-value">{{ (selectedItem as LeakItem).deptName }}</text>
+                    </view>
                   </view>
                 </view>
-              </view>
 
-              <view class="leak-tabs">
-                <view
-                  v-for="tab in leakageDetailTabs"
-                  :key="tab.value"
-                  class="leak-tab"
-                  :class="{ 'leak-tab--active': leakageDetailTab === tab.value }"
-                  @click="leakageDetailTab = tab.value"
-                >
-                  {{ tab.label }}
-                </view>
-              </view>
-
-              <view v-if="leakageDetailTab === 'base'">
               <view class="detail-grid detail-grid--base">
-                <view class="detail-item detail-item--base">
-                  <text class="detail-item__label">时间</text>
-                  <text class="detail-item__value">{{ ((selectedItem as LeakItem).detectedTime || '').replace(/\.\d+/, '').replace('T', ' ') }}</text>
-                </view>
                 <view class="detail-item detail-item--base">
                   <text class="detail-item__label">天气</text>
                   <text class="detail-item__value">{{ (selectedItem as LeakItem).weather }}</text>
@@ -256,6 +266,26 @@
                 <view class="detail-item detail-item--base">
                   <text class="detail-item__label">阀门编号</text>
                   <text class="detail-item__value">{{ (selectedItem as LeakItem).valveNumber }}</text>
+                </view>
+              </view>
+
+              <view class="time-section">
+                <text class="detail-section-title">时间信息</text>
+                <view class="time-list">
+                  <view class="time-row">
+                    <view class="time-row__marker"></view>
+                    <view class="time-row__content">
+                      <text class="time-row__label">采样时间</text>
+                      <text class="time-row__value">{{ ((selectedItem as LeakItem).samplingTime || '--').replace('T', ' ') }}</text>
+                    </view>
+                  </view>
+									<view class="time-row">
+									  <view class="time-row__marker"></view>
+									  <view class="time-row__content">
+									    <text class="time-row__label">创建时间</text>
+									    <text class="time-row__value">{{ ((selectedItem as LeakItem).detectedTime || '').replace(/\.\d+/, '').replace('T', ' ') }}</text>
+									  </view>
+									</view>
                 </view>
               </view>
 
@@ -273,49 +303,48 @@
               </view>
 
               <view v-else-if="leakageDetailTab === 'analysis'">
-                <view class="leak-sub-card">
-                  <text class="leak-sub-card__header">渗漏分析</text>
-                  <view class="detail-item detail-item--base">
+                <view class="detail-grid detail-grid--content">
+                  <view class="detail-item detail-item--note" :class="'detail-item--status-' + getLeakageStatusColor(selectedItem as LeakItem)">
+                    <text class="detail-item__label">渗漏状态</text>
+                    <text class="detail-item__value">{{ (selectedItem as LeakItem).leakageStatus }}</text>
+                  </view>
+                  <view class="detail-item detail-item--note">
                     <text class="detail-item__label">增益</text>
                     <text class="detail-item__value">{{ (selectedItem as LeakItem).gain }}</text>
                   </view>
-                  <view class="detail-item detail-item--base">
+                  <view class="detail-item detail-item--note">
                     <text class="detail-item__label">特征值</text>
                     <text class="detail-item__value">{{ (selectedItem as LeakItem).eigenvalue }}</text>
                   </view>
-                  <view class="detail-item detail-item--base">
+                  <view class="detail-item detail-item--note">
                     <text class="detail-item__label">蓝鲸分析</text>
                     <text class="detail-item__value">{{ (selectedItem as LeakItem).blueWhaleAnalysis }}</text>
                   </view>
-                  <view class="detail-item detail-item--base">
+                  <view class="detail-item detail-item--note">
                     <text class="detail-item__label">人工分析</text>
                     <text class="detail-item__value">{{ (selectedItem as LeakItem).manualAnalysis }}</text>
                   </view>
-                  <view class="detail-item detail-item--base">
+                  <view class="detail-item detail-item--note">
                     <text class="detail-item__label">原因分析</text>
                     <text class="detail-item__value">{{ (selectedItem as LeakItem).reasonAnalysis }}</text>
                   </view>
-                  <view class="detail-item detail-item--base">
+                  <view class="detail-item detail-item--note">
                     <text class="detail-item__label">排查反馈</text>
                     <text class="detail-item__value">{{ (selectedItem as LeakItem).investigationFeedback }}</text>
                   </view>
-                  <view class="detail-item detail-item--base">
+                  <view class="detail-item detail-item--note">
                     <text class="detail-item__label">算法类型</text>
                     <text class="detail-item__value">{{ (selectedItem as LeakItem).algorithmType }}</text>
                   </view>
-                </view>
-
-                <view class="leak-sub-card">
-                  <text class="leak-sub-card__header">渗漏详情</text>
-                  <view class="detail-item detail-item--base">
+                  <view class="detail-item detail-item--note">
                     <text class="detail-item__label">渗漏带宽</text>
                     <text class="detail-item__value">{{ (selectedItem as LeakItem).leakBandwidth }}</text>
                   </view>
-                  <view class="detail-item detail-item--base">
+                  <view class="detail-item detail-item--note">
                     <text class="detail-item__label">渗漏能量</text>
                     <text class="detail-item__value">{{ (selectedItem as LeakItem).leakEnergy }}</text>
                   </view>
-                  <view class="detail-item detail-item--base">
+                  <view class="detail-item detail-item--note">
                     <text class="detail-item__label">渗漏频率</text>
                     <text class="detail-item__value">{{ (selectedItem as LeakItem).leakFrequency }}</text>
                   </view>
@@ -403,6 +432,7 @@ interface LeakItem {
   installer: string;
   address: string;
   location: string;
+  samplingTime: string;
 }
 
 type DataItem = AudioDataItem | LeakItem;
@@ -499,14 +529,6 @@ const pageTitle = computed(() => {
     leakage: "渗漏数据",
   };
   return titles[props.mode] || "数据列表";
-});
-
-const detailTitle = computed(() => {
-  const titles: Record<string, string> = {
-    audio: "音频详情",
-    leakage: "渗漏详情",
-  };
-  return titles[props.mode] || "详情";
 });
 
 const currentStatusIndex = computed(() => {
@@ -750,7 +772,7 @@ async function fetchLeakageData() {
       weather: record.weather ?? "--",
       leakageStatus: record.status ?? "--",
       gain: record.gain?.modeCode ?? "--",
-      eigenvalue: record.leakEsa ?? "--",	
+      eigenvalue: record.leakEsa ?? "--",
       installStatus: record.maintenance ?? "--",
       blueWhaleAnalysis: record.blueWhaleAnalysis ?? "--",
       manualAnalysis: record.manualAnalysis ?? "--",
@@ -765,7 +787,7 @@ async function fetchLeakageData() {
       installer: record.installer ?? "--",
       address: record.installAddress ?? "--",
       location: record.coordinate ?? "--",
-
+      samplingTime: record.samplingTime ?? "--",
     }));
     leakTotal.value = parsed.total;
     selectedId.value = leakDataList.value.length > 0 ? leakDataList.value[0].id : 0;
@@ -892,6 +914,14 @@ function getLeakageStatusClass(item: LeakItem) {
   if (status === "正常" || status === "1") return "status-pill--normal";
   if (status === "疑似" || status === "2") return "status-pill--suspicious";
   return "status-pill--unknown";
+}
+
+function getLeakageStatusColor(item: LeakItem) {
+  const status = item.leakageStatus;
+  if (status === "渗漏" || status === "0") return "leak";
+  if (status === "正常" || status === "1") return "normal";
+  if (status === "疑似" || status === "2") return "suspicious";
+  return "unknown";
 }
 
 function onStatusChange(e: { detail: { value: number } }) {
@@ -1703,9 +1733,53 @@ watch(
   text-align: center;
 }
 
+.detail-tabs {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 6px;
+  padding: 8px 14px;
+  background: #f6fafe;
+  border-bottom: 1px solid #dce9f4;
+}
+
+.detail-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  color: #5d7188;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  transition:
+    color 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.detail-tab--active {
+  color: #0d82ee;
+  background: #ffffff;
+  border-color: #cfe7fb;
+  box-shadow: 0 6px 14px rgba(13, 130, 238, 0.1);
+}
+
 .detail-base-panel {
   display: grid;
   gap: 12px;
+}
+
+.leak-tab-body {
+  display: grid;
+  gap: 14px;
+}
+
+.leak-tab-body .detail-location-card {
+  margin-top: 0;
 }
 
 .detail-summary {
@@ -1790,42 +1864,6 @@ watch(
   white-space: nowrap;
 }
 
-.leak-tabs {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-  gap: 6px;
-  height: 54px;
-  padding: 8px;
-  background: #f6fafe;
-  border: 1px solid #dce9f4;
-  border-radius: 6px;
-}
-
-.leak-tab {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: auto;
-  color: #5d7188;
-  font-size: 13px;
-  font-weight: 800;
-  cursor: pointer;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  transition:
-    color 0.18s ease,
-    background 0.18s ease,
-    border-color 0.18s ease;
-}
-
-.leak-tab--active {
-  color: #0d82ee;
-  background: #ffffff;
-  border-color: #cfe7fb;
-  box-shadow: 0 6px 14px rgba(13, 130, 238, 0.1);
-}
-
 .urgent-pill--normal {
   display: inline-flex;
   align-items: center;
@@ -1839,44 +1877,6 @@ watch(
   color: #177245;
   background: #eaf8ef;
   border-color: #bfe8ce;
-}
-
-.leak-sub-card {
-  padding: 14px;
-  background: linear-gradient(90deg, rgba(13, 130, 238, 0.08), rgba(255, 255, 255, 0) 58%), rgba(255, 255, 255, 0.96);
-  border: 1px solid #dfebf5;
-  border-radius: 6px;
-  box-shadow: 0 8px 18px rgba(33, 72, 108, 0.055);
-}
-
-.leak-sub-card + .leak-sub-card {
-  margin-top: 12px;
-}
-
-.leak-sub-card__header {
-  display: block;
-  margin-bottom: 10px;
-  color: #183755;
-  font-size: 14px;
-  font-weight: 900;
-  background: none;
-  padding: 0;
-}
-
-.leak-sub-card .detail-item--base {
-  border-bottom: 1px solid #edf3f8;
-  background: transparent;
-  padding: 10px 0;
-  min-height: auto;
-  grid-template-columns: 72px minmax(0, 1fr);
-}
-
-.leak-sub-card .detail-item--base .detail-item__value {
-  text-align: left;
-}
-
-.leak-sub-card .detail-item--base:last-child {
-  border-bottom: 0;
 }
 
 .detail-grid {
@@ -1982,6 +1982,11 @@ watch(
   border-left: 3px solid #b9dcff;
 }
 
+.detail-item--status-leak .detail-item__label { border-left-color: #f5b7ae; }
+.detail-item--status-normal .detail-item__label { border-left-color: #b7dfc7; }
+.detail-item--status-suspicious .detail-item__label { border-left-color: #fbd5b0; }
+.detail-item--status-unknown .detail-item__label { border-left-color: #d3dce3; }
+
 .detail-grid--content .detail-item__value {
   min-height: 52px;
   margin-top: 0;
@@ -2035,7 +2040,78 @@ watch(
   border-radius: 6px;
   box-shadow: 0 8px 18px rgba(33, 72, 108, 0.055);
 }
+
+.time-section {
+  min-width: 0;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #dfebf5;
+  border-radius: 6px;
+  box-shadow: 0 8px 18px rgba(33, 72, 108, 0.055);
+}
+
 .detail-section-title { display: block; margin-bottom: 10px; color: #183755; font-size: 14px; font-weight: 900; }
+
+.time-list {
+  position: relative;
+  display: grid;
+  gap: 0;
+}
+
+.time-list::before {
+  position: absolute;
+  top: 16px;
+  bottom: 16px;
+  left: 6px;
+  width: 2px;
+  content: "";
+  background: #d7e8f6;
+}
+
+.time-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 10px;
+  min-width: 0;
+  padding: 9px 0;
+}
+
+.time-row__marker {
+  position: relative;
+  z-index: 1;
+  width: 10px;
+  height: 10px;
+  margin-top: 4px;
+  background: #0d82ee;
+  border: 3px solid #e8f4ff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #b9dcff;
+}
+
+.time-row__content {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.time-row__label {
+  color: #6b7f94;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.time-row__value {
+  min-width: 0;
+  color: #172033;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.45;
+  word-break: break-all;
+}
+
 .location-row { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 10px; min-width: 0; padding: 10px 0; border-top: 1px solid #edf3f8; }
 .location-row__label { color: #6b7f94; font-size: 12px; font-weight: 800; }
 .location-row__value { color: #172033; font-size: 13px; font-weight: 700; line-height: 1.5; word-break: break-all; }
