@@ -583,7 +583,7 @@ function closeMapPicker() {
 .dialog-mask {
   position: fixed;
   inset: 0;
-  z-index: 10;
+  z-index: 30;
   display: flex;
   align-items: center;
   justify-content: center;
