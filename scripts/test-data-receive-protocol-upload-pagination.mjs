@@ -67,3 +67,8 @@ test("pagination supports editable current page and blur jump", () => {
   assert.match(source, /function commitPageInput/);
   assert.match(source, /function jumpToPage/);
 });
+
+test("protocol field editor loads a real paged result filtered by protocol", () => {
+  assert.match(source, /loadRecords: \(query, filters\) => getProtocolFieldPage\(\{\s*\.\.\.query,\s*protocolId: filters\.protocolId \|\| undefined,\s*\}\)/);
+  assert.doesNotMatch(source, /loadRecords: \(query, filters\) => \(filters\.protocolId \? getFieldsByProtocol/);
+});

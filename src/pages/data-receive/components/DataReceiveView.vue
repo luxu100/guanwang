@@ -433,12 +433,11 @@ import {
   updateDeviceProtocolRelation,
   updateProtocolDefinition,
 } from "@/services/data-receive/access";
-import { getDeviceDetail, getDeviceList } from "@/services/device/info";
+import { getDeviceList } from "@/services/device/info";
 import {
   batchSaveProtocolFields,
   createProtocolField,
   deleteProtocolField,
-  getFieldsByProtocol,
   getProtocolFieldFormats,
   getProtocolFieldDetail,
   getProtocolFieldPage,
@@ -589,7 +588,6 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     description: "按设备、协议、AFN 和任务类型维护协议适配关系",
     columns: [
       { key: "deviceNumber", label: "设备编号", width: 140 },
-      { key: "deviceName", label: "设备名称", width: 160 },
       { key: "protocolName", label: "协议名称", width: 160 },
       { key: "afn", label: "AFN", width: 100 },
       { key: "taskType", label: "任务类型", width: 120 },
@@ -600,8 +598,7 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     ],
     detailFields: [],
     filters: [
-      { key: "deviceName", label: "设备名称" },
-      { key: "protocolName", label: "协议名称" },
+      { key: "deviceNumber", label: "设备编号" },
       ...baseTimeFilters,
     ],
     formFields: [
@@ -664,7 +661,10 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
       { key: "description", label: "字段说明", type: "textarea" },
       { key: "sortOrder", label: "排序", type: "number" },
     ],
-    loadRecords: (query, filters) => (filters.protocolId ? getFieldsByProtocol(filters.protocolId) : getProtocolFieldPage(query)),
+    loadRecords: (query, filters) => getProtocolFieldPage({
+      ...query,
+      protocolId: filters.protocolId || undefined,
+    }),
     getDetail: (id) => getProtocolFieldDetail(id),
     createRecord: (data) => createProtocolField(data),
     updateRecord: (id, data) => updateProtocolField(id, data),
@@ -676,26 +676,22 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     title: "解析记录",
     description: "查询动态协议解析链路、状态、帧数量和解析值",
     columns: [
-      { key: "traceId", label: "追踪ID", width: 150 },
       { key: "deviceNumber", label: "设备编号", width: 130 },
-      { key: "protocolName", label: "协议名称", width: 140 },
-      { key: "afn", label: "AFN", width: 90 },
-      { key: "taskTypeName", label: "任务名称", width: 130 },
-      { key: "frameCount", label: "帧数", width: 80 },
-      { key: "fieldCount", label: "字段数", width: 90 },
       { key: "parseStatus", label: "状态", type: "status", width: 100 },
       { key: "parseTime", label: "解析时间", type: "datetime", width: 170 },
+      { key: "protocolName", label: "协议名称", width: 140 },
+      { key: "taskTypeName", label: "任务名称", width: 130 },
     ],
     detailFields: [
       { key: "traceId", label: "追踪ID" },
       { key: "channel", label: "通道" },
-      { key: "deviceNumber", label: "设备编号" },
       { key: "protocolCode", label: "协议编码" },
-      { key: "protocolName", label: "协议名称" },
       { key: "protocolVersion", label: "协议版本" },
       { key: "afn", label: "AFN" },
       { key: "taskType", label: "任务类型" },
       { key: "commandGroup", label: "指令组" },
+      { key: "frameCount", label: "帧数" },
+      { key: "fieldCount", label: "字段数" },
       { key: "contentBytes", label: "内容字节" },
       { key: "errorMessage", label: "错误信息" },
       { key: "values", label: "解析值", type: "json" },
@@ -719,12 +715,8 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     columns: [
       { key: "deviceName", label: "设备名称", width: 150 },
       { key: "samplingName", label: "采样名称", width: 150 },
-      { key: "audioFileId", label: "音频文件ID", width: 120 },
       { key: "audioTime", label: "音频时间", type: "datetime", width: 170 },
       { key: "signalprocessingResult", label: "算法结果", width: 180 },
-      { key: "signalprocessingResult1", label: "结果1", width: 140 },
-      { key: "signalprocessingResult2", label: "结果2", width: 140 },
-      { key: "signalprocessingResult3", label: "结果3", width: 140 },
       { key: "createdAt", label: "创建时间", type: "datetime", width: 170 },
     ],
     detailFields: [
@@ -733,15 +725,12 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
       { key: "deviceNumber", label: "设备编号" },
       { key: "samplingId", label: "采样ID" },
       { key: "audioFileId", label: "音频文件ID" },
-      { key: "audioTime", label: "音频时间", type: "datetime" },
-      { key: "signalprocessingResult", label: "算法结果" },
       { key: "signalprocessingResult1", label: "结果1" },
       { key: "signalprocessingResult2", label: "结果2" },
       { key: "signalprocessingResult3", label: "结果3" },
-      { key: "createdAt", label: "创建时间", type: "datetime" },
     ],
     filters: [
-      { key: "deviceName", label: "设备名称" },
+      { key: "deviceNumber", label: "设备编号" },
       ...baseTimeFilters,
     ],
     loadRecords: (query) => getAlgorithmResultPage(query),
@@ -758,7 +747,7 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     { key: "leakStatus", label: "渗漏状态", type: "status", width: 100 },
     { key: "pressure", label: "压力", width: 100 },
   ], [
-    { key: "deviceName", label: "设备名称" },
+    { key: "deviceNumber", label: "设备编号" },
     { key: "tubeGroup", label: "管组" },
     { key: "leakStatus", label: "渗漏状态", type: "select", options: leakStatusOptions },
   ]),
@@ -771,7 +760,7 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     { key: "leakFrequency", label: "频率", width: 100 },
     { key: "createdAt", label: "创建时间", type: "datetime", width: 170 },
   ], [
-    { key: "deviceName", label: "设备名称" },
+    { key: "deviceNumber", label: "设备编号" },
     { key: "samplingName", label: "采样名称" },
   ]),
   samplingDaily: createRecordSection("samplingDaily", "record", "采样日报", "查询日维度渗漏属性、状态和采样位置", getSamplingDailyPage, [
@@ -781,7 +770,7 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     { key: "samplingTime", label: "采样时间", type: "datetime", width: 170 },
     { key: "samplingAddress", label: "采样地址", width: 240 },
   ], [
-    { key: "deviceName", label: "设备名称" },
+    { key: "deviceNumber", label: "设备编号" },
     { key: "leakStatus", label: "渗漏状态", type: "select", options: leakStatusOptions },
   ]),
   samplingPressure: createRecordSection("samplingPressure", "record", "采样压力", "查询压力文件、压力时间和采集位置", getSamplingPressurePage, [
@@ -791,7 +780,7 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     { key: "pressureAddress", label: "压力地址", width: 240 },
     { key: "createdAt", label: "创建时间", type: "datetime", width: 170 },
   ], [
-    { key: "deviceName", label: "设备名称" },
+    { key: "deviceNumber", label: "设备编号" },
   ]),
   samplingCss: createRecordSection("samplingCss", "record", "CSS采样数据", "查询井内温压、电池和分析结论", getSamplingCssDataPage, [
     { key: "deviceName", label: "设备名称", width: 150 },
@@ -805,7 +794,7 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     { key: "batteryLevel", label: "电量", width: 90 },
     { key: "analysisConclusion", label: "分析结论", width: 180 },
   ], [
-    { key: "deviceName", label: "设备名称" },
+    { key: "deviceNumber", label: "设备编号" },
   ]),
 };
 
@@ -881,7 +870,6 @@ const pageSizeInputValue = ref("10");
 const filterState = reactive<Record<SectionKey, Record<string, string>>>(createInitialFilterState());
 const formModel = reactive<Record<string, FormValue>>({});
 const deviceNameById = ref(new Map<string, string>());
-const relationDeviceDetailById = ref(new Map<string, { deviceNumber: string; deviceAlias: string }>());
 const protocolNameById = ref(new Map<string, string>());
 
 const modeSections = computed(() => modeSectionKeys[props.mode].map((key) => sectionConfigs[key]));
@@ -1028,10 +1016,7 @@ async function fetchRecords() {
       await ensureDeviceNameMap();
     }
     if (activeConfig.value.key === "relation") {
-      await Promise.all([
-        ensureRelationDeviceDetails(parsed.records),
-        ensureProtocolNameMap(),
-      ]);
+      await ensureProtocolNameMap();
     }
 
     records.value = isProtocolFieldEditor.value
@@ -1073,75 +1058,16 @@ function parseResponseRecords(response: ApiResponseLike) {
 }
 
 function normalizeDeviceProtocolRelations(items: RecordLike[]) {
-  return items.map((item) => {
-    const deviceId = String(getValue(item, ["deviceId"]) ?? "");
-    const deviceDetail = relationDeviceDetailById.value.get(deviceId);
-
-    return {
-      ...item,
-      deviceNumber:
-        deviceDetail?.deviceNumber ||
-        getText(item, ["deviceNumber"], "") ||
-        getText(item, ["device", "deviceNumber"], "") ||
-        "-",
-      deviceName:
-        deviceDetail?.deviceAlias ||
-        getText(item, ["deviceAlias"], "") ||
-        getText(item, ["device", "deviceAlias"], "") ||
-        "-",
-      protocolName:
-        getValue(item, ["protocolName"]) ??
-        getValue(item, ["protocol", "protocolName"]) ??
-        getValue(item, ["protocolDefinition", "protocolName"]) ??
-        protocolNameById.value.get(String(getValue(item, ["protocolId"]) ?? "")) ??
-        "-",
-    };
-  });
-}
-
-async function ensureRelationDeviceDetails(items: RecordLike[]) {
-  const deviceIds = Array.from(
-    new Set(
-      items
-        .map((item) => String(getValue(item, ["deviceId"]) ?? "").trim())
-        .filter(Boolean),
-    ),
-  ).filter((deviceId) => !relationDeviceDetailById.value.has(deviceId));
-
-  if (!deviceIds.length) {
-    return;
-  }
-
-  const detailResults = await Promise.allSettled(
-    deviceIds.map(async (deviceId) => {
-      const response = await getDeviceDetail(deviceId) as ApiResponseLike;
-      assertSuccessResponse(response);
-      const detail = isObject(response.data) ? response.data : {};
-      return {
-        deviceId,
-        deviceNumber: getText(detail, ["deviceNumber"], ""),
-        deviceAlias: getText(detail, ["deviceAlias"], ""),
-      };
-    }),
-  );
-
-  const nextDetails = new Map(relationDeviceDetailById.value);
-  detailResults.forEach((result, index) => {
-    const deviceId = deviceIds[index];
-    nextDetails.set(
-      deviceId,
-      result.status === "fulfilled"
-        ? {
-            deviceNumber: result.value.deviceNumber,
-            deviceAlias: result.value.deviceAlias,
-          }
-        : {
-            deviceNumber: "",
-            deviceAlias: "",
-          },
-    );
-  });
-  relationDeviceDetailById.value = nextDetails;
+  return items.map((item) => ({
+    ...item,
+    deviceNumber: getText(item, ["deviceNumber"], "-"),
+    protocolName:
+      getValue(item, ["protocolName"]) ??
+      getValue(item, ["protocol", "protocolName"]) ??
+      getValue(item, ["protocolDefinition", "protocolName"]) ??
+      protocolNameById.value.get(String(getValue(item, ["protocolId"]) ?? "")) ??
+      "-",
+  }));
 }
 
 async function ensureDeviceNameMap() {

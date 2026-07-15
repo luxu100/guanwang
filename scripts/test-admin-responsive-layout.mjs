@@ -29,10 +29,11 @@ test("detail forms constrain inputs to their panels", () => {
   assert.match(systemSource, /\.form-field\s*\{[\s\S]*?max-width:\s*100%;/);
   assert.match(systemSource, /\.form-grid--user\s*\{[\s\S]*?repeat\(auto-fit, minmax\(220px, 1fr\)\)/);
   assert.match(systemSource, /class="content-layout content-layout--vertical content-layout--user"/);
-  assert.match(systemSource, /\.content-layout--user\s*\{[\s\S]*?grid-template-rows:\s*minmax\(240px, 0\.85fr\) minmax\(280px, 0\.75fr\);/);
+  assert.match(systemSource, /\.content-layout--user\s*\{[\s\S]*?grid-template-rows:\s*minmax\(280px, 0\.95fr\) minmax\(260px, 0\.70fr\);/);
   assert.match(systemSource, /\.content-layout--user \.form-grid--user\s*\{[\s\S]*?padding-bottom:\s*16px;/);
   assert.match(systemSource, /\.content-layout--user \.form-field\s*\{[\s\S]*?overflow:\s*visible;/);
   assert.match(systemSource, /\.check-grid\s*\{[\s\S]*?max-width:\s*100%;/);
+  assert.match(systemSource, /\.filter-select\s*\{[\s\S]*?display:\s*flex;[\s\S]*?align-items:\s*center;[\s\S]*?line-height:\s*1;/);
 });
 
 test("admin tables and module containers scroll instead of clipping overflowing content", () => {
@@ -92,17 +93,18 @@ test("refresh animations and super admin partition locking remain enabled", () =
   assert.match(dataReceiveSource, /@keyframes data-receive-refresh-spin/);
 });
 
-test("query filters use business names instead of ids and parse hides the field tab", () => {
+test("query template omits device queries and parse hides the field tab", () => {
   assert.match(searchTemplateSource, /协议名称/);
   assert.match(searchTemplateSource, /v-model="filters\.protocolName"/);
-  assert.match(searchTemplateSource, /设备名称/);
-  assert.match(searchTemplateSource, /v-model="filters\.deviceName"/);
-  assert.match(searchTemplateSource, /getTemplateDeviceName/);
+  assert.doesNotMatch(searchTemplateSource, /v-model="filters\.deviceNumber"/);
+  assert.doesNotMatch(searchTemplateSource, /getTemplateDeviceName/);
   assert.match(searchTemplateSource, /getTemplateProtocolName/);
   assert.match(dataReceiveSource, /parse:\s*\["parseRecord", "algorithmResult"\]/);
   assert.doesNotMatch(dataReceiveSource, /parse:\s*\["field",/);
   assert.match(dataReceiveSource, /\{ key: "protocolName", label: "协议名称" \}/);
-  assert.match(dataReceiveSource, /\{ key: "deviceName", label: "设备名称" \}/);
+  assert.match(dataReceiveSource, /\{ key: "deviceNumber", label: "设备编号" \}/);
+  assert.doesNotMatch(dataReceiveSource, /\{ key: "deviceName", label: "设备名称" \}/);
+  assert.doesNotMatch(dataReceiveSource, /\{ key: "deviceAlias", label: "设备名称" \}/);
   assert.doesNotMatch(dataReceiveSource, /\{ key: "deviceId", label: "设备ID" \},\s*\.\.\.baseTimeFilters/);
   assert.doesNotMatch(dataReceiveSource, /\{ key: "protocolId", label: "协议ID" \},\s*\.\.\.baseTimeFilters/);
 });

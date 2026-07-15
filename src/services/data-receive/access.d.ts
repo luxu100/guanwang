@@ -46,6 +46,17 @@ export interface DeviceProtocolRelation {
   enabled?: boolean;
 }
 
+export interface DeviceProtocolRelationQuery extends ServiceQuery {
+  pageNum?: number;
+  pageSize?: number;
+  startTime?: string;
+  endTime?: string;
+  sortOrder?: "asc" | "desc" | string;
+  sortField?: string;
+  deviceNumber?: string;
+  deviceAlias?: string;
+}
+
 export function getProtocolDefinitionPage(data: ServiceQuery): Promise<ApiResponse<PageResult<ProtocolDefinition>>>;
 export function getProtocolDefinitionList(params?: ServiceQuery): Promise<ApiResponse<ProtocolDefinition[]>>;
 export function getProtocolDefinitionDetail(id: ServiceId): Promise<ApiResponse<ProtocolDefinition>>;
@@ -54,7 +65,7 @@ export function updateProtocolDefinition(id: ServiceId, data: ProtocolDefinition
 export function deleteProtocolDefinition(id: ServiceId, isForce?: boolean): Promise<ApiResponse<boolean>>;
 export function batchDeleteProtocolDefinition(data: ServiceId[], isForce?: boolean): Promise<ApiResponse<boolean>>;
 
-export function getDeviceProtocolRelationPage(data: ServiceQuery): Promise<ApiResponse<PageResult<DeviceProtocolRelation>>>;
+export function getDeviceProtocolRelationPage(data: DeviceProtocolRelationQuery): Promise<ApiResponse<PageResult<DeviceProtocolRelation>>>;
 export function getDeviceProtocolRelationList(params?: ServiceQuery): Promise<ApiResponse<DeviceProtocolRelation[]>>;
 export function getDeviceProtocolRelationDetail(id: ServiceId): Promise<ApiResponse<DeviceProtocolRelation>>;
 export function createDeviceProtocolRelation(data: DeviceProtocolRelation): Promise<ApiResponse<DeviceProtocolRelation>>;

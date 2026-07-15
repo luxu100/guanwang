@@ -39,16 +39,6 @@
           />
         </view>
         <view class="pqt-filter">
-          <text class="pqt-filter__label">设备名称</text>
-          <input
-            v-model="filters.deviceName"
-            class="pqt-filter__control"
-            placeholder="请输入设备名称"
-            placeholder-class="pqt-placeholder"
-            @confirm="searchCurrent"
-          />
-        </view>
-        <view class="pqt-filter">
           <text class="pqt-filter__label">启用状态</text>
           <picker :range="enabledFilterOptions" range-key="label" @change="handleEnabledFilterChange">
             <view class="pqt-filter__control pqt-filter__control--picker">{{ currentEnabledFilterLabel }}</view>
@@ -96,7 +86,6 @@
               <view class="pqt-cell pqt-cell--code">模板编码</view>
               <view class="pqt-cell pqt-cell--scope">范围</view>
               <view class="pqt-cell pqt-cell--entity">协议名称</view>
-              <view class="pqt-cell pqt-cell--entity">设备名称</view>
               <view class="pqt-cell pqt-cell--count">字段数</view>
               <view class="pqt-cell pqt-cell--status">状态</view>
               <view class="pqt-cell pqt-cell--remark">备注</view>
@@ -118,7 +107,6 @@
               <view class="pqt-cell pqt-cell--code">{{ getTemplateCode(item) }}</view>
               <view class="pqt-cell pqt-cell--scope">{{ getScopeLabel(getText(item, ["scopeType"], "")) }}</view>
               <view class="pqt-cell pqt-cell--entity">{{ getTemplateProtocolName(item) }}</view>
-              <view class="pqt-cell pqt-cell--entity">{{ getTemplateDeviceName(item) }}</view>
               <view class="pqt-cell pqt-cell--count">{{ getFieldNames(item).length }}</view>
               <view class="pqt-cell pqt-cell--status">
                 <text class="pqt-status" :class="{ 'pqt-status--disabled': !getEnabled(item) }">
@@ -320,7 +308,6 @@
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { getProtocolDefinitionList } from "@/services/data-receive/access";
 import { getFieldsByProtocol } from "@/services/data-receive/parse";
-import { getDeviceList } from "@/services/device/info";
 import {
   createSearchTemplate,
   deleteSearchTemplate,
@@ -365,7 +352,6 @@ const recordEnabledOptions: Option<boolean>[] = [
 ];
 const templates = ref<SearchTemplateItem[]>([]);
 const protocols = ref<RecordLike[]>([]);
-const devices = ref<RecordLike[]>([]);
 const protocolFields = ref<RecordLike[]>([]);
 const selectedTemplate = ref<SearchTemplateItem | null>(null);
 const selectedIndex = ref(-1);
@@ -382,7 +368,6 @@ const filters = reactive({
   templateCode: "",
   scopeType: "",
   protocolName: "",
-  deviceName: "",
   enabled: "" as string | boolean,
 });
 
@@ -448,7 +433,7 @@ const selectedFieldDetails = computed(() => {
 });
 
 onMounted(() => {
-  void Promise.all([loadProtocols(), loadDevices()]);
+  void loadProtocols();
   void refreshCurrent();
 });
 
@@ -566,14 +551,6 @@ function getProtocolLabel(item: unknown) {
   return `${id ? `${id} - ` : ""}${name}${code ? ` (${code})` : ""}`;
 }
 
-function getDeviceId(item: unknown) {
-  return getText(item, ["id", "deviceId"], "");
-}
-
-function getDeviceLabel(item: unknown) {
-  return getText(item, ["deviceName", "deviceAlias", "deviceNumber", "name"], "");
-}
-
 function getTemplateProtocolName(item: unknown) {
   const directName = getText(item, ["protocolName"], "");
   if (directName) return directName;
@@ -581,15 +558,6 @@ function getTemplateProtocolName(item: unknown) {
   const protocolId = getText(item, ["protocolId"], "");
   const protocol = protocols.value.find((record) => getProtocolId(record) === protocolId);
   return protocol ? getText(protocol, ["protocolName", "name", "protocolCode"], "-") : "-";
-}
-
-function getTemplateDeviceName(item: unknown) {
-  const directName = getText(item, ["deviceName", "deviceAlias"], "");
-  if (directName) return directName;
-
-  const deviceId = getText(item, ["deviceId"], "");
-  const device = devices.value.find((record) => getDeviceId(record) === deviceId);
-  return device ? getDeviceLabel(device) || "-" : getText(item, ["deviceNumber"], "-");
 }
 
 function getFieldName(item: unknown) {
@@ -755,7 +723,6 @@ function resetFilters() {
   filters.templateCode = "";
   filters.scopeType = "";
   filters.protocolName = "";
-  filters.deviceName = "";
   filters.enabled = "";
   pagination.pageNum = 1;
   void refreshCurrent();
@@ -819,16 +786,6 @@ async function loadProtocols() {
   }
 }
 
-async function loadDevices() {
-  try {
-    const response = (await getDeviceList()) as ApiResponseLike;
-    assertSuccessResponse(response);
-    devices.value = parseListResponse(response).filter(isObject);
-  } catch {
-    devices.value = [];
-  }
-}
-
 async function loadProtocolFields(protocolId: string | number) {
   if (!protocolId) {
     protocolFields.value = [];
@@ -863,7 +820,6 @@ async function refreshCurrent() {
         templateCode: filters.templateCode.trim() || undefined,
         scopeType: filters.scopeType || undefined,
         protocolName: filters.protocolName.trim() || undefined,
-        deviceName: filters.deviceName.trim() || undefined,
         enabled: filters.enabled,
       }),
     )) as ApiResponseLike;
