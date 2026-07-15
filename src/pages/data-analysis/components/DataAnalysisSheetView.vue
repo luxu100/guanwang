@@ -150,7 +150,8 @@
       <view class="sheet-detail-panel">
         <view class="detail-tabs">
           <template v-if="props.mode === 'audio'">
-            <view class="detail-tab detail-tab--active">音频详情</view>
+            <view class="detail-tab" :class="{ 'detail-tab--active': activeAudioTab === 'base' }" @click="activeAudioTab = 'base'">基本信息</view>
+            <view class="detail-tab" :class="{ 'detail-tab--active': activeAudioTab === 'audio-file' }" @click="activeAudioTab = 'audio-file'">音频文件</view>
           </template>
           <template v-else>
             <view
@@ -168,7 +169,7 @@
         <view v-if="!selectedItem" class="detail-empty">请选择左侧数据查看详情</view>
         <view v-else class="detail-body">
           <template v-if="props.mode === 'audio'">
-            <view class="detail-base-panel leak-tab-body">
+            <view v-if="activeAudioTab === 'base'" class="detail-base-panel leak-tab-body">
               <view class="detail-summary">
                 <view class="detail-summary__main">
                   <text class="detail-summary__label">设备编号</text>
@@ -230,6 +231,25 @@
                 <view class="location-row">
                   <text class="location-row__label">坐标</text>
                   <text class="location-row__value">{{ (selectedItem as AudioDataItem).location }}</text>
+                </view>
+              </view>
+            </view>
+
+            <view v-else-if="activeAudioTab === 'audio-file'" class="detail-base-panel leak-tab-body">
+              <view class="audio-file-cards">
+                <view class="audio-file-card" @click="onSpectrumCardClick(selectedItem as AudioDataItem)">
+                  <text class="audio-file-card__title">频谱分析</text>
+                  <view class="audio-file-card__icon audio-file-card__icon--play">
+                    <view class="play-circle"></view>
+                  </view>
+                  <text class="audio-file-card__desc">点击进行频谱分析和音频播放</text>
+                </view>
+                <view class="audio-file-card" @click="onDownload(selectedItem as AudioDataItem)">
+                  <text class="audio-file-card__title">文件下载</text>
+                  <view class="audio-file-card__icon audio-file-card__icon--download">
+                    <text class="audio-download-icon"></text>
+                  </view>
+                  <text class="audio-file-card__desc">点击下载</text>
                 </view>
               </view>
             </view>
@@ -486,6 +506,7 @@ const leakTotal = ref<number>(0);
 const loading = ref<boolean>(false);
 
 const leakageDetailTab = ref<"base" | "analysis" | "detail">("base");
+const activeAudioTab = ref<"base" | "audio-file">("base");
 
 const partitionOptions = ref<Array<{ label: string; value: number }>>([]);
 const selectedDeptId = ref<number | undefined>(undefined);
@@ -871,6 +892,10 @@ function openSpectrumDialog(item: AudioDataItem) {
 
 function closeSpectrumDialog() {
   spectrumVisible.value = false;
+}
+
+function onSpectrumCardClick(item: AudioDataItem) {
+  openSpectrumDialog(item);
 }
 
 async function onDownload(item: AudioDataItem) {
@@ -1292,6 +1317,7 @@ watch(
 }
 
 .sheet-layout {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) clamp(380px, 20vw, 420px);
   flex: 1;
@@ -2220,5 +2246,119 @@ watch(
   .toolbar-actions {
     flex-wrap: wrap;
   }
+}
+
+.audio-file-section {
+  min-width: 0;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #dfebf5;
+  border-radius: 6px;
+  box-shadow: 0 8px 18px rgba(33, 72, 108, 0.055);
+  margin-top: 12px;
+}
+
+.audio-file-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.audio-file-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 18px 12px;
+  cursor: pointer;
+  background: #f6fafe;
+  border: 1px solid #dce9f4;
+  border-radius: 6px;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.audio-file-card:active {
+  background: #e8f4ff;
+  border-color: #b9dcff;
+}
+
+.audio-file-card__title {
+  color: #183755;
+  font-size: 14px;
+  font-weight: 900;
+  margin-bottom: 12px;
+}
+
+.audio-file-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 10px;
+}
+
+.play-circle {
+  width: 44px;
+  height: 44px;
+  border: 3px solid #0d82ee;
+  border-radius: 50%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.play-circle::after {
+  content: "";
+  width: 0;
+  height: 0;
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
+  border-left: 16px solid #0d82ee;
+  transform: translateX(2px);
+}
+
+.audio-download-icon {
+  position: relative;
+  display: inline-block;
+  width: 22px;
+  height: 26px;
+  background: linear-gradient(to right, transparent 9px, #0d82ee 9px, #0d82ee 13px, transparent 13px) no-repeat top center / 100% 14px;
+}
+
+.audio-download-icon::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 10px solid #0d82ee;
+}
+
+.audio-download-icon::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 3px solid #0d82ee;
+}
+
+.audio-file-card__desc {
+  color: #71869b;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.audio-file-card__desc {
+  color: #71869b;
+  font-size: 11px;
+  font-weight: 800;
 }
 </style>
