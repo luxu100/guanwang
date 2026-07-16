@@ -115,7 +115,7 @@ function markerIcon(point: MapDevicePoint): google.maps.Symbol {
 
   return {
     path: google.maps.SymbolPath.CIRCLE,
-    scale: props.selectedDeviceNumber === point.deviceNumber ? 10 : 8,
+    scale: props.selectedDeviceNumber === point.deviceNumber ? 16 : 13,
     fillColor: colorMap[point.status] || colorMap.unknown,
     fillOpacity: 0.95,
     strokeColor: "#ffffff",
@@ -133,8 +133,14 @@ function renderMarkers() {
     const marker = new google.maps.Marker({
       map: mapInstance,
       position: { lat: point.lat, lng: point.lng },
-      title: point.title,
+      title: point.deviceNumber + " · " + point.title,
       icon: markerIcon(point),
+      label: {
+        text: point.leakProperty === null ? "-" : String(point.leakProperty),
+        color: "#ffffff",
+        fontSize: "11px",
+        fontWeight: "800",
+      },
     });
 
     marker.addListener("click", () => emit("device-click", point));

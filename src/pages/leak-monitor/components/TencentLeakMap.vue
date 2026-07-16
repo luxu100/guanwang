@@ -55,14 +55,17 @@ interface TencentMapConstructor {
 interface TencentMultiMarkerConstructor {
   new (options: {
     map: TencentMapInstance;
+    styles: Record<string, unknown>;
     geometries: Array<{
       id: string;
+      styleId?: string;
       position: unknown;
       properties?: Record<string, unknown>;
     }>;
   }): {
     setMap?: (map: TencentMapInstance | null) => void;
-    setGeometries?: (geometries: Array<{ id: string; position: unknown; properties?: Record<string, unknown> }>) => void;
+    setStyles?: (styles: Record<string, unknown>) => void;
+    setGeometries?: (geometries: Array<{ id: string; styleId?: string; position: unknown; properties?: Record<string, unknown> }>) => void;
     on?: (event: string, handler: (event: { geometry?: { id?: string; properties?: Record<string, unknown> } }) => void) => void;
   };
 }
@@ -71,6 +74,7 @@ interface TencentMapApi {
   LatLng: TencentLatLng;
   Map: TencentMapConstructor;
   MultiMarker: TencentMultiMarkerConstructor;
+  MarkerStyle: new (options: { width: number; height: number; anchor: { x: number; y: number }; src: string }) => unknown;
   LatLngBounds?: new () => {
     extend?: (position: unknown) => void;
   };
@@ -211,14 +215,61 @@ function getMarkerGeometries() {
 
   return props.points.map((point) => ({
     id: point.deviceNumber,
+    styleId: "device-" + point.deviceNumber,
     position: new TMap.LatLng(point.lat, point.lng),
     properties: {
       deviceNumber: point.deviceNumber,
       status: point.status,
+      leakProperty: point.leakProperty,
     },
   }));
 }
 
+function createMarkerStyles() {
+  const TMap = getTMap();
+  if (!TMap) return {};
+
+  const colors: Record<string, string> = {
+    normal: "#00a870",
+    suspect: "#f59e0b",
+    leak: "#ef4444",
+    unknown: "#64748b",
+  };
+
+  return Object.fromEntries(props.points.map((point) => {
+    const selected = props.selectedDeviceNumber === point.deviceNumber;
+    const size = selected ? 52 : 44;
+    const canvas = document.createElement("canvas");
+    canvas.width = size * 2;
+    canvas.height = size * 2;
+    const context = canvas.getContext("2d");
+    if (context) {
+      context.scale(2, 2);
+      context.beginPath();
+      context.arc(size / 2, size / 2, size / 2 - 3, 0, Math.PI * 2);
+      context.fillStyle = colors[point.status] || colors.unknown;
+      context.fill();
+      context.lineWidth = selected ? 4 : 3;
+      context.strokeStyle = "#ffffff";
+      context.stroke();
+      context.fillStyle = "#ffffff";
+      context.font = "800 12px sans-serif";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillText(point.leakProperty === null ? "-" : String(point.leakProperty), size / 2, size / 2);
+    }
+
+    return [
+      "device-" + point.deviceNumber,
+      new TMap.MarkerStyle({
+        width: size,
+        height: size,
+        anchor: { x: size / 2, y: size / 2 },
+        src: canvas.toDataURL("image/png"),
+      }),
+    ];
+  }));
+}
 function renderMarkers() {
   const TMap = getTMap();
   if (!mapInstance || !TMap) {
@@ -226,10 +277,12 @@ function renderMarkers() {
   }
 
   const geometries = getMarkerGeometries();
+  const styles = createMarkerStyles();
 
   if (!markerLayer) {
     const layer = new TMap.MultiMarker({
       map: mapInstance,
+      styles,
       geometries,
     });
     layer.on?.("click", (event) => {
@@ -241,6 +294,7 @@ function renderMarkers() {
     });
     markerLayer = layer;
   } else {
+    markerLayer.setStyles?.(styles);
     markerLayer.setGeometries?.(geometries);
   }
 }
@@ -299,6 +353,7 @@ watch(
 watch(
   () => props.selectedDeviceNumber,
   (deviceNumber) => {
+    renderMarkers();
     if (deviceNumber) {
       focusDevice(deviceNumber);
     }

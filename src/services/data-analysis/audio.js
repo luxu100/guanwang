@@ -5,7 +5,7 @@
  */
 import { createCrudService } from "@/services/shared/crud";
 import { downloadBinaryFile } from "@/utils/download";
-import { TOKEN_KEY, TOKEN_PREFIX_KEY } from "@/utils/request";
+import { TOKEN_KEY, TOKEN_PREFIX_KEY, normalizeUrl } from "@/utils/request";
 
 const samplingAudioApi = createCrudService("/api/sampling-audio");
 const samplingDetailApi = createCrudService("/api/sampling-detail");
@@ -38,7 +38,7 @@ function getAudioWavArrayBuffer(id) {
 
   return new Promise((resolve, reject) => {
     uni.request({
-      url,
+      url: normalizeUrl(url),
       method: "GET",
       responseType: "arraybuffer",
       header,
