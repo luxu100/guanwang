@@ -292,6 +292,15 @@
 							<text>...</text>
 						 </button>
 					</view>
+					<view v-if="regionIconPreviewVisible" class="region-icon-preview">
+					  <image
+					    class="region-icon-preview__image"
+					    :src="regionIconPreviewUrl"
+					    mode="aspectFit"
+					    @load="handleRegionIconPreviewLoad"
+					    @error="handleRegionIconPreviewError"
+					  />
+					</view>
 				  </view>
 				 
 				  <view class="form-field">
@@ -537,41 +546,20 @@
 	      <view class="range-dialog-body">
 	        <view ref="rangeMapWrapRef" class="range-map-wrap" :class="{ 'range-map-wrap--drawing': rangeDrawing }">
 	          <!-- #ifdef H5 -->
-	          <LocaleCoordinateMap
-	            :key="rangeMapKey"
-	            :lng="rangeMapCenter.lng"
-	            :lat="rangeMapCenter.lat"
-	            :selectable="false"
-	          />
-	          <view
-	            ref="rangeOverlayRef"
-	            class="range-drawing-layer"
-	            :class="{ 'range-drawing-layer--active': rangeDrawing || rangePoints.length > 0 }"
-	            @click="handleRangeOverlayClick"
-	            @pointerdown="handleRangeOverlayPointerDown"
-	            @mousedown="handleRangeOverlayPointerDown"
-	            @touchstart="handleRangeOverlayPointerDown"
-	          >
-	            <svg v-if="rangePointPositions.length > 1" class="range-vector" xmlns="http://www.w3.org/2000/svg">
-	              <polygon
-	                v-if="rangePointPositions.length > 2"
-	                class="range-polygon"
-	                :points="rangePolygonPoints"
-	              />
-	              <polyline class="range-polyline" :points="rangePolylinePoints" />
-	            </svg>
-	            <button
-	              v-for="point in rangePointPositions"
+	          <div ref="rangeNativeMapRef" class="range-native-map"></div>
+	          <view v-if="rangePointPositions.length > 0" class="range-marker-layer">
+	            <view
+	              v-for="(point, index) in rangePointPositions"
 	              :key="point.id"
 	              class="range-point-marker"
 	              :class="{ 'range-point-marker--active': selectedRangePointId === point.id }"
 	              :style="{ left: `${point.x}px`, top: `${point.y}px` }"
-	              @click.stop="selectRangePoint(point.id)"
 	              @pointerdown.stop.prevent="startRangePointDrag(point.id, $event)"
 	            >
-	              <text>{{ point.index + 1 }}</text>
-	            </button>
+	              <text>{{ index + 1 }}</text>
+	            </view>
 	          </view>
+	          <view v-if="rangeMapError" class="range-map-error">{{ rangeMapError }}</view>
 	          <!-- #endif -->
 	          <!-- #ifndef H5 -->
 	          <view class="center-map-fallback">地图绘制仅支持 H5 端</view>
@@ -629,10 +617,11 @@
 	        <button
 	          class="secondary-button"
 	          :class="{ 'secondary-button--active': rangeDrawing }"
+	          :disabled="rangeDrawDisabled"
 	          hover-class="secondary-button--hover"
 	          @click="startRangeDrawing"
 	        >
-	          绘制
+	          {{ rangeDrawing ? "绘制中" : "绘制" }}
 	        </button>
 	        <button
 	          class="danger-button"
@@ -734,7 +723,9 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onBeforeUnmount, reactive } from "vue";
 import LocaleCoordinateMap from "@/components/map/LocaleCoordinateMap.vue";
-import { MAP_CONFIG } from "@/services/map/map";
+import { useI18n } from "@/i18n";
+import { getMapProvider, MAP_CONFIG } from "@/services/map/map";
+import { loadGoogleMaps } from "@/utils/googleMapsLoader";
 import { 
 	getDeptList, 
 	getDeptDetail,
@@ -747,6 +738,9 @@ import {
 	getDeptDeviceBindingList,
 	updateDeptDeviceBinding,
 } from "@/services/partition/partition";
+import { uploadFile } from "@/services/leak-report/file-upload";
+import { getFileDetail } from "@/services/device/sysFile";
+import { normalizeUrl } from "@/utils/request";
 
 interface DeptApiItem {
   id: number;
@@ -810,6 +804,15 @@ interface ApiResponseLike {
   code?: number;
   msg?: string;
   data?: unknown;
+}
+
+interface UploadImageResponseLike extends ApiResponseLike {
+  data?: {
+    id?: string | number;
+    filePath?: string;
+    file_path?: string;
+    url?: string;
+  };
 }
 
 const deptList = ref<DeptApiItem[]>([]);
@@ -972,6 +975,7 @@ const fillDeptForm = (item: DeptApiItem) => {
   });
   clearDeptIconTempFile();
   regionIconFileName.value = getFileName(item.regionIcon);
+  void loadRegionIconDetail(item.regionIcon);
 };
 
 const currentDeptId = ref<number>();
@@ -1230,6 +1234,9 @@ const resetDeptForm = () => {
 	Object.assign(deptForm, defaultDeptForm);
 	activeSelect.value = false;
 	clearErrors();
+	clearDeptIconTempFile();
+	clearRegionIconPreviewState();
+	regionIconFileName.value = "";
 };
 
 const handleCreateDept = () => {
@@ -1697,8 +1704,7 @@ function clamp(value: number, min: number, max: number) {
 onBeforeUnmount(() => {
   stopColorDrag();
   stopRangePointDrag();
-  unbindRangeMapNativeEvents();
-  unbindRangeOverlayResize();
+  destroyRangeNativeMap();
 });
 
 interface CoordinateValue {
@@ -1706,28 +1712,25 @@ interface CoordinateValue {
   lat: number;
 }
 
-const defaultCenterCoordinate: CoordinateValue = {
+const defaultMapCoordinate: CoordinateValue = {
   lng: 121.4737,
   lat: 31.2304,
 };
+
+const { locale } = useI18n();
+const rangeMapProvider = computed(() => getMapProvider(locale.value));
 
 type RangePoint = CoordinateValue & {
   id: string;
 };
 
-type RangePointPosition = RangePoint & {
-  index: number;
-  x: number;
-  y: number;
-};
-
 const RANGE_MAP_ZOOM = 15;
-const RANGE_WORLD_TILE_SIZE = 256;
-const RANGE_MAX_MERCATOR_LAT = 85.05112878;
+const RANGE_DRAG_THRESHOLD = 3;
 
 const rangeDialogVisible = ref(false);
 const rangeDrawing = ref(false);
-const rangeMapCenter = ref<CoordinateValue>({ ...defaultCenterCoordinate });
+const rangeMapCenter = ref<CoordinateValue>({ ...defaultMapCoordinate });
+const rangeMapZoom = ref(RANGE_MAP_ZOOM);
 const rangePoints = ref<RangePoint[]>([]);
 const selectedRangePointId = ref("");
 const rangeLocationText = ref("");
@@ -1736,16 +1739,9 @@ const rangeLatText = ref("");
 const rangeSearching = ref(false);
 const rangeLastEdited = ref<"location" | "coordinate" | "">("");
 const rangeMapWrapRef = ref<HTMLElement | null>(null);
-const rangeOverlayRef = ref<HTMLElement | null>(null);
-const rangeOverlaySize = ref({ width: 0, height: 0 });
-const activeRangeDragId = ref("");
-const suppressNextRangeClick = ref(false);
-let rangeNativeEventsBound = false;
-let lastRangeNativeEventTime = 0;
-
-const rangeMapKey = computed(() => {
-  return `range-${rangeMapCenter.value.lng}-${rangeMapCenter.value.lat}`;
-});
+const rangeNativeMapRef = ref<HTMLElement | null>(null);
+const rangeMapError = ref("");
+const activeRangePointDragId = ref("");
 
 const rangeInputCoordinate = computed(() => parseRangeCoordinateInputs());
 
@@ -1762,26 +1758,103 @@ const rangeSearchDisabled = computed(() => {
   );
 });
 
-const rangePointPositions = computed<RangePointPosition[]>(() => {
-  return rangePoints.value.map((point, index) => {
-    const position = projectRangeCoordinate(point);
+const rangeDrawDisabled = computed(() => rangeDrawing.value || rangePoints.value.length >= 3);
 
-    return {
-      ...point,
-      index,
-      x: position.x,
-      y: position.y,
-    };
-  });
+const rangePointPositions = computed(() => {
+  return rangePoints.value
+    .map((point) => {
+      const position = projectRangeCoordinateToScreen(point);
+
+      if (!position) {
+        return null;
+      }
+
+      return {
+        id: point.id,
+        x: position.x,
+        y: position.y,
+      };
+    })
+    .filter((point): point is { id: string; x: number; y: number } => point !== null);
 });
 
-const rangePolylinePoints = computed(() => {
-  return rangePointPositions.value
-    .map((point) => `${point.x},${point.y}`)
-    .join(" ");
-});
+interface TencentLatLngValue {
+  getLat?: () => number;
+  getLng?: () => number;
+  lat?: number;
+  lng?: number;
+}
 
-const rangePolygonPoints = computed(() => rangePolylinePoints.value);
+interface TencentMapInstance {
+  destroy?: () => void;
+  easeTo?: (options: { center: TencentLatLngValue; zoom?: number }) => void;
+  getCenter?: () => TencentLatLngValue;
+  getZoom?: () => number;
+  setCenter?: (center: TencentLatLngValue) => void;
+  on?: (event: string, handler: (event: TencentMapEvent) => void) => void;
+  off?: (event: string, handler: (event: TencentMapEvent) => void) => void;
+}
+
+interface TencentMapEvent {
+  latLng?: TencentLatLngValue;
+  geometry?: {
+    id?: string;
+    position?: TencentLatLngValue;
+  };
+}
+
+interface TencentLayerInstance {
+  setMap?: (map: TencentMapInstance | null) => void;
+  setGeometries?: (geometries: unknown[]) => void;
+  on?: (event: string, handler: (event: TencentMapEvent) => void) => void;
+}
+
+interface TencentMapApi {
+  LatLng: new (lat: number, lng: number) => TencentLatLngValue;
+  Map: new (
+    container: HTMLElement,
+    options: {
+      center: TencentLatLngValue;
+      zoom: number;
+      pitch: number;
+      rotation: number;
+    },
+  ) => TencentMapInstance;
+  MultiMarker?: new (options: Record<string, unknown>) => TencentLayerInstance;
+  MultiPolyline?: new (options: Record<string, unknown>) => TencentLayerInstance;
+  MultiPolygon?: new (options: Record<string, unknown>) => TencentLayerInstance;
+  PolylineStyle?: new (options: Record<string, unknown>) => unknown;
+  PolygonStyle?: new (options: Record<string, unknown>) => unknown;
+}
+
+type TencentRuntimeWindow = Window & {
+  TMap?: TencentMapApi;
+};
+
+let tencentRangeMap: TencentMapInstance | null = null;
+let tencentRangeMarkers: TencentLayerInstance | null = null;
+let tencentRangePolyline: TencentLayerInstance | null = null;
+let tencentRangePolygon: TencentLayerInstance | null = null;
+let tencentRangeLoadingPromise: Promise<TencentMapApi> | null = null;
+
+let googleRangeMap: google.maps.Map | null = null;
+let googleRangeClickListener: google.maps.MapsEventListener | null = null;
+let googleRangeIdleListener: google.maps.MapsEventListener | null = null;
+let googleRangeMarkers: google.maps.Marker[] = [];
+let googleRangePolyline: google.maps.Polyline | null = null;
+let googleRangePolygon: google.maps.Polygon | null = null;
+let googleRangeDblClickListener: google.maps.MapsEventListener | null = null;
+let lastRangeMarkerDragEndTime = 0;
+let lastRangeMarkerClickTime = 0;
+let rangePointDragStartedAt: { x: number; y: number } | null = null;
+let rangePointDragMoved = false;
+let rangePointDragPointerId: number | null = null;
+let rangePointDragTarget:
+  | (EventTarget & {
+      setPointerCapture?: (pointerId: number) => void;
+      releasePointerCapture?: (pointerId: number) => void;
+    })
+  | null = null;
 
 const openRangeDialog = () => {
   activeSelect.value = false;
@@ -1789,25 +1862,22 @@ const openRangeDialog = () => {
   const savedPoints = parseRangeScope(deptForm.regionScope);
   const fallbackCenter =
     savedPoints[0] ||
-    parseCoordinateText(deptForm.regionCenter) ||
-    defaultCenterCoordinate;
+    parseCoordinateText(deptForm.regionCenter);
 
   rangePoints.value = savedPoints.map((point, index) => createRangePoint(point, index));
   selectedRangePointId.value =
     rangePoints.value[rangePoints.value.length - 1]?.id || "";
-  rangeMapCenter.value = { ...fallbackCenter };
+  rangeMapCenter.value = fallbackCenter
+    ? { ...fallbackCenter }
+    : { ...defaultMapCoordinate };
+  rangeMapZoom.value = RANGE_MAP_ZOOM;
   rangeLocationText.value = "";
   rangeLastEdited.value = "";
   rangeDrawing.value = false;
   rangeSearching.value = false;
-  activeRangeDragId.value = "";
-  syncRangeCoordinateInputs(fallbackCenter);
+  syncRangeCoordinateInputs(fallbackCenter || null);
   rangeDialogVisible.value = true;
-  bindRangeOverlayResize();
-  void nextTick(() => {
-    refreshRangeOverlaySize();
-    bindRangeMapNativeEvents();
-  });
+  void nextTick(initRangeNativeMap);
 };
 
 const closeRangeDialog = () => {
@@ -1816,19 +1886,19 @@ const closeRangeDialog = () => {
   rangeSearching.value = false;
   rangeLastEdited.value = "";
   selectedRangePointId.value = "";
-  activeRangeDragId.value = "";
   stopRangePointDrag();
-  unbindRangeMapNativeEvents();
-  unbindRangeOverlayResize();
+  destroyRangeNativeMap();
 };
 
 const startRangeDrawing = () => {
+  if (rangeDrawDisabled.value) {
+    uni.showToast({ title: "请先删除已有范围后再重新绘制", icon: "none" });
+    return;
+  }
+
   rangeDrawing.value = true;
-  uni.showToast({ title: "请在地图上点击添加范围点", icon: "none" });
-  void nextTick(() => {
-    refreshRangeOverlaySize();
-    bindRangeMapNativeEvents();
-  });
+  uni.showToast({ title: "点击地图添加点，双击地图结束绘制", icon: "none" });
+  void nextTick(initRangeNativeMap);
 };
 
 const markRangeLocationEdited = () => {
@@ -1848,101 +1918,188 @@ const selectRangePoint = (id: string) => {
   }
 };
 
-const handleRangeOverlayClick = (event: Event) => {
-  if (suppressNextRangeClick.value) {
-    suppressNextRangeClick.value = false;
-    return;
-  }
-
-  addRangePointFromEvent(event);
-};
-
-const handleRangeOverlayPointerDown = (event: Event) => {
+const handleRangeMapPick = (coordinate: CoordinateValue) => {
   if (!rangeDrawing.value) {
     return;
   }
 
-  const target = event.target as HTMLElement | null;
-  if (target?.closest?.(".range-point-marker")) {
-    return;
-  }
-
-  event.preventDefault?.();
-  event.stopPropagation?.();
-  suppressNextRangeClick.value = true;
-  addRangePointFromEvent(event);
+  addRangePoint(coordinate);
 };
 
-function addRangePointFromEvent(event: Event) {
-  if (!rangeDrawing.value) {
+const handleRangePointClick = (id: string) => {
+  lastRangeMarkerClickTime = Date.now();
+
+  if (Date.now() - lastRangeMarkerDragEndTime < 260) {
     return;
   }
 
-  const target = event.target as HTMLElement | null;
-  if (target?.closest?.(".range-point-marker")) {
+  const index = rangePoints.value.findIndex((point) => point.id === id);
+
+  if (index < 0) {
     return;
   }
 
-  const coordinate = getRangeCoordinateFromPointerEvent(event);
-
-  if (!coordinate) {
+  if (rangePoints.value.length < 3) {
+    selectRangePoint(id);
+    uni.showToast({ title: "至少三个点时可编辑范围点", icon: "none" });
     return;
   }
 
+  const points = rangePoints.value;
+  const point = points[index];
+  const previousPoint = points[(index - 1 + points.length) % points.length];
+  const nextPoint = points[(index + 1) % points.length];
+
+  if (areRangePointsCollinear(previousPoint, point, nextPoint)) {
+    const previousMiddlePoint = createRangePoint(getRangeMidpoint(previousPoint, point));
+    const nextMiddlePoint = createRangePoint(getRangeMidpoint(point, nextPoint));
+    rangePoints.value = [
+      ...points.slice(0, index),
+      previousMiddlePoint,
+      point,
+      nextMiddlePoint,
+      ...points.slice(index + 1),
+    ];
+    selectedRangePointId.value = point.id;
+    syncRangeCoordinateInputs(point);
+    renderRangeOverlays();
+    return;
+  }
+
+  const middlePoint = getRangeMidpoint(previousPoint, nextPoint);
+  const nextPoints = points.map((item) => {
+    if (item.id !== id) {
+      return item;
+    }
+
+    return {
+      ...item,
+      ...middlePoint,
+    };
+  });
+  rangePoints.value = nextPoints;
+  selectedRangePointId.value = id;
+  syncRangeCoordinateInputs(middlePoint);
+  renderRangeOverlays();
+};
+
+function startRangePointDrag(id: string, event: PointerEvent) {
+  event.preventDefault();
+  event.stopPropagation();
+
+  const startPoint = getRangeScreenPointFromPointer(event);
+
+  if (!startPoint) {
+    return;
+  }
+
+  selectRangePoint(id);
+  activeRangePointDragId.value = id;
+  rangePointDragStartedAt = startPoint;
+  rangePointDragMoved = false;
+  rangePointDragPointerId = event.pointerId;
+  rangePointDragTarget = event.currentTarget as typeof rangePointDragTarget;
+  rangePointDragTarget?.setPointerCapture?.(event.pointerId);
+
+  if (typeof document !== "undefined") {
+    document.addEventListener("pointermove", handleRangePointDragMove, { passive: false });
+    document.addEventListener("pointerup", stopRangePointDrag, { passive: false });
+    document.addEventListener("pointercancel", stopRangePointDrag, { passive: false });
+  }
+}
+
+function handleRangePointDragMove(event: PointerEvent) {
+  if (!activeRangePointDragId.value) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  const screenPoint = getRangeScreenPointFromPointer(event);
+
+  if (!screenPoint) {
+    return;
+  }
+
+  if (!rangePointDragMoved && rangePointDragStartedAt) {
+    const distance = Math.hypot(
+      screenPoint.x - rangePointDragStartedAt.x,
+      screenPoint.y - rangePointDragStartedAt.y,
+    );
+
+    if (distance < RANGE_DRAG_THRESHOLD) {
+      return;
+    }
+
+    rangePointDragMoved = true;
+  }
+
+  const coordinate = projectRangeScreenToCoordinate(screenPoint);
+
+  if (coordinate) {
+    updateRangePoint(activeRangePointDragId.value, coordinate);
+  }
+}
+
+function stopRangePointDrag(event?: PointerEvent) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  const clickedPointId = activeRangePointDragId.value;
+  const wasDragging = rangePointDragMoved;
+  const shouldHandleClick = event?.type === "pointerup";
+
+  if (rangePointDragTarget && rangePointDragPointerId !== null) {
+    rangePointDragTarget.releasePointerCapture?.(rangePointDragPointerId);
+  }
+
+  if (typeof document !== "undefined") {
+    document.removeEventListener("pointermove", handleRangePointDragMove);
+    document.removeEventListener("pointerup", stopRangePointDrag);
+    document.removeEventListener("pointercancel", stopRangePointDrag);
+  }
+
+  activeRangePointDragId.value = "";
+  rangePointDragStartedAt = null;
+  rangePointDragMoved = false;
+  rangePointDragPointerId = null;
+  rangePointDragTarget = null;
+
+  if (wasDragging) {
+    lastRangeMarkerDragEndTime = Date.now();
+    return;
+  }
+
+  if (clickedPointId && shouldHandleClick) {
+    handleRangePointClick(clickedPointId);
+  }
+}
+
+function addRangePoint(coordinate: CoordinateValue) {
+  syncRangeMapViewportFromMap();
   const point = createRangePoint(coordinate);
   rangePoints.value = [...rangePoints.value, point];
   selectedRangePointId.value = point.id;
   syncRangeCoordinateInputs(point);
+  renderRangeOverlays();
 }
 
-const startRangePointDrag = (id: string, event: Event) => {
-  const pointerEvent = event as PointerEvent;
-  selectedRangePointId.value = id;
-  activeRangeDragId.value = id;
-
-  const target = pointerEvent.currentTarget as HTMLElement | null;
-  target?.setPointerCapture?.(pointerEvent.pointerId);
-
-  window.addEventListener("pointermove", handleRangePointDrag);
-  window.addEventListener("pointerup", stopRangePointDrag);
-  window.addEventListener("pointercancel", stopRangePointDrag);
-};
-
-const handleRangePointDrag = (event: PointerEvent) => {
-  if (!activeRangeDragId.value) {
+function finishRangeDrawing() {
+  if (!rangeDrawing.value) {
     return;
   }
 
-  const coordinate = getRangeCoordinateFromPointerEvent(event);
-
-  if (!coordinate) {
+  if (rangePoints.value.length < 3) {
+    uni.showToast({ title: "至少需要三个范围点", icon: "none" });
     return;
   }
 
-  rangePoints.value = rangePoints.value.map((point) => {
-    if (point.id !== activeRangeDragId.value) {
-      return point;
-    }
-
-    return {
-      ...point,
-      ...coordinate,
-    };
-  });
-  syncRangeCoordinateInputs(coordinate);
-};
-
-const stopRangePointDrag = () => {
-  activeRangeDragId.value = "";
-
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.removeEventListener("pointermove", handleRangePointDrag);
-  window.removeEventListener("pointerup", stopRangePointDrag);
-  window.removeEventListener("pointercancel", stopRangePointDrag);
-};
+  rangeDrawing.value = false;
+  uni.showToast({ title: "绘制已结束", icon: "success" });
+}
 
 const searchRangeLocation = async () => {
   const coordinate = rangeInputCoordinate.value;
@@ -2010,6 +2167,7 @@ const deleteRangeDrawing = () => {
       rangePoints.value = [];
       selectedRangePointId.value = "";
       rangeDrawing.value = false;
+      renderRangeOverlays();
       uni.showToast({ title: "绘制内容已删除", icon: "success" });
     },
   });
@@ -2047,17 +2205,155 @@ function updateRangeMapCenter(coordinate: CoordinateValue) {
   const nextCoordinate = normalizeCoordinate(coordinate);
 
   rangeMapCenter.value = nextCoordinate;
+  rangeMapZoom.value = RANGE_MAP_ZOOM;
   rangeLastEdited.value = "coordinate";
   syncRangeCoordinateInputs(nextCoordinate);
-  void nextTick(refreshRangeOverlaySize);
+  focusRangeNativeMap(nextCoordinate);
 }
 
-function createRangePoint(coordinate: CoordinateValue, index = Date.now()): RangePoint {
+function createRangePoint(
+  coordinate: CoordinateValue,
+  index = Date.now(),
+): RangePoint {
   const point = normalizeCoordinate(coordinate);
 
   return {
     id: `range-point-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`,
     ...point,
+  };
+}
+
+function getRangeMidpoint(firstPoint: CoordinateValue, secondPoint: CoordinateValue): CoordinateValue {
+  return normalizeCoordinate({
+    lng: (firstPoint.lng + secondPoint.lng) / 2,
+    lat: (firstPoint.lat + secondPoint.lat) / 2,
+  });
+}
+
+function areRangePointsCollinear(
+  firstPoint: CoordinateValue,
+  middlePoint: CoordinateValue,
+  lastPoint: CoordinateValue,
+) {
+  const first = toLocalMeterPoint(firstPoint, middlePoint);
+  const middle = { x: 0, y: 0 };
+  const last = toLocalMeterPoint(lastPoint, middlePoint);
+  const baseLength = Math.hypot(last.x - first.x, last.y - first.y);
+
+  if (baseLength < 0.001) {
+    return true;
+  }
+
+  const areaTwice = Math.abs(
+    (last.x - first.x) * (middle.y - first.y) -
+      (middle.x - first.x) * (last.y - first.y),
+  );
+  const distanceToLine = areaTwice / baseLength;
+
+  return distanceToLine <= 1.5;
+}
+
+function toLocalMeterPoint(coordinate: CoordinateValue, origin: CoordinateValue) {
+  const metersPerDegreeLat = 111_320;
+  const metersPerDegreeLng =
+    metersPerDegreeLat * Math.cos((origin.lat * Math.PI) / 180);
+
+  return {
+    x: (coordinate.lng - origin.lng) * metersPerDegreeLng,
+    y: (coordinate.lat - origin.lat) * metersPerDegreeLat,
+  };
+}
+
+function getRangeMapRect(): DOMRect | null {
+  const element = getElement(rangeMapWrapRef.value) || getElement(rangeNativeMapRef.value);
+
+  if (!element) {
+    return null;
+  }
+
+  const rect = element.getBoundingClientRect();
+
+  if (rect.width <= 0 || rect.height <= 0) {
+    return null;
+  }
+
+  return rect;
+}
+
+function getRangeScreenPointFromPointer(event: PointerEvent) {
+  const rect = getRangeMapRect();
+
+  if (!rect) {
+    return null;
+  }
+
+  return {
+    x: clamp(event.clientX - rect.left, 0, rect.width),
+    y: clamp(event.clientY - rect.top, 0, rect.height),
+  };
+}
+
+function projectRangeCoordinateToScreen(coordinate: CoordinateValue) {
+  const rect = getRangeMapRect();
+
+  if (!rect) {
+    return null;
+  }
+
+  const zoom = rangeMapZoom.value;
+  const centerWorld = getMercatorWorldPoint(rangeMapCenter.value, zoom);
+  const coordinateWorld = getMercatorWorldPoint(coordinate, zoom);
+
+  return {
+    x: rect.width / 2 + coordinateWorld.x - centerWorld.x,
+    y: rect.height / 2 + coordinateWorld.y - centerWorld.y,
+  };
+}
+
+function projectRangeScreenToCoordinate(point: { x: number; y: number }): CoordinateValue | null {
+  const rect = getRangeMapRect();
+
+  if (!rect) {
+    return null;
+  }
+
+  const zoom = rangeMapZoom.value;
+  const centerWorld = getMercatorWorldPoint(rangeMapCenter.value, zoom);
+  const worldPoint = {
+    x: centerWorld.x + point.x - rect.width / 2,
+    y: centerWorld.y + point.y - rect.height / 2,
+  };
+  const coordinate = getCoordinateFromMercatorWorldPoint(worldPoint, zoom);
+
+  if (!isValidCoordinate(coordinate.lng, coordinate.lat)) {
+    return null;
+  }
+
+  return normalizeCoordinate(coordinate);
+}
+
+function getMercatorWorldPoint(coordinate: CoordinateValue, zoom: number) {
+  const scale = 256 * 2 ** zoom;
+  const sinLat = Math.sin((clamp(coordinate.lat, -85.05112878, 85.05112878) * Math.PI) / 180);
+
+  return {
+    x: ((coordinate.lng + 180) / 360) * scale,
+    y: (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * scale,
+  };
+}
+
+function getCoordinateFromMercatorWorldPoint(
+  point: { x: number; y: number },
+  zoom: number,
+): CoordinateValue {
+  const scale = 256 * 2 ** zoom;
+  const lng = (point.x / scale) * 360 - 180;
+  const radians = Math.PI - (2 * Math.PI * point.y) / scale;
+  const lat = (Math.atan(Math.sinh(radians)) * 180) / Math.PI;
+
+  return {
+    lng: clamp(lng, -180, 180),
+    lat: clamp(lat, -90, 90),
   };
 }
 
@@ -2163,204 +2459,474 @@ function formatRangeScope(points: CoordinateValue[]) {
   return points.map((point) => formatCoordinate(point)).join(";");
 }
 
-function refreshRangeOverlaySize() {
-  const rect =
-    rangeOverlayRef.value?.getBoundingClientRect() ||
-    rangeMapWrapRef.value?.getBoundingClientRect();
+async function initRangeNativeMap() {
+  const mapElement = getElement(rangeNativeMapRef.value);
 
-  if (!rect) {
+  if (!rangeDialogVisible.value || !mapElement) {
     return;
   }
 
-  rangeOverlaySize.value = {
-    width: rect.width,
-    height: rect.height,
-  };
+  rangeMapError.value = "";
+
+  try {
+    if (rangeMapProvider.value === "tencent") {
+      destroyGoogleRangeMap();
+      if (!tencentRangeMap) {
+        await initTencentRangeMap(mapElement);
+      }
+    } else {
+      destroyTencentRangeMap();
+      if (!googleRangeMap) {
+        await initGoogleRangeMap(mapElement);
+      }
+    }
+
+    focusRangeNativeMap(rangeMapCenter.value);
+    renderRangeOverlays();
+  } catch (error) {
+    console.error("Range map initialization failed:", error);
+    rangeMapError.value = "地图加载失败，请检查 Key、域名限制和网络";
+  }
 }
 
-function bindRangeOverlayResize() {
-  if (typeof window === "undefined") {
-    return;
-  }
+async function initTencentRangeMap(mapElement: HTMLElement) {
+  const api = await loadRangeTencentMaps();
+  const center = createTencentLatLng(api, rangeMapCenter.value);
 
-  window.addEventListener("resize", refreshRangeOverlaySize);
-}
-
-function unbindRangeOverlayResize() {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.removeEventListener("resize", refreshRangeOverlaySize);
-}
-
-function bindRangeMapNativeEvents() {
-  const target = rangeMapWrapRef.value;
-
-  if (!target || rangeNativeEventsBound) {
-    return;
-  }
-
-  target.addEventListener("pointerdown", handleRangeMapNativePointerDown, true);
-  target.addEventListener("mousedown", handleRangeMapNativePointerDown, true);
-  target.addEventListener("touchstart", handleRangeMapNativePointerDown, {
-    capture: true,
-    passive: false,
+  tencentRangeMap = new api.Map(mapElement, {
+    center,
+    zoom: RANGE_MAP_ZOOM,
+    pitch: 0,
+    rotation: 0,
   });
-  rangeNativeEventsBound = true;
+
+  tencentRangeMap.on?.("click", handleTencentRangeMapClick);
+  tencentRangeMap.on?.("dblclick", handleTencentRangeMapDoubleClick);
+  tencentRangeMap.on?.("idle", handleTencentRangeMapIdle);
+  syncTencentRangeMapViewport();
 }
 
-function unbindRangeMapNativeEvents() {
-  const target = rangeMapWrapRef.value;
+async function initGoogleRangeMap(mapElement: HTMLElement) {
+  const { Map } = await loadGoogleMaps();
 
-  if (!target || !rangeNativeEventsBound) {
-    rangeNativeEventsBound = false;
-    return;
+  googleRangeMap = new Map(mapElement, {
+    center: toGoogleCoordinate(rangeMapCenter.value),
+    zoom: RANGE_MAP_ZOOM,
+    mapTypeControl: true,
+    streetViewControl: false,
+    fullscreenControl: true,
+    disableDoubleClickZoom: true,
+  });
+
+  googleRangeClickListener = googleRangeMap.addListener(
+    "click",
+    (event: google.maps.MapMouseEvent) => {
+      if (!rangeDrawing.value || !event.latLng) {
+        return;
+      }
+
+      if (Date.now() - lastRangeMarkerClickTime < 160) {
+        return;
+      }
+
+      addRangePoint({
+        lng: event.latLng.lng(),
+        lat: event.latLng.lat(),
+      });
+    },
+  );
+  googleRangeDblClickListener = googleRangeMap.addListener(
+    "dblclick",
+    () => finishRangeDrawing(),
+  );
+  googleRangeIdleListener = googleRangeMap.addListener("idle", syncGoogleRangeMapViewport);
+  syncGoogleRangeMapViewport();
+}
+
+function loadRangeTencentMaps(): Promise<TencentMapApi> {
+  const runtimeWindow = window as TencentRuntimeWindow;
+
+  if (runtimeWindow.TMap) {
+    return Promise.resolve(runtimeWindow.TMap);
   }
 
-  target.removeEventListener("pointerdown", handleRangeMapNativePointerDown, true);
-  target.removeEventListener("mousedown", handleRangeMapNativePointerDown, true);
-  target.removeEventListener(
-    "touchstart",
-    handleRangeMapNativePointerDown,
-    true,
-  );
-  rangeNativeEventsBound = false;
+  if (tencentRangeLoadingPromise) {
+    return tencentRangeLoadingPromise;
+  }
+
+  if (!MAP_CONFIG.tencentKey) {
+    return Promise.reject(new Error("VITE_TENCENT_MAP_KEY is empty"));
+  }
+
+  tencentRangeLoadingPromise = new Promise((resolve, reject) => {
+    const scriptId = "shared-tencent-map-sdk";
+    const existing = document.getElementById(scriptId) as HTMLScriptElement | null;
+
+    const handleLoaded = () => {
+      if (runtimeWindow.TMap) {
+        resolve(runtimeWindow.TMap);
+      } else {
+        reject(new Error("Tencent Maps API is unavailable"));
+      }
+    };
+
+    if (existing) {
+      existing.addEventListener("load", handleLoaded, { once: true });
+      existing.addEventListener(
+        "error",
+        () => reject(new Error("Tencent Maps script failed")),
+        { once: true },
+      );
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = scriptId;
+    script.charset = "utf-8";
+    script.src = `https://map.qq.com/api/gljs?v=1.exp&key=${MAP_CONFIG.tencentKey}&libraries=tools`;
+    script.addEventListener("load", handleLoaded, { once: true });
+    script.addEventListener(
+      "error",
+      () => reject(new Error("Tencent Maps script failed")),
+      { once: true },
+    );
+    document.head.appendChild(script);
+  });
+
+  return tencentRangeLoadingPromise;
 }
 
-function handleRangeMapNativePointerDown(event: MouseEvent | PointerEvent | TouchEvent) {
+function handleTencentRangeMapClick(event: TencentMapEvent) {
   if (!rangeDrawing.value) {
     return;
   }
 
-  const target = event.target as HTMLElement | null;
-
-  if (target?.closest?.(".range-point-marker")) {
+  if (Date.now() - lastRangeMarkerClickTime < 160) {
     return;
   }
 
-  const now = Date.now();
+  const coordinate = getTencentCoordinate(event.latLng);
 
-  if (now - lastRangeNativeEventTime < 80) {
-    return;
+  if (coordinate) {
+    addRangePoint(coordinate);
   }
-
-  lastRangeNativeEventTime = now;
-  event.preventDefault?.();
-  event.stopPropagation?.();
-  suppressNextRangeClick.value = true;
-  addRangePointFromEvent(event);
 }
 
-function getRangeCoordinateFromPointerEvent(event: Event): CoordinateValue | null {
-  const clientPosition = getRangeEventClientPosition(event);
-  const rect =
-    rangeOverlayRef.value?.getBoundingClientRect() ||
-    rangeMapWrapRef.value?.getBoundingClientRect();
+function handleTencentRangeMapDoubleClick() {
+  finishRangeDrawing();
+}
 
-  if (!clientPosition || !rect || rect.width <= 0 || rect.height <= 0) {
+function handleTencentRangeMapIdle() {
+  syncTencentRangeMapViewport();
+}
+
+function syncRangeMapViewportFromMap() {
+  if (rangeMapProvider.value === "tencent") {
+    syncTencentRangeMapViewport();
+    return;
+  }
+
+  syncGoogleRangeMapViewport();
+}
+
+function syncTencentRangeMapViewport() {
+  const coordinate = getTencentCoordinate(tencentRangeMap?.getCenter?.());
+  const zoom = tencentRangeMap?.getZoom?.();
+
+  if (coordinate) {
+    rangeMapCenter.value = coordinate;
+  }
+
+  if (Number.isFinite(zoom)) {
+    rangeMapZoom.value = Number(zoom);
+  }
+}
+
+function syncGoogleRangeMapViewport() {
+  const center = googleRangeMap?.getCenter();
+  const zoom = googleRangeMap?.getZoom();
+
+  if (center) {
+    rangeMapCenter.value = normalizeCoordinate({
+      lng: center.lng(),
+      lat: center.lat(),
+    });
+  }
+
+  if (Number.isFinite(zoom)) {
+    rangeMapZoom.value = Number(zoom);
+  }
+}
+
+function renderRangeOverlays() {
+  if (rangeMapProvider.value === "tencent") {
+    renderTencentRangeOverlays();
+  } else {
+    renderGoogleRangeOverlays();
+  }
+}
+
+function renderTencentRangeOverlays() {
+  const api = (window as TencentRuntimeWindow).TMap;
+
+  if (!api || !tencentRangeMap) {
+    return;
+  }
+
+  clearTencentRangeMarkers();
+  renderTencentRangePolyline(api);
+  renderTencentRangePolygon(api);
+}
+
+function clearTencentRangeMarkers() {
+  tencentRangeMarkers?.setMap?.(null);
+  tencentRangeMarkers = null;
+}
+
+function renderTencentRangePolyline(api: TencentMapApi) {
+  tencentRangePolyline?.setMap?.(null);
+  tencentRangePolyline = null;
+
+  if (!api.MultiPolyline || !tencentRangeMap || rangePoints.value.length < 2) {
+    return;
+  }
+
+  const paths = rangePoints.value.map((point) => createTencentLatLng(api, point));
+
+  tencentRangePolyline = new api.MultiPolyline({
+    map: tencentRangeMap,
+    styles: {
+      "range-line": api.PolylineStyle
+        ? new api.PolylineStyle({
+            color: "#ef4444",
+            width: 3,
+            borderWidth: 0,
+          })
+        : undefined,
+    },
+    geometries: [
+      {
+        id: "range-line",
+        styleId: "range-line",
+        paths,
+      },
+    ],
+  });
+}
+
+function renderTencentRangePolygon(api: TencentMapApi) {
+  tencentRangePolygon?.setMap?.(null);
+  tencentRangePolygon = null;
+
+  if (!api.MultiPolygon || !tencentRangeMap || rangePoints.value.length < 3) {
+    return;
+  }
+
+  const paths = rangePoints.value.map((point) => createTencentLatLng(api, point));
+
+  tencentRangePolygon = new api.MultiPolygon({
+    map: tencentRangeMap,
+    styles: {
+      "range-polygon": api.PolygonStyle
+        ? new api.PolygonStyle({
+            color: "rgba(239,68,68,0.22)",
+            showBorder: true,
+            borderColor: "#ef4444",
+            borderWidth: 2,
+          })
+        : undefined,
+    },
+    geometries: [
+      {
+        id: "range-polygon",
+        styleId: "range-polygon",
+        paths,
+      },
+    ],
+  });
+}
+
+function renderGoogleRangeOverlays() {
+  if (!googleRangeMap || typeof google === "undefined") {
+    return;
+  }
+
+  clearGoogleRangeMarkers();
+
+  googleRangePolyline?.setMap(null);
+  googleRangePolyline = null;
+
+  if (rangePoints.value.length > 1) {
+    googleRangePolyline = new google.maps.Polyline({
+      map: googleRangeMap,
+      path: rangePoints.value.map(toGoogleCoordinate),
+      strokeColor: "#ef4444",
+      strokeOpacity: 0.95,
+      strokeWeight: 3,
+    });
+  }
+
+  googleRangePolygon?.setMap(null);
+  googleRangePolygon = null;
+
+  if (rangePoints.value.length > 2) {
+    googleRangePolygon = new google.maps.Polygon({
+      map: googleRangeMap,
+      paths: rangePoints.value.map(toGoogleCoordinate),
+      strokeColor: "#ef4444",
+      strokeOpacity: 0.95,
+      strokeWeight: 2,
+      fillColor: "#ef4444",
+      fillOpacity: 0.22,
+    });
+  }
+}
+
+function updateRangePoint(id: string, coordinate: CoordinateValue) {
+  const nextCoordinate = normalizeCoordinate(coordinate);
+
+  rangePoints.value = rangePoints.value.map((point) => {
+    if (point.id !== id) {
+      return point;
+    }
+
+    return {
+      ...point,
+      ...nextCoordinate,
+    };
+  });
+  selectedRangePointId.value = id;
+  syncRangeCoordinateInputs(nextCoordinate);
+  renderRangeOverlays();
+}
+
+function focusRangeNativeMap(coordinate: CoordinateValue) {
+  rangeMapCenter.value = normalizeCoordinate(coordinate);
+  rangeMapZoom.value = RANGE_MAP_ZOOM;
+
+  if (rangeMapProvider.value === "tencent") {
+    const api = (window as TencentRuntimeWindow).TMap;
+
+    if (!api || !tencentRangeMap) {
+      return;
+    }
+
+    const center = createTencentLatLng(api, coordinate);
+    tencentRangeMap.easeTo?.({ center, zoom: RANGE_MAP_ZOOM });
+    tencentRangeMap.setCenter?.(center);
+    return;
+  }
+
+  if (!googleRangeMap) {
+    return;
+  }
+
+  googleRangeMap.panTo(toGoogleCoordinate(coordinate));
+  googleRangeMap.setZoom(RANGE_MAP_ZOOM);
+}
+
+function destroyRangeNativeMap() {
+  destroyTencentRangeMap();
+  destroyGoogleRangeMap();
+  rangeMapError.value = "";
+}
+
+function destroyTencentRangeMap() {
+  tencentRangeMap?.off?.("click", handleTencentRangeMapClick);
+  tencentRangeMap?.off?.("dblclick", handleTencentRangeMapDoubleClick);
+  tencentRangeMap?.off?.("idle", handleTencentRangeMapIdle);
+  clearTencentRangeMarkers();
+  tencentRangePolyline?.setMap?.(null);
+  tencentRangePolygon?.setMap?.(null);
+  tencentRangePolyline = null;
+  tencentRangePolygon = null;
+  tencentRangeMap?.destroy?.();
+  tencentRangeMap = null;
+}
+
+function destroyGoogleRangeMap() {
+  googleRangeClickListener?.remove();
+  googleRangeDblClickListener?.remove();
+  googleRangeIdleListener?.remove();
+  googleRangeClickListener = null;
+  googleRangeDblClickListener = null;
+  googleRangeIdleListener = null;
+  clearGoogleRangeMarkers();
+  googleRangePolyline?.setMap(null);
+  googleRangePolygon?.setMap(null);
+  googleRangePolyline = null;
+  googleRangePolygon = null;
+
+  if (googleRangeMap && typeof google !== "undefined") {
+    google.maps.event.clearInstanceListeners(googleRangeMap);
+  }
+
+  googleRangeMap = null;
+}
+
+function clearGoogleRangeMarkers() {
+  if (typeof google !== "undefined") {
+    googleRangeMarkers.forEach((marker) => {
+      google.maps.event.clearInstanceListeners(marker);
+      marker.setMap(null);
+    });
+  }
+
+  googleRangeMarkers = [];
+}
+
+function createTencentLatLng(api: TencentMapApi, coordinate: CoordinateValue) {
+  return new api.LatLng(coordinate.lat, coordinate.lng);
+}
+
+function getTencentCoordinate(value?: TencentLatLngValue): CoordinateValue | null {
+  if (!value) {
     return null;
   }
 
-  const x = clamp(clientPosition.x - rect.left, 0, rect.width);
-  const y = clamp(clientPosition.y - rect.top, 0, rect.height);
+  const lng = value.getLng?.() ?? value.lng;
+  const lat = value.getLat?.() ?? value.lat;
 
-  rangeOverlaySize.value = {
-    width: rect.width,
-    height: rect.height,
-  };
+  if (!isValidCoordinate(Number(lng), Number(lat))) {
+    return null;
+  }
 
-  return unprojectRangeCoordinate(x, y);
+  return normalizeCoordinate({
+    lng: Number(lng),
+    lat: Number(lat),
+  });
 }
 
-function getRangeEventClientPosition(event: Event) {
-  const mouseEvent = event as MouseEvent;
+function toGoogleCoordinate(coordinate: CoordinateValue) {
+  return {
+    lat: coordinate.lat,
+    lng: coordinate.lng,
+  };
+}
 
-  if (Number.isFinite(mouseEvent.clientX) && Number.isFinite(mouseEvent.clientY)) {
-    return {
-      x: mouseEvent.clientX,
-      y: mouseEvent.clientY,
-    };
+function getElement(value: unknown): HTMLElement | null {
+  if (!value) {
+    return null;
   }
 
-  const touchEvent = event as TouchEvent;
-  const touch = touchEvent.touches?.[0] || touchEvent.changedTouches?.[0];
+  const maybeElement = value as HTMLElement;
 
-  if (touch && Number.isFinite(touch.clientX) && Number.isFinite(touch.clientY)) {
-    return {
-      x: touch.clientX,
-      y: touch.clientY,
-    };
+  if (typeof maybeElement.getBoundingClientRect === "function") {
+    return maybeElement;
   }
 
-  const detail = (event as { detail?: { x?: number; y?: number } }).detail;
+  const proxyElement = (value as { $el?: HTMLElement }).$el;
 
-  if (Number.isFinite(detail?.x) && Number.isFinite(detail?.y)) {
-    return {
-      x: detail!.x!,
-      y: detail!.y!,
-    };
+  if (proxyElement && typeof proxyElement.getBoundingClientRect === "function") {
+    return proxyElement;
   }
 
   return null;
 }
 
-function projectRangeCoordinate(coordinate: CoordinateValue) {
-  const { width, height } = rangeOverlaySize.value;
-
-  if (width <= 0 || height <= 0) {
-    return { x: 0, y: 0 };
-  }
-
-  const centerWorld = coordinateToRangeWorld(rangeMapCenter.value);
-  const pointWorld = coordinateToRangeWorld(coordinate);
-
-  return {
-    x: width / 2 + pointWorld.x - centerWorld.x,
-    y: height / 2 + pointWorld.y - centerWorld.y,
-  };
-}
-
-function unprojectRangeCoordinate(x: number, y: number): CoordinateValue {
-  const { width, height } = rangeOverlaySize.value;
-  const centerWorld = coordinateToRangeWorld(rangeMapCenter.value);
-
-  return rangeWorldToCoordinate(
-    centerWorld.x + x - width / 2,
-    centerWorld.y + y - height / 2,
-  );
-}
-
-function coordinateToRangeWorld(coordinate: CoordinateValue) {
-  const mapSize = RANGE_WORLD_TILE_SIZE * 2 ** RANGE_MAP_ZOOM;
-  const lat = clamp(
-    coordinate.lat,
-    -RANGE_MAX_MERCATOR_LAT,
-    RANGE_MAX_MERCATOR_LAT,
-  );
-  const sinLat = Math.sin((lat * Math.PI) / 180);
-
-  return {
-    x: ((coordinate.lng + 180) / 360) * mapSize,
-    y:
-      (0.5 -
-        Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) *
-      mapSize,
-  };
-}
-
-function rangeWorldToCoordinate(x: number, y: number): CoordinateValue {
-  const mapSize = RANGE_WORLD_TILE_SIZE * 2 ** RANGE_MAP_ZOOM;
-  const lng = (x / mapSize) * 360 - 180;
-  const n = Math.PI - (2 * Math.PI * y) / mapSize;
-  const lat = (Math.atan(Math.sinh(n)) * 180) / Math.PI;
-
-  return normalizeCoordinate({ lng, lat });
-}
-
 const centerDialogVisible = ref(false);
 const centerDrawing = ref(false);
-const centerMapCoordinate = ref<CoordinateValue>({ ...defaultCenterCoordinate });
+const centerMapCoordinate = ref<CoordinateValue>({ ...defaultMapCoordinate });
 const centerPickedCoordinate = ref<CoordinateValue | null>(null);
 const centerLocationText = ref("");
 const centerLngText = ref("");
@@ -2369,7 +2935,8 @@ const centerSearching = ref(false);
 const centerLastEdited = ref<"location" | "coordinate" | "">("");
 const centerMapKey = computed(() => {
   const mode = centerDrawing.value ? "select" : "preview";
-  return `${mode}-${centerMapCoordinate.value.lng}-${centerMapCoordinate.value.lat}`;
+  const coordinate = centerMapCoordinate.value;
+  return `${mode}-${coordinate.lng}-${coordinate.lat}`;
 });
 const centerInputCoordinate = computed(() => parseCoordinateInputs());
 const centerHasSearchText = computed(() => centerLocationText.value.trim() !== "");
@@ -2391,10 +2958,10 @@ const openCenterDialog = () => {
   centerPickedCoordinate.value = currentCoordinate;
   centerMapCoordinate.value = currentCoordinate
     ? { ...currentCoordinate }
-    : { ...defaultCenterCoordinate };
+    : { ...defaultMapCoordinate };
   centerLocationText.value = "";
   centerLastEdited.value = "";
-  syncCenterCoordinateInputs(currentCoordinate);
+  syncCenterCoordinateInputs(currentCoordinate || null);
   centerDrawing.value = false;
   centerDialogVisible.value = true;
 };
@@ -2652,6 +3219,9 @@ interface UploadItem {
 
 const regionIconFileName = ref("");
 const regionIconFile = ref<UploadItem | null>(null);
+const regionIconDetailPath = ref("");
+const regionIconPreviewLoadFailed = ref(false);
+let regionIconDetailRequestSeq = 0;
 
 const clearDeptIconTempFile = () => {
   // #ifdef H5
@@ -2663,10 +3233,18 @@ const clearDeptIconTempFile = () => {
   regionIconFile.value = null;
 };
 
+const clearRegionIconPreviewState = () => {
+  regionIconDetailRequestSeq += 1;
+  regionIconDetailPath.value = "";
+  regionIconPreviewLoadFailed.value = false;
+};
+
 const removeRegionIcon = () => {
   clearDeptIconTempFile();
+  clearRegionIconPreviewState();
 
   regionIconFileName.value = "";
+  deptForm.regionIcon = "";
 
 };
 
@@ -2675,6 +3253,115 @@ const getFileName = (url?: string) => {
 
   const cleanUrl = url.split("?")[0];
   return decodeURIComponent(cleanUrl.split("/").pop() || "");
+};
+
+const normalizePreviewUrl = (url?: string) => {
+  if (!url) return "";
+
+  if (/^[a-z][a-z0-9+.-]*:/i.test(url)) {
+    return url;
+  }
+
+  return normalizeUrl(url);
+};
+
+const getRegionIconFileId = (value?: string) => {
+  const firstValue = String(value || "")
+    .split(",")
+    .map(item => item.trim())
+    .filter(Boolean)[0];
+
+  if (!firstValue || !/^\d+$/.test(firstValue)) {
+    return 0;
+  }
+
+  return Number(firstValue);
+};
+
+const loadRegionIconDetail = async (value?: string) => {
+  const requestSeq = ++regionIconDetailRequestSeq;
+  regionIconDetailPath.value = "";
+  regionIconPreviewLoadFailed.value = false;
+
+  const fileId = getRegionIconFileId(value);
+  if (!fileId) {
+    return;
+  }
+
+  try {
+    const response = await getFileDetail(fileId) as {
+      data?: {
+        fileName?: string;
+        filePath?: string;
+      };
+    };
+
+    if (requestSeq !== regionIconDetailRequestSeq) {
+      return;
+    }
+
+    const filePath = String(response.data?.filePath || "");
+    regionIconDetailPath.value = filePath;
+
+    const fileName = response.data?.fileName;
+    if (fileName && (!regionIconFileName.value || regionIconFileName.value === String(fileId))) {
+      regionIconFileName.value = fileName;
+    }
+  } catch {
+    if (requestSeq === regionIconDetailRequestSeq) {
+      regionIconPreviewLoadFailed.value = true;
+    }
+  }
+};
+
+const regionIconPreviewUrl = computed(() => {
+  const localUrl = regionIconFile.value?.url;
+  if (localUrl) {
+    return normalizePreviewUrl(localUrl);
+  }
+
+  const storedIcon = String(deptForm.regionIcon || "").trim();
+  if (!storedIcon) {
+    return "";
+  }
+
+  if (getRegionIconFileId(storedIcon)) {
+    return normalizePreviewUrl(regionIconDetailPath.value);
+  }
+
+  return normalizePreviewUrl(storedIcon);
+});
+
+const regionIconPreviewVisible = computed(() => {
+  return Boolean(regionIconPreviewUrl.value) && !regionIconPreviewLoadFailed.value;
+});
+
+const handleRegionIconPreviewLoad = () => {
+  regionIconPreviewLoadFailed.value = false;
+};
+
+const handleRegionIconPreviewError = () => {
+  regionIconPreviewLoadFailed.value = true;
+};
+
+const uploadDeptIcon = async (item: UploadItem) => {
+  const uploadSource = item.file || item.url;
+  const fileName = regionIconFileName.value || getFileName(item.url) || "region-icon";
+  const response = await uploadFile(uploadSource, fileName) as UploadImageResponseLike;
+
+  assertSuccessResponse(response);
+
+  const filePath = String(response.data?.filePath || response.data?.file_path || response.data?.url || "");
+  if (!filePath) {
+    throw {
+      code: response.code,
+      msg: response.msg || "图片上传失败",
+      data: response.data,
+    };
+  }
+
+  item.id = String(response.data?.id || "");
+  return filePath;
 };
 
 /** 选择图片（仅本地预览，不上传） */
@@ -2691,6 +3378,7 @@ const handleChooseRegionIcon = () => {
 	if(regionIconFile.value?.url && regionIconFile.value.url.startsWith("blob:")){
 		URL.revokeObjectURL(regionIconFile.value.url);
 	}
+	clearRegionIconPreviewState();
 	regionIconFile.value = {
 		url: URL.createObjectURL(file),
 		id: "",
@@ -2708,6 +3396,7 @@ const handleChooseRegionIcon = () => {
     success: (res) => {
 	  const filePath = res.tempFilePaths[0];
 	  if(!filePath) return;
+	  clearRegionIconPreviewState();
 	  regionIconFile.value = {
 		  url: filePath,
 		  id: "",
@@ -2757,16 +3446,20 @@ const handleSaveDept = async () => {
   submitting.value = true;
   
   // 用户本次重新选择了图片,或取消了图片
-      // if (regionIconFile.value) {
-      //   const uploadedUrl = await uploadDeptIcon(regionIconFile.value);
-      //   deptForm.regionIcon = uploadedUrl;
-      // }
-
-
-  const payload = {
-    ...deptForm,
-  };
   try {
+    if (regionIconFile.value) {
+      const uploadedFilePath = await uploadDeptIcon(regionIconFile.value);
+      deptForm.regionIcon = uploadedFilePath;
+      regionIconFileName.value = getFileName(uploadedFilePath) || regionIconFileName.value;
+      clearDeptIconTempFile();
+      regionIconDetailPath.value = uploadedFilePath;
+      regionIconPreviewLoadFailed.value = false;
+    }
+
+    const payload = {
+      ...deptForm,
+    };
+
 	  let res;
       if (isDeptCreating.value) {
         res = await createDept(payload) as ApiResponseLike;
@@ -2782,6 +3475,7 @@ const handleSaveDept = async () => {
 	  assertSuccessResponse(res);
 	  await loadDeptList(1);
 	  deptDialogVisible.value = false;
+	  clearDeptIconTempFile();
     } catch (error) {
       uni.showToast({
         title: (error as {msg?: string })?.msg || "保存失败",
@@ -3721,6 +4415,30 @@ function getStatusClass(value: number) {
   width: 82%;
 }
 
+.region-icon-preview {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: clamp(72px, 9vw, 112px);
+  max-width: calc(100% - 43px);
+  margin-top: 8px;
+  margin-right: 43px;
+  padding: 6px;
+  overflow: hidden;
+  background: #f8fbff;
+  border: 1px solid #d5e2ee;
+  border-radius: 4px;
+}
+
+.region-icon-preview__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: 100px;
+}
+
 .form-input:focus {
   background: #ffffff;
   border-color: #8fc8f8;
@@ -3890,80 +4608,48 @@ function getStatusClass(value: number) {
   border-radius: 4px;
 }
 
-.range-map-wrap :deep(.locale-coordinate-map) {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-}
-
 .range-map-wrap--drawing,
 .range-map-wrap--drawing :deep(*) {
   cursor: crosshair !important;
 }
 
-.range-drawing-layer {
+.range-native-map {
   position: absolute;
   inset: 0;
-  z-index: 999;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.001);
-  pointer-events: none;
-  touch-action: none;
-}
-
-.range-drawing-layer--active {
-  pointer-events: auto;
-}
-
-.range-vector {
-  position: absolute;
-  inset: 0;
+  z-index: 0;
   width: 100%;
   height: 100%;
+  min-height: inherit;
+}
+
+.range-marker-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow: hidden;
   pointer-events: none;
-}
-
-.range-polygon {
-  fill: rgba(239, 68, 68, 0.22);
-  stroke: rgba(239, 68, 68, 0.28);
-  stroke-width: 1;
-}
-
-.range-polyline {
-  fill: none;
-  stroke: #ef4444;
-  stroke-dasharray: 8 6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2;
 }
 
 .range-point-marker {
   position: absolute;
-  z-index: 4;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  margin: 0;
-  color: #ef4444;
+  width: 18px;
+  height: 18px;
+  color: #ffffff;
   font-size: 11px;
-  font-weight: 900;
-  line-height: 20px;
-  user-select: none;
-  touch-action: none;
-  cursor: grab;
-  background: #ffffff;
-  border: 2px solid #ef4444;
+  font-weight: 700;
+  line-height: 1;
+  background: #ef4444;
+  border: 2px solid #ffffff;
   border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(15, 35, 55, 0.2);
+  box-shadow: 0 2px 8px rgba(15, 35, 55, 0.32);
+  cursor: grab;
+  pointer-events: auto;
+  touch-action: none;
   transform: translate(-50%, -50%);
-}
-
-.range-point-marker::after {
-  border: 0;
+  user-select: none;
 }
 
 .range-point-marker:active {
@@ -3971,16 +4657,22 @@ function getStatusClass(value: number) {
 }
 
 .range-point-marker--active {
-  color: #ffffff;
-  background: #0d82ee;
-  border-color: #ffffff;
-  box-shadow:
-    0 0 0 3px rgba(13, 130, 238, 0.38),
-    0 4px 12px rgba(15, 35, 55, 0.28);
+  background: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.24), 0 2px 8px rgba(15, 35, 55, 0.32);
 }
 
-.range-point-marker text {
-  pointer-events: none;
+.range-map-error {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+  padding: 8px 12px;
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 700;
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  border-radius: 4px;
 }
 
 .range-coordinate-form {
