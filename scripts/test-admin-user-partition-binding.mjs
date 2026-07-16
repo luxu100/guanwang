@@ -79,3 +79,25 @@ test("user table omits creation time and paginates from the top toolbar", () => 
   assert.match(source, /filteredUsers\.slice\(pageStart, pageStart \+ pagination\.pageSize\)/);
   assert.match(source, /\.user-page-size__input,[\s\S]*?\.user-page-button,[\s\S]*?\.user-page-input\s*\{[\s\S]*?height:\s*32px;/);
 });
+
+test("user details default to an open collapsible drawer with internal scrolling", () => {
+  assert.match(source, /const isUserDetailOpen = ref\(true\)/);
+  assert.match(source, /v-if="isUserDetailOpen" class="detail-panel detail-panel--user"/);
+  assert.match(source, /class="user-detail-collapse"/);
+  assert.match(source, /@click="collapseUserDetail"/);
+  assert.match(source, /function selectUser\(item: RecordLike \| null, openDetail = true\)/);
+  assert.match(source, /if \(openDetail && item\) \{\s*isUserDetailOpen\.value = true;/);
+  assert.match(source, /selectUser\(users\.value\[0\] \|\| null, false\)/);
+  assert.match(source, /selectUser\(null, false\);[\s\S]*?isUserDetailOpen\.value = true;/);
+  assert.match(source, /\.system-view--user\s*\{[\s\S]*?overflow:\s*hidden;/);
+  assert.match(source, /\.content-layout--user\s*\{[\s\S]*?position:\s*relative;[\s\S]*?display:\s*block;[\s\S]*?height:\s*0;[\s\S]*?overflow:\s*hidden;/);
+  assert.match(source, /\.workspace--user,[\s\S]*?\.workspace--user \.main-panel\s*\{[\s\S]*?overflow:\s*hidden;/);
+  assert.match(source, /\.content-layout--user > \.table-panel\s*\{[\s\S]*?height:\s*100%;[\s\S]*?overflow:\s*hidden;/);
+  assert.match(source, /\.detail-panel--user\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?bottom:\s*10px;[\s\S]*?height:\s*clamp\(260px, 44%, 360px\);/);
+  assert.match(source, /\.detail-head--user\s*\{[\s\S]*?position:\s*relative;/);
+  assert.match(source, /class="detail-head detail-head--user"[\s\S]*?class="user-detail-collapse"[\s\S]*?<\/view>/);
+  assert.match(source, /\.user-detail-collapse\s*\{[\s\S]*?top:\s*50%;[\s\S]*?left:\s*50%;[\s\S]*?transform:\s*translate\(-50%, -50%\);/);
+  assert.match(source, /\.detail-panel--user\s*\{[\s\S]*?box-shadow:\s*none;/);
+  assert.match(source, /\.user-detail-collapse\s*\{[\s\S]*?box-shadow:\s*none;/);
+  assert.match(source, /\.detail-panel--user \.form-grid--user\s*\{[\s\S]*?height:\s*0;[\s\S]*?overflow-y:\s*auto;[\s\S]*?overscroll-behavior:\s*contain;/);
+});

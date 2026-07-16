@@ -2667,7 +2667,7 @@ async function handleRefresh() {
 }
 
 .detail-panel {
-  overflow: auto;
+  overflow: hidden;
 }
 
 .table-head,
@@ -3027,13 +3027,16 @@ async function handleRefresh() {
   max-width: 100%;
   min-height: 0;
   padding: 14px;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .detail-body :deep(.uni-scroll-view-content) {
   box-sizing: border-box;
   width: 100%;
   max-width: 100%;
+  min-height: 100%;
+  padding-bottom: 2px;
 }
 
 .protocol-editor-card {
@@ -3123,7 +3126,7 @@ async function handleRefresh() {
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  overflow: auto;
+  overflow: visible;
 }
 
 .form-label {

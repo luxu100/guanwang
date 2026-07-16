@@ -2,13 +2,19 @@ import { getRequest, postRequest } from "@/services/shared/crud";
 import { getAudioWav } from "@/services/data-analysis/audio";
 import type {
   AudioRecord,
+  CoordinateSystem,
   DailyAudioRecord,
   FeatureTrendPoint,
   LeakDeviceStatus,
   LeakMonitorDevice,
   LeakMonitorFilters,
+  MapCoordinate,
+  MapRegion,
+  ManualAnalysisPayload,
+  ManualAnalysisRecord,
   MaintenanceRecord,
 } from "@/pages/leak-monitor/types";
+import { normalizeCoordinateSystem } from "@/pages/leak-monitor/coordinateTransform";
 
 type ApiEnvelope<T = unknown> = {
   code?: number;
@@ -51,7 +57,24 @@ function normalizeAnalysisStatus(value: unknown): { status: LeakDeviceStatus; te
   return { status: "unknown", text: "未知" };
 }
 
-function parseCoordinate(value: unknown) {
+function parseCoordinate(value: unknown): Partial<MapCoordinate> {
+  if (Array.isArray(value)) {
+    const lngValue = toNumber(value[0]);
+    const latValue = toNumber(value[1]);
+    return lngValue !== undefined && latValue !== undefined
+      ? { lng: lngValue, lat: latValue }
+      : {};
+  }
+
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const lngValue = toNumber(record.lng ?? record.longitude ?? record.x);
+    const latValue = toNumber(record.lat ?? record.latitude ?? record.y);
+    return lngValue !== undefined && latValue !== undefined
+      ? { lng: lngValue, lat: latValue }
+      : {};
+  }
+
   if (typeof value !== "string") return {};
   const [lngValue, latValue] = value.split(",").map((item) => Number(item.trim()));
   return Number.isFinite(lngValue) && Number.isFinite(latValue)
@@ -59,13 +82,29 @@ function parseCoordinate(value: unknown) {
     : {};
 }
 
-export function normalizeLeakDevice(row: unknown): LeakMonitorDevice {
+function getDefaultCoordinateSystem(domestic: boolean): CoordinateSystem {
+  return domestic ? "GCJ02" : "WGS84";
+}
+
+export function normalizeLeakDevice(
+  row: unknown,
+  domestic = isDomesticLeakMonitorUser(),
+): LeakMonitorDevice {
   const record = row && typeof row === "object" ? row as Record<string, unknown> : {};
   const deviceNumber = toText(record.deviceNumber, "--");
   const status = normalizeAnalysisStatus(record.leakStatus);
   const manualStatus = normalizeAnalysisStatus(record.manualAnalysisStatus);
   const algorithmStatus = normalizeAnalysisStatus(record.algorithmAnalysisStatus);
-  const coordinate = parseCoordinate(record.coordinate);
+  const coordinate = parseCoordinate(
+    record.coordinate ?? (
+      record.installLongitude !== undefined || record.installLatitude !== undefined
+        ? {
+          lng: record.installLongitude,
+          lat: record.installLatitude,
+        }
+        : undefined
+    ),
+  );
   const leakProperty = toNumber(record.leakProperty);
 
   return {
@@ -80,6 +119,11 @@ export function normalizeLeakDevice(row: unknown): LeakMonitorDevice {
     algorithmStatusText: algorithmStatus.text,
     leakProperty: leakProperty ?? null,
     onlineStatus: toNumber(record.deviceStatus ?? record.onlineStatus) ?? null,
+    regionId: (record.regionId ?? record.deptId ?? record.departmentId ?? null) as string | number | null,
+    coordinateSystem: normalizeCoordinateSystem(
+      record.coordinateSystem ?? record.coordType ?? record.coordinateType,
+      getDefaultCoordinateSystem(domestic),
+    ),
     ...coordinate,
     raw: record,
   };
@@ -93,12 +137,12 @@ function normalizeRate(response: unknown): number | string {
   return typeof rate === "number" || typeof rate === "string" ? rate : "--";
 }
 
-function normalizeSidebar(response: unknown) {
+function normalizeSidebar(response: unknown, domestic = isDomesticLeakMonitorUser()) {
   const data = unwrapData<SidebarPayload>(response) || {};
   const rawDevices = Array.isArray(data.devices) ? data.devices : [];
   return {
     data,
-    devices: rawDevices.map(normalizeLeakDevice),
+    devices: rawDevices.map((item) => normalizeLeakDevice(item, domestic)),
     total: Number(data.total ?? rawDevices.length ?? 0),
   };
 }
@@ -127,9 +171,12 @@ export function buildLeakMonitorQuery(
 
 export function isDomesticLeakMonitorUser(userInfo = uni.getStorageSync("userInfo")) {
   const region = String(userInfo?.region ?? "").trim().toLowerCase();
-  if (["国外", "overseas", "foreign", "international", "en"].includes(region)) {
+  if (["国外", "overseas", "foreign", "international", "global", "en", "us"].includes(region)) {
     return false;
   }
+  if (["国内", "china", "cn", "domestic"].includes(region)) return true;
+  const locale = String(uni.getStorageSync("locale") || userInfo?.locale || "").toLowerCase();
+  if (locale === "en-us" || locale.startsWith("en")) return false;
   return true;
 }
 
@@ -149,6 +196,14 @@ export function getDeviceQueryCommunicationSuccessRate(data: Record<string, unkn
   return postRequest("/api/device-query/sidebar/communication-success-rate", data);
 }
 
+export function getLeakMonitorVisibleDeviceList(params: Record<string, unknown> = {}) {
+  return getRequest("/api/device/visible-list", params);
+}
+
+export function getLeakMonitorVisibleRegionList(params: Record<string, unknown> = {}) {
+  return getRequest("/api/region/list", params);
+}
+
 export function getLeakMonitorDeviceDetail(id: string | number) {
   return getRequest("/api/device/" + id + "/detail");
 }
@@ -159,20 +214,35 @@ export function getLeakMonitorAudioPage(data: Record<string, unknown>) {
 
 export function getLeakMonitorFeatureTrend(
   deviceNumber: string,
-  params: { startDate: string; endDate: string },
+  params: { startTime: string; endTime: string },
 ) {
-  return getRequest("/api/data-query/leakage/feature-trend/" + deviceNumber, params);
+  return postRequest("/api/data-query/leakage/page", {
+    pageNum: 1,
+    pageSize: 1000,
+    sortOrder: "asc",
+    sortField: "time",
+    deviceNumber,
+    ...params,
+  });
 }
 
 export function getLeakMonitorDailyLatestAudio(
   deviceNumber: string,
-  params: { startDate: string; endDate: string },
+  params: { startTime: string; endTime: string },
 ) {
-  return getRequest("/api/data-query/audio/daily-latest/" + deviceNumber, params);
+  return postRequest("/api/data-query/audio/page", {
+    pageNum: 1,
+    pageSize: 1000,
+    sortOrder: "desc",
+    sortField: "createdAt",
+    deviceNumber,
+    parseStatus: "success",
+    ...params,
+  });
 }
 
 export function getLeakMonitorMaintenancePage(deviceNumber: string) {
-  return postRequest("/api/maintenance-record/manage/page", {
+  return postRequest("/api/maintenance-record/page", {
     pageNum: 1,
     pageSize: 1000,
     sortOrder: "desc",
@@ -188,7 +258,7 @@ export async function fetchLeakMonitorSidebar() {
     getDeviceQueryCommunicationSuccessRate({}),
     domestic ? getDeviceQueryTodayOnlineRate({}) : getDeviceQueryTcpTodayOnlineRate({}),
   ]);
-  const sidebar = normalizeSidebar(sidebarResponse);
+  const sidebar = normalizeSidebar(sidebarResponse, domestic);
 
   return {
     ...sidebar,
@@ -202,9 +272,37 @@ export async function fetchLeakMonitorDevices(
   filters: LeakMonitorFilters,
   page: { current: number; size: number },
 ) {
+  const domestic = isDomesticLeakMonitorUser();
   const response = await getDeviceQuerySidebar(buildLeakMonitorQuery(filters, page));
-  const normalized = normalizeSidebar(response);
+  const normalized = normalizeSidebar(response, domestic);
   return { records: normalized.devices, total: normalized.total };
+}
+
+export function getLeakMonitorManualAnalysisPage(deviceNumber: string) {
+  return postRequest("/api/data-query/leakage/page", {
+    pageNum: 1,
+    pageSize: 20,
+    sortOrder: "desc",
+    sortField: "time",
+    deviceNumber,
+  });
+}
+
+export function createLeakMonitorManualAnalysis(data: ManualAnalysisPayload) {
+  return postRequest("/api/manual-analysis/work-orders", data);
+}
+
+export async function fetchLeakMonitorMapData() {
+  const domestic = isDomesticLeakMonitorUser();
+  const [deviceResponse, regionResponse] = await Promise.all([
+    getLeakMonitorVisibleDeviceList({}),
+    getLeakMonitorVisibleRegionList({}),
+  ]);
+
+  return {
+    devices: normalizeVisibleDevices(deviceResponse, domestic),
+    regions: normalizeVisibleRegions(regionResponse, domestic),
+  };
 }
 
 export async function fetchLeakMonitorDeviceInfo(device: LeakMonitorDevice) {
@@ -238,16 +336,41 @@ export async function fetchLeakMonitorTrend(
   startDate: string,
   endDate: string,
 ) {
-  const response = await getLeakMonitorFeatureTrend(deviceNumber, { startDate, endDate });
-  const data = unwrapData<unknown[]>(response);
-  return (Array.isArray(data) ? data : []).map((item) => {
-    const row = item && typeof item === "object" ? item as Record<string, unknown> : {};
-    return {
-      date: toText(row.date),
-      leakEsa: toNumber(row.leakEsa) ?? null,
-      parseTime: toText(row.parseTime),
-    } satisfies FeatureTrendPoint;
+  const response = await getLeakMonitorFeatureTrend(deviceNumber, {
+    startTime: startDate + "T00:00:00",
+    endTime: endDate + "T23:59:59",
   });
+  const maximumByDate = new Map<string, FeatureTrendPoint>();
+  extractRecords(unwrapData<unknown>(response)).forEach((item) => {
+    const row = item && typeof item === "object" ? item as Record<string, unknown> : {};
+    const parseTime = toText(row.parseTime ?? row.time ?? row.createdAt ?? row.date);
+    const date = toText(row.date ?? parseTime).slice(0, 10);
+    if (!date) return;
+
+    const candidate = {
+      date,
+      leakEsa: toNumber(row.leakEsa) ?? null,
+      parseTime,
+    } satisfies FeatureTrendPoint;
+
+    const current = maximumByDate.get(date);
+    const candidateValue = candidate.leakEsa;
+    const currentValue = current?.leakEsa;
+    if (
+      !current ||
+      (candidateValue !== null && (
+        currentValue === null ||
+        currentValue === undefined ||
+        candidateValue > currentValue
+      )) ||
+      (candidateValue === currentValue && parseTime >= (current.parseTime || ""))
+    ) {
+      maximumByDate.set(date, candidate);
+    }
+  });
+
+  return Array.from(maximumByDate.values()).sort((left, right) =>
+    left.date.localeCompare(right.date));
 }
 
 export async function fetchLeakMonitorDailyAudio(
@@ -255,16 +378,23 @@ export async function fetchLeakMonitorDailyAudio(
   startDate: string,
   endDate: string,
 ) {
-  const response = await getLeakMonitorDailyLatestAudio(deviceNumber, { startDate, endDate });
-  const data = unwrapData<unknown[]>(response);
-  return (Array.isArray(data) ? data : []).map((item) => {
+  const response = await getLeakMonitorDailyLatestAudio(deviceNumber, {
+    startTime: startDate + "T00:00:00",
+    endTime: endDate + "T23:59:59",
+  });
+  const latestByDate = new Map<string, DailyAudioRecord>();
+  extractRecords(unwrapData<unknown>(response)).forEach((item) => {
     const row = item && typeof item === "object" ? item as Record<string, unknown> : {};
-    return {
-      audioId: Number(row.audioId),
-      audioTime: toText(row.audioTime),
-      date: toText(row.date),
-    } satisfies DailyAudioRecord;
-  }).filter((item) => Number.isFinite(item.audioId) && item.date);
+    const audioTime = toText(
+      row.audioTime ?? row.time ?? row.samplingTime ?? row.createdAt,
+    );
+    const date = audioTime.slice(0, 10);
+    const audioId = Number(row.audioId);
+    if (!date || !Number.isFinite(audioId) || latestByDate.has(date)) return;
+    latestByDate.set(date, { audioId, audioTime, date });
+  });
+  return Array.from(latestByDate.values()).sort((left, right) =>
+    left.date.localeCompare(right.date));
 }
 
 export async function fetchLeakMonitorMaintenance(deviceNumber: string) {
@@ -282,4 +412,159 @@ export async function fetchLeakMonitorMaintenance(deviceNumber: string) {
 
 export function fetchLeakMonitorWav(audioId: number) {
   return getAudioWav(audioId, false) as Promise<ArrayBuffer>;
+}
+
+export async function fetchLeakMonitorManualAnalysis(deviceNumber: string) {
+  const response = await getLeakMonitorManualAnalysisPage(deviceNumber);
+  return extractRecords(unwrapData<unknown>(response))
+    .map((item) => {
+      const row = item && typeof item === "object" ? item as Record<string, unknown> : {};
+      return {
+        ...row,
+        id: row.id as string | number | undefined,
+        manualAnalysis: toText(row.manualAnalysis),
+        troubleshootingFeedback: toText(row.troubleshootingFeedback),
+        reasonAnalysis: toText(row.reasonAnalysis),
+        resetDate: toText(row.resetDate),
+        createdAt: toText(row.time ?? row.createdAt ?? row.parseTime),
+      } satisfies ManualAnalysisRecord;
+    })
+    .filter((item) =>
+      item.manualAnalysis ||
+      item.troubleshootingFeedback ||
+      item.reasonAnalysis);
+}
+
+export async function submitLeakMonitorManualAnalysis(payload: ManualAnalysisPayload) {
+  return createLeakMonitorManualAnalysis(payload);
+}
+
+function normalizeVisibleDevices(response: unknown, domestic: boolean) {
+  const data = unwrapData<unknown>(response);
+  const records = extractRecords(data);
+  return records
+    .map((item) => normalizeLeakDevice(item, domestic))
+    .filter((item) => item.deviceNumber !== "--");
+}
+
+function normalizeVisibleRegions(response: unknown, domestic: boolean): MapRegion[] {
+  const data = unwrapData<unknown>(response);
+  return extractRecords(data)
+    .map((item) => normalizeRegion(item, domestic))
+    .filter((item): item is MapRegion => Boolean(item));
+}
+
+function normalizeRegion(row: unknown, domestic: boolean): MapRegion | null {
+  const record = row && typeof row === "object"
+    ? row as Record<string, unknown>
+    : {};
+  const id = record.id ?? record.regionId ?? record.deptId;
+  if (id === undefined || id === null) return null;
+
+  const coordinateSystem = normalizeCoordinateSystem(
+    record.coordinateSystem ?? record.coordType ?? record.coordinateType,
+    getDefaultCoordinateSystem(domestic),
+  );
+  const scope =
+    record.regionScope ??
+    record.boundary ??
+    record.coordinates ??
+    record.path ??
+    record.points;
+
+  return {
+    id: id as string | number,
+    name: toText(record.deptName ?? record.regionName ?? record.name, String(id)),
+    color: normalizeColor(record.regionColor ?? record.color),
+    center: normalizeRegionCenter(
+      record.regionCenter ?? record.center,
+    ),
+    boundary: parseRegionBoundary(scope),
+    coordinateSystem,
+    visible: record.gisVisible !== false && Number(record.gisVisible ?? 1) !== 0,
+    minZoom: toNumber(record.gisMinLevel ?? record.minZoom),
+    maxZoom: toNumber(record.gisMaxLevel ?? record.maxZoom),
+    raw: record,
+  };
+}
+
+function extractRecords(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
+  if (!value || typeof value !== "object") return [];
+  const record = value as Record<string, unknown>;
+  for (const key of ["records", "rows", "list", "devices", "regions"]) {
+    if (Array.isArray(record[key])) return record[key] as unknown[];
+  }
+  return [];
+}
+
+function normalizeRegionCenter(value: unknown): MapCoordinate | null {
+  const coordinate = parseCoordinate(value);
+  return typeof coordinate.lng === "number" && typeof coordinate.lat === "number"
+    ? { lng: coordinate.lng, lat: coordinate.lat }
+    : null;
+}
+
+function parseRegionBoundary(value: unknown): MapCoordinate[] {
+  const text = typeof value === "string" ? value.trim() : "";
+  if (text) {
+    const jsonPoints: MapCoordinate[] = [];
+    try {
+      appendRegionCoordinates(JSON.parse(text), jsonPoints);
+      if (jsonPoints.length >= 3) return jsonPoints;
+    } catch {
+      // The region module currently stores semicolon-separated lng,lat pairs.
+    }
+
+    const textPoints: MapCoordinate[] = [];
+    const numbers = text.match(/-?\d+(?:\.\d+)?/g) || [];
+    for (let index = 0; index < numbers.length - 1; index += 2) {
+      const lng = Number(numbers[index]);
+      const lat = Number(numbers[index + 1]);
+      if (isValidCoordinate(lng, lat)) textPoints.push({ lng, lat });
+    }
+    return textPoints;
+  }
+
+  const points: MapCoordinate[] = [];
+  appendRegionCoordinates(value, points);
+  return points;
+}
+
+function appendRegionCoordinates(value: unknown, points: MapCoordinate[]) {
+  if (Array.isArray(value)) {
+    const coordinate = parseCoordinate(value);
+    if (typeof coordinate.lng === "number" && typeof coordinate.lat === "number") {
+      points.push({ lng: coordinate.lng, lat: coordinate.lat });
+      return;
+    }
+    value.forEach((item) => appendRegionCoordinates(item, points));
+    return;
+  }
+
+  if (!value || typeof value !== "object") return;
+  const coordinate = parseCoordinate(value);
+  if (typeof coordinate.lng === "number" && typeof coordinate.lat === "number") {
+    points.push({ lng: coordinate.lng, lat: coordinate.lat });
+    return;
+  }
+
+  const record = value as Record<string, unknown>;
+  ["points", "coordinates", "path", "range", "regionScope", "boundary"].forEach((key) => {
+    appendRegionCoordinates(record[key], points);
+  });
+}
+
+function isValidCoordinate(lng: number, lat: number) {
+  return Number.isFinite(lng) &&
+    Number.isFinite(lat) &&
+    lng >= -180 &&
+    lng <= 180 &&
+    lat >= -90 &&
+    lat <= 90;
+}
+
+function normalizeColor(value: unknown) {
+  const color = String(value || "").trim();
+  return /^#[0-9a-f]{6}$/i.test(color) ? color : "#0d82ee";
 }

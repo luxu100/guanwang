@@ -1,4 +1,10 @@
 export type LeakDeviceStatus = "normal" | "suspect" | "leak" | "unknown";
+export type CoordinateSystem = "WGS84" | "GCJ02";
+
+export interface MapCoordinate {
+  lat: number;
+  lng: number;
+}
 
 export interface LeakMonitorFilters {
   deviceNumber: string;
@@ -29,6 +35,8 @@ export interface LeakMonitorDevice {
   algorithmStatusText: string;
   leakProperty: number | null;
   onlineStatus: number | null;
+  regionId: string | number | null;
+  coordinateSystem: CoordinateSystem;
   lat?: number;
   lng?: number;
   raw: Record<string, unknown>;
@@ -40,8 +48,23 @@ export interface MapDevicePoint {
   title: string;
   status: LeakDeviceStatus;
   leakProperty: number | null;
+  regionId: string | number | null;
+  coordinateSystem: CoordinateSystem;
   lat: number;
   lng: number;
+}
+
+export interface MapRegion {
+  id: string | number;
+  name: string;
+  color: string;
+  center: MapCoordinate | null;
+  boundary: MapCoordinate[];
+  coordinateSystem: CoordinateSystem;
+  visible: boolean;
+  minZoom?: number;
+  maxZoom?: number;
+  raw: Record<string, unknown>;
 }
 
 export interface PageState {
@@ -79,7 +102,30 @@ export interface DailyAudioRecord {
 }
 
 export interface DailyAudioAnalysis extends DailyAudioRecord {
+  sampleRate: number;
   spectrum: number[];
+}
+
+export interface ManualAnalysisPayload {
+  deviceId: string | number;
+  deviceNumber: string;
+  audioId?: number;
+  manualAnalysis: string;
+  manualAnalysisStatus: number;
+  troubleshootingFeedback: string;
+  reasonAnalysis: string;
+  resetDate: string;
+  dispatchRequested?: boolean;
+}
+
+export interface ManualAnalysisRecord {
+  id?: string | number;
+  manualAnalysis?: string;
+  troubleshootingFeedback?: string;
+  reasonAnalysis?: string;
+  resetDate?: string;
+  createdAt?: string;
+  [key: string]: unknown;
 }
 
 export interface MaintenanceRecord {
@@ -98,9 +144,18 @@ export interface DeviceDetailState {
   trend: FeatureTrendPoint[];
   dailyAudio: DailyAudioAnalysis[];
   maintenance: MaintenanceRecord[];
+  manualRecords: ManualAnalysisRecord[];
   analysisLoading: boolean;
   historyLoading: boolean;
   maintenanceLoading: boolean;
+  manualLoading: boolean;
+  manualSubmitting: boolean;
+  manualLoaded: boolean;
+  analysisError: string;
+  historyError: string;
+  detailError: string;
+  maintenanceError: string;
+  manualError: string;
   errorMessage: string;
 }
 

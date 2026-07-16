@@ -4,6 +4,7 @@
       v-if="provider === 'tencent'"
       ref="mapRef"
       :points="mapPoints"
+      :regions="mapRegions"
       :selected-device-number="selectedDevice?.deviceNumber"
       @device-click="handleMapDeviceClick"
     />
@@ -11,6 +12,7 @@
       v-else
       ref="mapRef"
       :points="mapPoints"
+      :regions="mapRegions"
       :selected-device-number="selectedDevice?.deviceNumber"
       @device-click="handleMapDeviceClick"
     />
@@ -34,13 +36,19 @@
 
     <DeviceDetailDialog
       :visible="detailVisible"
+      :sidebar-collapsed="sidebarCollapsed"
       :loading="detailLoading"
       :device="selectedDevice"
       :detail="detail"
+      :visible-devices="mapDevices"
+      :map-points="mapPoints"
       @close="workspace.closeDetail"
       @refresh-analysis="workspace.refreshDeviceAnalysis"
       @load-history="workspace.loadHistory"
+      @load-manual="workspace.loadManualAnalysis"
       @download-audio="workspace.downloadLatestAudio"
+      @submit-manual="workspace.submitManualAnalysis"
+      @select-device="handleSelectDevice"
     />
   </view>
 </template>
@@ -64,7 +72,9 @@ const {
   devices,
   errorMessage,
   loading,
+  mapDevices,
   mapPoints,
+  mapRegions,
   metrics,
   selectedDevice,
   sidebarCollapsed,

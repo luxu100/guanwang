@@ -22,7 +22,7 @@
       </view>
 
       <scroll-view class="dialog-body" scroll-y>
-        <view class="form-layout">
+        <view class="form-layout" :class="{ 'form-layout--with-side': asideSchema }">
 
           <view class="form-main">
             <view
@@ -594,6 +594,7 @@ function closeMapPicker() {
 .dialog-panel {
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
   width: min(1120px, calc(100vw - 44px));
   height: min(730px, calc(100vh - 28px));
   max-height: calc(100vh - 28px);
@@ -670,10 +671,20 @@ function closeMapPicker() {
 
 .dialog-body {
   flex: 1;
+  box-sizing: border-box;
+  width: 100%;
   min-height: 0;
   max-height: none;
   padding: 18px 24px 16px;
+  overflow-x: hidden;
+  overflow-y: auto;
   background: #ffffff;
+}
+
+.dialog-body :deep(.uni-scroll-view-content) {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 100%;
 }
 
 .error-summary {
@@ -692,10 +703,16 @@ function closeMapPicker() {
 
 .form-layout {
   display: grid;
-  grid-template-columns: 640px 360px;
+  grid-template-columns: minmax(0, 1fr);
   gap: 24px;
+  box-sizing: border-box;
+  width: 100%;
   min-height: 100%;
   justify-content: start;
+}
+
+.form-layout--with-side {
+  grid-template-columns: minmax(0, 640px) minmax(280px, 360px);
 }
 
 .form-main {
@@ -756,7 +773,7 @@ function closeMapPicker() {
 }
 
 .form-grid--main {
-  grid-template-columns: repeat(2, 305px);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   justify-content: start;
 }
 
@@ -774,7 +791,9 @@ function closeMapPicker() {
 
 .form-field {
   position: relative;
+  width: 100%;
   min-width: 0;
+  overflow: visible;
 }
 
 .form-label {
@@ -904,6 +923,8 @@ function closeMapPicker() {
 .dialog-actions {
   display: flex;
   justify-content: flex-end;
+  flex: none;
+  flex-wrap: wrap;
   gap: 12px;
   padding: 12px 22px;
   background: #ffffff;
@@ -914,6 +935,7 @@ function closeMapPicker() {
 
 @media (max-width: 980px) {
   .form-layout,
+  .form-layout--with-side,
   .form-grid--main {
     grid-template-columns: 1fr;
   }

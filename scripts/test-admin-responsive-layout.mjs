@@ -5,6 +5,7 @@ import test from "node:test";
 const systemSource = readFileSync(new URL("../src/pages/system/components/SystemManagementView.vue", import.meta.url), "utf8");
 const dataReceiveSource = readFileSync(new URL("../src/pages/data-receive/components/DataReceiveView.vue", import.meta.url), "utf8");
 const searchTemplateSource = readFileSync(new URL("../src/pages/system/search/components/SearchTemplateView.vue", import.meta.url), "utf8");
+const dynamicDialogSource = readFileSync(new URL("../src/pages/device/components/x/dialog/XDynamicDialog.vue", import.meta.url), "utf8");
 
 test("system and data receive modules do not render top metric cards", () => {
   assert.doesNotMatch(systemSource, /<AdminMetricRow\b|from "\@\/components\/admin\/AdminMetricRow\.vue"/);
@@ -29,11 +30,26 @@ test("detail forms constrain inputs to their panels", () => {
   assert.match(systemSource, /\.form-field\s*\{[\s\S]*?max-width:\s*100%;/);
   assert.match(systemSource, /\.form-grid--user\s*\{[\s\S]*?repeat\(auto-fit, minmax\(220px, 1fr\)\)/);
   assert.match(systemSource, /class="content-layout content-layout--vertical content-layout--user"/);
-  assert.match(systemSource, /\.content-layout--user\s*\{[\s\S]*?grid-template-rows:\s*minmax\(280px, 0\.95fr\) minmax\(260px, 0\.70fr\);/);
-  assert.match(systemSource, /\.content-layout--user \.form-grid--user\s*\{[\s\S]*?padding-bottom:\s*16px;/);
-  assert.match(systemSource, /\.content-layout--user \.form-field\s*\{[\s\S]*?overflow:\s*visible;/);
+  assert.match(systemSource, /\.content-layout--user\s*\{[\s\S]*?position:\s*relative;[\s\S]*?display:\s*block;/);
+  assert.match(systemSource, /class="detail-panel detail-panel--user"/);
+  assert.match(systemSource, /\.detail-panel--user\s*\{[\s\S]*?overflow:\s*hidden;/);
+  assert.match(systemSource, /\.detail-panel--user \.form-grid--user\s*\{[\s\S]*?height:\s*0;[\s\S]*?padding-bottom:\s*20px;[\s\S]*?overflow-y:\s*auto;/);
+  assert.match(systemSource, /\.detail-panel--user \.form-field\s*\{[\s\S]*?overflow:\s*visible;/);
+  assert.match(systemSource, /\.detail-panel--user \.form-actions\s*\{[\s\S]*?flex:\s*none;/);
+  assert.match(systemSource, /class="check-grid check-grid--roles"/);
+  assert.match(systemSource, /\.check-grid--roles\s*\{[\s\S]*?min-height:\s*44px;/);
+  assert.match(systemSource, /\.user-config-row \.check-grid\s*\{[\s\S]*?overflow-y:\s*auto;/);
+  assert.match(systemSource, /class="detail-panel detail-panel--menu"/);
+  assert.match(systemSource, /\.detail-panel--menu \.form-grid\s*\{[\s\S]*?overflow-y:\s*auto;/);
+  assert.match(systemSource, /\.detail-panel--menu \.form-field,[\s\S]*?overflow:\s*visible;/);
   assert.match(systemSource, /\.check-grid\s*\{[\s\S]*?max-width:\s*100%;/);
   assert.match(systemSource, /\.filter-select\s*\{[\s\S]*?display:\s*flex;[\s\S]*?align-items:\s*center;[\s\S]*?line-height:\s*1;/);
+  assert.match(dataReceiveSource, /\.detail-panel\s*\{[\s\S]*?overflow:\s*hidden;/);
+  assert.match(dataReceiveSource, /\.detail-body\s*\{[\s\S]*?overflow-x:\s*hidden;[\s\S]*?overflow-y:\s*auto;/);
+  assert.match(dataReceiveSource, /\.form-field\s*\{[\s\S]*?overflow:\s*visible;/);
+  assert.match(dynamicDialogSource, /class="form-layout" :class="\{ 'form-layout--with-side': asideSchema \}"/);
+  assert.match(dynamicDialogSource, /\.dialog-body\s*\{[\s\S]*?overflow-x:\s*hidden;[\s\S]*?overflow-y:\s*auto;/);
+  assert.match(dynamicDialogSource, /\.form-grid--main\s*\{[\s\S]*?repeat\(2, minmax\(0, 1fr\)\)/);
 });
 
 test("admin tables and module containers scroll instead of clipping overflowing content", () => {
@@ -51,7 +67,8 @@ test("admin tables and module containers scroll instead of clipping overflowing 
   assert.doesNotMatch(dataReceiveSource, /activeTableColumns|gridTemplateColumns/);
   assert.match(dataReceiveSource, /getColumnMinWidth\(column\)/);
   assert.match(dataReceiveSource, /\.data-table\s*\{[\s\S]*?display:\s*table;[\s\S]*?table-layout:\s*auto;[\s\S]*?width:\s*100%;/);
-  assert.doesNotMatch(dataReceiveSource, /\.data-table\s*\{[\s\S]*?min-height:\s*100%;[\s\S]*?\}/);
+  const dataTableStyle = dataReceiveSource.match(/\.data-table\s*\{([\s\S]*?)\}/)?.[1] || "";
+  assert.doesNotMatch(dataTableStyle, /min-height:\s*100%;/);
   assert.match(dataReceiveSource, /\.data-row\s*\{[\s\S]*?display:\s*table-row;/);
   assert.match(dataReceiveSource, /\.table-scroll\s*\{[\s\S]*?overflow:\s*auto;/);
   assert.match(dataReceiveSource, /\.data-cell\s*\{[\s\S]*?display:\s*table-cell;/);

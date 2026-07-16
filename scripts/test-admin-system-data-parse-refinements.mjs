@@ -19,10 +19,11 @@ function getConfiguredKeys(sectionSource, propertyName, nextPropertyName) {
   return [...match[1].matchAll(/\{\s*key:\s*"([^"]+)"/g)].map((item) => item[1]);
 }
 
-test("user role and alarm settings share one row and user table receives more height", () => {
+test("user role and alarm settings share one row inside the bottom drawer", () => {
   assert.match(systemSource, /class="user-config-row"[\s\S]*?分配权限角色[\s\S]*?实时报警通知配置/);
   assert.match(systemSource, /\.user-config-row\s*\{[\s\S]*?grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
-  assert.match(systemSource, /\.content-layout--user\s*\{[\s\S]*?grid-template-rows:\s*minmax\(280px, 0\.95fr\) minmax\(260px, 0\.70fr\);/);
+  assert.match(systemSource, /\.content-layout--user\s*\{[\s\S]*?position:\s*relative;[\s\S]*?display:\s*block;/);
+  assert.match(systemSource, /\.detail-panel--user\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?height:\s*clamp\(260px, 44%, 360px\);/);
   assert.match(systemSource, /@media \(max-width:\s*1100px\)[\s\S]*?\.user-config-row\s*\{[\s\S]*?grid-template-columns:\s*1fr;/);
 });
 
@@ -41,7 +42,7 @@ test("role base information uses block fields", () => {
 });
 
 test("paginated searches send filters to APIs and reset to the first page", () => {
-  assert.match(systemSource, /function searchCurrent\(\)\s*\{\s*pagination\.pageNum = 1;\s*void refreshCurrent\(\);/);
+  assert.match(systemSource, /function searchCurrent\(\)\s*\{[\s\S]*?pagination\.pageNum = 1;\s*void refreshCurrent\(\);/);
   assert.match(systemSource, /getUserPage\(removeEmptyFields\(\{[\s\S]*?pageNum: pagination\.pageNum,[\s\S]*?pageSize: pagination\.pageSize,[\s\S]*?username: keyword/);
   assert.match(systemSource, /getUserPage\(removeEmptyFields\(\{[\s\S]*?region: filters\.region \|\| undefined/);
   assert.match(systemSource, /getRolePage\(removeEmptyFields\(\{[\s\S]*?pageNum: pagination\.pageNum,[\s\S]*?pageSize: pagination\.pageSize,[\s\S]*?roleName: keyword/);

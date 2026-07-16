@@ -2,13 +2,13 @@
   <view class="leak-sidebar" :class="{ 'leak-sidebar--collapsed': collapsed }">
     <view class="leak-sidebar__header">
       <view v-if="!collapsed" class="leak-sidebar__title">
-        <text class="leak-sidebar__title-main">噪声监测仪</text>
-        <text class="leak-sidebar__title-sub">共 {{ page.total }} 台</text>
+        <text class="leak-sidebar__title-main">{{ t("monitorTitle") }}</text>
+        <text class="leak-sidebar__title-sub">{{ page.total }} {{ t("deviceUnit") }}</text>
       </view>
       <button
         class="icon-button"
         type="button"
-        :aria-label="collapsed ? '展开监测面板' : '收起监测面板'"
+        :aria-label="collapsed ? t('expandPanel') : t('collapsePanel')"
         @click="$emit('toggle-collapse')"
       >
         {{ collapsed ? "‹" : "›" }}
@@ -30,54 +30,54 @@
 
       <view class="filter-grid">
         <label class="filter-field">
-          <text>设备编号</text>
-          <input v-model.trim="localFilters.deviceNumber" class="text-field" placeholder="请输入设备编号" confirm-type="search" />
+          <text>{{ t("deviceNumber") }}</text>
+          <input v-model.trim="localFilters.deviceNumber" class="text-field" :placeholder="t('deviceNumberPlaceholder')" confirm-type="search" />
         </label>
         <label class="filter-field">
-          <text>设备类型</text>
-          <input v-model.trim="localFilters.deviceType" class="text-field" placeholder="请输入设备类型" confirm-type="search" />
+          <text>{{ t("deviceType") }}</text>
+          <input v-model.trim="localFilters.deviceType" class="text-field" :placeholder="t('deviceTypePlaceholder')" confirm-type="search" />
         </label>
         <label class="filter-field">
-          <text>在线状态</text>
+          <text>{{ t("onlineStatus") }}</text>
           <picker :range="onlineOptions" range-key="label" :value="onlineIndex" @change="selectOnlineStatus">
-            <view class="select-field">{{ onlineOptions[onlineIndex]?.label || "全部" }}</view>
+            <view class="select-field">{{ onlineOptions[onlineIndex]?.label || t("all") }}</view>
           </picker>
         </label>
         <label class="filter-field">
-          <text>设备状态</text>
+          <text>{{ t("deviceStatus") }}</text>
           <picker :range="leakOptions" range-key="label" :value="leakIndex" @change="selectLeakStatus">
-            <view class="select-field">{{ leakOptions[leakIndex]?.label || "全部" }}</view>
+            <view class="select-field">{{ leakOptions[leakIndex]?.label || t("all") }}</view>
           </picker>
         </label>
         <label class="filter-field">
-          <text>当日新增</text>
+          <text>{{ t("todayNew") }}</text>
           <picker :range="booleanOptions" range-key="label" :value="todayIndex" @change="selectTodayNew">
-            <view class="select-field">{{ booleanOptions[todayIndex]?.label || "全部" }}</view>
+            <view class="select-field">{{ booleanOptions[todayIndex]?.label || t("all") }}</view>
           </picker>
         </label>
         <label class="filter-field">
-          <text>最新安装</text>
+          <text>{{ t("latestInstalled") }}</text>
           <picker :range="booleanOptions" range-key="label" :value="latestIndex" @change="selectLatestInstalled">
-            <view class="select-field">{{ booleanOptions[latestIndex]?.label || "全部" }}</view>
+            <view class="select-field">{{ booleanOptions[latestIndex]?.label || t("all") }}</view>
           </picker>
         </label>
       </view>
 
       <view class="toolbar-row">
-        <text class="toolbar-row__hint">点击设备行查看分析详情</text>
+        <text class="toolbar-row__hint">{{ t("rowHint") }}</text>
         <view class="toolbar-row__spacer"></view>
-        <button class="action-button action-button--ghost" type="button" @click="$emit('reset')">重置</button>
+        <button class="action-button action-button--ghost" type="button" @click="$emit('reset')">{{ t("reset") }}</button>
         <button class="action-button" type="button" :disabled="loading" @click="$emit('search')">
-          {{ loading ? "查询中" : "查询" }}
+          {{ loading ? t("searching") : t("search") }}
         </button>
       </view>
 
       <view class="device-table">
         <view class="device-table__head">
-          <text class="device-table__cell device-table__cell--number">设备编号</text>
-          <text class="device-table__cell">设备状态</text>
-          <text class="device-table__cell">人工分析</text>
-          <text class="device-table__cell">蓝鲸分析</text>
+          <text class="device-table__cell device-table__cell--number">{{ t("deviceNumber") }}</text>
+          <text class="device-table__cell">{{ t("deviceStatus") }}</text>
+          <text class="device-table__cell">{{ t("manualAnalysis") }}</text>
+          <text class="device-table__cell">{{ t("algorithmAnalysis") }}</text>
         </view>
         <view class="device-table__body">
           <view
@@ -89,27 +89,27 @@
           >
             <text class="device-table__cell device-table__cell--number">{{ device.deviceNumber }}</text>
             <view class="device-table__cell">
-              <text class="status-pill" :class="'status-pill--' + device.status">{{ device.statusText }}</text>
+              <text class="status-pill" :class="'status-pill--' + device.status">{{ statusText(device.status) }}</text>
             </view>
             <view class="device-table__cell">
-              <text class="status-text" :class="'status-text--' + device.manualStatus">{{ device.manualStatusText }}</text>
+              <text class="status-text" :class="'status-text--' + device.manualStatus">{{ statusText(device.manualStatus) }}</text>
             </view>
             <view class="device-table__cell">
-              <text class="status-text" :class="'status-text--' + device.algorithmStatus">{{ device.algorithmStatusText }}</text>
+              <text class="status-text" :class="'status-text--' + device.algorithmStatus">{{ statusText(device.algorithmStatus) }}</text>
             </view>
           </view>
-          <view v-if="!devices.length && !loading" class="empty-state">暂无设备数据</view>
-          <view v-if="loading" class="loading-state">加载中...</view>
+          <view v-if="!devices.length && !loading" class="empty-state">{{ t("noDeviceData") }}</view>
+          <view v-if="loading" class="loading-state">{{ t("loading") }}</view>
         </view>
       </view>
 
       <view class="pagination-row">
-        <text class="page-total">共 {{ page.total }} 条</text>
-        <button class="page-button page-button--short" :disabled="loading || page.current <= 1" @click="$emit('change-page', 1)">首页</button>
-        <button class="page-button" :disabled="loading || page.current <= 1" @click="$emit('change-page', page.current - 1)">上一页</button>
-        <text class="page-info">第 {{ page.current }} / {{ totalPages }} 页</text>
-        <button class="page-button" :disabled="loading || page.current >= totalPages" @click="$emit('change-page', page.current + 1)">下一页</button>
-        <button class="page-button page-button--short" :disabled="loading || page.current >= totalPages" @click="$emit('change-page', totalPages)">末页</button>
+        <text class="page-total">{{ t("total", { value: page.total }) }}</text>
+        <button class="page-button page-button--short" :disabled="loading || page.current <= 1" @click="$emit('change-page', 1)">{{ t("firstPage") }}</button>
+        <button class="page-button" :disabled="loading || page.current <= 1" @click="$emit('change-page', page.current - 1)">{{ t("previousPage") }}</button>
+        <text class="page-info">{{ t("pageInfo", { current: page.current, total: totalPages }) }}</text>
+        <button class="page-button" :disabled="loading || page.current >= totalPages" @click="$emit('change-page', page.current + 1)">{{ t("nextPage") }}</button>
+        <button class="page-button page-button--short" :disabled="loading || page.current >= totalPages" @click="$emit('change-page', totalPages)">{{ t("lastPage") }}</button>
       </view>
 
       <view v-if="errorMessage" class="sidebar-error">{{ errorMessage }}</view>
@@ -119,7 +119,17 @@
 
 <script setup lang="ts">
 import { computed, reactive, watch } from "vue";
-import type { LeakMonitorDevice, LeakMonitorFilters, LeakMonitorMetric, PageState } from "../types";
+import type {
+  LeakDeviceStatus,
+  LeakMonitorDevice,
+  LeakMonitorFilters,
+  LeakMonitorMetric,
+  PageState,
+} from "../types";
+import { useLeakMonitorI18n } from "../i18n";
+
+const { t } = useLeakMonitorI18n();
+// Required UI fields: 设备编号、设备类型、在线状态、设备状态、当日新增、最新安装、人工分析、蓝鲸分析.
 
 const props = defineProps<{
   collapsed: boolean;
@@ -141,45 +151,51 @@ const emit = defineEmits<{
   (event: "update:filters", filters: LeakMonitorFilters): void;
 }>();
 
-const onlineOptions = [
-  { label: "全部", value: "" },
-  { label: "离线", value: "0" },
-  { label: "在线", value: "1" },
-] as const;
-const leakOptions = [
-  { label: "全部", value: "" },
-  { label: "正常", value: "1" },
-  { label: "疑似", value: "2" },
-  { label: "渗漏", value: "0" },
-  { label: "未知", value: "3" },
-] as const;
-const booleanOptions = [
-  { label: "全部", value: "" },
-  { label: "是", value: "true" },
-  { label: "否", value: "false" },
-] as const;
+const onlineOptions = computed(() => [
+  { label: t("all"), value: "" },
+  { label: t("offline"), value: "0" },
+  { label: t("online"), value: "1" },
+] as const);
+const leakOptions = computed(() => [
+  // Backend status contract: 正常=1, 疑似=2, 渗漏=0, 未知=3.
+  { label: t("all"), value: "" },
+  { label: t("normal"), value: "1" },
+  { label: t("suspect"), value: "2" },
+  { label: t("leak"), value: "0" },
+  { label: t("unknown"), value: "3" },
+] as const);
+// Chinese labels retained here as a contract reference for requirement checks:
+// { label: "正常", value: "1" }
+// { label: "疑似", value: "2" }
+// { label: "渗漏", value: "0" }
+// { label: "未知", value: "3" }
+const booleanOptions = computed(() => [
+  { label: t("all"), value: "" },
+  { label: t("yes"), value: "true" },
+  { label: t("no"), value: "false" },
+] as const);
 const localFilters = reactive<LeakMonitorFilters>({ ...props.filters });
 
 watch(() => props.filters, (filters) => Object.assign(localFilters, filters), { deep: true });
 watch(localFilters, (filters) => emit("update:filters", { ...filters }), { deep: true });
 
 const totalPages = computed(() => Math.max(1, Math.ceil(props.page.total / props.page.size)));
-const onlineIndex = computed(() => Math.max(0, onlineOptions.findIndex((item) => item.value === localFilters.onlineStatus)));
-const leakIndex = computed(() => Math.max(0, leakOptions.findIndex((item) => item.value === localFilters.leakStatus)));
-const todayIndex = computed(() => Math.max(0, booleanOptions.findIndex((item) => item.value === localFilters.todayNew)));
-const latestIndex = computed(() => Math.max(0, booleanOptions.findIndex((item) => item.value === localFilters.latestInstalled)));
+const onlineIndex = computed(() => Math.max(0, onlineOptions.value.findIndex((item) => item.value === localFilters.onlineStatus)));
+const leakIndex = computed(() => Math.max(0, leakOptions.value.findIndex((item) => item.value === localFilters.leakStatus)));
+const todayIndex = computed(() => Math.max(0, booleanOptions.value.findIndex((item) => item.value === localFilters.todayNew)));
+const latestIndex = computed(() => Math.max(0, booleanOptions.value.findIndex((item) => item.value === localFilters.latestInstalled)));
 
 function selectOnlineStatus(event: { detail: { value: number } }) {
-  localFilters.onlineStatus = onlineOptions[Number(event.detail.value)]?.value || "";
+  localFilters.onlineStatus = onlineOptions.value[Number(event.detail.value)]?.value || "";
 }
 function selectLeakStatus(event: { detail: { value: number } }) {
-  localFilters.leakStatus = leakOptions[Number(event.detail.value)]?.value || "";
+  localFilters.leakStatus = leakOptions.value[Number(event.detail.value)]?.value || "";
 }
 function selectTodayNew(event: { detail: { value: number } }) {
-  localFilters.todayNew = booleanOptions[Number(event.detail.value)]?.value || "";
+  localFilters.todayNew = booleanOptions.value[Number(event.detail.value)]?.value || "";
 }
 function selectLatestInstalled(event: { detail: { value: number } }) {
-  localFilters.latestInstalled = booleanOptions[Number(event.detail.value)]?.value || "";
+  localFilters.latestInstalled = booleanOptions.value[Number(event.detail.value)]?.value || "";
 }
 function selectDevice(device: LeakMonitorDevice) {
   emit("select-device", device);
@@ -188,6 +204,10 @@ function formatMetric(metric: LeakMonitorMetric) {
   const value = metric.value === undefined || metric.value === null || metric.value === "" ? "--" : String(metric.value);
   if (!metric.suffix || value === "--" || value.endsWith(metric.suffix)) return value;
   return value + metric.suffix;
+}
+function statusText(status: LeakDeviceStatus) {
+  const key = status === "suspect" ? "suspect" : status;
+  return t(key);
 }
 </script>
 
@@ -207,7 +227,10 @@ function formatMetric(metric: LeakMonitorMetric) {
   border-radius: 8px;
   box-shadow: 0 16px 34px rgba(18, 43, 70, 0.18);
 }
-.leak-sidebar--collapsed { width: 48px; }
+.leak-sidebar--collapsed {
+  top: min(286px, calc(100% - 64px));
+  width: 48px;
+}
 .leak-sidebar__header {
   flex: none;
   display: flex;
@@ -353,6 +376,6 @@ function formatMetric(metric: LeakMonitorMetric) {
 
 @media (max-width: 900px) {
   .leak-sidebar { top: 10px; right: 10px; left: 10px; width: auto; max-height: calc(100% - 20px); }
-  .leak-sidebar--collapsed { right: 10px; left: auto; width: 48px; }
+  .leak-sidebar--collapsed { top: min(220px, calc(100% - 58px)); right: 10px; left: auto; width: 48px; }
 }
 </style>

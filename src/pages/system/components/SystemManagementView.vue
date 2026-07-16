@@ -1,5 +1,5 @@
 <template>
-  <view class="system-view">
+  <view class="system-view" :class="`system-view--${mode}`">
     <view class="workspace" :class="`workspace--${mode}`">
       <view class="side-panel">
         <view class="panel-head">
@@ -177,12 +177,21 @@
             </scroll-view>
           </view>
 
-          <view class="detail-panel">
-            <view class="detail-head">
-              <text>{{ isCreating ? "新增用户" : "用户详细信息配置" }}</text>
-              <text class="detail-head__sub">基础信息、角色分配和报警通知配置</text>
-            </view>
-            <view class="form-grid form-grid--user">
+          <transition name="user-detail-drawer">
+            <view v-if="isUserDetailOpen" class="detail-panel detail-panel--user">
+              <view class="detail-head detail-head--user">
+                <text>{{ isCreating ? "新增用户" : "用户详细信息配置" }}</text>
+                <text class="detail-head__sub">基础信息、角色分配和报警通知配置</text>
+                <button
+                  class="user-detail-collapse"
+                  hover-class="user-detail-collapse--hover"
+                  aria-label="收起用户详细信息配置"
+                  @click="collapseUserDetail"
+                >
+                  <text class="user-detail-collapse__icon"></text>
+                </button>
+              </view>
+              <view class="form-grid form-grid--user">
               <view class="form-field">
                 <text class="form-label form-label--required">登录账号</text>
                 <input v-model="userForm.username" class="form-input" placeholder="请输入至少6位登录账号" placeholder-class="input-placeholder" />
@@ -237,7 +246,7 @@
               <view class="user-config-row">
                 <view class="form-field">
                   <text class="form-label">分配权限角色（决定可访问菜单）</text>
-                  <view class="check-grid">
+                  <view class="check-grid check-grid--roles">
                     <view
                       v-for="item in roles"
                       :key="getId(item)"
@@ -274,14 +283,15 @@
                 </view>
                 <text v-if="isSuperAdminSelected" class="binding-lock-tip">超级管理员自动绑定全部分区，不可手动修改</text>
               </view>
+              </view>
+              <view class="form-actions">
+                <button class="toolbar-button" hover-class="toolbar-button--hover" @click="cancelEdit">取消</button>
+                <button class="toolbar-button toolbar-button--primary" :disabled="saving" hover-class="toolbar-button--hover" @click="saveUser">
+                  {{ saving ? "保存中..." : "保存用户信息" }}
+                </button>
+              </view>
             </view>
-            <view class="form-actions">
-              <button class="toolbar-button" hover-class="toolbar-button--hover" @click="cancelEdit">取消</button>
-              <button class="toolbar-button toolbar-button--primary" :disabled="saving" hover-class="toolbar-button--hover" @click="saveUser">
-                {{ saving ? "保存中..." : "保存用户信息" }}
-              </button>
-            </view>
-          </view>
+          </transition>
         </view>
 
         <view v-else-if="mode === 'auth'" class="content-layout content-layout--auth">
@@ -417,7 +427,7 @@
               </view>
             </scroll-view>
           </view>
-          <view class="detail-panel">
+          <view class="detail-panel detail-panel--menu">
             <view class="detail-head">
               <text>{{ isCreating ? "新增菜单" : "菜单配置" }}</text>
               <text class="detail-head__sub">维护页面入口、权限编码和父级关系</text>
@@ -901,6 +911,7 @@ const loading = ref(false);
 const saving = ref(false);
 const refreshing = ref(false);
 const isCreating = ref(false);
+const isUserDetailOpen = ref(true);
 const showUserPassword = ref(false);
 const showUserPartitionDialog = ref(false);
 const dictCreateTarget = ref<"type" | "item">("item");
@@ -1106,12 +1117,16 @@ function handleMenuParentChange(event: { detail: { value: number } }) {
 }
 
 function selectOrg(value: string) {
+  collapseUserDetail();
   activeOrg.value = value;
   pagination.pageNum = 1;
   void loadUsers();
 }
 
 function searchCurrent() {
+  if (props.mode === "user") {
+    collapseUserDetail();
+  }
   pagination.pageNum = 1;
   void refreshCurrent();
 }
@@ -1140,6 +1155,7 @@ function commitPageSizeInput() {
   pagination.pageSize = nextPageSize;
   pagination.pageNum = 1;
   pageInputValue.value = "1";
+  collapseUserDetail();
   void loadUsers();
 }
 
@@ -1161,6 +1177,7 @@ function jumpToPage(page: number) {
   }
 
   pagination.pageNum = nextPage;
+  collapseUserDetail();
   void loadUsers();
 }
 
@@ -1328,7 +1345,7 @@ async function loadUsers() {
 
       users.value = filteredUsers.slice(pageStart, pageStart + pagination.pageSize);
       total.value = filteredUsers.length;
-      selectUser(users.value[0] || null);
+      selectUser(users.value[0] || null, false);
       return;
     }
 
@@ -1346,11 +1363,11 @@ async function loadUsers() {
     const parsed = parsePageResponse(response);
     users.value = parsed.records;
     total.value = parsed.total > 0 ? parsed.total : parsed.records.length;
-    selectUser(users.value[0] || null);
+    selectUser(users.value[0] || null, false);
   } catch (error) {
     users.value = [];
     total.value = 0;
-    selectUser(null);
+    selectUser(null, false);
     toastError(error, "用户数据加载失败");
   } finally {
     loading.value = false;
@@ -1556,9 +1573,12 @@ async function loadDictItems() {
   }
 }
 
-function selectUser(item: RecordLike | null) {
+function selectUser(item: RecordLike | null, openDetail = true) {
   selectedUser.value = item;
   isCreating.value = false;
+  if (openDetail && item) {
+    isUserDetailOpen.value = true;
+  }
   showUserPassword.value = false;
   Object.assign(userForm, {
     id: item ? String(getId(item)) : "",
@@ -1807,8 +1827,9 @@ function selectDictItem(item: RecordLike | null) {
 function startCreate() {
   isCreating.value = true;
   if (props.mode === "user") {
-    selectUser(null);
+    selectUser(null, false);
     isCreating.value = true;
+    isUserDetailOpen.value = true;
   } else if (props.mode === "auth") {
     selectRole(null);
     isCreating.value = true;
@@ -1836,12 +1857,17 @@ function startCreateDictItem() {
 
 function cancelEdit() {
   if (props.mode === "user") {
-    selectUser(selectedUser.value || users.value[0] || null);
+    collapseUserDetail();
   } else if (props.mode === "auth") {
     selectRole(selectedRole.value || roles.value[0] || null);
   } else if (props.mode === "menu") {
     selectMenu(selectedMenu.value || menus.value[0] || null);
   }
+}
+
+function collapseUserDetail() {
+  isUserDetailOpen.value = false;
+  showUserPartitionDialog.value = false;
 }
 
 async function saveUser() {
@@ -1909,6 +1935,7 @@ async function saveUser() {
     uni.showToast({ title: savedMessage, icon: savedIcon });
     syncCachedUserRegion(savedUserId);
     await loadUsers();
+    collapseUserDetail();
   } catch (error) {
     toastError(error, "用户保存失败");
   } finally {
@@ -2341,6 +2368,7 @@ async function deleteCurrent() {
     if (props.mode === "user" && getId(selectedUser.value)) {
       await deleteUser(getId(selectedUser.value));
       await loadUsers();
+      collapseUserDetail();
     } else if (props.mode === "auth" && getId(selectedRole.value)) {
       await deleteRole(getId(selectedRole.value));
       await loadRolesPage();
@@ -2787,6 +2815,10 @@ function isValidId(value: unknown): value is string | number {
   padding: 10px;
   overflow: auto;
   background: linear-gradient(180deg, #edf5fb 0%, #f4f8fb 100%);
+}
+
+.system-view--user {
+  overflow: hidden;
 }
 
 .side-panel,
@@ -3375,7 +3407,22 @@ function isValidId(value: unknown): value is string | number {
 }
 
 .content-layout--user {
-  grid-template-rows: minmax(280px, 0.95fr) minmax(260px, 0.70fr);
+  position: relative;
+  display: block;
+  flex: 1 1 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.workspace--user,
+.workspace--user .main-panel {
+  overflow: hidden;
+}
+
+.content-layout--user > .table-panel {
+  box-sizing: border-box;
+  height: 100%;
+  overflow: hidden;
 }
 
 .table-panel,
@@ -3614,12 +3661,105 @@ function isValidId(value: unknown): value is string | number {
   margin-top: 10px;
 }
 
-.content-layout--user .form-grid--user {
-  padding-bottom: 16px;
+.detail-panel--user {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  left: 10px;
+  z-index: 4;
+  box-sizing: border-box;
+  height: clamp(260px, 44%, 360px);
+  min-height: 0;
+  overflow: hidden;
+  background: #ffffff;
+  border-color: #bfd5e7;
+  box-shadow: none;
 }
 
-.content-layout--user .form-field {
+.detail-head--user {
+  position: relative;
+}
+
+.user-detail-collapse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 26px;
+  margin: 0;
+  padding: 0;
+  color: #4e6d88;
+  background: #ffffff;
+  border: 1px solid #bfd5e7;
+  border-radius: 5px;
+  box-shadow: none;
+  transform: translate(-50%, -50%);
+}
+
+.user-detail-collapse::after {
+  border: 0;
+}
+
+.user-detail-collapse--hover {
+  color: #0d82ee;
+  background: #edf7ff;
+  border-color: #8bc8f5;
+}
+
+.user-detail-collapse__icon {
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+}
+
+.user-detail-drawer-enter-active,
+.user-detail-drawer-leave-active {
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.user-detail-drawer-enter-from,
+.user-detail-drawer-leave-to {
+  opacity: 0;
+  transform: translateY(24px);
+}
+
+.detail-panel--user .form-grid--user {
+  flex: 1 1 0;
+  height: 0;
+  min-height: 0;
+  align-content: start;
+  padding-bottom: 20px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.detail-panel--user .form-field {
   overflow: visible;
+}
+
+.detail-panel--user .form-actions {
+  position: relative;
+  z-index: 1;
+  flex: none;
+}
+
+.check-grid--roles {
+  min-height: 44px;
+}
+
+.user-config-row .check-grid {
+  max-height: 112px;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .detail-panel--dict .form-grid {
@@ -3629,10 +3769,19 @@ function isValidId(value: unknown): value is string | number {
   overflow-y: auto;
 }
 
+.detail-panel--menu .form-grid {
+  align-content: start;
+  padding-bottom: 16px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.detail-panel--menu .form-field,
 .detail-panel--dict .form-field {
   overflow: visible;
 }
 
+.detail-panel--menu .form-actions,
 .detail-panel--dict .form-actions {
   flex: none;
 }
@@ -4160,10 +4309,6 @@ function isValidId(value: unknown): value is string | number {
     grid-template-rows: minmax(200px, 0.8fr) minmax(320px, 1fr);
   }
 
-  .content-layout--user {
-    grid-template-rows: minmax(270px, 0.95fr) minmax(300px, 0.8fr);
-  }
-
   .form-grid--user {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -4187,6 +4332,10 @@ function isValidId(value: unknown): value is string | number {
 
   .user-config-row {
     grid-template-columns: 1fr;
+  }
+
+  .detail-panel--user {
+    height: min(440px, calc(100% - 20px));
   }
 }
 

@@ -4,10 +4,13 @@ import {
   fetchLeakMonitorDeviceInfo,
   fetchLeakMonitorDevices,
   fetchLeakMonitorLatestAudio,
+  fetchLeakMonitorMapData,
   fetchLeakMonitorMaintenance,
+  fetchLeakMonitorManualAnalysis,
   fetchLeakMonitorSidebar,
   fetchLeakMonitorTrend,
   fetchLeakMonitorWav,
+  submitLeakMonitorManualAnalysis,
 } from "@/services/leak-monitor/device-query";
 import { analyzeWavArrayBuffer } from "../audioAnalysis";
 import type {
@@ -17,8 +20,11 @@ import type {
   LeakMonitorFilters,
   LeakMonitorMetric,
   MapDevicePoint,
+  MapRegion,
+  ManualAnalysisPayload,
   PageState,
 } from "../types";
+import { useLeakMonitorI18n } from "../i18n";
 
 function emptyDetail(): DeviceDetailState {
   return {
@@ -29,9 +35,18 @@ function emptyDetail(): DeviceDetailState {
     trend: [],
     dailyAudio: [],
     maintenance: [],
+    manualRecords: [],
     analysisLoading: false,
     historyLoading: false,
     maintenanceLoading: false,
+    manualLoading: false,
+    manualSubmitting: false,
+    manualLoaded: false,
+    analysisError: "",
+    historyError: "",
+    detailError: "",
+    maintenanceError: "",
+    manualError: "",
     errorMessage: "",
   };
 }
@@ -74,6 +89,7 @@ export function createRecentDateRange(days: number): DateRangeValue {
 }
 
 export function useLeakMonitorWorkspace() {
+  const { t } = useLeakMonitorI18n();
   const loading = ref(false);
   const sidebarLoading = ref(false);
   const detailLoading = ref(false);
@@ -93,6 +109,7 @@ export function useLeakMonitorWorkspace() {
   const page = reactive<PageState>({ current: 1, size: 10, total: 0 });
   const devices = ref<LeakMonitorDevice[]>([]);
   const mapDevices = ref<LeakMonitorDevice[]>([]);
+  const mapRegions = ref<MapRegion[]>([]);
   const sidebarData = ref<Record<string, unknown>>({});
   const onlineRate = ref<number | string>("--");
   const communicationRate = ref<number | string>("--");
@@ -101,12 +118,13 @@ export function useLeakMonitorWorkspace() {
   let detailRequestId = 0;
 
   const metrics = computed<LeakMonitorMetric[]>(() => [
-    { key: "communication", label: "通讯成功率", value: formatRate(communicationRate.value), suffix: "%", tone: "success" },
-    { key: "online", label: "设备上线率", value: formatRate(onlineRate.value), suffix: "%", tone: "primary" },
-    { key: "normal", label: "正常", value: readCount(sidebarData.value, "normalCount"), tone: "success" },
-    { key: "suspect", label: "疑似", value: readCount(sidebarData.value, "suspectedCount"), tone: "warning" },
-    { key: "leak", label: "渗漏", value: readCount(sidebarData.value, "leakCount"), tone: "danger" },
-    { key: "unknown", label: "未知", value: readCount(sidebarData.value, "unknownCount"), tone: "muted" },
+    // 通讯成功率、设备上线率、正常、疑似、渗漏、未知.
+    { key: "communication", label: t("communicationRate"), value: formatRate(communicationRate.value), suffix: "%", tone: "success" },
+    { key: "online", label: t("onlineRate"), value: formatRate(onlineRate.value), suffix: "%", tone: "primary" },
+    { key: "normal", label: t("normal"), value: readCount(sidebarData.value, "normalCount"), tone: "success" },
+    { key: "suspect", label: t("suspect"), value: readCount(sidebarData.value, "suspectedCount"), tone: "warning" },
+    { key: "leak", label: t("leak"), value: readCount(sidebarData.value, "leakCount"), tone: "danger" },
+    { key: "unknown", label: t("unknown"), value: readCount(sidebarData.value, "unknownCount"), tone: "muted" },
   ]);
 
   const mapPoints = computed<MapDevicePoint[]>(() =>
@@ -118,6 +136,8 @@ export function useLeakMonitorWorkspace() {
         title: device.model || device.deviceNumber,
         status: device.status,
         leakProperty: device.leakProperty,
+        regionId: device.regionId,
+        coordinateSystem: device.coordinateSystem,
         lat: device.lat as number,
         lng: device.lng as number,
       })),
@@ -130,13 +150,22 @@ export function useLeakMonitorWorkspace() {
       const result = await fetchLeakMonitorSidebar();
       if (requestId !== sidebarRequestId) return;
       sidebarData.value = result.data;
-      mapDevices.value = result.devices;
       onlineRate.value = result.onlineRate;
       communicationRate.value = result.communicationRate;
     } catch (error) {
       if (requestId === sidebarRequestId) console.error(error);
     } finally {
       if (requestId === sidebarRequestId) sidebarLoading.value = false;
+    }
+  }
+
+  async function refreshMapData() {
+    try {
+      const result = await fetchLeakMonitorMapData();
+      mapDevices.value = result.devices;
+      mapRegions.value = result.regions;
+    } catch (error) {
+      console.error(error);
     }
   }
 
@@ -159,14 +188,18 @@ export function useLeakMonitorWorkspace() {
       if (requestId !== listRequestId) return;
       devices.value = [];
       page.total = 0;
-      errorMessage.value = error?.msg || "设备列表加载失败";
+      errorMessage.value = error?.msg || t("deviceListLoadFailed");
     } finally {
       if (requestId === listRequestId) loading.value = false;
     }
   }
 
   async function refreshAll(resetPage = false) {
-    await Promise.all([refreshSidebar(), refreshDevices(resetPage)]);
+    await Promise.all([
+      refreshSidebar(),
+      refreshDevices(resetPage),
+      refreshMapData(),
+    ]);
   }
 
   async function refreshDeviceAnalysis(range: DateRangeValue) {
@@ -174,13 +207,17 @@ export function useLeakMonitorWorkspace() {
     if (!device) return;
     const requestId = detailRequestId;
     detail.value.analysisLoading = true;
-    detail.value.errorMessage = "";
+    detail.value.analysisError = "";
     const isoRange = toIsoRange(range);
 
     try {
       const [latestAudio, trend] = await Promise.all([
         fetchLeakMonitorLatestAudio(device.deviceNumber, isoRange.startTime, isoRange.endTime),
-        fetchLeakMonitorTrend(device.deviceNumber, range.start, range.end),
+        fetchLeakMonitorTrend(
+          device.deviceNumber,
+          createRecentDateRange(7).start,
+          range.end,
+        ),
       ]);
       if (requestId !== detailRequestId) return;
 
@@ -199,7 +236,7 @@ export function useLeakMonitorWorkspace() {
       }
     } catch (error: any) {
       if (requestId === detailRequestId) {
-        detail.value.errorMessage = error?.msg || error?.message || "音频分析数据加载失败";
+        detail.value.analysisError = error?.msg || error?.message || t("audioAnalysisLoadFailed");
       }
     } finally {
       if (requestId === detailRequestId) detail.value.analysisLoading = false;
@@ -211,25 +248,32 @@ export function useLeakMonitorWorkspace() {
     if (!device) return;
     const requestId = detailRequestId;
     detail.value.historyLoading = true;
+    detail.value.historyError = "";
 
     try {
       const [trend, dailyRecords] = await Promise.all([
         fetchLeakMonitorTrend(device.deviceNumber, range.start, range.end),
         fetchLeakMonitorDailyAudio(device.deviceNumber, range.start, range.end),
       ]);
-      const dailyAudio = await Promise.all(
+      const dailyAudioResults = await Promise.allSettled(
         dailyRecords.slice(-14).map(async (record) => {
           const wav = await fetchLeakMonitorWav(record.audioId);
           const analysis = await analyzeWavArrayBuffer(wav);
-          return { ...record, spectrum: analysis.spectrum };
+          return {
+            ...record,
+            sampleRate: analysis.sampleRate,
+            spectrum: analysis.spectrum,
+          };
         }),
       );
+      const dailyAudio = dailyAudioResults
+        .flatMap((result) => result.status === "fulfilled" ? [result.value] : []);
       if (requestId !== detailRequestId) return;
       detail.value.trend = trend;
       detail.value.dailyAudio = dailyAudio;
     } catch (error: any) {
       if (requestId === detailRequestId) {
-        detail.value.errorMessage = error?.msg || error?.message || "历史音频加载失败";
+        detail.value.historyError = error?.msg || error?.message || t("historyAudioLoadFailed");
       }
     } finally {
       if (requestId === detailRequestId) detail.value.historyLoading = false;
@@ -238,13 +282,54 @@ export function useLeakMonitorWorkspace() {
 
   async function loadMaintenance(device: LeakMonitorDevice, requestId: number) {
     detail.value.maintenanceLoading = true;
+    detail.value.maintenanceError = "";
     try {
       const records = await fetchLeakMonitorMaintenance(device.deviceNumber);
       if (requestId === detailRequestId) detail.value.maintenance = records;
-    } catch (error) {
-      if (requestId === detailRequestId) console.error(error);
+    } catch (error: any) {
+      if (requestId === detailRequestId) {
+        detail.value.maintenanceError = error?.msg || error?.message || t("maintenanceLoadFailed");
+      }
     } finally {
       if (requestId === detailRequestId) detail.value.maintenanceLoading = false;
+    }
+  }
+
+  async function loadManualAnalysis(device = selectedDevice.value) {
+    if (!device) return;
+    const requestId = detailRequestId;
+    detail.value.manualLoading = true;
+    detail.value.manualError = "";
+    try {
+      const records = await fetchLeakMonitorManualAnalysis(device.deviceNumber);
+      if (requestId === detailRequestId) {
+        detail.value.manualRecords = records;
+        detail.value.manualLoaded = true;
+      }
+    } catch (error: any) {
+      if (requestId === detailRequestId) {
+        detail.value.manualError = error?.msg || error?.message || t("manualAnalysisLoadFailed");
+      }
+    } finally {
+      if (requestId === detailRequestId) detail.value.manualLoading = false;
+    }
+  }
+
+  async function submitManualAnalysis(payload: ManualAnalysisPayload) {
+    if (!selectedDevice.value) return;
+    const requestId = detailRequestId;
+    detail.value.manualSubmitting = true;
+    detail.value.manualError = "";
+    try {
+      await submitLeakMonitorManualAnalysis(payload);
+      if (requestId !== detailRequestId) return;
+      await loadManualAnalysis(selectedDevice.value);
+    } catch (error: any) {
+      if (requestId === detailRequestId) {
+        detail.value.manualError = error?.msg || error?.message || t("manualAnalysisSaveFailed");
+      }
+    } finally {
+      if (requestId === detailRequestId) detail.value.manualSubmitting = false;
     }
   }
 
@@ -269,8 +354,10 @@ export function useLeakMonitorWorkspace() {
     try {
       const info = await fetchLeakMonitorDeviceInfo(sourceDevice);
       if (requestId === detailRequestId) detail.value.info = info;
-    } catch (error) {
-      if (requestId === detailRequestId) console.error(error);
+    } catch (error: any) {
+      if (requestId === detailRequestId) {
+        detail.value.detailError = error?.msg || error?.message || t("deviceDetailLoadFailed");
+      }
     } finally {
       if (requestId === detailRequestId) detailLoading.value = false;
     }
@@ -288,7 +375,7 @@ export function useLeakMonitorWorkspace() {
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 500);
     } catch (error: any) {
-      detail.value.errorMessage = error?.msg || error?.message || "音频下载失败";
+      detail.value.analysisError = error?.msg || error?.message || t("audioDownloadFailed");
     }
   }
 
@@ -333,14 +420,18 @@ export function useLeakMonitorWorkspace() {
     page,
     devices,
     metrics,
+    mapDevices,
     mapPoints,
+    mapRegions,
     closeDetail,
     downloadLatestAudio,
     loadHistory,
+    loadManualAnalysis,
     openDevice,
     refreshAll,
     refreshDeviceAnalysis,
     resetFilters,
+    submitManualAnalysis,
     updatePage,
   };
 }

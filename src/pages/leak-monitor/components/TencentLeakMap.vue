@@ -1,12 +1,12 @@
 <template>
-  <view class="leak-map">
+  <view class="leak-map" :class="{ 'leak-map--compact': compact }">
     <!-- #ifdef H5 -->
     <div ref="mapContainer" class="leak-map__canvas"></div>
     <view v-if="mapError" class="leak-map__error">{{ mapError }}</view>
     <!-- #endif -->
 
     <!-- #ifndef H5 -->
-    <view class="leak-map__error">当前地图 SDK 仅支持 H5 端展示</view>
+    <view class="leak-map__error">{{ t("mapH5Only") }}</view>
     <!-- #endif -->
   </view>
 </template>
@@ -14,6 +14,11 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { MAP_CONFIG } from "@/services/map/map";
+import { convertMapCoordinate } from "../coordinateTransform";
+import { useLeakMonitorI18n } from "../i18n";
+import type { MapDevicePoint, MapRegion } from "../types";
+
+const { t } = useLeakMonitorI18n();
 const TENCENT_MAP_KEY = MAP_CONFIG.tencentKey;
 const TENCENT_MAP_SCRIPT_ID = "tencent-map-gl-sdk";
 const TENCENT_MAP_SCRIPT_URL = `https://map.qq.com/api/gljs?v=1.exp&key=${TENCENT_MAP_KEY}`;
@@ -38,6 +43,7 @@ interface TencentMapInstance {
   easeTo?: (options: { center: unknown; zoom?: number }) => void;
   fitBounds?: (bounds: unknown, options?: { padding?: number }) => void;
   on?: (event: string, handler: (e: { latLng: TencentLatLngValue }) => void) => void;
+  getZoom?: () => number;
 }
 
 interface TencentMapConstructor {
@@ -70,24 +76,56 @@ interface TencentMultiMarkerConstructor {
   };
 }
 
+interface TencentMultiPolygonConstructor {
+  new (options: {
+    map: TencentMapInstance;
+    styles: Record<string, unknown>;
+    geometries: Array<{
+      id: string;
+      styleId?: string;
+      paths: unknown[][];
+      properties?: Record<string, unknown>;
+    }>;
+  }): {
+    setMap?: (map: TencentMapInstance | null) => void;
+    setStyles?: (styles: Record<string, unknown>) => void;
+    setGeometries?: (geometries: Array<{
+      id: string;
+      styleId?: string;
+      paths: unknown[][];
+      properties?: Record<string, unknown>;
+    }>) => void;
+    on?: (event: string, handler: (event: { geometry?: { id?: string } }) => void) => void;
+  };
+}
+
 interface TencentMapApi {
   LatLng: TencentLatLng;
   Map: TencentMapConstructor;
   MultiMarker: TencentMultiMarkerConstructor;
+  MultiPolygon: TencentMultiPolygonConstructor;
   MarkerStyle: new (options: { width: number; height: number; anchor: { x: number; y: number }; src: string }) => unknown;
+  PolygonStyle: new (options: {
+    color: string;
+    showBorder: boolean;
+    borderColor: string;
+    borderWidth: number;
+  }) => unknown;
   LatLngBounds?: new () => {
     extend?: (position: unknown) => void;
   };
 }
 
-import type { MapDevicePoint } from "../types";
-
 const props = withDefaults(defineProps<{
   points?: MapDevicePoint[];
+  regions?: MapRegion[];
   selectedDeviceNumber?: string;
+  compact?: boolean;
 }>(), {
   points: () => [],
+  regions: () => [],
   selectedDeviceNumber: "",
+  compact: false,
 });
 
 const emit = defineEmits<{
@@ -100,6 +138,7 @@ const mapContainer = ref<HTMLElement | null>(null);
 const mapError = ref("");
 let mapInstance: TencentMapInstance | null = null;
 let markerLayer: InstanceType<TencentMultiMarkerConstructor> | null = null;
+let polygonLayer: InstanceType<TencentMultiPolygonConstructor> | null = null;
 let sdkLoadingPromise: Promise<void> | null = null;
 let resizeTimer: ReturnType<typeof window.setTimeout> | null = null;
 let resizeFrame: number | null = null;
@@ -112,7 +151,7 @@ onMounted(() => {
     loadTencentMap()
       .then(initMap)
       .catch(() => {
-        mapError.value = "腾讯地图加载失败，请检查 Key 的 Web 端域名白名单是否包含当前访问域名";
+        mapError.value = t("tencentMapError");
       });
   });
   // #endif
@@ -132,6 +171,10 @@ onBeforeUnmount(() => {
   unbindResizeEvents();
   mapInstance?.destroy?.();
   mapInstance = null;
+  markerLayer?.setMap?.(null);
+  polygonLayer?.setMap?.(null);
+  markerLayer = null;
+  polygonLayer = null;
 });
 
 /**
@@ -184,7 +227,7 @@ function initMap() {
 
   const TMap = getTMap();
   if (!mapContainer.value || !TMap) {
-    mapError.value = "地图容器初始化失败";
+    mapError.value = t("mapContainerError");
     return;
   }
 
@@ -197,7 +240,16 @@ function initMap() {
   });
   mapInstance = map;
 
+  renderRegions();
   renderMarkers();
+  window.setTimeout(() => {
+    if (props.selectedDeviceNumber) {
+      focusDevice(props.selectedDeviceNumber);
+    } else {
+      fitDevices();
+    }
+  }, 80);
+  map.on?.("zoom", renderRegions);
 
   bindContainerResizeObserver();
   resizeTimer = window.setTimeout(() => {
@@ -213,16 +265,19 @@ function getMarkerGeometries() {
     return [];
   }
 
-  return props.points.map((point) => ({
+  return props.points.map((point) => {
+    const coordinate = convertMapCoordinate(point, point.coordinateSystem, "GCJ02");
+    return {
     id: point.deviceNumber,
     styleId: "device-" + point.deviceNumber,
-    position: new TMap.LatLng(point.lat, point.lng),
+    position: new TMap.LatLng(coordinate.lat, coordinate.lng),
     properties: {
       deviceNumber: point.deviceNumber,
       status: point.status,
       leakProperty: point.leakProperty,
     },
-  }));
+    };
+  });
 }
 
 function createMarkerStyles() {
@@ -299,6 +354,81 @@ function renderMarkers() {
   }
 }
 
+function renderRegions() {
+  const TMap = getTMap();
+  if (!mapInstance || !TMap?.MultiPolygon || !TMap.PolygonStyle) return;
+  const zoom = mapInstance.getZoom?.() ?? 15;
+  const visibleRegions = props.regions.filter((region) => shouldShowRegion(region, zoom));
+  const styles = Object.fromEntries(visibleRegions.map((region) => [
+    "region-" + region.id,
+    new TMap.PolygonStyle({
+      color: toRgba(region.color, 0.16),
+      showBorder: true,
+      borderColor: region.color,
+      borderWidth: 2,
+    }),
+  ]));
+  const geometries = visibleRegions.map((region) => ({
+    id: String(region.id),
+    styleId: "region-" + region.id,
+    paths: [region.boundary.map((coordinate) => {
+      const converted = convertMapCoordinate(
+        coordinate,
+        region.coordinateSystem,
+        "GCJ02",
+      );
+      return new TMap.LatLng(converted.lat, converted.lng);
+    })],
+    properties: { name: region.name },
+  }));
+
+  if (!polygonLayer) {
+    polygonLayer = new TMap.MultiPolygon({
+      map: mapInstance,
+      styles,
+      geometries,
+    });
+    polygonLayer.on?.("click", (event) => {
+      const region = props.regions.find((item) => String(item.id) === String(event.geometry?.id));
+      if (region) focusRegion(region);
+    });
+  } else {
+    polygonLayer.setStyles?.(styles);
+    polygonLayer.setGeometries?.(geometries);
+  }
+}
+
+function shouldShowRegion(region: MapRegion, zoom: number) {
+  return region.visible &&
+    region.boundary.length >= 3 &&
+    (region.minZoom === undefined || zoom >= region.minZoom) &&
+    (region.maxZoom === undefined || zoom <= region.maxZoom);
+}
+
+function focusRegion(region: MapRegion) {
+  const TMap = getTMap();
+  if (!mapInstance || !TMap?.LatLngBounds || !mapInstance.fitBounds) return;
+  const bounds = new TMap.LatLngBounds();
+  region.boundary.forEach((coordinate) => {
+    const converted = convertMapCoordinate(
+      coordinate,
+      region.coordinateSystem,
+      "GCJ02",
+    );
+    bounds.extend?.(new TMap.LatLng(converted.lat, converted.lng));
+  });
+  mapInstance.fitBounds(bounds, { padding: 80 });
+}
+
+function toRgba(hex: string, alpha: number) {
+  const normalized = hex.replace("#", "");
+  const value = Number.parseInt(normalized, 16);
+  const red = (value >> 16) & 255;
+  const green = (value >> 8) & 255;
+  const blue = value & 255;
+  return `rgba(${red},${green},${blue},${alpha})`;
+}
+
 function focusDevice(deviceNumber: string) {
   const TMap = getTMap();
   if (!mapInstance || !TMap) {
@@ -310,8 +440,9 @@ function focusDevice(deviceNumber: string) {
     return;
   }
 
+  const coordinate = convertMapCoordinate(point, point.coordinateSystem, "GCJ02");
   mapInstance.easeTo?.({
-    center: new TMap.LatLng(point.lat, point.lng),
+    center: new TMap.LatLng(coordinate.lat, coordinate.lng),
     zoom: 17,
   });
 }
@@ -337,7 +468,8 @@ function fitDevices() {
 
   const bounds = new TMap.LatLngBounds();
   props.points.forEach((point) => {
-    bounds.extend?.(new TMap.LatLng(point.lat, point.lng));
+    const coordinate = convertMapCoordinate(point, point.coordinateSystem, "GCJ02");
+    bounds.extend?.(new TMap.LatLng(coordinate.lat, coordinate.lng));
   });
   mapInstance.fitBounds(bounds, { padding: 80 });
 }
@@ -347,6 +479,12 @@ watch(
   () => {
     renderMarkers();
   },
+  { deep: true },
+);
+
+watch(
+  () => props.regions,
+  () => renderRegions(),
   { deep: true },
 );
 
@@ -446,5 +584,9 @@ function scheduleMapResize() {
   background: #fff1f2;
   border: 1px solid #fecdd3;
   border-radius: 6px;
+}
+.leak-map--compact,
+.leak-map--compact .leak-map__canvas {
+  min-height: 0;
 }
 </style>
