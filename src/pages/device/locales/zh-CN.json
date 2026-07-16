@@ -228,7 +228,9 @@
       "onlineStatus": "在线状态",
       "mapTitle": "设备坐标",
       "deviceAlias": "设备别名",
-      "factoryTime": "出厂时间"
+      "factoryTime": "出厂时间",
+      "algorithmType":"算法类型",
+      "algorithmVersion":"算法版本"
     },
     "addSchema": {
       "basicInfo": {
@@ -471,7 +473,8 @@
 
         "timeInfo":"时间信息",
         "createdAt":"创建时间",
-        "updatedAt":"更新时间"
+        "updatedAt":"更新时间",
+        "maintainAccount": "维护人员"
       },
       "page": {
         "addMaintenance": "新增维护记录",
@@ -483,6 +486,8 @@
           "deviceNumber": "设备编号",
           "deviceAlias": "设备别名",
           "valveNumber": "阀门编号",
+          "valveName": "阀门名称",
+          "valveNamePlaceholder": "--",
           "deviceAliasPlaceholder": "--",
           "valveNumberPlaceholder": "--",
           "maintainType": "维护类型",

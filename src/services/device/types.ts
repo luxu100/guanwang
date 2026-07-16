@@ -411,6 +411,7 @@ export interface MaintenanceCreateForm {
     deviceAlias?: string;
     // 阀门信息
     valveNumber?: string;
+    valveName?: string;
 
     // 维护信息
     maintainType?: number;
