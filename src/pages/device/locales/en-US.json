@@ -716,7 +716,7 @@
         "pipelineName": "Pipeline Name",
         "valveNumber": "Valve Number",
         "valveName": "Valve Name",
-        "coordinatePosition": "Coordinate Position",
+        "coordinatePosition": "Valve Location",
         "branchCompany": "Branch Company",
         "region": "Region",
         "tubeBore": "Pipe Diameter",
