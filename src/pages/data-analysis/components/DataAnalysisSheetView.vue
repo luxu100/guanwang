@@ -1550,7 +1550,7 @@ watch(
 
 .data-row {
   display: grid;
-  grid-template-columns: 58px repeat(8, 1fr);
+  grid-template-columns: 58px 1.2fr 1.3fr 1fr 0.8fr 0.8fr 1fr 1.5fr 1.1fr;
   min-height: 42px;
   width: 100%;
   min-width: 1000px;
@@ -1604,7 +1604,7 @@ watch(
 }
 
 .data-row--leakage {
-  grid-template-columns: 58px repeat(8, 1fr);
+  grid-template-columns: 58px 1.2fr 1.3fr 1fr 0.8fr 0.8fr 1fr 1fr 1.5fr;
   min-width: 920px;
 }
 
@@ -2347,11 +2347,11 @@ watch(
   }
 
   .data-row {
-    grid-template-columns: 46px repeat(8, 1fr);
+    grid-template-columns: 46px 1fr 1.1fr 0.9fr 0.7fr 0.7fr 0.9fr 1.3fr 1fr;
   }
 
   .data-row--leakage {
-    grid-template-columns: 46px repeat(8, 1fr);
+    grid-template-columns: 46px 1fr 1.1fr 0.9fr 0.7fr 0.7fr 0.9fr 0.9fr 1.3fr;
     min-width: 700px;
   }
 }
