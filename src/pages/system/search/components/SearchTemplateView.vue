@@ -39,16 +39,6 @@
           />
         </view>
         <view class="pqt-filter">
-          <text class="pqt-filter__label">设备编号</text>
-          <input
-            v-model="filters.deviceNumber"
-            class="pqt-filter__control"
-            placeholder="请输入设备编号"
-            placeholder-class="pqt-placeholder"
-            @confirm="searchCurrent"
-          />
-        </view>
-        <view class="pqt-filter">
           <text class="pqt-filter__label">启用状态</text>
           <picker :range="enabledFilterOptions" range-key="label" @change="handleEnabledFilterChange">
             <view class="pqt-filter__control pqt-filter__control--picker">{{ currentEnabledFilterLabel }}</view>
@@ -95,8 +85,7 @@
               <view class="pqt-cell pqt-cell--name">模板名称</view>
               <view class="pqt-cell pqt-cell--code">模板编码</view>
               <view class="pqt-cell pqt-cell--scope">范围</view>
-              <view class="pqt-cell pqt-cell--id">协议 ID</view>
-              <view class="pqt-cell pqt-cell--id">设备 ID</view>
+              <view class="pqt-cell pqt-cell--entity">协议名称</view>
               <view class="pqt-cell pqt-cell--count">字段数</view>
               <view class="pqt-cell pqt-cell--status">状态</view>
               <view class="pqt-cell pqt-cell--remark">备注</view>
@@ -117,8 +106,7 @@
               <view class="pqt-cell pqt-cell--name">{{ getTemplateName(item) }}</view>
               <view class="pqt-cell pqt-cell--code">{{ getTemplateCode(item) }}</view>
               <view class="pqt-cell pqt-cell--scope">{{ getScopeLabel(getText(item, ["scopeType"], "")) }}</view>
-              <view class="pqt-cell pqt-cell--id">{{ getText(item, ["protocolId"], "-") }}</view>
-              <view class="pqt-cell pqt-cell--id">{{ getText(item, ["deviceId"], "-") }}</view>
+              <view class="pqt-cell pqt-cell--entity">{{ getTemplateProtocolName(item) }}</view>
               <view class="pqt-cell pqt-cell--count">{{ getFieldNames(item).length }}</view>
               <view class="pqt-cell pqt-cell--status">
                 <text class="pqt-status" :class="{ 'pqt-status--disabled': !getEnabled(item) }">
@@ -126,7 +114,7 @@
                 </text>
               </view>
               <view class="pqt-cell pqt-cell--remark">{{ getText(item, ["remark"], "-") }}</view>
-              <view class="pqt-cell pqt-cell--time">{{ getText(item, ["updatedAt", "createdAt"], "-") }}</view>
+              <view class="pqt-cell pqt-cell--time">{{ formatDateTime(getText(item, ["updatedAt", "createdAt"], "-")) }}</view>
             </view>
           </view>
         </scroll-view>
@@ -327,6 +315,7 @@ import {
   updateSearchTemplate,
   type SearchTemplateItem,
 } from "@/services/system/search";
+import { formatDateTime } from "@/utils/adminData";
 
 type RecordLike = Record<string, unknown>;
 
@@ -379,7 +368,6 @@ const filters = reactive({
   templateCode: "",
   scopeType: "",
   protocolName: "",
-  deviceNumber: "",
   enabled: "" as string | boolean,
 });
 
@@ -563,6 +551,15 @@ function getProtocolLabel(item: unknown) {
   return `${id ? `${id} - ` : ""}${name}${code ? ` (${code})` : ""}`;
 }
 
+function getTemplateProtocolName(item: unknown) {
+  const directName = getText(item, ["protocolName"], "");
+  if (directName) return directName;
+
+  const protocolId = getText(item, ["protocolId"], "");
+  const protocol = protocols.value.find((record) => getProtocolId(record) === protocolId);
+  return protocol ? getText(protocol, ["protocolName", "name", "protocolCode"], "-") : "-";
+}
+
 function getFieldName(item: unknown) {
   return getText(item, ["fieldName", "name", "field"], "");
 }
@@ -726,7 +723,6 @@ function resetFilters() {
   filters.templateCode = "";
   filters.scopeType = "";
   filters.protocolName = "";
-  filters.deviceNumber = "";
   filters.enabled = "";
   pagination.pageNum = 1;
   void refreshCurrent();
@@ -824,7 +820,6 @@ async function refreshCurrent() {
         templateCode: filters.templateCode.trim() || undefined,
         scopeType: filters.scopeType || undefined,
         protocolName: filters.protocolName.trim() || undefined,
-        deviceNumber: filters.deviceNumber.trim() || undefined,
         enabled: filters.enabled,
       }),
     )) as ApiResponseLike;
@@ -1379,10 +1374,14 @@ async function deleteCurrent() {
 }
 
 .pqt-cell--scope,
-.pqt-cell--id,
+.pqt-cell--entity,
 .pqt-cell--count,
 .pqt-cell--status {
   min-width: 90px;
+}
+
+.pqt-cell--entity {
+  min-width: 150px;
 }
 
 .pqt-cell--remark {

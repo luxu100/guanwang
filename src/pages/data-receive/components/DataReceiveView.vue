@@ -12,7 +12,7 @@
       </view>
     </view>
 
-    <view class="data-toolbar">
+    <view v-if="!isProtocolFieldEditor" class="data-toolbar">
       <view class="data-toolbar__filters">
         <view v-for="field in activeConfig.filters" :key="field.key" class="filter-field">
           <text class="filter-label">{{ field.label }}</text>
@@ -47,7 +47,7 @@
             <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
           </svg>
         </button>
-        <button v-if="activeConfig.formFields?.length" class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="isProtocolFieldEditor ? addInlineFieldRecord() : startCreate()">
+        <button v-if="activeConfig.formFields?.length" class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="startCreate">
           {{ createActionText }}
         </button>
         <button v-if="activeConfig.key === 'field' && !isProtocolFieldEditor" class="toolbar-button" hover-class="toolbar-button--hover" @click="saveCurrentFieldList">
@@ -63,6 +63,7 @@
           <text class="protocol-editor-subtitle">保存时会同步更新协议信息和字段列表</text>
         </view>
         <view class="protocol-editor-actions">
+          <button class="primary-button" hover-class="primary-button--hover" @click="addInlineFieldRecord">新增字段</button>
           <button class="secondary-button" hover-class="secondary-button--hover" @click="openProtocolTemplateImportDialog">导入模板</button>
           <button class="secondary-button" @click="openSaveProtocolTemplateDialog">保存模板</button>
           <button class="secondary-button" :disabled="importingProtocolJson" hover-class="secondary-button--hover" @click="openProtocolJsonDialog">
@@ -140,6 +141,7 @@
       class="data-layout"
       :class="{
         'data-layout--field-editor': isProtocolFieldEditor,
+        'data-layout--table-only': isTableOnly,
         'data-layout--parse': props.mode === 'parse' && !isProtocolFieldEditor,
       }"
     >
@@ -250,7 +252,7 @@
         </view>
       </view>
 
-      <view v-if="!isProtocolFieldEditor" class="detail-panel">
+      <view v-if="!isProtocolFieldEditor && !isTableOnly" class="detail-panel">
         <view class="detail-head">
           <text class="detail-title">{{ activeConfig.formFields?.length ? "编辑信息" : "详情信息" }}</text>
           <text class="detail-subtitle">{{ selectedRecord ? getSelectedSummary() : "请选择左侧记录" }}</text>
@@ -260,7 +262,7 @@
           <view
             v-if="activeConfig.formFields?.length"
             class="form-grid"
-            :class="{ 'form-grid--two-column': props.mode === 'parse' }"
+            :class="{ 'form-grid--two-column': activeConfig.key === 'protocol' || props.mode === 'parse' }"
           >
             <view v-for="field in activeConfig.formFields" :key="field.key" class="form-field" :class="{ 'form-field--wide': field.type === 'textarea' }">
               <text class="form-label" :class="{ 'form-label--required': field.required }">{{ field.label }}</text>
@@ -297,7 +299,12 @@
           </view>
 
           <view v-else-if="selectedRecord" class="detail-grid">
-            <view v-for="field in activeConfig.detailFields" :key="field.key" class="detail-item">
+            <view
+              v-for="field in activeConfig.detailFields"
+              :key="field.key"
+              class="detail-item"
+              :class="{ 'detail-item--wide': field.type === 'json' }"
+            >
               <text class="detail-item__label">{{ field.label }}</text>
               <text class="detail-item__value">{{ getColumnText(selectedRecord, field) }}</text>
             </view>
@@ -421,15 +428,16 @@ import {
   getDeviceProtocolRelationDetail,
   getDeviceProtocolRelationPage,
   getProtocolDefinitionDetail,
+  getProtocolDefinitionList,
   getProtocolDefinitionPage,
   updateDeviceProtocolRelation,
   updateProtocolDefinition,
 } from "@/services/data-receive/access";
+import { getDeviceList } from "@/services/device/info";
 import {
   batchSaveProtocolFields,
   createProtocolField,
   deleteProtocolField,
-  getFieldsByProtocol,
   getProtocolFieldFormats,
   getProtocolFieldDetail,
   getProtocolFieldPage,
@@ -442,15 +450,10 @@ import {
   getAlgorithmResultPage,
 } from "@/services/data-receive/algorithm";
 import {
-  getSamplingCssDataDetail,
   getSamplingCssDataPage,
-  getSamplingDailyDetail,
   getSamplingDailyPage,
-  getSamplingDetailDetail,
   getSamplingDetailPage,
-  getSamplingPressureDetail,
   getSamplingPressurePage,
-  getSamplingRecordDetail,
   getSamplingRecordPage,
 } from "@/services/data-receive/record";
 import {
@@ -584,8 +587,8 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     title: "设备协议绑定",
     description: "按设备、协议、AFN 和任务类型维护协议适配关系",
     columns: [
-      { key: "deviceId", label: "设备ID", width: 100 },
-      { key: "protocolId", label: "协议ID", width: 100 },
+      { key: "deviceNumber", label: "设备编号", width: 140 },
+      { key: "protocolName", label: "协议名称", width: 160 },
       { key: "afn", label: "AFN", width: 100 },
       { key: "taskType", label: "任务类型", width: 120 },
       { key: "contentPrefix", label: "内容前缀", width: 140 },
@@ -596,11 +599,10 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     detailFields: [],
     filters: [
       { key: "deviceNumber", label: "设备编号" },
-      { key: "protocolName", label: "协议名称" },
       ...baseTimeFilters,
     ],
     formFields: [
-      { key: "deviceId", label: "设备ID", type: "number", required: true },
+      { key: "deviceNumber", label: "设备编号", required: true },
       { key: "protocolId", label: "协议ID", type: "number", required: true },
       { key: "afn", label: "AFN" },
       { key: "taskType", label: "任务类型" },
@@ -659,7 +661,10 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
       { key: "description", label: "字段说明", type: "textarea" },
       { key: "sortOrder", label: "排序", type: "number" },
     ],
-    loadRecords: (query, filters) => (filters.protocolId ? getFieldsByProtocol(filters.protocolId) : getProtocolFieldPage(query)),
+    loadRecords: (query, filters) => getProtocolFieldPage({
+      ...query,
+      protocolId: filters.protocolId || undefined,
+    }),
     getDetail: (id) => getProtocolFieldDetail(id),
     createRecord: (data) => createProtocolField(data),
     updateRecord: (id, data) => updateProtocolField(id, data),
@@ -671,26 +676,22 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     title: "解析记录",
     description: "查询动态协议解析链路、状态、帧数量和解析值",
     columns: [
-      { key: "traceId", label: "追踪ID", width: 150 },
       { key: "deviceNumber", label: "设备编号", width: 130 },
-      { key: "protocolName", label: "协议名称", width: 140 },
-      { key: "afn", label: "AFN", width: 90 },
-      { key: "taskTypeName", label: "任务名称", width: 130 },
-      { key: "frameCount", label: "帧数", width: 80 },
-      { key: "fieldCount", label: "字段数", width: 90 },
       { key: "parseStatus", label: "状态", type: "status", width: 100 },
       { key: "parseTime", label: "解析时间", type: "datetime", width: 170 },
+      { key: "protocolName", label: "协议名称", width: 140 },
+      { key: "taskTypeName", label: "任务名称", width: 130 },
     ],
     detailFields: [
       { key: "traceId", label: "追踪ID" },
       { key: "channel", label: "通道" },
-      { key: "deviceNumber", label: "设备编号" },
       { key: "protocolCode", label: "协议编码" },
-      { key: "protocolName", label: "协议名称" },
       { key: "protocolVersion", label: "协议版本" },
       { key: "afn", label: "AFN" },
       { key: "taskType", label: "任务类型" },
       { key: "commandGroup", label: "指令组" },
+      { key: "frameCount", label: "帧数" },
+      { key: "fieldCount", label: "字段数" },
       { key: "contentBytes", label: "内容字节" },
       { key: "errorMessage", label: "错误信息" },
       { key: "values", label: "解析值", type: "json" },
@@ -712,15 +713,10 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     title: "算法分析",
     description: "查询算法输出结果、音频关联信息和多组信号处理结论",
     columns: [
-      { key: "deviceNumber", label: "设备编号", width: 130 },
-      { key: "deviceId", label: "设备ID", width: 100 },
-      { key: "samplingId", label: "采样ID", width: 100 },
-      { key: "audioFileId", label: "音频文件ID", width: 120 },
+      { key: "deviceName", label: "设备名称", width: 150 },
+      { key: "samplingName", label: "采样名称", width: 150 },
       { key: "audioTime", label: "音频时间", type: "datetime", width: 170 },
       { key: "signalprocessingResult", label: "算法结果", width: 180 },
-      { key: "signalprocessingResult1", label: "结果1", width: 140 },
-      { key: "signalprocessingResult2", label: "结果2", width: 140 },
-      { key: "signalprocessingResult3", label: "结果3", width: 140 },
       { key: "createdAt", label: "创建时间", type: "datetime", width: 170 },
     ],
     detailFields: [
@@ -729,12 +725,9 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
       { key: "deviceNumber", label: "设备编号" },
       { key: "samplingId", label: "采样ID" },
       { key: "audioFileId", label: "音频文件ID" },
-      { key: "audioTime", label: "音频时间", type: "datetime" },
-      { key: "signalprocessingResult", label: "算法结果" },
       { key: "signalprocessingResult1", label: "结果1" },
       { key: "signalprocessingResult2", label: "结果2" },
       { key: "signalprocessingResult3", label: "结果3" },
-      { key: "createdAt", label: "创建时间", type: "datetime" },
     ],
     filters: [
       { key: "deviceNumber", label: "设备编号" },
@@ -743,8 +736,8 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     loadRecords: (query) => getAlgorithmResultPage(query),
     getDetail: (id) => getAlgorithmResultDetail(id),
   },
-  samplingRecord: createRecordSection("samplingRecord", "record", "采样记录", "查询设备采样主记录和渗漏判断结果", getSamplingRecordPage, getSamplingRecordDetail, [
-    { key: "deviceNumber", label: "设备编号", width: 130 },
+  samplingRecord: createRecordSection("samplingRecord", "record", "采样记录", "查询设备采样主记录和渗漏判断结果", getSamplingRecordPage, [
+    { key: "deviceName", label: "设备名称", width: 150 },
     { key: "tubeGroup", label: "管组", width: 100 },
     { key: "samplingTime", label: "采样时间", type: "datetime", width: 170 },
     { key: "samplingAddress", label: "采样地址", width: 220 },
@@ -758,9 +751,9 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     { key: "tubeGroup", label: "管组" },
     { key: "leakStatus", label: "渗漏状态", type: "select", options: leakStatusOptions },
   ]),
-  samplingDetail: createRecordSection("samplingDetail", "record", "采样明细", "查询采样子序号和各项渗漏指标", getSamplingDetailPage, getSamplingDetailDetail, [
-    { key: "samplingId", label: "采样ID", width: 100 },
-    { key: "deviceNumber", label: "设备编号", width: 130 },
+  samplingDetail: createRecordSection("samplingDetail", "record", "采样明细", "查询采样子序号和各项渗漏指标", getSamplingDetailPage, [
+    { key: "samplingName", label: "采样名称", width: 150 },
+    { key: "deviceName", label: "设备名称", width: 150 },
     { key: "orderNumber", label: "序号", width: 80 },
     { key: "leakEsa", label: "ESA", width: 100 },
     { key: "leakIntensity", label: "强度", width: 100 },
@@ -768,10 +761,10 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     { key: "createdAt", label: "创建时间", type: "datetime", width: 170 },
   ], [
     { key: "deviceNumber", label: "设备编号" },
+    { key: "samplingName", label: "采样名称" },
   ]),
-  samplingDaily: createRecordSection("samplingDaily", "record", "采样日报", "查询日维度渗漏属性、状态和采样位置", getSamplingDailyPage, getSamplingDailyDetail, [
-    { key: "deviceNumber", label: "设备编号", width: 130 },
-    { key: "deviceId", label: "设备ID", width: 100 },
+  samplingDaily: createRecordSection("samplingDaily", "record", "采样日报", "查询日维度渗漏属性、状态和采样位置", getSamplingDailyPage, [
+    { key: "deviceName", label: "设备名称", width: 150 },
     { key: "leakProperty", label: "渗漏属性", width: 100 },
     { key: "leakStatus", label: "渗漏状态", type: "status", width: 100 },
     { key: "samplingTime", label: "采样时间", type: "datetime", width: 170 },
@@ -780,9 +773,8 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     { key: "deviceNumber", label: "设备编号" },
     { key: "leakStatus", label: "渗漏状态", type: "select", options: leakStatusOptions },
   ]),
-  samplingPressure: createRecordSection("samplingPressure", "record", "采样压力", "查询压力文件、压力时间和采集位置", getSamplingPressurePage, getSamplingPressureDetail, [
-    { key: "deviceNumber", label: "设备编号", width: 130 },
-    { key: "deviceId", label: "设备ID", width: 100 },
+  samplingPressure: createRecordSection("samplingPressure", "record", "采样压力", "查询压力文件、压力时间和采集位置", getSamplingPressurePage, [
+    { key: "deviceName", label: "设备名称", width: 150 },
     { key: "pressureFileId", label: "压力文件ID", width: 130 },
     { key: "pressureTime", label: "压力时间", type: "datetime", width: 170 },
     { key: "pressureAddress", label: "压力地址", width: 240 },
@@ -790,8 +782,8 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
   ], [
     { key: "deviceNumber", label: "设备编号" },
   ]),
-  samplingCss: createRecordSection("samplingCss", "record", "CSS采样数据", "查询井内温压、电池和分析结论", getSamplingCssDataPage, getSamplingCssDataDetail, [
-    { key: "deviceId", label: "设备ID", width: 100 },
+  samplingCss: createRecordSection("samplingCss", "record", "CSS采样数据", "查询井内温压、电池和分析结论", getSamplingCssDataPage, [
+    { key: "deviceName", label: "设备名称", width: 150 },
     { key: "samplingTime", label: "采样时间", type: "datetime", width: 170 },
     { key: "liquidDepth", label: "液位", width: 90 },
     { key: "wellTemperature", label: "井温", width: 90 },
@@ -877,12 +869,15 @@ const pageInputValue = ref("1");
 const pageSizeInputValue = ref("10");
 const filterState = reactive<Record<SectionKey, Record<string, string>>>(createInitialFilterState());
 const formModel = reactive<Record<string, FormValue>>({});
+const deviceNameById = ref(new Map<string, string>());
+const protocolNameById = ref(new Map<string, string>());
 
 const modeSections = computed(() => modeSectionKeys[props.mode].map((key) => sectionConfigs[key]));
 const activeConfig = computed(() => sectionConfigs[activeSectionKey.value]);
 const filterModel = computed(() => filterState[activeSectionKey.value]);
 const formatFieldConfig = computed(() => sectionConfigs.field.formFields?.find((field) => field.key === "format"));
 const isProtocolFieldEditor = computed(() => activeConfig.value.key === "field" && Boolean(activeFieldProtocol.value));
+const isTableOnly = computed(() => props.mode === "record");
 const createActionText = computed(() => {
   if (isProtocolFieldEditor.value) {
     return "新增字段";
@@ -975,7 +970,6 @@ function createRecordSection(
   title: string,
   description: string,
   loadRecords: (query: RecordLike) => Promise<ApiResponseLike>,
-  getDetail: (id: string | number) => Promise<ApiResponseLike>,
   columns: FieldConfig[],
   extraFilters: FieldConfig[],
 ): SectionConfig {
@@ -988,7 +982,6 @@ function createRecordSection(
     detailFields: columns,
     filters: [...extraFilters, ...baseTimeFilters],
     loadRecords,
-    getDetail,
   };
 }
 
@@ -1019,8 +1012,20 @@ async function fetchRecords() {
     const response = await activeConfig.value.loadRecords(query, filterModel.value);
     assertSuccessResponse(response);
     const parsed = parseResponseRecords(response);
+    if (props.mode === "record" || activeConfig.value.key === "algorithmResult") {
+      await ensureDeviceNameMap();
+    }
+    if (activeConfig.value.key === "relation") {
+      await ensureProtocolNameMap();
+    }
 
-    records.value = isProtocolFieldEditor.value ? sortProtocolFieldRecords(parsed.records) : parsed.records;
+    records.value = isProtocolFieldEditor.value
+      ? sortProtocolFieldRecords(parsed.records)
+      : activeConfig.value.key === "relation"
+        ? normalizeDeviceProtocolRelations(parsed.records)
+        : props.mode === "record" || activeConfig.value.key === "algorithmResult"
+          ? normalizeDeviceNameRecords(parsed.records)
+          : parsed.records;
     total.value = parsed.total;
     if (isProtocolFieldEditor.value) {
       syncFieldCommonFormFromRecords(records.value);
@@ -1052,14 +1057,110 @@ function parseResponseRecords(response: ApiResponseLike) {
   return parsePageResponse(response);
 }
 
+function normalizeDeviceProtocolRelations(items: RecordLike[]) {
+  return items.map((item) => ({
+    ...item,
+    deviceNumber: getText(item, ["deviceNumber", "device_number"], "-"),
+    protocolName:
+      getValue(item, ["protocolName"]) ??
+      getValue(item, ["protocol", "protocolName"]) ??
+      getValue(item, ["protocolDefinition", "protocolName"]) ??
+      protocolNameById.value.get(String(getValue(item, ["protocolId"]) ?? "")) ??
+      "-",
+  }));
+}
+
+async function ensureDeviceNameMap() {
+  if (deviceNameById.value.size > 0) {
+    return;
+  }
+
+  try {
+    const response = await getDeviceList();
+    const devices = parseListResponse(response as ApiResponseLike);
+    deviceNameById.value = new Map(
+      devices
+        .map((item) => {
+          const id = getValue(item, ["id", "deviceId"]);
+          const name = getText(item, ["deviceName", "deviceAlias", "deviceNumber"], "");
+          return id !== undefined && id !== null && name ? [String(id), name] as const : null;
+        })
+        .filter((item): item is readonly [string, string] => Boolean(item)),
+    );
+  } catch {
+    deviceNameById.value = new Map();
+  }
+}
+
+async function ensureProtocolNameMap() {
+  if (protocolNameById.value.size > 0) {
+    return;
+  }
+
+  try {
+    const response = await getProtocolDefinitionList();
+    const protocols = parseListResponse(response as ApiResponseLike);
+    protocolNameById.value = new Map(
+      protocols
+        .map((item) => {
+          const id = getValue(item, ["id", "protocolId"]);
+          const name = getText(item, ["protocolName", "protocolCode"], "");
+          return id !== undefined && id !== null && name ? [String(id), name] as const : null;
+        })
+        .filter((item): item is readonly [string, string] => Boolean(item)),
+    );
+  } catch {
+    protocolNameById.value = new Map();
+  }
+}
+
+function normalizeDeviceNameRecords(items: RecordLike[]) {
+  return items.map((item) => {
+    const deviceId = String(getValue(item, ["deviceId"]) ?? "");
+    const samplingId = getValue(item, ["samplingId"]);
+    return {
+      ...item,
+      deviceName:
+        getValue(item, ["deviceName", "deviceAlias"]) ??
+        getValue(item, ["device", "deviceName"]) ??
+        getValue(item, ["device", "deviceAlias"]) ??
+        deviceNameById.value.get(deviceId) ??
+        getValue(item, ["deviceNumber"]) ??
+        getValue(item, ["deviceId"]),
+      samplingName:
+        getValue(item, ["samplingName", "samplingRecordName"]) ??
+        getValue(item, ["samplingRecord", "samplingName"]) ??
+        (samplingId === undefined || samplingId === null || samplingId === "" ? undefined : `采样 ${samplingId}`),
+    };
+  });
+}
+
 function buildQuery() {
-  return removeEmptyFields({
+  const query: RecordLike = {
     pageNum: pagination.pageNum,
     pageSize: pagination.pageSize,
     sortOrder: "desc",
     sortField: "createdAt",
     ...filterModel.value,
-  });
+  };
+
+  for (const field of activeConfig.value.filters) {
+    if (field.type === "datetime" && query[field.key]) {
+      query[field.key] = normalizeDateTimeForApi(String(query[field.key]));
+    }
+  }
+
+  return removeEmptyFields(query);
+}
+
+function normalizeDateTimeForApi(value: string) {
+  const text = value.trim();
+  if (!text) {
+    return "";
+  }
+
+  const normalized = text.replace(/\s+/, "T");
+  return normalized.length === 16 ? `${normalized}:00` : normalized;
 }
 
 function searchRecords() {
@@ -1132,10 +1233,15 @@ function jumpToPage(page: number) {
 
 async function selectRecord(item: RecordLike | null, index: number) {
   selectedRecord.value = item;
-  selectedKey.value = item ? getRowKey(item, index) : "";
+  const rowKey = item ? getRowKey(item, index) : "";
+  selectedKey.value = rowKey;
   fillForm(item);
 
   if (isProtocolFieldEditor.value) {
+    return;
+  }
+
+  if (isTableOnly.value) {
     return;
   }
 
@@ -1147,13 +1253,33 @@ async function selectRecord(item: RecordLike | null, index: number) {
   try {
     const response = await activeConfig.value.getDetail(id);
     assertSuccessResponse(response);
-    if (isObject(response.data)) {
-      selectedRecord.value = response.data;
-      fillForm(response.data);
+    if (isObject(response.data) && selectedKey.value === rowKey) {
+      const detailRecord = mergeSelectedRecord(item, response.data);
+      selectedRecord.value = detailRecord;
+      fillForm(detailRecord);
     }
   } catch {
     // 详情接口失败时保留列表行，避免影响主表查看。
   }
+}
+
+function mergeSelectedRecord(listRecord: RecordLike | null, detailRecord: RecordLike) {
+  const merged = {
+    ...(listRecord || {}),
+    ...detailRecord,
+  };
+
+  if (activeConfig.value.key === "relation") {
+    const deviceNumber =
+      getValue(detailRecord, ["deviceNumber", "device_number"]) ??
+      getValue(listRecord || {}, ["deviceNumber", "device_number"]);
+
+    if (deviceNumber !== undefined && deviceNumber !== null && deviceNumber !== "") {
+      merged.deviceNumber = deviceNumber;
+    }
+  }
+
+  return merged;
 }
 
 function fillForm(item: RecordLike | null) {
@@ -1163,6 +1289,9 @@ function fillForm(item: RecordLike | null) {
 
   for (const field of activeConfig.value.formFields || []) {
     let value = item ? getValue(item, [field.key]) : undefined;
+    if (activeConfig.value.key === "relation" && field.key === "deviceNumber" && (value === undefined || value === null || value === "")) {
+      value = item ? getValue(item, ["device_number"]) : undefined;
+    }
     if (activeConfig.value.key === "protocol" && field.key === "id" && (value === undefined || value === null || value === "")) {
       value = item ? getValue(item, ["port"]) : undefined;
     }
@@ -2280,11 +2409,12 @@ function getStatusLabel(value: unknown, key: string) {
     return "-";
   }
 
-  if (text === "success" || text === "SUCCESS") {
+  const normalizedText = text.toUpperCase();
+  if (normalizedText === "SUCCESS") {
     return "成功";
   }
 
-  if (text === "failed" || text === "FAIL" || text === "ERROR") {
+  if (normalizedText === "FAILED" || normalizedText === "FAIL" || normalizedText === "FAILURE" || normalizedText === "ERROR") {
     return "失败";
   }
 
@@ -2519,6 +2649,10 @@ async function handleRefresh() {
   grid-template-columns: minmax(0, 1fr);
 }
 
+.data-layout--table-only {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .data-layout--parse {
   grid-template-columns: minmax(0, 1fr) minmax(390px, 0.44fr);
 }
@@ -2533,7 +2667,7 @@ async function handleRefresh() {
 }
 
 .detail-panel {
-  overflow: auto;
+  overflow: hidden;
 }
 
 .table-head,
@@ -2705,10 +2839,17 @@ async function handleRefresh() {
 }
 
 .table-state {
-  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 100%;
+  height: 100%;
+  min-height: 180px;
+  box-sizing: border-box;
   color: var(--admin-muted-color, #7c8da1);
   font-size: 14px;
-  line-height: 180px;
+  line-height: 1.5;
   text-align: center;
 }
 
@@ -2886,13 +3027,16 @@ async function handleRefresh() {
   max-width: 100%;
   min-height: 0;
   padding: 14px;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .detail-body :deep(.uni-scroll-view-content) {
   box-sizing: border-box;
   width: 100%;
   max-width: 100%;
+  min-height: 100%;
+  padding-bottom: 2px;
 }
 
 .protocol-editor-card {
@@ -2957,7 +3101,6 @@ async function handleRefresh() {
 .form-grid,
 .detail-grid {
   display: grid;
-  grid-template-columns: 1fr;
   gap: 12px;
   box-sizing: border-box;
   width: 100%;
@@ -2965,8 +3108,17 @@ async function handleRefresh() {
   min-width: 0;
 }
 
+.form-grid {
+  grid-template-columns: 1fr;
+}
+
+.detail-grid,
 .form-grid--two-column {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.detail-item--wide {
+  grid-column: 1 / -1;
 }
 
 .form-field {
@@ -2974,7 +3126,7 @@ async function handleRefresh() {
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  overflow: auto;
+  overflow: visible;
 }
 
 .form-label {
@@ -3188,6 +3340,7 @@ async function handleRefresh() {
 }
 
 @media (max-width: 680px) {
+  .detail-grid,
   .form-grid--two-column,
   .modal-form-grid {
     grid-template-columns: 1fr;

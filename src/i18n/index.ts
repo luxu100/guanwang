@@ -68,7 +68,7 @@ export function getLocaleByRegion(region: unknown): LocaleCode | null {
 }
 
 export function getInitialLocale(): LocaleCode {
-  return getUserLocale() || getStoredLocale() || DEFAULT_LOCALE;
+  return getStoredLocale() || getUserLocale() || DEFAULT_LOCALE;
 }
 
 export function getLocale() {
@@ -81,6 +81,12 @@ export function setLocale(locale: LocaleCode) {
 }
 
 export function applyUserLocale(userInfo = uni.getStorageSync("userInfo")) {
+  const storedLocale = getStoredLocale();
+  if (storedLocale) {
+    currentLocale.value = storedLocale;
+    return storedLocale;
+  }
+
   const userLocale = getUserLocale(userInfo);
   if (userLocale) {
     setLocale(userLocale);

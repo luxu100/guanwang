@@ -3,6 +3,7 @@ import type { ApiResponse, PageResult, ServiceId, ServiceQuery } from "@/service
 export interface SamplingRecord {
   id?: ServiceId;
   deviceId?: ServiceId;
+  deviceName?: string;
   deviceNumber?: string;
   tubeGroup?: string;
   samplingTime?: string;
@@ -18,6 +19,8 @@ export interface SamplingRecord {
 export interface SamplingDetail {
   id?: ServiceId;
   samplingId?: ServiceId;
+  samplingName?: string;
+  deviceName?: string;
   deviceNumber?: string;
   orderNumber?: number;
   leakEsa?: number;
@@ -28,6 +31,7 @@ export interface SamplingDetail {
 
 export interface SamplingDaily {
   id?: ServiceId;
+  deviceName?: string;
   deviceNumber?: string;
   deviceId?: ServiceId;
   leakProperty?: number;
@@ -39,6 +43,7 @@ export interface SamplingDaily {
 export interface SamplingPressure {
   id?: ServiceId;
   deviceId?: ServiceId;
+  deviceName?: string;
   deviceNumber?: string;
   pressureFileId?: ServiceId;
   pressureTime?: string;
@@ -49,6 +54,8 @@ export interface SamplingPressure {
 export interface SamplingCssData {
   id?: ServiceId;
   deviceId?: ServiceId;
+  deviceName?: string;
+  deviceNumber?: string;
   samplingTime?: string;
   liquidDepth?: string;
   wellTemperature?: string;

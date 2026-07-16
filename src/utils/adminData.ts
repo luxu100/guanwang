@@ -102,11 +102,17 @@ export function getFirstNumber(item: unknown, keys: string[]) {
 }
 
 export function formatDateTime(value: string) {
-  if (!value || value === "-") {
-    return value || "-";
+  const text = String(value || "").trim();
+  if (!text || text === "-") {
+    return text || "-";
   }
 
-  return value.replace("T", " ").replace(/\.\d{3}Z?$/, "");
+  const matched = text.match(/^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2}:\d{2})/);
+  if (matched) {
+    return `${matched[1]} ${matched[2]}`;
+  }
+
+  return text.replace("T", " ").replace(/\.\d+(?:Z|[+-]\d{2}:?\d{2})?$/, "").replace(/Z$/, "");
 }
 
 export function removeEmptyFields(data: RecordLike) {

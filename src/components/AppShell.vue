@@ -200,8 +200,8 @@ import DeviceManagementView from "@/pages/device/components/DeviceManagementView
 import DeviceSettingsView from "@/pages/device/settings/components/DeviceSettingsView.vue";
 import SystemManagementView from "@/pages/system/components/SystemManagementView.vue";
 import SearchTemplateView from "@/pages/system/search/components/SearchTemplateView.vue";
-import CommandManagePage from "@/pages/command/commandManage.vue";
-import CommandConfigurationPage from "@/pages/command/commandConfiguration.vue";
+import CommandManageView from "@/pages/command/components/CommandManageView.vue";
+import CommandConfigurationView from "@/pages/command/components/CommandConfigurationView.vue";
 import DataReceiveView from "@/pages/data-receive/components/DataReceiveView.vue";
 import WorkOrderCreateView from "@/pages/work-order/components/WorkOrderCreateView.vue";
 import WorksheetTableView from "@/pages/work-order/components/WorksheetTableView.vue";
@@ -218,6 +218,7 @@ import { TOKEN_KEY } from "@/utils/request";
 import LocaleLeakMap from "@/pages/leak-monitor/components/LocaleLeakMap.vue";
 import { applyUserLocale, createScopedT, useI18n } from "@/i18n";
 import ValveView from "@/pages/device/valve/components/ValveView.vue";
+import DeviceParameterView from "@/pages/device/parameter/components/DeviceParameterView.vue";
 interface MenuItem {
   labelKey: string;
   path: string;
@@ -261,7 +262,8 @@ const menuItems: MenuItem[] = [
       { labelKey: "deviceInfo", path: "/pages/device/info/info", icon: "device", keywords: ["设备", "信息"] },
       { labelKey: "deviceMaintenance", path: "/pages/device/maintenance/maintenance", icon: "device", keywords: ["拆装", "维护"] },
       { labelKey: "deviceProtocol", path: "/pages/device/protocol/protocol", icon: "device", keywords: ["协议"] },
-      { labelKey: "deviceSettings", path: "/pages/device/settings/settings", icon: "device", keywords: ["参数"] },
+      // { labelKey: "deviceSettings", path: "/pages/device/settings/settings", icon: "device", keywords: ["参数"] },
+      { labelKey: "deviceParameter", path: "/pages/device/parameter/parameter", icon: "device", keywords: ["参数"] },
       { labelKey: "deviceValve", path: "/pages/device/valve/valve", icon: "device", keywords: ["阀门"] },
     ],
   },
@@ -370,11 +372,12 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/device/info/info": { component: DeviceManagementView, props: { mode: "info" } },
   "/pages/device/maintenance/maintenance": { component: DeviceManagementView, props: { mode: "maintenance" } },
   // "/pages/device/status/status": { component: DeviceManagementView, props: { mode: "status" } },
-  "/pages/device/settings/settings": { component: DeviceSettingsView },
+  // "/pages/device/settings/settings": { component: DeviceSettingsView },
+  "/pages/device/parameter/parameter": { component: DeviceParameterView },
   "/pages/device/protocol/protocol": { component: DeviceManagementView, props: { mode: "protocol" } },
   "/pages/device/valve/valve": { component: ValveView },
-  "/pages/command/commandManage": { component: CommandManagePage },
-  "/pages/command/commandConfiguration": { component: CommandConfigurationPage },
+  "/pages/command/commandManage": { component: CommandManageView },
+  "/pages/command/commandConfiguration": { component: CommandConfigurationView },
   "/pages/data-analysis/overview/overview": createPlaceholderContent("/pages/data-analysis/overview/overview"),
   "/pages/data-analysis/audio/audio": { component: DataAnalysisSheetView, props: { mode: "audio" } },
   "/pages/data-analysis/leakage/leakage": { component: DataAnalysisSheetView, props: { mode: "leakage" } },
@@ -462,7 +465,11 @@ function clearSearch() {
 }
 
 function isMenuItemActive(item: MenuItem) {
-  return currentPath.value === item.path || Boolean(item.children?.some((child) => currentPath.value === child.path));
+  if (item.children?.length) {
+    return item.children.some((child) => currentPath.value === child.path);
+  }
+
+  return currentPath.value === item.path;
 }
 
 function isMenuItemExpanded(item: MenuItem) {
@@ -720,10 +727,8 @@ function isCollapsedSubmenuVisible(item: MenuItem) {
 
 function handleLogout() {
   // 登录态和权限信息都保存在本地缓存，退出时必须全部清理，避免下次进入误判已登录。
-  clearAuthStorage(uni, [OPENED_TABS_KEY]);
-  uni.reLaunch({
-    url: LOGIN_PATH,
-  });
+  clearAuthStorage([OPENED_TABS_KEY]);
+  redirectToLogin();
 }
 
 function ensureAuthenticatedRoute() {
@@ -737,11 +742,27 @@ function ensureAuthenticatedRoute() {
     return true;
   }
 
-  clearAuthStorage(uni, [OPENED_TABS_KEY]);
-  uni.reLaunch({
-    url: decision.redirectUrl,
-  });
+  clearAuthStorage([OPENED_TABS_KEY]);
+  redirectToLogin(decision.redirectUrl);
   return false;
+}
+
+function redirectToLogin(url: string = LOGIN_PATH) {
+  // #ifdef H5
+  // 生产环境使用 history 路由时，深层登录地址依赖服务器的 SPA fallback。
+  // 通过根地址加登录页 hash 重新加载，服务器只需提供应用入口，不再请求深层 URL。
+  const appBaseUrl = import.meta.env.BASE_URL || "/";
+  const loginUrl = new URL(appBaseUrl, window.location.origin);
+  loginUrl.hash = url;
+  window.location.replace(loginUrl.toString());
+  return;
+  // #endif
+
+  // #ifndef H5
+  uni.reLaunch({
+    url,
+  });
+  // #endif
 }
 
 function getCurrentAuthPath() {

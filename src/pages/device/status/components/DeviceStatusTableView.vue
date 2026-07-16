@@ -169,8 +169,8 @@ import type {Device, DeviceStatusVO, MaintenanceRecord} from '@/services/device/
 import type { Pagination } from '@/types/api';
 import DeviceStatusToolbar from "@/pages/device/status/components/DeviceStatusToolbar.vue";
 import {getDeviceStatusUploadPageT} from "@/services/device/status.typed";
-import XFloatingCollapseHandle from "@/pages/device/components/x/XFloatingCollapseHandle.vue";
-import XPaginationBar from "@/pages/device/components/x/XPaginationBar.vue";
+import XFloatingCollapseHandle from "@/pages/device/components/x/collapse/XFloatingCollapseHandle.vue";
+import XPaginationBar from "@/pages/device/components/x/table/XPaginationBar.vue";
 import {createScopedT} from "@/i18n";
 const t = createScopedT("devicePage");
 
@@ -301,8 +301,8 @@ const getStatusClass = (type: string, value: number) => {
 };
 </script>
 <style scoped lang="scss">
-@import "@/pages/device/components/x/status.css";
-@import "@/pages/device/components/x/table-cell.css";
-@import "@/pages/device/components/x/table.css";
-@import "@/pages/device/components/x/table-row.css";
+@import "@/pages/device/components/x/common/status.css";
+@import "@/pages/device/components/x/table/styles/table-cell.css";
+@import "@/pages/device/components/x/table/styles/table.css";
+@import "@/pages/device/components/x/table/styles/table-row.css";
 </style>

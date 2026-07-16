@@ -5,6 +5,7 @@ import test from "node:test";
 const systemSource = readFileSync(new URL("../src/pages/system/components/SystemManagementView.vue", import.meta.url), "utf8");
 const dataReceiveSource = readFileSync(new URL("../src/pages/data-receive/components/DataReceiveView.vue", import.meta.url), "utf8");
 const searchTemplateSource = readFileSync(new URL("../src/pages/system/search/components/SearchTemplateView.vue", import.meta.url), "utf8");
+const dynamicDialogSource = readFileSync(new URL("../src/pages/device/components/x/dialog/XDynamicDialog.vue", import.meta.url), "utf8");
 
 test("system and data receive modules do not render top metric cards", () => {
   assert.doesNotMatch(systemSource, /<AdminMetricRow\b|from "\@\/components\/admin\/AdminMetricRow\.vue"/);
@@ -29,10 +30,26 @@ test("detail forms constrain inputs to their panels", () => {
   assert.match(systemSource, /\.form-field\s*\{[\s\S]*?max-width:\s*100%;/);
   assert.match(systemSource, /\.form-grid--user\s*\{[\s\S]*?repeat\(auto-fit, minmax\(220px, 1fr\)\)/);
   assert.match(systemSource, /class="content-layout content-layout--vertical content-layout--user"/);
-  assert.match(systemSource, /\.content-layout--user\s*\{[\s\S]*?grid-template-rows:\s*minmax\(240px, 0\.85fr\) minmax\(280px, 0\.75fr\);/);
-  assert.match(systemSource, /\.content-layout--user \.form-grid--user\s*\{[\s\S]*?padding-bottom:\s*16px;/);
-  assert.match(systemSource, /\.content-layout--user \.form-field\s*\{[\s\S]*?overflow:\s*visible;/);
+  assert.match(systemSource, /\.content-layout--user\s*\{[\s\S]*?position:\s*relative;[\s\S]*?display:\s*block;/);
+  assert.match(systemSource, /class="detail-panel detail-panel--user"/);
+  assert.match(systemSource, /\.detail-panel--user\s*\{[\s\S]*?overflow:\s*hidden;/);
+  assert.match(systemSource, /\.detail-panel--user \.form-grid--user\s*\{[\s\S]*?height:\s*0;[\s\S]*?padding-bottom:\s*20px;[\s\S]*?overflow-y:\s*auto;/);
+  assert.match(systemSource, /\.detail-panel--user \.form-field\s*\{[\s\S]*?overflow:\s*visible;/);
+  assert.match(systemSource, /\.detail-panel--user \.form-actions\s*\{[\s\S]*?flex:\s*none;/);
+  assert.match(systemSource, /class="check-grid check-grid--roles"/);
+  assert.match(systemSource, /\.check-grid--roles\s*\{[\s\S]*?min-height:\s*44px;/);
+  assert.match(systemSource, /\.user-config-row \.check-grid\s*\{[\s\S]*?overflow-y:\s*auto;/);
+  assert.match(systemSource, /class="detail-panel detail-panel--menu"/);
+  assert.match(systemSource, /\.detail-panel--menu \.form-grid\s*\{[\s\S]*?overflow-y:\s*auto;/);
+  assert.match(systemSource, /\.detail-panel--menu \.form-field,[\s\S]*?overflow:\s*visible;/);
   assert.match(systemSource, /\.check-grid\s*\{[\s\S]*?max-width:\s*100%;/);
+  assert.match(systemSource, /\.filter-select\s*\{[\s\S]*?display:\s*flex;[\s\S]*?align-items:\s*center;[\s\S]*?line-height:\s*1;/);
+  assert.match(dataReceiveSource, /\.detail-panel\s*\{[\s\S]*?overflow:\s*hidden;/);
+  assert.match(dataReceiveSource, /\.detail-body\s*\{[\s\S]*?overflow-x:\s*hidden;[\s\S]*?overflow-y:\s*auto;/);
+  assert.match(dataReceiveSource, /\.form-field\s*\{[\s\S]*?overflow:\s*visible;/);
+  assert.match(dynamicDialogSource, /class="form-layout" :class="\{ 'form-layout--with-side': asideSchema \}"/);
+  assert.match(dynamicDialogSource, /\.dialog-body\s*\{[\s\S]*?overflow-x:\s*hidden;[\s\S]*?overflow-y:\s*auto;/);
+  assert.match(dynamicDialogSource, /\.form-grid--main\s*\{[\s\S]*?repeat\(2, minmax\(0, 1fr\)\)/);
 });
 
 test("admin tables and module containers scroll instead of clipping overflowing content", () => {
@@ -50,7 +67,8 @@ test("admin tables and module containers scroll instead of clipping overflowing 
   assert.doesNotMatch(dataReceiveSource, /activeTableColumns|gridTemplateColumns/);
   assert.match(dataReceiveSource, /getColumnMinWidth\(column\)/);
   assert.match(dataReceiveSource, /\.data-table\s*\{[\s\S]*?display:\s*table;[\s\S]*?table-layout:\s*auto;[\s\S]*?width:\s*100%;/);
-  assert.doesNotMatch(dataReceiveSource, /\.data-table\s*\{[\s\S]*?min-height:\s*100%;[\s\S]*?\}/);
+  const dataTableStyle = dataReceiveSource.match(/\.data-table\s*\{([\s\S]*?)\}/)?.[1] || "";
+  assert.doesNotMatch(dataTableStyle, /min-height:\s*100%;/);
   assert.match(dataReceiveSource, /\.data-row\s*\{[\s\S]*?display:\s*table-row;/);
   assert.match(dataReceiveSource, /\.table-scroll\s*\{[\s\S]*?overflow:\s*auto;/);
   assert.match(dataReceiveSource, /\.data-cell\s*\{[\s\S]*?display:\s*table-cell;/);
@@ -92,13 +110,28 @@ test("refresh animations and super admin partition locking remain enabled", () =
   assert.match(dataReceiveSource, /@keyframes data-receive-refresh-spin/);
 });
 
-test("query filters use business names instead of ids and parse hides the field tab", () => {
+test("query template omits device queries and parse hides the field tab", () => {
   assert.match(searchTemplateSource, /协议名称/);
   assert.match(searchTemplateSource, /v-model="filters\.protocolName"/);
-  assert.match(searchTemplateSource, /设备编号/);
-  assert.match(searchTemplateSource, /v-model="filters\.deviceNumber"/);
+  assert.doesNotMatch(searchTemplateSource, /v-model="filters\.deviceNumber"/);
+  assert.doesNotMatch(searchTemplateSource, /getTemplateDeviceName/);
+  assert.match(searchTemplateSource, /getTemplateProtocolName/);
   assert.match(dataReceiveSource, /parse:\s*\["parseRecord", "algorithmResult"\]/);
   assert.doesNotMatch(dataReceiveSource, /parse:\s*\["field",/);
   assert.match(dataReceiveSource, /\{ key: "protocolName", label: "协议名称" \}/);
   assert.match(dataReceiveSource, /\{ key: "deviceNumber", label: "设备编号" \}/);
+  assert.doesNotMatch(dataReceiveSource, /\{ key: "deviceName", label: "设备名称" \}/);
+  assert.doesNotMatch(dataReceiveSource, /\{ key: "deviceAlias", label: "设备名称" \}/);
+  assert.doesNotMatch(dataReceiveSource, /\{ key: "deviceId", label: "设备ID" \},\s*\.\.\.baseTimeFilters/);
+  assert.doesNotMatch(dataReceiveSource, /\{ key: "protocolId", label: "协议ID" \},\s*\.\.\.baseTimeFilters/);
+});
+
+test("data records render as a table without detail requests", () => {
+  assert.match(dataReceiveSource, /const isTableOnly = computed\(\(\) => props\.mode === "record"\)/);
+  assert.match(dataReceiveSource, /v-if="!isProtocolFieldEditor && !isTableOnly"/);
+  assert.match(dataReceiveSource, /'data-layout--table-only': isTableOnly/);
+  assert.match(dataReceiveSource, /if \(isTableOnly\.value\) \{\s*return;\s*\}/);
+  assert.match(dataReceiveSource, /samplingRecord: createRecordSection\([\s\S]*?getSamplingRecordPage,\s*\[/);
+  assert.doesNotMatch(dataReceiveSource, /samplingRecord: createRecordSection\([\s\S]*?getSamplingRecordDetail/);
+  assert.doesNotMatch(dataReceiveSource, /samplingDetail: createRecordSection\([\s\S]*?getSamplingDetailDetail/);
 });

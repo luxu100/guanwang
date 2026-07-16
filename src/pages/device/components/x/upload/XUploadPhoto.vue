@@ -28,10 +28,8 @@
 <script setup lang="ts">
 import {ref,watch,onUnmounted} from "vue";
 import {uploadImageT,getFileDetail} from "@/services/device/sysFile";
-
-const BASE_URL=import.meta.env.VITE_API_BASE_URL||import.meta.env.VITE_DEV_PROXY_TARGET||"";
-
 import {createScopedT} from "@/i18n";
+import {normalizeUrl} from "@/utils/request";
 const t = createScopedT("devicePage");
 
 const props=defineProps({
@@ -68,7 +66,7 @@ watch(()=>props.modelValue,async val=>{
         id:r.data.id,
         url:r.data.filePath.startsWith("http")
             ? r.data.filePath
-            : BASE_URL+r.data.filePath
+            : normalizeUrl(r.data.filePath)
       });
     }
   }
@@ -96,7 +94,7 @@ function choose(){
               id:r.data.id,
               url:r.data.filePath.startsWith("http")
                   ? r.data.filePath
-                  : BASE_URL+r.data.filePath
+                  : normalizeUrl(r.data.filePath)
             });
           }
         }

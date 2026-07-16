@@ -3,8 +3,10 @@ import type { ApiResponse, PageResult, ServiceId, ServiceQuery } from "@/service
 export interface AlgorithmResult {
   id?: ServiceId;
   deviceId?: ServiceId;
+  deviceName?: string;
   deviceNumber?: string;
   samplingId?: ServiceId;
+  samplingName?: string;
   audioFileId?: ServiceId;
   audioTime?: string;
   signalprocessingResult?: string;
@@ -15,6 +17,7 @@ export interface AlgorithmResult {
 }
 
 export interface AlgorithmResultQuery extends ServiceQuery {
+  deviceName?: string;
   deviceNumber?: string;
   deviceId?: ServiceId;
   samplingId?: ServiceId;

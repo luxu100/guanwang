@@ -3,16 +3,16 @@
     <TencentLeakMap
       v-if="provider === 'tencent'"
       ref="mapRef"
-      :key="provider"
       :points="mapPoints"
+      :regions="mapRegions"
       :selected-device-number="selectedDevice?.deviceNumber"
       @device-click="handleMapDeviceClick"
     />
     <GoogleLeakMap
       v-else
       ref="mapRef"
-      :key="provider"
       :points="mapPoints"
+      :regions="mapRegions"
       :selected-device-number="selectedDevice?.deviceNumber"
       @device-click="handleMapDeviceClick"
     />
@@ -21,7 +21,6 @@
       :filters="workspace.filters"
       :collapsed="sidebarCollapsed"
       :loading="loading || sidebarLoading"
-      :source="source"
       :metrics="metrics"
       :devices="devices"
       :page="workspace.page"
@@ -33,31 +32,38 @@
       @reset="workspace.resetFilters"
       @select-device="handleSelectDevice"
       @change-page="workspace.updatePage"
-      @update-source="workspace.updateSource"
     />
 
     <DeviceDetailDialog
       :visible="detailVisible"
+      :sidebar-collapsed="sidebarCollapsed"
       :loading="detailLoading"
       :device="selectedDevice"
       :detail="detail"
+      :visible-devices="mapDevices"
+      :map-points="mapPoints"
       @close="workspace.closeDetail"
+      @refresh-analysis="workspace.refreshDeviceAnalysis"
+      @load-history="workspace.loadHistory"
+      @load-manual="workspace.loadManualAnalysis"
+      @download-audio="workspace.downloadLatestAudio"
+      @submit-manual="workspace.submitManualAnalysis"
+      @select-device="handleSelectDevice"
     />
   </view>
 </template>
+
 <script setup lang="ts">
-import { getMapProvider } from "@/services/map/map";
-import { useI18n } from "@/i18n";
-import TencentLeakMap from  "./TencentLeakMap.vue";
+import { computed, ref, watch } from "vue";
+import { isDomesticLeakMonitorUser } from "@/services/leak-monitor/device-query";
+import TencentLeakMap from "./TencentLeakMap.vue";
 import GoogleLeakMap from "./GoogleLeakMap.vue";
 import LeakMonitorSidebar from "./LeakMonitorSidebar.vue";
 import DeviceDetailDialog from "./DeviceDetailDialog.vue";
-import { computed, ref, watch } from "vue";
 import { useLeakMonitorWorkspace } from "../composables/useLeakMonitorWorkspace";
 import type { LeakMonitorDevice, MapDevicePoint } from "../types";
 
-const { locale } = useI18n();
-const provider = computed(() => getMapProvider(locale.value));
+const provider = computed(() => isDomesticLeakMonitorUser() ? "tencent" : "google");
 const workspace = useLeakMonitorWorkspace();
 const {
   detail,
@@ -66,40 +72,35 @@ const {
   devices,
   errorMessage,
   loading,
+  mapDevices,
   mapPoints,
+  mapRegions,
   metrics,
   selectedDevice,
   sidebarCollapsed,
   sidebarLoading,
-  source,
 } = workspace;
 const mapRef = ref<{
   focusDevice?: (deviceNumber: string) => void;
   fitDevices?: () => void;
-  resize?: () => void;
 } | null>(null);
 
 function handleSelectDevice(device: LeakMonitorDevice) {
-  workspace.openDevice(device);
+  void workspace.openDevice(device);
   mapRef.value?.focusDevice?.(device.deviceNumber);
 }
-
 function handleMapDeviceClick(device: MapDevicePoint) {
-  workspace.openDevice(device);
+  void workspace.openDevice(device);
 }
-
 function toggleSidebar() {
   sidebarCollapsed.value = !sidebarCollapsed.value;
 }
 
-watch(
-  () => mapPoints.value.length,
-  () => {
-    setTimeout(() => mapRef.value?.fitDevices?.(), 80);
-  },
-);
-
+watch(() => mapPoints.value.length, () => {
+  setTimeout(() => mapRef.value?.fitDevices?.(), 80);
+});
 </script>
+
 <style scoped lang="scss">
 .leak-workspace {
   position: relative;

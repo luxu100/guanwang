@@ -69,7 +69,10 @@ let resizeTimer: ReturnType<typeof window.setTimeout> | null = null;
 let resizeFrame: number | null = null;
 
 const displayCoord = computed(() => {
-  return props.location || "";
+  if (!props.location) return "";
+  const p = parsedCoord.value;
+  if (!p) return props.location;
+  return `经度: ${p.lng.toFixed(4)} 纬度: ${p.lat.toFixed(4)}`;
 });
 
 const parsedCoord = computed(() => {
@@ -231,7 +234,9 @@ function close() {
 .map-dialog {
   display: flex;
   flex-direction: column;
-  width: min(680px, calc(100vw - 24px));
+  width: 70vw;
+  aspect-ratio: 16 / 9;
+  max-height: 90vh;
   max-height: calc(100vh - 60px);
   overflow: hidden;
   background: #ffffff;
@@ -258,7 +263,7 @@ function close() {
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  color: #0d82ee;
+  color: #7f8fa3;
   font-size: 13px;
   font-weight: 700;
   text-overflow: ellipsis;

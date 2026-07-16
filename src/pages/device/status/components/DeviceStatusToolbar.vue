@@ -18,7 +18,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import XBaseToolbar from "@/pages/device/components/x/XBaseToolbar.vue";
+import XBaseToolbar from "@/pages/device/components/x/toolbar/XBaseToolbar.vue";
 import type { Field } from "@/pages/device/components/x/types";
 import {createScopedT} from "@/i18n";
 const t = createScopedT("devicePage");

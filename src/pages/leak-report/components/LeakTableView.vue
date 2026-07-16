@@ -13,6 +13,14 @@
         </scroll-view>
 
         <view class="pagination-bar">
+          <view class="page-size">
+            <text class="page-size-text">每页</text>
+            <view class="page-size-value" @click.stop="showPageSize = !showPageSize">{{ pageSize }}</view>
+            <view v-if="showPageSize" class="page-size-popup">
+              <view v-for="item in effectivePageSizeOptions" :key="item" class="page-size-item" @click="selectPageSize(item)">{{ item }}</view>
+            </view>
+            <text class="page-size-text">条</text>
+          </view>
           <button
             class="page-button"
             hover-class="page-button--hover"
@@ -47,32 +55,42 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
 
 const props = defineProps<{
   title: string;
   total: number;
   pageNum: number;
   totalPages: number;
+  pageSize: number;
   hasDetail: boolean;
   detailEmptyText?: string;
+  pageSizeOptions?: number[];
 }>();
 
 const emit = defineEmits<{
   (event: "prev-page"): void;
   (event: "next-page"): void;
   (event: "jump-page", page: number): void;
+  (event: "page-size-change", size: number): void;
 }>();
 
 const jumpPage = ref<number | null>(null);
+const showPageSize = ref(false);
+const effectivePageSizeOptions = computed(() => props.pageSizeOptions ?? [10, 20, 50, 100]);
 
-watch(() => props.pageNum, () => { jumpPage.value = null; });
+watch(() => props.pageNum, () => { jumpPage.value = null; showPageSize.value = false; });
 
 function jumpToPage() {
   const page = Number(jumpPage.value);
   if (!page || page < 1 || page > props.totalPages) return;
   emit("jump-page", page);
   jumpPage.value = null;
+}
+
+function selectPageSize(size: number) {
+  emit("page-size-change", size);
+  showPageSize.value = false;
 }
 </script>
 
@@ -236,6 +254,86 @@ function jumpToPage() {
 .page-info {
   color: #64748b;
   font-size: 13px;
+}
+
+.page-size {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  color: #64748b;
+  font-size: 13px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.page-size-text {
+  color: #64748b;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.page-size-value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 50px;
+  height: 30px;
+  padding: 0 10px;
+  color: #31506d;
+  font-size: 13px;
+  font-weight: 600;
+  background: #f6fbff;
+  border: 1px solid #cbdced;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.page-size-value:hover {
+  background: #eef7ff;
+  border-color: #a9d2ff;
+}
+
+.page-size-popup {
+  position: absolute;
+  bottom: 42px;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 70px;
+  padding: 6px 0;
+  background: #fff;
+  border: 1px solid #d9e7f3;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(15, 35, 55, 0.18);
+  z-index: 9999;
+}
+
+.page-size-popup::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  border-right: 1px solid #d9e7f3;
+  border-bottom: 1px solid #d9e7f3;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.page-size-item {
+  height: 32px;
+  line-height: 32px;
+  padding: 0 18px;
+  color: #31506d;
+  font-size: 13px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.page-size-item:hover {
+  background: #eef7ff;
 }
 
 .jump-box {

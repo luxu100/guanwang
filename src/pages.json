@@ -85,6 +85,13 @@
       }
     },
     {
+      "path": "pages/device/parameter/parameter",
+      "style": {
+        "navigationBarTitleText": "设备参数",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/device/valve/valve",
       "style": {
         "navigationBarTitleText": "阀门管理",

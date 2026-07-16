@@ -3,10 +3,8 @@
  *
  * 页面层应优先调用这里导出的语义化函数，避免在 .vue 文件中直接拼接接口地址。
  */
-import {createCrudServiceTyped, getRequestT} from "@/services/shared/crud.typed";
-import type {DeviceProduct, MaintenanceRecord} from "@/services/device/types";
-import type {ApiResponse} from "@/types/api";
-import request from "@/utils/request";
+import {createCrudServiceTyped} from "@/services/shared/crud.typed";
+import type {MaintenanceRecord} from "@/services/device/types";
 
 const maintenanceRecordApi = createCrudServiceTyped<MaintenanceRecord>("/api/maintenance-record");
 

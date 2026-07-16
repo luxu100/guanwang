@@ -50,13 +50,17 @@ test("treats blank tokens as unauthenticated", () => {
 
 test("clears every local auth-related key", () => {
   const removed = [];
-  const storage = {
+  const previousUni = globalThis.uni;
+  globalThis.uni = {
     removeStorageSync(key) {
       removed.push(key);
     },
   };
 
-  clearAuthStorage(storage, ["appShellOpenedTabs"]);
-
-  assert.deepEqual(removed, [...AUTH_STORAGE_KEYS, "appShellOpenedTabs"]);
+  try {
+    clearAuthStorage(["appShellOpenedTabs"]);
+    assert.deepEqual(removed, [...AUTH_STORAGE_KEYS, "appShellOpenedTabs"]);
+  } finally {
+    globalThis.uni = previousUni;
+  }
 });

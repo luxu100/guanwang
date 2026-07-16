@@ -11,11 +11,7 @@ export interface ProtectedRouteDecision {
   redirectUrl: string;
 }
 
-export interface AuthStorage {
-  removeStorageSync(key: string): void;
-}
-
 export function hasLoginToken(token: unknown): boolean;
 export function isLoginPath(path?: string): boolean;
 export function createProtectedRouteDecision(input: ProtectedRouteDecisionInput): ProtectedRouteDecision;
-export function clearAuthStorage(storage: AuthStorage, extraKeys?: string[]): void;
+export function clearAuthStorage(extraKeys?: string[]): void;

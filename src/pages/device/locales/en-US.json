@@ -2,6 +2,8 @@
   "devicePage": {
     "common": {
       "all": "All",
+      "yes": "Yes",
+      "no": "No",
       "cancel": "Cancel",
       "confirm": "Confirm",
       "close": "Close",
@@ -125,14 +127,18 @@
     },
     "fields": {
       "deviceNumber": "Device No.",
-      "deviceType": "Product Model",
+      "deviceType": "Device Type",
       "onlineStatus": "Online Status",
+      "installState": "Installation Status",
       "enableState": "Enable Status",
       "leakStatus": "Leak Status",
       "startTime": "Start Time",
       "endTime": "End Time",
       "maintainType": "Maintenance Type",
-      "receiveStatus": "Receive Status"
+      "receiveStatus": "Receive Status",
+      "todayNew": "Today's New",
+      "latestInstalled": "Latest Installed",
+      "parseStatus": "Parsing Status"
     },
     "message": {
       "addSuccess": "Created successfully",
@@ -158,9 +164,8 @@
     },
     "status": {
       "product": {
-        "LD18": "LD18",
-        "LD18E_FM": "LD18E-FM",
-        "LD18HE_FM": "LD18HE-FM"
+        "TCP": "TCP",
+        "NB": "NB"
       },
       "status": {
         "enabled": "Enabled",
@@ -202,6 +207,10 @@
         "1": "Main Line",
         "2": "Secondary Branch",
         "3": "Tertiary Branch"
+      },
+      "parse": {
+        "success": "Parsed Successfully",
+        "fail": "Parsing Failed"
       }
     },
     "deviceTable": {
@@ -219,7 +228,9 @@
       "onlineStatus": "Online Status",
       "mapTitle": "Device Location",
       "deviceAlias": "Device Alias",
-      "factoryTime": "Manufacturing Time"
+      "factoryTime": "Manufacturing Time",
+      "algorithmType":"Algorithm Type",
+      "algorithmVersion":"Algorithm Version"
     },
     "addSchema": {
       "basicInfo": {
@@ -275,6 +286,10 @@
           "opticalFiber": "Optical Fiber",
           "serialPort": "Serial Port",
           "networkPort": "Ethernet"
+        },
+        "algorithmType": {
+          "Hydrophone": "Hydrophone",
+          "NoiseMeter": "Noise Meter"
         }
       }
     },
@@ -283,7 +298,11 @@
 
       "tabs": {
         "detail": "Device Details",
-        "relation": "Related Information"
+        "relation": "Related Information",
+        "base": "Basic Information",
+        "status": "Status Information",
+        "install": "Installation Information",
+        "communication": "Communication Information"
       },
 
       "empty": "No Data",
@@ -324,7 +343,12 @@
           "installMode": "Installation Mode",
           "installAddress": "Installation Address",
           "installLongitude": "Installation Longitude",
-          "installLatitude": "Installation Latitude"
+          "installLatitude": "Installation Latitude",
+
+          "algorithmType": "Algorithm Type",
+          "algorithmVersion": "Algorithm Version",
+          "pressureSensorModel": "Pressure Sensor Model",
+          "pressureSensorSerialNumber": "Pressure Sensor Serial Number"
         },
 
         "communication": {
@@ -396,19 +420,49 @@
         "startTime": "Start Time",
         "endTime": "End Time"
       },
-      "maintainTable": {
-        "title": "Maintenance Records",
-        "deviceNumber": "Device No.",
-        "type": "Maintenance Type",
-        "time": "Maintenance Time",
-        "address": "Address",
-        "installMode": "Install Mode",
-        "tubeGroup": "Tube Group",
-        "tubeMaterial": "Material",
-        "tubeBore": "Diameter",
-        "remark": "Remark",
-        "coordinate": "Coordinates",
-        "maintainPicture": "Maintenance Picture"
+      "maintainTable":{
+        "title":"Maintenance Detail",
+
+        "deviceInfo":"Device Information",
+        "deviceNumber":"Device Number",
+        "deviceAlias":"Device Alias",
+
+        "maintainInfo":"Maintenance Information",
+        "type":"Maintenance Type",
+        "time":"Maintenance Time",
+        "address":"Maintenance Address",
+        "coordinate":"Coordinates",
+        "feedback":"Maintenance Feedback",
+
+        "installInfo":"Installation Information",
+        "installMode":"Installation Mode",
+        "installState":"Installation Status",
+
+        "maintainer":"Maintenance Personnel",
+
+        "result":"Maintenance Result",
+        "maintainPicture":"Maintenance Image",
+
+        "tubeInfo":"Pipeline Information",
+        "tubeGroup":"Pipeline Group Number",
+        "tubeMaterial":"Pipe Material",
+        "tubeBore":"Pipe Diameter",
+        "tubeOrder":"Pipeline Sequence",
+
+        "valveInfo":"Valve Information",
+        "valveNumber":"Valve Number",
+        "valveName":"Valve Name",
+
+        "uninstallInfo":"Removal Information",
+        "uninstallType":"Removal Type",
+
+        "otherInfo":"Other Information",
+        "remark":"Remark",
+
+        "timeInfo":"Time Information",
+        "createdAt":"Created Time",
+        "updatedAt":"Updated Time",
+        "maintainAccount": "Maintenance Personnel"
       },
       "page": {
         "addMaintenance": "Add Maintenance",
@@ -421,6 +475,8 @@
           "deviceAlias": "Device Alias",
           "deviceAliasPlaceholder": "--",
           "valveNumber": "Valve Number",
+          "valveName": "Valve Name",
+          "valveNamePlaceholder": "--",
           "valveNumberPlaceholder": "--",
           "maintainType": "Maintenance Type",
           "maintainTime": "Maintenance Time",
@@ -698,18 +754,28 @@
       }
     },
     "deviceProtocol": {
-      "table": {
-        "title": "Device Protocol Bindings",
-        "protocolCode": "Protocol Code",
-        "protocolName": "Protocol Name",
-        "protocolVersion": "Protocol Version",
-        "afn": "AFN",
-        "taskType": "Task Type",
-        "contentPrefix": "Content Prefix",
-        "priority": "Priority",
-        "enabled": "Status",
-        "description": "Description",
-        "updatedAt": "Updated At"
+      "table":{
+        "title":"Protocol Binding List",
+        "basicInfo":"Basic Information",
+        "deviceId":"Device ID",
+        "protocolId":"Protocol ID",
+
+        "protocolInfo":"Protocol Information",
+        "protocolCode":"Protocol Code",
+        "protocolName":"Protocol Name",
+        "protocolVersion":"Protocol Version",
+        "description":"Description",
+
+        "bindingRule":"Binding Rules",
+        "afn":"AFN",
+        "taskType":"Task Type",
+        "contentPrefix":"Content Prefix",
+        "priority":"Priority",
+        "enabled":"Enabled Status",
+
+        "timeInfo":"Time Information",
+        "createdAt":"Created Time",
+        "updatedAt":"Updated Time"
       },
       "addSchema": {
         "basicInfo": {

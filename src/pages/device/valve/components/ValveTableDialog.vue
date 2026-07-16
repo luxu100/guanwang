@@ -72,7 +72,7 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import { createScopedT } from "@/i18n";
-import XPaginationBar from "@/pages/device/components/x/XPaginationBar.vue";
+import XPaginationBar from "@/pages/device/components/x/table/XPaginationBar.vue";
 import type { Pagination } from "@/types/api";
 import { getValvePageT } from "@/services/device/valve.typed";
 

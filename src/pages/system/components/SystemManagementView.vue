@@ -1,5 +1,5 @@
 <template>
-  <view class="system-view">
+  <view class="system-view" :class="`system-view--${mode}`">
     <view class="workspace" :class="`workspace--${mode}`">
       <view class="side-panel">
         <view class="panel-head">
@@ -91,9 +91,9 @@
               <input v-model="filters.keyword" class="filter-input" :placeholder="searchPlaceholder" placeholder-class="input-placeholder" @confirm="searchCurrent" />
             </view>
             <view v-if="mode === 'user'" class="filter-field filter-field--small">
-              <text class="filter-label">状态</text>
-              <picker :range="statusOptions" range-key="label" @change="handleStatusChange">
-                <view class="filter-select">{{ currentStatusLabel }}</view>
+              <text class="filter-label">地区</text>
+              <picker :range="userRegionFilterOptions" range-key="label" @change="handleUserRegionFilterChange">
+                <view class="filter-select">{{ currentUserRegionFilterLabel }}</view>
               </picker>
             </view>
           </view>
@@ -103,6 +103,34 @@
             <button class="toolbar-button" hover-class="toolbar-button--hover" @click="resetFilters">重置</button>
             <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="startCreate">{{ createButtonText }}</button>
             <button class="toolbar-button toolbar-button--danger" :disabled="!canDelete" hover-class="toolbar-button--hover" @click="deleteCurrent">删除</button>
+            <view v-if="mode === 'user'" class="user-pagination">
+              <view class="user-page-size">
+                <text class="user-page-info">每页</text>
+                <input
+                  v-model="pageSizeInputValue"
+                  class="user-page-size__input"
+                  type="number"
+                  confirm-type="done"
+                  @confirm="commitPageSizeInput"
+                  @blur="commitPageSizeInput"
+                />
+                <text class="user-page-info">条</text>
+              </view>
+              <button class="user-page-button" :disabled="pagination.pageNum <= 1" hover-class="user-page-button--hover" @click="changePage(-1)">上一页</button>
+              <view class="user-page-jump">
+                <text class="user-page-info">第</text>
+                <input
+                  v-model="pageInputValue"
+                  class="user-page-input"
+                  type="number"
+                  confirm-type="done"
+                  @confirm="commitPageInput"
+                  @blur="commitPageInput"
+                />
+                <text class="user-page-info">/ {{ userTotalPages }} 页</text>
+              </view>
+              <button class="user-page-button" :disabled="pagination.pageNum >= userTotalPages" hover-class="user-page-button--hover" @click="changePage(1)">下一页</button>
+            </view>
           </view>
         </view>
 
@@ -123,7 +151,6 @@
                   <text class="data-cell data-cell--roles">角色</text>
                   <text class="data-cell data-cell--depts">分区</text>
                   <text class="data-cell data-cell--status">状态</text>
-                  <text class="data-cell data-cell--time">创建时间</text>
                 </view>
                 <view v-if="loading" class="table-state">加载中...</view>
                 <view v-else-if="!users.length" class="table-state">暂无用户数据</view>
@@ -145,21 +172,30 @@
                   <text class="data-cell data-cell--status">
                     <text class="status-pill" :class="getStatusClass(item)">{{ getStatusLabel(getValue(item, ['status'])) }}</text>
                   </text>
-                  <text class="data-cell data-cell--time">{{ formatDateTime(getText(item, ['createdAt'], '-')) }}</text>
                 </view>
               </view>
             </scroll-view>
           </view>
 
-          <view class="detail-panel">
-            <view class="detail-head">
-              <text>{{ isCreating ? "新增用户" : "用户详细信息配置" }}</text>
-              <text class="detail-head__sub">基础信息、角色分配和报警通知配置</text>
-            </view>
-            <view class="form-grid form-grid--user">
+          <transition name="user-detail-drawer">
+            <view v-if="isUserDetailOpen" class="detail-panel detail-panel--user">
+              <view class="detail-head detail-head--user">
+                <text>{{ isCreating ? "新增用户" : "用户详细信息配置" }}</text>
+                <text class="detail-head__sub">基础信息、角色分配和报警通知配置</text>
+                <button
+                  class="user-detail-collapse"
+                  hover-class="user-detail-collapse--hover"
+                  aria-label="收起用户详细信息配置"
+                  @click="collapseUserDetail"
+                >
+                  <text class="user-detail-collapse__icon"></text>
+                </button>
+              </view>
+              <view class="form-grid form-grid--user">
               <view class="form-field">
                 <text class="form-label form-label--required">登录账号</text>
-                <input v-model="userForm.username" class="form-input" placeholder="请输入登录账号" placeholder-class="input-placeholder" />
+                <input v-model="userForm.username" class="form-input" placeholder="请输入至少6位登录账号" placeholder-class="input-placeholder" />
+                <text v-if="isCreating && userForm.username && userForm.username.trim().length < 6" class="form-error">登录账号不能少于6位</text>
               </view>
               <view class="form-field">
                 <text class="form-label form-label--required">用户姓名</text>
@@ -180,7 +216,7 @@
                     v-model="userForm.password"
                     class="form-input form-input--password"
                     :password="!showUserPassword"
-                    placeholder="请输入初始密码"
+                    placeholder="请输入至少6位初始密码"
                     placeholder-class="input-placeholder"
                   />
                   <button
@@ -193,12 +229,7 @@
                     <text class="password-toggle__eye"></text>
                   </button>
                 </view>
-              </view>
-              <view class="form-field">
-                <text class="form-label">用户状态</text>
-                <picker :range="recordStatusOptions" range-key="label" @change="handleUserFormStatusChange">
-                  <view class="form-select">{{ getStatusLabel(userForm.status) }}</view>
-                </picker>
+                <text v-if="userForm.password && userForm.password.trim().length < 6" class="form-error">初始密码不能少于6位</text>
               </view>
               <view class="form-field">
                 <text class="form-label">地区</text>
@@ -206,27 +237,35 @@
                   <view class="form-select">{{ currentUserRegionLabel }}</view>
                 </picker>
               </view>
-              <view class="form-field form-field--wide">
-                <text class="form-label">分配权限角色（决定可访问菜单）</text>
-                <view class="check-grid">
-                  <view
-                    v-for="item in roles"
-                    :key="getId(item)"
-                    class="check-item"
-                    :class="{ 'check-item--checked': selectedRoleIds.includes(getId(item)) }"
-                    @click="toggleUserRole(getId(item))"
-                  >
-                    <text class="check-box"></text>
-                    <text>{{ getRoleName(item) }}</text>
+              <view class="form-field">
+                <text class="form-label">用户状态</text>
+                <picker :range="recordStatusOptions" range-key="label" @change="handleUserFormStatusChange">
+                  <view class="form-select">{{ getStatusLabel(userForm.status) }}</view>
+                </picker>
+              </view>
+              <view class="user-config-row">
+                <view class="form-field">
+                  <text class="form-label">分配权限角色（决定可访问菜单）</text>
+                  <view class="check-grid check-grid--roles">
+                    <view
+                      v-for="item in roles"
+                      :key="getId(item)"
+                      class="check-item"
+                      :class="{ 'check-item--checked': selectedRoleIds.includes(getId(item)) }"
+                      @click="toggleUserRole(getId(item))"
+                    >
+                      <text class="check-box"></text>
+                      <text>{{ getRoleName(item) }}</text>
+                    </view>
                   </view>
                 </view>
-              </view>
-              <view class="form-field form-field--wide">
-                <text class="form-label">实时报警通知配置</text>
-                <view class="check-grid">
-                  <view v-for="item in alarmOptions" :key="item.value" class="check-item" :class="{ 'check-item--checked': selectedAlarmOptions.includes(item.value) }" @click="toggleAlarm(item.value)">
-                    <text class="check-box"></text>
-                    <text>{{ item.label }}</text>
+                <view class="form-field">
+                  <text class="form-label">实时报警通知配置</text>
+                  <view class="check-grid">
+                    <view v-for="item in alarmOptions" :key="item.value" class="check-item" :class="{ 'check-item--checked': selectedAlarmOptions.includes(item.value) }" @click="toggleAlarm(item.value)">
+                      <text class="check-box"></text>
+                      <text>{{ item.label }}</text>
+                    </view>
                   </view>
                 </view>
               </view>
@@ -244,14 +283,15 @@
                 </view>
                 <text v-if="isSuperAdminSelected" class="binding-lock-tip">超级管理员自动绑定全部分区，不可手动修改</text>
               </view>
+              </view>
+              <view class="form-actions">
+                <button class="toolbar-button" hover-class="toolbar-button--hover" @click="cancelEdit">取消</button>
+                <button class="toolbar-button toolbar-button--primary" :disabled="saving" hover-class="toolbar-button--hover" @click="saveUser">
+                  {{ saving ? "保存中..." : "保存用户信息" }}
+                </button>
+              </view>
             </view>
-            <view class="form-actions">
-              <button class="toolbar-button" hover-class="toolbar-button--hover" @click="cancelEdit">取消</button>
-              <button class="toolbar-button toolbar-button--primary" :disabled="saving" hover-class="toolbar-button--hover" @click="saveUser">
-                {{ saving ? "保存中..." : "保存用户信息" }}
-              </button>
-            </view>
-          </view>
+          </transition>
         </view>
 
         <view v-else-if="mode === 'auth'" class="content-layout content-layout--auth">
@@ -260,7 +300,7 @@
               <text>{{ isCreating ? "新增角色" : "角色基础信息" }}</text>
               <text class="detail-head__sub">维护角色编码、排序和说明</text>
             </view>
-            <view class="form-grid">
+            <view class="form-grid form-grid--role">
               <view class="form-field">
                 <text class="form-label form-label--required">角色名称</text>
                 <input v-model="roleForm.roleName" class="form-input" placeholder="请输入角色名称" placeholder-class="input-placeholder" />
@@ -387,7 +427,7 @@
               </view>
             </scroll-view>
           </view>
-          <view class="detail-panel">
+          <view class="detail-panel detail-panel--menu">
             <view class="detail-head">
               <text>{{ isCreating ? "新增菜单" : "菜单配置" }}</text>
               <text class="detail-head__sub">维护页面入口、权限编码和父级关系</text>
@@ -507,15 +547,27 @@
     </view>
 
     <view v-if="showUserPartitionDialog" class="modal-mask" @click.self="closeUserPartitionDialog">
-      <view class="modal-panel">
+      <view class="modal-panel modal-panel--partition">
         <view class="modal-head">
-          <text>新增绑定分区</text>
-          <text class="modal-close" @click="closeUserPartitionDialog">×</text>
+          <view class="modal-title-block">
+            <text class="modal-title">新增绑定分区</text>
+            <text class="modal-subtitle">选择需要授权给当前用户的分区，可同时绑定多个分区</text>
+          </view>
+          <view class="modal-head__actions">
+            <text class="modal-selection-count">已选 {{ userPartitionDraftIds.length }} 个</text>
+            <text class="modal-close" @click="closeUserPartitionDialog">×</text>
+          </view>
         </view>
         <view class="modal-body">
-          <view class="check-item check-item--select-all" :class="{ 'check-item--checked': isAllUserPartitionDraftSelected }" @click="toggleAllUserPartitionDraft">
-            <text class="check-box"></text>
-            <text>全选</text>
+          <view class="partition-dialog-toolbar">
+            <view>
+              <text class="partition-dialog-toolbar__title">可绑定分区</text>
+              <text class="partition-dialog-toolbar__meta">共 {{ availableUserPartitionOptions.length }} 个</text>
+            </view>
+            <view class="check-item check-item--select-all" :class="{ 'check-item--checked': isAllUserPartitionDraftSelected }" @click="toggleAllUserPartitionDraft">
+              <text class="check-box"></text>
+              <text>{{ isAllUserPartitionDraftSelected ? "取消全选" : "全选" }}</text>
+            </view>
           </view>
           <view class="partition-dialog-list">
             <view
@@ -526,14 +578,29 @@
               @click="toggleUserPartitionDraft(String(getId(item)))"
             >
               <text class="check-box"></text>
-              <text>{{ getPartitionName(item) }}</text>
+              <view class="partition-dialog-item__content">
+                <text class="partition-dialog-item__name">{{ getPartitionName(item) }}</text>
+                <text class="partition-dialog-item__status">
+                  {{ userPartitionDraftIds.includes(String(getId(item))) ? "已选择" : "点击选择" }}
+                </text>
+              </view>
             </view>
             <view v-if="!availableUserPartitionOptions.length" class="modal-empty">暂无可新增绑定的分区</view>
           </view>
         </view>
         <view class="modal-actions">
-          <button class="toolbar-button" hover-class="toolbar-button--hover" @click="closeUserPartitionDialog">取消</button>
-          <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="confirmUserPartitionBinding">确定绑定</button>
+          <text class="modal-actions__summary">本次将新增绑定 {{ userPartitionDraftIds.length }} 个分区</text>
+          <view class="modal-actions__buttons">
+            <button class="toolbar-button" hover-class="toolbar-button--hover" @click="closeUserPartitionDialog">取消</button>
+            <button
+              class="toolbar-button toolbar-button--primary"
+              :disabled="!userPartitionDraftIds.length"
+              hover-class="toolbar-button--hover"
+              @click="confirmUserPartitionBinding"
+            >
+              确定绑定
+            </button>
+          </view>
         </view>
       </view>
     </view>
@@ -723,14 +790,14 @@ const props = defineProps<{
   mode: AdminMode;
 }>();
 
-const statusOptions: Array<SelectOption<string | number>> = [
-  { label: "全部", value: "" },
-  { label: "启用", value: 1 },
-  { label: "禁用", value: 0 },
-];
 const recordStatusOptions: Array<SelectOption<number>> = [
   { label: "启用", value: 1 },
   { label: "禁用", value: 0 },
+];
+const userRegionFilterOptions: Array<SelectOption<string>> = [
+  { label: "全部", value: "" },
+  { label: "国内", value: "国内" },
+  { label: "国外", value: "国外" },
 ];
 const userRegionOptions: Array<SelectOption<string>> = [
   { label: "国内", value: "国内" },
@@ -768,12 +835,14 @@ const orgOptions = computed(() =>{
 
 const filters = reactive({
   keyword: "",
-  status: "" as string | number,
+  region: "",
 });
 const pagination = reactive({
   pageNum: 1,
   pageSize: 15,
 });
+const pageInputValue = ref("1");
+const pageSizeInputValue = ref("15");
 const userForm = reactive({
   id: "",
   username: "",
@@ -842,6 +911,7 @@ const loading = ref(false);
 const saving = ref(false);
 const refreshing = ref(false);
 const isCreating = ref(false);
+const isUserDetailOpen = ref(true);
 const showUserPassword = ref(false);
 const showUserPartitionDialog = ref(false);
 const dictCreateTarget = ref<"type" | "item">("item");
@@ -851,6 +921,7 @@ const userDisplayTotal = computed(() => {
   if (props.mode !== "user") return total.value;
   return total.value > 0 ? total.value : users.value.length;
 });
+const userTotalPages = computed(() => Math.max(1, Math.ceil(userDisplayTotal.value / pagination.pageSize)));
 const mode = computed(() => props.mode);
 const sideTitle = computed(() => {
   const map: Record<AdminMode, string> = {
@@ -884,7 +955,7 @@ const createButtonText = computed(() => {
   };
   return map[props.mode];
 });
-const currentStatusLabel = computed(() => statusOptions.find((item) => item.value === filters.status)?.label || "全部");
+const currentUserRegionFilterLabel = computed(() => userRegionFilterOptions.find((item) => item.value === filters.region)?.label || "全部");
 const currentUserRegionLabel = computed(() => userRegionOptions.find((item) => item.value === userForm.region)?.label || "国内");
 const currentMenuTypeLabel = computed(() => permissionTypeOptions.find((item) => item.value === menuForm.permissionType)?.label || "菜单");
 const menuParentOptions = computed<Array<SelectOption<string>>>(() => [
@@ -1007,8 +1078,22 @@ watch(
   },
 );
 
-function handleStatusChange(event: { detail: { value: number } }) {
-  filters.status = statusOptions[event.detail.value]?.value ?? "";
+watch(
+  () => pagination.pageNum,
+  (pageNum) => {
+    pageInputValue.value = String(pageNum);
+  },
+);
+
+watch(
+  () => pagination.pageSize,
+  (pageSize) => {
+    pageSizeInputValue.value = String(pageSize);
+  },
+);
+
+function handleUserRegionFilterChange(event: { detail: { value: number } }) {
+  filters.region = userRegionFilterOptions[event.detail.value]?.value || "";
 }
 
 function handleUserFormStatusChange(event: { detail: { value: number } }) {
@@ -1032,19 +1117,73 @@ function handleMenuParentChange(event: { detail: { value: number } }) {
 }
 
 function selectOrg(value: string) {
+  collapseUserDetail();
   activeOrg.value = value;
   pagination.pageNum = 1;
   void loadUsers();
 }
 
 function searchCurrent() {
+  if (props.mode === "user") {
+    collapseUserDetail();
+  }
   pagination.pageNum = 1;
   void refreshCurrent();
 }
 
+function changePage(step: number) {
+  jumpToPage(pagination.pageNum + step);
+}
+
+function commitPageInput() {
+  const inputPage = Number(pageInputValue.value);
+  if (!Number.isFinite(inputPage)) {
+    pageInputValue.value = String(pagination.pageNum);
+    return;
+  }
+
+  jumpToPage(inputPage);
+}
+
+function commitPageSizeInput() {
+  const nextPageSize = normalizePageSize(pageSizeInputValue.value, pagination.pageSize);
+  pageSizeInputValue.value = String(nextPageSize);
+  if (nextPageSize === pagination.pageSize) {
+    return;
+  }
+
+  pagination.pageSize = nextPageSize;
+  pagination.pageNum = 1;
+  pageInputValue.value = "1";
+  collapseUserDetail();
+  void loadUsers();
+}
+
+function normalizePageSize(value: unknown, fallback: number) {
+  const numberValue = Number(value);
+  if (!Number.isFinite(numberValue)) {
+    return fallback;
+  }
+
+  return Math.min(Math.max(Math.trunc(numberValue), 1), 500);
+}
+
+function jumpToPage(page: number) {
+  const nextPage = Math.min(Math.max(Math.trunc(page), 1), userTotalPages.value);
+  pageInputValue.value = String(nextPage);
+
+  if (nextPage === pagination.pageNum) {
+    return;
+  }
+
+  pagination.pageNum = nextPage;
+  collapseUserDetail();
+  void loadUsers();
+}
+
 function resetFilters() {
   filters.keyword = "";
-  filters.status = "";
+  filters.region = "";
   pagination.pageNum = 1;
 }
 
@@ -1135,7 +1274,7 @@ function getDeptUsersFromDetail(response: ApiResponseLike, deptRecord: RecordLik
       };
     });
 }
-function filterUsersByKeywordAndStatus(records: RecordLike[], keyword: string) {
+function filterUsersByKeywordAndRegion(records: RecordLike[], keyword: string) {
   return records.filter((user) => {
     const keywordMatched = !keyword || [
       getText(user, ["username"], ""),
@@ -1146,9 +1285,9 @@ function filterUsersByKeywordAndStatus(records: RecordLike[], keyword: string) {
       getUserDeptNames(user),
     ].some((value) => value.includes(keyword));
 
-    const statusMatched = filters.status === "" || Number(getValue(user, ["status"]) ?? 1) === Number(filters.status);
+    const regionMatched = !filters.region || getText(user, ["region"], "国内") === filters.region;
 
-    return keywordMatched && statusMatched;
+    return keywordMatched && regionMatched;
   });
 }
 function getUserRoleNames(item: RecordLike | null) {
@@ -1201,11 +1340,12 @@ async function loadUsers() {
         userMatchesPartition(user, partitionId, partitionName),
       );
 
-      const filteredUsers = filterUsersByKeywordAndStatus(deptUsers, keyword);
+      const filteredUsers = filterUsersByKeywordAndRegion(deptUsers, keyword);
+      const pageStart = (pagination.pageNum - 1) * pagination.pageSize;
 
-      users.value = filteredUsers;
+      users.value = filteredUsers.slice(pageStart, pageStart + pagination.pageSize);
       total.value = filteredUsers.length;
-      selectUser(users.value[0] || null);
+      selectUser(users.value[0] || null, false);
       return;
     }
 
@@ -1215,7 +1355,7 @@ async function loadUsers() {
       username: keyword || undefined,
       realName: keyword || undefined,
       phone: keyword || undefined,
-      status: filters.status === "" ? undefined : filters.status,
+      region: filters.region || undefined,
     })) as ApiResponseLike;
 
     assertSuccessResponse(response);
@@ -1223,11 +1363,11 @@ async function loadUsers() {
     const parsed = parsePageResponse(response);
     users.value = parsed.records;
     total.value = parsed.total > 0 ? parsed.total : parsed.records.length;
-    selectUser(users.value[0] || null);
+    selectUser(users.value[0] || null, false);
   } catch (error) {
     users.value = [];
     total.value = 0;
-    selectUser(null);
+    selectUser(null, false);
     toastError(error, "用户数据加载失败");
   } finally {
     loading.value = false;
@@ -1433,9 +1573,12 @@ async function loadDictItems() {
   }
 }
 
-function selectUser(item: RecordLike | null) {
+function selectUser(item: RecordLike | null, openDetail = true) {
   selectedUser.value = item;
   isCreating.value = false;
+  if (openDetail && item) {
+    isUserDetailOpen.value = true;
+  }
   showUserPassword.value = false;
   Object.assign(userForm, {
     id: item ? String(getId(item)) : "",
@@ -1684,8 +1827,9 @@ function selectDictItem(item: RecordLike | null) {
 function startCreate() {
   isCreating.value = true;
   if (props.mode === "user") {
-    selectUser(null);
+    selectUser(null, false);
     isCreating.value = true;
+    isUserDetailOpen.value = true;
   } else if (props.mode === "auth") {
     selectRole(null);
     isCreating.value = true;
@@ -1713,7 +1857,7 @@ function startCreateDictItem() {
 
 function cancelEdit() {
   if (props.mode === "user") {
-    selectUser(selectedUser.value || users.value[0] || null);
+    collapseUserDetail();
   } else if (props.mode === "auth") {
     selectRole(selectedRole.value || roles.value[0] || null);
   } else if (props.mode === "menu") {
@@ -1721,9 +1865,24 @@ function cancelEdit() {
   }
 }
 
+function collapseUserDetail() {
+  isUserDetailOpen.value = false;
+  showUserPartitionDialog.value = false;
+}
+
 async function saveUser() {
   if (!userForm.username.trim() || !userForm.realName.trim() || (isCreating.value && !userForm.password.trim())) {
     uni.showToast({ title: "请填写账号、姓名和初始密码", icon: "none" });
+    return;
+  }
+
+  if (isCreating.value && userForm.username.trim().length < 6) {
+    uni.showToast({ title: "登录账号不能少于6位", icon: "none" });
+    return;
+  }
+
+  if (isCreating.value && userForm.password.trim().length < 6) {
+    uni.showToast({ title: "初始密码不能少于6位", icon: "none" });
     return;
   }
 
@@ -1776,6 +1935,7 @@ async function saveUser() {
     uni.showToast({ title: savedMessage, icon: savedIcon });
     syncCachedUserRegion(savedUserId);
     await loadUsers();
+    collapseUserDetail();
   } catch (error) {
     toastError(error, "用户保存失败");
   } finally {
@@ -2208,6 +2368,7 @@ async function deleteCurrent() {
     if (props.mode === "user" && getId(selectedUser.value)) {
       await deleteUser(getId(selectedUser.value));
       await loadUsers();
+      collapseUserDetail();
     } else if (props.mode === "auth" && getId(selectedRole.value)) {
       await deleteRole(getId(selectedRole.value));
       await loadRolesPage();
@@ -2656,6 +2817,10 @@ function isValidId(value: unknown): value is string | number {
   background: linear-gradient(180deg, #edf5fb 0%, #f4f8fb 100%);
 }
 
+.system-view--user {
+  overflow: hidden;
+}
+
 .side-panel,
 .main-panel,
 .table-panel,
@@ -2893,6 +3058,75 @@ function isValidId(value: unknown): value is string | number {
   flex: 0 1 auto;
 }
 
+.user-pagination,
+.user-page-size,
+.user-page-jump {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.user-pagination {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  flex: none;
+  max-width: 100%;
+  margin-left: 2px;
+  padding-left: 10px;
+  border-left: 1px solid #dbe7f1;
+}
+
+.user-page-size__input,
+.user-page-button,
+.user-page-input {
+  box-sizing: border-box;
+  height: 32px;
+  color: #34495e;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 32px;
+  border: 1px solid #d4e2f0;
+  border-radius: 4px;
+  background: #f8fbff;
+}
+
+.user-page-size__input {
+  width: 58px;
+  padding: 0 6px;
+  text-align: center;
+}
+
+.user-page-input {
+  width: 46px;
+  padding: 0 6px;
+  text-align: center;
+}
+
+.user-page-button {
+  min-width: 68px;
+  margin: 0;
+  padding: 0 10px;
+}
+
+.user-page-button::after {
+  border: 0;
+}
+
+.user-page-button--hover {
+  background: #edf7ff;
+}
+
+.user-page-button[disabled] {
+  color: #a0aec0;
+  background: #f2f5f8;
+}
+
+.user-page-info {
+  color: #64748b;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
 .filter-field {
   display: flex;
   align-items: center;
@@ -2939,6 +3173,12 @@ function isValidId(value: unknown): value is string | number {
   background: #f9fcff;
   border: 1px solid #cbdced;
   border-radius: 4px;
+}
+
+.filter-select {
+  display: flex;
+  align-items: center;
+  line-height: 1;
 }
 
 .filter-input:focus,
@@ -3167,7 +3407,22 @@ function isValidId(value: unknown): value is string | number {
 }
 
 .content-layout--user {
-  grid-template-rows: minmax(240px, 0.85fr) minmax(280px, 0.75fr);
+  position: relative;
+  display: block;
+  flex: 1 1 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.workspace--user,
+.workspace--user .main-panel {
+  overflow: hidden;
+}
+
+.content-layout--user > .table-panel {
+  box-sizing: border-box;
+  height: 100%;
+  overflow: hidden;
 }
 
 .table-panel,
@@ -3199,7 +3454,7 @@ function isValidId(value: unknown): value is string | number {
 }
 
 .data-table--user {
-  min-width: 1380px;
+  min-width: 1200px;
 }
 
 .data-table--menu {
@@ -3390,12 +3645,121 @@ function isValidId(value: unknown): value is string | number {
   align-content: start;
 }
 
-.content-layout--user .form-grid--user {
-  padding-bottom: 16px;
+.user-config-row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  min-width: 0;
 }
 
-.content-layout--user .form-field {
+.form-grid--role {
+  display: block;
+}
+
+.form-grid--role .form-field + .form-field {
+  margin-top: 10px;
+}
+
+.detail-panel--user {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  left: 10px;
+  z-index: 4;
+  box-sizing: border-box;
+  height: clamp(260px, 44%, 360px);
+  min-height: 0;
+  overflow: hidden;
+  background: #ffffff;
+  border-color: #bfd5e7;
+  box-shadow: none;
+}
+
+.detail-head--user {
+  position: relative;
+}
+
+.user-detail-collapse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 26px;
+  margin: 0;
+  padding: 0;
+  color: #4e6d88;
+  background: #ffffff;
+  border: 1px solid #bfd5e7;
+  border-radius: 5px;
+  box-shadow: none;
+  transform: translate(-50%, -50%);
+}
+
+.user-detail-collapse::after {
+  border: 0;
+}
+
+.user-detail-collapse--hover {
+  color: #0d82ee;
+  background: #edf7ff;
+  border-color: #8bc8f5;
+}
+
+.user-detail-collapse__icon {
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+}
+
+.user-detail-drawer-enter-active,
+.user-detail-drawer-leave-active {
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.user-detail-drawer-enter-from,
+.user-detail-drawer-leave-to {
+  opacity: 0;
+  transform: translateY(24px);
+}
+
+.detail-panel--user .form-grid--user {
+  flex: 1 1 0;
+  height: 0;
+  min-height: 0;
+  align-content: start;
+  padding-bottom: 20px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.detail-panel--user .form-field {
   overflow: visible;
+}
+
+.detail-panel--user .form-actions {
+  position: relative;
+  z-index: 1;
+  flex: none;
+}
+
+.check-grid--roles {
+  min-height: 44px;
+}
+
+.user-config-row .check-grid {
+  max-height: 112px;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .detail-panel--dict .form-grid {
@@ -3405,10 +3769,19 @@ function isValidId(value: unknown): value is string | number {
   overflow-y: auto;
 }
 
+.detail-panel--menu .form-grid {
+  align-content: start;
+  padding-bottom: 16px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.detail-panel--menu .form-field,
 .detail-panel--dict .form-field {
   overflow: visible;
 }
 
+.detail-panel--menu .form-actions,
 .detail-panel--dict .form-actions {
   flex: none;
 }
@@ -3423,6 +3796,14 @@ function isValidId(value: unknown): value is string | number {
 
 .form-field--wide {
   grid-column: 1 / -1;
+}
+
+.form-error {
+  display: block;
+  margin-top: 4px;
+  color: #c0362c;
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .check-grid {
@@ -3597,6 +3978,12 @@ function isValidId(value: unknown): value is string | number {
   box-shadow: 0 18px 46px rgba(28, 55, 82, 0.22);
 }
 
+.modal-panel--partition {
+  width: min(760px, calc(100vw - 40px));
+  min-height: min(560px, calc(100vh - 56px));
+  max-height: min(720px, calc(100vh - 40px));
+}
+
 .modal-head,
 .modal-actions {
   display: flex;
@@ -3608,43 +3995,173 @@ function isValidId(value: unknown): value is string | number {
 }
 
 .modal-head {
+  min-height: 54px;
+  padding: 16px 20px;
   color: #183755;
-  font-size: 16px;
+}
+
+.modal-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.modal-title {
+  font-size: 18px;
   font-weight: 900;
+  line-height: 24px;
+}
+
+.modal-subtitle {
+  color: #718397;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+.modal-head__actions {
+  display: flex;
+  align-items: center;
+  flex: none;
+  gap: 14px;
+  margin-left: 20px;
+}
+
+.modal-selection-count {
+  min-width: 72px;
+  padding: 5px 9px;
+  color: #0b6fcb;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+  background: #edf7ff;
+  border: 1px solid #cbe6fb;
+  border-radius: 4px;
 }
 
 .modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
   color: #64748b;
-  font-size: 20px;
+  font-size: 22px;
+  line-height: 30px;
   cursor: pointer;
+  border-radius: 4px;
+}
+
+.modal-close:hover {
+  color: #183755;
+  background: #eef4f8;
 }
 
 .modal-body {
   flex: 1;
   min-height: 0;
-  padding: 12px 14px;
+  padding: 18px 20px;
   overflow: hidden;
 }
 
-.partition-dialog-list {
+.partition-dialog-toolbar {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  max-height: 360px;
-  margin-top: 10px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e4edf5;
+}
+
+.partition-dialog-toolbar > view:first-child {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.partition-dialog-toolbar__title {
+  color: #24384d;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.partition-dialog-toolbar__meta {
+  color: #7b8da0;
+  font-size: 12px;
+}
+
+.partition-dialog-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 10px;
+  height: 100%;
+  max-height: 470px;
+  margin-top: 14px;
+  padding-right: 4px;
   overflow-y: auto;
 }
 
-.partition-dialog-item,
-.check-item--select-all {
-  min-height: 34px;
-  padding: 7px 8px;
+.partition-dialog-item {
+  min-height: 58px;
+  box-sizing: border-box;
+  padding: 10px 12px;
   background: #f8fbfe;
+  border: 1px solid #d8e6f2;
+  border-radius: 6px;
+  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.partition-dialog-item:hover {
+  background: #f2f8fd;
+  border-color: #a9c9e4;
+}
+
+.partition-dialog-item.check-item--checked {
+  background: #edf7ff;
+  border-color: #76b9ee;
+  box-shadow: inset 3px 0 0 #0d82ee;
+}
+
+.partition-dialog-item__content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.partition-dialog-item__name {
+  overflow: hidden;
+  color: #263b50;
+  font-size: 14px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.partition-dialog-item__status {
+  color: #8494a5;
+  font-size: 12px;
+}
+
+.partition-dialog-item.check-item--checked .partition-dialog-item__status {
+  color: #0d82ee;
+}
+
+.check-item--select-all {
+  flex: none;
+  min-height: 32px;
+  padding: 5px 10px;
+  background: #f5f9fc;
   border: 1px solid #d8e6f2;
   border-radius: 4px;
 }
 
 .modal-empty {
+  grid-column: 1 / -1;
   padding: 24px 10px;
   color: #8a9aab;
   font-size: 14px;
@@ -3652,10 +4169,24 @@ function isValidId(value: unknown): value is string | number {
 }
 
 .modal-actions {
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 10px;
+  padding: 14px 20px;
   border-top: 1px solid #edf3f8;
   border-bottom: 0;
+  background: #fbfdff;
+}
+
+.modal-actions__summary {
+  color: #66788a;
+  font-size: 13px;
+}
+
+.modal-actions__buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
 }
 
 .check-item text:last-child,
@@ -3778,10 +4309,6 @@ function isValidId(value: unknown): value is string | number {
     grid-template-rows: minmax(200px, 0.8fr) minmax(320px, 1fr);
   }
 
-  .content-layout--user {
-    grid-template-rows: minmax(220px, 0.75fr) minmax(340px, 0.9fr);
-  }
-
   .form-grid--user {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -3801,6 +4328,59 @@ function isValidId(value: unknown): value is string | number {
   .form-grid,
   .form-grid--user {
     grid-template-columns: 1fr;
+  }
+
+  .user-config-row {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-panel--user {
+    height: min(440px, calc(100% - 20px));
+  }
+}
+
+@media (max-width: 680px) {
+  .modal-mask {
+    padding: 12px;
+  }
+
+  .modal-panel--partition {
+    width: 100%;
+    min-height: min(520px, calc(100vh - 24px));
+    max-height: calc(100vh - 24px);
+  }
+
+  .modal-head {
+    align-items: flex-start;
+    padding: 14px;
+  }
+
+  .modal-subtitle,
+  .modal-selection-count {
+    display: none;
+  }
+
+  .modal-head__actions {
+    margin-left: 10px;
+  }
+
+  .modal-body {
+    padding: 14px;
+  }
+
+  .partition-dialog-list {
+    grid-template-columns: 1fr;
+    max-height: none;
+  }
+
+  .modal-actions {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 12px 14px;
+  }
+
+  .modal-actions__buttons {
+    justify-content: flex-end;
   }
 }
 </style>

@@ -5929,7 +5929,7 @@
           },
           {
             "file": "src/pages/device/components/DeviceManagementView.vue",
-            "line": 188,
+            "line": 200,
             "kind": "string",
             "context": "{ key: \"deviceNumber\", label: \"设备编号\", type: \"input\" },"
           },
@@ -8063,7 +8063,7 @@
           },
           {
             "file": "src/pages/leak-report/components/SuspectTableView.vue",
-            "line": 188,
+            "line": 200,
             "kind": "string",
             "context": "<button class=\"dialog-close\" hover-class=\"dialog-close--hover\" aria-label=\"关闭\" @click=\"closeConfirmDialog\">×</button>"
           },

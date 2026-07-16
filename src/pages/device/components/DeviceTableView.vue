@@ -17,6 +17,8 @@
           <text v-if="columnVisible.installMode" class="data-cell ">{{ t('deviceTable.installMode') }}</text>
           <text v-if="columnVisible.installAddress" class="data-cell ">{{ t('deviceTable.installAddress') }}</text>
           <text v-if="columnVisible.coordinate" class="data-cell ">{{ t('deviceTable.coordinate') }}</text>
+          <text v-if="columnVisible.algorithmType" class="data-cell ">{{ t('deviceTable.algorithmType') }}</text>
+          <text v-if="columnVisible.algorithmVersion" class="data-cell ">{{ t('deviceTable.algorithmVersion') }}</text>
           <text v-if="columnVisible.tubeGroup" class="data-cell ">{{ t('deviceTable.tubeGroup') }}</text>
           <text v-if="columnVisible.leakStatus" class="data-cell ">{{ t('deviceTable.leakStatus') }}</text>
           <text v-if="columnVisible.lastSamplingTime" class="data-cell ">{{ t('deviceTable.lastSamplingTime') }}</text>
@@ -40,7 +42,7 @@
           </text>
 
           <text v-if="columnVisible.deviceNumber" class="data-cell data-cell--device">{{ device.deviceNumber }}</text>
-          <text v-if="columnVisible.deviceType" class="data-cell data-cell--type">{{ device.deviceType }}</text>
+          <text v-if="columnVisible.deviceType" class="data-cell data-cell--type">{{ device.deviceType ||'-'}}</text>
           <text v-if="columnVisible.deviceAlias" class="data-cell data-cell--device">
             {{ device.deviceAlias || '-' }}
           </text>
@@ -86,7 +88,7 @@
               {{ installModeMap[device.installMode] || '-' }}
             </text>
           </text>
-          <text v-if="columnVisible.installAddress" class="data-cell data-cell--address">{{ device.installAddress }}</text>
+          <text v-if="columnVisible.installAddress" class="data-cell data-cell--address">{{ device.installAddress ||'-'}}</text>
           <text
               v-if="columnVisible.coordinate" class="data-cell data-cell--coord data-cell--link"
               @click.stop="handleCoordClick(device.installLongitude, device.installLatitude)"          >
@@ -94,7 +96,11 @@
               ? `${device.installLongitude}, ${device.installLatitude}`
               : '-' }}
           </text>
-          <text v-if="columnVisible.tubeGroup" class="data-cell data-cell--number">{{ device.tubeGroup }}</text>
+
+          <text v-if="columnVisible.algorithmType" class="data-cell "> {{ getAlgorithmTypeLabel(device.algorithmType) }}</text>
+          <text v-if="columnVisible.algorithmVersion" class="data-cell ">{{ device.algorithmVersion ||'-'}}</text>
+
+          <text v-if="columnVisible.tubeGroup" class="data-cell data-cell--number">{{ device.tubeGroup ||'-'}}</text>
           <text
               v-if="columnVisible.leakStatus"
               class="data-cell data-cell--status"
@@ -122,7 +128,7 @@
             </text>
           </text>
           <text v-if="columnVisible.factoryTime" class="data-cell data-cell--time">
-            {{ formatDate(device.factoryTime) }}
+            {{ formatDate(device.factoryTime) ||'-'}}
           </text>
         </view>
       </view>
@@ -148,8 +154,8 @@
 import {ref, computed, watch} from 'vue';
 import type { Device } from '@/services/device/types';
 import type {Pagination} from "@/types/api";
-import XMapPopup from "@/pages/device/components/x/XMapPopup.vue";
-import XPaginationBar from "@/pages/device/components/x/XPaginationBar.vue";
+import XMapPopup from "@/pages/device/components/x/map/XMapPopup.vue";
+import XPaginationBar from "@/pages/device/components/x/table/XPaginationBar.vue";
 import {createScopedT} from "@/i18n";
 import {formatDate} from "../../../utils/time";
 const t = createScopedT("devicePage");
@@ -200,8 +206,8 @@ const columnVisible = computed(() => ({
   tcpLastSeenAt: props.mode === 'protocol',
 
   // 算法
-  algorithmType: props.mode === 'protocol',
-  algorithmVersion: props.mode === 'protocol',
+  algorithmType: ['info', 'protocol'].includes(props.mode),
+  algorithmVersion: ['info', 'protocol'].includes(props.mode),
 
   // 设备扩展
   valveNumber: props.mode === 'info',
@@ -309,11 +315,23 @@ function handleCoordClick(longitude: number, latitude: number) {
   }
 }
 
+const getAlgorithmTypeLabel = (value: string | null | undefined) => {
+  if (value === "RN-3H") {
+    return t("addSchema.option.algorithmType.Hydrophone");
+  }
+
+  if (value === null) {
+    return t("addSchema.option.algorithmType.NoiseMeter");
+  }
+
+  return "--";
+};
+
 </script>
 
 <style scoped lang="scss">
-@import "@/pages/device/components/x/status.css";
-@import "@/pages/device/components/x/table-cell.css";
-@import "@/pages/device/components/x/table.css";
-@import "@/pages/device/components/x/table-row.css";
+@import "@/pages/device/components/x/common/status.css";
+@import "@/pages/device/components/x/table/styles/table-cell.css";
+@import "@/pages/device/components/x/table/styles/table.css";
+@import "@/pages/device/components/x/table/styles/table-row.css";
 </style>

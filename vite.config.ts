@@ -14,6 +14,8 @@ export default defineConfig(({ mode }) => {
         "/api": {
           target: apiProxyTarget,
           changeOrigin: true,
+          timeout: 600000,
+          proxyTimeout: 600000,
         },
         "/files": {
           target: apiProxyTarget,

@@ -22,3 +22,5 @@ export function uploadRequest<T = unknown>(
     filePath: string,
     name?: string
 ): Promise<T>;
+
+export function normalizeUrl(url: string): string;

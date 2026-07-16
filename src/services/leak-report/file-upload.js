@@ -128,7 +128,7 @@ function uploadFileH5(file, fileName, onProgress) {
 
     const xhr = new XMLHttpRequest();
     xhr.open("POST", getUploadUrl(fileType));
-    xhr.timeout = getTimeoutByType(fileType);
+    xhr.timeout = 600000;
 
     // 添加认证头
     const authHeaders = getAuthHeader();

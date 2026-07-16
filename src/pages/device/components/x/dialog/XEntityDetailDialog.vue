@@ -1,13 +1,11 @@
 <template>
   <view v-if="visible" class="detail-mask" @click="close">
     <view class="detail-dialog" @click.stop>
-
       <view class="detail-header">
         <view>
           <text class="detail-title">{{ title }}</text>
           <text v-if="subtitle" class="detail-subtitle">{{ subtitle }}</text>
         </view>
-
         <button class="close-btn" @click="close">
           <text class="close-icon"/>
         </button>
@@ -15,53 +13,25 @@
 
       <scroll-view class="detail-body" scroll-y>
         <view class="detail-content">
-
-          <view
-              v-for="(section,index) in schema"
-              :key="index"
-              class="detail-section"
-          >
-            <view class="section-title">
-              {{ section.title }}
-            </view>
+          <view v-for="(section,index) in schema" :key="index" class="detail-section">
+            <view class="section-title">{{ t(section.titleKey || '--') }}</view>
 
             <view class="detail-grid">
-              <view
-                  v-for="field in section.fields"
-                  :key="field.key"
-                  class="detail-item"
-                  :class="{
-                    'detail-item--full':
-                    field.layout==='full'||field.type==='image'
-                  }"
-              >
-                <text class="detail-label">
-                  {{ field.label }}
-                </text>
+              <view v-for="field in section.fields" :key="field.key" class="detail-item" :class="{'detail-item--full':field.layout==='full'||field.type==='image'}">
+                <text class="detail-label">{{ t(field.labelKey || '--') }}</text>
 
-                <image
-                    v-if="field.type==='image'"
-                    class="detail-image"
-                    mode="aspectFill"
-                    :src="getValue(field.key)"
-                />
+                <image v-if="field.type==='image'" class="detail-image" mode="aspectFill" :src="getValue(field.key)"/>
 
-                <text
-                    v-else-if="field.type==='tag'"
-                    class="detail-tag"
-                    :class="field.tagClass"
-                >
+                <text v-else-if="field.type==='tag'" class="detail-tag" :class="field.tagClass">
                   {{ getDisplayValue(field) }}
                 </text>
 
                 <text v-else class="detail-value">
                   {{ getDisplayValue(field) }}
                 </text>
-
               </view>
             </view>
           </view>
-
         </view>
       </scroll-view>
 
@@ -70,16 +40,14 @@
           {{ t('formDialog.close') }}
         </button>
       </view>
-
     </view>
   </view>
 </template>
 
-
 <script setup lang="ts">
 import {computed} from "vue";
 import {createScopedT} from "@/i18n";
-import type {FormSection, FormField} from "@/pages/device/components/x/types";
+import type {FormSection,FormField} from "@/pages/device/components/x/types";
 import {formatDate} from "@/utils/time";
 
 const t=createScopedT("devicePage");
@@ -103,12 +71,10 @@ const emit=defineEmits<{
   (e:"update:visible",value:boolean):void;
 }>();
 
-
 const visible=computed({
   get:()=>props.visible,
   set:(v)=>emit("update:visible",v)
 });
-
 
 function close(){
   visible.value=false;
@@ -118,7 +84,6 @@ function getValue(key:string){
   return props.modelValue?.[key] ?? "";
 }
 
-
 function getDisplayValue(field:FormField){
   const value=getValue(field.key);
 
@@ -127,17 +92,14 @@ function getDisplayValue(field:FormField){
   }
 
   if(field.options){
-    return field.options.find(
-        item=>item.value===value
-    )?.label ?? value;
+    const option=field.options.find(item=>item.value===value);
+    return option?.labelKey ? t(option.labelKey) : value;
   }
 
   if(field.formatter){
-    return field.formatter(
-        value,
-        props.modelValue
-    );
+    return field.formatter(value,props.modelValue);
   }
+
   if(field.type==="datetime"){
     return formatDate(value);
   }
@@ -145,11 +107,7 @@ function getDisplayValue(field:FormField){
   return value;
 }
 
-
-defineExpose({
-  close
-});
-
+defineExpose({close});
 </script>
 
 

@@ -257,8 +257,21 @@
                 <view v-else-if="item.type === 'video'" class="detail-field-card__value detail-field-card__value--link" @click="previewMediaFiles([item.path ?? ''], 'video')">
                   {{ item.value }}
                 </view>
-                <view v-else-if="item.type === 'audio'" class="detail-field-card__value detail-field-card__value--link" @click="previewAudioFile(item.path ?? '')">
-                  {{ item.value }}
+                <view v-else-if="item.type === 'audio'" class="detail-field-card__value">
+                  <view class="audio-inline-player">
+                    <view class="audio-inline-player__btn" @click="toggleAudio(item.path ?? '')">
+                      <text class="audio-inline-player__icon">{{ audioSrc === item.path && audioPlaying ? '⏸' : '▶' }}</text>
+                    </view>
+                    <view
+                      class="audio-inline-player__track"
+                      @click.stop="seekAudio($event, item.path ?? '')"
+                    >
+                      <view class="audio-inline-player__bar" :style="{ width: (audioSrc === item.path ? audioProgress : 0) + '%' }"></view>
+                    </view>
+                    <text class="audio-inline-player__time">
+                      {{ audioSrc === item.path ? formatAudioTime(audioCurrentTime) + ' / ' + formatAudioTime(audioDuration) : '00:00 / 00:00' }}
+                    </text>
+                  </view>
                 </view>
                 <view v-else-if="item.type === 'workOrder'" class="detail-field-card__value detail-field-card__value--link" @click="viewWorkOrder">
                   {{ item.value }}
@@ -281,93 +294,195 @@
           </view>
           <button class="dialog-close" hover-class="dialog-close--hover" aria-label="关闭" @click="closeDispatchDialog">×</button>
         </view>
-        <view class="dialog-body">
-          <view class="form-field">
-            <text class="form-label">疑点编号</text>
-            <view class="form-readonly">{{ dispatchSuspectId || "-" }}</view>
-          </view>
+                <view class="dialog-body">
           <view class="form-grid form-grid--two">
+            <view class="form-field">
+              <text class="form-label">疑点编号</text>
+              <view class="form-readonly">{{ dispatchSuspectId || "-" }}</view>
+            </view>
             <view class="form-field">
               <text class="form-label">工单编号</text>
               <input v-model="dispatchForm.workOrderNo" class="form-input" placeholder="不填则自动生成" placeholder-class="input-placeholder" />
             </view>
+          </view>
+          <view class="form-grid form-grid--two">
             <view class="form-field">
               <text class="form-label">预期时间</text>
               <WorkOrderDatetimePicker v-model="dispatchForm.expectedTime" class="form-datetime" title="选择预期时间" placeholder="请选择预期时间" />
             </view>
-          </view>
-          <view class="form-grid form-grid--two">
             <view class="form-field">
               <text class="form-label">紧急程度</text>
               <view class="select-field">
-                <view
-                  class="form-select form-select--dropdown"
-                  :class="{ 'form-select--open': dispatchUrgencySelectOpen, 'form-control--error': dispatchUrgencyError }"
-                  @click.stop="dispatchUrgencySelectOpen = !dispatchUrgencySelectOpen"
-                >
+                <view class="form-select form-select--dropdown" :class="{ 'form-select--open': dispatchUrgencySelectOpen, 'form-control--error': dispatchUrgencyError }" @click.stop="dispatchUrgencySelectOpen = !dispatchUrgencySelectOpen">
                   <text :class="{ 'select-placeholder': !dispatchForm.urgencyLevel }">{{ dispatchUrgencyLabel }}</text>
                   <text class="select-arrow"></text>
                 </view>
                 <view v-if="dispatchUrgencySelectOpen" class="select-menu">
-                  <view
-                    v-for="item in urgencyOptions"
-                    :key="item.value"
-                    class="select-option"
-                    :class="{ 'select-option--active': dispatchForm.urgencyLevel === item.value }"
-                    @click.stop="selectDispatchUrgency(item.value)"
-                  >
-                    {{ item.label }}
-                  </view>
+                  <view v-for="item in urgencyOptions" :key="item.value" class="select-option" :class="{ 'select-option--active': dispatchForm.urgencyLevel === item.value }" @click.stop="selectDispatchUrgency(item.value)">{{ item.label }}</view>
                 </view>
               </view>
               <text v-if="dispatchUrgencyError" class="form-error">{{ dispatchUrgencyError }}</text>
             </view>
+          </view>
+          <view class="form-grid form-grid--two">
             <view class="form-field">
               <text class="form-label">处理流程</text>
-              <input v-model="dispatchForm.processFlow" class="form-input" placeholder="请输入处理流程" placeholder-class="input-placeholder" />
+              <view class="select-field">
+                <view class="form-select form-select--dropdown" :class="{ 'form-select--open': processFlowSelectOpen }" @click.stop="processFlowSelectOpen = !processFlowSelectOpen">
+                  <text :class="{ 'select-placeholder': !dispatchForm.processFlow }">{{ dispatchForm.processFlow || "请选择处理流程" }}</text>
+                  <text class="select-arrow"></text>
+                </view>
+                <view v-if="processFlowSelectOpen" class="select-menu">
+                  <view v-for="item in processFlowOptions" :key="item" class="select-option" :class="{ 'select-option--active': dispatchForm.processFlow === item }" @click.stop="selectProcessFlow(item)"><text>{{ item }}</text></view>
+                </view>
+              </view>
+            </view>
+            <view class="form-field">
+              <text class="form-label">工单类别</text>
+              <view class="select-field">
+                <view class="form-select form-select--dropdown" :class="{ 'form-select--open': workOrderCategorySelectOpen }" @click.stop="workOrderCategorySelectOpen = !workOrderCategorySelectOpen">
+                  <text :class="{ 'select-placeholder': !dispatchForm.workOrderCategory }">{{ dispatchForm.workOrderCategory || "请选择工单类别" }}</text>
+                  <text class="select-arrow"></text>
+                </view>
+                <view v-if="workOrderCategorySelectOpen" class="select-menu">
+                  <view v-for="item in workOrderCategoryOptions" :key="item" class="select-option" :class="{ 'select-option--active': dispatchForm.workOrderCategory === item }" @click.stop="selectWorkOrderCategory(item)"><text>{{ item }}</text></view>
+                </view>
+              </view>
             </view>
           </view>
           <view class="form-grid form-grid--two">
             <view class="form-field">
-              <text class="form-label">处理人员</text>
-              <input v-model="dispatchForm.handler" class="form-input" placeholder="请输入处理人员" placeholder-class="input-placeholder" />
+              <text class="form-label">流程类型</text>
+              <view class="select-field">
+                <view class="form-select form-select--dropdown" :class="{ 'form-select--open': flowTypeSelectOpen }" @click.stop="flowTypeSelectOpen = !flowTypeSelectOpen">
+                  <text :class="{ 'select-placeholder': !dispatchForm.flowType }">{{ dispatchForm.flowType || "请选择流程类型" }}</text>
+                  <text class="select-arrow"></text>
+                </view>
+                <view v-if="flowTypeSelectOpen" class="select-menu">
+                  <view v-for="item in flowTypeOptions" :key="item" class="select-option" :class="{ 'select-option--active': dispatchForm.flowType === item }" @click.stop="selectFlowType(item)"><text>{{ item }}</text></view>
+                </view>
+              </view>
             </view>
             <view class="form-field">
-              <text class="form-label">设备编号</text>
-              <input v-model="dispatchForm.deviceNo" class="form-input" placeholder="请输入设备编号" placeholder-class="input-placeholder" />
+              <text class="form-label">处理方式</text>
+              <view class="select-field">
+                <view class="form-select form-select--dropdown" :class="{ 'form-select--open': handleMethodSelectOpen }" @click.stop="handleMethodSelectOpen = !handleMethodSelectOpen">
+                  <text :class="{ 'select-placeholder': !dispatchForm.handleMethod }">{{ dispatchForm.handleMethod || "请选择处理方式" }}</text>
+                  <text class="select-arrow"></text>
+                </view>
+                <view v-if="handleMethodSelectOpen" class="select-menu">
+                  <view v-for="item in handleMethodOptions" :key="item" class="select-option" :class="{ 'select-option--active': dispatchForm.handleMethod === item }" @click.stop="selectHandleMethod(item)"><text>{{ item }}</text></view>
+                </view>
+              </view>
             </view>
           </view>
           <view class="form-grid form-grid--two">
             <view class="form-field">
               <text class="form-label">渗漏状态</text>
-              <input v-model="dispatchForm.leakageStatus" class="form-input" placeholder="请输入渗漏状态" placeholder-class="input-placeholder" />
+              <view class="select-field">
+                <view class="form-select form-select--dropdown" :class="{ 'form-select--open': leakageStatusSelectOpen }" @click.stop="leakageStatusSelectOpen = !leakageStatusSelectOpen">
+                  <text :class="{ 'select-placeholder': !dispatchForm.leakageStatus }">{{ dispatchForm.leakageStatus || "请选择渗漏状态" }}</text>
+                  <text class="select-arrow"></text>
+                </view>
+                <view v-if="leakageStatusSelectOpen" class="select-menu">
+                  <view v-for="item in leakageStatusOptions" :key="item" class="select-option" :class="{ 'select-option--active': dispatchForm.leakageStatus === item }" @click.stop="selectLeakageStatus(item)"><text>{{ item }}</text></view>
+                </view>
+              </view>
+            </view>
+            <view class="form-field">
+              <text class="form-label">处理人员</text>
+              <input v-model="dispatchForm.handler" class="form-input" placeholder="请输入处理人员" placeholder-class="input-placeholder" />
+            </view>
+          </view>
+          <view class="form-grid form-grid--two">
+            <view class="form-field">
+              <text class="form-label">所属分区</text>
+              <view class="select-field">
+                <view class="form-select form-select--dropdown" :class="{ 'form-select--open': dispatchDeptIdSelectOpen }" @click.stop="dispatchDeptIdSelectOpen = !dispatchDeptIdSelectOpen">
+                  <text :class="{ 'select-placeholder': !dispatchForm.deptId }">{{ dispatchForm.deptId ? ((deptNameMap)[dispatchForm.deptId] || dispatchForm.deptId) : "请选择所属分区" }}</text>
+                  <text class="select-arrow"></text>
+                </view>
+                <view v-if="dispatchDeptIdSelectOpen" class="select-menu">
+                  <view v-for="item in regionOptions" :key="item.id" class="select-option" :class="{ 'select-option--active': dispatchForm.deptId === item.id }" @click.stop="selectDispatchDeptId(item.id)"><text>{{ item.deptName }}</text></view>
+                  <view v-if="regionOptions.length === 0" class="select-option select-option--empty">暂无分区数据</view>
+                </view>
+              </view>
+            </view>
+            <view class="form-field">
+              <text class="form-label">设备编号</text>
+              <view class="select-field">
+                <view class="form-select form-select--dropdown" :class="{ 'form-select--open': dispatchDeviceSelectOpen }" @click.stop="dispatchDeviceSelectOpen = !dispatchDeviceSelectOpen">
+                  <text :class="{ 'select-placeholder': !dispatchForm.deviceNo }">{{ dispatchForm.deviceNo || "请选择设备编号" }}</text>
+                  <text class="select-arrow"></text>
+                </view>
+                <view v-if="dispatchDeviceSelectOpen" class="select-menu">
+                  <view class="select-search"><input v-model="dispatchDeviceSearch" class="select-search-input" placeholder="搜索设备..." placeholder-class="input-placeholder" @click.stop /></view>
+                  <view v-for="item in filteredDispatchDeviceOptions" :key="item.deviceNumber" class="select-option" :class="{ 'select-option--active': dispatchForm.deviceNo === item.deviceNumber }" @click.stop="selectDispatchDevice(item.deviceNumber)"><text>{{ item.deviceNumber }}</text></view>
+                  <view v-if="filteredDispatchDeviceOptions.length === 0" class="select-option select-option--empty">暂无匹配设备</view>
+                </view>
+              </view>
+            </view>
+          </view>
+          <view class="form-grid form-grid--two">
+            <view class="form-field">
+              <text class="form-label">安装图片</text>
+              <view class="upload-area">
+                <view v-if="dispatchImageItem.url" class="upload-preview-grid">
+                  <view class="upload-preview-item">
+                    <image :src="dispatchImageItem.url" class="upload-preview-img" mode="aspectFill" @click="previewDispatchImage" />
+                    <view class="upload-preview-remove" @click.stop="removeDispatchImage">×</view>
+                  </view>
+                </view>
+                <view v-else class="upload-placeholder" @click="pickDispatchImage">
+                  <text class="upload-placeholder__title">点击上传图片</text>
+                  <text class="upload-placeholder__hint">支持 jpg、png 格式</text>
+                </view>
+              </view>
             </view>
             <view class="form-field">
               <text class="form-label">安装地址</text>
-              <input v-model="dispatchForm.installAddress" class="form-input" placeholder="请输入安装地址" placeholder-class="input-placeholder" />
-            </view>
-          </view>
-          <view class="form-field">
-            <text class="form-label">安装图片</text>
-            <view class="upload-area">
-              <view v-if="dispatchImageItem.url" class="upload-preview-grid">
-                <view class="upload-preview-item">
-                  <image :src="dispatchImageItem.url" class="upload-preview-img" mode="aspectFill" @click="previewDispatchImage" />
-                  <view class="upload-preview-remove" @click.stop="removeDispatchImage">×</view>
+              <view class="form-row">
+                <input v-model="dispatchForm.installAddress" class="form-input form-input--flex" placeholder="经度,纬度 (如 121.4737,31.2304)" placeholder-class="input-placeholder" />
+                <button class="form-action-btn" hover-class="form-action-btn--hover" @click="pickDispatchLocation">
+                  <text class="form-action-btn__icon form-action-btn__icon--map"></text><text>定位</text>
+                </button>
+              </view>
+              <view v-if="dispatchMapPickerVisible" class="dispatch-map-picker">
+                <view class="dispatch-map-picker__head">
+                  <text class="dispatch-map-picker__title">点击地图选取坐标</text>
+                  <text class="dispatch-map-picker__coord" :class="{ 'dispatch-map-picker__coord--active': dispatchMapPickedCoord }">{{ dispatchMapPickedCoord || "请在地图上点击选择" }}</text>
+                </view>
+                <view class="dispatch-map-picker__body">
+                  <!-- #ifdef H5 -->
+                  <LocaleCoordinateMap
+                    :lng="dispatchMapCenter.lng"
+                    :lat="dispatchMapCenter.lat"
+                    selectable
+                    @pick="handleDispatchMapPick"
+                  />
+                  <!-- #endif -->
+                  <!-- #ifndef H5 -->
+                  <view class="dispatch-map-picker__fallback">地图选点仅支持 H5 端</view>
+                  <!-- #endif -->
+                </view>
+                <view class="dispatch-map-picker__actions">
+                  <button class="dialog-btn dialog-btn--cancel" hover-class="dialog-btn--hover" @click="closeDispatchMapPicker">取消</button>
+                  <button class="dialog-btn dialog-btn--primary" :disabled="!dispatchMapPickedCoord" hover-class="dialog-btn--hover" @click="confirmDispatchMapPick">确认选点</button>
                 </view>
               </view>
-              <view v-else class="upload-placeholder" @click="pickDispatchImage">
-                <text class="upload-placeholder__title">点击上传图片</text>
-                <text class="upload-placeholder__hint">支持 jpg、png 格式</text>
-              </view>
             </view>
           </view>
-          <view class="form-field">
-            <text class="form-label">备注</text>
-            <textarea v-model="dispatchForm.remark" class="form-textarea" placeholder="请输入备注" placeholder-class="input-placeholder" />
+          <view class="form-grid form-grid--two">
+            <view class="form-field">
+              <text class="form-label">工单详情</text>
+              <textarea v-model="dispatchForm.detail" class="form-textarea" placeholder="请输入工单详情" placeholder-class="input-placeholder" />
+            </view>
+            <view class="form-field">
+              <text class="form-label">备注</text>
+              <textarea v-model="dispatchForm.remark" class="form-textarea" placeholder="请输入备注" placeholder-class="input-placeholder" />
+            </view>
           </view>
-        </view>
-        <view class="dialog-footer">
+        </view><view class="dialog-footer">
           <button class="dialog-button" hover-class="dialog-button--hover" @click="closeDispatchDialog">取消</button>
           <button class="dialog-button dialog-button--primary" :disabled="processing" hover-class="dialog-button--hover" @click="submitDispatch">
             {{ processing ? "处理中..." : "确认转工单" }}
@@ -491,6 +606,33 @@
               </view>
             </view>
           </view>
+          <view class="form-grid form-grid--two">
+            <view class="form-field">
+              <text class="form-label">泄露部位</text>
+              <input v-model="confirmLeakForm.leakPart" class="form-input" placeholder="请输入泄露部位" placeholder-class="input-placeholder" />
+            </view>
+            <view class="form-field">
+              <text class="form-label">产生漏点原因</text>
+              <input v-model="confirmLeakForm.leakReason" class="form-input" placeholder="请输入产生漏点原因" placeholder-class="input-placeholder" />
+            </view>
+          </view>
+          <view class="form-grid form-grid--two">
+            <view class="form-field">
+              <text class="form-label">修复时间</text>
+              <WorkOrderDatetimePicker v-model="confirmLeakForm.repairTime" class="form-datetime" title="选择修复时间" placeholder="请选择修复时间" />
+            </view>
+            <view class="form-field">
+              <text class="form-label">巡检人员</text>
+              <input v-model="confirmLeakForm.inspector" class="form-input" placeholder="请输入巡检人员" placeholder-class="input-placeholder" />
+            </view>
+          </view>
+          <view class="form-grid form-grid--two">
+            <view class="form-field">
+              <text class="form-label">定漏人员</text>
+              <input v-model="confirmLeakForm.locator" class="form-input" placeholder="请输入定漏人员" placeholder-class="input-placeholder" />
+            </view>
+            <view class="form-field" />
+          </view>
           <view class="form-field">
             <text class="form-label">备注</text>
             <textarea v-model="confirmLeakForm.remark" class="form-textarea" placeholder="请输入备注" placeholder-class="input-placeholder" />
@@ -541,12 +683,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { getSuspectPage, getSuspectDetail, deleteSuspect } from "@/services/leak-report/suspected-leak";
 import { dispatchSuspect, confirmLeakPoint, excludeSuspect } from "@/services/leak-report/suspected-leak";
 import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
 import { getRegionList } from "@/services/leak-report/region";
+import { getDeviceVisibleList } from "@/services/leak-report/device";
+import { getPartitionDeviceList } from "@/services/partition/partition";
 import { uploadFile } from "@/services/leak-report/file-upload";
+import LocaleCoordinateMap from "@/components/map/LocaleCoordinateMap.vue";
 
 // ========== 类型定义 ==========
 type SuspectMode = "management" | "processing";
@@ -626,6 +771,24 @@ const urgencyOptions: SelectOption[] = [
   { label: "紧急", value: "urgent" },
 ];
 
+// 转工单下拉选项
+const processFlowSelectOpen = ref(false);
+const processFlowOptions = ["噪声工单", "消火栓工单", "水锤工单", "温振工单"];
+
+const leakageStatusSelectOpen = ref(false);
+const leakageStatusOptions = ["正常", "疑似", "渗漏", "未抄", "新装"];
+
+const workOrderCategorySelectOpen = ref(false);
+const workOrderCategoryOptions = ["维修工单", "巡检工单", "检测工单", "保养工单", "其他"];
+
+const flowTypeSelectOpen = ref(false);
+const flowTypeOptions = ["派单", "转办", "抢单", "指定"];
+
+const handleMethodSelectOpen = ref(false);
+const handleMethodOptions = ["现场处理", "远程处理", "转交处理", "预约处理"];
+
+const dispatchDeptIdSelectOpen = ref(false);
+
 const detailTabs: Array<{ label: string; value: DetailTab }> = [
   { label: "疑点详情", value: "base" },
   { label: "管道信息", value: "pipe" },
@@ -657,7 +820,18 @@ const activeTab = ref<DetailTab>("base");
 const sortField = ref<string>("");
 const sortOrder = ref<"asc" | "desc" | "">("");
 
-// 对话框状态
+// ========== 音频播放器状态 ==========
+const audioEl = ref<HTMLAudioElement | null>(null);
+const audioPlaying = ref(false);
+const audioCurrentTime = ref(0);
+const audioDuration = ref(0);
+const audioSrc = ref("");
+const audioProgress = computed(() => {
+  if (audioDuration.value <= 0) return 0;
+  return (audioCurrentTime.value / audioDuration.value) * 100;
+});
+
+// ========== 对话框状态 ==========
 const processing = ref(false);
 const dispatchDialogVisible = ref(false);
 const dispatchUrgencySelectOpen = ref(false);
@@ -666,17 +840,27 @@ const dispatchForm = reactive({
   workOrderNo: "",
   expectedTime: "",
   urgencyLevel: "",
+  workOrderCategory: "",
+  flowType: "",
+  handleMethod: "",
   processFlow: "",
   handler: "",
-  remark: "",
   deviceNo: "",
+  deptId: undefined as number | undefined,
   leakageStatus: "",
   installImage: "",
   installAddress: "",
+  detail: "",
+  remark: "",
 });
 
+// ========== 转工单 - 地图选点 ==========
+const dispatchMapPickerVisible = ref(false);
+const dispatchMapPickedCoord = ref("");
+const dispatchMapCenter = ref({ lng: 121.4737, lat: 31.2304 });
+
 /** 转工单安装图片（本地预览，提交时上传） */
-const dispatchImageItem = ref<{ file?: File; url: string; id: string }>({ url: "", id: "" });
+const dispatchImageItem = ref<{ file?: File; url: string; id: string; filePath?: string }>({ url: "", id: "" });
 function pickDispatchImage() {
   // #ifdef H5
   const input = document.createElement("input");
@@ -703,11 +887,76 @@ function pickDispatchImage() {
 function removeDispatchImage() {
   dispatchImageItem.value = { url: "", id: "" };
 }
+
+// 派单设备下拉
+const dispatchDeviceOptions = ref<Array<{ deviceNumber: string }>>([]);
+const dispatchDeviceSelectOpen = ref(false);
+const dispatchDeviceSearch = ref("");
+
+const filteredDispatchDeviceOptions = computed(() => {
+  if (!dispatchDeviceSearch.value) return dispatchDeviceOptions.value;
+  const kw = dispatchDeviceSearch.value.toLowerCase();
+  return dispatchDeviceOptions.value.filter((d) => d.deviceNumber.toLowerCase().includes(kw));
+});
+
+function loadDispatchDevices() {
+  if (dispatchForm.deptId != null) {
+    getPartitionDeviceList(dispatchForm.deptId, {}).then((res: any) => {
+      const data = res?.data;
+      if (Array.isArray(data)) {
+        dispatchDeviceOptions.value = data as Array<{ deviceNumber: string }>;
+      }
+    }).catch(() => {});
+  } else {
+    getDeviceVisibleList({}).then((res: { data?: Array<{ deviceNumber: string }> }) => {
+      if (res && Array.isArray(res.data)) {
+        dispatchDeviceOptions.value = res.data;
+      }
+    }).catch(() => {});
+  }
+}
+
+function selectDispatchDevice(val: string) {
+  dispatchForm.deviceNo = val;
+  dispatchDeviceSelectOpen.value = false;
+  dispatchDeviceSearch.value = "";
+}
+
 function previewDispatchImage() {
   const url = dispatchImageItem.value.id
     ? addBaseUrl(dispatchImageItem.value.id)
     : dispatchImageItem.value.url;
   if (url) uni.previewImage({ urls: [url] });
+}
+
+function pickDispatchLocation() {
+  dispatchMapPickedCoord.value = "";
+  uni.getLocation({
+    type: "gcj02",
+    success: (result) => {
+      dispatchMapCenter.value = { lng: result.longitude, lat: result.latitude };
+      dispatchMapPickerVisible.value = true;
+    },
+    fail: () => {
+      dispatchMapPickerVisible.value = true;
+    },
+  });
+}
+
+function handleDispatchMapPick(coordinate: { lng: number; lat: number }) {
+  dispatchMapPickedCoord.value = `${coordinate.lng.toFixed(6)},${coordinate.lat.toFixed(6)}`;
+}
+
+function confirmDispatchMapPick() {
+  if (dispatchMapPickedCoord.value) {
+    dispatchForm.installAddress = dispatchMapPickedCoord.value;
+  }
+  closeDispatchMapPicker();
+}
+
+function closeDispatchMapPicker() {
+  dispatchMapPickerVisible.value = false;
+  dispatchMapPickedCoord.value = "";
 }
 
 const confirmLeakDialogVisible = ref(false);
@@ -722,6 +971,11 @@ const confirmLeakForm = reactive({
   leakPointSize: "",
   leakRoadSurface: "",
   remark: "",
+  repairTime: "",
+  leakPart: "",
+  leakReason: "",
+  inspector: "",
+  locator: "",
 });
 
 const detectDifficultyOptions: SelectOption[] = [
@@ -901,6 +1155,13 @@ function loadRegions() {
 onMounted(() => {
   void fetchSuspects();
   loadRegions();
+});
+
+// 派单分区切换时刷新设备列表
+watch(() => dispatchForm.deptId, () => {
+  dispatchForm.deviceNo = "";
+  dispatchDeviceSearch.value = "";
+  loadDispatchDevices();
 });
 
 // ========== 筛选器事件处理 ==========
@@ -1118,22 +1379,40 @@ function openDispatchDialog() {
   dispatchForm.workOrderNo = "";
   dispatchForm.expectedTime = "";
   dispatchForm.urgencyLevel = "";
+  dispatchForm.workOrderCategory = "";
+  dispatchForm.flowType = "";
+  dispatchForm.handleMethod = "";
   dispatchForm.processFlow = "";
   dispatchForm.handler = "";
-  dispatchForm.remark = "";
   dispatchForm.deviceNo = "";
+  dispatchForm.deptId = undefined;
   dispatchForm.leakageStatus = "";
   dispatchForm.installImage = "";
   dispatchForm.installAddress = "";
+  dispatchForm.detail = "";
+  dispatchForm.remark = "";
   dispatchUrgencySelectOpen.value = false;
   dispatchUrgencyError.value = "";
+  processFlowSelectOpen.value = false;
+  leakageStatusSelectOpen.value = false;
+  workOrderCategorySelectOpen.value = false;
+  flowTypeSelectOpen.value = false;
+  handleMethodSelectOpen.value = false;
+  dispatchDeptIdSelectOpen.value = false;
   dispatchImageItem.value = { url: "", id: "" };
+  loadDispatchDevices();
   dispatchDialogVisible.value = true;
 }
 
 function closeDispatchDialog() {
   dispatchDialogVisible.value = false;
   dispatchUrgencySelectOpen.value = false;
+  processFlowSelectOpen.value = false;
+  leakageStatusSelectOpen.value = false;
+  workOrderCategorySelectOpen.value = false;
+  flowTypeSelectOpen.value = false;
+  handleMethodSelectOpen.value = false;
+  dispatchDeptIdSelectOpen.value = false;
   dispatchUrgencyError.value = "";
   dispatchImageItem.value = { url: "", id: "" };
 }
@@ -1144,7 +1423,41 @@ function selectDispatchUrgency(value: OptionValue) {
   dispatchUrgencyError.value = "";
 }
 
+function selectProcessFlow(value: string) {
+  dispatchForm.processFlow = value;
+  processFlowSelectOpen.value = false;
+}
+
+function selectLeakageStatus(value: string) {
+  dispatchForm.leakageStatus = value;
+  leakageStatusSelectOpen.value = false;
+}
+
+function selectWorkOrderCategory(value: string) {
+  dispatchForm.workOrderCategory = value;
+  workOrderCategorySelectOpen.value = false;
+}
+
+function selectFlowType(value: string) {
+  dispatchForm.flowType = value;
+  flowTypeSelectOpen.value = false;
+}
+
+function selectHandleMethod(value: string) {
+  dispatchForm.handleMethod = value;
+  handleMethodSelectOpen.value = false;
+}
+
+function selectDispatchDeptId(id: number) {
+  dispatchForm.deptId = id;
+  dispatchDeptIdSelectOpen.value = false;
+}
+
 async function submitDispatch() {
+  if (processing.value) {
+    console.log("[submitDispatch] 已在处理中，跳过重复点击");
+    return;
+  }
   const id = selectedSuspect.value ? getRowId(selectedSuspect.value) : "";
   if (!id) {
     uni.showToast({ title: "请先选择疑点", icon: "none" });
@@ -1153,17 +1466,27 @@ async function submitDispatch() {
 
   processing.value = true;
   try {
-    // 先上传安装图片
-    let installImageId = dispatchForm.installImage.trim();
-    const imgItem = dispatchImageItem.value;
-    if (imgItem.file && !imgItem.id) {
-      const res: { code?: number; data?: { id?: string } } = await uploadFile(imgItem.file, "install_image");
-      if (res && (res.code === undefined || res.code === 0 || res.code === 200)) {
-        imgItem.id = res.data?.id || "";
-        installImageId = imgItem.id;
+    console.log("[submitDispatch] 开始处理，疑点ID：", id);
+    // 尝试上传安装图片（失败不影响派单）
+    let installImagePath = dispatchForm.installImage.trim();
+    try {
+      const imgItem = dispatchImageItem.value;
+      if (imgItem.file && !imgItem.id) {
+        const res = await uploadFile(imgItem.file, "install_image") as Record<string, unknown>;
+        if (res && (res.code === undefined || res.code === 0 || res.code === 200)) {
+          const resData = (res?.data || {}) as Record<string, unknown>;
+          const filePath = String(resData.filePath || resData.file_path || "");
+          if (filePath) {
+            imgItem.id = String(resData.id || "");
+            imgItem.filePath = filePath;
+            installImagePath = filePath;
+          }
+        }
+      } else if (imgItem.filePath) {
+        installImagePath = imgItem.filePath;
       }
-    } else if (imgItem.id) {
-      installImageId = imgItem.id;
+    } catch (uploadErr) {
+      console.warn("[submitDispatch] 安装图片上传失败，继续派单：", uploadErr);
     }
 
     const payload: Record<string, unknown> = {};
@@ -1177,13 +1500,17 @@ async function submitDispatch() {
     }
     if (dispatchForm.expectedTime) payload.expectedTime = dispatchForm.expectedTime;
     if (dispatchForm.urgencyLevel) payload.urgencyLevel = dispatchForm.urgencyLevel;
+    if (dispatchForm.workOrderCategory) payload.workOrderCategory = dispatchForm.workOrderCategory;
+    if (dispatchForm.flowType) payload.flowType = dispatchForm.flowType;
+    if (dispatchForm.handleMethod) payload.handleMethod = dispatchForm.handleMethod;
     if (dispatchForm.processFlow.trim()) payload.processFlow = dispatchForm.processFlow.trim();
     if (dispatchForm.handler.trim()) payload.handler = dispatchForm.handler.trim();
-    if (dispatchForm.remark.trim()) payload.remark = dispatchForm.remark.trim();
     if (dispatchForm.deviceNo.trim()) payload.deviceNo = dispatchForm.deviceNo.trim();
+    if (dispatchForm.remark.trim()) payload.remark = dispatchForm.remark.trim();
     if (dispatchForm.leakageStatus.trim()) payload.leakageStatus = dispatchForm.leakageStatus.trim();
-    if (installImageId) payload.installImage = installImageId;
+    if (installImagePath) payload.installImage = installImagePath;
     if (dispatchForm.installAddress.trim()) payload.installAddress = dispatchForm.installAddress.trim();
+    if (dispatchForm.detail.trim()) payload.detail = dispatchForm.detail.trim();
 
     const response = (await dispatchSuspect(id, payload)) as ApiResponseLike;
     assertSuccessResponse(response);
@@ -1191,6 +1518,7 @@ async function submitDispatch() {
     dispatchDialogVisible.value = false;
     await fetchSuspects();
   } catch (error) {
+    console.error("[submitDispatch] 失败：", error);
     uni.showToast({
       title: (error as { msg?: string })?.msg || "转工单失败",
       icon: "none",
@@ -1237,6 +1565,11 @@ function openConfirmLeakDialog() {
   confirmLeakForm.leakPointSize = String(suspect.leakPointSize ?? "");
   confirmLeakForm.leakRoadSurface = String(suspect.leakRoadSurface ?? "");
   confirmLeakForm.remark = String(suspect.remark ?? "");
+  confirmLeakForm.repairTime = "";
+  confirmLeakForm.leakPart = String(suspect.leakPart ?? "");
+  confirmLeakForm.leakReason = String(suspect.leakReason ?? "");
+  confirmLeakForm.inspector = String(suspect.inspector ?? "");
+  confirmLeakForm.locator = String(suspect.locator ?? "");
   detectDifficultySelectOpen.value = false;
   leakPointTypeSelectOpen.value = false;
   initialLevelSelectOpen.value = false;
@@ -1276,6 +1609,11 @@ async function submitConfirmLeak() {
     if (confirmLeakForm.leakPointSize.trim()) payload.leakPointSize = confirmLeakForm.leakPointSize.trim();
     if (confirmLeakForm.leakRoadSurface.trim()) payload.leakRoadSurface = confirmLeakForm.leakRoadSurface.trim();
     if (confirmLeakForm.remark.trim()) payload.remark = confirmLeakForm.remark.trim();
+    if (confirmLeakForm.repairTime) payload.repairTime = confirmLeakForm.repairTime;
+    if (confirmLeakForm.leakPart.trim()) payload.leakPart = confirmLeakForm.leakPart.trim();
+    if (confirmLeakForm.leakReason.trim()) payload.leakReason = confirmLeakForm.leakReason.trim();
+    if (confirmLeakForm.inspector.trim()) payload.inspector = confirmLeakForm.inspector.trim();
+    if (confirmLeakForm.locator.trim()) payload.locator = confirmLeakForm.locator.trim();
 
     // 同步疑点已有的其他信息（表单不展示但漏点需要保留的字段）
     const suspect = selectedSuspect.value;
@@ -1284,7 +1622,7 @@ async function submitConfirmLeak() {
         "detectType", "tubeBore", "tubeMaterial", "suspectSceneImages",
         "leakSceneImages", "sceneVideo", "reporter", "reportTime",
         "patrolNo", "deviceNumber", "noiseTime", "leakStatus", "featureValue",
-        "audioFile", "repairStatus", "repairTime", "repairPerson",
+        "audioFile", "repairStatus", "repairPerson",
         "leakUnit", "maintenanceUnit", "deptId",
       ];
       for (const field of extraFields) {
@@ -1413,19 +1751,114 @@ function previewMediaFiles(paths: string[], type: "image" | "video") {
   uni.previewImage({ urls: paths.map((p) => addBaseUrl(p)), current: 0 });
 }
 
-/** 播放音频 */
-function previewAudioFile(path: string) {
+// ========== 音频播放器 ==========
+/** 格式化时间 mm:ss */
+function formatAudioTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return "00:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+/** 创建或获取 Audio 实例 */
+function getOrCreateAudio(): HTMLAudioElement {
+  if (!audioEl.value) {
+    audioEl.value = new Audio();
+    audioEl.value.addEventListener("timeupdate", () => {
+      if (audioEl.value) {
+        audioCurrentTime.value = audioEl.value.currentTime;
+      }
+    });
+    audioEl.value.addEventListener("loadedmetadata", () => {
+      if (audioEl.value) {
+        audioDuration.value = audioEl.value.duration;
+      }
+    });
+    audioEl.value.addEventListener("ended", () => {
+      audioPlaying.value = false;
+      audioCurrentTime.value = 0;
+    });
+    audioEl.value.addEventListener("error", () => {
+      audioPlaying.value = false;
+      uni.showToast({ title: "音频加载失败", icon: "none" });
+    });
+  }
+  return audioEl.value;
+}
+
+/** 播放/暂停音频 */
+function toggleAudio(path: string) {
   if (!path) {
     uni.showToast({ title: "暂无音频", icon: "none" });
     return;
   }
-  // #ifdef H5
-  new Audio(addBaseUrl(path)).play();
-  // #endif
-  // #ifndef H5
-  uni.showToast({ title: "请使用 H5 端播放音频", icon: "none" });
-  // #endif
+  const audio = getOrCreateAudio();
+  const url = addBaseUrl(path);
+
+  // 同一音频 → 切换播放/暂停
+  if (audioSrc.value === path) {
+    if (audioPlaying.value) {
+      audio.pause();
+      audioPlaying.value = false;
+    } else {
+      audio.play().catch(() => {
+        uni.showToast({ title: "播放失败", icon: "none" });
+      });
+      audioPlaying.value = true;
+    }
+    return;
+  }
+
+  // 不同音频 → 切换音源
+  audio.pause();
+  audio.src = url;
+  audioSrc.value = path;
+  audioCurrentTime.value = 0;
+  audioDuration.value = 0;
+  audio.play().then(() => {
+    audioPlaying.value = true;
+  }).catch(() => {
+    audioPlaying.value = false;
+    uni.showToast({ title: "播放失败", icon: "none" });
+  });
 }
+
+/** 点击进度条跳转 */
+function seekAudio(e: MouseEvent, path: string) {
+  if (!path || audioSrc.value !== path) return;
+  const target = e.currentTarget as HTMLElement;
+  const rect = target.getBoundingClientRect();
+  const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  const audio = getOrCreateAudio();
+  audio.currentTime = ratio * (audioDuration.value || 0);
+  audioCurrentTime.value = audio.currentTime;
+}
+
+/** 停止并销毁音频 */
+function stopAudio() {
+  if (audioEl.value) {
+    audioEl.value.pause();
+    audioEl.value.src = "";
+    audioEl.value.removeEventListener("timeupdate", () => {});
+    audioEl.value.removeEventListener("loadedmetadata", () => {});
+    audioEl.value.removeEventListener("ended", () => {});
+    audioEl.value.removeEventListener("error", () => {});
+    audioEl.value = null;
+  }
+  audioPlaying.value = false;
+  audioCurrentTime.value = 0;
+  audioDuration.value = 0;
+  audioSrc.value = "";
+}
+
+onUnmounted(() => {
+  stopAudio();
+});
+
+// 切换选中项时停止音频
+watch(selectedSuspect, () => {
+  stopAudio();
+});
 
 // ========== 辅助函数：状态标签 ==========
 function getProcessStatus(item: SuspectRecord | null): number {
@@ -2753,6 +3186,74 @@ defineExpose({
   text-decoration: underline;
 }
 
+/* ========== 音频内联播放器 ========== */
+.audio-inline-player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 0;
+}
+
+.audio-inline-player__btn {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #0d82ee;
+  cursor: pointer;
+  transition: background 0.16s ease, transform 0.12s ease;
+  user-select: none;
+}
+
+.audio-inline-player__btn:hover {
+  background: #0674d8;
+}
+
+.audio-inline-player__btn:active {
+  transform: scale(0.92);
+}
+
+.audio-inline-player__icon {
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.audio-inline-player__track {
+  flex: 1;
+  height: 6px;
+  min-width: 0;
+  background: #e2e8f0;
+  border-radius: 3px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.audio-inline-player__track:hover {
+  background: #d0dce8;
+}
+
+.audio-inline-player__bar {
+  height: 100%;
+  background: #0d82ee;
+  border-radius: 3px;
+  transition: width 0.15s linear;
+  pointer-events: none;
+}
+
+.audio-inline-player__time {
+  flex: none;
+  font-size: 11px;
+  color: #7b8da0;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ========== 疑点处理区 ========== */
 .detail-process-box {
   margin-top: 14px;
@@ -3001,6 +3502,136 @@ defineExpose({
 
 .form-grid--two .form-field {
   margin-bottom: 12px;
+}
+
+.form-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.form-input--flex {
+  flex: 1;
+  min-width: 0;
+}
+.form-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex: none;
+  height: 30px;
+  padding: 0 8px;
+  color: #3b82f6;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 4px;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.form-action-btn--hover {
+  background: #dbeafe;
+  border-color: #3b82f6;
+}
+.form-action-btn__icon--map {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233b82f6'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+
+/* ========== 转工单 - 地图选点面板 ========== */
+.dispatch-map-picker {
+  margin-top: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.10);
+}
+.dispatch-map-picker__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+.dispatch-map-picker__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+}
+.dispatch-map-picker__coord {
+  font-size: 12px;
+  color: #94a3b8;
+  transition: color 0.2s;
+}
+.dispatch-map-picker__coord--active {
+  color: #3b82f6;
+  font-weight: 500;
+}
+.dispatch-map-picker__body {
+  height: 280px;
+  width: 100%;
+  position: relative;
+}
+.dispatch-map-picker__fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #94a3b8;
+  font-size: 14px;
+  background: #f8fafc;
+}
+.dispatch-map-picker__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 14px;
+  border-top: 1px solid #e2e8f0;
+  background: #fafafa;
+}
+.dispatch-map-picker .dialog-btn {
+  padding: 5px 18px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+}
+.dispatch-map-picker .dialog-btn--cancel {
+  background: #fff;
+  color: #475569;
+  border-color: #cbd5e1;
+}
+.dispatch-map-picker .dialog-btn--cancel:hover {
+  background: #f1f5f9;
+}
+.dispatch-map-picker .dialog-btn--primary {
+  background: #3b82f6;
+  color: #fff;
+}
+.dispatch-map-picker .dialog-btn--primary:hover {
+  background: #2563eb;
+}
+.dispatch-map-picker .dialog-btn--primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.dispatch-map-picker .dialog-btn--hover {
+  opacity: 0.85;
+}
+
+/* 安装图片半宽 */
+.dispatch-media-row {
+  width: 50%;
+  min-width: 200px;
+}
+.dispatch-media-row__item {
+  width: 100%;
 }
 
 .form-select {
