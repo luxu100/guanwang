@@ -94,7 +94,7 @@
                   <text class="status-pill" :class="getInstallStatusClass((item as AudioDataItem).status)">{{ (item as AudioDataItem).status }}</text>
                 </text>
                 <text class="data-cell data-cell--location">
-                  <text class="data-link" @click.stop="onLocation(item as AudioDataItem)">{{ (item as AudioDataItem).location }}</text>
+                  <text class="data-link" @click.stop="onLocation(item as AudioDataItem)">{{ formatCoordinate((item as AudioDataItem).location) }}</text>
                 </text>
                 <text class="data-cell data-cell--repair">{{ ((item as AudioDataItem).repairTime || '').replace('T', ' ') }}</text>
               </template>
@@ -112,7 +112,7 @@
                 <text class="data-cell data-cell--bluewhale">{{ (item as LeakItem).blueWhaleAnalysis }}</text>
                 <text class="data-cell data-cell--manualanalysis">{{ (item as LeakItem).manualAnalysis }}</text>
                 <text class="data-cell data-cell--location">
-                  <text class="data-link" @click.stop="onLocationLeak(item as LeakItem)">{{ (item as LeakItem).location }}</text>
+                  <text class="data-link" @click.stop="onLocationLeak(item as LeakItem)">{{ formatCoordinate((item as LeakItem).location) }}</text>
                 </text>
               </template>
             </view>
@@ -249,7 +249,7 @@
                 </view>
                 <view class="location-row">
                   <text class="location-row__label">坐标</text>
-                  <text class="location-row__value">{{ (selectedItem as AudioDataItem).location }}</text>
+                  <text class="location-row__value">{{ formatCoordinate((selectedItem as AudioDataItem).location) }}</text>
                 </view>
               </view>
             </view>
@@ -408,7 +408,7 @@
                 </view>
                 <view class="location-row">
                   <text class="location-row__label">坐标</text>
-                  <text class="location-row__value">{{ (selectedItem as LeakItem).location }}</text>
+                  <text class="location-row__value">{{ formatCoordinate((selectedItem as LeakItem).location) }}</text>
                 </view>
               </view>
               </view>
@@ -1066,6 +1066,16 @@ async function onDownload(item: AudioDataItem) {
   }
 }
 
+function formatCoordinate(location: string) {
+  if (!location || location === "--") return location;
+  const parts = location.split(",");
+  if (parts.length !== 2) return location;
+  const lng = Number(parts[0]);
+  const lat = Number(parts[1]);
+  if (!Number.isFinite(lng) || !Number.isFinite(lat)) return location;
+  return `${lng.toFixed(4)},${lat.toFixed(4)}`;
+}
+
 function onLocation(item: AudioDataItem) {
   if (!item.location || item.location === "--") {
     uni.showToast({ title: "暂无坐标数据", icon: "none" });
@@ -1540,7 +1550,7 @@ watch(
 
 .data-row {
   display: grid;
-  grid-template-columns: 58px minmax(130px, 1.3fr) minmax(140px, 1.4fr) minmax(100px, 1fr) minmax(70px, 0.7fr) minmax(70px, 0.7fr) minmax(90px, 0.9fr) minmax(180px, 1.6fr) minmax(140px, 1.2fr);
+  grid-template-columns: 58px repeat(8, 1fr);
   min-height: 42px;
   width: 100%;
   min-width: 1000px;
@@ -1594,7 +1604,7 @@ watch(
 }
 
 .data-row--leakage {
-  grid-template-columns: 58px minmax(130px, 1.3fr) minmax(140px, 1.4fr) minmax(100px, 1fr) minmax(70px, 0.7fr) minmax(70px, 0.7fr) minmax(90px, 0.9fr) minmax(90px, 0.9fr) minmax(180px, 1.6fr);
+  grid-template-columns: 58px repeat(8, 1fr);
   min-width: 920px;
 }
 
@@ -2337,11 +2347,11 @@ watch(
   }
 
   .data-row {
-    grid-template-columns: 46px minmax(110px, 1.1fr) minmax(120px, 1.2fr) minmax(60px, 0.6fr) minmax(60px, 0.6fr) minmax(74px, 0.74fr) minmax(140px, 1.3fr) minmax(110px, 1fr);
+    grid-template-columns: 46px repeat(8, 1fr);
   }
 
   .data-row--leakage {
-    grid-template-columns: 46px minmax(110px, 1.1fr) minmax(120px, 1.2fr) minmax(60px, 0.6fr) minmax(60px, 0.6fr) minmax(60px, 0.6fr) minmax(70px, 0.7fr) minmax(70px, 0.7fr) minmax(140px, 1.3fr);
+    grid-template-columns: 46px repeat(8, 1fr);
     min-width: 700px;
   }
 }

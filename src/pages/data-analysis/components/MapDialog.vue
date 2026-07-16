@@ -72,7 +72,7 @@ const displayCoord = computed(() => {
   if (!props.location) return "";
   const p = parsedCoord.value;
   if (!p) return props.location;
-  return `经度: ${p.lng} 纬度: ${p.lat}`;
+  return `经度: ${p.lng.toFixed(4)} 纬度: ${p.lat.toFixed(4)}`;
 });
 
 const parsedCoord = computed(() => {
