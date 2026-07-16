@@ -28,7 +28,7 @@
         </view>
 
         <view class="filter-group filter-group--date">
-          <text class="filter-label">发起时间</text>
+          <text class="filter-label">时间</text>
           <view class="date-range">
             <DatetimePicker v-model="filters.startTime" class="filter-datetime" title="选择开始时间" placeholder="请选择开始时间" />
             <text class="filter-separator">至</text>
@@ -90,7 +90,9 @@
                 <text class="data-cell data-cell--download">
                   <text class="data-link" @click.stop="onDownload(item as AudioDataItem)"><text class="download-icon"></text>音频</text>
                 </text>
-                <text class="data-cell data-cell--status">{{ (item as AudioDataItem).status }}</text>
+                <text class="data-cell data-cell--status">
+                  <text class="status-pill" :class="getInstallStatusClass((item as AudioDataItem).status)">{{ (item as AudioDataItem).status }}</text>
+                </text>
                 <text class="data-cell data-cell--location">
                   <text class="data-link" @click.stop="onLocation(item as AudioDataItem)">{{ (item as AudioDataItem).location }}</text>
                 </text>
@@ -104,7 +106,9 @@
                 <text class="data-cell data-cell--status">
                   <text class="status-pill" :class="getLeakageStatusClass(item as LeakItem)">{{ (item as LeakItem).leakageStatus }}</text>
                 </text>
-                <text class="data-cell data-cell--install">{{ (item as LeakItem).installStatus }}</text>
+                <text class="data-cell data-cell--install">
+                  <text class="status-pill" :class="getInstallStatusClass((item as LeakItem).installStatus)">{{ (item as LeakItem).installStatus }}</text>
+                </text>
                 <text class="data-cell data-cell--bluewhale">{{ (item as LeakItem).blueWhaleAnalysis }}</text>
                 <text class="data-cell data-cell--manualanalysis">{{ (item as LeakItem).manualAnalysis }}</text>
                 <text class="data-cell data-cell--location">
@@ -151,6 +155,7 @@
         <view class="detail-tabs">
           <template v-if="props.mode === 'audio'">
             <view class="detail-tab" :class="{ 'detail-tab--active': activeAudioTab === 'base' }" @click="activeAudioTab = 'base'">基本信息</view>
+            <view class="detail-tab" :class="{ 'detail-tab--active': activeAudioTab === 'audio-info' }" @click="activeAudioTab = 'audio-info'">音频信息</view>
             <view class="detail-tab" :class="{ 'detail-tab--active': activeAudioTab === 'audio-file' }" @click="activeAudioTab = 'audio-file'">音频文件</view>
           </template>
           <template v-else>
@@ -208,17 +213,31 @@
                   <view class="time-row">
                     <view class="time-row__marker"></view>
                     <view class="time-row__content">
-                      <text class="time-row__label">创建时间</text>
-                      <text class="time-row__value">{{ ((selectedItem as AudioDataItem).audioTime || '').replace('T', ' ') }}</text>
+                      <text class="time-row__label">采样开始时间</text>
+                      <text class="time-row__value">{{ ((selectedItem as AudioDataItem).samplingTime || '--').replace('T', ' ') }}</text>
                     </view>
                   </view>
                   <view class="time-row">
                     <view class="time-row__marker"></view>
                     <view class="time-row__content">
-                      <text class="time-row__label">修复时间</text>
-                      <text class="time-row__value">{{ ((selectedItem as AudioDataItem).repairTime || '').replace('T', ' ') }}</text>
+                      <text class="time-row__label">数据发射时间</text>
+                      <text class="time-row__value">{{ ((selectedItem as AudioDataItem).lastSamplingTime || '--').replace('T', ' ') }}</text>
                     </view>
                   </view>
+									<view class="time-row">
+									  <view class="time-row__marker"></view>
+									  <view class="time-row__content">
+									    <text class="time-row__label">创建时间</text>
+									    <text class="time-row__value">{{ ((selectedItem as AudioDataItem).audioTime || '').replace('T', ' ') }}</text>
+									  </view>
+									</view>
+									<view class="time-row">
+									  <view class="time-row__marker"></view>
+									  <view class="time-row__content">
+									    <text class="time-row__label">修复时间</text>
+									    <text class="time-row__value">{{ ((selectedItem as AudioDataItem).repairTime || '').replace('T', ' ') }}</text>
+									  </view>
+									</view>
                 </view>
               </view>
 
@@ -231,6 +250,71 @@
                 <view class="location-row">
                   <text class="location-row__label">坐标</text>
                   <text class="location-row__value">{{ (selectedItem as AudioDataItem).location }}</text>
+                </view>
+              </view>
+            </view>
+
+            <view v-else-if="activeAudioTab === 'audio-info'" class="detail-base-panel leak-tab-body">
+              <view class="detail-grid detail-grid--content">
+                <view class="detail-item detail-item--note">
+                  <text class="detail-item__label">采样率</text>
+                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).samplingRate }}</text>
+                </view>
+                <view class="detail-item detail-item--note">
+                  <text class="detail-item__label">单次测量时长</text>
+                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).onceMeasureLength }}</text>
+                </view>
+                <view class="detail-item detail-item--note">
+                  <text class="detail-item__label">滤波器低频点</text>
+                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).filterLowFrequency }}</text>
+                </view>
+                <view class="detail-item detail-item--note">
+                  <text class="detail-item__label">滤波器高频点</text>
+                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).filterHighFrequency }}</text>
+                </view>
+                <view class="detail-item detail-item--note">
+                  <text class="detail-item__label">滤波方式</text>
+                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).filterMethod }}</text>
+                </view>
+                <view class="detail-item detail-item--note">
+                  <text class="detail-item__label">增益原始值</text>
+                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).gain }}</text>
+                </view>
+                <view class="detail-item detail-item--note">
+                  <text class="detail-item__label">信号挡位</text>
+                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).signalLevel }}</text>
+                </view>
+                <view class="detail-item detail-item--note">
+                  <text class="detail-item__label">基准值</text>
+                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).benchmarkValue }}</text>
+                </view>
+                <view class="detail-item detail-item--note">
+                  <text class="detail-item__label">噪声基准值</text>
+                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).noiseBenchmarkValue }}</text>
+                </view>
+                <view class="detail-item detail-item--note">
+                  <text class="detail-item__label">信号采集通道</text>
+                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).signalChannel }}</text>
+                </view>
+                <view class="detail-item detail-item--note">
+                  <text class="detail-item__label">同步采样时间</text>
+                  <text class="detail-item__value">{{ ((selectedItem as AudioDataItem).syncSamplingTime || '').replace('T', ' ') }}</text>
+                </view>
+                <view class="detail-item detail-item--note">
+                  <text class="detail-item__label">同步采样次数</text>
+                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).syncSamplingNumber }}</text>
+                </view>
+                <view class="detail-item detail-item--note">
+                  <text class="detail-item__label">音频上报规则</text>
+                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).audioRule }}</text>
+                </view>
+                <view class="detail-item detail-item--note">
+                  <text class="detail-item__label">每天测量组数</text>
+                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).samplingCount }}</text>
+                </view>
+                <view class="detail-item detail-item--note">
+                  <text class="detail-item__label">泄漏门限</text>
+                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).leakThreshold }}</text>
                 </view>
               </view>
             </view>
@@ -295,8 +379,15 @@
                   <view class="time-row">
                     <view class="time-row__marker"></view>
                     <view class="time-row__content">
-                      <text class="time-row__label">采样时间</text>
+                      <text class="time-row__label">采样开始时间</text>
                       <text class="time-row__value">{{ ((selectedItem as LeakItem).samplingTime || '--').replace('T', ' ') }}</text>
+                    </view>
+                  </view>
+                  <view class="time-row">
+                    <view class="time-row__marker"></view>
+                    <view class="time-row__content">
+                      <text class="time-row__label">数据上报时间</text>
+                      <text class="time-row__value">{{ ((selectedItem as LeakItem).lastSamplingTime || '--').replace('T', ' ') }}</text>
                     </view>
                   </view>
 									<view class="time-row">
@@ -325,7 +416,7 @@
               <view v-else-if="leakageDetailTab === 'analysis'">
                 <view class="detail-grid detail-grid--content">
                   <view class="detail-item detail-item--note" :class="'detail-item--status-' + getLeakageStatusColor(selectedItem as LeakItem)">
-                    <text class="detail-item__label">渗漏状态</text>
+                    <text class="detail-item__label">泄露状态</text>
                     <text class="detail-item__value">{{ (selectedItem as LeakItem).leakageStatus }}</text>
                   </view>
                   <view class="detail-item detail-item--note">
@@ -333,9 +424,38 @@
                     <text class="detail-item__value">{{ (selectedItem as LeakItem).gain }}</text>
                   </view>
                   <view class="detail-item detail-item--note">
-                    <text class="detail-item__label">特征值</text>
+                    <text class="detail-item__label">泄露特征值</text>
                     <text class="detail-item__value">{{ (selectedItem as LeakItem).eigenvalue }}</text>
                   </view>
+                  <view class="detail-item detail-item--note">
+                    <text class="detail-item__label">泄露强度</text>
+                    <text class="detail-item__value">{{ (selectedItem as LeakItem).leakIntensity }}</text>
+                  </view>
+                  <view class="detail-item detail-item--note">
+                    <text class="detail-item__label">泄露门限</text>
+                    <text class="detail-item__value">{{ (selectedItem as LeakItem).leakThreshold }}</text>
+                  </view>
+                  <view class="detail-item detail-item--note">
+                    <text class="detail-item__label">泄露带宽</text>
+                    <text class="detail-item__value">{{ (selectedItem as LeakItem).leakBandwidth }}</text>
+                  </view>
+                  <view class="detail-item detail-item--note">
+                    <text class="detail-item__label">泄露能量</text>
+                    <text class="detail-item__value">{{ (selectedItem as LeakItem).leakEnergy }}</text>
+                  </view>
+                  <view class="detail-item detail-item--note">
+                    <text class="detail-item__label">泄露频率</text>
+                    <text class="detail-item__value">{{ (selectedItem as LeakItem).leakFrequency }}</text>
+                  </view>
+                  <view class="detail-item detail-item--note">
+                    <text class="detail-item__label">状态标志位</text>
+                    <text class="detail-item__value">{{ (selectedItem as LeakItem).statusRemark }}</text>
+                  </view>
+                </view>
+              </view>
+
+              <view v-else-if="leakageDetailTab === 'leak-analysis'">
+                <view class="detail-grid detail-grid--content">
                   <view class="detail-item detail-item--note">
                     <text class="detail-item__label">蓝鲸分析</text>
                     <text class="detail-item__value">{{ (selectedItem as LeakItem).blueWhaleAnalysis }}</text>
@@ -355,18 +475,6 @@
                   <view class="detail-item detail-item--note">
                     <text class="detail-item__label">算法类型</text>
                     <text class="detail-item__value">{{ (selectedItem as LeakItem).algorithmType }}</text>
-                  </view>
-                  <view class="detail-item detail-item--note">
-                    <text class="detail-item__label">渗漏带宽</text>
-                    <text class="detail-item__value">{{ (selectedItem as LeakItem).leakBandwidth }}</text>
-                  </view>
-                  <view class="detail-item detail-item--note">
-                    <text class="detail-item__label">渗漏能量</text>
-                    <text class="detail-item__value">{{ (selectedItem as LeakItem).leakEnergy }}</text>
-                  </view>
-                  <view class="detail-item detail-item--note">
-                    <text class="detail-item__label">渗漏频率</text>
-                    <text class="detail-item__value">{{ (selectedItem as LeakItem).leakFrequency }}</text>
                   </view>
                 </view>
               </view>
@@ -428,6 +536,23 @@ interface AudioDataItem {
   location: string;
   repairTime: string;
   valveNumber: string;
+  samplingTime: string;
+  lastSamplingTime: string;
+  samplingRate: string;
+  onceMeasureLength: string;
+  filterLowFrequency: string;
+  filterHighFrequency: string;
+  filterMethod: string;
+  gain: string;
+  signalLevel: string;
+  benchmarkValue: string;
+  noiseBenchmarkValue: string;
+  signalChannel: string;
+  syncSamplingTime: string;
+  syncSamplingNumber: string;
+  audioRule: string;
+  samplingCount: string;
+  leakThreshold: string;
 }
 
 interface LeakItem {
@@ -453,6 +578,10 @@ interface LeakItem {
   address: string;
   location: string;
   samplingTime: string;
+  lastSamplingTime: string;
+  leakIntensity: string;
+  leakThreshold: string;
+  statusRemark: string;
 }
 
 type DataItem = AudioDataItem | LeakItem;
@@ -505,8 +634,8 @@ const leakDataList = ref<LeakItem[]>([]);
 const leakTotal = ref<number>(0);
 const loading = ref<boolean>(false);
 
-const leakageDetailTab = ref<"base" | "analysis" | "detail">("base");
-const activeAudioTab = ref<"base" | "audio-file">("base");
+const leakageDetailTab = ref<"base" | "analysis" | "leak-analysis">("base");
+const activeAudioTab = ref<"base" | "audio-info" | "audio-file">("base");
 
 const partitionOptions = ref<Array<{ label: string; value: number }>>([]);
 const selectedDeptId = ref<number | undefined>(undefined);
@@ -542,6 +671,7 @@ const leakageStatusOptions = [
 const leakageDetailTabs = [
   { label: "基本信息", value: "base" as const },
   { label: "渗漏信息", value: "analysis" as const },
+  { label: "渗漏分析", value: "leak-analysis" as const },
 ];
 
 const pageTitle = computed(() => {
@@ -748,6 +878,23 @@ async function fetchAudioData() {
       location: record.coordinate ?? "--",
       repairTime: record.repairTime ?? "--",
       valveNumber: record.valveNumber ?? "--",
+			samplingTime: record.samplingTime ?? "--",
+			lastSamplingTime: record.lastSamplingTime ?? "--",
+			samplingRate: record.samplingRate + "HZ" ?? "--",
+			onceMeasureLength: record.onceMeasureLength + "ms" ?? "--",
+			filterLowFrequency: record.filterLowFrequency + "HZ" ?? "--",
+			filterHighFrequency: record.filterHighFrequency + "HZ" ?? "--",
+			filterMethod: record.filterMethod ?? "--",
+			gain: record.gain?.raw ?? "--",
+			signalLevel: record.signalLevel ?? "--",
+			benchmarkValue: record.benchmarkValue ?? "--",
+			noiseBenchmarkValue: record.noiseBenchmarkValue ?? "--",
+			signalChannel: record.signalChannel ?? "--",
+			syncSamplingTime: record.syncSamplingTime ?? "--",
+			syncSamplingNumber: record.syncSamplingNumber ?? "--",
+			audioRule: record.audioRule ?? "--",
+			samplingCount: record.samplingCount ?? "--",
+			leakThreshold: record.leakThreshold ?? "--",
     }));
     audioTotal.value = parsed.total;
     selectedId.value = audioDataList.value.length > 0 ? audioDataList.value[0].id : 0;
@@ -792,7 +939,7 @@ async function fetchLeakageData() {
       detectedTime: record.time ?? "--",
       weather: record.weather ?? "--",
       leakageStatus: record.status ?? "--",
-      gain: record.gain?.modeCode ?? "--",
+      gain: record.gain?.raw ?? "--",
       eigenvalue: record.leakEsa ?? "--",
       installStatus: record.maintenance ?? "--",
       blueWhaleAnalysis: record.blueWhaleAnalysis ?? "--",
@@ -809,6 +956,10 @@ async function fetchLeakageData() {
       address: record.installAddress ?? "--",
       location: record.coordinate ?? "--",
       samplingTime: record.samplingTime ?? "--",
+			lastSamplingTime: record.lastSamplingTime ?? "--",
+			leakIntensity: record.leakIntensity ?? "--",
+			leakThreshold: record.leakThreshold ?? "--",
+			statusRemark: record.statusRemark ?? "--",
     }));
     leakTotal.value = parsed.total;
     selectedId.value = leakDataList.value.length > 0 ? leakDataList.value[0].id : 0;
@@ -947,6 +1098,12 @@ function getLeakageStatusColor(item: LeakItem) {
   if (status === "正常" || status === "1") return "normal";
   if (status === "疑似" || status === "2") return "suspicious";
   return "unknown";
+}
+
+function getInstallStatusClass(status: string) {
+  if (status === "安装") return "status-pill--installed";
+  if (status === "拆卸") return "status-pill--removed";
+  return "status-pill--unknown";
 }
 
 function onStatusChange(e: { detail: { value: number } }) {
@@ -1599,6 +1756,18 @@ watch(
   border-color: #dbe4ec;
 }
 
+.status-pill--installed {
+  color: #177245;
+  background: #eaf8ef;
+  border-color: #bfe8ce;
+}
+
+.status-pill--removed {
+  color: #b42318;
+  background: #fff1ee;
+  border-color: #ffd3cb;
+}
+
 .table-state {
   height: 180px;
   color: #7c8da1;
@@ -1988,7 +2157,7 @@ watch(
 
 .detail-grid--content .detail-item {
   display: grid;
-  grid-template-columns: 86px minmax(0, 1fr);
+  grid-template-columns: 110px minmax(0, 1fr);
   align-items: stretch;
   min-height: 0;
   padding: 0;

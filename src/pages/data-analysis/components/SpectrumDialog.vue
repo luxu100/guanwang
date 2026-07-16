@@ -554,8 +554,9 @@ onUnmounted(() => {
   position: relative;
   display: flex;
   flex-direction: column;
-  width: min(80vw, 1200px);
-  max-height: 92vh;
+  width: 70vw;
+  aspect-ratio: 16 / 9;
+  max-height: 90vh;
   overflow: hidden;
   background: #f4f8fb;
   border: 1px solid rgba(151, 190, 216, 0.7);
