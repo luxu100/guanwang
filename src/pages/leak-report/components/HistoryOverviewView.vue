@@ -16,7 +16,7 @@
         <template v-if="activeDataTab === 'leakage'">
           <view class="filter-group">
             <text class="filter-label">渗漏状态</text>
-            <picker :range="leakStatusOptions" range-key="label" @change="handleLeakStatusChange">
+            <picker :range="activeLeakStatusOptions" range-key="label" @change="handleLeakStatusChange">
               <view class="filter-select">
                 <text>{{ currentLeakStatusLabel }}</text>
                 <text class="filter-select__arrow"></text>
@@ -33,7 +33,7 @@
         <template v-else-if="activeDataTab === 'deviceUpload'">
           <view class="filter-group">
             <text class="filter-label">渗漏状态</text>
-            <picker :range="leakStatusOptions" range-key="label" @change="handleLeakStatusChange">
+            <picker :range="activeLeakStatusOptions" range-key="label" @change="handleLeakStatusChange">
               <view class="filter-select">
                 <text>{{ currentLeakStatusLabel }}</text>
                 <text class="filter-select__arrow"></text>
@@ -71,7 +71,7 @@
         <template v-else-if="activeDataTab === 'sampling'">
           <view class="filter-group">
             <text class="filter-label">渗漏状态</text>
-            <picker :range="leakStatusOptions" range-key="label" @change="handleLeakStatusChange">
+            <picker :range="activeLeakStatusOptions" range-key="label" @change="handleLeakStatusChange">
               <view class="filter-select">
                 <text>{{ currentLeakStatusLabel }}</text>
                 <text class="filter-select__arrow"></text>
@@ -104,7 +104,7 @@
         <template v-else>
           <view class="filter-group">
             <text class="filter-label">渗漏状态</text>
-            <picker :range="leakStatusOptions" range-key="label" @change="handleLeakStatusChange">
+            <picker :range="activeLeakStatusOptions" range-key="label" @change="handleLeakStatusChange">
               <view class="filter-select">
                 <text>{{ currentLeakStatusLabel }}</text>
                 <text class="filter-select__arrow"></text>
@@ -144,6 +144,66 @@
         @click="switchDataTab(tab.value)"
       >
         {{ tab.label }}
+      </view>
+    </view>
+
+    <!-- KPI 概览条 -->
+    <view class="kpi-strip">
+      <view
+        v-for="kpi in currentKpis"
+        :key="kpi.label"
+        class="kpi-card"
+        :class="kpi.tone ? `kpi-card--${kpi.tone}` : ''"
+      >
+        <text class="kpi-card__label">{{ kpi.label }}</text>
+        <text class="kpi-card__value">{{ kpi.value }}</text>
+        <text v-if="kpi.hint" class="kpi-card__hint">{{ kpi.hint }}</text>
+      </view>
+    </view>
+
+    <!-- 趋势图区（可折叠） -->
+    <view class="chart-zone" :class="{ 'chart-zone--collapsed': chartCollapsed }">
+      <view class="chart-zone__header">
+        <view class="chart-zone__title-wrap" @click="toggleChartCollapse">
+          <view class="chart-zone__title-row">
+            <text class="chart-zone__title">数据趋势 · {{ activeTabLabel }}</text>
+            <text class="chart-zone__toggle">{{ chartCollapsed ? "展开" : "收起" }}</text>
+          </view>
+          <text v-if="!chartCollapsed" class="chart-zone__hint">{{ currentChartConfig.hint }}</text>
+        </view>
+        <view v-if="!chartCollapsed" class="chart-zone__actions">
+          <view class="chart-zone__modes">
+            <view
+              v-for="opt in currentChartModes"
+              :key="opt.value"
+              class="chart-zone__mode"
+              :class="{ 'chart-zone__mode--active': activeChartModeValue === opt.value }"
+              @click="switchChartMode(opt.value)"
+            >
+              {{ opt.label }}
+            </view>
+          </view>
+          <view class="chart-zone__scope">
+            <view
+              class="chart-zone__scope-btn"
+              :class="{ 'chart-zone__scope-btn--active': chartDataScope === 'page' }"
+              @click="chartDataScope !== 'page' && toggleChartDataScope()"
+            >本页</view>
+            <view
+              class="chart-zone__scope-btn"
+              :class="{ 'chart-zone__scope-btn--active': chartDataScope === 'all' }"
+              @click="chartDataScope !== 'all' && toggleChartDataScope()"
+            >{{ chartAllLoading ? "加载中…" : "全部" }}</view>
+          </view>
+        </view>
+      </view>
+      <view v-show="!chartCollapsed" class="chart-zone__body">
+        <!-- #ifdef H5 -->
+        <div ref="chartEl" class="chart-zone__canvas"></div>
+        <!-- #endif -->
+        <!-- #ifndef H5 -->
+        <view class="chart-zone__fallback">当前图表仅支持 H5 展示</view>
+        <!-- #endif -->
       </view>
     </view>
 
@@ -415,7 +475,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, onMounted } from "vue";
+import { computed, reactive, ref, onMounted, onBeforeUnmount, nextTick, watch } from "vue";
+import * as echarts from "echarts";
 import {
   getLeakageHistoryPage,
   getLeakageHistoryDetail,
@@ -450,6 +511,15 @@ interface DetailField {
   value: string;
 }
 
+type KpiTone = "default" | "success" | "warning" | "danger";
+
+interface KpiItem {
+  label: string;
+  value: string;
+  hint?: string;
+  tone?: KpiTone;
+}
+
 const historyTabs: Array<{ label: string; value: DataTab }> = [
   { label: "渗漏记录", value: "leakage" },
   { label: "设备上报", value: "deviceUpload" },
@@ -466,6 +536,18 @@ const leakStatusOptions: Array<{ label: string; value: number | "" }> = [
   { label: "疑似", value: 2 },
   { label: "未知", value: 3 },
 ];
+
+// 渗漏记录 tab 专属：漏点记录的 leakStatus 是字符串（已修复/未修复），后端不支持该字段筛选，需本地过滤
+const leakageStatusOptions: Array<{ label: string; value: number | string | "" }> = [
+  { label: "不限", value: "" },
+  { label: "已修复", value: "已修复" },
+  { label: "未修复", value: "未修复" },
+];
+
+// 根据当前 tab 动态选择渗漏状态选项（统一类型，避免联合类型不可调用）
+const activeLeakStatusOptions = computed<Array<{ label: string; value: number | string | "" }>>(() =>
+  activeDataTab.value === "leakage" ? leakageStatusOptions : leakStatusOptions,
+);
 
 const algorithmStatusOptions: Array<{ label: string; value: string }> = [
   { label: "不限", value: "" },
@@ -490,7 +572,7 @@ const sortOrder = ref("desc");
 const filters = reactive({
   startTime: "",
   endTime: "",
-  leakStatus: "" as number | "",
+  leakStatus: "" as number | string | "",
   deviceNumber: "",
   inspector: "",
   tubeGroup: "",
@@ -513,13 +595,706 @@ const activeDataTab = ref<DataTab>("leakage");
 const exportMenuVisible = ref(false);
 
 const currentLeakStatusLabel = computed(() =>
-  leakStatusOptions.find((o) => o.value === filters.leakStatus)?.label || "不限",
+  activeLeakStatusOptions.value.find((o) => o.value === filters.leakStatus)?.label || "不限",
 );
 const currentAlgorithmStatusLabel = computed(() =>
   algorithmStatusOptions.find((o) => o.value === filters.algorithmStatus)?.label || "不限",
 );
 const activeTabLabel = computed(() => tabLabelMap[activeDataTab.value]);
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pagination.pageSize)));
+
+// 顶部 KPI 概览条（基于当前页数据 + 后端 total 本地计算）
+const currentKpis = computed<KpiItem[]>(() => {
+  const list = chartRecords.value;
+  const t = total.value;
+  const page = list.length;
+  const isAll = chartDataScope.value === "all";
+  const scopeLabel = isAll ? "全部记录" : "当前页";
+  const pageText = isAll ? `全量 ${t} 条` : `第 ${pagination.pageNum}/${totalPages.value} 页`;
+  const prefix = isAll ? "全部" : "本页";
+  const tone = (ok: boolean): KpiTone => (ok ? "success" : "warning");
+
+  if (activeDataTab.value === "leakage") {
+    const repaired = list.filter((r) => normalizeLeakStatus(getFieldValue(r, "leakStatus"), "leakage") === "已修复").length;
+    const unrepaired = list.filter((r) => normalizeLeakStatus(getFieldValue(r, "leakStatus"), "leakage") === "未修复").length;
+    const rate = page > 0 ? Math.round((repaired / page) * 100) : 0;
+    return [
+      { label: "总记录数", value: String(t), hint: "全量数据" },
+      { label: scopeLabel, value: String(page), hint: pageText },
+      { label: `${prefix}已修复`, value: String(repaired), tone: "success" },
+      { label: `${prefix}未修复`, value: String(unrepaired), tone: "danger" },
+      { label: `${prefix}修复率`, value: `${rate}%`, tone: rate >= 50 ? "success" : "warning" },
+    ];
+  }
+
+  if (activeDataTab.value === "deviceUpload") {
+    const leak = list.filter((r) => normalizeLeakStatus(getFieldValue(r, "leakStatus"), "deviceUpload") === "渗漏").length;
+    const normal = list.filter((r) => normalizeLeakStatus(getFieldValue(r, "leakStatus"), "deviceUpload") === "正常").length;
+    const devices = new Set(list.map((r) => String(getFieldValue(r, "deviceNumber") || "")).filter(Boolean)).size;
+    const abnormalRate = page > 0 ? Math.round((leak / page) * 100) : 0;
+    return [
+      { label: "上报总数", value: String(t), hint: "全量数据" },
+      { label: scopeLabel, value: String(page), hint: pageText },
+      { label: `${prefix}渗漏`, value: String(leak), tone: "danger" },
+      { label: `${prefix}正常`, value: String(normal), tone: "success" },
+      { label: "涉及设备", value: String(devices) },
+      { label: "异常率", value: `${abnormalRate}%`, tone: abnormalRate >= 30 ? "danger" : "warning" },
+    ];
+  }
+
+  if (activeDataTab.value === "algorithm") {
+    const success = list.filter((r) => String(getFieldValue(r, "status") || "").toUpperCase() === "SUCCESS").length;
+    const failed = list.filter((r) => ["FAILED", "TIMEOUT"].includes(String(getFieldValue(r, "status") || "").toUpperCase())).length;
+    const successRate = page > 0 ? Math.round((success / page) * 100) : 0;
+    return [
+      { label: "执行总数", value: String(t), hint: "全量数据" },
+      { label: scopeLabel, value: String(page), hint: pageText },
+      { label: `${prefix}成功`, value: String(success), tone: "success" },
+      { label: `${prefix}失败`, value: String(failed), tone: "danger" },
+      { label: "成功率", value: `${successRate}%`, tone: tone(successRate >= 80) },
+    ];
+  }
+
+  if (activeDataTab.value === "sampling") {
+    const leak = list.filter((r) => normalizeLeakStatus(getFieldValue(r, "leakStatus"), "sampling") === "渗漏").length;
+    const devices = new Set(list.map((r) => String(getFieldValue(r, "deviceNumber") || "")).filter(Boolean)).size;
+    const abnormalRate = page > 0 ? Math.round((leak / page) * 100) : 0;
+    return [
+      { label: "采样总数", value: String(t), hint: "全量数据" },
+      { label: scopeLabel, value: String(page), hint: pageText },
+      { label: `${prefix}异常`, value: String(leak), tone: "danger" },
+      { label: "涉及设备", value: String(devices) },
+      { label: "异常率", value: `${abnormalRate}%`, tone: abnormalRate >= 30 ? "danger" : "warning" },
+    ];
+  }
+
+  if (activeDataTab.value === "samplingDetail") {
+    const devices = new Set(list.map((r) => String(getFieldValue(r, "deviceNumber") || "")).filter(Boolean)).size;
+    const samplings = new Set(list.map((r) => String(getFieldValue(r, "samplingId") || "")).filter(Boolean)).size;
+    const esaValues = list.map((r) => Number(getFieldValue(r, "leakEsa"))).filter((v) => !Number.isNaN(v));
+    const avgEsa = esaValues.length > 0 ? Math.round(esaValues.reduce((a, b) => a + b, 0) / esaValues.length) : 0;
+    return [
+      { label: "明细总数", value: String(t), hint: "全量数据" },
+      { label: scopeLabel, value: String(page), hint: pageText },
+      { label: "涉及采样记录", value: String(samplings) },
+      { label: "涉及设备", value: String(devices) },
+      { label: "平均特征值", value: String(avgEsa) },
+    ];
+  }
+
+  // samplingDaily
+  const leak = list.filter((r) => normalizeLeakStatus(getFieldValue(r, "leakStatus"), "samplingDaily") === "渗漏").length;
+  const devices = new Set(list.map((r) => String(getFieldValue(r, "deviceNumber") || "")).filter(Boolean)).size;
+  const abnormalRate = page > 0 ? Math.round((leak / page) * 100) : 0;
+  return [
+    { label: "日报总数", value: String(t), hint: "全量数据" },
+    { label: scopeLabel, value: String(page), hint: pageText },
+    { label: `${prefix}异常`, value: String(leak), tone: "danger" },
+    { label: "涉及设备", value: String(devices) },
+    { label: "异常率", value: `${abnormalRate}%`, tone: abnormalRate >= 30 ? "danger" : "warning" },
+  ];
+});
+
+// ==================== 趋势图区（每个 Tab 专属图表配置） ====================
+type ChartType = "line" | "bar" | "pie" | "stackedBar" | "histogram";
+type ChartGroupBy = "time" | "device" | "leakType" | "leakStatus" | "algorithmStatus" | "featureValue";
+
+interface ChartModeConfig {
+  label: string;        // 切换按钮显示文本
+  value: string;        // 模式唯一标识
+  type: ChartType;      // echarts 图表类型
+  groupBy: ChartGroupBy; // 分组维度
+  hint: string;         // 图表区副标题（说明当前模式的维度含义）
+}
+
+// 每个 Tab 的专属图表模式列表
+const chartModeConfigs: Record<DataTab, ChartModeConfig[]> = {
+  leakage: [
+    { label: "每日趋势", value: "trend", type: "line", groupBy: "time", hint: "按检出日期统计渗漏记录数趋势" },
+    { label: "漏点类型", value: "leakType", type: "pie", groupBy: "leakType", hint: "按漏点类型分布占比" },
+    { label: "渗漏状态", value: "leakStatus", type: "pie", groupBy: "leakStatus", hint: "已修复 vs 未修复 占比" },
+  ],
+  deviceUpload: [
+    { label: "每日趋势", value: "trend", type: "line", groupBy: "time", hint: "按上报日期统计记录数趋势" },
+    { label: "渗漏状态", value: "leakStatus", type: "pie", groupBy: "leakStatus", hint: "渗漏 vs 正常 占比" },
+    { label: "设备 Top10", value: "device", type: "bar", groupBy: "device", hint: "上报次数最多的前 10 个设备" },
+  ],
+  algorithm: [
+    { label: "每日趋势", value: "trend", type: "line", groupBy: "time", hint: "按日期统计算法执行次数趋势" },
+    { label: "执行结果", value: "algoStatus", type: "pie", groupBy: "algorithmStatus", hint: "成功 / 失败 / 超时 占比" },
+    { label: "成功失败对比", value: "successFail", type: "stackedBar", groupBy: "time", hint: "按日期堆叠统计成功与失败次数对比" },
+  ],
+  sampling: [
+    { label: "每日趋势", value: "trend", type: "line", groupBy: "time", hint: "按采样日期统计记录数趋势" },
+    { label: "异常状态", value: "leakStatus", type: "pie", groupBy: "leakStatus", hint: "异常 vs 正常 占比" },
+  ],
+  samplingDetail: [
+    { label: "每日趋势", value: "trend", type: "line", groupBy: "time", hint: "按日期统计明细数趋势" },
+    { label: "特征值分布", value: "feature", type: "histogram", groupBy: "featureValue", hint: "leakEsa 特征值数值区间分布" },
+    { label: "异常状态", value: "leakStatus", type: "pie", groupBy: "leakStatus", hint: "异常 vs 正常 占比" },
+  ],
+  samplingDaily: [
+    { label: "每日趋势", value: "trend", type: "line", groupBy: "time", hint: "按日期统计日报数趋势" },
+    { label: "异常状态", value: "leakStatus", type: "pie", groupBy: "leakStatus", hint: "异常 vs 正常 占比" },
+  ],
+};
+
+const chartEl = ref<HTMLElement | null>(null);
+let chart: echarts.ECharts | null = null;
+let resizeObserver: ResizeObserver | null = null;
+
+// 当前 tab 可用的图表模式列表
+const currentChartModes = computed(() => chartModeConfigs[activeDataTab.value]);
+// 当前选中的图表模式 value（每个 tab 默认 "trend"）
+const activeChartModeValue = ref<string>("trend");
+// 当前选中的图表模式配置
+const currentChartConfig = computed<ChartModeConfig>(() =>
+  currentChartModes.value.find((m) => m.value === activeChartModeValue.value) || currentChartModes.value[0],
+);
+
+// 图表数据范围：「本页」或「全部」
+const chartDataScope = ref<"page" | "all">("page");
+const allRecords = ref<HistoryRecord[]>([]);
+const chartAllLoading = ref(false);
+// 图表实际使用的数据源
+const chartRecords = computed<HistoryRecord[]>(() =>
+  chartDataScope.value === "all" ? applyLocalFilters(allRecords.value) : records.value,
+);
+
+// 解析记录的时间字段，返回 YYYY-MM-DD
+function parseRecordDate(r: HistoryRecord): string {
+  const fields = ["detectTime", "uploadTime", "createdAt", "createTime", "samplingTime", "dailyDate", "reportDate"];
+  for (const f of fields) {
+    const v = getFieldValue(r, f);
+    if (v) {
+      const m = String(v).match(/\d{4}-\d{2}-\d{2}/);
+      if (m) return m[0];
+    }
+  }
+  return "未知";
+}
+
+// 按时间分组统计
+function groupByTime(list: HistoryRecord[]): Array<{ name: string; value: number }> {
+  const map = new Map<string, number>();
+  for (const r of list) {
+    const d = parseRecordDate(r);
+    map.set(d, (map.get(d) || 0) + 1);
+  }
+  return Array.from(map.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([name, value]) => ({ name, value }));
+}
+
+// 按设备分组统计（取 Top 10）
+function groupByDevice(list: HistoryRecord[]): Array<{ name: string; value: number }> {
+  const map = new Map<string, number>();
+  for (const r of list) {
+    const d = String(getFieldValue(r, "deviceNumber") || "未知");
+    map.set(d, (map.get(d) || 0) + 1);
+  }
+  return Array.from(map.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([name, value]) => ({ name, value }));
+}
+
+// 按漏点类型分组统计（leakPointType 为空时回退到 leakPart 漏点部位）
+function groupByLeakType(list: HistoryRecord[]): Array<{ name: string; value: number }> {
+  const map = new Map<string, number>();
+  for (const r of list) {
+    const v = getFieldValue(r, "leakPointType") || getFieldValue(r, "leakPart");
+    const s = v ? String(v) : "未知";
+    map.set(s, (map.get(s) || 0) + 1);
+  }
+  return Array.from(map.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([name, value]) => ({ name, value }));
+}
+
+// 归一化 leakStatus：兼容字符串文本（已修复/未修复/渗漏/正常）和数字编码（0/1）
+function normalizeLeakStatus(raw: unknown, tab: DataTab): string {
+  if (raw == null || raw === "") return "未知";
+  const s = String(raw);
+  // 字符串文本形式（后端实际返回格式）
+  if (tab === "leakage") {
+    if (s === "已修复" || s === "未修复") return s;
+  } else {
+    if (s === "渗漏" || s === "正常" || s === "疑似") return s;
+  }
+  // 数字编码形式（兼容旧接口）
+  const n = Number(raw);
+  if (!Number.isNaN(n)) {
+    if (tab === "leakage") {
+      return n === 1 ? "已修复" : n === 0 ? "未修复" : "未知";
+    }
+    return n === 0 ? "渗漏" : n === 1 ? "正常" : n === 2 ? "疑似" : "未知";
+  }
+  return s;
+}
+
+// 按渗漏状态分组（leakage tab 是已修复/未修复，其他 tab 是渗漏/正常）
+function groupByLeakStatusForPie(list: HistoryRecord[], tab: DataTab): Array<{ name: string; value: number }> {
+  const map = new Map<string, number>();
+  for (const r of list) {
+    const s = normalizeLeakStatus(getFieldValue(r, "leakStatus"), tab);
+    map.set(s, (map.get(s) || 0) + 1);
+  }
+  return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
+}
+
+// 按算法执行状态分组
+function groupByAlgorithmStatus(list: HistoryRecord[]): Array<{ name: string; value: number }> {
+  const map = new Map<string, number>();
+  for (const r of list) {
+    const su = String(getFieldValue(r, "status") || "").toUpperCase();
+    const s = su === "SUCCESS" ? "成功" : su === "FAILED" ? "失败" : su === "TIMEOUT" ? "超时" : "未知";
+    map.set(s, (map.get(s) || 0) + 1);
+  }
+  return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
+}
+
+// 按特征值（leakEsa）分桶直方图
+function groupByFeatureValue(list: HistoryRecord[]): Array<{ name: string; value: number }> {
+  const values = list
+    .map((r) => Number(getFieldValue(r, "leakEsa")))
+    .filter((v) => Number.isFinite(v) && v > 0);
+  if (values.length === 0) return [];
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  // 单一值时只返回一个桶
+  if (min === max) return [{ name: `${min}`, value: values.length }];
+
+  const binCount = 8;
+  const binSize = Math.max(1, (max - min) / binCount);
+  const bins: Array<{ name: string; value: number }> = [];
+  for (let i = 0; i < binCount; i += 1) {
+    const start = Math.round(min + i * binSize);
+    const end = Math.round(min + (i + 1) * binSize);
+    const isLast = i === binCount - 1;
+    const count = values.filter((v) => (isLast ? v >= start && v <= end : v >= start && v < end)).length;
+    bins.push({ name: `${start}-${end}`, value: count });
+  }
+  return bins;
+}
+
+// 堆叠柱状图：按日期 + 算法状态拆分
+function buildStackedBarData(list: HistoryRecord[]): {
+  times: string[];
+  success: number[];
+  failed: number[];
+  timeout: number[];
+} {
+  const map = new Map<string, { success: number; failed: number; timeout: number }>();
+  for (const r of list) {
+    const t = parseRecordDate(r);
+    if (!map.has(t)) map.set(t, { success: 0, failed: 0, timeout: 0 });
+    const stat = map.get(t)!;
+    const su = String(getFieldValue(r, "status") || "").toUpperCase();
+    if (su === "SUCCESS") stat.success += 1;
+    else if (su === "FAILED") stat.failed += 1;
+    else if (su === "TIMEOUT") stat.timeout += 1;
+  }
+  const times = Array.from(map.keys()).sort((a, b) => a.localeCompare(b));
+  return {
+    times,
+    success: times.map((t) => map.get(t)!.success),
+    failed: times.map((t) => map.get(t)!.failed),
+    timeout: times.map((t) => map.get(t)!.timeout),
+  };
+}
+
+function buildChartOption(): echarts.EChartsOption {
+  const list = chartRecords.value;
+  const cfg = currentChartConfig.value;
+
+  // 全量数据加载中：优先显示加载提示
+  if (chartAllLoading.value) {
+    return {
+      title: {
+        text: "全量数据加载中…",
+        left: "center",
+        top: "center",
+        textStyle: { color: "#3b82f6", fontSize: 13, fontWeight: 600 },
+      },
+    };
+  }
+
+  if (list.length === 0) {
+    return {
+      title: {
+        text: "暂无数据",
+        left: "center",
+        top: "center",
+        textStyle: { color: "#94a3b8", fontSize: 13, fontWeight: 600 },
+      },
+    };
+  }
+
+  // 通用网格与坐标轴样式
+  const grid = { left: 64, right: 24, top: 24, bottom: 48 };
+  const axisLineColor = { lineStyle: { color: "#cbd5e1" } };
+  const splitLineStyle = { lineStyle: { color: "#eef2f7" } };
+  const axisLabelStyle = { fontSize: 11, color: "#64748b" };
+  const axisNameStyle = { fontSize: 11, color: "#475569", fontWeight: 600 as const };
+
+  // 根据图表类型与当前 Tab 生成 X 轴名称
+  function getXAxisName(): string {
+    if (cfg.type === "histogram") return "leakEsa 区间";
+    if (cfg.type === "bar" && cfg.groupBy === "device") return "设备编号";
+    if (cfg.type === "line" || cfg.type === "stackedBar") return "日期";
+    return "";
+  }
+
+  // 根据图表类型与当前 Tab 生成 Y 轴名称（含单位）
+  function getYAxisName(): string {
+    if (cfg.type === "pie") return "";
+    if (cfg.type === "histogram") return "记录数 / 条";
+    if (cfg.type === "stackedBar") return "次数 / 次";
+    if (cfg.type === "bar" && cfg.groupBy === "device") return "上报次数 / 次";
+    // line：按 tab 区分语义
+    switch (activeDataTab.value) {
+      case "leakage": return "记录数 / 条";
+      case "deviceUpload": return "上报次数 / 次";
+      case "algorithm": return "执行次数 / 次";
+      case "sampling": return "采样次数 / 次";
+      case "samplingDetail": return "明细数 / 条";
+      case "samplingDaily": return "日报数 / 份";
+      default: return "记录数 / 条";
+    }
+  }
+
+  const xAxisName = getXAxisName();
+  const yAxisName = getYAxisName();
+
+  // 折线图：按时间趋势
+  if (cfg.type === "line") {
+    const data = groupByTime(list);
+    return {
+      tooltip: {
+        trigger: "axis",
+        formatter: (params: unknown) => {
+          const p = (params as { axisValue: string; data: [string, number] }[])[0];
+          if (!p) return "";
+          return `${p.axisValue}<br/>${yAxisName}: ${p.data[1]}`;
+        },
+      },
+      grid: { left: 64, right: 24, top: 24, bottom: 48 },
+      xAxis: {
+        type: "time",
+        name: xAxisName,
+        nameLocation: "middle",
+        nameGap: 28,
+        nameTextStyle: axisNameStyle,
+        axisLabel: {
+          ...axisLabelStyle,
+          showMinLabel: true,
+          showMaxLabel: true,
+          hideOverlap: true,
+          formatter: "{yyyy}-{MM}-{dd}",
+        },
+        axisLine: axisLineColor,
+      },
+      yAxis: {
+        type: "value",
+        name: yAxisName,
+        nameLocation: "middle",
+        nameGap: 44,
+        nameTextStyle: axisNameStyle,
+        axisLabel: axisLabelStyle,
+        splitLine: splitLineStyle,
+      },
+      series: [{
+        type: "line",
+        smooth: true,
+        showSymbol: true,
+        symbolSize: 6,
+        data: data.map((d) => [d.name, d.value]),
+        lineStyle: { width: 2, color: "#3b82f6" },
+        itemStyle: { color: "#3b82f6" },
+        areaStyle: {
+          color: {
+            type: "linear",
+            x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: "rgba(59, 130, 246, 0.25)" },
+              { offset: 1, color: "rgba(59, 130, 246, 0)" },
+            ],
+          },
+        },
+      }],
+    };
+  }
+
+  // 柱状图：按设备 Top10
+  if (cfg.type === "bar" && cfg.groupBy === "device") {
+    const data = groupByDevice(list);
+    return {
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid,
+      xAxis: {
+        type: "category",
+        data: data.map((d) => d.name),
+        name: xAxisName,
+        nameLocation: "middle",
+        nameGap: 28,
+        nameTextStyle: axisNameStyle,
+        axisLabel: { ...axisLabelStyle, interval: 0, rotate: data.length > 6 ? 30 : 0 },
+        axisLine: axisLineColor,
+      },
+      yAxis: {
+        type: "value",
+        name: yAxisName,
+        nameLocation: "middle",
+        nameGap: 44,
+        nameTextStyle: axisNameStyle,
+        axisLabel: axisLabelStyle,
+        splitLine: splitLineStyle,
+      },
+      series: [{
+        type: "bar",
+        data: data.map((d) => d.value),
+        itemStyle: { color: "#3b82f6", borderRadius: [4, 4, 0, 0] },
+        barMaxWidth: 36,
+      }],
+    };
+  }
+
+  // 直方图：特征值分布
+  if (cfg.type === "histogram") {
+    const data = groupByFeatureValue(list);
+    if (data.length === 0) {
+      return {
+        title: {
+          text: "暂无特征值数据",
+          left: "center",
+          top: "center",
+          textStyle: { color: "#94a3b8", fontSize: 13, fontWeight: 600 },
+        },
+      };
+    }
+    return {
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid,
+      xAxis: {
+        type: "category",
+        data: data.map((d) => d.name),
+        name: xAxisName,
+        nameLocation: "middle",
+        nameGap: 28,
+        nameTextStyle: axisNameStyle,
+        axisLabel: { ...axisLabelStyle, rotate: data.length > 6 ? 30 : 0 },
+        axisLine: axisLineColor,
+      },
+      yAxis: {
+        type: "value",
+        name: yAxisName,
+        nameLocation: "middle",
+        nameGap: 44,
+        nameTextStyle: axisNameStyle,
+        axisLabel: axisLabelStyle,
+        splitLine: splitLineStyle,
+      },
+      series: [{
+        type: "bar",
+        data: data.map((d) => d.value),
+        itemStyle: { color: "#8b5cf6", borderRadius: [4, 4, 0, 0] },
+        barMaxWidth: 36,
+      }],
+    };
+  }
+
+  // 堆叠柱状图：每日成功失败对比（仅 algorithm tab）
+  if (cfg.type === "stackedBar") {
+    const { times, success, failed, timeout } = buildStackedBarData(list);
+    return {
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { data: ["成功", "失败", "超时"], bottom: 0, textStyle: { fontSize: 11, color: "#64748b" } },
+      grid: { left: 64, right: 24, top: 24, bottom: 56 },
+      xAxis: {
+        type: "time",
+        name: xAxisName,
+        nameLocation: "middle",
+        nameGap: 28,
+        nameTextStyle: axisNameStyle,
+        axisLabel: {
+          ...axisLabelStyle,
+          showMinLabel: true,
+          showMaxLabel: true,
+          hideOverlap: true,
+          formatter: "{yyyy}-{MM}-{dd}",
+        },
+        axisLine: axisLineColor,
+      },
+      yAxis: {
+        type: "value",
+        name: yAxisName,
+        nameLocation: "middle",
+        nameGap: 44,
+        nameTextStyle: axisNameStyle,
+        axisLabel: axisLabelStyle,
+        splitLine: splitLineStyle,
+      },
+      series: [
+        { name: "成功", type: "bar", stack: "total", data: times.map((t, i) => [t, success[i]]), itemStyle: { color: "#22c55e" }, barMaxWidth: 36 },
+        { name: "失败", type: "bar", stack: "total", data: times.map((t, i) => [t, failed[i]]), itemStyle: { color: "#ef4444" }, barMaxWidth: 36 },
+        { name: "超时", type: "bar", stack: "total", data: times.map((t, i) => [t, timeout[i]]), itemStyle: { color: "#f59e0b" }, barMaxWidth: 36 },
+      ],
+    };
+  }
+
+  // 饼图：按不同维度（leakType / leakStatus / algorithmStatus）
+  if (cfg.type === "pie") {
+    let data: Array<{ name: string; value: number }> = [];
+    if (cfg.groupBy === "leakType") data = groupByLeakType(list);
+    else if (cfg.groupBy === "algorithmStatus") data = groupByAlgorithmStatus(list);
+    else if (cfg.groupBy === "leakStatus") data = groupByLeakStatusForPie(list, activeDataTab.value);
+
+    // 按名称语义匹配颜色（绿=正常/已修复/成功，红=渗漏/未修复/失败，橙=疑似/超时，灰=未知）
+    function getSemanticColor(name: string): string {
+      if (["已修复", "正常", "成功"].includes(name)) return "#22c55e";
+      if (["未修复", "渗漏", "失败"].includes(name)) return "#ef4444";
+      if (["疑似", "超时"].includes(name)) return "#f59e0b";
+      return "#94a3b8";
+    }
+
+    // 漏点类型无语义颜色，用多色调按顺序分配
+    const multiColorPalette = ["#3b82f6", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#94a3b8"];
+    const finalData =
+      cfg.groupBy === "leakType"
+        ? data.map((d, i) => ({ ...d, itemStyle: { color: multiColorPalette[i % multiColorPalette.length] } }))
+        : data.map((d) => ({ ...d, itemStyle: { color: getSemanticColor(d.name) } }));
+
+    const total = data.reduce((sum, d) => sum + d.value, 0);
+
+    return {
+      tooltip: { trigger: "item", formatter: "{b}: {c} ({d}%)" },
+      legend: { bottom: 0, textStyle: { fontSize: 11, color: "#64748b" } },
+      series: [{
+        type: "pie",
+        radius: ["38%", "62%"],
+        center: ["50%", "50%"],
+        avoidLabelOverlap: true,
+        itemStyle: { borderRadius: 4, borderColor: "#fff", borderWidth: 2 },
+        label: { show: true, formatter: "{b}\n{c} ({d}%)", fontSize: 11, color: "#475569" },
+        data: finalData,
+      }],
+      graphic: {
+        type: "text",
+        left: "center",
+        top: "middle",
+        style: {
+          text: `{a|${total}}\n{b|总数}`,
+          rich: {
+            a: { fontSize: 22, fontWeight: 900, fill: "#0f172a", align: "center", lineHeight: 28 },
+            b: { fontSize: 11, fontWeight: 600, fill: "#64748b", align: "center" },
+          },
+          textAlign: "center",
+          textVerticalAlign: "middle",
+        },
+      } as unknown as echarts.GraphicComponentOption,
+    };
+  }
+
+  // 兜底：暂无数据
+  return {
+    title: { text: "暂无数据", left: "center", top: "center", textStyle: { color: "#94a3b8", fontSize: 13, fontWeight: 600 } },
+  };
+}
+
+function renderChart() {
+  if (!chartEl.value) return;
+  if (!chart) {
+    chart = echarts.init(chartEl.value);
+    resizeObserver = new ResizeObserver(() => chart?.resize());
+    resizeObserver.observe(chartEl.value);
+  }
+  // 折叠后展开时，canvas 尺寸可能为 0，需要强制 resize 恢复正确尺寸
+  chart.resize();
+  chart.setOption(buildChartOption(), true);
+}
+
+function switchChartMode(mode: string) {
+  activeChartModeValue.value = mode;
+  nextTick(renderChart);
+}
+
+// 拉取全量数据：分页并发拉取（每页 200 条，最多 5 个并发）
+async function ensureAllRecords() {
+  if (allRecords.value.length > 0 || chartAllLoading.value) return;
+  chartAllLoading.value = true;
+  try {
+    const api = getApiFunction();
+    const pageSize = 200;
+    // 先请求第一页，获取 total
+    const firstParams = { ...buildQueryParams(), pageNum: 1, pageSize };
+    const firstResponse = (await api.page(firstParams)) as ApiResponseLike;
+    assertSuccessResponse(firstResponse);
+    const firstParsed = parsePageResponse(firstResponse);
+    const totalCount = firstParsed.total;
+    const totalPages = Math.ceil(totalCount / pageSize);
+
+    if (totalPages <= 1) {
+      allRecords.value = firstParsed.records;
+    } else {
+      // 并发请求剩余页（每批最多 5 个并发）
+      const restPages: number[] = [];
+      for (let p = 2; p <= totalPages; p++) restPages.push(p);
+      const allData: HistoryRecord[] = [...firstParsed.records];
+      for (let i = 0; i < restPages.length; i += 5) {
+        const batch = restPages.slice(i, i + 5);
+        const results = await Promise.all(
+          batch.map((p) =>
+            (api.page({ ...buildQueryParams(), pageNum: p, pageSize })) as PromiseLike<ApiResponseLike>,
+          ),
+        );
+        for (const res of results) {
+          assertSuccessResponse(res);
+          allData.push(...parsePageResponse(res).records);
+        }
+      }
+      allRecords.value = allData;
+    }
+  } catch {
+    allRecords.value = [];
+    uni.showToast({ title: "全量数据加载失败", icon: "none" });
+  } finally {
+    chartAllLoading.value = false;
+  }
+}
+
+// 切换图表数据范围
+async function toggleChartDataScope() {
+  chartDataScope.value = chartDataScope.value === "page" ? "all" : "page";
+  if (chartDataScope.value === "all") {
+    await ensureAllRecords();
+  }
+  nextTick(renderChart);
+}
+
+// 图表区折叠/展开
+const chartCollapsed = ref(false);
+function toggleChartCollapse() {
+  chartCollapsed.value = !chartCollapsed.value;
+  if (!chartCollapsed.value) {
+    // 展开时需要重新渲染（canvas 尺寸从 0 恢复）
+    nextTick(renderChart);
+  }
+}
+
+watch(() => chartRecords.value, () => {
+  if (!chartCollapsed.value) nextTick(renderChart);
+});
+// 加载状态变化时重新渲染（显示「加载中…」或数据）
+watch(() => chartAllLoading.value, () => {
+  if (!chartCollapsed.value) nextTick(renderChart);
+});
+watch(() => activeDataTab.value, () => {
+  // 切换 tab 时重置为「每日趋势」模式，并重新渲染
+  activeChartModeValue.value = "trend";
+  if (!chartCollapsed.value) nextTick(renderChart);
+});
 
 // 详情字段分组
 const summaryLabel = computed(() => {
@@ -631,13 +1406,13 @@ const locationFields = computed<DetailField[]>(() => {
   const r = selectedRecord.value || {};
   if (activeDataTab.value === "leakage") {
     return [
-      { label: "坐标位置", value: String(getFieldValue(r, "coordinatePosition") || "-") },
+      { label: "坐标位置", value: formatCoordinate(getFieldValue(r, "coordinatePosition")) },
       { label: "漏点区域", value: String(getFieldValue(r, "leakArea") || "-") },
     ];
   }
   if (activeDataTab.value === "deviceUpload") {
     return [
-      { label: "经纬度", value: String(getFieldValue(r, "coordinateLocation") || "-") },
+      { label: "经纬度", value: formatCoordinate(getFieldValue(r, "coordinateLocation")) },
     ];
   }
   if (activeDataTab.value === "sampling") {
@@ -733,10 +1508,18 @@ const cardFields = computed<DetailField[]>(() => {
 
 onMounted(() => {
   fetchHistoryData();
+  nextTick(renderChart);
+});
+
+onBeforeUnmount(() => {
+  resizeObserver?.disconnect();
+  resizeObserver = null;
+  chart?.dispose();
+  chart = null;
 });
 
 function handleLeakStatusChange(event: { detail: { value: number } }) {
-  filters.leakStatus = leakStatusOptions[event.detail.value]?.value ?? "";
+  filters.leakStatus = activeLeakStatusOptions.value[event.detail.value]?.value ?? "";
   searchHistory();
 }
 
@@ -778,8 +1561,7 @@ function buildQueryParams() {
 
   // 按 tab 传递对应的业务筛选参数
   if (activeDataTab.value === "leakage") {
-    if (filters.leakStatus !== "") (baseParams as Record<string, unknown>).leakStatus = filters.leakStatus;
-    if (filters.inspector.trim()) (baseParams as Record<string, unknown>).inspector = filters.inspector.trim();
+    // 后端 LeakPointRecordPageDTO 不支持 leakStatus 和 inspector，这两个走本地过滤
   } else if (activeDataTab.value === "deviceUpload") {
     if (filters.leakStatus !== "") (baseParams as Record<string, unknown>).leakStatus = filters.leakStatus;
     if (filters.deviceNumber.trim()) (baseParams as Record<string, unknown>).deviceNumber = filters.deviceNumber.trim();
@@ -823,8 +1605,15 @@ async function fetchHistoryData() {
     const parsed = parsePageResponse(response);
     if (parsed.pageNum && parsed.pageNum !== pagination.pageNum) pagination.pageNum = parsed.pageNum;
     if (parsed.pageSize && parsed.pageSize !== pagination.pageSize) pagination.pageSize = parsed.pageSize;
-    records.value = applyLocalSort(parsed.records);
-    total.value = parsed.total;
+    const filteredRecords = applyLocalFilters(parsed.records);
+    records.value = applyLocalSort(filteredRecords);
+    total.value = filteredRecords.length !== parsed.records.length ? filteredRecords.length : parsed.total;
+    // 筛选/分页条件变化时清空全量数据缓存，强制重新拉取
+    allRecords.value = [];
+    // 如果当前是「全部」模式，清空后需要重新拉取全量数据
+    if (chartDataScope.value === "all") {
+      ensureAllRecords().then(() => nextTick(renderChart));
+    }
     selectFirstRow();
   } catch (error) {
     records.value = [];
@@ -852,7 +1641,7 @@ async function handleExport(scope: "current" | "all") {
       const response = (await api.page(params)) as ApiResponseLike;
       assertSuccessResponse(response);
       const parsed = parsePageResponse(response);
-      exportRecords = parsed.records;
+      exportRecords = applyLocalFilters(parsed.records);
     } catch {
       uni.showToast({ title: "获取全部数据失败", icon: "none" });
       return;
@@ -976,7 +1765,8 @@ function selectRecord(item: HistoryRecord, index: number) {
       assertSuccessResponse(response as ApiResponseLike);
       const detailData = (response as ApiResponseLike)?.data;
       if (isObject(detailData)) {
-        selectedRecord.value = { ...item, ...detailData };
+        const cleanDetail = Object.fromEntries(Object.entries(detailData as Record<string, unknown>).filter(([, v]) => v !== null && v !== undefined));
+        selectedRecord.value = { ...item, ...cleanDetail };
       }
     })
     .catch(() => {});
@@ -997,8 +1787,26 @@ function getFieldValue(item: HistoryRecord, key: string): unknown {
   return Object.prototype.hasOwnProperty.call(item, key) ? item[key] : undefined;
 }
 
+// 格式化经纬度字符串，保留 4 位小数（支持 "经度,纬度" 或 "经度 纬度" 格式）
+function formatCoordinate(value: unknown): string {
+  if (value == null || value === "") return "-";
+  const s = String(value).trim();
+  const parts = s.split(/[,，\s]+/).filter(Boolean);
+  if (parts.length >= 2) {
+    const lng = parseFloat(parts[0]);
+    const lat = parseFloat(parts[1]);
+    if (!Number.isNaN(lng) && !Number.isNaN(lat)) {
+      return `${lng.toFixed(4)},${lat.toFixed(4)}`;
+    }
+  }
+  return s;
+}
+
 function getLeakStatusLabel(item: HistoryRecord) {
-  const val = Number(getFieldValue(item, "leakStatus"));
+  const raw = getFieldValue(item, "leakStatus");
+  if (raw === null || raw === undefined || raw === "") return "-";
+  const val = Number(raw);
+  if (Number.isNaN(val)) return "-";
   if (val === 0) return "渗漏";
   if (val === 1) return "正常";
   if (val === 2) return "疑似";
@@ -1015,7 +1823,10 @@ function getLeakageStatusTagClass(item: HistoryRecord) {
 }
 
 function getLeakStatusTagClass(item: HistoryRecord) {
-  const val = Number(getFieldValue(item, "leakStatus"));
+  const raw = getFieldValue(item, "leakStatus");
+  if (raw === null || raw === undefined || raw === "") return "status-tag--unknown";
+  const val = Number(raw);
+  if (Number.isNaN(val)) return "status-tag--unknown";
   if (val === 0) return "status-tag--leak";
   if (val === 1) return "status-tag--normal";
   if (val === 2) return "status-tag--suspect";
@@ -1109,6 +1920,25 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 function removeEmptyFields(data: Record<string, unknown>) {
   return Object.fromEntries(Object.entries(data).filter(([, v]) => v !== "" && v !== undefined && v !== null));
+}
+
+// 本地过滤兜底：仅对后端不支持的字段生效（当前仅 leakage tab 的 leakStatus 和 inspector）
+function applyLocalFilters(list: HistoryRecord[]): HistoryRecord[] {
+  if (activeDataTab.value !== "leakage") return list;
+  const inspectorKey = filters.inspector.trim().toLowerCase();
+  const statusKey = filters.leakStatus !== "" ? String(filters.leakStatus) : "";
+  if (!inspectorKey && !statusKey) return list;
+  return list.filter((item) => {
+    if (inspectorKey) {
+      const inspector = String(getFieldValue(item, "inspector") || "").toLowerCase();
+      if (!inspector.includes(inspectorKey)) return false;
+    }
+    if (statusKey) {
+      const normalized = normalizeLeakStatus(getFieldValue(item, "leakStatus"), "leakage");
+      if (normalized !== statusKey) return false;
+    }
+    return true;
+  });
 }
 
 function applyLocalSort(list: HistoryRecord[]): HistoryRecord[] {
@@ -1408,6 +2238,217 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   color: #3b82f6;
   border-bottom-color: #3b82f6;
   background: #f7faff;
+}
+
+/* KPI 概览条 */
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.kpi-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  background: #ffffff;
+  border: 1px solid #d8e5ef;
+  border-left: 4px solid #3b82f6;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(33, 72, 108, 0.06);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(33, 72, 108, 0.1);
+}
+
+.kpi-card--success {
+  border-left-color: #22c55e;
+}
+
+.kpi-card--warning {
+  border-left-color: #f59e0b;
+}
+
+.kpi-card--danger {
+  border-left-color: #ef4444;
+}
+
+.kpi-card__label {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+
+.kpi-card__value {
+  color: #0f172a;
+  font-size: 22px;
+  font-weight: 900;
+  font-family: "DIN Alternate", "Arial", sans-serif;
+  line-height: 1.2;
+}
+
+.kpi-card__hint {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* 趋势图区 */
+.chart-zone {
+  margin-bottom: 12px;
+  background: #ffffff;
+  border: 1px solid #d8e5ef;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.chart-zone--collapsed {
+  margin-bottom: 12px;
+}
+
+.chart-zone--collapsed .chart-zone__header {
+  border-bottom: none;
+}
+
+.chart-zone__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.chart-zone__body {
+  position: relative;
+}
+
+.chart-zone__title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.chart-zone__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chart-zone__title {
+  color: #26384d;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.chart-zone__toggle {
+  padding: 2px 8px;
+  color: #3b82f6;
+  font-size: 11px;
+  font-weight: 700;
+  background: #eaf2ff;
+  border-radius: 3px;
+  transition: background 0.18s ease;
+}
+
+.chart-zone__title-wrap:hover .chart-zone__toggle {
+  background: #d6e6ff;
+}
+
+.chart-zone__hint {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.chart-zone__modes {
+  display: flex;
+  gap: 4px;
+}
+
+.chart-zone__mode {
+  padding: 4px 12px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.18s ease;
+}
+
+.chart-zone__mode:hover {
+  background: #f1f5fb;
+  color: #3b82f6;
+}
+
+.chart-zone__mode--active {
+  background: #3b82f6;
+  color: #ffffff;
+}
+
+.chart-zone__mode--active:hover {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.chart-zone__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.chart-zone__scope {
+  display: flex;
+  border: 1px solid #d8e5ef;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.chart-zone__scope-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  background: #ffffff;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.18s ease;
+  min-width: 44px;
+  text-align: center;
+}
+
+.chart-zone__scope-btn:hover {
+  background: #f1f5f9;
+}
+
+.chart-zone__scope-btn--active {
+  color: #ffffff;
+  background: #3b82f6;
+}
+
+.chart-zone__scope-btn--active:hover {
+  background: #2563eb;
+}
+
+.chart-zone__canvas {
+  width: 100%;
+  height: 260px;
+}
+
+.chart-zone__fallback {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 240px;
+  text-align: center;
 }
 
 .data-table {

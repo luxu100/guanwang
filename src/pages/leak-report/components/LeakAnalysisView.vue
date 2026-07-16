@@ -278,6 +278,7 @@ onMounted(() => {
 
 function handleAlgorithmStatusChange(event: { detail: { value: number } }) {
   filters.algorithmStatus = algorithmStatusOptions[event.detail.value]?.value ?? "";
+  searchAnalysis();
 }
 
 function toggleSort(field: string) {
@@ -437,7 +438,8 @@ function selectRecord(item: AnalysisRecord, index: number) {
       assertSuccessResponse(response as ApiResponseLike);
       const detailData = (response as ApiResponseLike)?.data;
       if (isObject(detailData)) {
-        selectedRecord.value = { ...item, ...detailData };
+        const cleanDetail = Object.fromEntries(Object.entries(detailData as Record<string, unknown>).filter(([, v]) => v !== null && v !== undefined));
+        selectedRecord.value = { ...item, ...cleanDetail };
       }
     })
     .catch(() => {});
