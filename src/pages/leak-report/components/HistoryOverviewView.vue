@@ -67,56 +67,6 @@
           </view>
         </template>
 
-        <!-- 采样记录tab：渗漏状态 + 设备编号 + 管组编号 -->
-        <template v-else-if="activeDataTab === 'sampling'">
-          <view class="filter-group">
-            <text class="filter-label">渗漏状态</text>
-            <picker :range="activeLeakStatusOptions" range-key="label" @change="handleLeakStatusChange">
-              <view class="filter-select">
-                <text>{{ currentLeakStatusLabel }}</text>
-                <text class="filter-select__arrow"></text>
-              </view>
-            </picker>
-          </view>
-          <view class="filter-group">
-            <text class="filter-label">设备编号</text>
-            <input v-model="filters.deviceNumber" class="filter-input" placeholder="请输入设备编号" placeholder-class="input-placeholder" />
-          </view>
-          <view class="filter-group">
-            <text class="filter-label">管组编号</text>
-            <input v-model="filters.tubeGroup" class="filter-input" placeholder="请输入管组编号" placeholder-class="input-placeholder" />
-          </view>
-        </template>
-
-        <!-- 采样明细tab：采样记录ID + 设备编号 -->
-        <template v-else-if="activeDataTab === 'samplingDetail'">
-          <view class="filter-group">
-            <text class="filter-label">采样记录ID</text>
-            <input v-model="filters.samplingId" class="filter-input" placeholder="请输入采样记录ID" placeholder-class="input-placeholder" />
-          </view>
-          <view class="filter-group">
-            <text class="filter-label">设备编号</text>
-            <input v-model="filters.deviceNumber" class="filter-input" placeholder="请输入设备编号" placeholder-class="input-placeholder" />
-          </view>
-        </template>
-
-        <!-- 采样日报tab：渗漏状态 + 设备编号 -->
-        <template v-else>
-          <view class="filter-group">
-            <text class="filter-label">渗漏状态</text>
-            <picker :range="activeLeakStatusOptions" range-key="label" @change="handleLeakStatusChange">
-              <view class="filter-select">
-                <text>{{ currentLeakStatusLabel }}</text>
-                <text class="filter-select__arrow"></text>
-              </view>
-            </picker>
-          </view>
-          <view class="filter-group">
-            <text class="filter-label">设备编号</text>
-            <input v-model="filters.deviceNumber" class="filter-input" placeholder="请输入设备编号" placeholder-class="input-placeholder" />
-          </view>
-        </template>
-
         <view class="toolbar-actions toolbar-actions--right">
           <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="searchHistory">查询</button>
           <button class="toolbar-button" hover-class="toolbar-button--hover" @click="resetFilters">重置</button>
@@ -257,39 +207,6 @@
           <text class="data-cell data-cell--esa">耗时(ms)</text>
         </view>
 
-        <!-- 采样记录列头 -->
-        <view v-else-if="activeDataTab === 'sampling'" class="data-row data-row--header data-row--sample">
-          <text class="data-cell data-cell--index">序号</text>
-          <text class="data-cell data-cell--time">采样时间</text>
-          <text class="data-cell data-cell--device">设备编号</text>
-          <text class="data-cell data-cell--status">渗漏标志位</text>
-          <text class="data-cell data-cell--esa">特征值</text>
-          <text class="data-cell data-cell--intensity">强度</text>
-          <text class="data-cell data-cell--frequency">频率</text>
-          <text class="data-cell data-cell--address">采样地址</text>
-        </view>
-
-        <!-- 采样明细列头 -->
-        <view v-else-if="activeDataTab === 'samplingDetail'" class="data-row data-row--header data-row--samplingDetail">
-          <text class="data-cell data-cell--index">序号</text>
-          <text class="data-cell data-cell--time">创建时间</text>
-          <text class="data-cell data-cell--device">设备编号</text>
-          <text class="data-cell data-cell--esa">特征值</text>
-          <text class="data-cell data-cell--intensity">强度</text>
-          <text class="data-cell data-cell--frequency">频率</text>
-          <text class="data-cell data-cell--order">排序序号</text>
-        </view>
-
-        <!-- 采样日报列头 -->
-        <view v-else class="data-row data-row--header data-row--samplingDaily">
-          <text class="data-cell data-cell--index">序号</text>
-          <text class="data-cell data-cell--time">采样时间</text>
-          <text class="data-cell data-cell--device">设备编号</text>
-          <text class="data-cell data-cell--status">渗漏状态</text>
-          <text class="data-cell data-cell--property">渗漏值</text>
-          <text class="data-cell data-cell--address">采样地址</text>
-        </view>
-
         <view v-if="loading" class="table-state table-state--loading"><view class="state-spinner"></view><text class="state-text">加载中...</text></view>
         <view v-else-if="records.length === 0" class="table-state table-state--empty"><view class="state-icon-empty"></view><text class="state-text">暂无历史数据</text></view>
 
@@ -354,67 +271,6 @@
             </text>
             <text class="data-cell data-cell--signal" :title="String(getFieldValue(item, 'outputValue') || '')">{{ getFieldValue(item, "outputValue") || "-" }}</text>
             <text class="data-cell data-cell--esa">{{ getFieldValue(item, "costMs") ?? "-" }}</text>
-          </view>
-        </view>
-
-        <!-- 采样记录行 -->
-        <view v-else-if="activeDataTab === 'sampling'">
-          <view
-            v-for="(item, index) in records"
-            :key="getRowKey(item, index)"
-            class="data-row data-row--sample"
-            :class="{ 'data-row--active': selectedRecordKey === getRowKey(item, index) }"
-            @click="selectRecord(item, index)"
-          >
-            <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
-            <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "samplingTime")) }}</text>
-            <text class="data-cell data-cell--device">{{ getFieldValue(item, "deviceNumber") || "-" }}</text>
-            <text class="data-cell data-cell--status">
-              <text class="status-tag" :class="getLeakStatusTagClass(item)">{{ getLeakStatusLabel(item) }}</text>
-            </text>
-            <text class="data-cell data-cell--esa">{{ getFieldValue(item, "leakEsa") ?? "-" }}</text>
-            <text class="data-cell data-cell--intensity">{{ getFieldValue(item, "leakIntensity") ?? "-" }}</text>
-            <text class="data-cell data-cell--frequency">{{ getFieldValue(item, "leakFrequency") ?? "-" }}</text>
-            <text class="data-cell data-cell--address">{{ getFieldValue(item, "samplingAddress") || "-" }}</text>
-          </view>
-        </view>
-
-        <!-- 采样明细行 -->
-        <view v-else-if="activeDataTab === 'samplingDetail'">
-          <view
-            v-for="(item, index) in records"
-            :key="getRowKey(item, index)"
-            class="data-row data-row--samplingDetail"
-            :class="{ 'data-row--active': selectedRecordKey === getRowKey(item, index) }"
-            @click="selectRecord(item, index)"
-          >
-            <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
-            <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "createdAt")) }}</text>
-            <text class="data-cell data-cell--device">{{ getFieldValue(item, "deviceNumber") || "-" }}</text>
-            <text class="data-cell data-cell--esa">{{ getFieldValue(item, "leakEsa") ?? "-" }}</text>
-            <text class="data-cell data-cell--intensity">{{ getFieldValue(item, "leakIntensity") ?? "-" }}</text>
-            <text class="data-cell data-cell--frequency">{{ getFieldValue(item, "leakFrequency") ?? "-" }}</text>
-            <text class="data-cell data-cell--order">{{ getFieldValue(item, "orderNumber") ?? "-" }}</text>
-          </view>
-        </view>
-
-        <!-- 采样日报行 -->
-        <view v-else>
-          <view
-            v-for="(item, index) in records"
-            :key="getRowKey(item, index)"
-            class="data-row data-row--samplingDaily"
-            :class="{ 'data-row--active': selectedRecordKey === getRowKey(item, index) }"
-            @click="selectRecord(item, index)"
-          >
-            <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
-            <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "samplingTime")) }}</text>
-            <text class="data-cell data-cell--device">{{ getFieldValue(item, "deviceNumber") || "-" }}</text>
-            <text class="data-cell data-cell--status">
-              <text class="status-tag" :class="getLeakStatusTagClass(item)">{{ getLeakStatusLabel(item) }}</text>
-            </text>
-            <text class="data-cell data-cell--property">{{ getFieldValue(item, "leakProperty") ?? "-" }}</text>
-            <text class="data-cell data-cell--address">{{ getFieldValue(item, "samplingAddress") || "-" }}</text>
           </view>
         </view>
       </view>
@@ -484,18 +340,12 @@ import {
   getDeviceStatusUploadDetail,
   getAlgorithmResultHistoryPage,
   getAlgorithmResultHistoryDetail,
-  getSamplingRecordHistoryPage,
-  getSamplingRecordHistoryDetail,
-  getSamplingDetailHistoryPage,
-  getSamplingDetailHistoryDetail,
-  getSamplingDailyHistoryPage,
-  getSamplingDailyHistoryDetail,
 } from "@/services/leak-report/history-overview";
 import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
 import LeakTableView from "@/pages/leak-report/components/LeakTableView.vue";
 
 type HistoryRecord = Record<string, unknown>;
-type DataTab = "leakage" | "deviceUpload" | "algorithm" | "sampling" | "samplingDetail" | "samplingDaily";
+type DataTab = "leakage" | "deviceUpload" | "algorithm";
 
 interface ApiResponseLike {
   code?: number;
@@ -524,9 +374,6 @@ const historyTabs: Array<{ label: string; value: DataTab }> = [
   { label: "渗漏记录", value: "leakage" },
   { label: "设备上报", value: "deviceUpload" },
   { label: "算法日志", value: "algorithm" },
-  { label: "采样记录", value: "sampling" },
-  { label: "采样明细", value: "samplingDetail" },
-  { label: "采样日报", value: "samplingDaily" },
 ];
 
 const leakStatusOptions: Array<{ label: string; value: number | "" }> = [
@@ -561,9 +408,6 @@ const tabLabelMap: Record<DataTab, string> = {
   leakage: "渗漏记录",
   deviceUpload: "设备上报",
   algorithm: "算法日志",
-  sampling: "采样记录",
-  samplingDetail: "采样明细",
-  samplingDaily: "采样日报",
 };
 
 const sortField = ref("createdAt");
@@ -575,10 +419,8 @@ const filters = reactive({
   leakStatus: "" as number | string | "",
   deviceNumber: "",
   inspector: "",
-  tubeGroup: "",
   algorithmStatus: "" as string,
   algorithmName: "",
-  samplingId: "",
 });
 
 const pagination = reactive({
@@ -655,44 +497,7 @@ const currentKpis = computed<KpiItem[]>(() => {
     ];
   }
 
-  if (activeDataTab.value === "sampling") {
-    const leak = list.filter((r) => normalizeLeakStatus(getFieldValue(r, "leakStatus"), "sampling") === "渗漏").length;
-    const devices = new Set(list.map((r) => String(getFieldValue(r, "deviceNumber") || "")).filter(Boolean)).size;
-    const abnormalRate = page > 0 ? Math.round((leak / page) * 100) : 0;
-    return [
-      { label: "采样总数", value: String(t), hint: "全量数据" },
-      { label: scopeLabel, value: String(page), hint: pageText },
-      { label: `${prefix}异常`, value: String(leak), tone: "danger" },
-      { label: "涉及设备", value: String(devices) },
-      { label: "异常率", value: `${abnormalRate}%`, tone: abnormalRate >= 30 ? "danger" : "warning" },
-    ];
-  }
-
-  if (activeDataTab.value === "samplingDetail") {
-    const devices = new Set(list.map((r) => String(getFieldValue(r, "deviceNumber") || "")).filter(Boolean)).size;
-    const samplings = new Set(list.map((r) => String(getFieldValue(r, "samplingId") || "")).filter(Boolean)).size;
-    const esaValues = list.map((r) => Number(getFieldValue(r, "leakEsa"))).filter((v) => !Number.isNaN(v));
-    const avgEsa = esaValues.length > 0 ? Math.round(esaValues.reduce((a, b) => a + b, 0) / esaValues.length) : 0;
-    return [
-      { label: "明细总数", value: String(t), hint: "全量数据" },
-      { label: scopeLabel, value: String(page), hint: pageText },
-      { label: "涉及采样记录", value: String(samplings) },
-      { label: "涉及设备", value: String(devices) },
-      { label: "平均特征值", value: String(avgEsa) },
-    ];
-  }
-
-  // samplingDaily
-  const leak = list.filter((r) => normalizeLeakStatus(getFieldValue(r, "leakStatus"), "samplingDaily") === "渗漏").length;
-  const devices = new Set(list.map((r) => String(getFieldValue(r, "deviceNumber") || "")).filter(Boolean)).size;
-  const abnormalRate = page > 0 ? Math.round((leak / page) * 100) : 0;
-  return [
-    { label: "日报总数", value: String(t), hint: "全量数据" },
-    { label: scopeLabel, value: String(page), hint: pageText },
-    { label: `${prefix}异常`, value: String(leak), tone: "danger" },
-    { label: "涉及设备", value: String(devices) },
-    { label: "异常率", value: `${abnormalRate}%`, tone: abnormalRate >= 30 ? "danger" : "warning" },
-  ];
+  return [];
 });
 
 // ==================== 趋势图区（每个 Tab 专属图表配置） ====================
@@ -723,19 +528,6 @@ const chartModeConfigs: Record<DataTab, ChartModeConfig[]> = {
     { label: "每日趋势", value: "trend", type: "line", groupBy: "time", hint: "按日期统计算法执行次数趋势" },
     { label: "执行结果", value: "algoStatus", type: "pie", groupBy: "algorithmStatus", hint: "成功 / 失败 / 超时 占比" },
     { label: "成功失败对比", value: "successFail", type: "stackedBar", groupBy: "time", hint: "按日期堆叠统计成功与失败次数对比" },
-  ],
-  sampling: [
-    { label: "每日趋势", value: "trend", type: "line", groupBy: "time", hint: "按采样日期统计记录数趋势" },
-    { label: "异常状态", value: "leakStatus", type: "pie", groupBy: "leakStatus", hint: "异常 vs 正常 占比" },
-  ],
-  samplingDetail: [
-    { label: "每日趋势", value: "trend", type: "line", groupBy: "time", hint: "按日期统计明细数趋势" },
-    { label: "特征值分布", value: "feature", type: "histogram", groupBy: "featureValue", hint: "leakEsa 特征值数值区间分布" },
-    { label: "异常状态", value: "leakStatus", type: "pie", groupBy: "leakStatus", hint: "异常 vs 正常 占比" },
-  ],
-  samplingDaily: [
-    { label: "每日趋势", value: "trend", type: "line", groupBy: "time", hint: "按日期统计日报数趋势" },
-    { label: "异常状态", value: "leakStatus", type: "pie", groupBy: "leakStatus", hint: "异常 vs 正常 占比" },
   ],
 };
 
@@ -958,9 +750,6 @@ function buildChartOption(): echarts.EChartsOption {
       case "leakage": return "记录数 / 条";
       case "deviceUpload": return "上报次数 / 次";
       case "algorithm": return "执行次数 / 次";
-      case "sampling": return "采样次数 / 次";
-      case "samplingDetail": return "明细数 / 条";
-      case "samplingDaily": return "日报数 / 份";
       default: return "记录数 / 条";
     }
   }
@@ -1302,9 +1091,6 @@ const summaryLabel = computed(() => {
     leakage: "漏点位置",
     deviceUpload: "设备编号",
     algorithm: "设备编号",
-    sampling: "设备编号",
-    samplingDetail: "设备编号",
-    samplingDaily: "设备编号",
   };
   return map[activeDataTab.value];
 });
@@ -1341,24 +1127,6 @@ const summaryMetaFields = computed<DetailField[]>(() => {
       { label: "失败原因", value: String(getFieldValue(r, "errorMessage") || "-") },
     ];
   }
-  if (activeDataTab.value === "sampling") {
-    return [
-      { label: "渗漏标志位", value: getLeakStatusLabel(r) },
-      { label: "管组编号", value: String(getFieldValue(r, "tubeGroup") || "-") },
-      { label: "压力", value: String(getFieldValue(r, "pressure") ?? "-") },
-    ];
-  }
-  if (activeDataTab.value === "samplingDetail") {
-    return [
-      { label: "排序序号", value: String(getFieldValue(r, "orderNumber") ?? "-") },
-    ];
-  }
-  if (activeDataTab.value === "samplingDaily") {
-    return [
-      { label: "渗漏状态", value: getLeakStatusLabel(r) },
-      { label: "渗漏值", value: String(getFieldValue(r, "leakProperty") ?? "-") },
-    ];
-  }
   return [];
 });
 
@@ -1383,22 +1151,6 @@ const timeDetailFields = computed<DetailField[]>(() => {
       { label: "创建时间", value: formatDateTime(getFieldValue(r, "createdAt")) },
     ];
   }
-  if (activeDataTab.value === "sampling") {
-    return [
-      { label: "采样时间", value: formatDateTime(getFieldValue(r, "samplingTime")) },
-      { label: "创建时间", value: formatDateTime(getFieldValue(r, "createdAt")) },
-    ];
-  }
-  if (activeDataTab.value === "samplingDetail") {
-    return [
-      { label: "创建时间", value: formatDateTime(getFieldValue(r, "createdAt")) },
-    ];
-  }
-  if (activeDataTab.value === "samplingDaily") {
-    return [
-      { label: "采样时间", value: formatDateTime(getFieldValue(r, "samplingTime")) },
-    ];
-  }
   return [];
 });
 
@@ -1413,16 +1165,6 @@ const locationFields = computed<DetailField[]>(() => {
   if (activeDataTab.value === "deviceUpload") {
     return [
       { label: "经纬度", value: formatCoordinate(getFieldValue(r, "coordinateLocation")) },
-    ];
-  }
-  if (activeDataTab.value === "sampling") {
-    return [
-      { label: "采样地址", value: String(getFieldValue(r, "samplingAddress") || "-") },
-    ];
-  }
-  if (activeDataTab.value === "samplingDaily") {
-    return [
-      { label: "采样地址", value: String(getFieldValue(r, "samplingAddress") || "-") },
     ];
   }
   return [];
@@ -1479,30 +1221,6 @@ const cardFields = computed<DetailField[]>(() => {
       { label: "失败原因", value: String(getFieldValue(r, "errorMessage") || "-") },
     ];
   }
-  if (activeDataTab.value === "sampling") {
-    return [
-      { label: "ID", value: String(getFieldValue(r, "id") || "-") },
-      { label: "设备ID", value: String(getFieldValue(r, "deviceId") || "-") },
-      { label: "特征值", value: String(getFieldValue(r, "leakEsa") ?? "-") },
-      { label: "强度", value: String(getFieldValue(r, "leakIntensity") ?? "-") },
-      { label: "频率", value: String(getFieldValue(r, "leakFrequency") ?? "-") },
-    ];
-  }
-  if (activeDataTab.value === "samplingDetail") {
-    return [
-      { label: "ID", value: String(getFieldValue(r, "id") || "-") },
-      { label: "采样记录ID", value: String(getFieldValue(r, "samplingId") || "-") },
-      { label: "特征值", value: String(getFieldValue(r, "leakEsa") ?? "-") },
-      { label: "强度", value: String(getFieldValue(r, "leakIntensity") ?? "-") },
-      { label: "频率", value: String(getFieldValue(r, "leakFrequency") ?? "-") },
-    ];
-  }
-  if (activeDataTab.value === "samplingDaily") {
-    return [
-      { label: "ID", value: String(getFieldValue(r, "id") || "-") },
-      { label: "设备ID", value: String(getFieldValue(r, "deviceId") || "-") },
-    ];
-  }
   return [];
 });
 
@@ -1549,7 +1267,7 @@ function toggleSort(field: string) {
 }
 
 function buildQueryParams() {
-  const defaultSortField = activeDataTab.value === "leakage" ? "detectTime" : activeDataTab.value === "algorithm" ? "createdAt" : activeDataTab.value === "deviceUpload" ? "uploadTime" : activeDataTab.value === "sampling" ? "samplingTime" : activeDataTab.value === "samplingDaily" ? "samplingTime" : "createdAt";
+  const defaultSortField = activeDataTab.value === "leakage" ? "detectTime" : activeDataTab.value === "algorithm" ? "createdAt" : activeDataTab.value === "deviceUpload" ? "uploadTime" : "createdAt";
   const baseParams = removeEmptyFields({
     pageNum: pagination.pageNum,
     pageSize: pagination.pageSize,
@@ -1569,16 +1287,6 @@ function buildQueryParams() {
     if (filters.deviceNumber.trim()) (baseParams as Record<string, unknown>).deviceNumber = filters.deviceNumber.trim();
     if (filters.algorithmStatus !== "") (baseParams as Record<string, unknown>).status = filters.algorithmStatus;
     if (filters.algorithmName.trim()) (baseParams as Record<string, unknown>).algorithmName = filters.algorithmName.trim();
-  } else if (activeDataTab.value === "sampling") {
-    if (filters.leakStatus !== "") (baseParams as Record<string, unknown>).leakStatus = filters.leakStatus;
-    if (filters.deviceNumber.trim()) (baseParams as Record<string, unknown>).deviceNumber = filters.deviceNumber.trim();
-    if (filters.tubeGroup.trim()) (baseParams as Record<string, unknown>).tubeGroup = filters.tubeGroup.trim();
-  } else if (activeDataTab.value === "samplingDetail") {
-    if (filters.samplingId.trim()) (baseParams as Record<string, unknown>).samplingId = Number(filters.samplingId.trim());
-    if (filters.deviceNumber.trim()) (baseParams as Record<string, unknown>).deviceNumber = filters.deviceNumber.trim();
-  } else if (activeDataTab.value === "samplingDaily") {
-    if (filters.leakStatus !== "") (baseParams as Record<string, unknown>).leakStatus = filters.leakStatus;
-    if (filters.deviceNumber.trim()) (baseParams as Record<string, unknown>).deviceNumber = filters.deviceNumber.trim();
   }
 
   return baseParams;
@@ -1589,9 +1297,6 @@ function getApiFunction() {
     leakage: { page: getLeakageHistoryPage, detail: getLeakageHistoryDetail },
     deviceUpload: { page: getDeviceStatusUploadPage, detail: getDeviceStatusUploadDetail },
     algorithm: { page: getAlgorithmResultHistoryPage, detail: getAlgorithmResultHistoryDetail },
-    sampling: { page: getSamplingRecordHistoryPage, detail: getSamplingRecordHistoryDetail },
-    samplingDetail: { page: getSamplingDetailHistoryPage, detail: getSamplingDetailHistoryDetail },
-    samplingDaily: { page: getSamplingDailyHistoryPage, detail: getSamplingDailyHistoryDetail },
   };
   return apiMap[activeDataTab.value];
 }
@@ -1664,15 +1369,6 @@ async function handleExport(scope: "current" | "all") {
   } else if (tab === "algorithm") {
     headers = ["序号", "创建时间", "设备编号", "算法名称", "执行状态", "输出值", "耗时(ms)"];
     keys = ["createdAt", "deviceNumber", "algorithmName", "status", "outputValue", "costMs"];
-  } else if (tab === "sampling") {
-    headers = ["序号", "采样时间", "设备编号", "渗漏标志位", "特征值", "强度", "频率"];
-    keys = ["samplingTime", "deviceNumber", "leakStatus", "leakEsa", "leakIntensity", "leakFrequency"];
-  } else if (tab === "samplingDetail") {
-    headers = ["序号", "创建时间", "设备编号", "特征值", "强度", "频率", "排序序号"];
-    keys = ["createdAt", "deviceNumber", "leakEsa", "leakIntensity", "leakFrequency", "orderNumber"];
-  } else {
-    headers = ["序号", "采样时间", "设备编号", "渗漏状态", "渗漏值", "采样地址"];
-    keys = ["samplingTime", "deviceNumber", "leakStatus", "leakProperty", "samplingAddress"];
   }
   const rows = exportRecords.map((r, idx) => {
     const row = [String(idx + 1)];
@@ -1716,10 +1412,8 @@ function resetFilters() {
   filters.leakStatus = "";
   filters.deviceNumber = "";
   filters.inspector = "";
-  filters.tubeGroup = "";
   filters.algorithmStatus = "";
   filters.algorithmName = "";
-  filters.samplingId = "";
   searchHistory();
 }
 
@@ -2473,15 +2167,6 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 }
 .data-row--algorithm {
   grid-template-columns: 58px minmax(160px, 2.6fr) minmax(110px, 1.8fr) minmax(130px, 2fr) minmax(96px, 1.2fr) minmax(150px, 2.4fr) minmax(80px, 1fr);
-}
-.data-row--sample {
-  grid-template-columns: 58px minmax(160px, 2.6fr) minmax(110px, 1.8fr) minmax(96px, 1.2fr) minmax(72px, 0.9fr) minmax(72px, 0.9fr) minmax(72px, 0.9fr) minmax(120px, 2.4fr);
-}
-.data-row--samplingDetail {
-  grid-template-columns: 58px minmax(160px, 2.6fr) minmax(110px, 1.8fr) minmax(72px, 0.9fr) minmax(72px, 0.9fr) minmax(72px, 0.9fr) minmax(96px, 1.2fr);
-}
-.data-row--samplingDaily {
-  grid-template-columns: 58px minmax(160px, 2.6fr) minmax(110px, 1.8fr) minmax(96px, 1.2fr) minmax(96px, 1.2fr) minmax(160px, 3fr);
 }
 .data-row:not(.data-row--header):nth-child(odd) { background: #fff; }
 .data-row:not(.data-row--header):nth-child(even) { background: #fbfdff; }
