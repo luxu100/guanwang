@@ -55,7 +55,7 @@ const deviceParameterConfig = {
     deptId: null,
     todayNew: null,
     latestInstalled: null,
-    parseStatus: ""
+    parseStatus: "success",
   }
 } as const;
 
