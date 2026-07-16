@@ -64,8 +64,9 @@
         <view class="data-row data-row--header data-row--algorithm">
           <text class="data-cell data-cell--index">序号</text>
           <text class="data-cell data-cell--device">设备编号</text>
-          <text class="data-cell data-cell--time">音频时间</text>
-          <text class="data-cell data-cell--signal">信号处理结果</text>
+          <text class="data-cell data-cell--time">音频采集时间</text>
+          <text class="data-cell data-cell--audio-id">音频文件ID</text>
+          <text class="data-cell data-cell--process-result">算法处理结果</text>
           <text class="data-cell data-cell--status">算法状态</text>
           <text class="data-cell data-cell--error">失败原因</text>
         </view>
@@ -84,7 +85,8 @@
           <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
           <text class="data-cell data-cell--device">{{ getFieldValue(item, "deviceNumber") || "-" }}</text>
           <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "audioTime")) }}</text>
-          <text class="data-cell data-cell--signal">{{ getFieldValue(item, "signalprocessingResult") || "-" }}</text>
+          <text class="data-cell data-cell--audio-id">{{ getFieldValue(item, "audioFileId") || "-" }}</text>
+          <text class="data-cell data-cell--process-result" :title="getFieldValue(item, 'signalprocessingResult')">{{ getFieldValue(item, "signalprocessingResult") || "-" }}</text>
           <text class="data-cell data-cell--status"><text v-if="getFieldValue(item, 'algorithmStatus')" class="status-tag" :class="getAlgorithmStatusTagClass(item)">{{ getAlgorithmStatusLabel(item) }}</text><text v-else>-</text></text>
           <text class="data-cell data-cell--error" :title="getFieldValue(item, 'algorithmError')">{{ getFieldValue(item, "algorithmError") || "-" }}</text>
         </view>
@@ -254,8 +256,8 @@ const baseDetailFields = computed(() => {
     { label: "设备编号", value: String(getFieldValue(r, "deviceNumber") || "-") },
     { label: "采样记录ID", value: String(getFieldValue(r, "samplingId") ?? "-") },
     { label: "音频文件ID", value: String(getFieldValue(r, "audioFileId") ?? "-") },
-    { label: "信号处理结果", value: String(getFieldValue(r, "signalprocessingResult") || "-") },
     { label: "算法状态", value: getAlgorithmStatusLabel(r) },
+    { label: "算法处理结果", value: String(getFieldValue(r, "signalprocessingResult") || "-") },
     { label: "失败原因", value: String(getFieldValue(r, "algorithmError") || "-") },
   ];
 });
@@ -263,7 +265,7 @@ const baseDetailFields = computed(() => {
 const timeDetailFields = computed(() => {
   const r = selectedRecord.value || {};
   return [
-    { label: "音频时间", value: formatDateTime(getFieldValue(r, "audioTime") || "-") },
+    { label: "音频采集时间", value: formatDateTime(getFieldValue(r, "audioTime") || "-") },
     { label: "创建时间", value: formatDateTime(getFieldValue(r, "createdAt") || "-") },
   ];
 });
@@ -278,6 +280,7 @@ onMounted(() => {
 
 function handleAlgorithmStatusChange(event: { detail: { value: number } }) {
   filters.algorithmStatus = algorithmStatusOptions[event.detail.value]?.value ?? "";
+  searchAnalysis();
 }
 
 function toggleSort(field: string) {
@@ -358,9 +361,9 @@ async function handleExport(scope: "current" | "all") {
     return;
   }
   // #ifdef H5
-  const headers = ["序号", "设备编号", "音频时间", "信号处理结果", "算法状态", "失败原因"];
+  const headers = ["序号", "设备编号", "音频采集时间", "音频文件ID", "算法处理结果", "算法状态", "失败原因"];
   const rows = exportRecords.map((r, idx) => {
-    const keys = ["deviceNumber", "audioTime", "signalprocessingResult", "algorithmStatus", "algorithmError"];
+    const keys = ["deviceNumber", "audioTime", "audioFileId", "signalprocessingResult", "algorithmStatus", "algorithmError"];
     return [String(idx + 1), ...keys.map((k) => {
       if (k === "audioTime") return formatDateTime(getFieldValue(r, k));
       const v = getFieldValue(r, k);
@@ -437,7 +440,8 @@ function selectRecord(item: AnalysisRecord, index: number) {
       assertSuccessResponse(response as ApiResponseLike);
       const detailData = (response as ApiResponseLike)?.data;
       if (isObject(detailData)) {
-        selectedRecord.value = { ...item, ...detailData };
+        const cleanDetail = Object.fromEntries(Object.entries(detailData as Record<string, unknown>).filter(([, v]) => v !== null && v !== undefined));
+        selectedRecord.value = { ...item, ...cleanDetail };
       }
     })
     .catch(() => {});
@@ -946,23 +950,23 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   display: flex;
   flex-direction: column;
   width: 100%;
-  min-width: 780px;
+  min-width: 820px;
   background: #ffffff;
 }
 
 .data-row {
   display: grid;
-  grid-template-columns: 58px minmax(110px, 2.2fr) minmax(160px, 3fr) minmax(160px, 3.8fr) minmax(96px, 1.6fr) minmax(140px, 2.4fr);
+  grid-template-columns: 58px minmax(110px, 2.2fr) minmax(160px, 3fr) minmax(100px, 1.8fr) minmax(140px, 2.4fr) minmax(96px, 1.6fr) minmax(140px, 2.4fr);
   min-height: 42px;
   width: 100%;
-  min-width: 780px;
+  min-width: 820px;
   border-bottom: 1px solid #edf1f5;
   cursor: pointer;
   transition: background 0.18s ease, box-shadow 0.18s ease;
 }
 
 .data-row--algorithm {
-  grid-template-columns: 58px minmax(110px, 2.2fr) minmax(160px, 3fr) minmax(160px, 3.8fr) minmax(96px, 1.6fr) minmax(140px, 2.4fr);
+  grid-template-columns: 58px minmax(110px, 2.2fr) minmax(160px, 3fr) minmax(100px, 1.8fr) minmax(140px, 2.4fr) minmax(96px, 1.6fr) minmax(140px, 2.4fr);
 }
 
 

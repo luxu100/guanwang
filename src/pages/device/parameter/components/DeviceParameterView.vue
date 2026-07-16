@@ -55,7 +55,7 @@ const deviceParameterConfig = {
     deptId: null,
     todayNew: null,
     latestInstalled: null,
-    parseStatus: ""
+    parseStatus: "SUCCESS",
   }
 } as const;
 
@@ -103,6 +103,8 @@ async function fetchParameters(){
   pagination.value.total=data?.total??0;
   pagination.value.current=data?.current??1;
   pagination.value.size=data?.size??10;
+
+  console.log(deviceParameterList);
 }
 
 function handlePageChange(page:number){

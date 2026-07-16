@@ -228,7 +228,9 @@
       "onlineStatus": "Online Status",
       "mapTitle": "Device Location",
       "deviceAlias": "Device Alias",
-      "factoryTime": "Manufacturing Time"
+      "factoryTime": "Manufacturing Time",
+      "algorithmType":"Algorithm Type",
+      "algorithmVersion":"Algorithm Version"
     },
     "addSchema": {
       "basicInfo": {
@@ -459,7 +461,8 @@
 
         "timeInfo":"Time Information",
         "createdAt":"Created Time",
-        "updatedAt":"Updated Time"
+        "updatedAt":"Updated Time",
+        "maintainAccount": "Maintenance Personnel"
       },
       "page": {
         "addMaintenance": "Add Maintenance",
@@ -472,6 +475,8 @@
           "deviceAlias": "Device Alias",
           "deviceAliasPlaceholder": "--",
           "valveNumber": "Valve Number",
+          "valveName": "Valve Name",
+          "valveNamePlaceholder": "--",
           "valveNumberPlaceholder": "--",
           "maintainType": "Maintenance Type",
           "maintainTime": "Maintenance Time",

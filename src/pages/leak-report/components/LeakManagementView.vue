@@ -143,7 +143,7 @@
             </view>
             <view class="time-section time-section--location">
               <text class="detail-section-title">地点信息</text>
-              <view class="location-row"><text class="location-row__label">坐标位置</text><text class="location-row__value">{{ getFieldValue(selectedRecord, "coordinatePosition") || "-" }}</text></view>
+              <view class="location-row"><text class="location-row__label">坐标位置</text><text class="location-row__value">{{ formatCoordinate(getFieldValue(selectedRecord, "coordinatePosition")) }}</text></view>
               <view class="location-row"><text class="location-row__label">漏点区域</text><text class="location-row__value">{{ getFieldValue(selectedRecord, "leakArea") || "-" }}</text></view>
               <view class="location-row"><text class="location-row__label">漏点位置</text><text class="location-row__value">{{ getFieldValue(selectedRecord, "leakPointPosition") || "-" }}</text></view>
             </view>
@@ -886,7 +886,10 @@ function selectRecord(item: RecordItem, i: number) {
   getLeakPointDetail(id).then((res: unknown) => {
     ok(res as Res);
     const d = (res as Res)?.data;
-    if (isObj(d)) selectedRecord.value = { ...item, ...(d as RecordItem) };
+    if (isObj(d)) {
+      const cleanDetail = Object.fromEntries(Object.entries(d as RecordItem).filter(([, v]) => v !== null && v !== undefined));
+      selectedRecord.value = { ...item, ...cleanDetail };
+    }
   }).catch(() => {});
 }
 
@@ -1368,6 +1371,21 @@ function getWorkOrderDisplay(item: RecordItem): string {
 function getFieldValue(item: RecordItem | null, key: string): string { if (!item) return ""; const v = gv(item, key); if (v === undefined || v === null) return ""; return String(v); }
 function formatDateTime(v: unknown): string { return fmtDt(v); }
 
+// 格式化经纬度字符串，保留 4 位小数（支持 "经度,纬度" 或 "经度 纬度" 格式）
+function formatCoordinate(value: unknown): string {
+  if (value == null || value === "") return "-";
+  const s = String(value).trim();
+  const parts = s.split(/[,，\s]+/).filter(Boolean);
+  if (parts.length >= 2) {
+    const lng = parseFloat(parts[0]);
+    const lat = parseFloat(parts[1]);
+    if (!Number.isNaN(lng) && !Number.isNaN(lat)) {
+      return `${lng.toFixed(4)},${lat.toFixed(4)}`;
+    }
+  }
+  return s;
+}
+
 const playingAudioIndex = ref(-1);
 let audioPlayerInstance: HTMLAudioElement | null = null;
 
@@ -1542,8 +1560,9 @@ function p2(n: number): string { return String(n).padStart(2, "0"); }
 
 function parsePage(res: Res) {
   const d = res?.data ?? res; const pg = findPg(d) || findPg(res) || (isObj(d) ? d : {});
-  const recs = arr(pg, ["records","rows","list","items"]) || arr(res, ["records","rows","list","items"]);
-  const t = num(pg, ["total","count","totalCount"]) ?? num(res, ["total","count","totalCount"]);
+  const pgRecs = arr(pg, ["records","rows","list","items"]);
+  const recs = pgRecs.length > 0 ? pgRecs : arr(res, ["records","rows","list","items"]);
+  const t = num(pg, ["total","count","totalCount","totalRow","totalRows","totalElements"]) ?? num(res, ["total","count","totalCount","totalRow","totalRows","totalElements"]);
   const c = num(pg, ["current","pageNum","page","pageNo"]); const s = num(pg, ["size","pageSize","limit"]);
   const pageNum = c || pagination.pageNum;
   const pageSize = s || pagination.pageSize;

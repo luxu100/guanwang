@@ -15,8 +15,9 @@
             <text class="data-cell ">{{ t("maintain.maintainTable.time") }}</text>
             <text class="data-cell ">{{ t("maintain.maintainTable.address") }}</text>
             <text class="data-cell ">{{ t('maintain.maintainTable.coordinate') }}</text>
-            <text class="data-cell ">{{ t("maintain.maintainTable.installMode") }}</text>
+            <text class="data-cell ">{{ t("maintain.maintainTable.maintainAccount") }}</text>
             <text class="data-cell ">{{ t("maintain.maintainTable.maintainPicture") }}</text>
+            <text class="data-cell ">{{ t("maintain.maintainTable.installMode") }}</text>
             <text class="data-cell ">{{ t("maintain.maintainTable.tubeGroup") }}</text>
             <text class="data-cell ">{{ t("maintain.maintainTable.tubeMaterial") }}</text>
             <text class="data-cell ">{{ t("maintain.maintainTable.tubeBore") }}</text>
@@ -68,6 +69,23 @@
               {{ record.maintainCoordinate || '-' }}
             </text>
 
+            <text class="data-cell data-cell--text">
+              {{ record.maintainAccount || '-' }}
+            </text>
+
+            <text
+                class="data-cell data-cell--link"
+                @click.stop="handlePicture(record)"
+            >
+              {{
+                record.maintainPicture
+                    ? t("common.viewImages", {
+                      count: getPictureList(record.maintainPicture).length
+                    })
+                    : '-'
+              }}
+            </text>
+
             <text class="data-cell data-cell--status">
               <text
                   class="status-tag"
@@ -84,19 +102,6 @@
                           : "-"
                 }}
               </text>
-            </text>
-
-            <text
-                class="data-cell data-cell--link"
-                @click.stop="handlePicture(record)"
-            >
-              {{
-                record.maintainPicture
-                    ? t("common.viewImages", {
-                      count: getPictureList(record.maintainPicture).length
-                    })
-                    : '-'
-              }}
             </text>
 
             <text class="data-cell data-cell--number">
@@ -254,6 +259,13 @@ const addSchema = computed<FormSection[]>(() => [
         type: "input",
         disabled: true,
         placeholder: t("maintain.addSchema.basicInfo.valveNumberPlaceholder")
+      },
+      {
+        key: "valveName",
+        label: t("maintain.addSchema.basicInfo.valveName"),
+        type: "input",
+        disabled: true,
+        placeholder: t("maintain.addSchema.basicInfo.valveNamePlaceholder")
       },
       {
         key: "maintainType",

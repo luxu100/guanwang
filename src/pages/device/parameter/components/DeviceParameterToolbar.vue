@@ -153,15 +153,15 @@ const fields:Field[]=[
     options:[
       {
         labelKey:"common.all",
-        value:""
+        value:null
       },
       {
         labelKey:"status.parse.success",
-        value:"success"
+        value:"SUCCESS"
       },
       {
         labelKey:"status.parse.fail",
-        value:"fail"
+        value:"FAILED"
       }
     ]
   },

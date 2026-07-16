@@ -197,14 +197,12 @@ const detailTabConfig = computed<Record<string,SectionConfig[]>>(()=>({
         {
           key:'deviceImei',
           label:ti('fields.device.deviceImei'),
-          type:'text',
-          span:'half'
+          type:'text'
         },
         {
           key:'deviceImsi',
           label:ti('fields.device.deviceImsi'),
-          type:'text',
-          span:'half'
+          type:'text'
         },
         {
           key:'serialNumber',
@@ -374,8 +372,8 @@ const relationSectionsConfig = computed<SectionConfig[]>(()=>[
     fields:[
       {key:'productName',label:ti('fields.product.productName'),type:'text'},
       {key:'productCode',label:ti('fields.product.productCode'),type:'text'},
-      {key:'protocolVersion',label:ti('fields.product.protocolVersion'),type:'text', span:'half'},
-      {key:'aepProtocol',label:ti('fields.product.aepProtocol'),type:'text', span:'half'}
+      {key:'protocolVersion',label:ti('fields.product.protocolVersion'),type:'text'},
+      {key:'aepProtocol',label:ti('fields.product.aepProtocol'),type:'text'}
     ]
   },
   {
@@ -383,8 +381,8 @@ const relationSectionsConfig = computed<SectionConfig[]>(()=>[
     title:ti('section.tube'),
     fields:[
       {key:'tubeName',label:ti('fields.tube.tubeName'),type:'text'},
-      {key:'tubeMaterial',label:ti('fields.tube.tubeMaterial'),type:'text', span:'half'},
-      {key:'tubeBore',label:ti('fields.tube.tubeBore'),type:'text', span:'half'},
+      {key:'tubeMaterial',label:ti('fields.tube.tubeMaterial'),type:'text'},
+      {key:'tubeBore',label:ti('fields.tube.tubeBore'),type:'text'},
       {key:'tubeNumber',label:ti('fields.tube.tubeNumber'),type:'text'},
       {key:'administrator',label:ti('fields.tube.administrator'),type:'text'}
     ]
