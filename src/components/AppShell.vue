@@ -197,7 +197,6 @@ import AdminPlaceholderView from "@/components/admin/AdminPlaceholderView.vue";
 import LanguageSelect from "@/components/common/LanguageSelect.vue";
 import PartitionManagementView from "@/pages/partition/components/PartitionManagementView.vue";
 import DeviceManagementView from "@/pages/device/components/DeviceManagementView.vue";
-import DeviceSettingsView from "@/pages/device/settings/components/DeviceSettingsView.vue";
 import SystemManagementView from "@/pages/system/components/SystemManagementView.vue";
 import SearchTemplateView from "@/pages/system/search/components/SearchTemplateView.vue";
 import CommandManageView from "@/pages/command/components/CommandManageView.vue";
@@ -262,7 +261,6 @@ const menuItems: MenuItem[] = [
       { labelKey: "deviceInfo", path: "/pages/device/info/info", icon: "device", keywords: ["设备", "信息"] },
       { labelKey: "deviceMaintenance", path: "/pages/device/maintenance/maintenance", icon: "device", keywords: ["拆装", "维护"] },
       { labelKey: "deviceProtocol", path: "/pages/device/protocol/protocol", icon: "device", keywords: ["协议"] },
-      // { labelKey: "deviceSettings", path: "/pages/device/settings/settings", icon: "device", keywords: ["参数"] },
       { labelKey: "deviceParameter", path: "/pages/device/parameter/parameter", icon: "device", keywords: ["参数"] },
       { labelKey: "deviceValve", path: "/pages/device/valve/valve", icon: "device", keywords: ["阀门"] },
     ],
@@ -371,8 +369,6 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/partition/partition": { component: PartitionManagementView },
   "/pages/device/info/info": { component: DeviceManagementView, props: { mode: "info" } },
   "/pages/device/maintenance/maintenance": { component: DeviceManagementView, props: { mode: "maintenance" } },
-  // "/pages/device/status/status": { component: DeviceManagementView, props: { mode: "status" } },
-  // "/pages/device/settings/settings": { component: DeviceSettingsView },
   "/pages/device/parameter/parameter": { component: DeviceParameterView },
   "/pages/device/protocol/protocol": { component: DeviceManagementView, props: { mode: "protocol" } },
   "/pages/device/valve/valve": { component: ValveView },

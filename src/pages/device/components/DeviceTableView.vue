@@ -90,11 +90,16 @@
           </text>
           <text v-if="columnVisible.installAddress" class="data-cell data-cell--address">{{ device.installAddress ||'-'}}</text>
           <text
-              v-if="columnVisible.coordinate" class="data-cell data-cell--coord data-cell--link"
-              @click.stop="handleCoordClick(device.installLongitude, device.installLatitude)"          >
-            {{ device.installLongitude && device.installLatitude
-              ? `${device.installLongitude}, ${device.installLatitude}`
-              : '-' }}
+              v-if="columnVisible.coordinate"
+              class="data-cell data-cell--coord"
+              :class="{ 'data-cell--link': device.installMode !== 2 }"
+              @click.stop="device.installState !== 0 && handleCoordClick(device.installLongitude, device.installLatitude)"
+          >
+            {{ device.installState === 0
+              ? '-'
+              : (device.installLongitude && device.installLatitude
+                  ? `${device.installLongitude}, ${device.installLatitude}`
+                  : '-') }}
           </text>
 
           <text v-if="columnVisible.algorithmType" class="data-cell "> {{ getAlgorithmTypeLabel(device.algorithmType) }}</text>

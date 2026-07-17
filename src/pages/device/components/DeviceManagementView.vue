@@ -153,8 +153,6 @@ import {
 
 import DeviceInfoPanel from "../info/components/DeviceInfoPanel.vue";
 import MaintenancePanel from "../maintenance/components/MaintenancePanel.vue";
-import DeviceStatusPanel from "../status/components/DeviceStatusPanel.vue";
-
 import DeviceToolbar from "./DeviceToolbar.vue";
 import DeviceTableView from "./DeviceTableView.vue";
 import XDynamicDialog from "@/pages/device/components/x/dialog/XDynamicDialog.vue";
@@ -174,7 +172,7 @@ const t = createScopedT("devicePage");
  * =========================
  */
 const props = defineProps<{
-  mode: "info" | "maintenance" | "status" | "protocol" ;
+  mode: "info" | "maintenance" | "protocol" ;
 }>();
 
 /**
@@ -262,29 +260,6 @@ const deviceModuleConfig = {
       import: false,
       export: false,
       detail:true
-    },
-  },
-
-  status: {
-    panel: DeviceStatusPanel,
-
-    searchForm: {
-      deviceNumber: "",
-    },
-
-    toolbar: [
-      { key: "deviceNumber", labelKey: "fields.deviceNumber", type: "input" ,queryScope: "device"},
-    ],
-
-    buttons: {
-      add: false,
-      edit: false,
-      delete: false,
-      refresh: true,
-      bindDept: false,
-      bindValve: false,
-      import: false,
-      export: false
     },
   },
 
