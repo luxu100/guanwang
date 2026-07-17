@@ -100,7 +100,8 @@ export type ToolbarButtons = {
 
 export interface XDataColumn {
     key:string;
-    label:string;
+    label?:string;
+    labelKey?: string;
     width?:number;
     sortable?: boolean;
     align?:'left'|'center'|'right';

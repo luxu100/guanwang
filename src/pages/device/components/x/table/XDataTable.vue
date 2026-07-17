@@ -3,7 +3,7 @@
     <scroll-view class="table-scroll" scroll-x scroll-y>
       <view class="data-table">
         <view class="data-row data-row--header">
-          <text v-if="showIndex" class="data-cell data-cell--index">{{ indexLabel }}</text>
+          <text v-if="showIndex" class="data-cell data-cell--index">{{ t('common.table.index') || '#'}}</text>
           <text
               v-for="col in columns"
               :key="col.key"
@@ -18,7 +18,7 @@
               :style="cellStyle(col)"
               @click="col.sortable !== false && handleSort(col.key)"
           >
-            {{ col.label }}
+            {{ getColumnLabel(col) }}
 
             <text
                 v-if="col.sortable !== false"
@@ -93,7 +93,6 @@ const props=withDefaults(defineProps<{
   loading?:boolean;
   idKey?:string;
   showIndex?:boolean;
-  indexLabel?:string;
   pageCurrent?:number;
   pageSize?:number;
   loadingText?:string;
@@ -104,7 +103,6 @@ const props=withDefaults(defineProps<{
   loading:false,
   idKey:'id',
   showIndex:true,
-  indexLabel:'#',
   pageCurrent:1,
   pageSize:10,
   loadingText:'加载中...',
@@ -183,6 +181,12 @@ function cellStyle(col:XDataColumn){
 
 function pageIndex(index:number){
   return (props.pageCurrent-1)*props.pageSize+index+1;
+}
+
+function getColumnLabel(col: XDataColumn) {
+  return col.labelKey
+      ? t(col.labelKey)
+      : col.label ?? '';
 }
 
 function formatValue(row:any,col:XDataColumn){

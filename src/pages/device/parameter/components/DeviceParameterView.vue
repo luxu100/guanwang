@@ -36,14 +36,10 @@
 
 <script setup lang="ts">
 import {computed, onMounted, ref, watch} from "vue";
-import {createScopedT} from "@/i18n";
-import DeviceParameterPanel from "@/pages/device/parameter/components/DeviceParameterPanel.vue";
 import {getDeviceParameterPageT} from "@/services/device/device-parameter.typed";
 import type {DeviceParameterPageVO} from "@/services/device/types";
 import DeviceParameterTableView from "@/pages/device/parameter/components/DeviceParameterTableView.vue";
 import DeviceParameterToolbar from "@/pages/device/parameter/components/DeviceParameterToolbar.vue";
-
-const t=createScopedT("devicePage");
 
 const deviceParameterConfig = {
   searchForm: {
@@ -105,7 +101,6 @@ async function fetchParameters(){
   const data=res.data;
 
   deviceParameterList.value=data?.records??[];
-  console.log(deviceParameterList);
   pagination.value.total=data?.total??0;
   pagination.value.current=data?.current??1;
   pagination.value.size=data?.size??10;
