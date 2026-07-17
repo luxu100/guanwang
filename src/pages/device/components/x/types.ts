@@ -117,4 +117,5 @@ export interface XDataColumn {
         value:any,
         row:any
     )=>void;
+
 }

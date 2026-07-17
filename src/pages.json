@@ -64,23 +64,9 @@
       }
     },
     {
-      "path": "pages/device/status/status",
-      "style": {
-        "navigationBarTitleText": "设备状态",
-        "navigationStyle": "custom"
-      }
-    },
-    {
       "path": "pages/device/protocol/protocol",
       "style": {
         "navigationBarTitleText": "协议管理",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/device/settings/settings",
-      "style": {
-        "navigationBarTitleText": "设备参数",
         "navigationStyle": "custom"
       }
     },
