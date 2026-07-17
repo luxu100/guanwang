@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-const source = readFileSync(new URL("../src/pages/data-receive/components/DataReceiveView.vue", import.meta.url), "utf8");
+const source = readFileSync(new URL("../src/pages/data-receive/localized/components/DataReceiveView.vue", import.meta.url), "utf8");
 
 test("protocol management moves JSON upload into the field editor dialog", () => {
   assert.match(source, /当前协议信息/);
@@ -68,7 +68,20 @@ test("pagination supports editable current page and blur jump", () => {
   assert.match(source, /function jumpToPage/);
 });
 
-test("protocol field editor loads a real paged result filtered by protocol", () => {
-  assert.match(source, /loadRecords: \(query, filters\) => getProtocolFieldPage\(\{\s*\.\.\.query,\s*protocolId: filters\.protocolId \|\| undefined,\s*\}\)/);
-  assert.doesNotMatch(source, /loadRecords: \(query, filters\) => \(filters\.protocolId \? getFieldsByProtocol/);
+test("protocol field editor loads protocol-scoped fields and paginates them locally", () => {
+  assert.match(source, /loadRecords: \(query, filters\) => filters\.protocolId\s*\?\s*getFieldsByProtocol\(filters\.protocolId\)\s*:\s*getProtocolFieldPage\(query\)/);
+  assert.match(source, /\? paginateProtocolFieldRecords\(parsed\.records\)/);
+  assert.match(source, /function paginateProtocolFieldRecords\(items: RecordLike\[\]\)/);
+  assert.match(source, /const startIndex = \(pagination\.pageNum - 1\) \* pagination\.pageSize/);
+  assert.match(source, /return sortedRecords\.slice\(startIndex, startIndex \+ pagination\.pageSize\)/);
+});
+
+test("protocol field editor preserves field ids and updates existing rows", () => {
+  assert.match(source, /function getProtocolFieldId/);
+  assert.match(source, /\["id", "fieldId", "protocolFieldId", "definitionId"\]/);
+  assert.match(source, /const id = getProtocolFieldId\(item\)/);
+  assert.match(source, /normalized\.id = id/);
+  assert.match(source, /const id = getProtocolFieldId\(payload\)/);
+  assert.match(source, /\? await updateProtocolField\(id, payload as ProtocolFieldDefinition\)/);
+  assert.match(source, /: await createProtocolField\(payload as ProtocolFieldDefinition\)/);
 });

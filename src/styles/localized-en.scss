@@ -1,0 +1,55 @@
+html[data-locale="en-US"] {
+  .localized-module-host {
+    button,
+    uni-button,
+    .toolbar-button,
+    .page-button,
+    .primary-button,
+    .secondary-button,
+    .danger-button,
+    .form-action-btn {
+      box-sizing: border-box;
+      min-width: max-content;
+      white-space: nowrap;
+    }
+
+    input,
+    textarea,
+    .filter-input,
+    .filter-select,
+    .form-input,
+    .form-select,
+    .datetime-picker__control {
+      min-width: 0;
+      max-width: 100%;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      font-size: 12px;
+    }
+
+    .filter-select > text:first-child,
+    .form-select > text:first-child,
+    .datetime-picker__value {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .form-label,
+    .filter-label,
+    .detail-label,
+    .detail-item__label,
+    .detail-field-card__label {
+      overflow-wrap: anywhere;
+    }
+
+    .data-cell,
+    .table-cell,
+    .table-header-cell {
+      min-width: 0;
+    }
+  }
+}

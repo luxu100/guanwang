@@ -50,6 +50,10 @@ export function getUserLocale(userInfo = uni.getStorageSync("userInfo")): Locale
   return getLocaleByRegion(userInfo?.region);
 }
 
+export function getUserRegionLocale(userInfo = uni.getStorageSync("userInfo")): LocaleCode | null {
+  return getLocaleByRegion(userInfo?.region);
+}
+
 export function getLocaleByRegion(region: unknown): LocaleCode | null {
   if (typeof region !== "string") {
     return null;
@@ -68,30 +72,48 @@ export function getLocaleByRegion(region: unknown): LocaleCode | null {
 }
 
 export function getInitialLocale(): LocaleCode {
-  return getStoredLocale() || getUserLocale() || DEFAULT_LOCALE;
+  return getUserRegionLocale() || getUserLocale() || getStoredLocale() || DEFAULT_LOCALE;
 }
 
 export function getLocale() {
   return currentLocale.value;
 }
 
+function syncDocumentLocale(locale: LocaleCode) {
+  // #ifdef H5
+  if (typeof document !== "undefined") {
+    document.documentElement.lang = locale;
+    document.documentElement.dataset.locale = locale;
+  }
+  // #endif
+}
+
 export function setLocale(locale: LocaleCode) {
   currentLocale.value = locale;
   uni.setStorageSync(LOCALE_STORAGE_KEY, locale);
+  syncDocumentLocale(locale);
 }
 
+syncDocumentLocale(currentLocale.value);
+
 export function applyUserLocale(userInfo = uni.getStorageSync("userInfo")) {
+  const regionLocale = getUserRegionLocale(userInfo);
+  if (regionLocale) {
+    setLocale(regionLocale);
+    return regionLocale;
+  }
+
+  const explicitUserLocale = userInfo?.locale || userInfo?.defaultLanguage || userInfo?.language;
+  if (isLocaleCode(explicitUserLocale)) {
+    setLocale(explicitUserLocale);
+    return explicitUserLocale;
+  }
+
   const storedLocale = getStoredLocale();
   if (storedLocale) {
     currentLocale.value = storedLocale;
-    return storedLocale;
   }
-
-  const userLocale = getUserLocale(userInfo);
-  if (userLocale) {
-    setLocale(userLocale);
-  }
-  return userLocale;
+  return storedLocale;
 }
 
 function getByPath(source: unknown, key: string): unknown {
@@ -168,6 +190,7 @@ export default {
   getLocaleByRegion,
   getStoredLocale,
   getUserLocale,
+  getUserRegionLocale,
   isLocaleCode,
   localeOptions,
   normalizeLocale,

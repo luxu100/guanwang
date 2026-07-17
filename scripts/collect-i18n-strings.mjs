@@ -10,7 +10,7 @@ const OUTPUT_README = path.join(OUTPUT_DIR, "README.md");
 
 const CJK_RE = /[\u4e00-\u9fff]/;
 const STRING_RE = /(["'`])((?:\\.|(?!\1).)*?[\u4e00-\u9fff](?:\\.|(?!\1).)*?)\1/g;
-const SKIP_DIRS = new Set(["node_modules", "dist"]);
+const SKIP_DIRS = new Set(["node_modules", "dist", "localized"]);
 const SOURCE_EXTS = new Set([".vue", ".js", ".ts"]);
 
 const MODULE_RULES = [
