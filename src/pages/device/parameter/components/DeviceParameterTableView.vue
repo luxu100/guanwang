@@ -74,7 +74,14 @@ const deviceParameterDynamicColumns:XDataColumn[]=[
   {key:'nbgsm4gimsi',label:'IMSI号码',width:180,className:'data-cell--text'},
   {key:'iccid',label:'ICCID号码',width:200,className:'data-cell--text'},
   {key:'samplingTime',label:'采集时间',width:160,className:'data-cell--time',formatter:v=>v==null?'-':formatDate(v)},
-  {key:'gpsLocation',label:'GPS定位信息',width:180,className:'data-cell--coord  data-cell--link', type:'coord'},
+  {key:'coordinateLocation',label:'设备位置',width:180,className:'data-cell--coord  data-cell--link', type:'coord',
+    formatter: v => {
+      if (!Array.isArray(v) || v.length < 2 || (v[0] == null && v[1] == null)) {
+        return '-'
+      }
+      return v.join(', ')
+    }
+  },
   {key:'gpsLocationTime',label:'GPS定位时间',width:160,className:'data-cell--time',formatter:v=>v==null?'-':formatDate(v)},
   {key:'samplingRate',label:'采样率',width:120,className:'data-cell--number'},
   {key:'onceMeasureLength',label:'单次测量长度',width:140,className:'data-cell--number'},

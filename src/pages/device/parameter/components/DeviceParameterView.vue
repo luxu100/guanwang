@@ -105,6 +105,7 @@ async function fetchParameters(){
   const data=res.data;
 
   deviceParameterList.value=data?.records??[];
+  console.log(deviceParameterList);
   pagination.value.total=data?.total??0;
   pagination.value.current=data?.current??1;
   pagination.value.size=data?.size??10;
