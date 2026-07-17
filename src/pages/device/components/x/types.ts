@@ -73,7 +73,7 @@ export type Field =
     labelKey: string;
     type: "select";
     dict?: string;
-    options?: DictItem[];
+    options?: FieldOption[];
 };
 
 export type DictItem = {

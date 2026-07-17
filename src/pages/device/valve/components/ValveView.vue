@@ -55,17 +55,14 @@ import {computed, onMounted, ref} from "vue";
 import ValveToolbar from "@/pages/device/valve/components/ValveToolbar.vue";
 import ValveTableView from "@/pages/device/valve/components/ValveTableView.vue";
 import {createValveT, deleteValveT, getValvePageT, updateValveT} from "@/services/device/valve.typed";
-import type {DeptTreeVO, DeviceProtocolCreateFrom, Valve, ValveCreateFrom} from "@/services/device/types";
-import {createDeviceProtocolT, getDeptTreeT} from "@/services/device/info.typed";
+import type {DeptTreeVO, Valve, ValveCreateFrom} from "@/services/device/types";
+import {getDeptTreeT} from "@/services/device/info.typed";
 
 import {createScopedT} from "@/i18n";
 import type {PartitionNode} from "@/pages/device/components/x/tree/XTreeNode.vue";
 import XTreeSelectDialog from "@/pages/device/components/x/dialog/XTreeSelectDialog.vue";
 import XDynamicDialog from "@/pages/device/components/x/dialog/XDynamicDialog.vue";
-import {deleteDeviceProtocolT, updateDeviceProtocolT} from "@/services/device/protocol.typed";
 import type {FormSection} from "@/pages/device/components/x/types";
-import {createValve, updateValve} from "@/services/device/info";
-import DeviceParameterTableView from "@/pages/device/parameter/components/DeviceParameterTableView.vue";
 const t = createScopedT("devicePage");
 
 const valveConfig = {
@@ -133,7 +130,6 @@ async function fetchValve() {
   const pageData = res.data;
 
   valveList.value = pageData?.records ?? [];
-  console.log(valveList);
   pagination.value.total = pageData?.total ?? 0;
   pagination.value.current = pageData?.current ?? 1;
   pagination.value.size = pageData?.size ?? 10;
@@ -295,6 +291,7 @@ const addSchema = computed<FormSection[]>(() => {
     }
   ];
 });
+
 function handleAdd() {
   isEditMode.value = false;
   editingId.value = null;

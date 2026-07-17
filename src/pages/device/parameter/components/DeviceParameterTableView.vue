@@ -49,11 +49,7 @@ const emit=defineEmits<{
   (e:'select',row:DeviceParameterPageVO):void;
   (e:'page-change',page:number):void;
   (e:'page-size-change',size:number):void;
-
-  (e:'sort-change',
-   field:string,
-   order:SortOrder
-  ):void;
+  (e:'sort-change', field:string, order:SortOrder):void;
 }>();
 
 const selectedId=ref<number|null>(null);
@@ -118,11 +114,7 @@ function handleSortChange(
     field:string,
     order:SortOrder
 ){
-  emit(
-      'sort-change',
-      field,
-      order
-  );
+  emit('sort-change', field, order);
 }
 </script>
 
