@@ -11,4 +11,5 @@ export default {};
 <style lang="scss">
 /* 全局基础样式入口：页面背景、字体和盒模型等跨页面规则统一在 global.scss 维护。 */
 @use "@/styles/global.scss";
+@use "@/styles/localized-en.scss";
 </style>
