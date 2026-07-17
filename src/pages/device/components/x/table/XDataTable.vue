@@ -4,7 +4,28 @@
       <view class="data-table">
         <view class="data-row data-row--header">
           <text v-if="showIndex" class="data-cell data-cell--index">{{ indexLabel }}</text>
-          <text v-for="col in columns" :key="col.key" class="data-cell" :class="col.className" :style="cellStyle(col)">{{ col.label }}</text>
+          <text
+              v-for="col in columns"
+              :key="col.key"
+              class="data-cell"
+              :class="[
+                col.className,
+                {
+                  'data-header-cell--sortable': col.sortable !== false,
+                  'data-header-cell--active': sortState.field === col.key
+                }
+              ]"
+              :style="cellStyle(col)"
+              @click="col.sortable !== false && handleSort(col.key)"
+          >
+            {{ col.label }}
+
+            <text
+                v-if="col.sortable !== false"
+                class="sort-indicator"
+                :class="getSortIndicatorClass(col.key)"
+            />
+          </text>
         </view>
 
         <view v-if="loading" class="loading-mask">{{ loadingText }}</view>
@@ -57,12 +78,14 @@
 </template>
 
 <script setup lang="ts">
-import {ref,watch} from 'vue';
+import {ref, watch, reactive} from 'vue';
 import type {XDataColumn} from '../types';
 import XMapPopup from "@/pages/device/components/x/map/XMapPopup.vue";
 import {createScopedT} from "@/i18n";
 const t = createScopedT("devicePage");
 
+type SortOrder = 'asc' | 'desc';
+type SortField = string;
 
 const props=withDefaults(defineProps<{
   columns:XDataColumn[];
@@ -75,6 +98,8 @@ const props=withDefaults(defineProps<{
   pageSize?:number;
   loadingText?:string;
   emptyText?:string;
+  sortField?: SortField;
+  sortOrder?: SortOrder;
 }>(),{
   loading:false,
   idKey:'id',
@@ -83,14 +108,67 @@ const props=withDefaults(defineProps<{
   pageCurrent:1,
   pageSize:10,
   loadingText:'加载中...',
-  emptyText:'暂无数据'
+  emptyText:'暂无数据',
+  sortField:'',
+  sortOrder:'asc'
 });
 
 const emit=defineEmits<{
   (e:'row-click',row:any):void;
+  (e: 'sort-change', field: SortField, order: SortOrder): void;
 }>();
 
 const selectedKey=ref<any>(null);
+
+const sortState = reactive<{
+  field: SortField;
+  order: SortOrder;
+}>({
+  field: props.sortField,
+  order: props.sortOrder
+});
+
+watch(
+    () => props.sortField,
+    (value) => {
+      sortState.field = value;
+    }
+);
+
+watch(
+    () => props.sortOrder,
+    (value) => {
+      sortState.order = value;
+    }
+);
+
+function handleSort(field: SortField) {
+  if (sortState.field === field) {
+    sortState.order =
+        sortState.order === 'asc'
+            ? 'desc'
+            : 'asc';
+  } else {
+    sortState.field = field;
+    sortState.order = 'asc';
+  }
+
+  emit(
+      'sort-change',
+      sortState.field,
+      sortState.order
+  );
+}
+
+function getSortIndicatorClass(field: SortField) {
+  if (sortState.field !== field) {
+    return 'sort-indicator--idle';
+  }
+
+  return sortState.order === 'asc'
+      ? 'sort-indicator--asc'
+      : 'sort-indicator--desc';
+}
 
 watch(()=>props.data,list=>{
   if(list.length&&!selectedKey.value){

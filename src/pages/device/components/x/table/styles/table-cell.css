@@ -101,8 +101,6 @@
 
 .data-cell--address,
 .data-cell--remark {
-    justify-content: flex-start;
-    text-align: left;
 }
 
 

@@ -73,7 +73,7 @@ export type Field =
     labelKey: string;
     type: "select";
     dict?: string;
-    options?: DictItem[];
+    options?: FieldOption[];
 };
 
 export type DictItem = {
@@ -102,6 +102,7 @@ export interface XDataColumn {
     key:string;
     label:string;
     width?:number;
+    sortable?: boolean;
     align?:'left'|'center'|'right';
     type?:
         | 'text'

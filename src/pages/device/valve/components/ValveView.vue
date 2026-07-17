@@ -19,10 +19,13 @@
         <ValveTableView
             :valves="valveList"
             :pagination="pagination"
+            :sort-field="sortField"
+            :sort-order="sortOrder"
             @view="handleView"
             @select="handleSelect"
             @page-change="handlePageChange"
             @page-size-change="handlePageSizeChange"
+            @sort-change="handleSortChange"
         />
     </view>
 
@@ -52,16 +55,14 @@ import {computed, onMounted, ref} from "vue";
 import ValveToolbar from "@/pages/device/valve/components/ValveToolbar.vue";
 import ValveTableView from "@/pages/device/valve/components/ValveTableView.vue";
 import {createValveT, deleteValveT, getValvePageT, updateValveT} from "@/services/device/valve.typed";
-import type {DeptTreeVO, DeviceProtocolCreateFrom, Valve, ValveCreateFrom} from "@/services/device/types";
-import {createDeviceProtocolT, getDeptTreeT} from "@/services/device/info.typed";
+import type {DeptTreeVO, Valve, ValveCreateFrom} from "@/services/device/types";
+import {getDeptTreeT} from "@/services/device/info.typed";
 
 import {createScopedT} from "@/i18n";
 import type {PartitionNode} from "@/pages/device/components/x/tree/XTreeNode.vue";
 import XTreeSelectDialog from "@/pages/device/components/x/dialog/XTreeSelectDialog.vue";
 import XDynamicDialog from "@/pages/device/components/x/dialog/XDynamicDialog.vue";
-import {deleteDeviceProtocolT, updateDeviceProtocolT} from "@/services/device/protocol.typed";
 import type {FormSection} from "@/pages/device/components/x/types";
-import {createValve, updateValve} from "@/services/device/info";
 const t = createScopedT("devicePage");
 
 const valveConfig = {
@@ -122,6 +123,8 @@ async function fetchValve() {
     ...searchForm.value,
     pageNum: pagination.value.current,
     pageSize: pagination.value.size,
+    sortField: sortField.value,
+    sortOrder:sortOrder.value,
   });
 
   const pageData = res.data;
@@ -288,6 +291,7 @@ const addSchema = computed<FormSection[]>(() => {
     }
   ];
 });
+
 function handleAdd() {
   isEditMode.value = false;
   editingId.value = null;
@@ -463,6 +467,18 @@ async function refreshList() {
   await fetchValve();
 }
 
+const sortField = ref('');
+const sortOrder = ref<'asc'|'desc'>('asc');
+
+function handleSortChange(
+    field:string,
+    order:'asc'|'desc'
+){
+  sortField.value = field;
+  sortOrder.value = order;
+  pagination.value.current = 1;
+  fetchValve();
+}
 
 onMounted(() => {
   fetchValve();
