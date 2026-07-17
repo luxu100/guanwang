@@ -5,7 +5,17 @@
       <text class="table-head__meta">{{ t('common.pagination.totalRecords',{total:pagination.total}) }}</text>
     </view>
 
-    <XDataTable :columns="columns" :data="deviceParameters" :show-index="true" index-label="序号" id-key="deviceId" @row-click="selectRow">
+    <XDataTable
+        :columns="columns"
+        :data="deviceParameters"
+        :show-index="true"
+        index-label="序号"
+        id-key="deviceId"
+        @row-click="selectRow"
+        :sort-field="sortField"
+        :sort-order="sortOrder"
+        @sort-change="handleSortChange"
+    >
       <template #footer>
         <XPaginationBar :current="pagination.current" :size="pagination.size" :total="pagination.total" @change-page="page=>emit('page-change',page)" @change-size="size=>emit('page-size-change',size)"/>
       </template>
@@ -25,9 +35,13 @@ import {formatDate} from '@/utils/time';
 
 const t=createScopedT('devicePage');
 
+type SortOrder = 'asc' | 'desc';
+
 const props=defineProps<{
   deviceParameters:DeviceParameterPageVO[];
   pagination:Pagination;
+  sortField: string;
+  sortOrder: SortOrder;
 }>();
 
 const emit=defineEmits<{
@@ -35,6 +49,11 @@ const emit=defineEmits<{
   (e:'select',row:DeviceParameterPageVO):void;
   (e:'page-change',page:number):void;
   (e:'page-size-change',size:number):void;
+
+  (e:'sort-change',
+   field:string,
+   order:SortOrder
+  ):void;
 }>();
 
 const selectedId=ref<number|null>(null);
@@ -93,6 +112,17 @@ function selectRow(row:DeviceParameterPageVO){
   selectedId.value=row.deviceId??null;
   emit('view',row);
   emit('select',row);
+}
+
+function handleSortChange(
+    field:string,
+    order:SortOrder
+){
+  emit(
+      'sort-change',
+      field,
+      order
+  );
 }
 </script>
 

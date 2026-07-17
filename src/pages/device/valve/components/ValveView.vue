@@ -19,10 +19,13 @@
         <ValveTableView
             :valves="valveList"
             :pagination="pagination"
+            :sort-field="sortField"
+            :sort-order="sortOrder"
             @view="handleView"
             @select="handleSelect"
             @page-change="handlePageChange"
             @page-size-change="handlePageSizeChange"
+            @sort-change="handleSortChange"
         />
     </view>
 
@@ -62,6 +65,7 @@ import XDynamicDialog from "@/pages/device/components/x/dialog/XDynamicDialog.vu
 import {deleteDeviceProtocolT, updateDeviceProtocolT} from "@/services/device/protocol.typed";
 import type {FormSection} from "@/pages/device/components/x/types";
 import {createValve, updateValve} from "@/services/device/info";
+import DeviceParameterTableView from "@/pages/device/parameter/components/DeviceParameterTableView.vue";
 const t = createScopedT("devicePage");
 
 const valveConfig = {
@@ -122,11 +126,14 @@ async function fetchValve() {
     ...searchForm.value,
     pageNum: pagination.value.current,
     pageSize: pagination.value.size,
+    sortField: sortField.value,
+    sortOrder:sortOrder.value,
   });
 
   const pageData = res.data;
 
   valveList.value = pageData?.records ?? [];
+  console.log(valveList);
   pagination.value.total = pageData?.total ?? 0;
   pagination.value.current = pageData?.current ?? 1;
   pagination.value.size = pageData?.size ?? 10;
@@ -463,6 +470,18 @@ async function refreshList() {
   await fetchValve();
 }
 
+const sortField = ref('');
+const sortOrder = ref<'asc'|'desc'>('asc');
+
+function handleSortChange(
+    field:string,
+    order:'asc'|'desc'
+){
+  sortField.value = field;
+  sortOrder.value = order;
+  pagination.value.current = 1;
+  fetchValve();
+}
 
 onMounted(() => {
   fetchValve();

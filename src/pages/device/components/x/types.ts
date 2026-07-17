@@ -102,6 +102,7 @@ export interface XDataColumn {
     key:string;
     label:string;
     width?:number;
+    sortable?: boolean;
     align?:'left'|'center'|'right';
     type?:
         | 'text'

@@ -15,10 +15,13 @@
       <DeviceParameterTableView
           :device-parameters="deviceParameterList"
           :pagination="pagination"
+          :sort-field="sortField"
+          :sort-order="sortOrder"
           @view="handleView"
           @select="handleSelect"
           @page-change="handlePageChange"
           @page-size-change="handlePageSizeChange"
+          @sort-change="handleSortChange"
       />
 
 <!--      <view class="split-handle" @mousedown="startResize">{{isDetailCollapsed?'⟨':'⟩'}}</view>-->
@@ -94,7 +97,9 @@ async function fetchParameters(){
   const res=await getDeviceParameterPageT<DeviceParameterPageVO>({
     ...searchForm.value,
     pageNum:pagination.value.current,
-    pageSize:pagination.value.size
+    pageSize:pagination.value.size,
+    sortField: sortField.value,
+    sortOrder:sortOrder.value,
   });
 
   const data=res.data;
@@ -103,8 +108,6 @@ async function fetchParameters(){
   pagination.value.total=data?.total??0;
   pagination.value.current=data?.current??1;
   pagination.value.size=data?.size??10;
-
-  console.log(deviceParameterList);
 }
 
 function handlePageChange(page:number){
@@ -159,6 +162,19 @@ function stopResize(){
   document.removeEventListener("mousemove",resize);
   document.removeEventListener("mouseup",stopResize);
   if(!isDragging.value)toggleDetailPanel();
+}
+
+const sortField = ref('');
+const sortOrder = ref<'asc'|'desc'>('asc');
+
+function handleSortChange(
+    field:string,
+    order:'asc'|'desc'
+){
+  sortField.value = field;
+  sortOrder.value = order;
+  pagination.value.current = 1;
+  fetchParameters();
 }
 
 onMounted(fetchParameters);
