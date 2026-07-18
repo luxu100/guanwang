@@ -55,7 +55,8 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { isDomesticLeakMonitorUser } from "@/services/leak-monitor/device-query";
+import { useI18n } from "@/i18n";
+import { getMapProvider } from "@/services/map/map";
 import TencentLeakMap from "./TencentLeakMap.vue";
 import GoogleLeakMap from "./GoogleLeakMap.vue";
 import LeakMonitorSidebar from "./LeakMonitorSidebar.vue";
@@ -63,7 +64,8 @@ import DeviceDetailDialog from "./DeviceDetailDialog.vue";
 import { useLeakMonitorWorkspace } from "../composables/useLeakMonitorWorkspace";
 import type { LeakMonitorDevice, MapDevicePoint } from "../types";
 
-const provider = computed(() => isDomesticLeakMonitorUser() ? "tencent" : "google");
+const { locale } = useI18n();
+const provider = computed(() => getMapProvider(locale.value));
 const workspace = useLeakMonitorWorkspace();
 const {
   detail,

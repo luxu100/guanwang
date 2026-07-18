@@ -365,7 +365,8 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { isDomesticLeakMonitorUser } from "@/services/leak-monitor/device-query";
+import { useI18n } from "@/i18n";
+import { getMapProvider } from "@/services/map/map";
 import { convertMapCoordinate } from "../coordinateTransform";
 import type {
   DateRangeValue,
@@ -381,6 +382,7 @@ import GoogleLeakMap from "./GoogleLeakMap.vue";
 import TencentLeakMap from "./TencentLeakMap.vue";
 
 const { language, t } = useLeakMonitorI18n();
+const { locale } = useI18n();
 
 const props = withDefaults(defineProps<{
   visible: boolean;
@@ -428,7 +430,7 @@ const relatedDeviceNumber = ref("");
 const manualJudgementIndex = ref(0);
 const feedbackIndex = ref(0);
 const manualForm = ref({ reasonAnalysis: "", resetDate: formatDate(new Date()) });
-const provider = computed(() => isDomesticLeakMonitorUser() ? "tencent" : "google");
+const provider = computed(() => getMapProvider(locale.value));
 const manualJudgementOptions = computed(() => [
   { label: t("normal"), value: 1 },
   { label: t("suspect"), value: 2 },

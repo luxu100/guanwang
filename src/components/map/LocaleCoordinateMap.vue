@@ -26,12 +26,13 @@ import {
 } from "vue";
 import {
   MAP_CONFIG,
+  getMapProvider,
 } from "@/services/map/map";
-import { isDomesticLeakMonitorUser } from "@/services/leak-monitor/device-query";
 import { loadGoogleMaps } from "@/utils/googleMapsLoader";
-import { createScopedT } from "@/i18n";
+import { createScopedT, useI18n } from "@/i18n";
 
 const t = createScopedT("localeCoordinateMap");
+const { locale } = useI18n();
 
 interface TencentLatLngValue {
   getLat?: () => number;
@@ -94,8 +95,7 @@ const emit = defineEmits<{
 }>();
 
 const provider = computed(() => {
-  // 与渗漏检测界面一致：国内用户用腾讯，海外用户用 Google
-  return isDomesticLeakMonitorUser() ? "tencent" as const : "google" as const;
+  return getMapProvider(locale.value);
 });
 
 const mapContainer = ref<HTMLElement | null>(null);

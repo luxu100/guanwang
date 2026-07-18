@@ -76,7 +76,7 @@ export function getLocaleByRegion(region: unknown): LocaleCode | null {
 }
 
 export function getInitialLocale(): LocaleCode {
-  return getUserRegionLocale() || getUserLocale() || getStoredLocale() || DEFAULT_LOCALE;
+  return getUserLocale() || getStoredLocale() || DEFAULT_LOCALE;
 }
 
 export function getLocale() {
@@ -92,6 +92,11 @@ function syncDocumentLocale(locale: LocaleCode) {
   // #endif
 }
 
+function applyDefaultLocale(locale: LocaleCode) {
+  currentLocale.value = locale;
+  syncDocumentLocale(locale);
+}
+
 export function setLocale(locale: LocaleCode) {
   currentLocale.value = locale;
   uni.setStorageSync(LOCALE_STORAGE_KEY, locale);
@@ -101,21 +106,21 @@ export function setLocale(locale: LocaleCode) {
 syncDocumentLocale(currentLocale.value);
 
 export function applyUserLocale(userInfo = uni.getStorageSync("userInfo")) {
-  const regionLocale = getUserRegionLocale(userInfo);
-  if (regionLocale) {
-    setLocale(regionLocale);
-    return regionLocale;
-  }
-
   const explicitUserLocale = userInfo?.locale || userInfo?.defaultLanguage || userInfo?.language;
   if (isLocaleCode(explicitUserLocale)) {
-    setLocale(explicitUserLocale);
+    applyDefaultLocale(explicitUserLocale);
     return explicitUserLocale;
+  }
+
+  const regionLocale = getUserRegionLocale(userInfo);
+  if (regionLocale) {
+    applyDefaultLocale(regionLocale);
+    return regionLocale;
   }
 
   const storedLocale = getStoredLocale();
   if (storedLocale) {
-    currentLocale.value = storedLocale;
+    applyDefaultLocale(storedLocale);
   }
   return storedLocale;
 }
