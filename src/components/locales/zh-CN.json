@@ -43,5 +43,9 @@
     "dataReceiveProtocol": "协议管理",
     "dataReceiveParse": "数据解析",
     "dataReceiveRecord": "数据记录"
+  },
+  "localeCoordinateMap": {
+    "h5Only": "地图仅支持 H5 端展示",
+    "loadFailed": "地图加载失败，请检查 Key、域名限制和网络"
   }
 }
