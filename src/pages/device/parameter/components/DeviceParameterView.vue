@@ -23,13 +23,6 @@
           @page-size-change="handlePageSizeChange"
           @sort-change="handleSortChange"
       />
-
-<!--      <view class="split-handle" @mousedown="startResize">{{isDetailCollapsed?'⟨':'⟩'}}</view>-->
-
-<!--      <view class="detail-panel">-->
-<!--        <view v-if="!currentDeviceParameter?.deviceId" class="detail-empty">{{t('common.table.empty')}}</view>-->
-<!--        <DeviceParameterPanel v-else :parameter-data="currentDeviceParameter" :visible="isDetailPanelVisible"/>-->
-<!--      </view>-->
     </view>
   </view>
 </template>
@@ -46,7 +39,7 @@ const deviceParameterConfig = {
     startTime: "",
     endTime: "",
     deviceNumber: "",
-    deviceType: "",
+    deviceType: null,
     productId: null,
     onlineStatus: null,
     installState: null,
@@ -130,11 +123,6 @@ const layoutClass=computed(()=> "layout-full");
 const detailWidth=ref(400);
 
 const layoutStyle=computed(()=> "layout-full");
-// const layoutStyle=computed(()=>{
-//   return isDetailCollapsed.value
-//       ? {gridTemplateColumns:`minmax(0,1fr) 24px`}
-//       : {gridTemplateColumns:`minmax(0,1fr) 24px ${detailWidth.value}px`};
-// });
 
 let startX=0;
 let startWidth=0;

@@ -58,19 +58,19 @@ export type Field =
     | {
     key: string;
     label?: string;
-    labelKey: string;
+    labelKey?: string;
     type: "input";
 }
     | {
     key: string;
     label?: string;
-    labelKey: string;
+    labelKey?: string;
     type: "date";
 }
     | {
     key: string;
     label?: string;
-    labelKey: string;
+    labelKey?: string;
     type: "select";
     dict?: string;
     options?: FieldOption[];
