@@ -131,8 +131,8 @@ export interface ManualAnalysisRecord {
 export interface MaintenanceRecord {
   id?: string | number;
   maintainType: number;
-  operationTime?: string;
-  installAddress?: string;
+  maintainTime?: string;
+  maintainAddress?: string;
   [key: string]: unknown;
 }
 
