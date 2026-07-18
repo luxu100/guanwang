@@ -202,35 +202,51 @@ import AdminPlaceholderView from "@/components/admin/AdminPlaceholderView.vue";
 import LanguageSelect from "@/components/common/LanguageSelect.vue";
 import LocalizedModuleHost from "@/components/i18n/LocalizedModuleHost.vue";
 import type { LocalizedModuleKey } from "@/i18n/moduleLocales";
+
 // import PartitionManagementView from "@/pages/partition/components/PartitionManagementView.vue";
 import PartitionManagementView from "@/pages/partition/localized/components/PartitionManagementView.vue";
 import DeviceManagementView from "@/pages/device/components/DeviceManagementView.vue";
-// import SystemManagementView from "@/pages/system/components/SystemManagementView.vue";
-import SystemManagementView from "@/pages/system/localized/components/SystemManagementView.vue";
-// import SearchTemplateView from "@/pages/system/search/components/SearchTemplateView.vue";
-import SearchTemplateView from "@/pages/system/localized/search/components/SearchTemplateView.vue";
-// import CommandManageView from "@/pages/command/components/CommandManageView.vue";
-import CommandManageView from "@/pages/command/localized/components/CommandManageView.vue";
-// import CommandConfigurationView from "@/pages/command/components/CommandConfigurationView.vue";
-import CommandConfigurationView from "@/pages/command/localized/components/CommandConfigurationView.vue";
-// import DataReceiveView from "@/pages/data-receive/components/DataReceiveView.vue";
-import DataReceiveView from "@/pages/data-receive/localized/components/DataReceiveView.vue";
-// import WorkOrderCreateView from "@/pages/work-order/components/WorkOrderCreateView.vue";
-import WorkOrderCreateView from "@/pages/work-order/localized/components/WorkOrderCreateView.vue";
-// import WorksheetTableView from "@/pages/work-order/components/WorksheetTableView.vue";
-import WorksheetTableView from "@/pages/work-order/localized/components/WorksheetTableView.vue";
-// import SuspectTableView from "@/pages/leak-report/components/SuspectTableView.vue";
-import SuspectTableView from "@/pages/leak-report/localized/components/SuspectTableView.vue";
-// import SuspectManagementView from "@/pages/leak-report/components/SuspectManagementView.vue";
-import SuspectManagementView from "@/pages/leak-report/localized/components/SuspectManagementView.vue";
-// import LeakManagementView from "@/pages/leak-report/components/LeakManagementView.vue";
-import LeakManagementView from "@/pages/leak-report/localized/components/LeakManagementView.vue";
-// import LeakAnalysisView from "@/pages/leak-report/components/LeakAnalysisView.vue";
-import LeakAnalysisView from "@/pages/leak-report/localized/components/LeakAnalysisView.vue";
-// import HistoryOverviewView from "@/pages/leak-report/components/HistoryOverviewView.vue";
-import HistoryOverviewView from "@/pages/leak-report/localized/components/HistoryOverviewView.vue";
-// import DataAnalysisSheetView from "@/pages/data-analysis/components/DataAnalysisSheetView.vue";
-import DataAnalysisSheetView from "@/pages/data-analysis/localized/components/DataAnalysisSheetView.vue";
+import DeviceSettingsView from "@/pages/device/settings/components/DeviceSettingsView.vue";
+
+import SystemManagementView from "@/pages/system/components/SystemManagementView.vue";
+// import SystemManagementView from "@/pages/system/localized/components/SystemManagementView.vue";
+
+import SearchTemplateView from "@/pages/system/search/components/SearchTemplateView.vue";
+// import SearchTemplateView from "@/pages/system/localized/search/components/SearchTemplateView.vue";
+
+import CommandManageView from "@/pages/command/components/CommandManageView.vue";
+// import CommandManageView from "@/pages/command/localized/components/CommandManageView.vue";
+
+import CommandConfigurationView from "@/pages/command/components/CommandConfigurationView.vue";
+// import CommandConfigurationView from "@/pages/command/localized/components/CommandConfigurationView.vue";
+
+import DataReceiveView from "@/pages/data-receive/components/DataReceiveView.vue";
+// import DataReceiveView from "@/pages/data-receive/localized/components/DataReceiveView.vue";
+
+import WorkOrderCreateView from "@/pages/work-order/components/WorkOrderCreateView.vue";
+// import WorkOrderCreateView from "@/pages/work-order/localized/components/WorkOrderCreateView.vue";
+
+import WorksheetTableView from "@/pages/work-order/components/WorksheetTableView.vue";
+// import WorksheetTableView from "@/pages/work-order/localized/components/WorksheetTableView.vue";
+
+import SuspectTableView from "@/pages/leak-report/components/SuspectTableView.vue";
+// import SuspectTableView from "@/pages/leak-report/localized/components/SuspectTableView.vue";
+
+import SuspectManagementView from "@/pages/leak-report/components/SuspectManagementView.vue";
+// import SuspectManagementView from "@/pages/leak-report/localized/components/SuspectManagementView.vue";
+
+import LeakManagementView from "@/pages/leak-report/components/LeakManagementView.vue";
+// import LeakManagementView from "@/pages/leak-report/localized/components/LeakManagementView.vue";
+
+import LeakAnalysisView from "@/pages/leak-report/components/LeakAnalysisView.vue";
+// import LeakAnalysisView from "@/pages/leak-report/localized/components/LeakAnalysisView.vue";
+
+import HistoryOverviewView from "@/pages/leak-report/components/HistoryOverviewView.vue";
+// import HistoryOverviewView from "@/pages/leak-report/localized/components/HistoryOverviewView.vue";
+
+import DataAnalysisSheetView from "@/pages/data-analysis/components/DataAnalysisSheetView.vue";
+// import DataAnalysisSheetView from "@/pages/data-analysis/localized/components/DataAnalysisSheetView.vue";
+
 import { MENU_COLLAPSED_KEY, OPENED_TABS_KEY } from "@/utils/appShellStorage";
 import { clearAuthStorage, createProtectedRouteDecision, LOGIN_PATH } from "@/utils/authGuard";
 import { filterMenuItemsByAccess, flattenMenuPaths, getMenuAccessSummary } from "@/utils/menuAccess";
