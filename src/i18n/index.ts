@@ -5,6 +5,8 @@ import deviceZhCN from "@/pages/device/locales/zh-CN.json";
 import deviceEnUS from "@/pages/device/locales/en-US.json";
 import appShellZhCN from "@/components/locales/zh-CN.json";
 import appShellEnUS from "@/components/locales/en-US.json";
+import leakReportZhCN from "@/pages/leak-report/locales/zh-CN.json";
+import leakReportEnUS from "@/pages/leak-report/locales/en-US.json";
 import type { I18nParams, LocaleCode, LocaleOption } from "./types";
 
 export const LOCALE_STORAGE_KEY = "locale";
@@ -20,6 +22,8 @@ Object.assign(zhCN, deviceZhCN);
 Object.assign(enUS, deviceEnUS);
 Object.assign(zhCN, appShellZhCN);
 Object.assign(enUS, appShellEnUS);
+Object.assign(zhCN, leakReportZhCN);
+Object.assign(enUS, leakReportEnUS);
 
 const messages = {
   "zh-CN": zhCN,

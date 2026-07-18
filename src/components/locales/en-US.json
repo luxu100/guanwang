@@ -43,5 +43,9 @@
     "dataReceiveProtocol": "Protocol Management",
     "dataReceiveParse": "Data Parsing",
     "dataReceiveRecord": "Data Records"
+  },
+  "localeCoordinateMap": {
+    "h5Only": "Map is only supported on H5",
+    "loadFailed": "Map failed to load, please check Key, domain restrictions and network"
   }
 }

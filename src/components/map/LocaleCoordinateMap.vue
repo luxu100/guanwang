@@ -9,8 +9,8 @@
 
     <!-- #ifndef H5 -->
     <view class="locale-coordinate-map__error">
-      地图仅支持 H5 端展示
-    </view>
+        {{ t("h5Only") }}
+      </view>
     <!-- #endif -->
   </view>
 </template>
@@ -24,12 +24,14 @@ import {
   ref,
   watch,
 } from "vue";
-import { useI18n } from "@/i18n";
 import {
-  getMapProvider,
   MAP_CONFIG,
 } from "@/services/map/map";
+import { isDomesticLeakMonitorUser } from "@/services/leak-monitor/device-query";
 import { loadGoogleMaps } from "@/utils/googleMapsLoader";
+import { createScopedT } from "@/i18n";
+
+const t = createScopedT("localeCoordinateMap");
 
 interface TencentLatLngValue {
   getLat?: () => number;
@@ -91,10 +93,9 @@ const emit = defineEmits<{
   ): void;
 }>();
 
-const { locale } = useI18n();
-
 const provider = computed(() => {
-  return getMapProvider(locale.value);
+  // 与渗漏检测界面一致：国内用户用腾讯，海外用户用 Google
+  return isDomesticLeakMonitorUser() ? "tencent" as const : "google" as const;
 });
 
 const mapContainer = ref<HTMLElement | null>(null);
@@ -165,7 +166,7 @@ async function renderMap() {
     mapError.value = "";
   } catch (error) {
     console.error("Map initialization failed:", error);
-    mapError.value = "地图加载失败，请检查 Key、域名限制和网络";
+    mapError.value = t("loadFailed");
   }
 }
 
