@@ -59,12 +59,14 @@ export type Field =
     key: string;
     label?: string;
     labelKey?: string;
+    className?: string;
     type: "input";
 }
     | {
     key: string;
     label?: string;
     labelKey?: string;
+    className?: string;
     type: "date";
 }
     | {
@@ -73,6 +75,7 @@ export type Field =
     labelKey?: string;
     type: "select";
     dict?: string;
+    className?: string;
     options?: FieldOption[];
 };
 

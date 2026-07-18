@@ -57,8 +57,8 @@ const fixedColumns:XDataColumn[]=[
   {key:'deviceNumber',labelKey:'deviceParameter.parameterTable.deviceNumber',width:160,className:'data-cell--device'},
   {key:'deptName',labelKey:'deviceParameter.parameterTable.deptName',width:120,className:'data-cell--text'},
   {key:'regionType',labelKey:'deviceParameter.parameterTable.regionType',width:120,className:'data-cell--text'},
-  {key:'gisMinLevel',labelKey:'deviceParameter.parameterTable.gisMinLevel',width:120,className:'data-cell--number'},
-  {key:'gisMaxLevel',labelKey:'deviceParameter.parameterTable.gisMaxLevel',width:120,className:'data-cell--number'},
+  {key:'gisMinLevel',labelKey:'deviceParameter.parameterTable.gisMinLevel',width:160,className:'data-cell--number'},
+  {key:'gisMaxLevel',labelKey:'deviceParameter.parameterTable.gisMaxLevel',width:160,className:'data-cell--number'},
   {key:'audioDurationMs',labelKey:'deviceParameter.parameterTable.audioDurationMs',width:120,className:'data-cell--number',formatter:v=>v==null?'-':v+'ms'}
 ];
 
@@ -76,12 +76,12 @@ const deviceParameterDynamicColumns:XDataColumn[]=[
   {key:'coordinateLocation',labelKey:'deviceParameter.parameterTable.coordinateLocation',width:180,className:'data-cell--coord',bodyClassName:'data-cell--link',type:'coord',formatter:v=>{if(!Array.isArray(v)||v.length<2||(v[0]==null&&v[1]==null)){return '-'}return v.join(', ')}},
   {key:'gpsLocationTime',labelKey:'deviceParameter.parameterTable.gpsLocationTime',width:160,className:'data-cell--time',formatter:v=>v==null?'-':formatDate(v)},
   {key:'samplingRate',labelKey:'deviceParameter.parameterTable.samplingRate',width:120,className:'data-cell--number'},
-  {key:'onceMeasureLength',labelKey:'deviceParameter.parameterTable.onceMeasureLength',width:140,className:'data-cell--number'},
-  {key:'leakThreshold',labelKey:'deviceParameter.parameterTable.leakThreshold',width:120,className:'data-cell--number'},
-  {key:'inspectionControl',labelKey:'deviceParameter.parameterTable.inspectionControl',width:140,className:'data-cell--status'},
+  {key:'onceMeasureLength',labelKey:'deviceParameter.parameterTable.onceMeasureLength',width:200,className:'data-cell--number'},
+  {key:'leakThreshold',labelKey:'deviceParameter.parameterTable.leakThreshold',width:160,className:'data-cell--number'},
+  {key:'inspectionControl',labelKey:'deviceParameter.parameterTable.inspectionControl',width:200,className:'data-cell--status'},
   {key:'workMode',labelKey:'deviceParameter.parameterTable.workMode',width:120,className:'data-cell--status'},
-  {key:'deviceTemperature',labelKey:'deviceParameter.parameterTable.deviceTemperature',width:120,className:'data-cell--number',formatter:v=>v==null?'-':v+'℃'},
-  {key:'signalIntensity',labelKey:'deviceParameter.parameterTable.signalIntensity',width:120,className:'data-cell--number'},
+  {key:'deviceTemperature',labelKey:'deviceParameter.parameterTable.deviceTemperature',width:160,className:'data-cell--number',formatter:v=>v==null?'-':v+'℃'},
+  {key:'signalIntensity',labelKey:'deviceParameter.parameterTable.signalIntensity',width:160,className:'data-cell--number'},
   {key:'networkFlow',labelKey:'deviceParameter.parameterTable.networkFlow',width:120,className:'data-cell--number'},
   {key:'sendTimes',labelKey:'deviceParameter.parameterTable.sendTimes',width:120,className:'data-cell--number'},
   {key:'fmMode',labelKey:'deviceParameter.parameterTable.fmMode',width:120,className:'data-cell--text'},

@@ -1057,7 +1057,7 @@ const isDetailPanelVisible = ref(true);
 const isDetailCollapsed = ref(false);
 
 const detailWidth = ref(
-    props.mode === "info" ? 390 : 1100
+    props.mode === "info" ? 420 : 1100
 );
 
 watch(
@@ -1065,7 +1065,7 @@ watch(
     (mode) => {
       detailWidth.value =
           mode === "info"
-              ? 390
+              ? 420
               : 1100;
     },
     { immediate: true }
