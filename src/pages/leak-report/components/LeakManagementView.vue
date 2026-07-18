@@ -1,38 +1,38 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
   <view class="leak-management-view">
     <!-- 筛选栏 -->
     <view class="toolbar">
       <view class="toolbar-row toolbar-row--filters">
         <view class="filter-group">
-          <text class="filter-label">检出时间</text>
+          <text class="filter-label">{{ t('filter.detectTime') }}</text>
           <view class="date-range">
-            <WorkOrderDatetimePicker v-model="filters.startTime" class="filter-datetime" title="选择开始时间" placeholder="请选择开始时间" />
-            <text class="filter-separator">至</text>
-            <WorkOrderDatetimePicker v-model="filters.endTime" class="filter-datetime" title="选择结束时间" placeholder="请选择结束时间" />
+            <WorkOrderDatetimePicker v-model="filters.startTime" class="filter-datetime" :title="t('time.pleaseSelectStartTime')" :placeholder="t('time.pleaseSelectStartTime')" />
+            <text class="filter-separator">{{ t('time.to') }}</text>
+            <WorkOrderDatetimePicker v-model="filters.endTime" class="filter-datetime" :title="t('time.pleaseSelectEndTime')" :placeholder="t('time.pleaseSelectEndTime')" />
           </view>
         </view>
         <view class="filter-group">
-          <text class="filter-label">设备编号</text>
-          <input v-model="filters.deviceNumber" class="filter-input" placeholder="请输入关联设备编号" placeholder-class="input-placeholder" />
+          <text class="filter-label">{{ t('filter.deviceNumber') }}</text>
+          <input v-model="filters.deviceNumber" class="filter-input" :placeholder="t('filter.pleaseInputRelatedDeviceNumber')" placeholder-class="input-placeholder" />
         </view>
         <view class="filter-group">
-          <text class="filter-label">漏点类型</text>
-          <input v-model="filters.leakPointType" class="filter-input" placeholder="请输入漏点类型" placeholder-class="input-placeholder" />
+          <text class="filter-label">{{ t('filter.leakPointType') }}</text>
+          <input v-model="filters.leakPointType" class="filter-input" :placeholder="t('filter.pleaseInputLeakPointType')" placeholder-class="input-placeholder" />
         </view>
         <view class="filter-group">
-          <text class="filter-label">漏点区域</text>
-          <input v-model="filters.leakArea" class="filter-input" placeholder="请输入漏点区域" placeholder-class="input-placeholder" />
+          <text class="filter-label">{{ t('filter.leakArea') }}</text>
+          <input v-model="filters.leakArea" class="filter-input" :placeholder="t('filter.pleaseInputLeakArea')" placeholder-class="input-placeholder" />
         </view>
         <view class="filter-group">
-          <text class="filter-label">巡检人员</text>
-          <input v-model="filters.inspector" class="filter-input" placeholder="请输入巡检人员" placeholder-class="input-placeholder" />
+          <text class="filter-label">{{ t('filter.inspector') }}</text>
+          <input v-model="filters.inspector" class="filter-input" :placeholder="t('filter.pleaseInputInspector')" placeholder-class="input-placeholder" />
         </view>
         <view class="filter-group">
-          <text class="filter-label">定漏人员</text>
-          <input v-model="filters.locator" class="filter-input" placeholder="请输入定漏人员" placeholder-class="input-placeholder" />
+          <text class="filter-label">{{ t('filter.locator') }}</text>
+          <input v-model="filters.locator" class="filter-input" :placeholder="t('filter.pleaseInputLocator')" placeholder-class="input-placeholder" />
         </view>
         <view class="filter-group">
-          <text class="filter-label">渗漏状态</text>
+          <text class="filter-label">{{ t('filter.leakStatus') }}</text>
           <picker :range="leakStatusOptions" range-key="label" @change="handleLeakStatusChange">
             <view class="filter-select">
               <text>{{ currentLeakStatusLabel }}</text>
@@ -41,66 +41,66 @@
           </picker>
         </view>
         <view class="toolbar-actions toolbar-actions--right">
-          <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="searchLeakPoints">查询</button>
-          <button class="toolbar-button" hover-class="toolbar-button--hover" @click="resetFilters">重置</button>
-          <button class="toolbar-icon-button" hover-class="toolbar-icon-button--hover" aria-label="刷新" @click="fetchLeakPoints"><text class="icon-refresh"></text></button>
+          <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="searchLeakPoints">{{ t('common.search') }}</button>
+          <button class="toolbar-button" hover-class="toolbar-button--hover" @click="resetFilters">{{ t('common.reset') }}</button>
+          <button class="toolbar-icon-button" hover-class="toolbar-icon-button--hover" :aria-label="t('common.refresh')" @click="fetchLeakPoints"><text class="icon-refresh"></text></button>
           <view class="export-dropdown">
-            <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="exportMenuVisible = !exportMenuVisible">导出</button>
+            <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="exportMenuVisible = !exportMenuVisible">{{ t('common.export') }}</button>
             <view v-if="exportMenuVisible" class="export-menu">
-              <view class="export-menu__item" @click="handleExport('current')">导出当前页</view>
-              <view class="export-menu__item" @click="handleExport('all')">导出全部</view>
+              <view class="export-menu__item" @click="handleExport('current')">{{ t('common.exportCurrentPage') }}</view>
+              <view class="export-menu__item" @click="handleExport('all')">{{ t('common.exportAll') }}</view>
             </view>
           </view>
-          <button class="toolbar-button" hover-class="toolbar-button--hover" @click="handleImport">导入</button>
-          <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="openCreateDialog">新增漏点</button>
-          <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" :disabled="!selectedRecord" @click="openEditDialog">编辑</button>
-          <button class="toolbar-button toolbar-button--danger" hover-class="toolbar-button--hover" :disabled="!selectedRecord" @click="handleDelete">删除</button>
-          <button class="toolbar-button toolbar-button--danger" hover-class="toolbar-button--hover" :disabled="selectedIds.size === 0" @click="handleBatchDelete">批量删除</button>
+          <button class="toolbar-button" hover-class="toolbar-button--hover" @click="handleImport">{{ t('common.import') }}</button>
+          <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="openCreateDialog">{{ t('leakManagement.addLeakPoint') }}</button>
+          <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" :disabled="!selectedRecord" @click="openEditDialog">{{ t('common.edit') }}</button>
+          <button class="toolbar-button toolbar-button--danger" hover-class="toolbar-button--hover" :disabled="!selectedRecord" @click="handleDelete">{{ t('common.delete') }}</button>
+          <button class="toolbar-button toolbar-button--danger" hover-class="toolbar-button--hover" :disabled="selectedIds.size === 0" @click="handleBatchDelete">{{ t('common.batchDelete') }}</button>
         </view>
       </view>
     </view>
 
     <!-- 表格 + 详情 -->
     <LeakTableView
-      title="漏点列表"
+      :title="t('leakManagement.leakList')"
       :total="total"
       :page-num="pagination.pageNum"
       :page-size="pagination.pageSize"
       :total-pages="totalPages"
       :has-detail="!!selectedRecord"
-      detail-empty-text="请选择左侧漏点查看详情"
+      :detail-empty-text="t('leakManagement.detailEmpty')"
       @prev-page="changePage(-1)"
       @next-page="changePage(1)"
       @jump-page="jumpToPage"
       @page-size-change="handlePageSizeChange"
     >
-      <view class="data-table">
-        <view class="data-row data-row--header">
+      <view class="data-table" :style="{ minWidth: tableMinWidth }">
+        <view class="data-row data-row--header" :style="{ gridTemplateColumns: tableGridTemplateColumns, minWidth: tableMinWidth }">
           <view class="data-cell data-cell--checkbox">
             <view v-if="allSelectable" class="checkbox" :class="{ 'checkbox--checked': isAllSelected }" @click.stop="toggleSelectAll"><text v-if="isAllSelected" class="checkbox__mark"></text></view>
           </view>
-          <text class="data-cell data-cell--index">序号</text>
-          <text class="data-cell data-cell--time data-cell--sortable" @click.stop="toggleSort('detectTime')">检出时间<text class="sort-arrow sort-arrow--active" v-if="sortField === 'detectTime'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
-          <text class="data-cell data-cell--level data-cell--sortable" @click.stop="toggleSort('leakStatus')">渗漏状态<text class="sort-arrow sort-arrow--active" v-if="sortField === 'leakStatus'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
-          <text class="data-cell data-cell--type">漏点类型</text>
-          <text class="data-cell data-cell--leakpart">泄漏部位</text>
-          <text class="data-cell data-cell--address">漏点位置</text>
-          <text class="data-cell data-cell--account">巡检人员</text>
-          <text class="data-cell data-cell--locator">定漏人员</text>
-          <text class="data-cell data-cell--audio">音频</text>
-          <text class="data-cell data-cell--video">视频</text>
-          <text class="data-cell data-cell--wsid">关联工单</text>
-          <text class="data-cell data-cell--devices">关联设备</text>
+          <text class="data-cell data-cell--index">{{ t('table.index') }}</text>
+          <text class="data-cell data-cell--time data-cell--sortable" @click.stop="toggleSort('detectTime')">{{ t('table.detectTime') }}<text class="sort-arrow sort-arrow--active" v-if="sortField === 'detectTime'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
+          <text class="data-cell data-cell--level data-cell--sortable" @click.stop="toggleSort('leakStatus')">{{ t('table.leakStatus') }}<text class="sort-arrow sort-arrow--active" v-if="sortField === 'leakStatus'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
+          <text class="data-cell data-cell--type">{{ t('table.leakPointType') }}</text>
+          <text class="data-cell data-cell--leakpart">{{ t('table.leakPointPart') }}</text>
+          <text class="data-cell data-cell--address">{{ t('table.leakPointPosition') }}</text>
+          <text class="data-cell data-cell--account">{{ t('table.inspector') }}</text>
+          <text class="data-cell data-cell--locator">{{ t('table.locator') }}</text>
+          <text class="data-cell data-cell--audio">{{ t('table.audio') }}</text>
+          <text class="data-cell data-cell--video">{{ t('table.video') }}</text>
+          <text class="data-cell data-cell--wsid">{{ t('table.workOrderId') }}</text>
+          <text class="data-cell data-cell--devices">{{ t('table.deviceId') }}</text>
         </view>
-        <view v-if="loading" class="table-state table-state--loading"><view class="state-spinner"></view><text class="state-text">加载中...</text></view>
-        <view v-else-if="records.length === 0" class="table-state table-state--empty"><view class="state-icon-empty"></view><text class="state-text">暂无漏点数据</text></view>
-        <view v-for="(item, index) in records" v-else :key="getRowKey(item, index)" class="data-row data-row--body" :class="{ 'data-row--active': selectedRecordKey === getRowKey(item, index) }" @click="selectRecord(item, index)">
+        <view v-if="loading" class="table-state table-state--loading"><view class="state-spinner"></view><text class="state-text">{{ t('common.loading') }}</text></view>
+        <view v-else-if="records.length === 0" class="table-state table-state--empty"><view class="state-icon-empty"></view><text class="state-text">{{ t('leakManagement.noLeakData') }}</text></view>
+        <view v-for="(item, index) in records" v-else :key="getRowKey(item, index)" class="data-row data-row--body" :class="{ 'data-row--active': selectedRecordKey === getRowKey(item, index) }" :style="{ gridTemplateColumns: tableGridTemplateColumns, minWidth: tableMinWidth }" @click="selectRecord(item, index)">
           <view class="data-cell data-cell--checkbox" @click.stop="toggleSelectItem(item)">
             <view v-if="allSelectable" class="checkbox" :class="{ 'checkbox--checked': isItemSelected(item) }"><text v-if="isItemSelected(item)" class="checkbox__mark"></text></view>
           </view>
           <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
           <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "detectTime")) }}</text>
-          <text class="data-cell data-cell--level"><text class="level-pill" :class="getLeakStatusClass(item)">{{ getFieldValue(item, "leakStatus") || "-" }}</text></text>
+          <text class="data-cell data-cell--level"><text class="level-pill" :class="getLeakStatusClass(item)">{{ getLeakStatusDisplay(item) }}</text></text>
           <text class="data-cell data-cell--type">{{ getFieldValue(item, "leakPointType") || "-" }}</text>
           <text class="data-cell data-cell--leakpart">{{ getFieldValue(item, "leakPart") || "-" }}</text>
           <text class="data-cell data-cell--address">{{ getFieldValue(item, "leakPointPosition") || "-" }}</text>
@@ -108,7 +108,7 @@
           <text class="data-cell data-cell--locator">{{ getFieldValue(item, "locator") || "-" }}</text>
           <text class="data-cell data-cell--audio" @click.stop="toggleAudioPlay(item, index)"><text v-if="getFieldValue(item, 'audioFile')" class="play-icon" :class="playingAudioIndex === index ? 'icon-pause' : 'icon-play'"></text><text v-else>-</text></text>
           <text class="data-cell data-cell--video" @click.stop="toggleVideoPlay(item)"><text v-if="getFieldValue(item, 'sceneVideo')" class="play-icon icon-play video-icon"></text><text v-else>-</text></text>
-          <text class="data-cell data-cell--wsid" @click.stop="handleWorkOrderJump(item)"><text v-if="getFieldValue(item, 'worksheetNumber')" class="link-text" :title="getWorkOrderDisplay(item)">{{ getWorkOrderDisplay(item) }}</text><text v-else-if="getFieldValue(item, 'workOrderId')" class="work-order-missing">工单不存在</text><text v-else>-</text></text>
+          <text class="data-cell data-cell--wsid" @click.stop="handleWorkOrderJump(item)"><text v-if="getFieldValue(item, 'worksheetNumber')" class="link-text" :title="getWorkOrderDisplay(item)">{{ getWorkOrderDisplay(item) }}</text><text v-else-if="getFieldValue(item, 'workOrderId')" class="work-order-missing">{{ t('leakManagement.workOrderMissing') }}</text><text v-else>-</text></text>
           <text class="data-cell data-cell--devices">{{ getFieldValue(item, "deviceNumber") || "-" }}</text>
         </view>
       </view>
@@ -120,17 +120,17 @@
           </view>
           <view v-if="activeDetailTab === 'base'" class="detail-section">
             <view class="detail-summary">
-              <view class="detail-summary__main"><text class="detail-summary__label">漏点位置</text><text class="detail-summary__value">{{ getFieldValue(selectedRecord, "leakPointPosition") || "-" }}</text></view>
-              <view class="detail-summary__badges"><text class="detail-summary__badge" :class="getLeakStatusBadgeClass(selectedRecord)">{{ getFieldValue(selectedRecord, "leakStatus") || "-" }}</text></view>
+              <view class="detail-summary__main"><text class="detail-summary__label">{{ t('detail.fields.leakPointPosition') }}</text><text class="detail-summary__value">{{ getFieldValue(selectedRecord, "leakPointPosition") || "-" }}</text></view>
+              <view class="detail-summary__badges"><text class="detail-summary__badge" :class="getLeakStatusBadgeClass(selectedRecord)">{{ getLeakStatusDisplay(selectedRecord) }}</text></view>
               <view class="detail-summary__meta">
-                <view class="detail-summary__meta-item"><text class="detail-summary__meta-label">漏点类型</text><text class="detail-summary__meta-value">{{ getFieldValue(selectedRecord, "leakPointType") || "-" }}</text></view>
-                <view class="detail-summary__meta-item"><text class="detail-summary__meta-label">检出类型</text><text class="detail-summary__meta-value">{{ getFieldValue(selectedRecord, "detectType") || "-" }}</text></view>
-                <view class="detail-summary__meta-item"><text class="detail-summary__meta-label">检出难度</text><text class="detail-summary__meta-value">{{ getFieldValue(selectedRecord, "detectDifficulty") || "-" }}</text></view>
-                <view class="detail-summary__meta-item"><text class="detail-summary__meta-label">巡检人员</text><text class="detail-summary__meta-value">{{ getFieldValue(selectedRecord, "inspector") || "-" }}</text></view>
+                <view class="detail-summary__meta-item"><text class="detail-summary__meta-label">{{ t('detail.fields.leakPointType') }}</text><text class="detail-summary__meta-value">{{ getFieldValue(selectedRecord, "leakPointType") || "-" }}</text></view>
+                <view class="detail-summary__meta-item"><text class="detail-summary__meta-label">{{ t('detail.fields.detectType') }}</text><text class="detail-summary__meta-value">{{ getFieldValue(selectedRecord, "detectType") || "-" }}</text></view>
+                <view class="detail-summary__meta-item"><text class="detail-summary__meta-label">{{ t('detail.fields.detectDifficulty') }}</text><text class="detail-summary__meta-value">{{ getFieldValue(selectedRecord, "detectDifficulty") || "-" }}</text></view>
+                <view class="detail-summary__meta-item"><text class="detail-summary__meta-label">{{ t('detail.fields.inspector') }}</text><text class="detail-summary__meta-value">{{ getFieldValue(selectedRecord, "inspector") || "-" }}</text></view>
               </view>
             </view>
             <view class="time-section">
-              <text class="detail-section-title">时间信息</text>
+              <text class="detail-section-title">{{ t('leakManagement.timeInfo') }}</text>
               <view class="time-list">
                 <view v-for="item in timeDetailFields" :key="item.label" class="time-row">
                   <view class="time-row__marker"></view>
@@ -142,10 +142,10 @@
               </view>
             </view>
             <view class="time-section time-section--location">
-              <text class="detail-section-title">地点信息</text>
-              <view class="location-row"><text class="location-row__label">坐标位置</text><text class="location-row__value">{{ formatCoordinate(getFieldValue(selectedRecord, "coordinatePosition")) }}</text></view>
-              <view class="location-row"><text class="location-row__label">漏点区域</text><text class="location-row__value">{{ getFieldValue(selectedRecord, "leakArea") || "-" }}</text></view>
-              <view class="location-row"><text class="location-row__label">漏点位置</text><text class="location-row__value">{{ getFieldValue(selectedRecord, "leakPointPosition") || "-" }}</text></view>
+              <text class="detail-section-title">{{ t('leakManagement.locationInfo') }}</text>
+              <view class="location-row"><text class="location-row__label">{{ t('detail.fields.coordinatePosition') }}</text><text class="location-row__value">{{ formatCoordinate(getFieldValue(selectedRecord, "coordinatePosition")) }}</text></view>
+              <view class="location-row"><text class="location-row__label">{{ t('detail.fields.leakArea') }}</text><text class="location-row__value">{{ getFieldValue(selectedRecord, "leakArea") || "-" }}</text></view>
+              <view class="location-row"><text class="location-row__label">{{ t('detail.fields.leakPointPosition') }}</text><text class="location-row__value">{{ getFieldValue(selectedRecord, "leakPointPosition") || "-" }}</text></view>
             </view>
           </view>
           <view v-if="activeDetailTab === 'detail'" class="detail-section">
@@ -167,29 +167,29 @@
           <view v-if="activeDetailTab === 'attach'" class="detail-section">
             <view class="attach-media">
               <view class="attach-media__item">
-                <text class="attach-media__label">音频文件</text>
+                <text class="attach-media__label">{{ t('leakManagement.fieldLabels.audioFile') }}</text>
                 <view v-if="getFieldValue(selectedRecord, 'audioFile')" class="attach-media__player">
-                  <button class="attach-play-btn" hover-class="attach-play-btn--hover" @click="openAudioDialog(getPreviewUrl(getFieldValue(selectedRecord, 'audioFile')), '漏点音频')"><text class="play-icon icon-play"></text></button>
-                  <text class="attach-media__hint">点击播放</text>
+                  <button class="attach-play-btn" hover-class="attach-play-btn--hover" @click="openAudioDialog(getPreviewUrl(getFieldValue(selectedRecord, 'audioFile')), t('leakManagement.leakAudio'))"><text class="play-icon icon-play"></text></button>
+                  <text class="attach-media__hint">{{ t('common.clickToPlay') }}</text>
                 </view>
-                <text v-else class="attach-media__empty">暂未上传音频</text>
+                <text v-else class="attach-media__empty">{{ t('leakManagement.noAudioUploaded') }}</text>
               </view>
               <view class="attach-media__item">
-                <text class="attach-media__label">现场照片</text>
+                <text class="attach-media__label">{{ t('leakManagement.scenePhotos') }}</text>
                 <view v-if="detailPhotoIds.length" class="attach-media__photos">
                   <view v-for="(pid, pi) in detailPhotoIds" :key="pi" class="attach-photo">
                     <image :src="getPreviewUrl(pid)" mode="aspectFill" class="attach-photo__img" @click="previewDetailPhoto(pi)" />
                   </view>
                 </view>
-                <text v-else class="attach-media__empty">暂未上传图片</text>
+                <text v-else class="attach-media__empty">{{ t('leakManagement.noPhotosUploaded') }}</text>
               </view>
               <view class="attach-media__item">
-                <text class="attach-media__label">现场视频</text>
+                <text class="attach-media__label">{{ t('leakManagement.fieldLabels.sceneVideo') }}</text>
                 <view v-if="getFieldValue(selectedRecord, 'sceneVideo')" class="attach-media__player">
                   <button class="attach-play-btn" hover-class="attach-play-btn--hover" @click="playDetailVideo"><text class="play-icon icon-play"></text></button>
-                  <text class="attach-media__hint">点击播放</text>
+                  <text class="attach-media__hint">{{ t('common.clickToPlay') }}</text>
                 </view>
-                <text v-else class="attach-media__empty">暂未上传视频</text>
+                <text v-else class="attach-media__empty">{{ t('leakManagement.noVideoUploaded') }}</text>
               </view>
             </view>
             <view class="detail-fields-grid">
@@ -207,8 +207,8 @@
     <view v-if="videoDialogVisible" class="video-dialog-mask" @click="closeVideoDialog">
       <view class="video-dialog" @click.stop>
         <view class="video-dialog__head">
-          <text class="video-dialog__title">现场视频播放</text>
-          <button class="icon-button" hover-class="icon-button--hover" aria-label="关闭" @click="closeVideoDialog"><text class="close-icon"></text></button>
+          <text class="video-dialog__title">{{ t('leakManagement.videoPlay') }}</text>
+          <button class="icon-button" hover-class="icon-button--hover" :aria-label="t('common.close')" @click="closeVideoDialog"><text class="close-icon"></text></button>
         </view>
         <view class="video-dialog__body">
           <video
@@ -223,16 +223,16 @@
             @waiting="onVideoWaiting"
             @playing="onVideoPlaying"
           ></video>
-          <view v-else class="video-empty">视频加载失败</view>
-          <view v-if="videoLoading && currentVideoUrl" class="video-loading">视频缓冲中...</view>
+          <view v-else class="video-empty">{{ t('leakManagement.videoLoadFailed') }}</view>
+          <view v-if="videoLoading && currentVideoUrl" class="video-loading">{{ t('leakManagement.videoBuffering') }}</view>
         </view>
         <view v-if="currentVideoUrl" class="video-dialog__info">
           <view class="video-info-row">
-            <text class="video-info-label">时长</text>
+            <text class="video-info-label">{{ t('leakManagement.duration') }}</text>
             <text class="video-info-value">{{ formatVideoTime(videoDuration) }}</text>
           </view>
           <view class="video-info-row">
-            <text class="video-info-label">进度</text>
+            <text class="video-info-label">{{ t('leakManagement.progress') }}</text>
             <text class="video-info-value">{{ formatVideoTime(videoCurrentTime) }} / {{ formatVideoTime(videoDuration) }}</text>
           </view>
           <view class="video-progress-bar">
@@ -246,11 +246,11 @@
     <view v-if="audioDialogVisible" class="audio-dialog-mask" @click="closeAudioDialog">
       <view class="audio-dialog" @click.stop>
         <view class="audio-dialog__head">
-          <text class="audio-dialog__title">{{ currentAudioTitle || "音频播放" }}</text>
-          <button class="icon-button" hover-class="icon-button--hover" aria-label="关闭" @click="closeAudioDialog"><text class="close-icon"></text></button>
+          <text class="audio-dialog__title">{{ currentAudioTitle || t('leakManagement.audioPlay') }}</text>
+          <button class="icon-button" hover-class="icon-button--hover" :aria-label="t('common.close')" @click="closeAudioDialog"><text class="close-icon"></text></button>
         </view>
         <view class="audio-dialog__body">
-          <view v-if="!currentAudioUrl" class="audio-empty">音频加载失败</view>
+          <view v-if="!currentAudioUrl" class="audio-empty">{{ t('leakManagement.audioLoadFailed') }}</view>
           <view v-else class="audio-player">
             <view class="audio-player__icon">
               <view class="audio-cover">
@@ -260,7 +260,7 @@
             </view>
             <view class="audio-player__info">
               <text class="audio-player__title">{{ currentAudioTitle }}</text>
-              <view v-if="audioLoading" class="audio-player__loading">缓冲中...</view>
+              <view v-if="audioLoading" class="audio-player__loading">{{ t('leakManagement.buffering') }}</view>
               <view class="audio-player__progress">
                 <text class="audio-time">{{ formatVideoTime(audioCurrentTime) }}</text>
                 <view class="audio-seek-bar">
@@ -290,8 +290,8 @@
     <view v-if="dialogVisible" class="dialog-mask" @click="closeDialog">
       <view class="dialog-panel" @click.stop>
         <view class="dialog-head">
-          <view><text class="dialog-title">{{ isEditing ? "编辑漏点" : "新增漏点" }}</text><text class="dialog-subtitle">填写渗漏记录的基本信息、管道信息和关联数据</text></view>
-          <button class="icon-button" hover-class="icon-button--hover" aria-label="关闭" @click="closeDialog"><text class="close-icon"></text></button>
+          <view><text class="dialog-title">{{ isEditing ? t('leakManagement.editLeakPoint') : t('leakManagement.addLeakPoint') }}</text><text class="dialog-subtitle">{{ t('leakManagement.dialogSubtitle') }}</text></view>
+          <button class="icon-button" hover-class="icon-button--hover" :aria-label="t('common.close')" @click="closeDialog"><text class="close-icon"></text></button>
         </view>
         <view class="dialog-body" @click="formLeakStatusDropdownVisible = false">
           <view class="form-layout">
@@ -299,45 +299,45 @@
             <view class="form-main">
               <!-- 基础信息 -->
               <view class="form-section">
-                <view class="section-head"><text class="section-title">基础信息</text></view>
+                <view class="section-head"><text class="section-title">{{ t('leakManagement.basicInfo') }}</text></view>
                 <view class="form-grid form-grid--three">
                   <view class="form-field">
-                    <text class="form-label form-label--required">检出时间</text>
-                    <WorkOrderDatetimePicker v-model="form.detectTime" title="选择检出时间" placeholder="请选择检出时间" :clearable="false" />
+                    <text class="form-label form-label--required">{{ t('detail.fields.detectTime') }}</text>
+                    <WorkOrderDatetimePicker v-model="form.detectTime" :title="t('time.pleaseSelectDetectTime')" :placeholder="t('time.pleaseSelectDetectTime')" :clearable="false" />
                   </view>
                   <view class="form-field">
-                    <text class="form-label">检出类型</text>
-                    <input v-model="form.detectType" class="form-input" placeholder="如 人工/算法" placeholder-class="input-placeholder" />
+                    <text class="form-label">{{ t('detail.fields.detectType') }}</text>
+                    <input v-model="form.detectType" class="form-input" :placeholder="t('leakManagement.placeholders.detectType')" placeholder-class="input-placeholder" />
                   </view>
                   <view class="form-field">
-                    <text class="form-label">检出难度</text>
-                    <input v-model="form.detectDifficulty" class="form-input" placeholder="如 简单/中/难" placeholder-class="input-placeholder" />
+                    <text class="form-label">{{ t('detail.fields.detectDifficulty') }}</text>
+                    <input v-model="form.detectDifficulty" class="form-input" :placeholder="t('leakManagement.placeholders.detectDifficulty')" placeholder-class="input-placeholder" />
                   </view>
                   <view class="form-field">
-                    <text class="form-label form-label--required">漏点类型</text>
-                    <input v-model="form.leakPointType" class="form-input" :class="{ 'form-control--error': validationErrors.leakPointType }" placeholder="如 腐蚀/破裂" placeholder-class="input-placeholder" />
+                    <text class="form-label form-label--required">{{ t('detail.fields.leakPointType') }}</text>
+                    <input v-model="form.leakPointType" class="form-input" :class="{ 'form-control--error': validationErrors.leakPointType }" :placeholder="t('leakManagement.placeholders.leakPointType')" placeholder-class="input-placeholder" />
                     <text v-if="validationErrors.leakPointType" class="form-error">{{ validationErrors.leakPointType }}</text>
                   </view>
                   <view class="form-field form-field--wide">
-                    <text class="form-label form-label--required">漏点位置</text>
-                    <input v-model="form.leakPointPosition" class="form-input" placeholder="请输入漏点位置" placeholder-class="input-placeholder" />
+                    <text class="form-label form-label--required">{{ t('detail.fields.leakPointPosition') }}</text>
+                    <input v-model="form.leakPointPosition" class="form-input" :placeholder="t('leakManagement.placeholders.leakPointPosition')" placeholder-class="input-placeholder" />
                     <text v-if="validationErrors.leakPointPosition" class="form-error">{{ validationErrors.leakPointPosition }}</text>
                   </view>
                   <view class="form-field">
-                    <text class="form-label form-label--required">泄漏部位</text>
-                    <input v-model="form.leakPart" class="form-input" :class="{ 'form-control--error': validationErrors.leakPart }" placeholder="请输入泄漏部位" placeholder-class="input-placeholder" />
+                    <text class="form-label form-label--required">{{ t('detail.fields.leakPointPart') }}</text>
+                    <input v-model="form.leakPart" class="form-input" :class="{ 'form-control--error': validationErrors.leakPart }" :placeholder="t('leakManagement.placeholders.leakPart')" placeholder-class="input-placeholder" />
                     <text v-if="validationErrors.leakPart" class="form-error">{{ validationErrors.leakPart }}</text>
                   </view>
                   <view class="form-field">
-                    <text class="form-label">漏量</text>
-                    <input v-model="form.leakVolume" class="form-input" placeholder="如 2.5L/min" placeholder-class="input-placeholder" />
+                    <text class="form-label">{{ t('detail.fields.leakVolume') }}</text>
+                    <input v-model="form.leakVolume" class="form-input" :placeholder="t('leakManagement.placeholders.leakVolume')" placeholder-class="input-placeholder" />
                   </view>
                   <view class="form-field">
-                    <text class="form-label">漏点区域</text>
-                    <input v-model="form.leakArea" class="form-input" placeholder="如 城北" placeholder-class="input-placeholder" />
+                    <text class="form-label">{{ t('detail.fields.leakArea') }}</text>
+                    <input v-model="form.leakArea" class="form-input" :placeholder="t('leakManagement.placeholders.leakArea')" placeholder-class="input-placeholder" />
                   </view>
                   <view class="form-field">
-                    <text class="form-label">渗漏状态</text>
+                    <text class="form-label">{{ t('detail.fields.leakStatus') }}</text>
                     <view class="form-select form-select--clickable" @click.stop="formLeakStatusDropdownVisible = !formLeakStatusDropdownVisible">
                       <text>{{ currentFormLeakStatusLabel }}</text>
                       <text class="filter-select__arrow"></text>
@@ -353,51 +353,51 @@
                     </view>
                   </view>
                   <view class="form-field">
-                    <text class="form-label form-label--required">巡检人员</text>
-                    <input v-model="form.inspector" class="form-input" :class="{ 'form-control--error': validationErrors.inspector }" placeholder="请输入巡检人员" placeholder-class="input-placeholder" />
+                    <text class="form-label form-label--required">{{ t('detail.fields.inspector') }}</text>
+                    <input v-model="form.inspector" class="form-input" :class="{ 'form-control--error': validationErrors.inspector }" :placeholder="t('filter.pleaseInputInspector')" placeholder-class="input-placeholder" />
                     <text v-if="validationErrors.inspector" class="form-error">{{ validationErrors.inspector }}</text>
                   </view>
                   <view class="form-field">
-                    <text class="form-label">定漏人员</text>
-                    <input v-model="form.locator" class="form-input" placeholder="请输入定漏人员" placeholder-class="input-placeholder" />
+                    <text class="form-label">{{ t('detail.fields.locator') }}</text>
+                    <input v-model="form.locator" class="form-input" :placeholder="t('filter.pleaseInputLocator')" placeholder-class="input-placeholder" />
                   </view>
                   <view class="form-field">
-                    <text class="form-label">产生漏点原因</text>
-                    <input v-model="form.leakReason" class="form-input" placeholder="如 管道老化" placeholder-class="input-placeholder" />
+                    <text class="form-label">{{ t('detail.fields.leakReason') }}</text>
+                    <input v-model="form.leakReason" class="form-input" :placeholder="t('leakManagement.placeholders.leakReason')" placeholder-class="input-placeholder" />
                   </view>
                   <view class="form-field">
-                    <text class="form-label">费用</text>
-                    <input v-model="form.cost" class="form-input" type="number" placeholder="请输入费用" placeholder-class="input-placeholder" />
+                    <text class="form-label">{{ t('detail.fields.cost') }}</text>
+                    <input v-model="form.cost" class="form-input" type="number" :placeholder="t('leakManagement.placeholders.cost')" placeholder-class="input-placeholder" />
                   </view>
                   <view class="form-field">
-                    <text class="form-label">人工复核次数</text>
-                    <input v-model="form.manualReviewCount" class="form-input" type="number" placeholder="请输入次数" placeholder-class="input-placeholder" />
+                    <text class="form-label">{{ t('detail.fields.manualReviewCount') }}</text>
+                    <input v-model="form.manualReviewCount" class="form-input" type="number" :placeholder="t('leakManagement.placeholders.manualReviewCount')" placeholder-class="input-placeholder" />
                   </view>
                   <view class="form-field">
-                    <text class="form-label">维修处理方式</text>
-                    <input v-model="form.repairMethod" class="form-input" placeholder="如 更换管道" placeholder-class="input-placeholder" />
+                    <text class="form-label">{{ t('detail.fields.repairMethod') }}</text>
+                    <input v-model="form.repairMethod" class="form-input" :placeholder="t('leakManagement.placeholders.repairMethod')" placeholder-class="input-placeholder" />
                   </view>
                   <view class="form-field">
-                    <text class="form-label">修复时间</text>
-                    <WorkOrderDatetimePicker v-model="form.repairTime" title="选择修复时间" placeholder="请选择修复时间" />
+                    <text class="form-label">{{ t('detail.fields.repairTime') }}</text>
+                    <WorkOrderDatetimePicker v-model="form.repairTime" :title="t('time.pleaseSelectRepairTime')" :placeholder="t('time.pleaseSelectRepairTime')" />
                   </view>
                 </view>
               </view>
               <!-- 坐标位置 -->
               <view class="form-section">
-                <view class="section-head"><text class="section-title">坐标位置</text><text class="section-hint">可手动输入或点击地图拾取</text></view>
+                <view class="section-head"><text class="section-title">{{ t('detail.fields.coordinatePosition') }}</text><text class="section-hint">{{ t('leakManagement.coordHint') }}</text></view>
                 <view class="form-field">
                   <view class="form-row">
-                    <input v-model="form.coordinatePosition" class="form-input form-input--flex" placeholder="格式: 经度,纬度 (如 121.4737,31.2304)" placeholder-class="input-placeholder" />
+                    <input v-model="form.coordinatePosition" class="form-input form-input--flex" :placeholder="t('leakManagement.placeholders.coordPosition')" placeholder-class="input-placeholder" />
                     <button class="form-action-btn" hover-class="form-action-btn--hover" @click="openMapPicker">
-                      <text class="form-action-btn__icon form-action-btn__icon--map"></text><text>地图拾取</text>
+                      <text class="form-action-btn__icon form-action-btn__icon--map"></text><text>{{ t('leakManagement.mapPickerBtn') }}</text>
                     </button>
                   </view>
                   <!-- 地图选点面板 -->
                   <view v-if="mapPickerVisible" class="map-picker-panel">
                     <view class="map-picker-head">
-                      <text class="map-picker-title">点击地图选取坐标</text>
-                      <text class="map-picker-coord" :class="{ 'map-picker-coord--active': mapPickedCoord }">{{ mapPickedCoord || "请在地图上点击选择" }}</text>
+                      <text class="map-picker-title">{{ t('leakManagement.clickMapToPick') }}</text>
+                      <text class="map-picker-coord" :class="{ 'map-picker-coord--active': mapPickedCoord }">{{ mapPickedCoord || t('leakManagement.pleaseClickMap') }}</text>
                     </view>
                     <view class="map-picker-body">
                       <!-- #ifdef H5 -->
@@ -411,22 +411,22 @@
                       </view>
                       <!-- #endif -->
                       <!-- #ifndef H5 -->
-                      <view class="map-picker-canvas map-picker-canvas--fallback">地图选点仅支持 H5 端</view>
+                      <view class="map-picker-canvas map-picker-canvas--fallback">{{ t('leakManagement.mapH5Only') }}</view>
                       <!-- #endif -->
                     </view>
                     <view class="map-picker-actions">
-                      <button class="dialog-btn dialog-btn--cancel" hover-class="dialog-btn--hover" @click="closeMapPicker">取消</button>
-                      <button class="dialog-btn dialog-btn--primary" :disabled="!mapPickedCoord" hover-class="dialog-btn--hover" @click="confirmMapPick">确认选点</button>
+                      <button class="dialog-btn dialog-btn--cancel" hover-class="dialog-btn--hover" @click="closeMapPicker">{{ t('common.cancel') }}</button>
+                      <button class="dialog-btn dialog-btn--primary" :disabled="!mapPickedCoord" hover-class="dialog-btn--hover" @click="confirmMapPick">{{ t('leakManagement.confirmLocation') }}</button>
                     </view>
                   </view>
                 </view>
               </view>
               <!-- 现场照片与视频 -->
               <view class="form-section">
-                <view class="section-head"><text class="section-title">现场照片与视频</text></view>
+                <view class="section-head"><text class="section-title">{{ t('leakManagement.scenePhotosAndVideos') }}</text></view>
                 <view class="form-grid form-grid--two">
                   <view class="form-field">
-                    <text class="form-label">现场照片</text>
+                    <text class="form-label">{{ t('leakManagement.scenePhotos') }}</text>
                     <view class="form-photo-area">
                       <view v-if="photoList.length > 0" class="photo-preview-list">
                         <view v-for="(photo, idx) in photoList" :key="idx" class="photo-preview-item">
@@ -434,12 +434,12 @@
                           <button class="photo-remove-btn" hover-class="photo-remove-btn--hover" @click="removePhoto(idx)"><text class="photo-remove-icon"></text></button>
                         </view>
                       </view>
-                      <view v-if="photoList.length < 9" class="photo-add-box" @click="handleUploadPhoto"><text class="photo-add-icon">+</text><text class="photo-add-label">{{ photoList.length === 0 ? "上传照片" : "继续添加" }}</text></view>
+                      <view v-if="photoList.length < 9" class="photo-add-box" @click="handleUploadPhoto"><text class="photo-add-icon">+</text><text class="photo-add-label">{{ photoList.length === 0 ? t('leakManagement.uploadPhoto') : t('leakManagement.continueAdd') }}</text></view>
                     </view>
-                    <input v-model="photoIdListText" class="form-input form-input--hidden-id" placeholder="照片ID (自动生成)" placeholder-class="input-placeholder" />
+                    <input v-model="photoIdListText" class="form-input form-input--hidden-id" :placeholder="t('leakManagement.photoIdPlaceholder')" placeholder-class="input-placeholder" />
                   </view>
                   <view class="form-field" style="margin-bottom: 8px;">
-                    <text class="form-label">现场视频</text>
+                    <text class="form-label">{{ t('leakManagement.fieldLabels.sceneVideo') }}</text>
                     <view class="form-photo-area">
                       <view v-if="videoList.length > 0" class="photo-preview-list">
                         <view v-for="(video, vidx) in videoList" :key="vidx" class="photo-preview-item photo-preview-item--video">
@@ -447,41 +447,41 @@
                           <button class="photo-remove-btn" hover-class="photo-remove-btn--hover" @click="removeVideo"><text class="photo-remove-icon"></text></button>
                         </view>
                       </view>
-                      <view v-if="videoList.length === 0" class="photo-add-box" @click="handleUploadVideo"><text class="photo-add-icon">+</text><text class="photo-add-label">上传视频</text></view>
+                      <view v-if="videoList.length === 0" class="photo-add-box" @click="handleUploadVideo"><text class="photo-add-icon">+</text><text class="photo-add-label">{{ t('leakManagement.uploadVideo') }}</text></view>
                     </view>
-                    <input v-model="form.sceneVideo" class="form-input form-input--hidden-id" placeholder="视频ID (自动生成)" placeholder-class="input-placeholder" />
+                    <input v-model="form.sceneVideo" class="form-input form-input--hidden-id" :placeholder="t('leakManagement.videoIdPlaceholder')" placeholder-class="input-placeholder" />
                   </view>
                 </view>
               </view>
               <!-- 备注 -->
               <view class="form-section">
-                <view class="section-head"><text class="section-title">备注</text></view>
-                <view class="form-field"><textarea v-model="form.description" class="form-textarea" placeholder="请输入备注信息（漏点原因、处理建议等）" placeholder-class="input-placeholder" /></view>
+                <view class="section-head"><text class="section-title">{{ t('leakManagement.fieldLabels.remark') }}</text></view>
+                <view class="form-field"><textarea v-model="form.description" class="form-textarea" :placeholder="t('leakManagement.remarkPlaceholder')" placeholder-class="input-placeholder" /></view>
               </view>
             </view>
             <!-- 右栏 -->
             <view class="form-side">
               <!-- 管道信息 -->
               <view class="form-section">
-                <view class="section-head"><text class="section-title">管道信息</text></view>
+                <view class="section-head"><text class="section-title">{{ t('leakManagement.pipeInfo') }}</text></view>
                 <view class="form-grid form-grid--side">
-                  <view class="form-field"><text class="form-label form-label--required">管道材质</text><input v-model="form.tubeMaterial" class="form-input" :class="{ 'form-control--error': validationErrors.tubeMaterial }" placeholder="如 PE / 钢管 / 铸铁" placeholder-class="input-placeholder" /><text v-if="validationErrors.tubeMaterial" class="form-error">{{ validationErrors.tubeMaterial }}</text></view>
-                  <view class="form-field"><text class="form-label form-label--required">管道口径</text><input v-model="form.tubeBore" class="form-input" :class="{ 'form-control--error': validationErrors.tubeBore }" placeholder="如 DN200" placeholder-class="input-placeholder" /><text v-if="validationErrors.tubeBore" class="form-error">{{ validationErrors.tubeBore }}</text></view>
-                  <view class="form-field"><text class="form-label form-label--required">管道埋深</text><input v-model="form.tubeBuriedDepth" class="form-input" :class="{ 'form-control--error': validationErrors.tubeBuriedDepth }" placeholder="单位: 米" placeholder-class="input-placeholder" /><text v-if="validationErrors.tubeBuriedDepth" class="form-error">{{ validationErrors.tubeBuriedDepth }}</text></view>
-                  <view class="form-field"><text class="form-label">管道年限</text><input v-model="form.tubeAge" class="form-input" placeholder="如 15年" placeholder-class="input-placeholder" /></view>
+                  <view class="form-field"><text class="form-label form-label--required">{{ t('detail.fields.tubeMaterial') }}</text><input v-model="form.tubeMaterial" class="form-input" :class="{ 'form-control--error': validationErrors.tubeMaterial }" :placeholder="t('leakManagement.placeholders.tubeMaterial')" placeholder-class="input-placeholder" /><text v-if="validationErrors.tubeMaterial" class="form-error">{{ validationErrors.tubeMaterial }}</text></view>
+                  <view class="form-field"><text class="form-label form-label--required">{{ t('detail.fields.tubeBore') }}</text><input v-model="form.tubeBore" class="form-input" :class="{ 'form-control--error': validationErrors.tubeBore }" :placeholder="t('leakManagement.placeholders.tubeBore')" placeholder-class="input-placeholder" /><text v-if="validationErrors.tubeBore" class="form-error">{{ validationErrors.tubeBore }}</text></view>
+                  <view class="form-field"><text class="form-label form-label--required">{{ t('detail.fields.tubeDepth') }}</text><input v-model="form.tubeBuriedDepth" class="form-input" :class="{ 'form-control--error': validationErrors.tubeBuriedDepth }" :placeholder="t('leakManagement.placeholders.tubeDepth')" placeholder-class="input-placeholder" /><text v-if="validationErrors.tubeBuriedDepth" class="form-error">{{ validationErrors.tubeBuriedDepth }}</text></view>
+                  <view class="form-field"><text class="form-label">{{ t('detail.fields.tubeAge') }}</text><input v-model="form.tubeAge" class="form-input" :placeholder="t('leakManagement.placeholders.tubeAge')" placeholder-class="input-placeholder" /></view>
                 </view>
               </view>
               <!-- 设备与音频 -->
               <view class="form-section">
-                <view class="section-head"><text class="section-title">设备与音频</text></view>
+                <view class="section-head"><text class="section-title">{{ t('leakManagement.deviceAndAudio') }}</text></view>
                 <view class="form-grid form-grid--side">
                   <view class="form-field form-field--device-search">
-                    <text class="form-label form-label--required">设备编号</text>
+                    <text class="form-label form-label--required">{{ t('detail.fields.deviceNumber') }}</text>
                     <input
                       v-model="form.deviceNumber"
                       class="form-input"
                       :class="{ 'form-control--error': validationErrors.deviceNumber }"
-                      placeholder="请输入或搜索设备编号"
+                      :placeholder="t('leakManagement.placeholders.deviceNumber')"
                       placeholder-class="input-placeholder"
                       @focus="showDeviceSuggestions = true"
                       @blur="hideDeviceSuggestions"
@@ -496,12 +496,12 @@
                       >{{ num }}</view>
                     </view>
                   </view>
-                  <view class="form-field"><text class="form-label">漏点距离</text><input v-model="form.leakDistance" class="form-input" placeholder="请输入距离" placeholder-class="input-placeholder" /></view>
-                  <view class="form-field"><text class="form-label">噪音样本</text><input v-model="form.noiseSample" class="form-input" placeholder="请输入噪音样本" placeholder-class="input-placeholder" /></view>
-                  <view class="form-field"><text class="form-label">噪声时间</text><WorkOrderDatetimePicker v-model="form.noiseTime" title="选择噪声时间" placeholder="请选择噪声时间" /></view>
-                  <view class="form-field"><text class="form-label">特征值</text><input v-model="form.featureValue" class="form-input" placeholder="请输入特征值" placeholder-class="input-placeholder" /></view>
+                  <view class="form-field"><text class="form-label">{{ t('detail.fields.leakDistance') }}</text><input v-model="form.leakDistance" class="form-input" :placeholder="t('leakManagement.placeholders.leakDistance')" placeholder-class="input-placeholder" /></view>
+                  <view class="form-field"><text class="form-label">{{ t('detail.fields.noiseSample') }}</text><input v-model="form.noiseSample" class="form-input" :placeholder="t('leakManagement.placeholders.noiseSample')" placeholder-class="input-placeholder" /></view>
+                  <view class="form-field"><text class="form-label">{{ t('detail.fields.noiseTime') }}</text><WorkOrderDatetimePicker v-model="form.noiseTime" :title="t('time.pleaseSelectNoiseTime')" :placeholder="t('time.pleaseSelectNoiseTime')" /></view>
+                  <view class="form-field"><text class="form-label">{{ t('detail.fields.leakEsa') }}</text><input v-model="form.featureValue" class="form-input" :placeholder="t('leakManagement.placeholders.featureValue')" placeholder-class="input-placeholder" /></view>
                   <view class="form-field">
-                    <text class="form-label">音频文件</text>
+                    <text class="form-label">{{ t('leakManagement.fieldLabels.audioFile') }}</text>
                     <view class="form-photo-area">
                       <view v-if="audioList.length > 0" class="photo-preview-list">
                         <view v-for="(audio, aidx) in audioList" :key="aidx" class="photo-preview-item photo-preview-item--audio">
@@ -509,9 +509,9 @@
                           <button class="photo-remove-btn" hover-class="photo-remove-btn--hover" @click="removeAudio"><text class="photo-remove-icon"></text></button>
                         </view>
                       </view>
-                      <view v-if="audioList.length === 0" class="photo-add-box" @click="handleUploadAudio"><text class="photo-add-icon">+</text><text class="photo-add-label">上传音频</text></view>
+                      <view v-if="audioList.length === 0" class="photo-add-box" @click="handleUploadAudio"><text class="photo-add-icon">+</text><text class="photo-add-label">{{ t('leakManagement.uploadAudio') }}</text></view>
                     </view>
-                    <input v-model="form.audioFile" class="form-input form-input--hidden-id" placeholder="音频ID (自动生成)" placeholder-class="input-placeholder" />
+                    <input v-model="form.audioFile" class="form-input form-input--hidden-id" :placeholder="t('leakManagement.audioIdPlaceholder')" placeholder-class="input-placeholder" />
                   </view>
                 </view>
               </view>
@@ -519,8 +519,8 @@
           </view>
         </view>
         <view class="dialog-actions">
-          <button class="dialog-btn dialog-btn--cancel" hover-class="dialog-btn--hover" @click="closeDialog">取消</button>
-          <button class="dialog-btn dialog-btn--primary" :disabled="submitting" hover-class="dialog-btn--hover" @click="submitForm">{{ submitting ? "提交中..." : "确定" }}</button>
+          <button class="dialog-btn dialog-btn--cancel" hover-class="dialog-btn--hover" @click="closeDialog">{{ t('common.cancel') }}</button>
+          <button class="dialog-btn dialog-btn--primary" :disabled="submitting" hover-class="dialog-btn--hover" @click="submitForm">{{ submitting ? t('common.submitting') : t('common.confirm') }}</button>
         </view>
       </view>
     </view>
@@ -544,6 +544,36 @@ import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDate
 import LeakTableView from "@/pages/leak-report/components/LeakTableView.vue";
 import { uploadFile } from "@/services/leak-report/file-upload";
 import { getVisibleDeviceList } from "@/services/device/info";
+import { createScopedT, useI18n } from "@/i18n";
+import {
+  LEAK_STATUS,
+  isRepairedStatus,
+  isUnrepairedStatus,
+  normalizeLeakStatusCode,
+} from "@/pages/leak-report/constants/status";
+
+const t = createScopedT("leakReport");
+const { locale } = useI18n();
+
+/**
+ * 表格列宽动态配置（13 列）
+ *
+ * 英文表头普遍比中文长（如 "Leak Point Position" 19字符 vs "漏点位置" 4字符），
+ * 共用一套列宽会导致英文表头截断。根据 locale 返回不同配置：
+ * - zh-CN：以中文表头长度为基准，min-width 1200px
+ * - en-US：以英文表头长度为基准，min-width 1380px（关键列加宽）
+ *
+ * 每列 minmax 的最小值基于英文表头字符数 × 6.5px + 24px padding 计算，确保完整展示。
+ * 13 列依次为：复选框/序号/检出时间/渗漏状态/漏点类型/泄漏部位/漏点位置/巡检人员/定漏人员/音频/视频/关联工单/关联设备
+ */
+const tableGridTemplateColumns = computed<string>(() => {
+  if (locale.value === "en-US") {
+    return "40px 52px minmax(150px, 1.5fr) minmax(100px, 1fr) minmax(120px, 1.1fr) minmax(120px, 1.1fr) minmax(170px, 1.7fr) minmax(105px, 1fr) minmax(105px, 1fr) 72px 72px minmax(130px, 1fr) minmax(130px, 1fr)";
+  }
+  return "40px 52px minmax(140px, 1.4fr) minmax(86px, 0.85fr) minmax(96px, 0.95fr) minmax(100px, 1fr) minmax(140px, 1.6fr) minmax(86px, 0.85fr) minmax(86px, 0.85fr) 72px 72px minmax(110px, 0.85fr) minmax(100px, 0.85fr)";
+});
+
+const tableMinWidth = computed<string>(() => (locale.value === "en-US" ? "1380px" : "1200px"));
 
 function getBaseUrl(): string {
   const env = (import.meta as unknown as { env: { VITE_API_BASE_URL?: string; VITE_DEV_PROXY_TARGET?: string } }).env;
@@ -579,40 +609,33 @@ function formatFileSize(bytes: number): string {
   return (bytes / (1024 * 1024)).toFixed(1) + "MB";
 }
 
-const detailTabs: Array<{ label: string; value: DetailTab }> = [
-  { label: "基本信息", value: "base" },
-  { label: "漏点详情", value: "detail" },
-  { label: "管道信息", value: "pipe" },
-  { label: "附件备注", value: "attach" },
-];
+const detailTabs = computed<Array<{ label: string; value: DetailTab }>>(() => [
+  { label: t("detail.tabs.basic"), value: "base" },
+  { label: t("detail.tabs.leakDetail"), value: "detail" },
+  { label: t("detail.tabs.pipeInfo"), value: "pipe" },
+  { label: t("detail.tabs.attachment"), value: "attach" },
+]);
 
-const visibleDetailTabs = computed(() => {
-  return [
-    { label: "基本信息", value: "base" as DetailTab },
-    { label: "漏点详情", value: "detail" as DetailTab },
-    { label: "管道信息", value: "pipe" as DetailTab },
-    { label: "附件备注", value: "attach" as DetailTab },
-  ];
-});
+const visibleDetailTabs = computed(() => detailTabs.value);
 
 const sortField = ref("detectTime");
 const sortOrder = ref("desc");
 
 const filters = reactive({ startTime: "", endTime: "", deviceNumber: "", leakPointType: "", leakArea: "", inspector: "", locator: "", leakStatus: "" });
-const leakStatusOptions: Array<{ label: string; value: string }> = [
-  { label: "全部", value: "" },
-  { label: "已修复", value: "已修复" },
-  { label: "未修复", value: "未修复" },
-];
-const formLeakStatusOptions: Array<{ label: string; value: string }> = [
-  { label: "已修复", value: "已修复" },
-  { label: "未修复", value: "未修复" },
-];
-const currentLeakStatusLabel = computed(() => leakStatusOptions.find((o) => o.value === filters.leakStatus)?.label || "全部");
+const leakStatusOptions = computed<Array<{ label: string; value: string }>>(() => [
+  { label: t("common.all"), value: "" },
+  { label: t("status.repaired"), value: LEAK_STATUS.REPAIRED },
+  { label: t("status.unrepaired"), value: LEAK_STATUS.UNREPAIRED },
+]);
+const formLeakStatusOptions = computed<Array<{ label: string; value: string }>>(() => [
+  { label: t("status.repaired"), value: LEAK_STATUS.REPAIRED },
+  { label: t("status.unrepaired"), value: LEAK_STATUS.UNREPAIRED },
+]);
+const currentLeakStatusLabel = computed(() => leakStatusOptions.value.find((o) => o.value === filters.leakStatus)?.label || t("common.all"));
 function handleLeakStatusChange(e: { detail: { value: number } }) {
-  filters.leakStatus = leakStatusOptions[e.detail.value]?.value || "";
+  filters.leakStatus = leakStatusOptions.value[e.detail.value]?.value || "";
 }
-const currentFormLeakStatusLabel = computed(() => formLeakStatusOptions.find((o) => o.value === form.leakStatus)?.label || "请选择");
+const currentFormLeakStatusLabel = computed(() => formLeakStatusOptions.value.find((o) => o.value === form.leakStatus)?.label || t("common.all"));
 const formLeakStatusDropdownVisible = ref(false);
 function handleFormLeakStatusSelect(value: string) {
   form.leakStatus = value;
@@ -694,39 +717,39 @@ function mkFields(r: RecordItem | null, defs: Array<[string, string, boolean?, s
 }
 
 const detailDetailFields = computed(() => mkFields(selectedRecord.value, [
-  ["渗漏状态", "leakStatus"],
-  ["泄漏部位", "leakPart"],
-  ["漏点距离", "leakDistance"],
-  ["漏量", "leakVolume"],
-  ["定漏人员", "locator"],
-  ["产生漏点原因", "leakReason"],
-  ["费用", "cost"],
-  ["人工复核次数", "manualReviewCount"],
-  ["维修处理方式", "repairMethod"],
-  ["特征值", "featureValue"],
-  ["疑点ID", "suspectedLeakId"],
+  [t("detail.fields.leakStatus"), "leakStatus", false, getLeakStatusDisplay(selectedRecord.value)],
+  [t("detail.fields.leakPointPart"), "leakPart"],
+  [t("detail.fields.leakDistance"), "leakDistance"],
+  [t("detail.fields.leakVolume"), "leakVolume"],
+  [t("detail.fields.locator"), "locator"],
+  [t("detail.fields.leakReason"), "leakReason"],
+  [t("detail.fields.cost"), "cost"],
+  [t("detail.fields.manualReviewCount"), "manualReviewCount"],
+  [t("detail.fields.repairMethod"), "repairMethod"],
+  [t("detail.fields.leakEsa"), "featureValue"],
+  [t("detail.fields.suspectedLeakId"), "suspectedLeakId"],
 ]));
 
 const timeDetailFields = computed(() => {
   const r = selectedRecord.value || {};
   return [
-    { label: "检出时间", value: fmtDt(gv(r, "detectTime")) },
-    { label: "噪声时间", value: fmtDt(gv(r, "noiseTime")) },
-    { label: "创建时间", value: fmtDt(gv(r, "createdAt")) },
-    { label: "修复时间", value: fmtDt(gv(r, "repairTime")) },
+    { label: t("detail.fields.detectTime"), value: fmtDt(gv(r, "detectTime")) },
+    { label: t("detail.fields.noiseTime"), value: fmtDt(gv(r, "noiseTime")) },
+    { label: t("detail.fields.createdAt"), value: fmtDt(gv(r, "createdAt")) },
+    { label: t("detail.fields.repairTime"), value: fmtDt(gv(r, "repairTime")) },
   ];
 });
 
 const pipeDetailFields = computed(() => mkFields(selectedRecord.value, [
-  ["管道材质", "tubeMaterial"],
-  ["管道口径", "tubeBore"],
-  ["管道埋深", "tubeBuriedDepth"],
-  ["管道年限", "tubeAge"],
+  [t("detail.fields.tubeMaterial"), "tubeMaterial"],
+  [t("detail.fields.tubeBore"), "tubeBore"],
+  [t("detail.fields.tubeDepth"), "tubeBuriedDepth"],
+  [t("detail.fields.tubeAge"), "tubeAge"],
 ]));
 
 const attachTextFields = computed(() => mkFields(selectedRecord.value, [
-  ["噪音样本", "noiseSample"],
-  ["备注", "description"],
+  [t("detail.fields.noiseSample"), "noiseSample"],
+  [t("detail.fields.description"), "description"],
 ]));
 
 const detailPhotoIds = computed<string[]>(() => {
@@ -839,7 +862,7 @@ async function fetchLeakPoints() {
     fillWorkOrderNumbers();
   } catch (e: unknown) {
     records.value = []; total.value = 0; selectedRecord.value = null; selectedRecordKey.value = "";
-    uni.showToast({ title: (e as { msg?: string }).msg || "加载失败", icon: "none" });
+    uni.showToast({ title: (e as { msg?: string }).msg || t("leakManagement.loadFailed"), icon: "none" });
   } finally { loading.value = false; }
 }
 
@@ -902,7 +925,7 @@ function toggleSelectAll() { selectedIds.value = isAllSelected.value ? new Set()
 
 function openCreateDialog() { isEditing.value = false; resetForm(); dialogVisible.value = true; }
 function openEditDialog() {
-  if (!selectedRecord.value) { uni.showToast({ title: "请先选择漏点记录", icon: "none" }); return; }
+  if (!selectedRecord.value) { uni.showToast({ title: t("leakManagement.selectLeakPointFirst"), icon: "none" }); return; }
   isEditing.value = true; resetForm(); fillForm(selectedRecord.value); dialogVisible.value = true;
 }
 function closeDialog() { dialogVisible.value = false; formLeakStatusDropdownVisible.value = false; resetForm(); }
@@ -959,9 +982,9 @@ function fillForm(item: RecordItem) {
   form.sceneImages = picPaths.join(","); photoIdListText.value = form.sceneImages;
   photoList.value = picPaths.map((p: string) => ({ url: getPreviewUrl(p), id: p }));
   const vidId = String(gv(item, "sceneVideo") ?? "");
-  videoList.value = vidId ? [{ url: getPreviewUrl(vidId), id: vidId, name: `视频_${vidId}` }] : [];
+  videoList.value = vidId ? [{ url: getPreviewUrl(vidId), id: vidId, name: `${t("leakManagement.videoFilePrefix")}_${vidId}` }] : [];
   const audId = String(gv(item, "audioFile") ?? "");
-  audioList.value = audId ? [{ url: getPreviewUrl(audId), id: audId, name: `音频_${audId}` }] : [];
+  audioList.value = audId ? [{ url: getPreviewUrl(audId), id: audId, name: `${t("leakManagement.audioFilePrefix")}_${audId}` }] : [];
   clearValidationErrors();
 }
 
@@ -969,21 +992,21 @@ function clearValidationErrors() { validationErrors.detectTime = ""; validationE
 
 function validateForm(): boolean {
   clearValidationErrors(); let valid = true;
-  if (!form.detectTime) { validationErrors.detectTime = "请选择检出时间"; valid = false; }
-  if (!form.leakPointType.trim()) { validationErrors.leakPointType = "请输入漏点类型"; valid = false; }
-  if (!form.leakPointPosition.trim()) { validationErrors.leakPointPosition = "请输入漏点位置"; valid = false; }
-  if (!form.leakPart.trim()) { validationErrors.leakPart = "请输入泄漏部位"; valid = false; }
-  if (!form.inspector.trim()) { validationErrors.inspector = "请输入巡检人员"; valid = false; }
-  if (!form.tubeMaterial.trim()) { validationErrors.tubeMaterial = "请选择管道材质"; valid = false; }
-  if (!form.tubeBore.trim()) { validationErrors.tubeBore = "请输入管道口径"; valid = false; }
-  if (!form.tubeBuriedDepth.trim()) { validationErrors.tubeBuriedDepth = "请输入管道埋深"; valid = false; }
-  if (!form.deviceNumber.trim()) { validationErrors.deviceNumber = "请输入设备编号"; valid = false; }
+  if (!form.detectTime) { validationErrors.detectTime = t("validation.detectTimeRequired"); valid = false; }
+  if (!form.leakPointType.trim()) { validationErrors.leakPointType = t("validation.leakPointTypeRequired"); valid = false; }
+  if (!form.leakPointPosition.trim()) { validationErrors.leakPointPosition = t("validation.leakPointPositionRequired"); valid = false; }
+  if (!form.leakPart.trim()) { validationErrors.leakPart = t("validation.leakPartRequired"); valid = false; }
+  if (!form.inspector.trim()) { validationErrors.inspector = t("validation.inspectorRequired"); valid = false; }
+  if (!form.tubeMaterial.trim()) { validationErrors.tubeMaterial = t("validation.tubeMaterialRequired"); valid = false; }
+  if (!form.tubeBore.trim()) { validationErrors.tubeBore = t("validation.tubeBoreRequired"); valid = false; }
+  if (!form.tubeBuriedDepth.trim()) { validationErrors.tubeBuriedDepth = t("validation.tubeDepthRequired"); valid = false; }
+  if (!form.deviceNumber.trim()) { validationErrors.deviceNumber = t("validation.deviceNumberRequired"); valid = false; }
   return valid;
 }
 
 function handleUploadPhoto() {
   const remaining = 9 - photoList.value.length;
-  if (remaining <= 0) { uni.showToast({ title: "最多上传9张照片", icon: "none" }); return; }
+  if (remaining <= 0) { uni.showToast({ title: t("leakManagement.maxPhotos"), icon: "none" }); return; }
   // #ifdef H5
   const input = document.createElement("input");
   input.type = "file";
@@ -992,23 +1015,24 @@ function handleUploadPhoto() {
   input.onchange = async () => {
     const files = Array.from(input.files || []).slice(0, remaining);
     if (!files.length) return;
-    uni.showToast({ title: "照片上传中...", icon: "loading" });
+    uni.showToast({ title: t("leakManagement.photoUploading"), icon: "loading" });
     try {
       const newPhotos: PhotoItem[] = [];
       for (const file of files) {
         const localUrl = URL.createObjectURL(file);
         const res = await uploadFile(file, file.name) as { data?: { filePath?: string; id?: string }; msg?: string };
         const filePath = String(res?.data?.filePath || "");
-        if (!filePath) { uni.showToast({ title: res?.msg || "上传失败", icon: "none" }); URL.revokeObjectURL(localUrl); continue; }
+        if (!filePath) { uni.showToast({ title: res?.msg || t("leakManagement.uploadFailed"), icon: "none" }); URL.revokeObjectURL(localUrl); continue; }
         newPhotos.push({ url: localUrl, id: filePath });
       }
       if (newPhotos.length > 0) {
         photoList.value = [...photoList.value, ...newPhotos];
         form.sceneImages = photoList.value.map((p) => p.id).join(","); photoIdListText.value = form.sceneImages;
-        uni.showToast({ title: `上传成功 ${newPhotos.length} 张`, icon: "success" });
+        uni.showToast({ title: t("leakManagement.uploadSuccessCount", { count: newPhotos.length }), icon: "success" });
       }
     } catch (err) {
-      const errMsg = (err as { msg?: string })?.msg || (err as { status?: number })?.status ? `错误码: ${(err as { status?: number }).status}` : "上传失败";
+      const errStatus = (err as { status?: number })?.status;
+      const errMsg = (err as { msg?: string })?.msg || (errStatus ? t("leakManagement.errorCode", { code: errStatus }) : t("leakManagement.uploadFailed"));
       uni.showToast({ title: errMsg, icon: "none" });
     }
   };
@@ -1022,27 +1046,27 @@ function handleUploadPhoto() {
     count: remaining, sizeType: ["compressed"], sourceType: ["album", "camera"],
     success: async (res) => {
       const paths: string[] = Array.isArray(res.tempFilePaths) ? res.tempFilePaths : [res.tempFilePaths];
-      uni.showToast({ title: "照片上传中...", icon: "loading" });
+      uni.showToast({ title: t("leakManagement.photoUploading"), icon: "loading" });
       try {
         const newPhotos: PhotoItem[] = [];
         for (const path of paths) {
           const fileName = path.split("/").pop() || "image.jpg";
           const r = await uploadFile(path, fileName) as { data?: { filePath?: string; id?: string }; msg?: string };
           const filePath = String(r?.data?.filePath || "");
-          if (!filePath) { uni.showToast({ title: r?.msg || "上传失败", icon: "none" }); continue; }
+          if (!filePath) { uni.showToast({ title: r?.msg || t("leakManagement.uploadFailed"), icon: "none" }); continue; }
           newPhotos.push({ url: path, id: filePath });
         }
         if (newPhotos.length > 0) {
           photoList.value = [...photoList.value, ...newPhotos];
           form.sceneImages = photoList.value.map((p) => p.id).join(","); photoIdListText.value = form.sceneImages;
-          uni.showToast({ title: `上传成功 ${newPhotos.length} 张`, icon: "success" });
+          uni.showToast({ title: t("leakManagement.uploadSuccessCount", { count: newPhotos.length }), icon: "success" });
         }
       } catch (err) {
-        const errMsg = (err as { msg?: string })?.msg || "上传失败";
+        const errMsg = (err as { msg?: string })?.msg || t("leakManagement.uploadFailed");
         uni.showToast({ title: errMsg, icon: "none" });
       }
     },
-    fail: () => { uni.showToast({ title: "取消选择", icon: "none" }); },
+    fail: () => { uni.showToast({ title: t("leakManagement.cancelSelect"), icon: "none" }); },
   });
   // #endif
 }
@@ -1059,17 +1083,30 @@ async function handleExport(scope: "current" | "all") {
       const p = parsePage(response);
       exportRecords = p.records;
     } catch {
-      uni.showToast({ title: "获取全部数据失败", icon: "none" });
+      uni.showToast({ title: t("leakManagement.loadFailed"), icon: "none" });
       return;
     }
   }
-  if (!exportRecords.length) { uni.showToast({ title: "暂无数据可导出", icon: "none" }); return; }
+  if (!exportRecords.length) { uni.showToast({ title: t("common.noDataToExport"), icon: "none" }); return; }
   // #ifdef H5
-  const headers = ["检出时间", "渗漏状态", "漏点类型", "泄漏部位", "漏点位置", "巡检人员", "定漏人员", "音频文件ID", "现场视频ID", "关联工单", "关联设备"];
+  const headers = [
+    t("leakManagement.exportHeaders.detectTime"),
+    t("leakManagement.exportHeaders.leakStatus"),
+    t("leakManagement.exportHeaders.leakPointType"),
+    t("leakManagement.exportHeaders.leakPart"),
+    t("leakManagement.exportHeaders.leakPointPosition"),
+    t("leakManagement.exportHeaders.inspector"),
+    t("leakManagement.exportHeaders.locator"),
+    t("leakManagement.exportHeaders.audioFile"),
+    t("leakManagement.exportHeaders.sceneVideo"),
+    t("leakManagement.exportHeaders.worksheetNumber"),
+    t("leakManagement.exportHeaders.deviceNumber"),
+  ];
   const keys = ["detectTime", "leakStatus", "leakPointType", "leakPart", "leakPointPosition", "inspector", "locator", "audioFile", "sceneVideo", "worksheetNumber", "deviceNumber"];
   const rows = exportRecords.map((r) =>
     keys.map((k) => {
       if (k === "detectTime") return fmtDt(gv(r, k));
+      if (k === "leakStatus") return getLeakStatusDisplay(r);
       const v = gv(r, k);
       if (v === undefined || v === null) return "";
       return String(v).replace(/"/g, '""');
@@ -1080,13 +1117,13 @@ async function handleExport(scope: "current" | "all") {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `漏点数据_${new Date().toISOString().slice(0, 10)}.csv`;
+  link.download = `${t("leakManagement.exportFileName")}_${new Date().toISOString().slice(0, 10)}.csv`;
   link.click();
   URL.revokeObjectURL(url);
-  uni.showToast({ title: "导出成功", icon: "success" });
+  uni.showToast({ title: t("common.exportSuccess"), icon: "success" });
   // #endif
   // #ifndef H5
-  uni.showToast({ title: "导出功能仅支持 H5 端", icon: "none" });
+  uni.showToast({ title: t("common.exportH5Only"), icon: "none" });
   // #endif
 }
 
@@ -1101,17 +1138,17 @@ function handleImport() {
   input.onchange = async (e: Event) => {
     const file = (e.target as HTMLInputElement).files?.[0];
     if (!file) return;
-    uni.showToast({ title: "导入功能开发中，请使用新增功能", icon: "none" });
+    uni.showToast({ title: t("leakManagement.importDeveloping"), icon: "none" });
   };
   input.click();
   // #endif
   // #ifndef H5
-  uni.showToast({ title: "导入功能仅支持 H5 端", icon: "none" });
+  uni.showToast({ title: t("leakManagement.importH5Only"), icon: "none" });
   // #endif
 }
 
 function handleUploadAudio() {
-  if (!form.deviceNumber.trim()) { uni.showToast({ title: "请先输入设备编号", icon: "none" }); validationErrors.deviceNumber = "请输入设备编号"; return; }
+  if (!form.deviceNumber.trim()) { uni.showToast({ title: t("leakManagement.pleaseInputDeviceFirst"), icon: "none" }); validationErrors.deviceNumber = t("validation.deviceNumberRequired"); return; }
   // #ifdef H5
   const input = document.createElement("input");
   input.type = "file";
@@ -1119,16 +1156,16 @@ function handleUploadAudio() {
   input.onchange = async () => {
     const file = input.files?.[0];
     if (!file) return;
-    uni.showToast({ title: "音频上传中...", icon: "loading" });
+    uni.showToast({ title: t("leakManagement.audioUploading"), icon: "loading" });
     try {
       const res = await uploadFile(file, file.name) as { data?: { filePath?: string; id?: string }; msg?: string };
       const aid = String(res?.data?.filePath || "");
-      if (!aid) { uni.showToast({ title: res?.msg || "上传失败", icon: "none" }); return; }
+      if (!aid) { uni.showToast({ title: res?.msg || t("leakManagement.uploadFailed"), icon: "none" }); return; }
       form.audioFile = aid;
-      audioList.value = [{ url: getPreviewUrl(aid), id: aid, name: `音频_${aid}` }];
-      uni.showToast({ title: "上传成功", icon: "success" });
+      audioList.value = [{ url: getPreviewUrl(aid), id: aid, name: `${t("leakManagement.audioFilePrefix")}_${aid}` }];
+      uni.showToast({ title: t("leakManagement.uploadSuccess"), icon: "success" });
     } catch {
-      uni.showToast({ title: "上传失败", icon: "none" });
+      uni.showToast({ title: t("leakManagement.uploadFailed"), icon: "none" });
     }
   };
   document.body.appendChild(input);
@@ -1143,16 +1180,16 @@ function handleUploadAudio() {
     success: async (res) => {
       const file = res.tempFiles?.[0];
       if (!file) return;
-      uni.showToast({ title: "音频上传中...", icon: "loading" });
+      uni.showToast({ title: t("leakManagement.audioUploading"), icon: "loading" });
       try {
         const r = await uploadFile(file.path, file.name || "audio") as { data?: { filePath?: string; id?: string }; msg?: string };
         const aid = String(r?.data?.filePath || "");
-        if (!aid) { uni.showToast({ title: r?.msg || "上传失败", icon: "none" }); return; }
+        if (!aid) { uni.showToast({ title: r?.msg || t("leakManagement.uploadFailed"), icon: "none" }); return; }
         form.audioFile = aid;
-        audioList.value = [{ url: getPreviewUrl(aid), id: aid, name: `音频_${aid}` }];
-        uni.showToast({ title: "上传成功", icon: "success" });
+        audioList.value = [{ url: getPreviewUrl(aid), id: aid, name: `${t("leakManagement.audioFilePrefix")}_${aid}` }];
+        uni.showToast({ title: t("leakManagement.uploadSuccess"), icon: "success" });
       } catch {
-        uni.showToast({ title: "上传失败", icon: "none" });
+        uni.showToast({ title: t("leakManagement.uploadFailed"), icon: "none" });
       }
     },
   });
@@ -1167,18 +1204,19 @@ function handleUploadVideo() {
   input.onchange = async () => {
     const file = input.files?.[0];
     if (!file) return;
-    if (file.size > MAX_VIDEO_SIZE) { uni.showToast({ title: `视频过大(${formatFileSize(file.size)})，上限${formatFileSize(MAX_VIDEO_SIZE)}`, icon: "none" }); return; }
-    uni.showToast({ title: `视频上传中...(${formatFileSize(file.size)})`, icon: "loading" });
+    if (file.size > MAX_VIDEO_SIZE) { uni.showToast({ title: t("leakManagement.videoTooLarge", { size: formatFileSize(file.size), max: formatFileSize(MAX_VIDEO_SIZE) }), icon: "none" }); return; }
+    uni.showToast({ title: t("leakManagement.videoUploading", { size: formatFileSize(file.size) }), icon: "loading" });
     try {
       const localUrl = URL.createObjectURL(file);
       const res = await uploadFile(file, file.name) as { data?: { filePath?: string; id?: string }; msg?: string };
       const vid = String(res?.data?.filePath || "");
-      if (!vid) { uni.showToast({ title: res?.msg || "上传失败", icon: "none" }); URL.revokeObjectURL(localUrl); return; }
+      if (!vid) { uni.showToast({ title: res?.msg || t("leakManagement.uploadFailed"), icon: "none" }); URL.revokeObjectURL(localUrl); return; }
       form.sceneVideo = vid;
-      videoList.value = [{ url: localUrl, id: vid, name: `视频_${vid}` }];
-      uni.showToast({ title: "上传成功", icon: "success" });
+      videoList.value = [{ url: localUrl, id: vid, name: `${t("leakManagement.videoFilePrefix")}_${vid}` }];
+      uni.showToast({ title: t("leakManagement.uploadSuccess"), icon: "success" });
     } catch (err) {
-      const errMsg = (err as { msg?: string })?.msg || (err as { status?: number })?.status ? `错误码: ${(err as { status?: number }).status}` : "上传失败";
+      const errStatus = (err as { status?: number })?.status;
+      const errMsg = (err as { msg?: string })?.msg || (errStatus ? t("leakManagement.errorCode", { code: errStatus }) : t("leakManagement.uploadFailed"));
       uni.showToast({ title: errMsg, icon: "none" });
     }
   };
@@ -1190,17 +1228,17 @@ function handleUploadVideo() {
   // #ifndef H5
   uni.chooseVideo({
     success: async (res) => {
-      uni.showToast({ title: "视频上传中...", icon: "loading" });
+      uni.showToast({ title: t("leakManagement.videoUploadingShort"), icon: "loading" });
       try {
         const fileName = (res.name || "video.mp4") as string;
         const r = await uploadFile(res.tempFilePath, fileName) as { data?: { filePath?: string; id?: string }; msg?: string };
         const vid = String(r?.data?.filePath || "");
-        if (!vid) { uni.showToast({ title: r?.msg || "上传失败", icon: "none" }); return; }
+        if (!vid) { uni.showToast({ title: r?.msg || t("leakManagement.uploadFailed"), icon: "none" }); return; }
         form.sceneVideo = vid;
-        videoList.value = [{ url: getPreviewUrl(vid), id: vid, name: `视频_${vid}` }];
-        uni.showToast({ title: "上传成功", icon: "success" });
+        videoList.value = [{ url: getPreviewUrl(vid), id: vid, name: `${t("leakManagement.videoFilePrefix")}_${vid}` }];
+        uni.showToast({ title: t("leakManagement.uploadSuccess"), icon: "success" });
       } catch (err) {
-        const errMsg = (err as { msg?: string })?.msg || "上传失败";
+        const errMsg = (err as { msg?: string })?.msg || t("leakManagement.uploadFailed");
         uni.showToast({ title: errMsg, icon: "none" });
       }
     },
@@ -1334,29 +1372,29 @@ async function submitForm() {
     const payload = buildPayload(); let res: Res;
     if (isEditing.value) { res = (await updateLeakPoint(getRowId(selectedRecord.value!), payload)) as Res; }
     else { res = (await createLeakPoint(payload)) as Res; }
-    ok(res); uni.showToast({ title: isEditing.value ? "编辑成功" : "新增成功", icon: "success" }); closeDialog(); fetchLeakPoints();
-  } catch (e: unknown) { uni.showToast({ title: (e as { msg?: string }).msg || "提交失败", icon: "none" }); }
+    ok(res); uni.showToast({ title: isEditing.value ? t("leakManagement.editSuccess") : t("leakManagement.addSuccess"), icon: "success" }); closeDialog(); fetchLeakPoints();
+  } catch (e: unknown) { uni.showToast({ title: (e as { msg?: string }).msg || t("leakManagement.submitFailed"), icon: "none" }); }
   finally { submitting.value = false; }
 }
 
 async function handleDelete() {
-  if (!selectedRecord.value) { uni.showToast({ title: "请先选择漏点记录", icon: "none" }); return; }
+  if (!selectedRecord.value) { uni.showToast({ title: t("leakManagement.selectLeakPointFirst"), icon: "none" }); return; }
   const id = getRowId(selectedRecord.value); if (!id) return;
-  try { ok((await deleteLeakPoint(id)) as Res); uni.showToast({ title: "删除成功", icon: "success" }); selectedRecord.value = null; fetchLeakPoints(); }
-  catch (e: unknown) { uni.showToast({ title: (e as { msg?: string }).msg || "删除失败", icon: "none" }); }
+  try { ok((await deleteLeakPoint(id)) as Res); uni.showToast({ title: t("common.deleteSuccess"), icon: "success" }); selectedRecord.value = null; fetchLeakPoints(); }
+  catch (e: unknown) { uni.showToast({ title: (e as { msg?: string }).msg || t("common.deleteFailed"), icon: "none" }); }
 }
 
 async function handleBatchDelete() {
   if (!selectedIds.value.size) return;
   const ids = Array.from(selectedIds.value).map((k) => { const i = records.value.findIndex((r, idx) => getRowKey(r, idx) === k); return i >= 0 ? getRowId(records.value[i]) : ""; }).filter(Boolean);
   if (!ids.length) return;
-  try { await Promise.all(ids.map((id) => deleteLeakPoint(id))); uni.showToast({ title: `已删除${ids.length}条`, icon: "success" }); selectedIds.value = new Set(); fetchLeakPoints(); }
-  catch (e: unknown) { uni.showToast({ title: (e as { msg?: string }).msg || "批量删除失败", icon: "none" }); }
+  try { await Promise.all(ids.map((id) => deleteLeakPoint(id))); uni.showToast({ title: t("leakManagement.batchDeleteSuccess", { count: ids.length }), icon: "success" }); selectedIds.value = new Set(); fetchLeakPoints(); }
+  catch (e: unknown) { uni.showToast({ title: (e as { msg?: string }).msg || t("leakManagement.batchDeleteFailed"), icon: "none" }); }
 }
 
 function handleWorkOrderJump(item: RecordItem) {
   const wid = getFieldValue(item, "workOrderId");
-  if (!wid) { uni.showToast({ title: "无关联工单", icon: "none" }); return; }
+  if (!wid) { uni.showToast({ title: t("leakManagement.noWorkOrder"), icon: "none" }); return; }
   uni.navigateTo({ url: `/pages/work-order/processing/processing?id=${wid}` });
 }
 
@@ -1364,7 +1402,7 @@ function getWorkOrderDisplay(item: RecordItem): string {
   const no = getFieldValue(item, "worksheetNumber");
   if (no) return String(no);
   const wid = getFieldValue(item, "workOrderId");
-  if (wid) return "工单不存在";
+  if (wid) return t("leakManagement.workOrderMissing");
   return "-";
 }
 
@@ -1475,12 +1513,12 @@ function toggleAudioPlay(item: RecordItem, index: number) {
   // #ifdef H5
   audioPlayerInstance?.pause();
   const url = getPreviewUrl(String(aid));
-  const title = `漏点音频 - ${getFieldValue(item, "leakPointPosition") || getFieldValue(item, "deviceNumber") || ""}`;
+  const title = `${t("leakManagement.leakAudio")} - ${getFieldValue(item, "leakPointPosition") || getFieldValue(item, "deviceNumber") || ""}`;
   playingAudioIndex.value = index;
   openAudioDialog(url, title);
   // #endif
   // #ifndef H5
-  uni.showToast({ title: "音频播放仅支持 H5 端", icon: "none" });
+  uni.showToast({ title: t("leakManagement.audioH5Only"), icon: "none" });
   // #endif
 }
 
@@ -1538,17 +1576,32 @@ function closeVideoDialog() {
   videoLoading.value = false;
 }
 
+// 将 leakStatus code 翻译为当前语言的展示文本
+function translateLeakStatusCode(code: string): string {
+  if (isRepairedStatus(code)) return t("status.repaired");
+  if (isUnrepairedStatus(code)) return t("status.unrepaired");
+  return code || "-";
+}
+
+// 获取 leakStatus 的展示文本（normalize + translate）
+function getLeakStatusDisplay(item: RecordItem | null): string {
+  const raw = getFieldValue(item, "leakStatus");
+  if (raw === null || raw === undefined || raw === "") return "-";
+  const code = normalizeLeakStatusCode(raw, "leakage");
+  return translateLeakStatusCode(code);
+}
+
 function getLeakStatusClass(item: RecordItem | null): string {
   const s = getFieldValue(item, "leakStatus");
-  if (s === "未修复") return "level-pill--heavy";
-  if (s === "已修复") return "level-pill--light";
+  if (isUnrepairedStatus(s)) return "level-pill--heavy";
+  if (isRepairedStatus(s)) return "level-pill--light";
   return "";
 }
 
 function getLeakStatusBadgeClass(item: RecordItem | null): string {
   const s = getFieldValue(item, "leakStatus");
-  if (s === "未修复") return "detail-summary__badge--heavy";
-  if (s === "已修复") return "detail-summary__badge--light";
+  if (isUnrepairedStatus(s)) return "detail-summary__badge--heavy";
+  if (isRepairedStatus(s)) return "detail-summary__badge--light";
   return "";
 }
 
@@ -1562,12 +1615,12 @@ function parsePage(res: Res) {
   const d = res?.data ?? res; const pg = findPg(d) || findPg(res) || (isObj(d) ? d : {});
   const pgRecs = arr(pg, ["records","rows","list","items"]);
   const recs = pgRecs.length > 0 ? pgRecs : arr(res, ["records","rows","list","items"]);
-  const t = num(pg, ["total","count","totalCount","totalRow","totalRows","totalElements"]) ?? num(res, ["total","count","totalCount","totalRow","totalRows","totalElements"]);
+  const totalNum = num(pg, ["total","count","totalCount","totalRow","totalRows","totalElements"]) ?? num(res, ["total","count","totalCount","totalRow","totalRows","totalElements"]);
   const c = num(pg, ["current","pageNum","page","pageNo"]); const s = num(pg, ["size","pageSize","limit"]);
   const pageNum = c || pagination.pageNum;
   const pageSize = s || pagination.pageSize;
   const mt = (pageNum - 1) * pageSize + recs.length;
-  return { records: recs.map((r: unknown) => (isObj(r) ? r : { value: r })), total: t === undefined ? recs.length : Math.max(t, mt), pageNum, pageSize };
+  return { records: recs.map((r: unknown) => (isObj(r) ? r : { value: r })), total: totalNum === undefined ? recs.length : Math.max(totalNum, mt), pageNum, pageSize };
 }
 function findPg(v: unknown): RecordItem | null {
   if (!isObj(v)) return null;
@@ -1587,9 +1640,20 @@ function applyLocalFilters(list: RecordItem[]): RecordItem[] {
   return list.filter((item) => {
     if (inspectorKey && !String(getFieldValue(item, "inspector") || "").toLowerCase().includes(inspectorKey)) return false;
     if (locatorKey && !String(getFieldValue(item, "locator") || "").toLowerCase().includes(locatorKey)) return false;
-    if (statusKey && String(getFieldValue(item, "leakStatus") || "") !== statusKey) return false;
+    if (statusKey && !matchLeakStatus(getFieldValue(item, "leakStatus"), statusKey)) return false;
     return true;
   });
+}
+
+/**
+ * 状态匹配：兼容 "已修复" 中文 code 和 "repaired" 英文 code
+ * 用于本地过滤，避免国际化后状态匹配失败
+ */
+function matchLeakStatus(actual: string, expected: string): boolean {
+  if (actual === expected) return true;
+  if (expected === LEAK_STATUS.REPAIRED && isRepairedStatus(actual)) return true;
+  if (expected === LEAK_STATUS.UNREPAIRED && isUnrepairedStatus(actual)) return true;
+  return false;
 }
 
 function applyLocalSort(list: RecordItem[]): RecordItem[] {
@@ -1611,7 +1675,7 @@ function applyLocalSort(list: RecordItem[]): RecordItem[] {
   });
 }
 
-function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || c === 0 || c === 200) return; throw { code: c, msg: res?.msg || "请求失败" }; }
+function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || c === 0 || c === 200) return; throw { code: c, msg: res?.msg || t("common.requestFailed") }; }
 </script>
 
 <style scoped lang="scss">

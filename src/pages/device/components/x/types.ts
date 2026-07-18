@@ -58,19 +58,19 @@ export type Field =
     | {
     key: string;
     label?: string;
-    labelKey: string;
+    labelKey?: string;
     type: "input";
 }
     | {
     key: string;
     label?: string;
-    labelKey: string;
+    labelKey?: string;
     type: "date";
 }
     | {
     key: string;
     label?: string;
-    labelKey: string;
+    labelKey?: string;
     type: "select";
     dict?: string;
     options?: FieldOption[];
@@ -100,7 +100,8 @@ export type ToolbarButtons = {
 
 export interface XDataColumn {
     key:string;
-    label:string;
+    label?:string;
+    labelKey?: string;
     width?:number;
     sortable?: boolean;
     align?:'left'|'center'|'right';
@@ -112,6 +113,7 @@ export interface XDataColumn {
         | 'link'
         | 'image';
     className?:string;
+    bodyClassName?:string;
     formatter?:(value:any,row:any)=>any;
     onClick?:(
         value:any,
