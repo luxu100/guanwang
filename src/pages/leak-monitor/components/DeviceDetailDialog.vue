@@ -169,10 +169,10 @@
                 <text>{{ t("maintenanceTime") }}</text>
                 <text>{{ t("maintenanceAddress") }}</text>
               </view>
-              <view v-for="record in maintenancePageRecords" :key="String(record.id) + String(record.operationTime)" class="maintenance-table__row">
+              <view v-for="record in maintenancePageRecords" :key="String(record.id) + String(record.maintainTime)" class="maintenance-table__row">
                 <text>{{ maintenanceTypeLabel(record.maintainType) }}</text>
-                <text>{{ displayValue(record.operationTime) }}</text>
-                <text :title="displayValue(record.installAddress)">{{ displayValue(record.installAddress) }}</text>
+                <text>{{ formatDateTime(record.maintainTime || "") }}</text>
+                <text :title="displayValue(record.maintainAddress)">{{ displayValue(record.maintainAddress) }}</text>
               </view>
               <view v-if="detail.maintenanceLoading" class="inline-state">{{ t("maintenanceLoading") }}</view>
               <view v-else-if="!detail.maintenance.length" class="dialog-state dialog-state--compact">{{ t("noMaintenance") }}</view>
@@ -366,6 +366,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { isDomesticLeakMonitorUser } from "@/services/leak-monitor/device-query";
+import { formatDateTime } from "@/utils/adminData";
 import { convertMapCoordinate } from "../coordinateTransform";
 import type {
   DateRangeValue,

@@ -61,6 +61,10 @@ test("device dialog implements audio trend history detail and maintenance endpoi
   assert.match(dialog, /const maintenancePageSize = 6/);
   assert.match(dialog, /t\("uninstallCount"\)/);
   assert.match(dialog, /t\("installCount"\)/);
+  assert.match(dialog, /formatDateTime\(record\.maintainTime \|\| ""\)/);
+  assert.match(dialog, /displayValue\(record\.maintainAddress\)/);
+  assert.doesNotMatch(dialog, /displayValue\(record\.operationTime\)/);
+  assert.doesNotMatch(dialog, /displayValue\(record\.installAddress\)/);
 });
 
 test("both map providers render leakProperty in status-colored markers", () => {
