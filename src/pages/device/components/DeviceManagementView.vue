@@ -92,6 +92,7 @@
               :device-data="currentDevice"
               :visible="isDetailPanelVisible"
               :query="panelQuery"
+              @device-updated="handleUpdateDevice"
           />
 
         </view>
@@ -145,7 +146,7 @@ import type {
 import {
   createDeptDeviceT,
   createDeviceT,
-  deleteDeviceT, getDeptByIdT, getDeptTreeT,
+  deleteDeviceT, getDeptByIdT, getDeptTreeT, getDeviceDetailT,
   getDevicePageT,
   getDeviceProductListT,
   updateDeviceT
@@ -406,6 +407,23 @@ async function fetchDevices() {
   currentDevice.value = deviceList.value[0] || {};
   selectedDeviceId.value = currentDevice.value.id;
 }
+
+async function handleUpdateDevice(deviceId: number) {
+  const res = await getDeviceDetailT(deviceId);
+  const index = deviceList.value.findIndex(item => item.id === deviceId);
+
+  if (index !== -1 && res.data) {
+    deviceList.value[index] = res.data;
+  }
+
+  currentDevice.value = deviceList.value[index];
+}
+
+async function handleDeleteDevice(deviceId: number) {
+  await deleteDeviceT(deviceId);
+  fetchDevices();
+}
+
 
 const deviceProductOptions = ref<{ label: string; value: number }[]>([]);
 
