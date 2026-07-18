@@ -8,8 +8,6 @@
         @show-detail="toggleDetailPanel"
     />
 
-    <button @click="exportProtocolsJson">导出协议JSON</button>
-
     <view class="content-layout"
           :style="layoutStyle"
           :class="[layoutClass,{collapsed:isDetailCollapsed}]"
@@ -30,7 +28,6 @@
 </template>
 
 <script setup lang="ts">
-import { exportProtocolsJson } from "@/pages/device/components/x/get_protocol_json";
 import {computed, onMounted, ref, watch} from "vue";
 import {getDeviceParameterPageT} from "@/services/device/device-parameter.typed";
 import type {DeviceParameterPageVO} from "@/services/device/types";
