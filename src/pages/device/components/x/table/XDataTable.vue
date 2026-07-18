@@ -82,7 +82,7 @@
 </template>
 
 <script setup lang="ts">
-import {ref, watch, reactive} from 'vue';
+import {ref, watch, reactive,computed} from 'vue';
 import type {XDataColumn} from '../types';
 import XMapPopup from "@/pages/device/components/x/map/XMapPopup.vue";
 import {createScopedT} from "@/i18n";
@@ -109,10 +109,16 @@ const props=withDefaults(defineProps<{
   showIndex:true,
   pageCurrent:1,
   pageSize:10,
-  loadingText:'加载中...',
-  emptyText:'暂无数据',
   sortField:'',
   sortOrder:'asc'
+});
+
+const loadingText = computed(()=>{
+  return props.loadingText || t('common.table.loading');
+});
+
+const emptyText = computed(()=>{
+  return props.emptyText || t('common.table.empty');
 });
 
 const emit=defineEmits<{

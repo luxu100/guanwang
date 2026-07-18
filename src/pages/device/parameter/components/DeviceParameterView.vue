@@ -120,33 +120,7 @@ function handleSelect(row:DeviceParameterPageVO){
 
 const layoutClass=computed(()=> "layout-full");
 
-const detailWidth=ref(400);
-
 const layoutStyle=computed(()=> "layout-full");
-
-let startX=0;
-let startWidth=0;
-const isDragging=ref(false);
-
-function startResize(e:MouseEvent){
-  startX=e.clientX;
-  startWidth=detailWidth.value;
-  isDragging.value=false;
-  document.addEventListener("mousemove",resize);
-  document.addEventListener("mouseup",stopResize);
-}
-
-function resize(e:MouseEvent){
-  const diff=startX-e.clientX;
-  if(Math.abs(diff)>3)isDragging.value=true;
-  detailWidth.value=Math.max(260,Math.min(startWidth+diff,800));
-}
-
-function stopResize(){
-  document.removeEventListener("mousemove",resize);
-  document.removeEventListener("mouseup",stopResize);
-  if(!isDragging.value)toggleDetailPanel();
-}
 
 const sortField = ref('');
 const sortOrder = ref<'asc'|'desc'>('asc');

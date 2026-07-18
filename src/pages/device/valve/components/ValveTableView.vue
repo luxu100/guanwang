@@ -9,7 +9,6 @@
         :columns="columns"
         :data="tableData"
         :show-index="true"
-        :index-label="t('valve.table.index')"
         :sort-field="sortField"
         :sort-order="sortOrder"
         id-key="id"
@@ -75,7 +74,7 @@ const columns:XDataColumn[]=[
   {key:'region',label:t('valve.table.region'),width:120,className:'data-cell--text'},
   {key:'tubeBore',label:t('valve.table.tubeBore'),width:120,className:'data-cell--text'},
   {key:'tubeMaterial',label:t('valve.table.tubeMaterial'),width:120,className:'data-cell--status'},
-  {key:'coordinate',label:t('valve.table.coordinate'),width:180,className:'data-cell--coord data-cell--link',type:'coord',formatter:(_,row)=>row.xCoordinate&&row.yCoordinate?`${row.xCoordinate}, ${row.yCoordinate}`:'-'},
+  {key:'coordinate',label:t('valve.table.coordinate'),width:180,className:'data-cell--coord',bodyClassName:'data-cell--link',type:'coord'},
   {key:'createdAt',label:t('valve.table.createdAt'),width:160,className:'data-cell--time',formatter:v=>v?formatDate(v):'-'}
 ];
 
