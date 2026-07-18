@@ -87,6 +87,21 @@
     transform:rotate(45deg);
 }
 
+.filter-item--wide {
+    width: 260px;
+
+    picker {
+        width: 100%;
+    }
+
+    .filter-select,
+    .filter-input,
+    .filter-datetime {
+        width: 100%;
+        box-sizing: border-box;
+    }
+}
+
 .toolbar-actions-wrapper{
     margin-left:auto;
     align-self:flex-end;

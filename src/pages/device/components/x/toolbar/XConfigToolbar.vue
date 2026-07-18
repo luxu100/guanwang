@@ -3,7 +3,7 @@
     <view class="toolbar" :class="{ collapsed: !visible }">
       <view class="toolbar-row">
         <view class="filter-group">
-          <view v-for="item in fields" :key="item.key" class="filter-item">
+          <view v-for="item in fields" :key="item.key" class="filter-item" :class="item.className">
             <text class="filter-label">{{ getLabel(item) }}</text>
             <input
                 v-if="item.type==='input'"

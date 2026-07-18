@@ -99,7 +99,8 @@ const fields:Field[]=[
     key:"parseStatus",
     labelKey:"fields.parseStatus",
     type:"select",
-    options:parseStatusOptions
+    options:parseStatusOptions,
+    className:"filter-item--wide"
   },
 
   {
