@@ -179,7 +179,10 @@
             title="暂无页面权限"
             path="请联系管理员为当前账号分配菜单权限"
           />
-          <LocaleLeakMap v-else-if="isLeakMonitorActive" />
+          <LocaleLeakMap
+            v-else-if="isLeakMonitorActive"
+            :localized="appShellModules.localized"
+          />
 
           <AppShellModuleHost
             v-else-if="shellContentComponent"

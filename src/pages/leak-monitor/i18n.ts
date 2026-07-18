@@ -1,5 +1,9 @@
-import { computed } from "vue";
+import { computed, inject } from "vue";
+import type { ComputedRef, InjectionKey, Ref } from "vue";
 import { useI18n } from "@/i18n";
+
+export const LEAK_MONITOR_LOCALIZED_KEY: InjectionKey<ComputedRef<boolean>> =
+  Symbol("leak-monitor-localized");
 
 const messages = {
   "zh-CN": {
@@ -288,9 +292,15 @@ const messages = {
 
 type MessageKey = keyof typeof messages["zh-CN"];
 
-export function useLeakMonitorI18n() {
+export function useLeakMonitorI18n(localizedOverride?: Readonly<Ref<boolean>>) {
   const { locale } = useI18n();
-  const language = computed(() => locale.value === "en-US" ? "en-US" : "zh-CN");
+  const localized =
+    localizedOverride ??
+    inject(LEAK_MONITOR_LOCALIZED_KEY, computed(() => true));
+  const language = computed(() => {
+    if (!localized.value) return "zh-CN";
+    return locale.value === "en-US" ? "en-US" : "zh-CN";
+  });
 
   function t(
     key: MessageKey,
