@@ -42,6 +42,7 @@
                 class="data-cell"
                 :class="[
                   col.className,
+                  col.bodyClassName,
                   'data-cell--clickable'
                 ]"
                 :style="cellStyle(col)"
@@ -55,7 +56,10 @@
             <text
                 v-else
                 class="data-cell"
-                :class="col.className"
+                :class="[
+                  col.className,
+                  col.bodyClassName
+                ]"
                 :style="cellStyle(col)"
             >
               {{ formatValue(row,col) }}
@@ -207,7 +211,7 @@ function handleCellClick(
   const value=row[col.key];
   switch(col.type){
     case 'coord':
-      handleCoordinate(value);
+      handleCoordinate(formatValue(row,col));
       break;
     default:
       col.onClick?.(
@@ -230,7 +234,10 @@ function openCoord(longitude: number, latitude: number) {
 }
 
 function handleCoordinate(coordinate?: string) {
-  if (coordinate) {
+  if (coordinate!== undefined &&
+      coordinate !== null &&
+      coordinate.trim() !== '' &&
+      coordinate.trim() !== '-') {
     const [longitude, latitude] = coordinate.split(",").map(Number);
 
     if (longitude && latitude) {

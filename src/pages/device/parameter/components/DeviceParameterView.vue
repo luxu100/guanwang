@@ -1,5 +1,5 @@
 <template>
-  <view class="device-page">
+  <view class="page-container">
     <DeviceParameterToolbar
         v-model="searchForm"
         @search="handleSearch"
@@ -8,7 +8,7 @@
         @show-detail="toggleDetailPanel"
     />
 
-    <view class="worksheet-layout"
+    <view class="content-layout"
           :style="layoutStyle"
           :class="[layoutClass,{collapsed:isDetailCollapsed}]"
     >
@@ -165,123 +165,5 @@ onMounted(fetchParameters);
 </script>
 
 <style scoped lang="scss">
-.device-page {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-  padding: 0 14px 14px;
-  background: #eef4f8;
-}
-
-/* 顶部工具栏与下方内容间距 */
-.device-page > :first-child {
-  flex-shrink: 0;
-}
-
-/* 主体区域 */
-.worksheet-layout {
-  gap: 0px;
-  margin-top: 14px;
-  flex:1;
-  display:grid;
-  grid-template-rows:minmax(0,1fr);
-  min-height:0;
-  overflow:hidden;
-}
-
-/* 默认：左列表 + 右详情 */
-.layout-full {
-  grid-template-columns: 1fr;
-}
-
-.layout-split {
-  grid-template-columns: minmax(0, 1fr) 24px 400px;
-}
-
-.layout-equal {
-  grid-template-columns: 1fr 24px 1fr;
-}
-
-.layout-one-two {
-  grid-template-columns: 1fr 24px 2fr;
-}
-
-.detail-panel {
-  display: flex;
-  flex-direction: column;
-
-  min-width: 0;
-  min-height: 0;
-
-  overflow: hidden;
-
-  background: #ffffff;
-
-  border: 1px solid #d8e5ef;
-  border-radius: 6px;
-
-  box-shadow: 0 12px 26px rgba(35,72,104,.09);
-}
-
-.detail-panel {
-  overflow-y: auto;
-}
-
-/* 空状态 */
-.detail-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  height: 100%;
-
-  color: #999;
-  font-size: 14px;
-}
-
-.worksheet-layout.collapsed {
-  grid-template-columns: minmax(0, 1fr) 24px 0;
-}
-
-.split-handle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  cursor: col-resize;
-  user-select: none;
-
-  background: transparent;
-
-  position: relative;
-
-  //color: transparent; /* 默认不显示箭头 */
-
-  z-index: 999;
-}
-
-.split-handle:hover {
-  background: rgba(64, 158, 255, 0.06);
-  color: #409eff;
-}
-
-.split-handle::before {
-  content: '';
-  position: absolute;
-  top: 12px;
-  bottom: 12px;
-  left: 50%;
-  width: 1px;
-  background: #e4e7ed;
-  transform: translateX(-50%);
-}
-
-.split-handle::after {
-  content: '⋮';
-  font-size: 10px;
-  color: #c0c4cc;
-  position: relative;
-}
-
+@import "@/pages/device/components/x/common/page-layout.css";
 </style>

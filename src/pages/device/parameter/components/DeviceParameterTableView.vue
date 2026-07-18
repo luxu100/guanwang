@@ -73,7 +73,7 @@ const deviceParameterDynamicColumns:XDataColumn[]=[
   {key:'nbgsm4gimsi',labelKey:'deviceParameter.parameterTable.nbgsm4gimsi',width:180,className:'data-cell--text'},
   {key:'iccid',labelKey:'deviceParameter.parameterTable.iccid',width:200,className:'data-cell--text'},
   {key:'samplingTime',labelKey:'deviceParameter.parameterTable.samplingTime',width:160,className:'data-cell--time',formatter:v=>v==null?'-':formatDate(v)},
-  {key:'coordinateLocation',labelKey:'deviceParameter.parameterTable.coordinateLocation',width:180,className:'data-cell--coord data-cell--link',type:'coord',formatter:v=>{if(!Array.isArray(v)||v.length<2||(v[0]==null&&v[1]==null)){return '-'}return v.join(', ')}},
+  {key:'coordinateLocation',labelKey:'deviceParameter.parameterTable.coordinateLocation',width:180,className:'data-cell--coord',bodyClassName:'data-cell--link',type:'coord',formatter:v=>{if(!Array.isArray(v)||v.length<2||(v[0]==null&&v[1]==null)){return '-'}return v.join(', ')}},
   {key:'gpsLocationTime',labelKey:'deviceParameter.parameterTable.gpsLocationTime',width:160,className:'data-cell--time',formatter:v=>v==null?'-':formatDate(v)},
   {key:'samplingRate',labelKey:'deviceParameter.parameterTable.samplingRate',width:120,className:'data-cell--number'},
   {key:'onceMeasureLength',labelKey:'deviceParameter.parameterTable.onceMeasureLength',width:140,className:'data-cell--number'},

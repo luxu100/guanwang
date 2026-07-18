@@ -113,6 +113,7 @@ export interface XDataColumn {
         | 'link'
         | 'image';
     className?:string;
+    bodyClassName?:string;
     formatter?:(value:any,row:any)=>any;
     onClick?:(
         value:any,

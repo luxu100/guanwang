@@ -1,0 +1,78 @@
+.page-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    padding: 0 14px 14px;
+    background: #eef4f8;
+}
+
+/* 顶部工具栏与下方内容间距 */
+.page-container > :first-child {
+    flex-shrink: 0;
+}
+
+/* 主体区域 */
+.content-layout {
+    gap: 0px;
+    margin-top: 14px;
+    flex:1;
+    display:grid;
+    grid-template-rows:minmax(0,1fr);
+    min-height:0;
+    overflow:hidden;
+}
+
+/* 默认：左列表 + 右详情 */
+.layout-full {
+    grid-template-columns: 1fr;
+}
+
+.layout-split {
+    grid-template-columns: minmax(0, 1fr) 24px 400px;
+}
+
+.layout-equal {
+    grid-template-columns: 1fr 24px 1fr;
+}
+
+.layout-one-two {
+    grid-template-columns: 1fr 24px 2fr;
+}
+
+.detail-panel {
+    display: flex;
+    flex-direction: column;
+
+    min-width: 0;
+    min-height: 0;
+
+    overflow: hidden;
+
+    background: #ffffff;
+
+    border: 1px solid #d8e5ef;
+    border-radius: 6px;
+
+    box-shadow: 0 12px 26px rgba(35,72,104,.09);
+}
+
+.detail-panel {
+    overflow-y: auto;
+}
+
+/* 空状态 */
+.detail-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    height: 100%;
+
+    color: #999;
+    font-size: 14px;
+}
+
+.content-layout.collapsed {
+    grid-template-columns: minmax(0, 1fr) 24px 0;
+}
