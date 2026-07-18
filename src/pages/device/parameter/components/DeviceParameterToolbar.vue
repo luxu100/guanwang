@@ -114,6 +114,4 @@ const fields:Field[]=[
     type:"date"
   }
 ];
-
-
 </script>
