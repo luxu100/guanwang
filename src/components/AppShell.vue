@@ -94,7 +94,7 @@
               @click="goMenuItem(item)"
             >
               <text class="side-menu__icon" :class="`side-menu__icon--${item.icon}`"></text>
-              <text class="side-menu__label">{{ getMenuLabel(item) }}</text>
+              <text class="side-menu__label" :title="getMenuLabel(item)">{{ getMenuLabel(item) }}</text>
             </view>
 
             <view v-if="item.children?.length && isMenuItemExpanded(item)" class="side-menu__children">
@@ -107,7 +107,7 @@
                 @click.stop="goPage(child.path)"
               >
                 <text class="side-menu__child-dot"></text>
-                <text class="side-menu__child-label">{{ getMenuLabel(child) }}</text>
+                <text class="side-menu__child-label" :title="getMenuLabel(child)">{{ getMenuLabel(child) }}</text>
               </view>
             </view>
 
@@ -146,7 +146,7 @@
               @click="activateTab(tab.path)"
             >
               <text class="page-tab__icon" :class="`page-tab__icon--${tab.icon}`"></text>
-              <text class="page-tab__label">{{ getMenuLabelByPath(tab.path) }}</text>
+              <text class="page-tab__label" :title="getMenuLabelByPath(tab.path)">{{ getMenuLabelByPath(tab.path) }}</text>
               <button class="page-tab__close" hover-class="page-tab__close--hover" @click.stop="closeTab(tab.path)">
                 <text class="page-tab__close-icon"></text>
               </button>
