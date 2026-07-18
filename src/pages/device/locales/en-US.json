@@ -297,12 +297,11 @@
       "title": "Device Details",
 
       "tabs": {
-        "detail": "Device Details",
-        "relation": "Related Information",
-        "base": "Basic Information",
-        "status": "Status Information",
-        "install": "Installation Information",
-        "communication": "Communication Information"
+        "base": "Basic Info",
+        "status": "Status",
+        "install": "Installation",
+        "communication": "Connectivity",
+        "relation": "Relations"
       },
 
       "empty": "No Data",

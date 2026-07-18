@@ -212,14 +212,12 @@ const detailTabConfig = computed<Record<string,SectionConfig[]>>(()=>({
         {
           key:'hardwareVersion',
           label:ti('fields.device.hardwareVersion'),
-          type:'text',
-          span:'half'
+          type:'text'
         },
         {
           key:'softwareVersion',
           label:ti('fields.device.softwareVersion'),
-          type:'text',
-          span:'half'
+          type:'text'
         },
         {
           key:'algorithmType',
