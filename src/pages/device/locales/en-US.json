@@ -662,6 +662,371 @@
         "deviceModel": "Device Model",
         "simCardNo": "SIM Card Number"
       }
+    },
+    "protocol13PressureMeasureV1": {
+      "firmwareVersion": "Firmware Version",
+      "firmwareUpdateTime": "Firmware Update Time",
+      "protocolVersion": "Protocol Version",
+      "hardwareVersion": "Hardware Version",
+      "tubeRemark": "Pipe Remark",
+      "deviceTime": "Device Time",
+
+      "samplingRate": "Sampling Rate",
+      "onceMeasureLength": "Single Measurement Length",
+      "filterLowFrequency": "Filter Low Frequency",
+      "filterHighFrequency": "Filter High Frequency",
+      "filterMethod": "Filter Method",
+
+      "signalLevel": "Signal Level",
+      "benchmarkValue": "Benchmark Value",
+      "noiseBenchmarkValue": "Noise Benchmark Value",
+      "signalChannel": "Signal Channel",
+
+      "syncSamplingTime": "Sync Sampling Time",
+      "syncSamplingNumber": "Sync Sampling Number",
+
+      "audioRule": "Audio Rule",
+      "samplingCount": "Sampling Count",
+      "leakThreshold": "Leak Threshold",
+      "loraPower": "LoRa Power",
+
+      "gpsSyncMode": "GPS Sync Mode",
+
+      "lockType": "Lock Type",
+
+      "inspectionControl": "Inspection Control",
+      "disassemblyControl": "Disassembly Control",
+      "workMode": "Work Mode",
+
+      "samplingTime": "Sampling Time",
+      "lastSamplingTime": "Last Sampling Time",
+      "recentMeasureTime": "Recent Measure Time",
+
+      "deviceTemperature": "Device Temperature",
+      "batteryVoltage": "Battery Voltage",
+
+      "rebootTimes": "Reboot Times",
+      "rebootRunLength": "Reboot Runtime",
+      "runLength": "Runtime",
+      "rebootRecently": "Last Reboot Time",
+
+      "measureDays": "Measurement Days",
+
+      "leakEsa": "Leak ESA",
+      "leakIntensity": "Leak Intensity",
+      "leakFrequency": "Leak Frequency",
+
+      "statusRemark": "Status Remark",
+      "leakStatus": "Leak Status",
+      "eventRemark": "Event Remark",
+
+      "nbgsm4gimei": "NB/4G IMEI",
+      "nbgsm4gimsi": "NB/4G IMSI",
+
+      "sendTimes": "Send Times",
+      "networkFlow": "Network Traffic",
+
+      "signalIntensity": "Signal Intensity",
+      "signalQuality": "Signal Quality",
+      "netSnr": "Network SNR",
+      "signalCoverage": "Signal Coverage",
+
+      "pressureThreshold": "Pressure Threshold",
+      "pressure": "Pressure",
+
+      "thresholdRatio": "Threshold Ratio",
+
+      "batteryGroupVoltage": "Battery Group Voltage",
+      "sunBatteryVoltage": "Solar Battery Voltage",
+
+      "pressureUnit": "Pressure Unit",
+      "pressureDecimals": "Pressure Decimal Places",
+      "pressureMeasure": "Pressure Measurement",
+
+      "instantaneousFlowRate": "Instantaneous Flow Rate",
+      "cumulativeTrafficInteger": "Cumulative Flow Integer",
+      "cumulativeTrafficDecimal": "Cumulative Flow Decimal",
+
+      "liquidLevelMeterHeight": "Liquid Level Meter Height",
+      "airDistance": "Air Distance",
+      "coordinateLocation": "Coordinate Location"
+    },
+    "protocol17NbAfn08ClassThreeSimpleV1": {
+      "deviceModel": "Device Model",
+      "simCardNo": "SIM Card Number",
+      "iccid": "ICCID",
+      "audioType": "Audio Type",
+      "firmwareVersion": "Firmware Version",
+      "hardwareVersion": "Hardware Version"
+    },
+    "protocol12PressureNullV1": {
+      "firmwareVersion": "Firmware Version",
+      "firmwareUpdateTime": "Firmware Update Time",
+      "protocolVersion": "Protocol Version",
+      "hardwareVersion": "Hardware Version",
+      "tubeRemark": "Pipe Remark",
+      "deviceTime": "Device Time",
+
+      "samplingRate": "Sampling Rate",
+      "onceMeasureLength": "Single Measurement Length",
+      "filterLowFrequency": "Filter Low Frequency",
+      "filterHighFrequency": "Filter High Frequency",
+      "filterMethod": "Filter Method",
+      "gain": "Gain",
+
+      "signalLevel": "Signal Level",
+      "benchmarkValue": "Benchmark Value",
+      "noiseBenchmarkValue": "Noise Benchmark Value",
+      "signalChannel": "Signal Channel",
+
+      "syncSamplingTime": "Sync Sampling Time",
+      "syncSamplingNumber": "Sync Sampling Number",
+
+      "audioRule": "Audio Rule",
+      "samplingCount": "Sampling Count",
+      "leakThreshold": "Leak Threshold",
+      "loraPower": "LoRa Power",
+
+      "gpsSyncMode": "GPS Sync Mode",
+      "gpsLocation": "GPS Location",
+
+      "lockType": "Lock Type",
+
+      "inspectionControl": "Inspection Control",
+      "disassemblyControl": "Disassembly Control",
+      "workMode": "Work Mode",
+
+      "samplingTime": "Sampling Time",
+      "lastSamplingTime": "Last Sampling Time",
+      "recentMeasureTime": "Recent Measure Time",
+
+      "deviceTemperature": "Device Temperature",
+      "batteryVoltage": "Battery Voltage",
+
+      "rebootTimes": "Reboot Times",
+      "rebootRunLength": "Reboot Runtime",
+      "runLength": "Runtime",
+      "rebootRecently": "Recent Reboot Time",
+
+      "measureDays": "Measurement Days",
+
+      "simulatorMeasureLength": "Simulator Measurement Length",
+      "loraRunLength": "LoRa Runtime",
+      "nbRunLength": "NB Runtime",
+      "gpsRunLength": "GPS Runtime",
+
+      "esaGroupCount": "ESA Group Count",
+      "esaIntensityFrequency": "ESA Intensity Frequency",
+
+      "leakEsa": "Leak ESA",
+      "leakIntensity": "Leak Intensity",
+      "leakFrequency": "Leak Frequency",
+
+      "statusRemark": "Status Remark",
+      "leakStatus": "Leak Status",
+      "eventRemark": "Event Remark",
+
+      "nbgsm4gimei": "NB/4G IMEI",
+      "nbgsm4gimsi": "NB/4G IMSI",
+
+      "sendTimes": "Send Times",
+      "networkFlow": "Network Traffic",
+
+      "signalIntensity": "Signal Intensity",
+      "signalQuality": "Signal Quality",
+      "netSnr": "Network SNR",
+      "signalCoverage": "Signal Coverage",
+
+      "coordinateLocation": "Coordinate Location",
+
+      "pressureThreshold": "Pressure Threshold",
+      "pressure": "Pressure",
+
+      "thresholdRatio": "Threshold Ratio",
+
+      "batteryGroupVoltage": "Battery Group Voltage",
+      "sunBatteryVoltage": "Solar Battery Voltage",
+
+      "pressureUnit": "Pressure Unit",
+      "pressureDecimals": "Pressure Decimal Places",
+      "pressureMeasure": "Pressure Measurement",
+
+      "instantaneousFlowRate": "Instantaneous Flow Rate",
+      "cumulativeTrafficInteger": "Cumulative Traffic Integer",
+      "cumulativeTrafficDecimal": "Cumulative Traffic Decimal",
+
+      "liquidLevelMeterHeight": "Liquid Level Meter Height",
+      "airDistance": "Air Distance"
+    },
+    "protocol11NbClassOneV1": {
+      "firmwareVersion": "Firmware Version",
+      "firmwareUpdateTime": "Firmware Update Time",
+      "protocolVersion": "Protocol Version",
+      "hardwareVersion": "Hardware Version",
+      "tubeRemark": "Pipe Remark",
+      "deviceTime": "Device Time",
+
+      "samplingRate": "Sampling Rate",
+      "onceMeasureLength": "Single Measurement Length",
+      "filterLowFrequency": "Filter Low Frequency",
+      "filterHighFrequency": "Filter High Frequency",
+      "filterMethod": "Filter Method",
+      "gain": "Gain",
+
+      "signalLevel": "Signal Level",
+      "benchmarkValue": "Benchmark Value",
+      "noiseBenchmarkValue": "Noise Benchmark Value",
+      "signalChannel": "Signal Channel",
+
+      "syncSamplingTime": "Sync Sampling Time",
+      "syncSamplingNumber": "Sync Sampling Number",
+
+      "audioRule": "Audio Rule",
+      "samplingCount": "Sampling Count",
+      "leakThreshold": "Leak Threshold",
+      "loraPower": "LoRa Power",
+
+      "gpsSyncMode": "GPS Sync Mode",
+      "gpsLocation": "GPS Location",
+
+      "lockType": "Lock Type",
+
+      "inspectionControl": "Inspection Control",
+      "disassemblyControl": "Disassembly Control",
+      "workMode": "Work Mode",
+
+      "samplingTime": "Sampling Time",
+      "lastSamplingTime": "Last Sampling Time",
+      "recentMeasureTime": "Recent Measure Time",
+
+      "deviceTemperature": "Device Temperature",
+      "batteryVoltage": "Battery Voltage",
+
+      "rebootTimes": "Reboot Times",
+      "rebootRunLength": "Reboot Runtime",
+      "runLength": "Runtime",
+      "rebootRecently": "Recent Reboot Time",
+
+      "measureDays": "Measurement Days",
+
+      "simulatorMeasureLength": "Simulator Measurement Length",
+      "loraRunLength": "LoRa Runtime",
+      "nbRunLength": "NB Runtime",
+      "gpsRunLength": "GPS Runtime",
+
+      "esaGroupCount": "ESA Group Count",
+      "esaIntensityFrequency": "ESA Intensity Frequency",
+
+      "leakEsa": "Leak ESA",
+      "leakIntensity": "Leak Intensity",
+      "leakFrequency": "Leak Frequency",
+
+      "statusRemark": "Status Remark",
+      "leakStatus": "Leak Status",
+      "eventRemark": "Event Remark",
+
+      "nbgsm4gimei": "NB/4G IMEI",
+      "nbgsm4gimsi": "NB/4G IMSI",
+
+      "sendTimes": "Send Times",
+      "networkFlow": "Network Traffic",
+
+      "signalIntensity": "Signal Intensity",
+      "signalQuality": "Signal Quality",
+      "netSnr": "Network SNR",
+      "signalCoverage": "Signal Coverage",
+
+      "coordinateLocation": "Coordinate Location"
+    },
+    "protocol9001Afn08ClassOneLegacyTest": {
+      "firmwareVersion": "Firmware Version",
+      "firmwareUpdateTime": "Firmware Update Time",
+      "protocolVersion": "Protocol Version",
+      "hardwareVersion": "Hardware Version",
+      "deviceTime": "Device Time",
+
+      "samplingRate": "Sampling Rate",
+      "onceMeasureLength": "Single Measurement Length",
+      "filterLowFrequency": "Filter Low Frequency",
+      "filterHighFrequency": "Filter High Frequency",
+      "filterMethod": "Filter Method",
+
+      "measureGainMode": "Measurement Gain Mode",
+      "gainRaw": "Raw Gain",
+
+      "signalLevel": "Signal Level",
+      "benchmarkValue": "Benchmark Value",
+      "noiseBenchmarkValue": "Noise Benchmark Value",
+      "signalChannel": "Signal Channel",
+
+      "syncSamplingTime": "Sync Sampling Time",
+      "syncSamplingNumber": "Sync Sampling Number",
+
+      "audioRule": "Audio Rule",
+      "samplingCount": "Sampling Count",
+      "leakThreshold": "Leak Threshold",
+      "loraPower": "LoRa Power",
+
+      "gpsSyncMode": "GPS Sync Mode",
+      "gpsLocation": "GPS Location",
+
+      "lockType": "Lock Type",
+
+      "inspectionControl": "Inspection Control",
+      "disassemblyControl": "Disassembly Control",
+      "workMode": "Work Mode",
+
+      "samplingTime": "Sampling Time",
+      "lastSamplingTime": "Last Sampling Time",
+      "recentMeasureTime": "Recent Measure Time",
+
+      "deviceTemperature": "Device Temperature",
+      "batteryVoltage": "Battery Voltage",
+
+      "rebootTimes": "Reboot Times",
+      "rebootRunLength": "Reboot Runtime",
+      "runLength": "Runtime",
+      "rebootRecently": "Recent Reboot Time",
+
+      "measureDays": "Measurement Days",
+
+      "leakEsa": "Leak ESA",
+      "leakIntensity": "Leak Intensity",
+      "leakFrequency": "Leak Frequency",
+
+      "statusRemark": "Status Remark",
+      "leakStatus": "Leak Status",
+      "eventRemark": "Event Remark",
+
+      "nbgsm4gimei": "NB/4G IMEI",
+      "nbgsm4gimsi": "NB/4G IMSI",
+
+      "sendTimes": "Send Times",
+      "networkFlow": "Network Traffic",
+
+      "signalIntensity": "Signal Intensity",
+      "signalQuality": "Signal Quality",
+      "netSnr": "Network SNR",
+      "signalCoverage": "Signal Coverage",
+
+      "coordinateLocation": "Coordinate Location",
+
+      "pressureThreshold": "Pressure Threshold",
+      "pressure": "Pressure",
+
+      "batteryGroupVoltage": "Battery Group Voltage",
+      "sunBatteryVoltage": "Solar Battery Voltage",
+
+      "pressureUnit": "Pressure Unit",
+      "pressureDecimals": "Pressure Decimal Places",
+      "pressureMeasureRaw": "Raw Pressure Measurement",
+
+      "instantaneousFlowRate": "Instantaneous Flow Rate",
+      "cumulativeTrafficInteger": "Cumulative Traffic Integer",
+      "cumulativeTrafficDecimal": "Cumulative Traffic Decimal",
+
+      "liquidLevelMeterHeight": "Liquid Level Meter Height",
+      "airDistance": "Air Distance"
     }
   }
 }

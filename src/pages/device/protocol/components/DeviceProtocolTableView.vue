@@ -22,7 +22,7 @@
             <text class="data-cell">{{ t("deviceProtocol.table.updatedAt") }}</text>
           </view>
 
-          <view v-if="loading" class="table-state table-state--loading">{{ t('common.table.loading') }}</view>
+          <view v-if="loading" class="loading-mask">{{ t('common.table.loading') }}</view>
           <view v-else-if="deviceProtocolList.length === 0" class="table-state">{{ t('common.table.empty') }}</view>
 
           <view

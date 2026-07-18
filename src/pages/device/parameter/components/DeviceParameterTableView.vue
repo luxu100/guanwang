@@ -31,6 +31,7 @@ import type {DeviceParameterPageVO} from '@/services/device/types';
 import type {XDataColumn} from '@/pages/device/components/x/types';
 import {createScopedT} from '@/i18n';
 import {formatDate} from '@/utils/time';
+import {protocolColumnsMap} from "@/pages/device/components/common";
 
 const t=createScopedT('devicePage');
 
@@ -63,33 +64,10 @@ const fixedColumns:XDataColumn[]=[
 ];
 
 const deviceParameterDynamicColumns:XDataColumn[]=[
-  {key:'signalQuality',labelKey:'deviceParameter.parameterTable.signalQuality',width:120,className:'data-cell--number',formatter:v=>v==null?'-':v},
-  {key:'netSnr',labelKey:'deviceParameter.parameterTable.netSnr',width:120,className:'data-cell--number',formatter:v=>v==null?'-':v+'dB'},
-  {key:'signalCoverage',labelKey:'deviceParameter.parameterTable.signalCoverage',width:120,className:'data-cell--number'},
-  {key:'batteryVoltage',labelKey:'deviceParameter.parameterTable.batteryVoltage',width:120,className:'data-cell--number',formatter:v=>v==null?'-':v+'V'},
-  {key:'rebootRecently',labelKey:'deviceParameter.parameterTable.rebootRecently',width:160,className:'data-cell--time',formatter:v=>v==null?'-':formatDate(v)},
-  {key:'rebootTimes',labelKey:'deviceParameter.parameterTable.rebootTimes',width:120,className:'data-cell--number'},
-  {key:'nbgsm4gimei',labelKey:'deviceParameter.parameterTable.nbgsm4gimei',width:180,className:'data-cell--text'},
-  {key:'nbgsm4gimsi',labelKey:'deviceParameter.parameterTable.nbgsm4gimsi',width:180,className:'data-cell--text'},
-  {key:'iccid',labelKey:'deviceParameter.parameterTable.iccid',width:200,className:'data-cell--text'},
-  {key:'samplingTime',labelKey:'deviceParameter.parameterTable.samplingTime',width:160,className:'data-cell--time',formatter:v=>v==null?'-':formatDate(v)},
-  {key:'coordinateLocation',labelKey:'deviceParameter.parameterTable.coordinateLocation',width:180,className:'data-cell--coord',bodyClassName:'data-cell--link',type:'coord',formatter:v=>{if(!Array.isArray(v)||v.length<2||(v[0]==null&&v[1]==null)){return '-'}return v.join(', ')}},
-  {key:'gpsLocationTime',labelKey:'deviceParameter.parameterTable.gpsLocationTime',width:160,className:'data-cell--time',formatter:v=>v==null?'-':formatDate(v)},
-  {key:'samplingRate',labelKey:'deviceParameter.parameterTable.samplingRate',width:120,className:'data-cell--number'},
-  {key:'onceMeasureLength',labelKey:'deviceParameter.parameterTable.onceMeasureLength',width:200,className:'data-cell--number'},
-  {key:'leakThreshold',labelKey:'deviceParameter.parameterTable.leakThreshold',width:160,className:'data-cell--number'},
-  {key:'inspectionControl',labelKey:'deviceParameter.parameterTable.inspectionControl',width:200,className:'data-cell--status'},
-  {key:'workMode',labelKey:'deviceParameter.parameterTable.workMode',width:120,className:'data-cell--status'},
-  {key:'deviceTemperature',labelKey:'deviceParameter.parameterTable.deviceTemperature',width:160,className:'data-cell--number',formatter:v=>v==null?'-':v+'℃'},
-  {key:'signalIntensity',labelKey:'deviceParameter.parameterTable.signalIntensity',width:160,className:'data-cell--number'},
-  {key:'networkFlow',labelKey:'deviceParameter.parameterTable.networkFlow',width:120,className:'data-cell--number'},
-  {key:'sendTimes',labelKey:'deviceParameter.parameterTable.sendTimes',width:120,className:'data-cell--number'},
-  {key:'fmMode',labelKey:'deviceParameter.parameterTable.fmMode',width:120,className:'data-cell--text'},
-  {key:'fmFrequency',labelKey:'deviceParameter.parameterTable.fmFrequency',width:120,className:'data-cell--number',formatter:v=>v==null?'-':v+'MHz'},
-  {key:'audioType',labelKey:'deviceParameter.parameterTable.audioType',width:120,className:'data-cell--text'},
-  {key:'deviceModel',labelKey:'deviceParameter.parameterTable.deviceModel',width:120,className:'data-cell--text'},
-  {key:'simCardNo',labelKey:'deviceParameter.parameterTable.simCardNo',width:180,className:'data-cell--text'}
+  ...protocolColumnsMap[13],
+  ...protocolColumnsMap[17]
 ];
+
 
 const columns=computed<XDataColumn[]>(()=>{
   const keys=new Set(props.deviceParameters.flatMap(row=>Object.keys(row)));

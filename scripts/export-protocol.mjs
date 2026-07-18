@@ -69,7 +69,7 @@ async function exportProtocolsJson(token, tokenPrefix) {
 
     for (const protocol of protocols) {
         console.log(
-            `处理协议: ${protocol.protocol_name}`
+            `处理协议: ${protocol.protocolName}`
         );
 
         const fieldResponse = await request(
@@ -85,9 +85,16 @@ async function exportProtocolsJson(token, tokenPrefix) {
 
         result.push({
             protocol_id: protocol.id,
-            protocol_code: protocol.protocol_code,
-            protocol_name: protocol.protocol_name,
-            fields: fieldResponse.data || []
+            protocol_code: protocol.protocolCode,
+            protocol_name: protocol.protocolName,
+            fields: (fieldResponse.data || []).map(field => ({
+                fieldName: field.fieldName,
+                fieldCnName: field.fieldCnName,
+                format: field.format,
+                outputType: field.outputType,
+                unit: field.unit,
+                enumMapping: field.enumMapping
+            }))
         });
     }
 
