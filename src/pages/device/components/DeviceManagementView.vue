@@ -5,13 +5,6 @@
       <DeviceToolbar
           v-model="searchForm"
           :fields="toolbarConfig"
-          :product-options="productOptions"
-          :enable-state-options="enableStateOptions"
-          :install-state-options="installStateOptions"
-          :online-status-options="onlineStatusOptions"
-          :leak-status-options="leakStatusOptions"
-          :maintain-type-options="maintainTypeOptions"
-          :receive-status-options="receiveStatusOptions"
           :buttons="showButtonConfig"
           @search="handleSearch"
           @reset="handleReset"
@@ -203,17 +196,17 @@ const deviceModuleConfig = {
 
     searchForm: {
       deviceNumber: "",
-      deviceType: "",
-      enableState: "",
-      onlineStatus: "",
-      leakStatus: "",
+      deviceType: null,
+      enableState: null,
+      onlineStatus: null,
+      leakStatus: null,
       startTime: "",
       endTime: "",
     },
 
     toolbar: [
       { key: "deviceNumber", labelKey: "fields.deviceNumber", type: "input",queryScope: "device"},
-      { key: "deviceType", labelKey: "fields.deviceType", type: "select", dict: "product",queryScope: "device"},
+      { key: "deviceType", labelKey: "fields.deviceType", type: "select", dict: "deviceType",queryScope: "device"},
       { key: "onlineStatus", labelKey: "fields.onlineStatus", type: "select", dict: "online",queryScope: "device"},
       { key: "enableState", labelKey: "fields.enableState", type: "select", dict: "enable" ,queryScope: "device"},
       { key: "leakStatus", labelKey: "fields.leakStatus", type: "select", dict: "leak",queryScope: "device"},
@@ -239,7 +232,7 @@ const deviceModuleConfig = {
 
     searchForm: {
       deviceNumber: "",
-      maintainType: null as number | null,
+      maintainType: null,
       startTime: '',
       endTime: ''
     },
@@ -333,59 +326,6 @@ watch(
     { immediate: true }
 );
 
-/**
- * =========================
- * options（字典）
- * =========================
- */
-const productOptions = ref([
-  { labelKey: "common.all", value: "" },
-  { labelKey: "status.product.TCP", value: "TCP" },
-  { labelKey: "status.product.NB", value: "NB" },
-]);
-
-const enableStateOptions = [
-  { labelKey: "common.all", value: "" },
-  { labelKey: "status.status.enabled", value: 1 },
-  { labelKey: "status.status.disabled", value: 0 },
-];
-
-const maintainTypeOptions = [
-  { labelKey: "common.all", value: null },
-  { labelKey: "status.maintain.remove", value: 0 },
-  { labelKey: "status.maintain.install", value: 1 },
-  { labelKey: "status.maintain.maintenance", value: 2 },
-  { labelKey: "status.maintain.inspect", value: 3 },
-];
-
-const installStateOptions = [
-  { labelKey: "common.all", value: "" },
-  { labelKey: "status.install.installed", value: 1 },
-  { labelKey: "status.install.uninstalled", value: 0 },
-];
-
-const onlineStatusOptions = [
-  { labelKey: "common.all", value: "" },
-  { labelKey: "status.online.online", value: 1 },
-  { labelKey: "status.online.offline", value: 0 },
-];
-
-const leakStatusOptions = [
-  { labelKey: "common.all", value: "" },
-  { labelKey: "status.leak.normal", value: 1 },
-  { labelKey: "status.leak.leak", value: 0 },
-  { labelKey: "status.leak.suspected", value: 2 },
-  { labelKey: "status.leak.unknown", value: 3 },
-];
-
-const receiveStatusOptions = [
-  { labelKey: "common.all", value: "" },
-  { labelKey: "status.receive.normal", value: 0 },
-  { labelKey: "status.receive.short", value: 1 },
-  { labelKey: "status.receive.long", value: 2 },
-  { labelKey: "status.receive.error", value: 3 },
-  { labelKey: "status.receive.uninit", value: 4 }
-];
 /**
  * =========================
  * api
