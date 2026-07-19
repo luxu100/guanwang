@@ -99,21 +99,21 @@ const columnVisible = computed(() => ({
 const loading = ref(false);
 const columns = computed<XDataColumn[]>(()=>{
   const list:XDataColumn[] = [];
-  if(columnVisible.value.deviceNumber) list.push({ key:'deviceNumber', labelKey:'deviceTable.deviceNumber', width:180 });
-  if(columnVisible.value.deviceType) list.push({ key:'deviceType', labelKey:'deviceTable.deviceType', width:150, options:deviceTypeOptions });
-  if(columnVisible.value.deviceAlias) list.push({ key:'deviceAlias', labelKey:'deviceTable.deviceAlias', width:180, formatter:value=>value || '-' });
-  if(columnVisible.value.enableState) list.push({ key:'enableState', labelKey:'deviceTable.enableState', width:120, options:enableStateOptions });
-  if(columnVisible.value.installState) list.push({ key:'installState', labelKey:'deviceTable.installState', width:160, options:installStateOptions });
-  if(columnVisible.value.installMode) list.push({ key:'installMode', labelKey:'deviceTable.installMode', width:160, options:installModeOptions });
-  if(columnVisible.value.installAddress) list.push({ key:'installAddress', labelKey:'deviceTable.installAddress', width:240, formatter:value=>value || '-' });
-  if(columnVisible.value.coordinate) list.push({ key:'coordinate', labelKey:'deviceTable.coordinate', width:180, type:'coord',bodyClassName:'data-cell--link', formatter:(_,row)=>row.installLongitude===999&&row.installLatitude===999?'-':row.installLongitude&&row.installLatitude?`${row.installLongitude},${row.installLatitude}`:'-' });
-  if(columnVisible.value.algorithmType) list.push({ key:'algorithmType', labelKey:'deviceTable.algorithmType', width:150,options:algorithmTypeOptions });
-  if(columnVisible.value.algorithmVersion) list.push({ key:'algorithmVersion', labelKey:'deviceTable.algorithmVersion', width:160, formatter:value=>value || '-' });
-  if(columnVisible.value.tubeGroup) list.push({ key:'tubeGroup', labelKey:'deviceTable.tubeGroup', width:120, formatter:value=>value || '-' });
-  if(columnVisible.value.leakStatus) list.push({ key:'leakStatus', labelKey:'deviceTable.leakStatus', width:120, options:leakStatusOptions });
-  if(columnVisible.value.lastSamplingTime) list.push({ key:'lastSamplingTime', labelKey:'deviceTable.lastSamplingTime', width:180, formatter:value=>formatDate(value) });
-  if(columnVisible.value.onlineStatus) list.push({ key:'onlineStatus', labelKey:'deviceTable.onlineStatus', width:120, options:onlineStatusOptions });
-  if(columnVisible.value.factoryTime) list.push({ key:'factoryTime', labelKey:'deviceTable.factoryTime', width:180, formatter:value=>formatDate(value) || '-' });
+  if(columnVisible.value.deviceNumber) list.push({ key:'deviceNumber', labelKey:'deviceTable.deviceNumber', width:180, className:'data-cell--number' });
+  if(columnVisible.value.deviceType) list.push({ key:'deviceType', labelKey:'deviceTable.deviceType', width:150, className:'data-cell--text', options:deviceTypeOptions });
+  if(columnVisible.value.deviceAlias) list.push({ key:'deviceAlias', labelKey:'deviceTable.deviceAlias', width:180, className:'data-cell--remark', formatter:value=>value || '-' });
+  if(columnVisible.value.enableState) list.push({ key:'enableState', labelKey:'deviceTable.enableState', width:120, className:'data-cell--status', options:enableStateOptions });
+  if(columnVisible.value.installState) list.push({ key:'installState', labelKey:'deviceTable.installState', width:160, className:'data-cell--status', options:installStateOptions });
+  if(columnVisible.value.installMode) list.push({ key:'installMode', labelKey:'deviceTable.installMode', width:160, className:'data-cell--status', options:installModeOptions });
+  if(columnVisible.value.installAddress) list.push({ key:'installAddress', labelKey:'deviceTable.installAddress', width:240, className:'data-cell--address', formatter:value=>value || '-' });
+  if(columnVisible.value.coordinate) list.push({ key:'coordinate', labelKey:'deviceTable.coordinate', width:180, className:'data-cell--coord', bodyClassName:'data-cell--link', type:'coord', formatter:(_,row)=>row.installLongitude===999&&row.installLatitude===999?'-':row.installLongitude&&row.installLatitude?`${row.installLongitude},${row.installLatitude}`:'-' });
+  if(columnVisible.value.algorithmType) list.push({ key:'algorithmType', labelKey:'deviceTable.algorithmType', width:150, className:'data-cell--text', options:algorithmTypeOptions });
+  if(columnVisible.value.algorithmVersion) list.push({ key:'algorithmVersion', labelKey:'deviceTable.algorithmVersion', width:160, className:'data-cell--text', formatter:value=>value || '-' });
+  if(columnVisible.value.tubeGroup) list.push({ key:'tubeGroup', labelKey:'deviceTable.tubeGroup', width:120, className:'data-cell--number', formatter:value=>value || '-' });
+  if(columnVisible.value.leakStatus) list.push({ key:'leakStatus', labelKey:'deviceTable.leakStatus', width:120, className:'data-cell--status', options:leakStatusOptions });
+  if(columnVisible.value.lastSamplingTime) list.push({ key:'lastSamplingTime', labelKey:'deviceTable.lastSamplingTime', width:180, className:'data-cell--time', formatter:value=>formatDate(value) });
+  if(columnVisible.value.onlineStatus) list.push({ key:'onlineStatus', labelKey:'deviceTable.onlineStatus', width:120, className:'data-cell--status', options:onlineStatusOptions });
+  if(columnVisible.value.factoryTime) list.push({ key:'factoryTime', labelKey:'deviceTable.factoryTime', width:180, className:'data-cell--time', formatter:value=>formatDate(value) || '-' });
   return list;
 });
 

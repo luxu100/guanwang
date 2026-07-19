@@ -121,7 +121,8 @@ const emit = defineEmits([
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: 0 0 auto;
+  flex: 1 1 auto;   /* 允许收缩 */
+  flex-wrap: wrap;  /* 允许按钮换行 */
   justify-content: flex-start;
   width: auto;
   margin-left: auto;
