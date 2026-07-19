@@ -541,9 +541,11 @@ async function updateDeviceInfo(form: MaintenanceCreateForm) {
   if(form.maintainType === 1 && form.coordinate){
     tempDevice.installLongitude = parseFloat(form.coordinate.split(",")[0]);
     tempDevice.installLatitude = parseFloat(form.coordinate.split(",")[1]);
+    tempDevice.installState = 1;
   }else{
     tempDevice.installLongitude = 999;
     tempDevice.installLatitude = 999;
+    tempDevice.installState = 0;
   }
   const ans = updateDeviceT(props.deviceData.id!,{...tempDevice});
   emit("deviceUpdated",props.deviceData.id!);
@@ -600,7 +602,7 @@ async function handleDelete() {
 
     uni.showModal({
       title: t("message.confirmDeleteTitle"),
-      content: t("maintain.message.confirmDeleteTitle"),
+      content: t("maintain.message.confirmDeleteContent"),
       success: async (res) => {
         if (!res.confirm) return;
 
