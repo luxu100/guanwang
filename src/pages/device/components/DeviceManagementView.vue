@@ -843,6 +843,11 @@ function handleEdit() {
 }
 
 async function handleDelete() {
+  if(props.mode !== "info"){
+    currentPanelRef.value?.handleDelete();
+    return;
+  }
+
   try {
     if (!selectedDevice.value) {
       uni.showToast({
