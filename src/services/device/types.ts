@@ -346,6 +346,8 @@ export interface MaintenanceRecord {
     createdAt?: string;
     updatedAt?: string;
     isDeleted?: boolean;
+
+    [key:string]: any;
 }
 
 

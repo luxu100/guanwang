@@ -8,54 +8,67 @@ import {formatDate} from "@/utils/time";
  */
 export const deviceTypeOptions: FieldOption[] = [
     { labelKey: "common.all", value: null as null | '' },
-    { labelKey: "status.product.TCP", value: "TCP" },
-    { labelKey: "status.product.NB", value: "NB" }
+    { labelKey: "status.product.TCP", value: "TCP", tagClass: "status-tag--primary" },
+    { labelKey: "status.product.NB", value: "NB", tagClass: "status-tag--info" }
 ];
+
 
 export const enableStateOptions: FieldOption[] = [
     { labelKey: "common.all", value: null as null | '' },
-    { labelKey: "status.status.enabled", value: 1 },
-    { labelKey: "status.status.disabled", value: 0 }
+    { labelKey: "status.status.enabled", value: 1, tagClass: "status-tag--success" },
+    { labelKey: "status.status.disabled", value: 0, tagClass: "status-tag--danger" }
+];
+
+export const enableStateBooleanOptions: FieldOption[] = [
+    { labelKey: "common.all", value: null as null | '' },
+    { labelKey: "status.status.enabled", value: true, tagClass: "status-tag--success" },
+    { labelKey: "status.status.disabled", value: false, tagClass: "status-tag--danger" }
+];
+
+export const installModeOptions: FieldOption[] = [
+    { labelKey: "common.all", value: null as null | '' },
+    { labelKey: "status.installMode.fixed", value: 0, tagClass: "status-tag--success" },
+    { labelKey: "status.installMode.mobile", value: 1, tagClass: "status-tag--warning" }
 ];
 
 export const maintainTypeOptions: FieldOption[] = [
     { labelKey: "common.all", value: null as null | '' },
-    { labelKey: "status.maintain.remove", value: 0 },
-    { labelKey: "status.maintain.install", value: 1 },
-    { labelKey: "status.maintain.maintenance", value: 2 },
-    { labelKey: "status.maintain.inspect", value: 3 }
+    { labelKey: "status.maintain.remove", value: 0, tagClass: "status-tag--danger" },
+    { labelKey: "status.maintain.install", value: 1, tagClass: "status-tag--success" },
+    { labelKey: "status.maintain.maintenance", value: 2, tagClass: "status-tag--warning" },
+    { labelKey: "status.maintain.inspect", value: 3, tagClass: "status-tag--info" }
 ];
 
 export const installStateOptions: FieldOption[] = [
     { labelKey: "common.all", value: null as null | '' },
-    { labelKey: "status.install.installed", value: 1 },
-    { labelKey: "status.install.uninstalled", value: 0 }
+    { labelKey: "status.install.installed", value: 1, tagClass: "status-tag--success" },
+    { labelKey: "status.install.uninstalled", value: 0, tagClass: "status-tag--default" }
 ];
 
 export const onlineStatusOptions: FieldOption[] = [
     { labelKey: "common.all", value: null as null | '' },
-    { labelKey: "status.online.online", value: 1 },
-    { labelKey: "status.online.offline", value: 0 }
+    { labelKey: "status.online.online", value: 1, tagClass: "status-tag--success" },
+    { labelKey: "status.online.offline", value: 0, tagClass: "status-tag--default" }
 ];
 
 export const leakStatusOptions: FieldOption[] = [
     { labelKey: "common.all", value: null as null | '' },
-    { labelKey: "status.leak.normal", value: 1 },
-    { labelKey: "status.leak.leak", value: 0 },
-    { labelKey: "status.leak.suspected", value: 2 },
-    { labelKey: "status.leak.unknown", value: 3 }
+    { labelKey: "status.leak.normal", value: 1, tagClass: "status-tag--success" },
+    { labelKey: "status.leak.leak", value: 0, tagClass: "status-tag--danger" },
+    { labelKey: "status.leak.suspected", value: 2, tagClass: "status-tag--warning" },
+    { labelKey: "status.leak.unknown", value: 3, tagClass: "status-tag--default" }
 ];
 
 export const booleanStatusOptions: FieldOption[] = [
     { labelKey: "common.all", value: null as null | '' },
-    { labelKey: "common.yes", value: true },
-    { labelKey: "common.no", value: false }
+    { labelKey: "common.yes", value: true, tagClass: "status-tag--success" },
+    { labelKey: "common.no", value: false, tagClass: "status-tag--default" }
 ];
 
 export const parseStatusOptions: FieldOption[] = [
     { labelKey: "common.all", value: null as null | '' },
-    { labelKey: "status.parse.success", value: "SUCCESS" },
-    { labelKey: "status.parse.fail", value: "FAILED" }
+    { labelKey: "status.parse.success", value: "SUCCESS", tagClass: "status-tag--success" },
+    { labelKey: "status.parse.fail", value: "FAILED", tagClass: "status-tag--danger" }
 ];
 
 /**

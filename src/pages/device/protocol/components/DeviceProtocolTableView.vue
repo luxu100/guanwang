@@ -6,99 +6,12 @@
         <text class="table-head__meta">  {{ t('common.pagination.totalRecords', { total: deviceProtocolList.length }) }}</text>
       </view>
 
-      <scroll-view class="table-scroll" scroll-x scroll-y>
-        <view class="data-table">
-          <view class="data-row data-row--header">
-            <text class="data-cell data-cell--index">{{ t("common.table.index") }}</text>
-            <text class="data-cell data-cell--large">{{ t("deviceProtocol.table.protocolCode") }}</text>
-            <text class="data-cell data-cell--large">{{ t("deviceProtocol.table.protocolName") }}</text>
-            <text class="data-cell">{{ t("deviceProtocol.table.protocolVersion") }}</text>
-            <text class="data-cell">{{ t("deviceProtocol.table.afn") }}</text>
-            <text class="data-cell">{{ t("deviceProtocol.table.taskType") }}</text>
-            <text class="data-cell">{{ t("deviceProtocol.table.contentPrefix") }}</text>
-            <text class="data-cell">{{ t("deviceProtocol.table.priority") }}</text>
-            <text class="data-cell">{{ t("deviceProtocol.table.enabled") }}</text>
-            <text class="data-cell">{{ t("deviceProtocol.table.description") }}</text>
-            <text class="data-cell">{{ t("deviceProtocol.table.updatedAt") }}</text>
-          </view>
-
-          <view v-if="loading" class="loading-mask">{{ t('common.table.loading') }}</view>
-          <view v-else-if="deviceProtocolList.length === 0" class="table-state">{{ t('common.table.empty') }}</view>
-
-          <view
-              v-for="(record, index) in deviceProtocolList"
-              :key="record.id"
-              class="data-row"
-              :class="{ 'data-row--active': selectedRecord?.id === record.id }"
-              @click="selectRow(record)"
-          >
-
-            <text class="data-cell data-cell--index">
-              {{ index + 1 }}
-            </text>
-
-            <text class="data-cell data-cell--remark data-cell--large"
-            >
-              {{ record.protocolCode || '-' }}
-            </text>
-            <!--                  @mouseenter="showTooltip($event,record.protocolName)"-->
-            <!--                  @mouseleave="hideTooltip"-->
-            <text class="data-cell data-cell--remark data-cell--large"
-            >
-              {{ record.protocolName || '-' }}
-            </text>
-
-            <text class="data-cell">
-              {{ record.protocolVersion || '-' }}
-            </text>
-
-            <text class="data-cell">
-              {{ record.afn || '-' }}
-            </text>
-
-            <text class="data-cell">
-              {{ record.taskType || '-' }}
-            </text>
-
-            <text class="data-cell">
-              {{ record.contentPrefix || '-' }}
-            </text>
-
-            <text class="data-cell">
-              {{ record.priority ?? '-' }}
-            </text>
-
-            <text class="data-cell">
-              <text
-                  class="status-tag"
-                  :class="{
-                  'status-tag--success': record.enabled,
-                  'status-tag--danger': !record.enabled
-                }"
-              >
-                {{ record.enabled ? t('status.status.enabled') : t('status.status.disable') }}
-              </text>
-            </text>
-
-<!--            @mouseenter="showTooltip($event,record.description)"-->
-<!--            @mouseleave="hideTooltip"-->
-            <text class="data-cell data-cell--remark"
-            >
-              {{ record.description || '-' }}
-            </text>
-
-            <text class="data-cell data-cell--time">
-              {{ formatDate(record.updatedAt || '-') }}
-            </text>
-
-          </view>
-        </view>
-      </scroll-view>
-      <XTooltip
-          :visible="tooltipVisible"
-          :text="tooltipText"
-          :x="tooltipX"
-          :y="tooltipY"
+      <XDataTable
+          :columns="columns"
+          :data="deviceProtocolList"
+          :show-index="true"
+          id-key="id"
+          @row-click="selectRow"
       />
     </view>
   </view>
@@ -123,32 +36,22 @@
 import {computed, ref, watch} from 'vue';
 import type {
   Device,
-  MaintenanceRecord,
-  MaintenanceCreateForm,
-  DeviceProtocol,
   DeviceProtocolRelationVO, DeviceProtocolCreateFrom
 } from '@/services/device/types';
-import {
-  createMaintenanceRecordT,
-  deleteMaintenanceRecordT,
-  getMaintenanceRecordPageT, updateMaintenanceRecordT
-} from "@/services/device/maintenance.typed";
-import type {FieldOption, FormSection} from "@/pages/device/components/x/types";
+import type {FieldOption, FormSection, XDataColumn} from "@/pages/device/components/x/types";
 import XDynamicDialog from "@/pages/device/components/x/dialog/XDynamicDialog.vue";
-import XPaginationBar from "@/pages/device/components/x/table/XPaginationBar.vue";
 import {createScopedT} from "@/i18n";
-import DeviceProtocolToolbar from "@/pages/device/protocol/components/DeviceProtocolToolbar.vue";
 import {
   deleteDeviceProtocolT,
-  getDeviceProtocolByDeviceId,
   getDeviceProtocolDetailByDeviceId,
   updateDeviceProtocolT
 } from "@/services/device/protocol.typed";
-import {formatDate} from "@/utils/time";
 import {createDeviceProtocolT} from "@/services/device/info.typed";
 import {getProtocolDefinitionList} from "@/services/data-receive/access";
-import XTooltip from "@/pages/device/components/x/table/XTooltip.vue";
 import XEntityDetailDialog from "@/pages/device/components/x/dialog/XEntityDetailDialog.vue";
+import {formatDate} from "@/utils/time";
+import XDataTable from "@/pages/device/components/x/table/XDataTable.vue";
+import {enableStateBooleanOptions, enableStateOptions} from "@/pages/device/components/common";
 
 const t = createScopedT("devicePage");
 
@@ -161,8 +64,19 @@ defineExpose({
 
 // ===== 数据 =====
 const loading = ref(false);
-
 const deviceProtocolList = ref<DeviceProtocolRelationVO[]>([]);
+const columns:XDataColumn[]=[
+  {key:'protocolCode',labelKey:'deviceProtocol.table.protocolCode',width:240,className:'data-cell--remark'},
+  {key:'protocolName',labelKey:'deviceProtocol.table.protocolName',width:240,className:'data-cell--remark'},
+  {key:'protocolVersion',labelKey:'deviceProtocol.table.protocolVersion',width:160,className:'data-cell--text'},
+  {key:'afn',labelKey:'deviceProtocol.table.afn',width:120,className:'data-cell--text'},
+  {key:'taskType',labelKey:'deviceProtocol.table.taskType',width:120,className:'data-cell--text'},
+  {key:'contentPrefix',labelKey:'deviceProtocol.table.contentPrefix',width:160,className:'data-cell--text'},
+  {key:'priority',labelKey:'deviceProtocol.table.priority',width:100,className:'data-cell--number',formatter:v=>v??'-'},
+  {key:'enabled',labelKey:'deviceProtocol.table.enabled',width:120,options:enableStateBooleanOptions},
+  {key:'description',labelKey:'deviceProtocol.table.description',width:240,className:'data-cell--remark',formatter:v=>v||'-'},
+  {key:'updatedAt',labelKey:'deviceProtocol.table.updatedAt',width:180,className:'data-cell--time',formatter:v=>formatDate(v||'-')}
+];
 
 let currentRequestId = 0;
 
@@ -432,29 +346,6 @@ async function refreshList() {
   await fetchDeviceProtocols();
 }
 
-const tooltipText = ref('');
-const tooltipVisible = ref(false);
-const tooltipX = ref(0);
-const tooltipY = ref(0);
-
-function showTooltip(e:any,text?:string){
-  if(!text || text === '-') return;
-  tooltipText.value=text;
-  tooltipX.value =
-      e.clientX ??
-      e.detail?.x ??
-      0;
-  tooltipY.value =
-      (e.clientY ??
-          e.detail?.y ??
-          0) + 10;
-  tooltipVisible.value=true;
-}
-
-function hideTooltip(){
-  tooltipVisible.value = false;
-}
-
 /**
  * 设备协议关系详情表单配置
  */
@@ -579,28 +470,4 @@ function handleShowDetail(){
 @import "@/pages/device/components/x/table/styles/table-cell.css";
 @import "@/pages/device/components/x/table/styles/table.css";
 @import "@/pages/device/components/x/table/styles/table-row.css";
-
-.toolbar-wrapper {
-  padding-bottom: 12px;
-}
-.data-cell--large{
-  width: 240px;
-}
-
-.data-table {
-  min-width: 100%;
-  min-height: 100%;
-}
-
-.table-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  width: 100%;
-  min-height: 180px;
-  box-sizing: border-box;
-  line-height: 1.5;
-  text-align: center;
-}
 </style>

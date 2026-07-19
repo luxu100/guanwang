@@ -6,125 +6,13 @@
         <text class="table-head__meta">  {{ t('common.pagination.totalRecords', { total: pagination.total }) }}</text>
       </view>
 
-      <scroll-view class="table-scroll" scroll-x scroll-y>
-        <view class="data-table">
-          <view class="data-row data-row--header">
-            <text class="data-cell data-cell--index">{{ t("common.table.index") }}</text>
-            <text class="data-cell ">{{ t("maintain.maintainTable.deviceNumber") }}</text>
-            <text class="data-cell ">{{ t("maintain.maintainTable.type") }}</text>
-            <text class="data-cell ">{{ t("maintain.maintainTable.time") }}</text>
-            <text class="data-cell ">{{ t("maintain.maintainTable.address") }}</text>
-            <text class="data-cell ">{{ t('maintain.maintainTable.coordinate') }}</text>
-            <text class="data-cell ">{{ t("maintain.maintainTable.maintainAccount") }}</text>
-            <text class="data-cell ">{{ t("maintain.maintainTable.maintainPicture") }}</text>
-            <text class="data-cell ">{{ t("maintain.maintainTable.installMode") }}</text>
-            <text class="data-cell ">{{ t("maintain.maintainTable.tubeGroup") }}</text>
-            <text class="data-cell ">{{ t("maintain.maintainTable.tubeMaterial") }}</text>
-            <text class="data-cell ">{{ t("maintain.maintainTable.tubeBore") }}</text>
-            <text class="data-cell ">{{ t("maintain.maintainTable.remark") }}</text>
-          </view>
-
-          <view v-if="loading" class="loading-mask">{{ t('common.table.loading') }}</view>
-          <view v-else-if="recordList.length === 0" class="table-state">{{ t('common.table.empty') }}</view>
-
-          <view
-              v-for="(record, index) in recordList"
-              :key="record.id"
-              class="data-row"
-              :class="{ 'data-row--active': selectedRecord?.id === record.id }"
-              @click="selectRow(record)"
-          >
-
-            <text class="data-cell data-cell--index">
-              {{ (pagination.current - 1) * pagination.size + index + 1 }}
-            </text>
-
-            <text class="data-cell data-cell--device">
-              {{ record.deviceNumber || '-' }}
-            </text>
-
-            <text class="data-cell data-cell--type">
-              <text
-                  class="status-tag"
-                  :class="getMaintainTypeMeta(record.maintainType).className"
-              >
-                {{ getMaintainTypeMeta(record.maintainType).label }}
-              </text>
-            </text>
-
-            <text class="data-cell data-cell--time">
-              {{ formatDate(record.maintainTime) || '-' }}
-            </text>
-<!--            @mouseenter="showTooltip($event,record.maintainAddress)"-->
-<!--            @mouseleave="hideTooltip"-->
-            <text class="data-cell data-cell--address"
-            >
-              {{ record.maintainAddress || '-' }}
-            </text>
-
-            <text
-                class="data-cell data-cell--coord data-cell--link"
-                @click.stop="handleCoordClick(record.maintainCoordinate)"
-            >
-              {{ record.maintainCoordinate || '-' }}
-            </text>
-
-            <text class="data-cell data-cell--text">
-              {{ record.maintainAccount || '-' }}
-            </text>
-
-            <text
-                class="data-cell data-cell--link"
-                @click.stop="handlePicture(record)"
-            >
-              {{
-                record.maintainPicture
-                    ? t("common.viewImages", {
-                      count: getPictureList(record.maintainPicture).length
-                    })
-                    : '-'
-              }}
-            </text>
-
-            <text class="data-cell data-cell--status">
-              <text
-                  class="status-tag"
-                  :class="{
-                  'status-tag--success': record.installMode === 0,
-                  'status-tag--warning': record.installMode === 1
-              }"
-              >
-                {{
-                  record.installMode === 0
-                      ? t("status.installMode.fixed")
-                      : record.installMode === 1
-                          ? t("status.installMode.mobile")
-                          : "-"
-                }}
-              </text>
-            </text>
-
-            <text class="data-cell data-cell--number">
-              {{ record.tubeGroup || '-' }}
-            </text>
-
-            <text class="data-cell data-cell--text">
-              {{ record.tubeMaterial || '-' }}
-            </text>
-
-            <text class="data-cell data-cell--text">
-              {{ record.tubeBore || '-' }}
-            </text>
-<!--            @mouseenter="showTooltip($event,record.remark)"-->
-<!--            @mouseleave="hideTooltip"-->
-            <text class="data-cell data-cell--remark"
-            >
-              {{ record.remark || '-' }}
-            </text>
-
-          </view>
-        </view>
-      </scroll-view>
+      <XDataTable
+          :columns="columns"
+          :data="recordList"
+          :show-index="true"
+          id-key="id"
+          @row-click="selectRow"
+      />
 
       <XPaginationBar
           :current="pagination.current"
@@ -132,13 +20,6 @@
           :total="pagination.total"
           @change-page="handlePageChange"
           @change-size="handlePageSizeChange"
-      />
-
-      <XTooltip
-          :visible="tooltipVisible"
-          :text="tooltipText"
-          :x="tooltipX"
-          :y="tooltipY"
       />
     </view>
   </view>
@@ -150,18 +31,6 @@
       :title="isEditMode ? t('maintain.page.editMaintenance') : t('maintain.page.addMaintenance')"
       @submit="handleSubmit"
       @cancel="dialogVisible = false"
-  />
-
-  <XMapPopup
-      v-model:visible="showMap"
-      :lng="lng"
-      :lat="lat"
-      :title="t('map.dialogTitle')"
-  />
-
-  <XImageViewerDialog
-      v-model:visible="imageDialogVisible"
-      :file-ids="currentPictureIds"
   />
 
   <XEntityDetailDialog
@@ -180,17 +49,20 @@ import {
   deleteMaintenanceRecordT,
   getMaintenanceRecordPageT, updateMaintenanceRecordT
 } from "@/services/device/maintenance.typed";
-import type {FormSection} from "@/pages/device/components/x/types";
+import type {FormSection, XDataColumn} from "@/pages/device/components/x/types";
 import XDynamicDialog from "@/pages/device/components/x/dialog/XDynamicDialog.vue";
 import XPaginationBar from "@/pages/device/components/x/table/XPaginationBar.vue";
 import {createScopedT} from "@/i18n";
 import {formatDate} from "@/utils/time";
-import XMapPopup from "@/pages/device/components/x/map/XMapPopup.vue";
-import XImageViewerDialog from "@/pages/device/components/x/dialog/XImageViewerDialog.vue";
-import XTooltip from "@/pages/device/components/x/table/XTooltip.vue";
 import XEntityDetailDialog from "@/pages/device/components/x/dialog/XEntityDetailDialog.vue";
-import {installStateOptions, maintainTypeOptions} from "@/pages/device/components/common";
+import {
+  installModeOptions,
+  installStateOptions,
+  maintainTypeOptions,
+  protocolColumnsMap
+} from "@/pages/device/components/common";
 import {updateDeviceT} from "@/services/device/info.typed";
+import XDataTable from "@/pages/device/components/x/table/XDataTable.vue";
 
 const t = createScopedT("devicePage");
 
@@ -392,6 +264,34 @@ const addSchema = computed<FormSection[]>(() => [
     ]
   }
 ]);
+const fixedColumns:XDataColumn[]=[
+  {key:'deviceNumber',labelKey:'maintain.maintainTable.deviceNumber',width:180,className:'data-cell--device'},
+  {key:'maintainType',labelKey:'maintain.maintainTable.type',width:120,options:maintainTypeOptions},
+  {key:'maintainTime',labelKey:'maintain.maintainTable.time',width:180,className:'data-cell--time',formatter:v=>formatDate(v||'-')},
+  {key:'maintainAddress',labelKey:'maintain.maintainTable.address',width:240,className:'data-cell--remark',formatter:v=>v||'-'},
+  {key:'maintainCoordinate',labelKey:'maintain.maintainTable.coordinate',width:160,className:'data-cell--coord',bodyClassName:'data-cell--link',type:'coord'},
+  {key:'maintainAccount',labelKey:'maintain.maintainTable.maintainAccount',width:160,className:'data-cell--text',formatter:v=>v||'-'},
+  {key:'maintainPicture',labelKey:'maintain.maintainTable.maintainPicture',width:140,className:'data-cell--link',type:'image',formatter:v=>v?t("common.viewImages",{count:getPictureList(v).length}):'-'},
+  {key:'installMode',labelKey:'maintain.maintainTable.installMode',width:140,options:installModeOptions},
+  {key:'tubeGroup',labelKey:'maintain.maintainTable.tubeGroup',width:120,className:'data-cell--number',formatter:v=>v??'-'},
+  {key:'tubeMaterial',labelKey:'maintain.maintainTable.tubeMaterial',width:160,className:'data-cell--text',formatter:v=>v||'-'},
+  {key:'tubeBore',labelKey:'maintain.maintainTable.tubeBore',width:120,className:'data-cell--number',formatter:v=>v??'-'},
+  {key:'remark',labelKey:'maintain.maintainTable.remark',width:240,className:'data-cell--remark',formatter:v=>v||'-'}
+];
+
+const deviceParameterDynamicColumns:XDataColumn[]=[
+  ...protocolColumnsMap[11],
+  ...protocolColumnsMap[12],
+  ...protocolColumnsMap[13]
+];
+
+const columns=computed<XDataColumn[]>(()=>{
+  const keys = new Set(Object.keys(recordList.value[0] ?? {}));
+  return [
+    ...fixedColumns,
+    ...deviceParameterDynamicColumns.filter(col=>keys.has(col.key))
+  ];
+});
 
 watch(
     [
@@ -444,7 +344,6 @@ async function fetchMaintenanceRecords(requestId?: number) {
     const pageData = res.data;
 
     recordList.value = pageData?.records ?? [];
-
     pagination.value.total = pageData?.total ?? 0;
     pagination.value.current = pageData?.current ?? 1;
     pagination.value.size = pageData?.size ?? 10;
@@ -650,84 +549,6 @@ async function refreshList({ resetPage = false } = {}) {
 
   await fetchMaintenanceRecords();
 }
-
-const showMap = ref(false);
-const lng = ref(0);
-const lat = ref(0);
-
-function openCoord(longitude: number, latitude: number) {
-  lng.value = longitude;
-  lat.value = latitude;
-  showMap.value = true;
-}
-
-function handleCoordClick(coordinate?: string) {
-  if (coordinate) {
-    const [longitude, latitude] = coordinate.split(",").map(Number);
-
-    if (longitude && latitude) {
-      // 有坐标，打开地图
-      openCoord(longitude, latitude);
-      return;
-    }
-  }
-
-  // 没有坐标，弹出提示
-  uni.showToast({
-    title: t("map.noCoordinate"),
-    icon: "none",
-    duration: 2000
-  });
-}
-
-/*
-图片展示
- */
-const imageDialogVisible = ref(false);
-const currentPictureIds = ref("");
-
-function getPictureList(picture?: string) {
-  return picture
-      ? picture.split(",").filter(Boolean)
-      : [];
-}
-
-function handlePicture(record: MaintenanceRecord) {
-  if (!record.maintainPicture) {
-    uni.showToast({
-      title: "暂无图片",
-      icon: "none"
-    });
-    return;
-  }
-
-  currentPictureIds.value = record.maintainPicture;
-  imageDialogVisible.value = true;
-}
-
-const tooltipText = ref('');
-const tooltipVisible = ref(false);
-const tooltipX = ref(0);
-const tooltipY = ref(0);
-
-function showTooltip(e:any,text?:string){
-  if(!text || text === '-') return;
-  tooltipText.value=text;
-  tooltipX.value =
-      e.clientX ??
-      e.detail?.x ??
-      0;
-  tooltipY.value =
-      (e.clientY ??
-          e.detail?.y ??
-          0) + 10;
-  tooltipVisible.value=true;
-}
-
-function hideTooltip(){
-  tooltipVisible.value = false;
-}
-
 /**
  * 维护记录详情表单配置
  */
@@ -914,40 +735,11 @@ function handleShowDetail(){
   detailVisible.value = true;
 }
 
-type MaintainTypeMeta = {
-  label: string;
-  className: string;
-};
-
-const maintainTypeMap: Record<number, MaintainTypeMeta> = {
-  0: {
-    label: t("status.maintain.remove"),
-    className: "status-tag--danger",
-  },
-  1: {
-    label: t("status.maintain.install"),
-    className: "status-tag--success",
-  },
-  2: {
-    label: t("status.maintain.maintenance"),
-    className: "status-tag--warning",
-  },
-  3: {
-    label: t("status.maintain.inspect"),
-    className: "status-tag--info",
-  },
-};
-
-// 获取维护类型元数据
-const getMaintainTypeMeta = (type?: number): MaintainTypeMeta => {
-  return (
-      maintainTypeMap[type ?? -1] ?? {
-        label: "-",
-        className: "status-tag--default",
-      }
-  );
-};
-
+function getPictureList(picture?:string){
+  return picture
+      ? picture.split(",").filter(Boolean)
+      : [];
+}
 </script>
 <style scoped lang="scss">
 @import "@/pages/device/components/x/common/status.css";
