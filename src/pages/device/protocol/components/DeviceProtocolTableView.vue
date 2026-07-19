@@ -11,6 +11,7 @@
           :data="deviceProtocolList"
           :show-index="true"
           id-key="id"
+          v-model:selected="selectedId"
           @row-click="selectRow"
       />
     </view>
@@ -51,7 +52,7 @@ import {getProtocolDefinitionList} from "@/services/data-receive/access";
 import XEntityDetailDialog from "@/pages/device/components/x/dialog/XEntityDetailDialog.vue";
 import {formatDate} from "@/utils/time";
 import XDataTable from "@/pages/device/components/x/table/XDataTable.vue";
-import {enableStateBooleanOptions, enableStateOptions} from "@/pages/device/components/common";
+import {enableStateBooleanOptions} from "@/pages/device/components/common";
 
 const t = createScopedT("devicePage");
 
@@ -173,12 +174,14 @@ watch(
 
 // ===== 选中行 =====
 const selectedRecord = ref<DeviceProtocolRelationVO | null>(null);
+const selectedId = ref<number | null>(null);
 
 function selectRow(record: DeviceProtocolRelationVO) {
   if(!record) return;
   selectedRecord.value = {
     ...record
   };
+  selectedId.value = record.id ?? null;
 }
 
 // ===== 请求数据 =====
@@ -317,6 +320,7 @@ async function handleDelete() {
         });
 
         selectedRecord.value = null;
+        selectedId.value = null;
       }
     });
 

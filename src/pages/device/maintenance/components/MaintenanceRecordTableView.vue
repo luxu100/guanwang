@@ -11,6 +11,7 @@
           :data="recordList"
           :show-index="true"
           id-key="id"
+          v-model:selected="selectedId"
           @row-click="selectRow"
       />
 
@@ -317,9 +318,11 @@ watch(
 
 // ===== 选中行 =====
 const selectedRecord = ref<MaintenanceRecord | null>(null);
+const selectedId = ref<number|null>(null);
 
 function selectRow(record: MaintenanceRecord) {
   selectedRecord.value = record;
+  selectedId.value = record?.id ?? null;
 }
 
 // ===== 请求数据 =====
@@ -515,6 +518,7 @@ async function handleDelete() {
         });
 
         selectedRecord.value = null;
+        selectedId.value = null;
       }
     });
 

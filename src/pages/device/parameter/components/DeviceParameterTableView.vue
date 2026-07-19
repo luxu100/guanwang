@@ -13,6 +13,7 @@
         @row-click="selectRow"
         :sort-field="sortField"
         :sort-order="sortOrder"
+        v-model:selected="selectedId"
         @sort-change="handleSortChange"
     >
       <template #footer>
@@ -75,9 +76,20 @@ const columns=computed<XDataColumn[]>(()=>{
   ];
 });
 
-watch(()=>props.deviceParameters,list=>{
-  if(list.length&&!selectedId.value) selectRow(list[0]);
-},{immediate:true});
+watch(
+    ()=>props.deviceParameters,
+    list=>{
+      if(
+          list.length &&
+          selectedId.value===null
+      ){
+        selectRow(list[0]);
+      }
+    },
+    {
+      immediate:true
+    }
+);
 
 function selectRow(row:DeviceParameterPageVO){
   selectedId.value=row.deviceId??null;
@@ -89,6 +101,7 @@ function handleSortChange(
     field:string,
     order:SortOrder
 ){
+  selectedId.value=null;
   emit('sort-change', field, order);
 }
 </script>

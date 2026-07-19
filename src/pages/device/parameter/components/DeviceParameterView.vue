@@ -83,11 +83,19 @@ function handleReset(){
 }
 
 async function fetchParameters(){
+  console.log({
+    ...searchForm.value,
+    pageNum:pagination.value.current,
+    pageSize:pagination.value.size,
+    sortField:sortField.value,
+    sortOrder:sortOrder.value,
+  })
+
   const res=await getDeviceParameterPageT<DeviceParameterPageVO>({
     ...searchForm.value,
     pageNum:pagination.value.current,
     pageSize:pagination.value.size,
-    sortField: sortField.value,
+    sortField:sortField.value,
     sortOrder:sortOrder.value,
   });
 

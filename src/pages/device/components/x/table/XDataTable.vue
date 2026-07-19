@@ -11,17 +11,17 @@
               :class="[
                 col.className,
                 {
-                  'data-header-cell--sortable': col.sortable !== false,
+                  'data-header-cell--sortable': col.sortable === true,
                   'data-header-cell--active': sortState.field === col.key
                 }
               ]"
               :style="cellStyle(col)"
-              @click="col.sortable !== false && handleSort(col.key)"
+              @click="col.sortable === true && handleSort(col.key)"
           >
             {{ getColumnLabel(col) }}
 
             <text
-                v-if="col.sortable !== false"
+                v-if="col.sortable === true"
                 class="sort-indicator"
                 :class="getSortIndicatorClass(col.key)"
             />
@@ -31,7 +31,7 @@
         <view v-if="loading" class="loading-mask">{{ loadingText }}</view>
         <view v-else-if="!data.length" class="table-state">{{ emptyText }}</view>
 
-        <view v-for="(row,index) in data" :key="row[idKey]??index" class="data-row" :class="{'data-row--active':selectedKey===(row[idKey]??index)}" @click="handleRow(row,index)">
+        <view v-for="(row,index) in data" :key="row[idKey]??index" class="data-row" :class="{ 'data-row--active': props.selected === (row[idKey]??index) }" @click="handleRow(row,index)">
           <text v-if="showIndex" class="data-cell data-cell--index">{{ pageIndex(index) }}</text>
 
           <template v-for="col in columns" :key="col.key">
@@ -119,6 +119,7 @@ const props=withDefaults(defineProps<{
   emptyText?:string;
   sortField?: SortField;
   sortOrder?: SortOrder;
+  selected?:any;
 }>(),{
   loading:false,
   idKey:'id',
@@ -139,10 +140,9 @@ const emptyText = computed(()=>{
 
 const emit=defineEmits<{
   (e:'row-click',row:any):void;
-  (e: 'sort-change', field: SortField, order: SortOrder): void;
+  (e:'update:selected',value:any):void;
+  (e:'sort-change', field: SortField, order: SortOrder): void;
 }>();
-
-const selectedKey=ref<any>(null);
 
 const sortState = reactive<{
   field: SortField;
@@ -193,13 +193,6 @@ function getSortIndicatorClass(field: SortField) {
       ? 'sort-indicator--asc'
       : 'sort-indicator--desc';
 }
-
-watch(()=>props.data,list=>{
-  if(list.length&&!selectedKey.value){
-    selectedKey.value=list[0][props.idKey]??0;
-    emit('row-click',list[0]);
-  }
-},{immediate:true});
 
 function cellStyle(col:XDataColumn){
   return {width:col.width?col.width+'px':'120px',textAlign:col.align||'left'};
@@ -262,8 +255,9 @@ function getOptionClass(
 }
 
 function handleRow(row:any,index:number){
-  selectedKey.value=row[props.idKey]??index;
-  emit('row-click',row);
+  const key=row[props.idKey]??index;
+  emit('update:selected', key);
+  emit('row-click', row);
 }
 
 function handleCellClick(
@@ -340,7 +334,6 @@ function handleCoordinate(coordinate?: string) {
     duration: 2000
   });
 }
-
 
 </script>
 
