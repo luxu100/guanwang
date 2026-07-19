@@ -87,7 +87,7 @@ async function fetchParameters(){
     ...searchForm.value,
     pageNum:pagination.value.current,
     pageSize:pagination.value.size,
-    sortField: sortField.value,
+    sortField:sortField.value,
     sortOrder:sortOrder.value,
   });
 

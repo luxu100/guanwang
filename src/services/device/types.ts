@@ -11,7 +11,7 @@ export interface Device {
     factoryTime?: string;
 
     enableState: number;
-    installState: number;
+    installState?: number | null;
     installMode: number;
 
     installAddress: string;
@@ -346,6 +346,8 @@ export interface MaintenanceRecord {
     createdAt?: string;
     updatedAt?: string;
     isDeleted?: boolean;
+
+    [key:string]: any;
 }
 
 

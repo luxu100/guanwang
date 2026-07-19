@@ -11,17 +11,17 @@
               :class="[
                 col.className,
                 {
-                  'data-header-cell--sortable': col.sortable !== false,
+                  'data-header-cell--sortable': col.sortable === true,
                   'data-header-cell--active': sortState.field === col.key
                 }
               ]"
               :style="cellStyle(col)"
-              @click="col.sortable !== false && handleSort(col.key)"
+              @click="col.sortable === true && handleSort(col.key)"
           >
             {{ getColumnLabel(col) }}
 
             <text
-                v-if="col.sortable !== false"
+                v-if="col.sortable === true"
                 class="sort-indicator"
                 :class="getSortIndicatorClass(col.key)"
             />
@@ -31,7 +31,7 @@
         <view v-if="loading" class="loading-mask">{{ loadingText }}</view>
         <view v-else-if="!data.length" class="table-state">{{ emptyText }}</view>
 
-        <view v-for="(row,index) in data" :key="row[idKey]??index" class="data-row" :class="{'data-row--active':selectedKey===(row[idKey]??index)}" @click="handleRow(row,index)">
+        <view v-for="(row,index) in data" :key="row[idKey]??index" class="data-row" :class="{ 'data-row--active': props.selected === (row[idKey]??index) }" @click="handleRow(row,index)">
           <text v-if="showIndex" class="data-cell data-cell--index">{{ pageIndex(index) }}</text>
 
           <template v-for="col in columns" :key="col.key">
@@ -62,7 +62,17 @@
                 ]"
                 :style="cellStyle(col)"
             >
-              {{ formatValue(row,col) }}
+              <text
+                  v-if="col.options"
+                  class="status-tag"
+                  :class="getOptionClass(row,col)"
+              >
+                {{ formatValue(row,col) }}
+              </text>
+
+              <template v-else>
+                {{ formatValue(row,col) }}
+              </template>
             </text>
 
           </template>
@@ -77,6 +87,11 @@
         :title="t('map.dialogTitle')"
     />
 
+    <XImageViewerDialog
+        v-model:visible="imageDialogVisible"
+        :file-ids="currentPictureIds"
+    />
+
     <slot name="footer"/>
   </view>
 </template>
@@ -86,6 +101,7 @@ import {ref, watch, reactive,computed} from 'vue';
 import type {XDataColumn} from '../types';
 import XMapPopup from "@/pages/device/components/x/map/XMapPopup.vue";
 import {createScopedT} from "@/i18n";
+import XImageViewerDialog from "@/pages/device/components/x/dialog/XImageViewerDialog.vue";
 const t = createScopedT("devicePage");
 
 type SortOrder = 'asc' | 'desc';
@@ -103,6 +119,7 @@ const props=withDefaults(defineProps<{
   emptyText?:string;
   sortField?: SortField;
   sortOrder?: SortOrder;
+  selected?:any;
 }>(),{
   loading:false,
   idKey:'id',
@@ -123,10 +140,9 @@ const emptyText = computed(()=>{
 
 const emit=defineEmits<{
   (e:'row-click',row:any):void;
-  (e: 'sort-change', field: SortField, order: SortOrder): void;
+  (e:'update:selected',value:any):void;
+  (e:'sort-change', field: SortField, order: SortOrder): void;
 }>();
-
-const selectedKey=ref<any>(null);
 
 const sortState = reactive<{
   field: SortField;
@@ -178,13 +194,6 @@ function getSortIndicatorClass(field: SortField) {
       : 'sort-indicator--desc';
 }
 
-watch(()=>props.data,list=>{
-  if(list.length&&!selectedKey.value){
-    selectedKey.value=list[0][props.idKey]??0;
-    emit('row-click',list[0]);
-  }
-},{immediate:true});
-
 function cellStyle(col:XDataColumn){
   return {width:col.width?col.width+'px':'120px',textAlign:col.align||'left'};
 }
@@ -193,21 +202,62 @@ function pageIndex(index:number){
   return (props.pageCurrent-1)*props.pageSize+index+1;
 }
 
+function getTextLabel(item:{
+  label?:string;
+  labelKey?:string;
+}){
+  return item.labelKey
+      ? t(item.labelKey)
+      : item.label ?? '';
+}
+
 function getColumnLabel(col: XDataColumn) {
-  return col.labelKey
-      ? t(col.labelKey)
-      : col.label ?? '';
+  return getTextLabel(col);
+}
+
+function getOptionLabel(option:any){
+  return getTextLabel(option);
 }
 
 function formatValue(row:any,col:XDataColumn){
   const value=row[col.key];
-  if(value===null||value===undefined||value==='') return '-';
-  return col.formatter?col.formatter(value,row):value;
+  // 自定义格式优先
+  if(col.formatter){
+    return col.formatter(value,row);
+  }
+  if(value===null||value===undefined||value===''){
+    return '-';
+  }
+  // select映射
+  if(col.options){
+    const option=col.options.find(
+        item=>item.value===value
+    );
+    if(option){
+      return getOptionLabel(option);
+    }
+    return value;
+  }
+  return value;
+}
+
+function getOptionClass(
+    row:any,
+    col:XDataColumn
+){
+  const value=row[col.key];
+
+  const option=col.options?.find(
+      item=>String(item.value)===String(value)
+  );
+
+  return option?.tagClass || '-';
 }
 
 function handleRow(row:any,index:number){
-  selectedKey.value=row[props.idKey]??index;
-  emit('row-click',row);
+  const key=row[props.idKey]??index;
+  emit('update:selected', key);
+  emit('row-click', row);
 }
 
 function handleCellClick(
@@ -218,6 +268,9 @@ function handleCellClick(
   switch(col.type){
     case 'coord':
       handleCoordinate(formatValue(row,col));
+      break
+    case 'image':
+      handleImage(row[col.key]);
       break;
     default:
       col.onClick?.(
@@ -228,7 +281,28 @@ function handleCellClick(
   }
 }
 
+const imageDialogVisible = ref(false);
+const currentPictureIds = ref("");
 
+function handleImage(fileIds?:string){
+  if(
+      !fileIds ||
+      fileIds.trim()==='' ||
+      fileIds==='-'
+  ){
+    uni.showToast({
+      title:t("image.noImage"),
+      icon:"none"
+    });
+    return;
+  }
+  currentPictureIds.value=fileIds;
+  imageDialogVisible.value=true;
+}
+
+/**
+ * 地图弹窗相关变量和方法
+ */
 const showMap = ref(false);
 const lng = ref(0);
 const lat = ref(0);
@@ -260,7 +334,6 @@ function handleCoordinate(coordinate?: string) {
     duration: 2000
   });
 }
-
 
 </script>
 
