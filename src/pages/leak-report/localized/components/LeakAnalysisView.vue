@@ -4,22 +4,22 @@
     <view class="toolbar">
       <view class="toolbar-row toolbar-row--filters">
         <view class="filter-group">
-          <text class="filter-label">时间范围</text>
+          <text class="filter-label">{{ t('time.timeRange') }}</text>
           <view class="date-range">
-            <WorkOrderDatetimePicker v-model="filters.startTime" class="filter-datetime" title="选择开始时间" placeholder="请选择开始时间" />
-            <text class="filter-separator">至</text>
-            <WorkOrderDatetimePicker v-model="filters.endTime" class="filter-datetime" title="选择结束时间" placeholder="请选择结束时间" />
+            <WorkOrderDatetimePicker v-model="filters.startTime" class="filter-datetime" :title="t('time.pleaseSelectStartTime')" :placeholder="t('time.pleaseSelectStartTime')" />
+            <text class="filter-separator">{{ t('time.to') }}</text>
+            <WorkOrderDatetimePicker v-model="filters.endTime" class="filter-datetime" :title="t('time.pleaseSelectEndTime')" :placeholder="t('time.pleaseSelectEndTime')" />
           </view>
         </view>
 
         <view class="filter-group">
-          <text class="filter-label">设备编号</text>
-          <input v-model="filters.deviceNumber" class="filter-input" placeholder="请输入设备编号" placeholder-class="input-placeholder" />
+          <text class="filter-label">{{ t('filter.deviceNumber') }}</text>
+          <input v-model="filters.deviceNumber" class="filter-input" :placeholder="t('filter.pleaseInputDeviceNumber')" placeholder-class="input-placeholder" />
         </view>
 
         <!-- 算法状态 -->
         <view class="filter-group">
-          <text class="filter-label">算法状态</text>
+          <text class="filter-label">{{ t('filter.algorithmStatus') }}</text>
           <picker :range="algorithmStatusOptions" range-key="label" @change="handleAlgorithmStatusChange">
             <view class="filter-select">
               <text>{{ currentAlgorithmStatusLabel }}</text>
@@ -29,16 +29,16 @@
         </view>
 
         <view class="toolbar-actions toolbar-actions--right">
-          <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="searchAnalysis">查询</button>
-          <button class="toolbar-button" hover-class="toolbar-button--hover" @click="resetFilters">重置</button>
-          <button class="toolbar-icon-button" hover-class="toolbar-icon-button--hover" aria-label="刷新" @click="fetchAnalysisData">
+          <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="searchAnalysis">{{ t('common.search') }}</button>
+          <button class="toolbar-button" hover-class="toolbar-button--hover" @click="resetFilters">{{ t('common.reset') }}</button>
+          <button class="toolbar-icon-button" hover-class="toolbar-icon-button--hover" :aria-label="t('common.refresh')" @click="fetchAnalysisData">
             <text class="icon-refresh"></text>
           </button>
           <view class="export-dropdown">
-            <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="exportMenuVisible = !exportMenuVisible">导出</button>
+            <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="exportMenuVisible = !exportMenuVisible">{{ t('common.export') }}</button>
             <view v-if="exportMenuVisible" class="export-menu">
-              <view class="export-menu__item" @click="handleExport('current')">导出当前页</view>
-              <view class="export-menu__item" @click="handleExport('all')">导出全部</view>
+              <view class="export-menu__item" @click="handleExport('current')">{{ t('common.exportCurrentPage') }}</view>
+              <view class="export-menu__item" @click="handleExport('all')">{{ t('common.exportAll') }}</view>
             </view>
           </view>
         </view>
@@ -47,32 +47,32 @@
 
     <!-- 主内容区 -->
     <LeakTableView
-      title="算法分析结果"
+      :title="t('leakAnalysis.title')"
       :total="total"
       :page-num="pagination.pageNum"
       :page-size="pagination.pageSize"
       :total-pages="totalPages"
       :has-detail="!!selectedRecord"
-      detail-empty-text="请选择左侧记录查看详情"
+      :detail-empty-text="t('leakAnalysis.detailEmpty')"
       @prev-page="changePage(-1)"
       @next-page="changePage(1)"
       @jump-page="jumpToPage"
       @page-size-change="handlePageSizeChange"
     >
-      <view class="data-table">
+      <view class="data-table" :style="{ minWidth: tableMinWidth }">
         <!-- 算法分析列头 -->
-        <view class="data-row data-row--header data-row--algorithm">
-          <text class="data-cell data-cell--index">序号</text>
-          <text class="data-cell data-cell--device">设备编号</text>
-          <text class="data-cell data-cell--time">音频采集时间</text>
-          <text class="data-cell data-cell--audio-id">音频文件ID</text>
-          <text class="data-cell data-cell--process-result">算法处理结果</text>
-          <text class="data-cell data-cell--status">算法状态</text>
-          <text class="data-cell data-cell--error">失败原因</text>
+        <view class="data-row data-row--header data-row--algorithm" :style="{ gridTemplateColumns: tableGridTemplateColumns, minWidth: tableMinWidth }">
+          <text class="data-cell data-cell--index">{{ t('table.index') }}</text>
+          <text class="data-cell data-cell--device">{{ t('table.deviceNumber') }}</text>
+          <text class="data-cell data-cell--time">{{ t('table.audioTime') }}</text>
+          <text class="data-cell data-cell--audio-id">{{ t('table.audioFileId') }}</text>
+          <text class="data-cell data-cell--process-result">{{ t('table.signalprocessingResult') }}</text>
+          <text class="data-cell data-cell--status">{{ t('table.algorithmStatus') }}</text>
+          <text class="data-cell data-cell--error">{{ t('table.algorithmError') }}</text>
         </view>
 
-        <view v-if="loading" class="table-state table-state--loading"><view class="state-spinner"></view><text class="state-text">加载中...</text></view>
-        <view v-else-if="records.length === 0" class="table-state table-state--empty"><view class="state-icon-empty"></view><text class="state-text">暂无分析数据</text></view>
+        <view v-if="loading" class="table-state table-state--loading"><view class="state-spinner"></view><text class="state-text">{{ t('common.loading') }}</text></view>
+        <view v-else-if="records.length === 0" class="table-state table-state--empty"><view class="state-icon-empty"></view><text class="state-text">{{ t('leakAnalysis.noAnalysisData') }}</text></view>
 
         <!-- 算法分析行 -->
         <view
@@ -80,6 +80,7 @@
           v-else
           :key="getRowKey(item, index)"
           :class="['data-row', 'data-row--algorithm', { 'data-row--active': selectedRecordKey === getRowKey(item, index) }]"
+          :style="{ gridTemplateColumns: tableGridTemplateColumns, minWidth: tableMinWidth }"
           @click="selectRecord(item, index)"
         >
           <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
@@ -110,7 +111,7 @@
           <view v-if="activeDetailTab === 'base'" class="detail-section">
             <view class="detail-summary">
               <view class="detail-summary__main">
-                <text class="detail-summary__label">设备编号</text>
+                <text class="detail-summary__label">{{ t('detail.fields.deviceNumber') }}</text>
                 <text class="detail-summary__value">{{ getFieldValue(selectedRecord, 'deviceNumber') || '-' }}</text>
               </view>
               <view class="detail-summary__meta">
@@ -121,7 +122,7 @@
               </view>
             </view>
             <view class="time-section">
-              <text class="detail-section-title">时间信息</text>
+              <text class="detail-section-title">{{ t('leakAnalysis.timeInfo') }}</text>
               <view class="time-list">
                 <view v-for="item in timeDetailFields" :key="item.label" class="time-row">
                   <view class="time-row__marker"></view>
@@ -134,30 +135,30 @@
             </view>
             <view v-if="selectedRecord" class="time-section">
               <view class="detail-audio-header">
-                <text class="detail-section-title">关联音频</text>
-                <button v-if="audioList.length > 0" class="audio-refresh-btn" hover-class="audio-refresh-btn--hover" @click="loadAudioList">刷新</button>
+                <text class="detail-section-title">{{ t('leakAnalysis.relatedAudio') }}</text>
+                <button v-if="audioList.length > 0" class="audio-refresh-btn" hover-class="audio-refresh-btn--hover" @click="loadAudioList">{{ t('leakAnalysis.refreshAudio') }}</button>
               </view>
-              <view v-if="audioLoading" class="audio-state">加载中...</view>
-              <view v-else-if="audioList.length === 0" class="audio-state">暂无关联音频</view>
+              <view v-if="audioLoading" class="audio-state">{{ t('leakAnalysis.audioLoading') }}</view>
+              <view v-else-if="audioList.length === 0" class="audio-state">{{ t('leakAnalysis.noRelatedAudio') }}</view>
               <view v-else class="audio-list">
                 <view v-for="(audio, ai) in visibleAudioList" :key="ai" class="audio-item">
                   <view class="audio-item__info">
                     <text class="audio-item__time">{{ formatDateTime(getFieldValue(audio, "audioTime")) }}</text>
-                    <text class="audio-item__rate">采样率: {{ getFieldValue(audio, "samplingRate") || "-" }}</text>
+                    <text class="audio-item__rate">{{ t('leakAnalysis.samplingRate') }}: {{ getFieldValue(audio, "samplingRate") || "-" }}</text>
                   </view>
                   <view class="audio-item__actions">
-                    <button class="audio-play-btn" hover-class="audio-play-btn--hover" @click="toggleAudioPlay(audio, ai)">{{ playingAudioIndex === ai ? '暂停' : '播放' }}</button>
-                    <a :href="getAudioWavUrl(audio, true)" class="audio-download-link">下载</a>
+                    <button class="audio-play-btn" hover-class="audio-play-btn--hover" @click="toggleAudioPlay(audio, ai)">{{ playingAudioIndex === ai ? t('table.audioPause') : t('table.audioPlay') }}</button>
+                    <a :href="getAudioWavUrl(audio, true)" class="audio-download-link">{{ t('table.audioDownload') }}</a>
                   </view>
                 </view>
                 <view v-if="audioList.length > AUDIO_COLLAPSED_LIMIT" class="audio-toggle" @click="audioListExpanded = !audioListExpanded">
-                  <text class="audio-toggle__text">{{ audioListExpanded ? '收起' : `展开全部(${audioList.length})` }}</text>
+                  <text class="audio-toggle__text">{{ audioListExpanded ? t('leakAnalysis.collapse') : t('leakAnalysis.expandAll', { count: audioList.length }) }}</text>
                   <text class="audio-toggle__arrow" :class="{ 'audio-toggle__arrow--up': audioListExpanded }"></text>
                 </view>
               </view>
             </view>
             <view v-if="locationDetailFields.length > 0" class="time-section time-section--location">
-              <text class="detail-section-title">地点信息</text>
+              <text class="detail-section-title">{{ t('leakAnalysis.locationInfo') }}</text>
               <view v-for="item in locationDetailFields" :key="item.label" class="location-row">
                 <text class="location-row__label">{{ item.label }}</text>
                 <text class="location-row__value">{{ item.value }}</text>
@@ -179,6 +180,30 @@ import {
 import { getAudioDataPage } from "@/services/data-analysis/audio";
 import WorkOrderDatetimePicker from "@/pages/work-order/localized/components/WorkOrderDatetimePicker.vue";
 import LeakTableView from "@/pages/leak-report/localized/components/LeakTableView.vue";
+import { createScopedT, useI18n } from "@/i18n";
+import { ALGORITHM_STATUS } from "@/pages/leak-report/constants/status";
+
+const t = createScopedT("leakReport");
+const { locale } = useI18n();
+
+/**
+ * 表格列宽动态配置
+ *
+ * 英文文本普遍比中文长（如 "Algorithm Processing Result" 27字符 vs "算法处理结果" 6字符），
+ * 若共用一套列宽会导致英文表头被截断。因此根据当前 locale 返回不同配置：
+ * - zh-CN：以中文表头长度为基准，min-width 820px
+ * - en-US：以英文表头长度为基准，min-width 903px（关键列加宽）
+ *
+ * 每列 minmax 的最小值基于英文表头字符数 × 6.5px + 24px padding 计算，确保完整展示。
+ */
+const tableGridTemplateColumns = computed<string>(() => {
+  if (locale.value === "en-US") {
+    return "58px minmax(110px, 2.0fr) minmax(170px, 3.0fr) minmax(115px, 1.8fr) minmax(200px, 3.0fr) minmax(130px, 1.6fr) minmax(120px, 2.2fr)";
+  }
+  return "58px minmax(110px, 2.2fr) minmax(160px, 3fr) minmax(100px, 1.8fr) minmax(140px, 2.4fr) minmax(96px, 1.6fr) minmax(140px, 2.4fr)";
+});
+
+const tableMinWidth = computed<string>(() => (locale.value === "en-US" ? "903px" : "820px"));
 
 function getBaseUrl(): string {
   return (import.meta as unknown as { env: { VITE_API_BASE_URL?: string } }).env?.VITE_API_BASE_URL || "";
@@ -196,17 +221,17 @@ interface ApiResponseLike {
   msg?: string;
 }
 
-const algorithmStatusOptions: Array<{ label: string; value: string }> = [
-  { label: "不限", value: "" },
-  { label: "等待处理", value: "PENDING" },
-  { label: "处理成功", value: "SUCCESS" },
-  { label: "处理失败", value: "FAILED" },
-  { label: "跳过", value: "SKIPPED" },
-];
+const algorithmStatusOptions = computed<Array<{ label: string; value: string }>>(() => [
+  { label: t("status.statusUnlimited"), value: "" },
+  { label: t("status.pending"), value: ALGORITHM_STATUS.PENDING },
+  { label: t("status.success"), value: ALGORITHM_STATUS.SUCCESS },
+  { label: t("status.failed"), value: ALGORITHM_STATUS.FAILED },
+  { label: t("status.skipped"), value: ALGORITHM_STATUS.SKIPPED },
+]);
 
-const detailTabs: Array<{ label: string; value: DetailTab }> = [
-  { label: "基本信息", value: "base" },
-];
+const detailTabs = computed<Array<{ label: string; value: DetailTab }>>(() => [
+  { label: t("leakAnalysis.baseInfo"), value: "base" },
+]);
 
 const sortField = ref("createdAt");
 const sortOrder = ref("desc");
@@ -243,7 +268,7 @@ const visibleAudioList = computed(() => {
 });
 
 const currentAlgorithmStatusLabel = computed(() =>
-  algorithmStatusOptions.find((o) => o.value === filters.algorithmStatus)?.label || "不限",
+  algorithmStatusOptions.value.find((o) => o.value === filters.algorithmStatus)?.label || t("status.statusUnlimited"),
 );
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pagination.pageSize)));
@@ -251,22 +276,22 @@ const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pagination
 const baseDetailFields = computed(() => {
   const r = selectedRecord.value || {};
   return [
-    { label: "ID", value: String(getFieldValue(r, "id") ?? "-") },
-    { label: "设备ID", value: String(getFieldValue(r, "deviceId") ?? "-") },
-    { label: "设备编号", value: String(getFieldValue(r, "deviceNumber") || "-") },
-    { label: "采样记录ID", value: String(getFieldValue(r, "samplingId") ?? "-") },
-    { label: "音频文件ID", value: String(getFieldValue(r, "audioFileId") ?? "-") },
-    { label: "算法状态", value: getAlgorithmStatusLabel(r) },
-    { label: "算法处理结果", value: String(getFieldValue(r, "signalprocessingResult") || "-") },
-    { label: "失败原因", value: String(getFieldValue(r, "algorithmError") || "-") },
+    { label: t("leakAnalysis.id"), value: String(getFieldValue(r, "id") ?? "-") },
+    { label: t("leakAnalysis.deviceId"), value: String(getFieldValue(r, "deviceId") ?? "-") },
+    { label: t("detail.fields.deviceNumber"), value: String(getFieldValue(r, "deviceNumber") || "-") },
+    { label: t("leakAnalysis.samplingId"), value: String(getFieldValue(r, "samplingId") ?? "-") },
+    { label: t("detail.fields.audioFileId"), value: String(getFieldValue(r, "audioFileId") ?? "-") },
+    { label: t("detail.fields.algorithmStatus"), value: getAlgorithmStatusLabel(r) },
+    { label: t("detail.fields.signalprocessingResult"), value: String(getFieldValue(r, "signalprocessingResult") || "-") },
+    { label: t("detail.fields.algorithmError"), value: String(getFieldValue(r, "algorithmError") || "-") },
   ];
 });
 
 const timeDetailFields = computed(() => {
   const r = selectedRecord.value || {};
   return [
-    { label: "音频采集时间", value: formatDateTime(getFieldValue(r, "audioTime") || "-") },
-    { label: "创建时间", value: formatDateTime(getFieldValue(r, "createdAt") || "-") },
+    { label: t("detail.fields.audioTime"), value: formatDateTime(getFieldValue(r, "audioTime") || "-") },
+    { label: t("detail.fields.createdAt"), value: formatDateTime(getFieldValue(r, "createdAt") || "-") },
   ];
 });
 
@@ -279,7 +304,7 @@ onMounted(() => {
 });
 
 function handleAlgorithmStatusChange(event: { detail: { value: number } }) {
-  filters.algorithmStatus = algorithmStatusOptions[event.detail.value]?.value ?? "";
+  filters.algorithmStatus = algorithmStatusOptions.value[event.detail.value]?.value ?? "";
   searchAnalysis();
 }
 
@@ -330,7 +355,7 @@ async function fetchAnalysisData() {
     total.value = 0;
     selectedRecord.value = null;
     selectedRecordKey.value = "";
-    uni.showToast({ title: (error as { msg?: string })?.msg || "分析数据加载失败", icon: "none" });
+    uni.showToast({ title: (error as { msg?: string })?.msg || t("leakAnalysis.loadFailed", "分析数据加载失败"), icon: "none" });
   } finally {
     loading.value = false;
   }
@@ -352,16 +377,24 @@ async function handleExport(scope: "current" | "all") {
       const parsed = parsePageResponse(response);
       exportRecords = parsed.records;
     } catch {
-      uni.showToast({ title: "获取全部数据失败", icon: "none" });
+      uni.showToast({ title: t("leakAnalysis.fetchAllFailed", "获取全部数据失败"), icon: "none" });
       return;
     }
   }
   if (!exportRecords.length) {
-    uni.showToast({ title: "暂无数据可导出", icon: "none" });
+    uni.showToast({ title: t("common.noDataToExport"), icon: "none" });
     return;
   }
   // #ifdef H5
-  const headers = ["序号", "设备编号", "音频采集时间", "音频文件ID", "算法处理结果", "算法状态", "失败原因"];
+  const headers = [
+    t("table.index"),
+    t("table.deviceNumber"),
+    t("table.audioTime"),
+    t("table.audioFileId"),
+    t("table.signalprocessingResult"),
+    t("table.algorithmStatus"),
+    t("table.algorithmError"),
+  ];
   const rows = exportRecords.map((r, idx) => {
     const keys = ["deviceNumber", "audioTime", "audioFileId", "signalprocessingResult", "algorithmStatus", "algorithmError"];
     return [String(idx + 1), ...keys.map((k) => {
@@ -375,13 +408,13 @@ async function handleExport(scope: "current" | "all") {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `算法分析数据_${new Date().toISOString().slice(0, 10)}.csv`;
+  link.download = `${t("leakAnalysis.exportFileName", "算法分析数据")}_${new Date().toISOString().slice(0, 10)}.csv`;
   link.click();
   URL.revokeObjectURL(url);
-  uni.showToast({ title: "导出成功", icon: "success" });
+  uni.showToast({ title: t("common.exportSuccess"), icon: "success" });
   // #endif
   // #ifndef H5
-  uni.showToast({ title: "导出功能仅支持 H5 端", icon: "none" });
+  uni.showToast({ title: t("common.exportH5Only"), icon: "none" });
   // #endif
 }
 
@@ -481,7 +514,7 @@ function toggleAudioPlay(audio: Record<string, unknown>, index: number) {
   playingAudioIndex.value = index;
   // #endif
   // #ifndef H5
-  uni.showToast({ title: "音频播放仅支持 H5 端", icon: "none" });
+  uni.showToast({ title: t("leakAnalysis.audioH5Only"), icon: "none" });
   // #endif
 }
 
@@ -504,20 +537,20 @@ function getFieldValue(item: AnalysisRecord | null, key: string): unknown {
 function getAlgorithmStatusLabel(item: AnalysisRecord) {
   const status = String(getFieldValue(item, "algorithmStatus") || "").toUpperCase();
   const map: Record<string, string> = {
-    PENDING: "等待处理",
-    SUCCESS: "处理成功",
-    FAILED: "处理失败",
-    SKIPPED: "跳过",
+    [ALGORITHM_STATUS.PENDING]: t("status.pending"),
+    [ALGORITHM_STATUS.SUCCESS]: t("status.success"),
+    [ALGORITHM_STATUS.FAILED]: t("status.failed"),
+    [ALGORITHM_STATUS.SKIPPED]: t("status.skipped"),
   };
   return map[status] || status || "-";
 }
 
 function getAlgorithmStatusTagClass(item: AnalysisRecord) {
   const status = String(getFieldValue(item, "algorithmStatus") || "").toUpperCase();
-  if (status === "SUCCESS") return "status-tag--success";
-  if (status === "FAILED") return "status-tag--failed";
-  if (status === "PENDING") return "status-tag--pending";
-  if (status === "SKIPPED") return "status-tag--skipped";
+  if (status === ALGORITHM_STATUS.SUCCESS) return "status-tag--success";
+  if (status === ALGORITHM_STATUS.FAILED) return "status-tag--failed";
+  if (status === ALGORITHM_STATUS.PENDING) return "status-tag--pending";
+  if (status === ALGORITHM_STATUS.SKIPPED) return "status-tag--skipped";
   return "status-tag--unknown";
 }
 
@@ -609,7 +642,7 @@ function applyLocalSort(list: AnalysisRecord[]): AnalysisRecord[] {
 function assertSuccessResponse(response: ApiResponseLike | undefined) {
   const code = response?.code;
   if (code === undefined || code === 0 || code === 200) return;
-  throw { code, msg: response?.msg || "请求失败", data: response?.data };
+  throw { code, msg: response?.msg || t("common.requestError"), data: response?.data };
 }
 </script>
 

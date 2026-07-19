@@ -4,18 +4,18 @@
     <view class="toolbar">
       <view class="toolbar-row toolbar-row--filters">
         <view class="filter-group">
-          <text class="filter-label">时间范围</text>
+          <text class="filter-label">{{ t("filter.timeRange") }}</text>
           <view class="date-range">
-            <WorkOrderDatetimePicker v-model="filters.startTime" class="filter-datetime" title="选择开始时间" placeholder="请选择开始时间" />
-            <text class="filter-separator">至</text>
-            <WorkOrderDatetimePicker v-model="filters.endTime" class="filter-datetime" title="选择结束时间" placeholder="请选择结束时间" />
+            <WorkOrderDatetimePicker v-model="filters.startTime" class="filter-datetime" :title="t('time.pleaseSelectStartTime')" :placeholder="t('time.pleaseSelectStartTime')" />
+            <text class="filter-separator">{{ t("time.to") }}</text>
+            <WorkOrderDatetimePicker v-model="filters.endTime" class="filter-datetime" :title="t('time.pleaseSelectEndTime')" :placeholder="t('time.pleaseSelectEndTime')" />
           </view>
         </view>
 
         <!-- 渗漏记录tab：渗漏状态 + 巡检人员 -->
         <template v-if="activeDataTab === 'leakage'">
           <view class="filter-group">
-            <text class="filter-label">渗漏状态</text>
+            <text class="filter-label">{{ t("filter.leakStatus") }}</text>
             <picker :range="activeLeakStatusOptions" range-key="label" @change="handleLeakStatusChange">
               <view class="filter-select">
                 <text>{{ currentLeakStatusLabel }}</text>
@@ -24,15 +24,15 @@
             </picker>
           </view>
           <view class="filter-group">
-            <text class="filter-label">巡检人员</text>
-            <input v-model="filters.inspector" class="filter-input" placeholder="请输入巡检人员" placeholder-class="input-placeholder" />
+            <text class="filter-label">{{ t("filter.inspector") }}</text>
+            <input v-model="filters.inspector" class="filter-input" :placeholder="t('filter.pleaseInputInspector')" placeholder-class="input-placeholder" />
           </view>
         </template>
 
         <!-- 设备上报tab：渗漏状态 + 设备编号 -->
         <template v-else-if="activeDataTab === 'deviceUpload'">
           <view class="filter-group">
-            <text class="filter-label">渗漏状态</text>
+            <text class="filter-label">{{ t("filter.leakStatus") }}</text>
             <picker :range="activeLeakStatusOptions" range-key="label" @change="handleLeakStatusChange">
               <view class="filter-select">
                 <text>{{ currentLeakStatusLabel }}</text>
@@ -41,19 +41,19 @@
             </picker>
           </view>
           <view class="filter-group">
-            <text class="filter-label">设备编号</text>
-            <input v-model="filters.deviceNumber" class="filter-input" placeholder="请输入设备编号" placeholder-class="input-placeholder" />
+            <text class="filter-label">{{ t("filter.deviceNumber") }}</text>
+            <input v-model="filters.deviceNumber" class="filter-input" :placeholder="t('filter.pleaseInputDeviceNumber')" placeholder-class="input-placeholder" />
           </view>
         </template>
 
         <!-- 算法分析tab：设备编号 + 算法状态 + 算法名称 -->
         <template v-else-if="activeDataTab === 'algorithm'">
           <view class="filter-group">
-            <text class="filter-label">设备编号</text>
-            <input v-model="filters.deviceNumber" class="filter-input" placeholder="请输入设备编号" placeholder-class="input-placeholder" />
+            <text class="filter-label">{{ t("filter.deviceNumber") }}</text>
+            <input v-model="filters.deviceNumber" class="filter-input" :placeholder="t('filter.pleaseInputDeviceNumber')" placeholder-class="input-placeholder" />
           </view>
           <view class="filter-group">
-            <text class="filter-label">执行状态</text>
+            <text class="filter-label">{{ t("filter.executeStatus") }}</text>
             <picker :range="algorithmStatusOptions" range-key="label" @change="handleAlgorithmStatusChange">
               <view class="filter-select">
                 <text>{{ currentAlgorithmStatusLabel }}</text>
@@ -62,22 +62,22 @@
             </picker>
           </view>
           <view class="filter-group">
-            <text class="filter-label">算法名称</text>
-            <input v-model="filters.algorithmName" class="filter-input" placeholder="请输入算法名称" placeholder-class="input-placeholder" />
+            <text class="filter-label">{{ t("filter.algorithmName") }}</text>
+            <input v-model="filters.algorithmName" class="filter-input" :placeholder="t('filter.pleaseInputAlgorithmName')" placeholder-class="input-placeholder" />
           </view>
         </template>
 
         <view class="toolbar-actions toolbar-actions--right">
-          <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="searchHistory">查询</button>
-          <button class="toolbar-button" hover-class="toolbar-button--hover" @click="resetFilters">重置</button>
-          <button class="toolbar-icon-button" hover-class="toolbar-icon-button--hover" aria-label="刷新" @click="fetchHistoryData">
+          <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="searchHistory">{{ t("common.search") }}</button>
+          <button class="toolbar-button" hover-class="toolbar-button--hover" @click="resetFilters">{{ t("common.reset") }}</button>
+          <button class="toolbar-icon-button" hover-class="toolbar-icon-button--hover" :aria-label="t('common.refresh')" @click="fetchHistoryData">
             <text class="icon-refresh"></text>
           </button>
           <view class="export-dropdown">
-            <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="exportMenuVisible = !exportMenuVisible">导出</button>
+            <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="exportMenuVisible = !exportMenuVisible">{{ t("common.export") }}</button>
             <view v-if="exportMenuVisible" class="export-menu">
-              <view class="export-menu__item" @click="handleExport('current')">导出当前页</view>
-              <view class="export-menu__item" @click="handleExport('all')">导出全部</view>
+              <view class="export-menu__item" @click="handleExport('current')">{{ t("common.exportCurrentPage") }}</view>
+              <view class="export-menu__item" @click="handleExport('all')">{{ t("common.exportAll") }}</view>
             </view>
           </view>
         </view>
@@ -106,8 +106,10 @@
         :class="kpi.tone ? `kpi-card--${kpi.tone}` : ''"
       >
         <text class="kpi-card__label">{{ kpi.label }}</text>
-        <text class="kpi-card__value">{{ kpi.value }}</text>
-        <text v-if="kpi.hint" class="kpi-card__hint">{{ kpi.hint }}</text>
+        <view class="kpi-card__value-row">
+          <text class="kpi-card__value">{{ kpi.value }}</text>
+          <text v-if="kpi.hint" class="kpi-card__hint">{{ kpi.hint }}</text>
+        </view>
       </view>
     </view>
 
@@ -116,12 +118,24 @@
       <view class="chart-zone__header">
         <view class="chart-zone__title-wrap" @click="toggleChartCollapse">
           <view class="chart-zone__title-row">
-            <text class="chart-zone__title">数据趋势 · {{ activeTabLabel }}</text>
-            <text class="chart-zone__toggle">{{ chartCollapsed ? "展开" : "收起" }}</text>
+            <text class="chart-zone__title">{{ t("historyOverview.chart.dataTrend") }} · {{ activeTabLabel }}</text>
+            <text class="chart-zone__toggle">{{ chartCollapsed ? t("historyOverview.chart.expand") : t("historyOverview.chart.collapse") }}</text>
           </view>
           <text v-if="!chartCollapsed" class="chart-zone__hint">{{ currentChartConfig.hint }}</text>
         </view>
         <view v-if="!chartCollapsed" class="chart-zone__actions">
+          <!-- 粒度切换：天/月/年（仅折线图显示，其他图保留占位避免按钮跳动） -->
+          <view class="chart-zone__grain" :class="{ 'chart-zone__grain--hidden': currentChartConfig.type !== 'line' }">
+            <view
+              v-for="g in trendGrainOptions"
+              :key="g.value"
+              class="chart-zone__grain-btn"
+              :class="{ 'chart-zone__grain-btn--active': trendGrainSize === g.value }"
+              @click="trendGrainSize = g.value"
+            >
+              {{ g.label }}
+            </view>
+          </view>
           <view class="chart-zone__modes">
             <view
               v-for="opt in currentChartModes"
@@ -138,12 +152,12 @@
               class="chart-zone__scope-btn"
               :class="{ 'chart-zone__scope-btn--active': chartDataScope === 'page' }"
               @click="chartDataScope !== 'page' && toggleChartDataScope()"
-            >本页</view>
+            >{{ t("historyOverview.chart.page") }}</view>
             <view
               class="chart-zone__scope-btn"
               :class="{ 'chart-zone__scope-btn--active': chartDataScope === 'all' }"
               @click="chartDataScope !== 'all' && toggleChartDataScope()"
-            >{{ chartAllLoading ? "加载中…" : "全部" }}</view>
+            >{{ chartAllLoading ? t("historyOverview.chart.loading") : t("historyOverview.chart.all") }}</view>
           </view>
         </view>
       </view>
@@ -152,63 +166,63 @@
         <div ref="chartEl" class="chart-zone__canvas"></div>
         <!-- #endif -->
         <!-- #ifndef H5 -->
-        <view class="chart-zone__fallback">当前图表仅支持 H5 展示</view>
+        <view class="chart-zone__fallback">{{ t("historyOverview.chart.h5Only") }}</view>
         <!-- #endif -->
       </view>
     </view>
 
     <!-- 主内容区 -->
     <LeakTableView
-      :title="`${activeTabLabel}历史`"
+      :title="`${activeTabLabel} ${t('historyOverview.historyTitle')}`"
       :total="total"
       :page-num="pagination.pageNum"
       :page-size="pagination.pageSize"
       :total-pages="totalPages"
       :has-detail="!!selectedRecord"
-      detail-empty-text="请选择左侧记录查看详情"
+      :detail-empty-text="t('historyOverview.detailEmpty')"
       @prev-page="changePage(-1)"
       @next-page="changePage(1)"
       @jump-page="jumpToPage"
       @page-size-change="handlePageSizeChange"
     >
-      <view class="data-table">
+      <view class="data-table" :style="{ gridTemplateColumns: tableGridTemplateColumns, minWidth: tableMinWidth }">
         <!-- 渗漏记录列头 -->
         <view v-if="activeDataTab === 'leakage'" class="data-row data-row--header data-row--leakage">
-          <text class="data-cell data-cell--index">序号</text>
-          <text class="data-cell data-cell--time data-cell--sortable" @click.stop="toggleSort('detectTime')">检出时间<text class="sort-arrow sort-arrow--active" v-if="sortField === 'detectTime'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
-          <text class="data-cell data-cell--level data-cell--sortable" @click.stop="toggleSort('leakStatus')">渗漏状态<text class="sort-arrow sort-arrow--active" v-if="sortField === 'leakStatus'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
-          <text class="data-cell data-cell--type">漏点类型</text>
-          <text class="data-cell data-cell--address">漏点位置</text>
-          <text class="data-cell data-cell--account">巡检人员</text>
-          <text class="data-cell data-cell--material">管道材质</text>
-          <text class="data-cell data-cell--remark">描述</text>
+          <text class="data-cell data-cell--index">{{ t("table.index") }}</text>
+          <text class="data-cell data-cell--time data-cell--sortable" @click.stop="toggleSort('detectTime')">{{ t("table.detectTime") }}<text class="sort-arrow sort-arrow--active" v-if="sortField === 'detectTime'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
+          <text class="data-cell data-cell--level data-cell--sortable" @click.stop="toggleSort('leakStatus')">{{ t("table.leakStatus") }}<text class="sort-arrow sort-arrow--active" v-if="sortField === 'leakStatus'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
+          <text class="data-cell data-cell--type">{{ t("table.leakPointType") }}</text>
+          <text class="data-cell data-cell--address">{{ t("table.leakPointPosition") }}</text>
+          <text class="data-cell data-cell--account">{{ t("table.inspector") }}</text>
+          <text class="data-cell data-cell--material">{{ t("table.tubeMaterial") }}</text>
+          <text class="data-cell data-cell--remark">{{ t("table.description") }}</text>
         </view>
 
         <!-- 设备上报列头 -->
         <view v-else-if="activeDataTab === 'deviceUpload'" class="data-row data-row--header data-row--deviceUpload">
-          <text class="data-cell data-cell--index">序号</text>
-          <text class="data-cell data-cell--time">上报时间</text>
-          <text class="data-cell data-cell--device">设备编号</text>
-          <text class="data-cell data-cell--status">渗漏标志位</text>
-          <text class="data-cell data-cell--esa">特征值</text>
-          <text class="data-cell data-cell--intensity">强度</text>
-          <text class="data-cell data-cell--frequency">频率</text>
-          <text class="data-cell data-cell--firmware">固件版本</text>
+          <text class="data-cell data-cell--index">{{ t("table.index") }}</text>
+          <text class="data-cell data-cell--time">{{ t("table.uploadTime") }}</text>
+          <text class="data-cell data-cell--device">{{ t("table.deviceNumber") }}</text>
+          <text class="data-cell data-cell--status">{{ t("table.leakFlag") }}</text>
+          <text class="data-cell data-cell--esa">{{ t("table.leakEsa") }}</text>
+          <text class="data-cell data-cell--intensity">{{ t("table.leakIntensity") }}</text>
+          <text class="data-cell data-cell--frequency">{{ t("table.leakFrequency") }}</text>
+          <text class="data-cell data-cell--firmware">{{ t("table.firmwareVersion") }}</text>
         </view>
 
         <!-- 算法分析列头 -->
         <view v-else-if="activeDataTab === 'algorithm'" class="data-row data-row--header data-row--algorithm">
-          <text class="data-cell data-cell--index">序号</text>
-          <text class="data-cell data-cell--time">创建时间</text>
-          <text class="data-cell data-cell--device">设备编号</text>
-          <text class="data-cell data-cell--signal">算法名称</text>
-          <text class="data-cell data-cell--status">执行状态</text>
-          <text class="data-cell data-cell--signal">输出值</text>
-          <text class="data-cell data-cell--esa">耗时(ms)</text>
+          <text class="data-cell data-cell--index">{{ t("table.index") }}</text>
+          <text class="data-cell data-cell--time">{{ t("table.createdAt") }}</text>
+          <text class="data-cell data-cell--device">{{ t("table.deviceNumber") }}</text>
+          <text class="data-cell data-cell--signal">{{ t("table.algorithmName") }}</text>
+          <text class="data-cell data-cell--status">{{ t("table.executeStatus") }}</text>
+          <text class="data-cell data-cell--signal">{{ t("table.outputValue") }}</text>
+          <text class="data-cell data-cell--esa">{{ t("table.duration") }}</text>
         </view>
 
-        <view v-if="loading" class="table-state table-state--loading"><view class="state-spinner"></view><text class="state-text">加载中...</text></view>
-        <view v-else-if="records.length === 0" class="table-state table-state--empty"><view class="state-icon-empty"></view><text class="state-text">暂无历史数据</text></view>
+        <view v-if="loading" class="table-state table-state--loading"><view class="state-spinner"></view><text class="state-text">{{ t("common.loading") }}</text></view>
+        <view v-else-if="records.length === 0" class="table-state table-state--empty"><view class="state-icon-empty"></view><text class="state-text">{{ t("historyOverview.noHistoryData") }}</text></view>
 
         <!-- 渗漏记录行 -->
         <view v-else-if="activeDataTab === 'leakage'">
@@ -221,7 +235,7 @@
           >
             <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
             <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "detectTime")) }}</text>
-            <text class="data-cell data-cell--level"><text class="status-tag" :class="getLeakageStatusTagClass(item)">{{ getFieldValue(item, "leakStatus") || "-" }}</text></text>
+            <text class="data-cell data-cell--level"><text class="status-tag" :class="getLeakageStatusTagClass(item)">{{ getLeakageStatusDisplay(item) }}</text></text>
             <text class="data-cell data-cell--type">{{ getFieldValue(item, "leakPointType") || "-" }}</text>
             <text class="data-cell data-cell--address">{{ getFieldValue(item, "leakPointPosition") || "-" }}</text>
             <text class="data-cell data-cell--account">{{ getFieldValue(item, "inspector") || "-" }}</text>
@@ -264,7 +278,7 @@
             <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
             <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "createdAt")) }}</text>
             <text class="data-cell data-cell--device">{{ getFieldValue(item, "deviceNumber") || "-" }}</text>
-            <text class="data-cell data-cell--signal">{{ getFieldValue(item, "algorithmName") || "-" }}</text>
+            <text class="data-cell data-cell--signal">{{ translateAlgorithmName(getFieldValue(item, "algorithmName")) }}</text>
             <text class="data-cell data-cell--status">
               <text v-if="getFieldValue(item, 'status')" class="status-tag" :class="getAlgorithmStatusTagClass(item)">{{ getAlgorithmStatusLabel(item) }}</text>
               <text v-else>-</text>
@@ -295,7 +309,7 @@
 
             <!-- 时间信息（时间线） -->
             <view v-if="timeDetailFields.length > 0" class="time-section">
-              <text class="detail-section-title">时间信息</text>
+              <text class="detail-section-title">{{ t("leakManagement.timeInfo") }}</text>
               <view class="time-list">
                 <view v-for="item in timeDetailFields" :key="item.label" class="time-row">
                   <view class="time-row__marker"></view>
@@ -309,7 +323,7 @@
 
             <!-- 地点信息 -->
             <view v-if="locationFields.length > 0" class="time-section time-section--location">
-              <text class="detail-section-title">地点信息</text>
+              <text class="detail-section-title">{{ t("leakManagement.locationInfo") }}</text>
               <view v-for="item in locationFields" :key="item.label" class="location-row">
                 <text class="location-row__label">{{ item.label }}</text>
                 <text class="location-row__value">{{ item.value }}</text>
@@ -343,6 +357,25 @@ import {
 } from "@/services/leak-report/history-overview";
 import WorkOrderDatetimePicker from "@/pages/work-order/localized/components/WorkOrderDatetimePicker.vue";
 import LeakTableView from "@/pages/leak-report/localized/components/LeakTableView.vue";
+import { createScopedT, useI18n } from "@/i18n";
+import {
+  LEAK_STATUS,
+  ALGORITHM_STATUS,
+  isRepairedStatus,
+  isUnrepairedStatus,
+  isLeakStatus,
+  isNormalStatus,
+  isSuspectedStatus,
+  isNoDataStatus,
+  isAlgorithmSuccess,
+  isAlgorithmFailed,
+  isAlgorithmTimeout,
+  isAlgorithmSkipped,
+  normalizeLeakStatusCode,
+} from "@/pages/leak-report/constants/status";
+
+const t = createScopedT("leakReport");
+const { locale } = useI18n();
 
 type HistoryRecord = Record<string, unknown>;
 type DataTab = "leakage" | "deviceUpload" | "algorithm";
@@ -370,45 +403,85 @@ interface KpiItem {
   tone?: KpiTone;
 }
 
-const historyTabs: Array<{ label: string; value: DataTab }> = [
-  { label: "渗漏记录", value: "leakage" },
-  { label: "设备上报", value: "deviceUpload" },
-  { label: "算法日志", value: "algorithm" },
-];
+const historyTabs = computed<Array<{ label: string; value: DataTab }>>(() => [
+  { label: t("historyOverview.tabs.leakage"), value: "leakage" },
+  { label: t("historyOverview.tabs.deviceUpload"), value: "deviceUpload" },
+  { label: t("historyOverview.tabs.algorithm"), value: "algorithm" },
+]);
 
-const leakStatusOptions: Array<{ label: string; value: number | "" }> = [
-  { label: "不限", value: "" },
-  { label: "渗漏", value: 0 },
-  { label: "正常", value: 1 },
-  { label: "疑似", value: 2 },
-  { label: "未知", value: 3 },
-];
+const leakStatusOptions = computed<Array<{ label: string; value: number | "" }>>(() => [
+  { label: t("status.statusUnlimited"), value: "" },
+  { label: t("status.leak"), value: 0 },
+  { label: t("status.normal"), value: 1 },
+  { label: t("status.suspected"), value: 2 },
+  { label: t("status.unknown"), value: 3 },
+]);
 
 // 渗漏记录 tab 专属：漏点记录的 leakStatus 是字符串（已修复/未修复），后端不支持该字段筛选，需本地过滤
-const leakageStatusOptions: Array<{ label: string; value: number | string | "" }> = [
-  { label: "不限", value: "" },
-  { label: "已修复", value: "已修复" },
-  { label: "未修复", value: "未修复" },
-];
+const leakageStatusOptions = computed<Array<{ label: string; value: number | string | "" }>>(() => [
+  { label: t("status.statusUnlimited"), value: "" },
+  { label: t("status.repaired"), value: LEAK_STATUS.REPAIRED },
+  { label: t("status.unrepaired"), value: LEAK_STATUS.UNREPAIRED },
+]);
 
 // 根据当前 tab 动态选择渗漏状态选项（统一类型，避免联合类型不可调用）
 const activeLeakStatusOptions = computed<Array<{ label: string; value: number | string | "" }>>(() =>
-  activeDataTab.value === "leakage" ? leakageStatusOptions : leakStatusOptions,
+  activeDataTab.value === "leakage" ? leakageStatusOptions.value : leakStatusOptions.value,
 );
 
-const algorithmStatusOptions: Array<{ label: string; value: string }> = [
-  { label: "不限", value: "" },
-  { label: "执行成功", value: "SUCCESS" },
-  { label: "执行失败", value: "FAILED" },
-  { label: "超时", value: "TIMEOUT" },
-  { label: "跳过", value: "SKIPPED" },
-];
+const algorithmStatusOptions = computed<Array<{ label: string; value: string }>>(() => [
+  { label: t("status.statusUnlimited"), value: "" },
+  { label: t("status.executeSuccess"), value: ALGORITHM_STATUS.SUCCESS },
+  { label: t("status.executeFailed"), value: ALGORITHM_STATUS.FAILED },
+  { label: t("status.timeout"), value: ALGORITHM_STATUS.TIMEOUT },
+  { label: t("status.skipped"), value: ALGORITHM_STATUS.SKIPPED },
+]);
 
-const tabLabelMap: Record<DataTab, string> = {
-  leakage: "渗漏记录",
-  deviceUpload: "设备上报",
-  algorithm: "算法日志",
-};
+const tabLabelMap = computed<Record<DataTab, string>>(() => ({
+  leakage: t("historyOverview.tabs.leakage"),
+  deviceUpload: t("historyOverview.tabs.deviceUpload"),
+  algorithm: t("historyOverview.tabs.algorithm"),
+}));
+
+/**
+ * 表格列宽动态配置（3 套，按 activeDataTab 切换）
+ *
+ * 英文表头普遍比中文长（如 "Leak Point Position" 19字符 vs "漏点位置" 4字符），
+ * 共用一套列宽会导致英文表头截断。根据 locale 返回不同配置：
+ * - zh-CN：以中文表头长度为基准
+ * - en-US：以英文表头长度为基准（关键列加宽，确保完整展示）
+ *
+ * 三套表格列定义：
+ * - leakage（8 列）：序号/检出时间/渗漏状态/漏点类型/漏点位置/巡检人员/管道材质/描述
+ * - deviceUpload（8 列）：序号/上报时间/设备编号/渗漏标志位/特征值/强度/频率/固件版本
+ * - algorithm（7 列）：序号/创建时间/设备编号/算法名称/执行状态/输出值/耗时(ms)
+ */
+const tableGridTemplateColumns = computed<string>(() => {
+  const isEn = locale.value === "en-US";
+  if (activeDataTab.value === "leakage") {
+    // 8 列
+    return isEn
+      ? "58px minmax(160px, 1.6fr) minmax(100px, 1fr) minmax(120px, 1.1fr) minmax(170px, 1.7fr) minmax(105px, 1fr) minmax(110px, 1fr) minmax(140px, 1.2fr)"
+      : "58px minmax(140px, 1.5fr) minmax(86px, 0.85fr) minmax(96px, 0.95fr) minmax(140px, 1.6fr) minmax(86px, 0.85fr) minmax(96px, 0.95fr) minmax(120px, 1fr)";
+  }
+  if (activeDataTab.value === "deviceUpload") {
+    // 8 列
+    return isEn
+      ? "58px minmax(160px, 1.6fr) minmax(140px, 1.2fr) minmax(110px, 1fr) minmax(110px, 1fr) minmax(90px, 0.85fr) minmax(90px, 0.85fr) minmax(130px, 1.1fr)"
+      : "58px minmax(140px, 1.5fr) minmax(120px, 1fr) minmax(100px, 1fr) minmax(86px, 0.85fr) minmax(72px, 0.7fr) minmax(72px, 0.7fr) minmax(100px, 1fr)";
+  }
+  // algorithm 7 列
+  return isEn
+    ? "58px minmax(160px, 1.6fr) minmax(140px, 1.2fr) minmax(140px, 1.3fr) minmax(120px, 1.1fr) minmax(110px, 1fr) minmax(110px, 1fr)"
+    : "58px minmax(140px, 1.5fr) minmax(120px, 1fr) minmax(120px, 1.2fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(86px, 0.85fr)";
+});
+
+const tableMinWidth = computed<string>(() => {
+  if (locale.value === "en-US") {
+    return activeDataTab.value === "algorithm" ? "940px" : "1080px";
+  }
+  return activeDataTab.value === "algorithm" ? "820px" : "980px";
+});
 
 const sortField = ref("createdAt");
 const sortOrder = ref("desc");
@@ -437,63 +510,65 @@ const activeDataTab = ref<DataTab>("leakage");
 const exportMenuVisible = ref(false);
 
 const currentLeakStatusLabel = computed(() =>
-  activeLeakStatusOptions.value.find((o) => o.value === filters.leakStatus)?.label || "不限",
+  activeLeakStatusOptions.value.find((o) => o.value === filters.leakStatus)?.label || t("status.statusUnlimited"),
 );
 const currentAlgorithmStatusLabel = computed(() =>
-  algorithmStatusOptions.find((o) => o.value === filters.algorithmStatus)?.label || "不限",
+  algorithmStatusOptions.value.find((o) => o.value === filters.algorithmStatus)?.label || t("status.statusUnlimited"),
 );
-const activeTabLabel = computed(() => tabLabelMap[activeDataTab.value]);
+const activeTabLabel = computed(() => tabLabelMap.value[activeDataTab.value]);
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pagination.pageSize)));
 
 // 顶部 KPI 概览条（基于当前页数据 + 后端 total 本地计算）
 const currentKpis = computed<KpiItem[]>(() => {
   const list = chartRecords.value;
-  const t = total.value;
+  const totalNum = total.value;
   const page = list.length;
   const isAll = chartDataScope.value === "all";
-  const scopeLabel = isAll ? "全部记录" : "当前页";
-  const pageText = isAll ? `全量 ${t} 条` : `第 ${pagination.pageNum}/${totalPages.value} 页`;
-  const prefix = isAll ? "全部" : "本页";
+  const scopeLabel = isAll ? t("historyOverview.kpi.scopeAllRecords") : t("historyOverview.kpi.scopeCurrentPage");
+  const pageText = isAll
+    ? t("historyOverview.kpi.scopeAllDataText", { total: totalNum })
+    : t("historyOverview.kpi.scopePageText", { current: pagination.pageNum, total: totalPages.value });
+  const prefix = isAll ? t("historyOverview.kpi.scopeAllPrefix") : t("historyOverview.kpi.scopePagePrefix");
   const tone = (ok: boolean): KpiTone => (ok ? "success" : "warning");
 
   if (activeDataTab.value === "leakage") {
-    const repaired = list.filter((r) => normalizeLeakStatus(getFieldValue(r, "leakStatus"), "leakage") === "已修复").length;
-    const unrepaired = list.filter((r) => normalizeLeakStatus(getFieldValue(r, "leakStatus"), "leakage") === "未修复").length;
+    const repaired = list.filter((r) => isRepairedStatus(normalizeLeakStatusCode(getFieldValue(r, "leakStatus"), "leakage"))).length;
+    const unrepaired = list.filter((r) => isUnrepairedStatus(normalizeLeakStatusCode(getFieldValue(r, "leakStatus"), "leakage"))).length;
     const rate = page > 0 ? Math.round((repaired / page) * 100) : 0;
     return [
-      { label: "总记录数", value: String(t), hint: "全量数据" },
+      { label: t("historyOverview.kpi.totalRecords"), value: String(totalNum) },
       { label: scopeLabel, value: String(page), hint: pageText },
-      { label: `${prefix}已修复`, value: String(repaired), tone: "success" },
-      { label: `${prefix}未修复`, value: String(unrepaired), tone: "danger" },
-      { label: `${prefix}修复率`, value: `${rate}%`, tone: rate >= 50 ? "success" : "warning" },
+      { label: `${prefix}${t("historyOverview.kpi.repaired")}`, value: String(repaired), tone: "success" },
+      { label: `${prefix}${t("historyOverview.kpi.unrepaired")}`, value: String(unrepaired), tone: "danger" },
+      { label: `${prefix}${t("historyOverview.kpi.repairRate")}`, value: `${rate}%`, tone: rate >= 50 ? "success" : "warning" },
     ];
   }
 
   if (activeDataTab.value === "deviceUpload") {
-    const leak = list.filter((r) => normalizeLeakStatus(getFieldValue(r, "leakStatus"), "deviceUpload") === "渗漏").length;
-    const normal = list.filter((r) => normalizeLeakStatus(getFieldValue(r, "leakStatus"), "deviceUpload") === "正常").length;
+    const leak = list.filter((r) => isLeakStatus(normalizeLeakStatusCode(getFieldValue(r, "leakStatus"), "deviceUpload"))).length;
+    const normal = list.filter((r) => isNormalStatus(normalizeLeakStatusCode(getFieldValue(r, "leakStatus"), "deviceUpload"))).length;
     const devices = new Set(list.map((r) => String(getFieldValue(r, "deviceNumber") || "")).filter(Boolean)).size;
     const abnormalRate = page > 0 ? Math.round((leak / page) * 100) : 0;
     return [
-      { label: "上报总数", value: String(t), hint: "全量数据" },
+      { label: t("historyOverview.kpi.uploadTotal"), value: String(totalNum) },
       { label: scopeLabel, value: String(page), hint: pageText },
-      { label: `${prefix}渗漏`, value: String(leak), tone: "danger" },
-      { label: `${prefix}正常`, value: String(normal), tone: "success" },
-      { label: "涉及设备", value: String(devices) },
-      { label: "异常率", value: `${abnormalRate}%`, tone: abnormalRate >= 30 ? "danger" : "warning" },
+      { label: `${prefix}${t("historyOverview.kpi.leakCount")}`, value: String(leak), tone: "danger" },
+      { label: `${prefix}${t("historyOverview.kpi.normalCount")}`, value: String(normal), tone: "success" },
+      { label: t("historyOverview.kpi.involvedDevices"), value: String(devices) },
+      { label: t("historyOverview.kpi.anomalyRate"), value: `${abnormalRate}%`, tone: abnormalRate >= 30 ? "danger" : "warning" },
     ];
   }
 
   if (activeDataTab.value === "algorithm") {
-    const success = list.filter((r) => String(getFieldValue(r, "status") || "").toUpperCase() === "SUCCESS").length;
-    const failed = list.filter((r) => ["FAILED", "TIMEOUT"].includes(String(getFieldValue(r, "status") || "").toUpperCase())).length;
+    const success = list.filter((r) => isAlgorithmSuccess(getFieldValue(r, "status"))).length;
+    const failed = list.filter((r) => isAlgorithmFailed(getFieldValue(r, "status")) || isAlgorithmTimeout(getFieldValue(r, "status"))).length;
     const successRate = page > 0 ? Math.round((success / page) * 100) : 0;
     return [
-      { label: "执行总数", value: String(t), hint: "全量数据" },
+      { label: t("historyOverview.kpi.executeTotal"), value: String(totalNum) },
       { label: scopeLabel, value: String(page), hint: pageText },
-      { label: `${prefix}成功`, value: String(success), tone: "success" },
-      { label: `${prefix}失败`, value: String(failed), tone: "danger" },
-      { label: "成功率", value: `${successRate}%`, tone: tone(successRate >= 80) },
+      { label: `${prefix}${t("historyOverview.kpi.successCount")}`, value: String(success), tone: "success" },
+      { label: `${prefix}${t("historyOverview.kpi.failedCount")}`, value: String(failed), tone: "danger" },
+      { label: t("historyOverview.kpi.successRate"), value: `${successRate}%`, tone: tone(successRate >= 80) },
     ];
   }
 
@@ -513,30 +588,30 @@ interface ChartModeConfig {
 }
 
 // 每个 Tab 的专属图表模式列表
-const chartModeConfigs: Record<DataTab, ChartModeConfig[]> = {
+const chartModeConfigs = computed<Record<DataTab, ChartModeConfig[]>>(() => ({
   leakage: [
-    { label: "每日趋势", value: "trend", type: "line", groupBy: "time", hint: "按检出日期统计渗漏记录数趋势" },
-    { label: "漏点类型", value: "leakType", type: "pie", groupBy: "leakType", hint: "按漏点类型分布占比" },
-    { label: "渗漏状态", value: "leakStatus", type: "pie", groupBy: "leakStatus", hint: "已修复 vs 未修复 占比" },
+    { label: t("historyOverview.chart.dataTrend"), value: "trend", type: "line", groupBy: "time", hint: t("historyOverview.chart.trendHintLeakage") },
+    { label: t("historyOverview.chart.leakType"), value: "leakType", type: "pie", groupBy: "leakType", hint: t("historyOverview.chart.leakTypeHintText") },
+    { label: t("historyOverview.chart.leakStatus"), value: "leakStatus", type: "pie", groupBy: "leakStatus", hint: t("historyOverview.chart.leakStatusHintLeakage") },
   ],
   deviceUpload: [
-    { label: "每日趋势", value: "trend", type: "line", groupBy: "time", hint: "按上报日期统计记录数趋势" },
-    { label: "渗漏状态", value: "leakStatus", type: "pie", groupBy: "leakStatus", hint: "渗漏 vs 正常 占比" },
-    { label: "设备 Top10", value: "device", type: "bar", groupBy: "device", hint: "上报次数最多的前 10 个设备" },
+    { label: t("historyOverview.chart.dataTrend"), value: "trend", type: "line", groupBy: "time", hint: t("historyOverview.chart.trendHintDevice") },
+    { label: t("historyOverview.chart.leakStatus"), value: "leakStatus", type: "pie", groupBy: "leakStatus", hint: t("historyOverview.chart.leakStatusHintDevice") },
+    { label: t("historyOverview.chart.deviceTop10"), value: "device", type: "bar", groupBy: "device", hint: t("historyOverview.chart.deviceTopHintText") },
   ],
   algorithm: [
-    { label: "每日趋势", value: "trend", type: "line", groupBy: "time", hint: "按日期统计算法执行次数趋势" },
-    { label: "执行结果", value: "algoStatus", type: "pie", groupBy: "algorithmStatus", hint: "成功 / 失败 / 超时 占比" },
-    { label: "成功失败对比", value: "successFail", type: "stackedBar", groupBy: "time", hint: "按日期堆叠统计成功与失败次数对比" },
+    { label: t("historyOverview.chart.dataTrend"), value: "trend", type: "line", groupBy: "time", hint: t("historyOverview.chart.trendHintAlgorithm") },
+    { label: t("historyOverview.chart.executeResult"), value: "algoStatus", type: "pie", groupBy: "algorithmStatus", hint: t("historyOverview.chart.algoStatusHint") },
+    { label: t("historyOverview.chart.successFailHint"), value: "successFail", type: "stackedBar", groupBy: "time", hint: t("historyOverview.chart.successFailHint") },
   ],
-};
+}));
 
 const chartEl = ref<HTMLElement | null>(null);
 let chart: echarts.ECharts | null = null;
 let resizeObserver: ResizeObserver | null = null;
 
 // 当前 tab 可用的图表模式列表
-const currentChartModes = computed(() => chartModeConfigs[activeDataTab.value]);
+const currentChartModes = computed(() => chartModeConfigs.value[activeDataTab.value]);
 // 当前选中的图表模式 value（每个 tab 默认 "trend"）
 const activeChartModeValue = ref<string>("trend");
 // 当前选中的图表模式配置
@@ -548,6 +623,14 @@ const currentChartConfig = computed<ChartModeConfig>(() =>
 const chartDataScope = ref<"page" | "all">("page");
 const allRecords = ref<HistoryRecord[]>([]);
 const chartAllLoading = ref(false);
+// 趋势图粒度：天 / 月 / 全部（年）
+type TrendGrainSize = "day" | "month" | "all";
+const trendGrainSize = ref<TrendGrainSize>("day");
+const trendGrainOptions = computed<Array<{ label: string; value: TrendGrainSize }>>(() => [
+  { label: t("historyOverview.chart.day"), value: "day" },
+  { label: t("historyOverview.chart.month"), value: "month" },
+  { label: t("historyOverview.chart.year"), value: "all" },
+]);
 // 图表实际使用的数据源
 const chartRecords = computed<HistoryRecord[]>(() =>
   chartDataScope.value === "all" ? applyLocalFilters(allRecords.value) : records.value,
@@ -563,11 +646,217 @@ function parseRecordDate(r: HistoryRecord): string {
       if (m) return m[0];
     }
   }
-  return "未知";
+  return t("status.unknown");
 }
 
-// 按时间分组统计
-function groupByTime(list: HistoryRecord[]): Array<{ name: string; value: number }> {
+// 解析记录的时间字段，返回时间戳（毫秒）；解析失败返回 0
+function parseRecordTimestamp(r: HistoryRecord): number {
+  const fields = ["detectTime", "uploadTime", "createdAt", "createTime", "samplingTime", "dailyDate", "reportDate"];
+  for (const f of fields) {
+    const v = getFieldValue(r, f);
+    if (v) {
+      const m = String(v).match(/\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}(?::\d{2})?)?/);
+      if (m) {
+        const t = new Date(m[0].replace(" ", "T")).getTime();
+        if (!Number.isNaN(t)) return t;
+      }
+    }
+  }
+  return 0;
+}
+
+// 按小时分组（每 4 小时一个单位），用于数据跨度 <= 2 天的场景
+function groupByHour(list: HistoryRecord[], minT: number, maxT: number): Array<{ name: string; value: number }> {
+  const HOUR_BUCKET = 4;
+  const map = new Map<string, number>();
+  const start = new Date(minT);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(maxT);
+  end.setHours(23, 59, 59, 999);
+  // 生成完整时间桶（保证空桶也显示，横轴连续）
+  for (let t = start.getTime(); t <= end.getTime(); t += HOUR_BUCKET * 60 * 60 * 1000) {
+    const d = new Date(t);
+    const name = `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:00`;
+    map.set(name, 0);
+  }
+  // 填充数据
+  for (const r of list) {
+    const ts = parseRecordTimestamp(r);
+    if (ts <= 0) continue;
+    const d = new Date(ts);
+    const bucketHour = Math.floor(d.getHours() / HOUR_BUCKET) * HOUR_BUCKET;
+    const name = `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(bucketHour).padStart(2, "0")}:00`;
+    map.set(name, (map.get(name) || 0) + 1);
+  }
+  return Array.from(map.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([name, value]) => ({ name, value }));
+}
+
+// 按月分组统计（补齐连续月份，无数据的月份为 0）
+function groupByMonth(list: HistoryRecord[], minT?: number, maxT?: number): Array<{ name: string; value: number }> {
+  const map = new Map<string, number>();
+  for (const r of list) {
+    const v = getFieldValue(r, "detectTime") || getFieldValue(r, "uploadTime") || getFieldValue(r, "createdAt") || getFieldValue(r, "createTime") || getFieldValue(r, "samplingTime") || getFieldValue(r, "dailyDate") || getFieldValue(r, "reportDate");
+    if (v) {
+      const m = String(v).match(/\d{4}-\d{2}/);
+      if (m) {
+        map.set(m[0], (map.get(m[0]) || 0) + 1);
+      }
+    }
+  }
+  // 有时间范围时，补齐从最早月到最晚月的连续月份
+  if (minT && maxT) {
+    const result: Array<{ name: string; value: number }> = [];
+    const start = new Date(minT);
+    start.setDate(1);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(maxT);
+    end.setDate(1);
+    end.setHours(0, 0, 0, 0);
+    const cur = new Date(start);
+    while (cur <= end) {
+      const name = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, "0")}`;
+      result.push({ name, value: map.get(name) || 0 });
+      cur.setMonth(cur.getMonth() + 1);
+    }
+    return result;
+  }
+  // 无时间范围，只返回有数据的月份
+  return Array.from(map.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([name, value]) => ({ name, value }));
+}
+
+// 按天分组统计（补齐连续日期，无数据的日期为 0）
+function groupByDay(list: HistoryRecord[], minT: number, maxT: number): Array<{ name: string; value: number }> {
+  const map = new Map<string, number>();
+  for (const r of list) {
+    const d = parseRecordDate(r);
+    map.set(d, (map.get(d) || 0) + 1);
+  }
+  const result: Array<{ name: string; value: number }> = [];
+  const start = new Date(minT);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(maxT);
+  end.setHours(23, 59, 59, 999);
+  const cur = new Date(start);
+  while (cur <= end) {
+    const name = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, "0")}-${String(cur.getDate()).padStart(2, "0")}`;
+    result.push({ name, value: map.get(name) || 0 });
+    cur.setDate(cur.getDate() + 1);
+  }
+  return result;
+}
+
+// 按年分组统计（补齐连续年份，至少 5 年范围）
+function groupByYear(list: HistoryRecord[], minT: number, maxT: number): Array<{ name: string; value: number }> {
+  const map = new Map<string, number>();
+  for (const r of list) {
+    const v = getFieldValue(r, "detectTime") || getFieldValue(r, "uploadTime") || getFieldValue(r, "createdAt") || getFieldValue(r, "createTime") || getFieldValue(r, "samplingTime") || getFieldValue(r, "dailyDate") || getFieldValue(r, "reportDate");
+    if (v) {
+      const m = String(v).match(/\d{4}/);
+      if (m) {
+        map.set(m[0], (map.get(m[0]) || 0) + 1);
+      }
+    }
+  }
+  // 范围：数据最早年~最晚年，若不足5年则前后扩展至5年
+  let startYear = new Date(minT).getFullYear();
+  let endYear = new Date(maxT).getFullYear();
+  if (endYear - startYear + 1 < 5) {
+    const shortage = 5 - (endYear - startYear + 1);
+    startYear -= Math.ceil(shortage / 2);
+    endYear += Math.floor(shortage / 2);
+  }
+  const result: Array<{ name: string; value: number }> = [];
+  for (let y = startYear; y <= endYear; y++) {
+    const name = String(y);
+    result.push({ name, value: map.get(name) || 0 });
+  }
+  return result;
+}
+
+// 按粒度筛选数据范围（饼图等使用）：day=当天，month=当月，all=全部
+function filterByGrainSize(list: HistoryRecord[], grainSize: TrendGrainSize): HistoryRecord[] {
+  if (grainSize === "all") return list;
+  const timestamps = list.map((r) => parseRecordTimestamp(r)).filter((t) => t > 0);
+  if (timestamps.length === 0) return list;
+  const minT = Math.min(...timestamps);
+  if (grainSize === "day") {
+    const dayStart = new Date(minT);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(minT);
+    dayEnd.setHours(23, 59, 59, 999);
+    return list.filter((r) => {
+      const t = parseRecordTimestamp(r);
+      return t >= dayStart.getTime() && t <= dayEnd.getTime();
+    });
+  }
+  if (grainSize === "month") {
+    const monthStart = new Date(minT);
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+    const monthEnd = new Date(monthStart);
+    monthEnd.setMonth(monthEnd.getMonth() + 1);
+    monthEnd.setDate(0);
+    monthEnd.setHours(23, 59, 59, 999);
+    return list.filter((r) => {
+      const t = parseRecordTimestamp(r);
+      return t >= monthStart.getTime() && t <= monthEnd.getTime();
+    });
+  }
+  return list;
+}
+
+// 按时间分组统计：根据粒度参数选择按天/月/年分组
+function groupByTime(list: HistoryRecord[], grainSize: TrendGrainSize = "day"): Array<{ name: string; value: number }> {
+  const timestamps = list.map((r) => parseRecordTimestamp(r)).filter((t) => t > 0);
+  // 按年分组（全部）：至少5年范围
+  if (grainSize === "all") {
+    if (timestamps.length === 0) {
+      // 回退：从数据中提取年份
+      const map = new Map<string, number>();
+      for (const r of list) {
+        const v = getFieldValue(r, "detectTime") || getFieldValue(r, "uploadTime") || getFieldValue(r, "createdAt") || getFieldValue(r, "createTime") || getFieldValue(r, "samplingTime") || getFieldValue(r, "dailyDate") || getFieldValue(r, "reportDate");
+        if (v) {
+          const m = String(v).match(/\d{4}/);
+          if (m) map.set(m[0], (map.get(m[0]) || 0) + 1);
+        }
+      }
+      return Array.from(map.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([name, value]) => ({ name, value }));
+    }
+    const minT = Math.min(...timestamps);
+    const maxT = Math.max(...timestamps);
+    return groupByYear(list, minT, maxT);
+  }
+  // 按月分组：显示数据所在年的 1月~12月（共12个月）
+  if (grainSize === "month") {
+    if (timestamps.length === 0) return groupByMonth(list);
+    const minT = Math.min(...timestamps);
+    const yearStart = new Date(minT);
+    yearStart.setMonth(0, 1);
+    yearStart.setHours(0, 0, 0, 0);
+    const yearEnd = new Date(minT);
+    yearEnd.setMonth(11, 31);
+    yearEnd.setHours(23, 59, 59, 999);
+    return groupByMonth(list, yearStart.getTime(), yearEnd.getTime());
+  }
+  // 按天分组（默认）：显示数据所在月的 1日~月末（当月总天数）
+  if (timestamps.length > 0) {
+    const minT = Math.min(...timestamps);
+    const monthStart = new Date(minT);
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+    const monthEnd = new Date(monthStart);
+    monthEnd.setMonth(monthEnd.getMonth() + 1);
+    monthEnd.setDate(0);
+    monthEnd.setHours(23, 59, 59, 999);
+    return groupByDay(list, monthStart.getTime(), monthEnd.getTime());
+  }
+  // 时间戳解析失败的最终回退：只统计有数据的日期
   const map = new Map<string, number>();
   for (const r of list) {
     const d = parseRecordDate(r);
@@ -582,7 +871,7 @@ function groupByTime(list: HistoryRecord[]): Array<{ name: string; value: number
 function groupByDevice(list: HistoryRecord[]): Array<{ name: string; value: number }> {
   const map = new Map<string, number>();
   for (const r of list) {
-    const d = String(getFieldValue(r, "deviceNumber") || "未知");
+    const d = String(getFieldValue(r, "deviceNumber") || t("status.unknown"));
     map.set(d, (map.get(d) || 0) + 1);
   }
   return Array.from(map.entries())
@@ -596,7 +885,7 @@ function groupByLeakType(list: HistoryRecord[]): Array<{ name: string; value: nu
   const map = new Map<string, number>();
   for (const r of list) {
     const v = getFieldValue(r, "leakPointType") || getFieldValue(r, "leakPart");
-    const s = v ? String(v) : "未知";
+    const s = v ? String(v) : t("status.unknown");
     map.set(s, (map.get(s) || 0) + 1);
   }
   return Array.from(map.entries())
@@ -604,28 +893,52 @@ function groupByLeakType(list: HistoryRecord[]): Array<{ name: string; value: nu
     .map(([name, value]) => ({ name, value }));
 }
 
-// 归一化 leakStatus：兼容字符串文本（已修复/未修复/渗漏/正常）和数字编码（0/1）
+// 归一化 leakStatus：使用 status code 常量（兼容字符串文本和数字编码）
 function normalizeLeakStatus(raw: unknown, tab: DataTab): string {
-  if (raw == null || raw === "") return "未知";
-  const s = String(raw);
-  // 字符串文本形式（后端实际返回格式）
-  if (tab === "leakage") {
-    if (s === "已修复" || s === "未修复") return s;
-  } else {
-    if (s === "渗漏" || s === "正常" || s === "疑似") return s;
-  }
-  // 数字编码形式（兼容旧接口）
-  const n = Number(raw);
-  if (!Number.isNaN(n)) {
-    if (tab === "leakage") {
-      return n === 1 ? "已修复" : n === 0 ? "未修复" : "未知";
-    }
-    return n === 0 ? "渗漏" : n === 1 ? "正常" : n === 2 ? "疑似" : "未知";
-  }
-  return s;
+  // algorithm tab 无 leakStatus 概念，返回 UNKNOWN
+  if (tab === "algorithm") return LEAK_STATUS.UNKNOWN;
+  return normalizeLeakStatusCode(raw, tab);
 }
 
-// 按渗漏状态分组（leakage tab 是已修复/未修复，其他 tab 是渗漏/正常）
+// 将 leakStatus code 翻译为当前语言的展示文本（用于图表标签、CSV 导出等）
+function translateLeakStatusCode(code: string): string {
+  if (isRepairedStatus(code)) return t("status.repaired");
+  if (isUnrepairedStatus(code)) return t("status.unrepaired");
+  if (isLeakStatus(code)) return t("status.leak");
+  if (isNormalStatus(code)) return t("status.normal");
+  if (isSuspectedStatus(code)) return t("status.suspected");
+  if (isNoDataStatus(code)) return t("status.noData");
+  return t("status.unknown");
+}
+
+// 将 algorithmStatus code 翻译为当前语言的展示文本
+function translateAlgorithmStatusCode(code: string): string {
+  if (isAlgorithmSuccess(code)) return t("status.executeSuccess");
+  if (isAlgorithmFailed(code)) return t("status.executeFailed");
+  if (isAlgorithmTimeout(code)) return t("status.timeout");
+  if (isAlgorithmSkipped(code)) return t("status.skipped");
+  // groupByAlgorithmStatus 在状态未知时 fallback 为 LEAK_STATUS.UNKNOWN（"未知"），需显式翻译
+  if (code === LEAK_STATUS.UNKNOWN) return t("status.unknown");
+  return code || t("status.unknown");
+}
+
+/**
+ * 动态翻译算法名称（algorithmName 字段）
+ *
+ * - 后端返回中文算法名（"噪音计算法"/"水听器主算法"/"水听器预处理"）
+ * - 用后端原值作为 key 动态查找翻译：t("algorithmName.{后端原值}")
+ * - 翻译不存在时（后端新增算法），fallback 显示后端原值，避免显示翻译失败
+ * - 后端加新算法时，只需在 zh-CN.json/en-US.json 的 leakReport.algorithmName 下
+ *   添加同名 key 即可，无需改任何代码
+ */
+function translateAlgorithmName(name: unknown): string {
+  if (name === null || name === undefined || name === "") return "-";
+  const raw = String(name).trim();
+  if (!raw) return "-";
+  return t(`algorithmName.${raw}`, {}, raw);
+}
+
+// 按渗漏状态分组（leakage tab 是已修复/未修复，其他 tab 是渗漏/正常）—— 返回 code 作为 name，展示时再翻译
 function groupByLeakStatusForPie(list: HistoryRecord[], tab: DataTab): Array<{ name: string; value: number }> {
   const map = new Map<string, number>();
   for (const r of list) {
@@ -635,12 +948,16 @@ function groupByLeakStatusForPie(list: HistoryRecord[], tab: DataTab): Array<{ n
   return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
 }
 
-// 按算法执行状态分组
+// 按算法执行状态分组—— 返回 code 作为 name，展示时再翻译
 function groupByAlgorithmStatus(list: HistoryRecord[]): Array<{ name: string; value: number }> {
   const map = new Map<string, number>();
   for (const r of list) {
     const su = String(getFieldValue(r, "status") || "").toUpperCase();
-    const s = su === "SUCCESS" ? "成功" : su === "FAILED" ? "失败" : su === "TIMEOUT" ? "超时" : "未知";
+    const s = isAlgorithmSuccess(su) ? ALGORITHM_STATUS.SUCCESS
+      : isAlgorithmFailed(su) ? ALGORITHM_STATUS.FAILED
+      : isAlgorithmTimeout(su) ? ALGORITHM_STATUS.TIMEOUT
+      : isAlgorithmSkipped(su) ? ALGORITHM_STATUS.SKIPPED
+      : LEAK_STATUS.UNKNOWN;
     map.set(s, (map.get(s) || 0) + 1);
   }
   return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
@@ -680,13 +997,13 @@ function buildStackedBarData(list: HistoryRecord[]): {
 } {
   const map = new Map<string, { success: number; failed: number; timeout: number }>();
   for (const r of list) {
-    const t = parseRecordDate(r);
-    if (!map.has(t)) map.set(t, { success: 0, failed: 0, timeout: 0 });
-    const stat = map.get(t)!;
+    const dateStr = parseRecordDate(r);
+    if (!map.has(dateStr)) map.set(dateStr, { success: 0, failed: 0, timeout: 0 });
+    const stat = map.get(dateStr)!;
     const su = String(getFieldValue(r, "status") || "").toUpperCase();
-    if (su === "SUCCESS") stat.success += 1;
-    else if (su === "FAILED") stat.failed += 1;
-    else if (su === "TIMEOUT") stat.timeout += 1;
+    if (isAlgorithmSuccess(su)) stat.success += 1;
+    else if (isAlgorithmFailed(su)) stat.failed += 1;
+    else if (isAlgorithmTimeout(su)) stat.timeout += 1;
   }
   const times = Array.from(map.keys()).sort((a, b) => a.localeCompare(b));
   return {
@@ -705,7 +1022,7 @@ function buildChartOption(): echarts.EChartsOption {
   if (chartAllLoading.value) {
     return {
       title: {
-        text: "全量数据加载中…",
+        text: t("historyOverview.chart.allDataLoading"),
         left: "center",
         top: "center",
         textStyle: { color: "#3b82f6", fontSize: 13, fontWeight: 600 },
@@ -716,7 +1033,7 @@ function buildChartOption(): echarts.EChartsOption {
   if (list.length === 0) {
     return {
       title: {
-        text: "暂无数据",
+        text: t("historyOverview.chart.noData"),
         left: "center",
         top: "center",
         textStyle: { color: "#94a3b8", fontSize: 13, fontWeight: 600 },
@@ -733,24 +1050,24 @@ function buildChartOption(): echarts.EChartsOption {
 
   // 根据图表类型与当前 Tab 生成 X 轴名称
   function getXAxisName(): string {
-    if (cfg.type === "histogram") return "leakEsa 区间";
-    if (cfg.type === "bar" && cfg.groupBy === "device") return "设备编号";
-    if (cfg.type === "line" || cfg.type === "stackedBar") return "日期";
+    if (cfg.type === "histogram") return t("historyOverview.chart.axisName.leakEsaRange");
+    if (cfg.type === "bar" && cfg.groupBy === "device") return t("historyOverview.chart.axisName.deviceNumber");
+    if (cfg.type === "line" || cfg.type === "stackedBar") return t("historyOverview.chart.axisName.date");
     return "";
   }
 
   // 根据图表类型与当前 Tab 生成 Y 轴名称（含单位）
   function getYAxisName(): string {
     if (cfg.type === "pie") return "";
-    if (cfg.type === "histogram") return "记录数 / 条";
-    if (cfg.type === "stackedBar") return "次数 / 次";
-    if (cfg.type === "bar" && cfg.groupBy === "device") return "上报次数 / 次";
+    if (cfg.type === "histogram") return t("historyOverview.chart.axisName.recordCount");
+    if (cfg.type === "stackedBar") return t("historyOverview.chart.axisName.executeCount");
+    if (cfg.type === "bar" && cfg.groupBy === "device") return t("historyOverview.chart.axisName.uploadCount");
     // line：按 tab 区分语义
     switch (activeDataTab.value) {
-      case "leakage": return "记录数 / 条";
-      case "deviceUpload": return "上报次数 / 次";
-      case "algorithm": return "执行次数 / 次";
-      default: return "记录数 / 条";
+      case "leakage": return t("historyOverview.chart.axisName.recordCount");
+      case "deviceUpload": return t("historyOverview.chart.axisName.uploadCount");
+      case "algorithm": return t("historyOverview.chart.axisName.executeCount");
+      default: return t("historyOverview.chart.axisName.recordCount");
     }
   }
 
@@ -759,29 +1076,28 @@ function buildChartOption(): echarts.EChartsOption {
 
   // 折线图：按时间趋势
   if (cfg.type === "line") {
-    const data = groupByTime(list);
+    const data = groupByTime(list, trendGrainSize.value);
     return {
       tooltip: {
         trigger: "axis",
         formatter: (params: unknown) => {
-          const p = (params as { axisValue: string; data: [string, number] }[])[0];
+          const p = (params as { name: string; value: number }[])[0];
           if (!p) return "";
-          return `${p.axisValue}<br/>${yAxisName}: ${p.data[1]}`;
+          return `${p.name}<br/>${yAxisName}: ${p.value}`;
         },
       },
       grid: { left: 64, right: 24, top: 24, bottom: 48 },
       xAxis: {
-        type: "time",
+        type: "category",
+        data: data.map((d) => d.name),
         name: xAxisName,
         nameLocation: "middle",
         nameGap: 28,
         nameTextStyle: axisNameStyle,
         axisLabel: {
           ...axisLabelStyle,
-          showMinLabel: true,
-          showMaxLabel: true,
-          hideOverlap: true,
-          formatter: "{yyyy}-{MM}-{dd}",
+          interval: 0,
+          rotate: data.length > 6 ? 30 : 0,
         },
         axisLine: axisLineColor,
       },
@@ -799,7 +1115,7 @@ function buildChartOption(): echarts.EChartsOption {
         smooth: true,
         showSymbol: true,
         symbolSize: 6,
-        data: data.map((d) => [d.name, d.value]),
+        data: data.map((d) => d.value),
         lineStyle: { width: 2, color: "#3b82f6" },
         itemStyle: { color: "#3b82f6" },
         areaStyle: {
@@ -856,7 +1172,7 @@ function buildChartOption(): echarts.EChartsOption {
     if (data.length === 0) {
       return {
         title: {
-          text: "暂无特征值数据",
+          text: t("historyOverview.chart.noFeatureValueData"),
           left: "center",
           top: "center",
           textStyle: { color: "#94a3b8", fontSize: 13, fontWeight: 600 },
@@ -897,22 +1213,24 @@ function buildChartOption(): echarts.EChartsOption {
   // 堆叠柱状图：每日成功失败对比（仅 algorithm tab）
   if (cfg.type === "stackedBar") {
     const { times, success, failed, timeout } = buildStackedBarData(list);
+    const successLabel = t("historyOverview.chart.success");
+    const failureLabel = t("historyOverview.chart.failure");
+    const timeoutLabel = t("historyOverview.chart.timeout");
     return {
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-      legend: { data: ["成功", "失败", "超时"], bottom: 0, textStyle: { fontSize: 11, color: "#64748b" } },
+      legend: { data: [successLabel, failureLabel, timeoutLabel], bottom: 0, textStyle: { fontSize: 11, color: "#64748b" } },
       grid: { left: 64, right: 24, top: 24, bottom: 56 },
       xAxis: {
-        type: "time",
+        type: "category",
+        data: times,
         name: xAxisName,
         nameLocation: "middle",
         nameGap: 28,
         nameTextStyle: axisNameStyle,
         axisLabel: {
           ...axisLabelStyle,
-          showMinLabel: true,
-          showMaxLabel: true,
-          hideOverlap: true,
-          formatter: "{yyyy}-{MM}-{dd}",
+          interval: 0,
+          rotate: times.length > 6 ? 30 : 0,
         },
         axisLine: axisLineColor,
       },
@@ -926,9 +1244,9 @@ function buildChartOption(): echarts.EChartsOption {
         splitLine: splitLineStyle,
       },
       series: [
-        { name: "成功", type: "bar", stack: "total", data: times.map((t, i) => [t, success[i]]), itemStyle: { color: "#22c55e" }, barMaxWidth: 36 },
-        { name: "失败", type: "bar", stack: "total", data: times.map((t, i) => [t, failed[i]]), itemStyle: { color: "#ef4444" }, barMaxWidth: 36 },
-        { name: "超时", type: "bar", stack: "total", data: times.map((t, i) => [t, timeout[i]]), itemStyle: { color: "#f59e0b" }, barMaxWidth: 36 },
+        { name: successLabel, type: "bar", stack: "total", data: success, itemStyle: { color: "#22c55e" }, barMaxWidth: 36 },
+        { name: failureLabel, type: "bar", stack: "total", data: failed, itemStyle: { color: "#ef4444" }, barMaxWidth: 36 },
+        { name: timeoutLabel, type: "bar", stack: "total", data: timeout, itemStyle: { color: "#f59e0b" }, barMaxWidth: 36 },
       ],
     };
   }
@@ -940,20 +1258,30 @@ function buildChartOption(): echarts.EChartsOption {
     else if (cfg.groupBy === "algorithmStatus") data = groupByAlgorithmStatus(list);
     else if (cfg.groupBy === "leakStatus") data = groupByLeakStatusForPie(list, activeDataTab.value);
 
-    // 按名称语义匹配颜色（绿=正常/已修复/成功，红=渗漏/未修复/失败，橙=疑似/超时，灰=未知）
+    // 按状态 code 语义匹配颜色（绿=正常/已修复/成功，红=渗漏/未修复/失败，橙=疑似/超时，灰=未知）
     function getSemanticColor(name: string): string {
-      if (["已修复", "正常", "成功"].includes(name)) return "#22c55e";
-      if (["未修复", "渗漏", "失败"].includes(name)) return "#ef4444";
-      if (["疑似", "超时"].includes(name)) return "#f59e0b";
+      if (isRepairedStatus(name) || isNormalStatus(name) || isAlgorithmSuccess(name)) return "#22c55e";
+      if (isUnrepairedStatus(name) || isLeakStatus(name) || isAlgorithmFailed(name)) return "#ef4444";
+      if (isSuspectedStatus(name) || isAlgorithmTimeout(name)) return "#f59e0b";
       return "#94a3b8";
     }
 
     // 漏点类型无语义颜色，用多色调按顺序分配
     const multiColorPalette = ["#3b82f6", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#94a3b8"];
+    // 根据 groupBy 类型决定是否翻译 name（leakType 的 name 是原始值，不翻译；状态类的 name 是 code，需要翻译为当前语言）
+    const shouldTranslateName = cfg.groupBy === "leakStatus" || cfg.groupBy === "algorithmStatus";
     const finalData =
       cfg.groupBy === "leakType"
         ? data.map((d, i) => ({ ...d, itemStyle: { color: multiColorPalette[i % multiColorPalette.length] } }))
-        : data.map((d) => ({ ...d, itemStyle: { color: getSemanticColor(d.name) } }));
+        : data.map((d) => ({
+            name: shouldTranslateName
+              ? (cfg.groupBy === "algorithmStatus"
+                ? translateAlgorithmStatusCode(d.name)
+                : translateLeakStatusCode(d.name))
+              : d.name,
+            value: d.value,
+            itemStyle: { color: getSemanticColor(d.name) },
+          }));
 
     const total = data.reduce((sum, d) => sum + d.value, 0);
 
@@ -974,7 +1302,7 @@ function buildChartOption(): echarts.EChartsOption {
         left: "center",
         top: "middle",
         style: {
-          text: `{a|${total}}\n{b|总数}`,
+          text: `{a|${total}}\n{b|${t("historyOverview.chart.totalLabel")}}`,
           rich: {
             a: { fontSize: 22, fontWeight: 900, fill: "#0f172a", align: "center", lineHeight: 28 },
             b: { fontSize: 11, fontWeight: 600, fill: "#64748b", align: "center" },
@@ -988,7 +1316,7 @@ function buildChartOption(): echarts.EChartsOption {
 
   // 兜底：暂无数据
   return {
-    title: { text: "暂无数据", left: "center", top: "center", textStyle: { color: "#94a3b8", fontSize: 13, fontWeight: 600 } },
+    title: { text: t("historyOverview.chart.noData"), left: "center", top: "center", textStyle: { color: "#94a3b8", fontSize: 13, fontWeight: 600 } },
   };
 }
 
@@ -1047,7 +1375,7 @@ async function ensureAllRecords() {
     }
   } catch {
     allRecords.value = [];
-    uni.showToast({ title: "全量数据加载失败", icon: "none" });
+    uni.showToast({ title: t("historyOverview.fetchAllFailed"), icon: "none" });
   } finally {
     chartAllLoading.value = false;
   }
@@ -1079,8 +1407,12 @@ watch(() => chartRecords.value, () => {
 watch(() => chartAllLoading.value, () => {
   if (!chartCollapsed.value) nextTick(renderChart);
 });
+// 粒度切换时重新渲染趋势图
+watch(() => trendGrainSize.value, () => {
+  if (!chartCollapsed.value) nextTick(renderChart);
+});
 watch(() => activeDataTab.value, () => {
-  // 切换 tab 时重置为「每日趋势」模式，并重新渲染
+  // 切换 tab 时重置为「数据趋势」模式，并重新渲染
   activeChartModeValue.value = "trend";
   if (!chartCollapsed.value) nextTick(renderChart);
 });
@@ -1088,9 +1420,9 @@ watch(() => activeDataTab.value, () => {
 // 详情字段分组
 const summaryLabel = computed(() => {
   const map: Record<DataTab, string> = {
-    leakage: "漏点位置",
-    deviceUpload: "设备编号",
-    algorithm: "设备编号",
+    leakage: t("detail.fields.leakPointPosition"),
+    deviceUpload: t("detail.fields.deviceNumber"),
+    algorithm: t("detail.fields.deviceNumber"),
   };
   return map[activeDataTab.value];
 });
@@ -1105,26 +1437,26 @@ const summaryMetaFields = computed<DetailField[]>(() => {
   const r = selectedRecord.value || {};
   if (activeDataTab.value === "leakage") {
     return [
-      { label: "渗漏状态", value: String(getFieldValue(r, "leakStatus") || "-") },
-      { label: "漏点类型", value: String(getFieldValue(r, "leakPointType") || "-") },
-      { label: "巡检人员", value: String(getFieldValue(r, "inspector") || "-") },
-      { label: "检出类型", value: String(getFieldValue(r, "detectType") || "-") },
-      { label: "检出难度", value: String(getFieldValue(r, "detectDifficulty") || "-") },
-      { label: "定漏人员", value: String(getFieldValue(r, "locator") || "-") },
+      { label: t("detail.fields.leakStatus"), value: getLeakageStatusDisplay(r) },
+      { label: t("detail.fields.leakPointType"), value: String(getFieldValue(r, "leakPointType") || "-") },
+      { label: t("detail.fields.inspector"), value: String(getFieldValue(r, "inspector") || "-") },
+      { label: t("detail.fields.detectType"), value: String(getFieldValue(r, "detectType") || "-") },
+      { label: t("detail.fields.detectDifficulty"), value: String(getFieldValue(r, "detectDifficulty") || "-") },
+      { label: t("detail.fields.locator"), value: String(getFieldValue(r, "locator") || "-") },
     ];
   }
   if (activeDataTab.value === "deviceUpload") {
     return [
-      { label: "渗漏标志位", value: getLeakStatusLabel(r) },
-      { label: "固件版本", value: String(getFieldValue(r, "firmwareVersion") || "-") },
-      { label: "硬件版本", value: String(getFieldValue(r, "hardwareVersion") || "-") },
-      { label: "工作模式", value: String(getFieldValue(r, "workMode") ?? "-") },
+      { label: t("table.leakFlag"), value: getLeakStatusLabel(r) },
+      { label: t("detail.fields.firmwareVersion"), value: String(getFieldValue(r, "firmwareVersion") || "-") },
+      { label: t("detail.fields.hardwareVersion"), value: String(getFieldValue(r, "hardwareVersion") || "-") },
+      { label: t("detail.fields.workMode"), value: String(getFieldValue(r, "workMode") ?? "-") },
     ];
   }
   if (activeDataTab.value === "algorithm") {
     return [
-      { label: "执行状态", value: getAlgorithmStatusLabel(r) },
-      { label: "失败原因", value: String(getFieldValue(r, "errorMessage") || "-") },
+      { label: t("table.executeStatus"), value: getAlgorithmStatusLabel(r) },
+      { label: t("detail.fields.errorMessage"), value: String(getFieldValue(r, "errorMessage") || "-") },
     ];
   }
   return [];
@@ -1134,21 +1466,21 @@ const timeDetailFields = computed<DetailField[]>(() => {
   const r = selectedRecord.value || {};
   if (activeDataTab.value === "leakage") {
     return [
-      { label: "检出时间", value: formatDateTime(getFieldValue(r, "detectTime")) },
-      { label: "噪音时间", value: formatDateTime(getFieldValue(r, "noiseTime")) },
-      { label: "创建时间", value: formatDateTime(getFieldValue(r, "createdAt")) },
-      { label: "修复时间", value: formatDateTime(getFieldValue(r, "repairTime")) },
-      { label: "更新时间", value: formatDateTime(getFieldValue(r, "updatedAt")) },
+      { label: t("detail.fields.detectTime"), value: formatDateTime(getFieldValue(r, "detectTime")) },
+      { label: t("detail.fields.noiseTime"), value: formatDateTime(getFieldValue(r, "noiseTime")) },
+      { label: t("detail.fields.createdAt"), value: formatDateTime(getFieldValue(r, "createdAt")) },
+      { label: t("detail.fields.repairTime"), value: formatDateTime(getFieldValue(r, "repairTime")) },
+      { label: t("detail.fields.updatedAt"), value: formatDateTime(getFieldValue(r, "updatedAt")) },
     ];
   }
   if (activeDataTab.value === "deviceUpload") {
     return [
-      { label: "上报时间", value: formatDateTime(getFieldValue(r, "uploadTime")) },
+      { label: t("detail.fields.uploadTime"), value: formatDateTime(getFieldValue(r, "uploadTime")) },
     ];
   }
   if (activeDataTab.value === "algorithm") {
     return [
-      { label: "创建时间", value: formatDateTime(getFieldValue(r, "createdAt")) },
+      { label: t("detail.fields.createdAt"), value: formatDateTime(getFieldValue(r, "createdAt")) },
     ];
   }
   return [];
@@ -1158,13 +1490,13 @@ const locationFields = computed<DetailField[]>(() => {
   const r = selectedRecord.value || {};
   if (activeDataTab.value === "leakage") {
     return [
-      { label: "坐标位置", value: formatCoordinate(getFieldValue(r, "coordinatePosition")) },
-      { label: "漏点区域", value: String(getFieldValue(r, "leakArea") || "-") },
+      { label: t("detail.fields.coordinatePosition"), value: formatCoordinate(getFieldValue(r, "coordinatePosition")) },
+      { label: t("detail.fields.leakArea"), value: String(getFieldValue(r, "leakArea") || "-") },
     ];
   }
   if (activeDataTab.value === "deviceUpload") {
     return [
-      { label: "经纬度", value: formatCoordinate(getFieldValue(r, "coordinateLocation")) },
+      { label: t("detail.fields.coordinateLocation"), value: formatCoordinate(getFieldValue(r, "coordinateLocation")) },
     ];
   }
   return [];
@@ -1174,51 +1506,51 @@ const cardFields = computed<DetailField[]>(() => {
   const r = selectedRecord.value || {};
   if (activeDataTab.value === "leakage") {
     return [
-      { label: "ID", value: String(getFieldValue(r, "id") ?? "-") },
-      { label: "疑点ID", value: String(getFieldValue(r, "suspectedLeakId") ?? "-") },
-      { label: "渗漏部位", value: String(getFieldValue(r, "leakPart") || "-") },
-      { label: "漏点距离", value: String(getFieldValue(r, "leakDistance") ?? "-") },
-      { label: "漏水量", value: String(getFieldValue(r, "leakVolume") ?? "-") },
-      { label: "漏点原因", value: String(getFieldValue(r, "leakReason") || "-") },
-      { label: "特征值", value: String(getFieldValue(r, "featureValue") ?? "-") },
-      { label: "费用", value: String(getFieldValue(r, "cost") || "-") },
-      { label: "人工复核次数", value: String(getFieldValue(r, "manualReviewCount") ?? "-") },
-      { label: "维修方式", value: String(getFieldValue(r, "repairMethod") || "-") },
-      { label: "管道材质", value: String(getFieldValue(r, "tubeMaterial") || "-") },
-      { label: "管道口径", value: String(getFieldValue(r, "tubeBore") ?? "-") },
-      { label: "管道埋深", value: String(getFieldValue(r, "tubeBuriedDepth") ?? "-") },
-      { label: "管龄", value: String(getFieldValue(r, "tubeAge") ?? "-") },
-      { label: "关联设备", value: String(getFieldValue(r, "deviceNumber") || "-") },
-      { label: "关联工单ID", value: String(getFieldValue(r, "workOrderId") ?? "-") },
-      { label: "音频文件", value: String(getFieldValue(r, "audioFile") || "-") },
-      { label: "现场视频", value: String(getFieldValue(r, "sceneVideo") || "-") },
-      { label: "噪音样本", value: String(getFieldValue(r, "noiseSample") || "-") },
-      { label: "描述", value: String(getFieldValue(r, "description") || "-") },
+      { label: t("detail.fields.id"), value: String(getFieldValue(r, "id") ?? "-") },
+      { label: t("detail.fields.suspectedLeakId"), value: String(getFieldValue(r, "suspectedLeakId") ?? "-") },
+      { label: t("detail.fields.leakPointPart"), value: String(getFieldValue(r, "leakPart") || "-") },
+      { label: t("detail.fields.leakDistance"), value: String(getFieldValue(r, "leakDistance") ?? "-") },
+      { label: t("detail.fields.leakVolume"), value: String(getFieldValue(r, "leakVolume") ?? "-") },
+      { label: t("detail.fields.leakReason"), value: String(getFieldValue(r, "leakReason") || "-") },
+      { label: t("detail.fields.leakEsa"), value: String(getFieldValue(r, "featureValue") ?? "-") },
+      { label: t("detail.fields.cost"), value: String(getFieldValue(r, "cost") || "-") },
+      { label: t("detail.fields.manualReviewCount"), value: String(getFieldValue(r, "manualReviewCount") ?? "-") },
+      { label: t("detail.fields.repairMethod"), value: String(getFieldValue(r, "repairMethod") || "-") },
+      { label: t("detail.fields.tubeMaterial"), value: String(getFieldValue(r, "tubeMaterial") || "-") },
+      { label: t("detail.fields.tubeBore"), value: String(getFieldValue(r, "tubeBore") ?? "-") },
+      { label: t("detail.fields.tubeBuriedDepth"), value: String(getFieldValue(r, "tubeBuriedDepth") ?? "-") },
+      { label: t("detail.fields.tubeAge"), value: String(getFieldValue(r, "tubeAge") ?? "-") },
+      { label: t("detail.fields.deviceNumber"), value: String(getFieldValue(r, "deviceNumber") || "-") },
+      { label: t("detail.fields.workOrderId"), value: String(getFieldValue(r, "workOrderId") ?? "-") },
+      { label: t("detail.fields.audioFile"), value: String(getFieldValue(r, "audioFile") || "-") },
+      { label: t("detail.fields.sceneVideo"), value: String(getFieldValue(r, "sceneVideo") || "-") },
+      { label: t("detail.fields.noiseSample"), value: String(getFieldValue(r, "noiseSample") || "-") },
+      { label: t("detail.fields.description"), value: String(getFieldValue(r, "description") || "-") },
     ];
   }
   if (activeDataTab.value === "deviceUpload") {
     return [
-      { label: "ID", value: String(getFieldValue(r, "id") || "-") },
-      { label: "设备ID", value: String(getFieldValue(r, "deviceId") || "-") },
-      { label: "电池电压", value: String(getFieldValue(r, "batteryVoltage") ?? "-") },
-      { label: "终端温度", value: String(getFieldValue(r, "deviceTemperature") ?? "-") },
-      { label: "信号强度", value: String(getFieldValue(r, "signalIntensity") ?? "-") },
-      { label: "信号质量", value: String(getFieldValue(r, "signalQuality") ?? "-") },
-      { label: "特征值", value: String(getFieldValue(r, "leakEsa") ?? "-") },
-      { label: "强度", value: String(getFieldValue(r, "leakIntensity") ?? "-") },
-      { label: "频率", value: String(getFieldValue(r, "leakFrequency") ?? "-") },
+      { label: t("detail.fields.id"), value: String(getFieldValue(r, "id") || "-") },
+      { label: t("detail.fields.deviceId"), value: String(getFieldValue(r, "deviceId") || "-") },
+      { label: t("detail.fields.batteryVoltage"), value: String(getFieldValue(r, "batteryVoltage") ?? "-") },
+      { label: t("detail.fields.deviceTemperature"), value: String(getFieldValue(r, "deviceTemperature") ?? "-") },
+      { label: t("detail.fields.signalIntensity"), value: String(getFieldValue(r, "signalIntensity") ?? "-") },
+      { label: t("detail.fields.signalQuality"), value: String(getFieldValue(r, "signalQuality") ?? "-") },
+      { label: t("detail.fields.leakEsa"), value: String(getFieldValue(r, "leakEsa") ?? "-") },
+      { label: t("detail.fields.leakIntensity"), value: String(getFieldValue(r, "leakIntensity") ?? "-") },
+      { label: t("detail.fields.leakFrequency"), value: String(getFieldValue(r, "leakFrequency") ?? "-") },
     ];
   }
   if (activeDataTab.value === "algorithm") {
     return [
-      { label: "ID", value: String(getFieldValue(r, "id") ?? "-") },
-      { label: "设备ID", value: String(getFieldValue(r, "deviceId") ?? "-") },
-      { label: "关联音频ID", value: String(getFieldValue(r, "audioId") ?? "-") },
-      { label: "算法名称", value: String(getFieldValue(r, "algorithmName") || "-") },
-      { label: "算法输出值", value: String(getFieldValue(r, "outputValue") || "-") },
-      { label: "耗时(ms)", value: String(getFieldValue(r, "costMs") ?? "-") },
-      { label: "MATLAB实例", value: String(getFieldValue(r, "matlabInstance") || "-") },
-      { label: "失败原因", value: String(getFieldValue(r, "errorMessage") || "-") },
+      { label: t("detail.fields.id"), value: String(getFieldValue(r, "id") ?? "-") },
+      { label: t("detail.fields.deviceId"), value: String(getFieldValue(r, "deviceId") ?? "-") },
+      { label: t("detail.fields.audioId"), value: String(getFieldValue(r, "audioId") ?? "-") },
+      { label: t("detail.fields.algorithmName"), value: translateAlgorithmName(getFieldValue(r, "algorithmName")) },
+      { label: t("detail.fields.outputValue"), value: String(getFieldValue(r, "outputValue") || "-") },
+      { label: t("detail.fields.duration"), value: String(getFieldValue(r, "costMs") ?? "-") },
+      { label: t("detail.fields.matlabInstance"), value: String(getFieldValue(r, "matlabInstance") || "-") },
+      { label: t("detail.fields.errorMessage"), value: String(getFieldValue(r, "errorMessage") || "-") },
     ];
   }
   return [];
@@ -1242,7 +1574,7 @@ function handleLeakStatusChange(event: { detail: { value: number } }) {
 }
 
 function handleAlgorithmStatusChange(event: { detail: { value: number } }) {
-  filters.algorithmStatus = algorithmStatusOptions[event.detail.value]?.value ?? "";
+  filters.algorithmStatus = algorithmStatusOptions.value[event.detail.value]?.value ?? "";
   searchHistory();
 }
 
@@ -1325,7 +1657,7 @@ async function fetchHistoryData() {
     total.value = 0;
     selectedRecord.value = null;
     selectedRecordKey.value = "";
-    uni.showToast({ title: (error as { msg?: string })?.msg || "历史数据加载失败", icon: "none" });
+    uni.showToast({ title: (error as { msg?: string })?.msg || t("historyOverview.dataLoadFailed"), icon: "none" });
   } finally {
     loading.value = false;
   }
@@ -1348,12 +1680,12 @@ async function handleExport(scope: "current" | "all") {
       const parsed = parsePageResponse(response);
       exportRecords = applyLocalFilters(parsed.records);
     } catch {
-      uni.showToast({ title: "获取全部数据失败", icon: "none" });
+      uni.showToast({ title: t("historyOverview.fetchAllFailed"), icon: "none" });
       return;
     }
   }
   if (!exportRecords.length) {
-    uni.showToast({ title: "暂无数据可导出", icon: "none" });
+    uni.showToast({ title: t("historyOverview.noDataToExport"), icon: "none" });
     return;
   }
   // #ifdef H5
@@ -1361,13 +1693,38 @@ async function handleExport(scope: "current" | "all") {
   let headers: string[] = [];
   let keys: string[] = [];
   if (tab === "leakage") {
-    headers = ["序号", "检出时间", "渗漏状态", "漏点类型", "漏点位置", "巡检人员", "管道材质", "描述"];
+    headers = [
+      t("table.index"),
+      t("table.detectTime"),
+      t("table.leakStatus"),
+      t("table.leakPointType"),
+      t("table.leakPointPosition"),
+      t("table.inspector"),
+      t("table.tubeMaterial"),
+      t("table.description"),
+    ];
     keys = ["detectTime", "leakStatus", "leakPointType", "leakPointPosition", "inspector", "tubeMaterial", "description"];
   } else if (tab === "deviceUpload") {
-    headers = ["序号", "上报时间", "设备编号", "渗漏标志位", "特征值", "强度", "频率"];
+    headers = [
+      t("table.index"),
+      t("table.uploadTime"),
+      t("table.deviceNumber"),
+      t("table.leakFlag"),
+      t("table.leakEsa"),
+      t("table.leakIntensity"),
+      t("table.leakFrequency"),
+    ];
     keys = ["uploadTime", "deviceNumber", "leakStatus", "leakEsa", "leakIntensity", "leakFrequency"];
   } else if (tab === "algorithm") {
-    headers = ["序号", "创建时间", "设备编号", "算法名称", "执行状态", "输出值", "耗时(ms)"];
+    headers = [
+      t("table.index"),
+      t("table.createdAt"),
+      t("table.deviceNumber"),
+      t("table.algorithmName"),
+      t("table.executeStatus"),
+      t("table.outputValue"),
+      t("table.duration"),
+    ];
     keys = ["createdAt", "deviceNumber", "algorithmName", "status", "outputValue", "costMs"];
   }
   const rows = exportRecords.map((r, idx) => {
@@ -1375,13 +1732,14 @@ async function handleExport(scope: "current" | "all") {
     keys.forEach((k) => {
       if (k === "leakStatus") {
         if (tab === "leakage") {
-          const v = getFieldValue(r, k);
-          row.push(v === undefined || v === null ? "" : String(v).replace(/"/g, '""'));
+          row.push(getLeakageStatusDisplay(r));
         } else {
           row.push(getLeakStatusLabel(r));
         }
       } else if (k === "status") {
         row.push(getAlgorithmStatusLabel(r));
+      } else if (k === "algorithmName") {
+        row.push(translateAlgorithmName(getFieldValue(r, k)));
       } else if (k === "audioTime" || k === "detectTime" || k === "uploadTime" || k === "createdAt" || k === "samplingTime") {
         row.push(formatDateTime(getFieldValue(r, k)));
       } else {
@@ -1396,13 +1754,13 @@ async function handleExport(scope: "current" | "all") {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `${tabLabelMap[tab]}_${new Date().toISOString().slice(0, 10)}.csv`;
+  link.download = `${tabLabelMap.value[tab]}_${new Date().toISOString().slice(0, 10)}.csv`;
   link.click();
   URL.revokeObjectURL(url);
-  uni.showToast({ title: "导出成功", icon: "success" });
+  uni.showToast({ title: t("historyOverview.exportSuccess"), icon: "success" });
   // #endif
   // #ifndef H5
-  uni.showToast({ title: "导出功能仅支持 H5 端", icon: "none" });
+  uni.showToast({ title: t("historyOverview.exportH5Only"), icon: "none" });
   // #endif
 }
 
@@ -1499,51 +1857,45 @@ function formatCoordinate(value: unknown): string {
 function getLeakStatusLabel(item: HistoryRecord) {
   const raw = getFieldValue(item, "leakStatus");
   if (raw === null || raw === undefined || raw === "") return "-";
-  const val = Number(raw);
-  if (Number.isNaN(val)) return "-";
-  if (val === 0) return "渗漏";
-  if (val === 1) return "正常";
-  if (val === 2) return "疑似";
-  if (val === 3) return "未知";
-  if (val === 4) return "无数据";
-  return "未知";
+  const code = normalizeLeakStatusCode(raw, "deviceUpload");
+  return translateLeakStatusCode(code);
+}
+
+// leakage tab 的 leakStatus 是字符串（已修复/未修复），需要翻译为当前语言展示
+function getLeakageStatusDisplay(item: HistoryRecord): string {
+  const raw = getFieldValue(item, "leakStatus");
+  if (raw === null || raw === undefined || raw === "") return "-";
+  const code = normalizeLeakStatusCode(raw, "leakage");
+  return translateLeakStatusCode(code);
 }
 
 function getLeakageStatusTagClass(item: HistoryRecord) {
-  const s = String(getFieldValue(item, "leakStatus") || "");
-  if (s === "已修复") return "status-tag--normal";
-  if (s === "未修复") return "status-tag--leak";
+  const raw = getFieldValue(item, "leakStatus");
+  if (isRepairedStatus(raw)) return "status-tag--normal";
+  if (isUnrepairedStatus(raw)) return "status-tag--leak";
   return "status-tag--unknown";
 }
 
 function getLeakStatusTagClass(item: HistoryRecord) {
   const raw = getFieldValue(item, "leakStatus");
-  if (raw === null || raw === undefined || raw === "") return "status-tag--unknown";
-  const val = Number(raw);
-  if (Number.isNaN(val)) return "status-tag--unknown";
-  if (val === 0) return "status-tag--leak";
-  if (val === 1) return "status-tag--normal";
-  if (val === 2) return "status-tag--suspect";
+  if (isLeakStatus(raw)) return "status-tag--leak";
+  if (isNormalStatus(raw)) return "status-tag--normal";
+  if (isSuspectedStatus(raw)) return "status-tag--suspect";
   return "status-tag--unknown";
 }
 
 function getAlgorithmStatusLabel(item: HistoryRecord) {
   const status = String(getFieldValue(item, "status") || "").toUpperCase();
-  const map: Record<string, string> = {
-    SUCCESS: "执行成功",
-    FAILED: "执行失败",
-    TIMEOUT: "超时",
-    SKIPPED: "跳过",
-  };
-  return map[status] || status || "-";
+  if (!status) return "-";
+  return translateAlgorithmStatusCode(status);
 }
 
 function getAlgorithmStatusTagClass(item: HistoryRecord) {
   const status = String(getFieldValue(item, "status") || "").toUpperCase();
-  if (status === "SUCCESS") return "status-tag--success";
-  if (status === "FAILED") return "status-tag--failed";
-  if (status === "TIMEOUT") return "status-tag--failed";
-  if (status === "SKIPPED") return "status-tag--skipped";
+  if (isAlgorithmSuccess(status)) return "status-tag--success";
+  if (isAlgorithmFailed(status)) return "status-tag--failed";
+  if (isAlgorithmTimeout(status)) return "status-tag--failed";
+  if (isAlgorithmSkipped(status)) return "status-tag--skipped";
   return "status-tag--unknown";
 }
 
@@ -1658,7 +2010,7 @@ function applyLocalSort(list: HistoryRecord[]): HistoryRecord[] {
 function assertSuccessResponse(response: ApiResponseLike | undefined) {
   const code = response?.code;
   if (code === undefined || code === 0 || code === 200) return;
-  throw { code, msg: response?.msg || "请求失败", data: response?.data };
+  throw { code, msg: response?.msg || t("common.requestFailed"), data: response?.data };
 }
 </script>
 
@@ -1945,8 +2297,8 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 .kpi-card {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 12px 14px;
+  gap: 4px;
+  padding: 10px 14px;
   background: #ffffff;
   border: 1px solid #d8e5ef;
   border-left: 4px solid #3b82f6;
@@ -1979,6 +2331,12 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   letter-spacing: 0.3px;
 }
 
+.kpi-card__value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
 .kpi-card__value {
   color: #0f172a;
   font-size: 22px;
@@ -1991,6 +2349,7 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   color: #94a3b8;
   font-size: 11px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 /* 趋势图区 */
@@ -2000,6 +2359,8 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   border: 1px solid #d8e5ef;
   border-radius: 6px;
   overflow: hidden;
+  flex: 0 0 auto;
+  min-height: 0;
 }
 
 .chart-zone--collapsed {
@@ -2044,17 +2405,18 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 }
 
 .chart-zone__toggle {
-  padding: 2px 8px;
-  color: #3b82f6;
-  font-size: 11px;
+  padding: 4px 12px;
+  color: #ffffff;
+  font-size: 12px;
   font-weight: 700;
-  background: #eaf2ff;
-  border-radius: 3px;
+  background: #3b82f6;
+  border-radius: 4px;
   transition: background 0.18s ease;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
 }
 
 .chart-zone__title-wrap:hover .chart-zone__toggle {
-  background: #d6e6ff;
+  background: #2563eb;
 }
 
 .chart-zone__hint {
@@ -2066,6 +2428,7 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 .chart-zone__modes {
   display: flex;
   gap: 4px;
+  min-width: 220px;
 }
 
 .chart-zone__mode {
@@ -2105,6 +2468,40 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   border: 1px solid #d8e5ef;
   border-radius: 4px;
   overflow: hidden;
+}
+
+/* 趋势图粒度切换按钮组 */
+.chart-zone__grain {
+  display: flex;
+  border: 1px solid #d8e5ef;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.chart-zone__grain--hidden {
+  visibility: hidden;
+}
+
+.chart-zone__grain-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  background: #ffffff;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.18s ease;
+  min-width: 48px;
+  text-align: center;
+}
+
+.chart-zone__grain-btn:hover {
+  background: #f1f5f9;
+}
+
+.chart-zone__grain-btn--active {
+  color: #ffffff;
+  background: #3b82f6;
 }
 
 .chart-zone__scope-btn {
@@ -2365,5 +2762,11 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
     width: 100%;
     max-height: 340px;
   }
+}
+
+/* 保证表格区域有足够最小高度，避免被趋势图挤压 */
+:deep(.leak-table-view) {
+  flex: 1 1 auto;
+  min-height: 260px;
 }
 </style>
