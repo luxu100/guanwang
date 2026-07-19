@@ -3,8 +3,29 @@
     <scroll-view class="table-scroll" scroll-x scroll-y>
       <view class="data-table">
         <view class="data-row data-row--header">
-          <text v-if="showIndex" class="data-cell data-cell--index">{{ indexLabel }}</text>
-          <text v-for="col in columns" :key="col.key" class="data-cell" :class="col.className" :style="cellStyle(col)">{{ col.label }}</text>
+          <text v-if="showIndex" class="data-cell data-cell--index">{{ t('common.table.index') || '#'}}</text>
+          <text
+              v-for="col in columns"
+              :key="col.key"
+              class="data-cell"
+              :class="[
+                col.className,
+                {
+                  'data-header-cell--sortable': col.sortable !== false,
+                  'data-header-cell--active': sortState.field === col.key
+                }
+              ]"
+              :style="cellStyle(col)"
+              @click="col.sortable !== false && handleSort(col.key)"
+          >
+            {{ getColumnLabel(col) }}
+
+            <text
+                v-if="col.sortable !== false"
+                class="sort-indicator"
+                :class="getSortIndicatorClass(col.key)"
+            />
+          </text>
         </view>
 
         <view v-if="loading" class="loading-mask">{{ loadingText }}</view>
@@ -21,6 +42,7 @@
                 class="data-cell"
                 :class="[
                   col.className,
+                  col.bodyClassName,
                   'data-cell--clickable'
                 ]"
                 :style="cellStyle(col)"
@@ -34,7 +56,10 @@
             <text
                 v-else
                 class="data-cell"
-                :class="col.className"
+                :class="[
+                  col.className,
+                  col.bodyClassName
+                ]"
                 :style="cellStyle(col)"
             >
               {{ formatValue(row,col) }}
@@ -57,12 +82,14 @@
 </template>
 
 <script setup lang="ts">
-import {ref,watch} from 'vue';
+import {ref, watch, reactive,computed} from 'vue';
 import type {XDataColumn} from '../types';
 import XMapPopup from "@/pages/device/components/x/map/XMapPopup.vue";
 import {createScopedT} from "@/i18n";
 const t = createScopedT("devicePage");
 
+type SortOrder = 'asc' | 'desc';
+type SortField = string;
 
 const props=withDefaults(defineProps<{
   columns:XDataColumn[];
@@ -70,27 +97,86 @@ const props=withDefaults(defineProps<{
   loading?:boolean;
   idKey?:string;
   showIndex?:boolean;
-  indexLabel?:string;
   pageCurrent?:number;
   pageSize?:number;
   loadingText?:string;
   emptyText?:string;
+  sortField?: SortField;
+  sortOrder?: SortOrder;
 }>(),{
   loading:false,
   idKey:'id',
   showIndex:true,
-  indexLabel:'#',
   pageCurrent:1,
   pageSize:10,
-  loadingText:'加载中...',
-  emptyText:'暂无数据'
+  sortField:'',
+  sortOrder:'asc'
+});
+
+const loadingText = computed(()=>{
+  return props.loadingText || t('common.table.loading');
+});
+
+const emptyText = computed(()=>{
+  return props.emptyText || t('common.table.empty');
 });
 
 const emit=defineEmits<{
   (e:'row-click',row:any):void;
+  (e: 'sort-change', field: SortField, order: SortOrder): void;
 }>();
 
 const selectedKey=ref<any>(null);
+
+const sortState = reactive<{
+  field: SortField;
+  order: SortOrder;
+}>({
+  field: props.sortField,
+  order: props.sortOrder
+});
+
+watch(
+    () => props.sortField,
+    (value) => {
+      sortState.field = value;
+    }
+);
+
+watch(
+    () => props.sortOrder,
+    (value) => {
+      sortState.order = value;
+    }
+);
+
+function handleSort(field: SortField) {
+  if (sortState.field === field) {
+    sortState.order =
+        sortState.order === 'asc'
+            ? 'desc'
+            : 'asc';
+  } else {
+    sortState.field = field;
+    sortState.order = 'asc';
+  }
+
+  emit(
+      'sort-change',
+      sortState.field,
+      sortState.order
+  );
+}
+
+function getSortIndicatorClass(field: SortField) {
+  if (sortState.field !== field) {
+    return 'sort-indicator--idle';
+  }
+
+  return sortState.order === 'asc'
+      ? 'sort-indicator--asc'
+      : 'sort-indicator--desc';
+}
 
 watch(()=>props.data,list=>{
   if(list.length&&!selectedKey.value){
@@ -105,6 +191,12 @@ function cellStyle(col:XDataColumn){
 
 function pageIndex(index:number){
   return (props.pageCurrent-1)*props.pageSize+index+1;
+}
+
+function getColumnLabel(col: XDataColumn) {
+  return col.labelKey
+      ? t(col.labelKey)
+      : col.label ?? '';
 }
 
 function formatValue(row:any,col:XDataColumn){
@@ -125,7 +217,7 @@ function handleCellClick(
   const value=row[col.key];
   switch(col.type){
     case 'coord':
-      handleCoordinate(value);
+      handleCoordinate(formatValue(row,col));
       break;
     default:
       col.onClick?.(
@@ -148,7 +240,10 @@ function openCoord(longitude: number, latitude: number) {
 }
 
 function handleCoordinate(coordinate?: string) {
-  if (coordinate) {
+  if (coordinate!== undefined &&
+      coordinate !== null &&
+      coordinate.trim() !== '' &&
+      coordinate.trim() !== '-') {
     const [longitude, latitude] = coordinate.split(",").map(Number);
 
     if (longitude && latitude) {

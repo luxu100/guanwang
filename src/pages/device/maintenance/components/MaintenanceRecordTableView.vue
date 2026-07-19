@@ -190,6 +190,7 @@ import XImageViewerDialog from "@/pages/device/components/x/dialog/XImageViewerD
 import XTooltip from "@/pages/device/components/x/table/XTooltip.vue";
 import XEntityDetailDialog from "@/pages/device/components/x/dialog/XEntityDetailDialog.vue";
 import {installStateOptions, maintainTypeOptions} from "@/pages/device/components/common";
+import {updateDeviceT} from "@/services/device/info.typed";
 
 const t = createScopedT("devicePage");
 
@@ -199,6 +200,10 @@ defineExpose({
   handleDelete,
   handleShowDetail
 });
+
+const emit = defineEmits<{
+  (e: "deviceUpdated", deviceId: number): void;
+}>();
 
 // ===== 数据 =====
 const loading = ref(false);
@@ -528,12 +533,29 @@ async function handleSubmit(form: MaintenanceCreateForm) {
   }
 }
 
+async function updateDeviceInfo(form: MaintenanceCreateForm) {
+  /**
+   * 此处应该调用设备更新接口，同步更新设备安装坐标
+   */
+  const tempDevice = {...props.deviceData}
+  if(form.maintainType === 1 && form.coordinate){
+    tempDevice.installLongitude = parseFloat(form.coordinate.split(",")[0]);
+    tempDevice.installLatitude = parseFloat(form.coordinate.split(",")[1]);
+  }else{
+    tempDevice.installLongitude = 999;
+    tempDevice.installLatitude = 999;
+  }
+  const ans = updateDeviceT(props.deviceData.id!,{...tempDevice});
+  emit("deviceUpdated",props.deviceData.id!);
+}
+
 async function submitCreate(form: MaintenanceCreateForm) {
   if(form.coordinate) form.maintainCoordinate = form.coordinate;
-
   const res = await createMaintenanceRecordT(form);
 
-  if (res.code !== 200) {
+  if (res.code === 200) {
+    updateDeviceInfo(form);
+  }else{
     uni.showToast({
       title: res.msg || t("message.addFail"),
       icon: "error"
@@ -556,7 +578,9 @@ async function submitUpdate(form: MaintenanceCreateForm) {
       {...form}
   );
 
-  if (res.code !== 200) {
+  if (res.code === 200) {
+    updateDeviceInfo(form);
+  }else{
     uni.showToast({
       title: res.msg || t("message.updateFail"),
       icon: "error"

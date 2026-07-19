@@ -1,28 +1,30 @@
 <template>
-  <view class="device-page">
+  <view class="page-container">
 
     <!-- 顶部搜索栏（config驱动） -->
     <ValveToolbar
         v-model="searchForm"
-        :fields="toolbarConfig"
         @search="handleSearch"
         @reset="handleReset"
         @refresh="fetchValve"
-        @bind-dept="handleBindDept"
         @edit="handleEdit"
         @delete="handleDelete"
         @add="handleAdd"
     />
 
+
     <!-- 主体 -->
-    <view class="worksheet-layout">
+    <view class="content-layout">
         <ValveTableView
             :valves="valveList"
             :pagination="pagination"
+            :sort-field="sortField"
+            :sort-order="sortOrder"
             @view="handleView"
             @select="handleSelect"
             @page-change="handlePageChange"
             @page-size-change="handlePageSizeChange"
+            @sort-change="handleSortChange"
         />
     </view>
 
@@ -52,16 +54,14 @@ import {computed, onMounted, ref} from "vue";
 import ValveToolbar from "@/pages/device/valve/components/ValveToolbar.vue";
 import ValveTableView from "@/pages/device/valve/components/ValveTableView.vue";
 import {createValveT, deleteValveT, getValvePageT, updateValveT} from "@/services/device/valve.typed";
-import type {DeptTreeVO, DeviceProtocolCreateFrom, Valve, ValveCreateFrom} from "@/services/device/types";
-import {createDeviceProtocolT, getDeptTreeT} from "@/services/device/info.typed";
+import type {DeptTreeVO, Valve, ValveCreateFrom} from "@/services/device/types";
+import {getDeptTreeT} from "@/services/device/info.typed";
 
 import {createScopedT} from "@/i18n";
 import type {PartitionNode} from "@/pages/device/components/x/tree/XTreeNode.vue";
 import XTreeSelectDialog from "@/pages/device/components/x/dialog/XTreeSelectDialog.vue";
 import XDynamicDialog from "@/pages/device/components/x/dialog/XDynamicDialog.vue";
-import {deleteDeviceProtocolT, updateDeviceProtocolT} from "@/services/device/protocol.typed";
 import type {FormSection} from "@/pages/device/components/x/types";
-import {createValve, updateValve} from "@/services/device/info";
 const t = createScopedT("devicePage");
 
 const valveConfig = {
@@ -73,17 +73,7 @@ const valveConfig = {
     region: "",
     startTime: "",
     endTime: "",
-  },
-
-  toolbar: [
-    { key: "pipelineName", labelKey: "valve.toolbar.pipelineName", type: "input" },
-    { key: "valveNumber", labelKey: "valve.toolbar.valveNumber", type: "input" },
-    { key: "valveName", labelKey: "valve.toolbar.valveName", type: "input" },
-    { key: "branchCompany", labelKey :"valve.toolbar.branchCompany", type: "input" },
-    { key: "region", labelKey: "valve.toolbar.region", type: "input" },
-    { key: "startTime", labelKey: "valve.toolbar.startTime", type: "date" },
-    { key: "endTime", labelKey: "valve.toolbar.endTime", type: "date" },
-  ]
+  }
 } as const;
 
 const currentModule = computed(() => {
@@ -93,8 +83,6 @@ const currentModule = computed(() => {
 const searchForm = ref<any>({
   ...currentModule.value.searchForm,
 });
-
-const toolbarConfig = computed(() => currentModule.value.toolbar);
 
 const valveList = ref<Valve[]>([]);
 const currentValve = ref<Valve | null>(null);
@@ -122,6 +110,8 @@ async function fetchValve() {
     ...searchForm.value,
     pageNum: pagination.value.current,
     pageSize: pagination.value.size,
+    sortField: sortField.value,
+    sortOrder:sortOrder.value,
   });
 
   const pageData = res.data;
@@ -288,6 +278,7 @@ const addSchema = computed<FormSection[]>(() => {
     }
   ];
 });
+
 function handleAdd() {
   isEditMode.value = false;
   editingId.value = null;
@@ -463,6 +454,18 @@ async function refreshList() {
   await fetchValve();
 }
 
+const sortField = ref('');
+const sortOrder = ref<'asc'|'desc'>('asc');
+
+function handleSortChange(
+    field:string,
+    order:'asc'|'desc'
+){
+  sortField.value = field;
+  sortOrder.value = order;
+  pagination.value.current = 1;
+  fetchValve();
+}
 
 onMounted(() => {
   fetchValve();
@@ -470,124 +473,5 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-.device-page {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-  padding: 0 14px 14px;
-  background: #eef4f8;
-}
-
-/* 顶部工具栏与下方内容间距 */
-.device-page > :first-child {
-  flex-shrink: 0;
-}
-
-/* 主体区域 */
-.worksheet-layout {
-  flex: 1;
-
-  display: grid;
-
-  gap: 0px;
-  margin-top: 14px;
-
-  min-height: 0;
-  overflow: hidden;
-}
-
-/* 默认：左列表 + 右详情 */
-.layout-split {
-  grid-template-columns: minmax(0, 1fr) 24px 400px;
-}
-
-.layout-equal {
-  grid-template-columns: 1fr 24px 1fr;
-}
-
-.layout-one-two {
-  grid-template-columns: 1fr 24px 2fr;
-}
-
-.table-panel,
-.detail-panel {
-  display: flex;
-  flex-direction: column;
-
-  min-width: 0;
-  min-height: 0;
-
-  overflow: hidden;
-
-  background: #ffffff;
-
-  border: 1px solid #d8e5ef;
-  border-radius: 6px;
-
-  height: 100%;
-
-  box-shadow: 0 12px 26px rgba(35,72,104,.09);
-}
-
-.detail-panel {
-  overflow-y: auto;
-}
-
-/* 空状态 */
-.detail-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  height: 100%;
-
-  color: #999;
-  font-size: 14px;
-}
-
-.worksheet-layout.collapsed {
-  grid-template-columns: minmax(0, 1fr) 24px 0;
-}
-
-.split-handle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  cursor: col-resize;
-  user-select: none;
-
-  background: transparent;
-
-  position: relative;
-
-  //color: transparent; /* 默认不显示箭头 */
-
-  z-index: 999;
-}
-
-.split-handle:hover {
-  background: rgba(64, 158, 255, 0.06);
-  color: #409eff;
-}
-
-.split-handle::before {
-  content: '';
-  position: absolute;
-  top: 12px;
-  bottom: 12px;
-  left: 50%;
-  width: 1px;
-  background: #e4e7ed;
-  transform: translateX(-50%);
-}
-
-.split-handle::after {
-  content: '⋮';
-  font-size: 10px;
-  color: #c0c4cc;
-  position: relative;
-}
-
+@import "@/pages/device/components/x/common/page-layout.css";
 </style>

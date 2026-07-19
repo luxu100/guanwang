@@ -15,7 +15,7 @@
           >
 
             <text class="filter-label">
-              {{ t(item.labelKey) }}
+              {{ getLabel(item) }}
             </text>
 
             <!-- input -->
@@ -44,8 +44,8 @@
                 v-else-if="item.type === 'date'"
                 v-model="model[item.key]"
                 class="filter-datetime"
-                :title="t(item.labelKey)"
-                :placeholder="t(item.labelKey)"
+                :title="getLabel(item)"
+                :placeholder="getLabel(item)"
             />
 
           </view>
@@ -150,10 +150,14 @@ watch(
 function getSelectLabel(
     item: Extract<Field,{type:"select"}>
 ){
+  if (!item.dict) {
+    return "";
+  }
+
   const list = props.dictMap[item.dict] || [];
 
-  const hit=list.find(
-      i=>i.value===model[item.key]
+  const hit = list.find(
+      i => i.value === model[item.key]
   );
 
   return hit ? t(hit.labelKey) : "";
@@ -164,6 +168,10 @@ function handleSelect(
     item: Extract<Field, { type: "select" }>,
     e: { detail: { value: number } }
 ) {
+  if (!item.dict) {
+    return "";
+  }
+
   const list = props.dictMap[item.dict] || [];
 
   const option = list[e.detail.value];
@@ -185,9 +193,17 @@ function handleReset() {
 function getPickerRange(
     item: Extract<Field,{type:"select"}>
 ){
+  if (!item.dict) {
+    return [];
+  }
+
   return (props.dictMap[item.dict] || [])
       .map(i => t(i.labelKey));
 }
+
+const getLabel = (item: Field) => {
+  return item.labelKey ? t(item.labelKey) : '';
+};
 </script>
 
 <style scoped lang="scss">

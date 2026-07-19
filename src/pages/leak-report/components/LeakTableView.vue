@@ -5,7 +5,7 @@
       <view class="table-panel">
         <view class="table-head">
           <text class="table-head__title">{{ title }}</text>
-          <text class="table-head__meta">共 {{ total }} 条</text>
+          <text class="table-head__meta">{{ t('pagination.total', { total }) }}</text>
         </view>
 
         <scroll-view class="table-scroll" scroll-y scroll-x>
@@ -14,31 +14,31 @@
 
         <view class="pagination-bar">
           <view class="page-size">
-            <text class="page-size-text">每页</text>
+            <text class="page-size-text">{{ t('pagination.perPagePrefix') }}</text>
             <view class="page-size-value" @click.stop="showPageSize = !showPageSize">{{ pageSize }}</view>
             <view v-if="showPageSize" class="page-size-popup">
               <view v-for="item in effectivePageSizeOptions" :key="item" class="page-size-item" @click="selectPageSize(item)">{{ item }}</view>
             </view>
-            <text class="page-size-text">条</text>
+            <text class="page-size-text">{{ t('pagination.perPageSuffix') }}</text>
           </view>
           <button
             class="page-button"
             hover-class="page-button--hover"
             :disabled="pageNum <= 1"
             @click="$emit('prev-page')"
-          >上一页</button>
-          <text class="page-info">第 {{ pageNum }} / {{ totalPages }} 页</text>
+          >{{ t('pagination.prevPage') }}</button>
+          <text class="page-info">{{ t('pagination.page', { current: pageNum, total: totalPages }) }}</text>
           <button
             class="page-button"
             hover-class="page-button--hover"
             :disabled="pageNum >= totalPages"
             @click="$emit('next-page')"
-          >下一页</button>
+          >{{ t('pagination.nextPage') }}</button>
           <view class="jump-box">
-            <text class="jump-text">到第</text>
+            <text class="jump-text">{{ t('pagination.jumpTo') }}</text>
             <input class="page-input" type="number" v-model.number="jumpPage" @keyup.enter="jumpToPage" />
-            <text class="jump-text">页</text>
-            <button class="page-button jump-btn" hover-class="page-button--hover" @click="jumpToPage">跳转</button>
+            <text class="jump-text">{{ t('pagination.jumpPage') }}</text>
+            <button class="page-button jump-btn" hover-class="page-button--hover" @click="jumpToPage">{{ t('pagination.jumpConfirm') }}</button>
           </view>
         </view>
       </view>
@@ -56,6 +56,9 @@
 
 <script setup lang="ts">
 import { ref, watch, computed } from "vue";
+import { createScopedT } from "@/i18n";
+
+const t = createScopedT("leakReport");
 
 const props = defineProps<{
   title: string;
@@ -134,9 +137,9 @@ function selectPageSize(size: number) {
 
 .table-head {
   flex: none;
-  height: 50px;
+  height: 38px;
   color: #24445f;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 800;
   background: #ffffff;
   border-bottom: 1px solid #edf3f8;
@@ -144,7 +147,7 @@ function selectPageSize(size: number) {
 
 .table-head__title {
   color: #24445f;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 800;
 }
 
@@ -224,7 +227,7 @@ function selectPageSize(size: number) {
   flex: none;
   justify-content: flex-end;
   gap: 10px;
-  height: 48px;
+  height: 40px;
   padding: 0 14px;
   border-top: 1px solid #edf3f8;
   background: #ffffff;

@@ -29,40 +29,38 @@
 
     <view
         class="worksheet-layout"
-        :class="[layoutClass, { collapsed: isDetailCollapsed }]"
+        :style="layoutStyle"
     >
 
       <!-- 左侧 -->
       <view class="table-panel">
 
         <!-- 左侧表格区域 -->
-        <view class="panel-body">
-
-          <DeviceTableView
-              :devices="deviceList"
-              :pagination="pagination"
-              :mode="props.mode"
-              :selected-id="selectedDeviceId"
-              @view="handleView"
-              @select="handleSelect"
-              @page-change="handlePageChange"
-              @page-size-change="handlePageSizeChange"
-          />
-
-        </view>
-
+        <DeviceTableView
+            :devices="deviceList"
+            :pagination="pagination"
+            :mode="props.mode"
+            :selected-id="selectedDeviceId"
+            @view="handleView"
+            @select="handleSelect"
+            @page-change="handlePageChange"
+            @page-size-change="handlePageSizeChange"
+        />
       </view>
 
       <!-- 中间拖拽 -->
       <view
           class="split-handle"
-          @click="toggleDetailPanel"
+          @mousedown="startResize"
       >
         {{ isDetailCollapsed ? "⟨" : "⟩" }}
       </view>
 
       <!-- 右侧 -->
-      <view class="detail-panel">
+      <view
+          class="detail-panel"
+          v-if="!isDetailCollapsed"
+      >
 
         <view
             v-if="!currentDevice?.id"
@@ -94,6 +92,7 @@
               :device-data="currentDevice"
               :visible="isDetailPanelVisible"
               :query="panelQuery"
+              @device-updated="handleUpdateDevice"
           />
 
         </view>
@@ -147,7 +146,7 @@ import type {
 import {
   createDeptDeviceT,
   createDeviceT,
-  deleteDeviceT, getDeptByIdT, getDeptTreeT,
+  deleteDeviceT, getDeptByIdT, getDeptTreeT, getDeviceDetailT,
   getDevicePageT,
   getDeviceProductListT,
   updateDeviceT
@@ -155,8 +154,6 @@ import {
 
 import DeviceInfoPanel from "../info/components/DeviceInfoPanel.vue";
 import MaintenancePanel from "../maintenance/components/MaintenancePanel.vue";
-import DeviceStatusPanel from "../status/components/DeviceStatusPanel.vue";
-
 import DeviceToolbar from "./DeviceToolbar.vue";
 import DeviceTableView from "./DeviceTableView.vue";
 import XDynamicDialog from "@/pages/device/components/x/dialog/XDynamicDialog.vue";
@@ -176,7 +173,7 @@ const t = createScopedT("devicePage");
  * =========================
  */
 const props = defineProps<{
-  mode: "info" | "maintenance" | "status" | "protocol" ;
+  mode: "info" | "maintenance" | "protocol" ;
 }>();
 
 /**
@@ -264,29 +261,6 @@ const deviceModuleConfig = {
       import: false,
       export: false,
       detail:true
-    },
-  },
-
-  status: {
-    panel: DeviceStatusPanel,
-
-    searchForm: {
-      deviceNumber: "",
-    },
-
-    toolbar: [
-      { key: "deviceNumber", labelKey: "fields.deviceNumber", type: "input" ,queryScope: "device"},
-    ],
-
-    buttons: {
-      add: false,
-      edit: false,
-      delete: false,
-      refresh: true,
-      bindDept: false,
-      bindValve: false,
-      import: false,
-      export: false
     },
   },
 
@@ -433,6 +407,23 @@ async function fetchDevices() {
   currentDevice.value = deviceList.value[0] || {};
   selectedDeviceId.value = currentDevice.value.id;
 }
+
+async function handleUpdateDevice(deviceId: number) {
+  const res = await getDeviceDetailT(deviceId);
+  const index = deviceList.value.findIndex(item => item.id === deviceId);
+
+  if (index !== -1 && res.data) {
+    deviceList.value[index] = res.data;
+  }
+
+  currentDevice.value = deviceList.value[index];
+}
+
+async function handleDeleteDevice(deviceId: number) {
+  await deleteDeviceT(deviceId);
+  fetchDevices();
+}
+
 
 const deviceProductOptions = ref<{ label: string; value: number }[]>([]);
 
@@ -1062,29 +1053,78 @@ function handlePageSizeChange(pageSize:number){
   fetchDevices();
 }
 
-/**
- * 折叠详情面板收缩
- */
-const isDetailPanelVisible = ref(true)
-const isDetailCollapsed = ref(false)
-const toggleDetailPanel = () => {
-  isDetailCollapsed.value = !isDetailCollapsed.value
-  isDetailPanelVisible.value = !isDetailPanelVisible.value
+const isDetailPanelVisible = ref(true);
+const isDetailCollapsed = ref(false);
+
+const detailWidth = ref(
+    props.mode === "info" ? 420 : 1100
+);
+
+watch(
+    () => props.mode,
+    (mode) => {
+      detailWidth.value =
+          mode === "info"
+              ? 420
+              : 1100;
+    },
+    { immediate: true }
+);
+
+function toggleDetailPanel() {
+  isDetailCollapsed.value = !isDetailCollapsed.value;
+  isDetailPanelVisible.value = !isDetailPanelVisible.value;
 }
 
-const layoutClass = computed(() => {
-  if(props.mode === "info"){
-    return "layout-split";
-  }else{
-    return "layout-one-two"
+const layoutStyle = computed(() => {
+  if (isDetailCollapsed.value) {
+    return {
+      gridTemplateColumns: "minmax(0, 1fr) 24px"
+    };
   }
-  // else if(props.mode === "maintenance"){
-  //   return "layout-one-two";
-  // }
-  // else{
-  //   return "layout-equal";
-  // }
+
+  return {
+    gridTemplateColumns:
+        `minmax(0, 1fr) 24px ${detailWidth.value}px`
+  };
 });
+
+const isDragging = ref(false);
+
+let startX = 0;
+let startWidth = 0;
+
+function startResize(e: MouseEvent) {
+  startX = e.clientX;
+  startWidth = detailWidth.value;
+  isDragging.value = false;
+
+  document.addEventListener("mousemove", resize);
+  document.addEventListener("mouseup", stopResize);
+}
+
+function resize(e: MouseEvent) {
+  const diff = startX - e.clientX;
+
+  if (Math.abs(diff) > 3) {
+    isDragging.value = true;
+  }
+
+  let width = startWidth + diff;
+
+  width = Math.max(300, Math.min(width, 1200));
+
+  detailWidth.value = width;
+}
+
+function stopResize() {
+  document.removeEventListener("mousemove", resize);
+  document.removeEventListener("mouseup", stopResize);
+
+  if (!isDragging.value) {
+    toggleDetailPanel();
+  }
+}
 
 onMounted(() => {
   fetchDevices();
@@ -1116,26 +1156,6 @@ onMounted(() => {
   display: grid;
   min-height: 0;
   overflow: hidden;
-}
-
-/* 左详情右信息 */
-.layout-split {
-  grid-template-columns: minmax(0,1fr) 24px 380px;
-}
-
-/* 左右各一半 */
-.layout-equal {
-  grid-template-columns: 1fr 24px 1fr;
-}
-
-/* 左1右2 */
-.layout-one-two {
-  grid-template-columns: 1fr 24px 2fr;
-}
-
-/* 收起右侧 */
-.worksheet-layout.collapsed {
-  grid-template-columns: minmax(0,1fr) 24px 0;
 }
 
 /* ===========================

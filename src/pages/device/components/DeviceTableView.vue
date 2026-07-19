@@ -90,11 +90,17 @@
           </text>
           <text v-if="columnVisible.installAddress" class="data-cell data-cell--address">{{ device.installAddress ||'-'}}</text>
           <text
-              v-if="columnVisible.coordinate" class="data-cell data-cell--coord data-cell--link"
-              @click.stop="handleCoordClick(device.installLongitude, device.installLatitude)"          >
-            {{ device.installLongitude && device.installLatitude
-              ? `${device.installLongitude}, ${device.installLatitude}`
-              : '-' }}
+              v-if="columnVisible.coordinate"
+              class="data-cell data-cell--coord data-cell--link"
+              @click.stop="handleCoordClick(device.installLongitude, device.installLatitude)"
+          >
+            {{
+              (device.installLongitude === 999 && device.installLatitude === 999)
+                  ? '-'
+                  : (device.installLongitude && device.installLatitude
+                      ? `${device.installLongitude}, ${device.installLatitude}`
+                      : '-')
+            }}
           </text>
 
           <text v-if="columnVisible.algorithmType" class="data-cell "> {{ getAlgorithmTypeLabel(device.algorithmType) }}</text>
@@ -302,17 +308,20 @@ const getStatusClass = (type: string, value: number) => {
 };
 
 function handleCoordClick(longitude: number, latitude: number) {
-  if (longitude && latitude) {
-    // 有坐标，打开地图
-    openCoord(longitude, latitude);
-  } else {
-    // 没有坐标，弹出提示
+  if (
+      (longitude === 999 && latitude === 999) ||
+      !longitude ||
+      !latitude
+  ) {
     uni.showToast({
       title: t('map.noCoordinate'),
       icon: 'none',
       duration: 2000
     });
+    return;
   }
+
+  openCoord(longitude, latitude);
 }
 
 const getAlgorithmTypeLabel = (value: string | null | undefined) => {

@@ -1,11 +1,20 @@
 <template>
   <view class="data-table-container">
     <view class="table-head">
-      <text>{{ t('deviceSetting.settingTable.title') }}</text>
+      <text>{{ t('deviceParameter.parameterTable.title') }}</text>
       <text class="table-head__meta">{{ t('common.pagination.totalRecords',{total:pagination.total}) }}</text>
     </view>
 
-    <XDataTable :columns="columns" :data="deviceParameters" :show-index="true" index-label="序号" id-key="deviceId" @row-click="selectRow">
+    <XDataTable
+        :columns="columns"
+        :data="deviceParameters"
+        :show-index="true"
+        id-key="deviceId"
+        @row-click="selectRow"
+        :sort-field="sortField"
+        :sort-order="sortOrder"
+        @sort-change="handleSortChange"
+    >
       <template #footer>
         <XPaginationBar :current="pagination.current" :size="pagination.size" :total="pagination.total" @change-page="page=>emit('page-change',page)" @change-size="size=>emit('page-size-change',size)"/>
       </template>
@@ -22,12 +31,17 @@ import type {DeviceParameterPageVO} from '@/services/device/types';
 import type {XDataColumn} from '@/pages/device/components/x/types';
 import {createScopedT} from '@/i18n';
 import {formatDate} from '@/utils/time';
+import {protocolColumnsMap} from "@/pages/device/components/common";
 
 const t=createScopedT('devicePage');
+
+type SortOrder = 'asc' | 'desc';
 
 const props=defineProps<{
   deviceParameters:DeviceParameterPageVO[];
   pagination:Pagination;
+  sortField: string;
+  sortOrder: SortOrder;
 }>();
 
 const emit=defineEmits<{
@@ -35,47 +49,25 @@ const emit=defineEmits<{
   (e:'select',row:DeviceParameterPageVO):void;
   (e:'page-change',page:number):void;
   (e:'page-size-change',size:number):void;
+  (e:'sort-change', field:string, order:SortOrder):void;
 }>();
 
 const selectedId=ref<number|null>(null);
 
 const fixedColumns:XDataColumn[]=[
-  {key:'deviceNumber',label:t('deviceSetting.settingTable.deviceNumber'),width:160,className:'data-cell--device'},
-  {key:'deptName',label:'分区',width:120,className:'data-cell--text'},
-  {key:'regionType',label:'区域类型',width:120,className:'data-cell--text'},
-  {key:'gisMinLevel',label:'GIS最小级别',width:120,className:'data-cell--number'},
-  {key:'gisMaxLevel',label:'GIS最大级别',width:120,className:'data-cell--number'},
-  {key:'audioDurationMs',label:'音频时长',width:120,className:'data-cell--number',formatter:v=>v==null?'-':v+'ms'}
+  {key:'deviceNumber',labelKey:'deviceParameter.parameterTable.deviceNumber',width:160,className:'data-cell--device'},
+  {key:'deptName',labelKey:'deviceParameter.parameterTable.deptName',width:120,className:'data-cell--text'},
+  {key:'regionType',labelKey:'deviceParameter.parameterTable.regionType',width:120,className:'data-cell--text'},
+  {key:'gisMinLevel',labelKey:'deviceParameter.parameterTable.gisMinLevel',width:160,className:'data-cell--number'},
+  {key:'gisMaxLevel',labelKey:'deviceParameter.parameterTable.gisMaxLevel',width:160,className:'data-cell--number'},
+  {key:'audioDurationMs',labelKey:'deviceParameter.parameterTable.audioDurationMs',width:120,className:'data-cell--number',formatter:v=>v==null?'-':v+'ms'}
 ];
 
 const deviceParameterDynamicColumns:XDataColumn[]=[
-  {key:'signalQuality',label:'信号质量',width:120,className:'data-cell--number',formatter:v=>v==null?'-':v},
-  {key:'netSnr',label:'信噪比',width:120,className:'data-cell--number',formatter:v=>v==null?'-':v+'dB'},
-  {key:'signalCoverage',label:'覆盖等级',width:120,className:'data-cell--number'},
-  {key:'batteryVoltage',label:'电池电压',width:120,className:'data-cell--number',formatter:v=>v==null?'-':v+'V'},
-  {key:'rebootRecently',label:'重启时间',width:160,className:'data-cell--time',formatter:v=>v==null?'-':formatDate(v)},
-  {key:'rebootTimes',label:'重启次数',width:120,className:'data-cell--number'},
-  {key:'nbgsm4gimei',label:'IMEI号码',width:180,className:'data-cell--text'},
-  {key:'nbgsm4gimsi',label:'IMSI号码',width:180,className:'data-cell--text'},
-  {key:'iccid',label:'ICCID号码',width:200,className:'data-cell--text'},
-  {key:'samplingTime',label:'采集时间',width:160,className:'data-cell--time',formatter:v=>v==null?'-':formatDate(v)},
-  {key:'gpsLocation',label:'GPS定位信息',width:180,className:'data-cell--coord  data-cell--link', type:'coord'},
-  {key:'gpsLocationTime',label:'GPS定位时间',width:160,className:'data-cell--time',formatter:v=>v==null?'-':formatDate(v)},
-  {key:'samplingRate',label:'采样率',width:120,className:'data-cell--number'},
-  {key:'onceMeasureLength',label:'单次测量长度',width:140,className:'data-cell--number'},
-  {key:'leakThreshold',label:'漏损阈值',width:120,className:'data-cell--number'},
-  {key:'inspectionControl',label:'巡检功能状态',width:140,className:'data-cell--status'},
-  {key:'workMode',label:'工作模式',width:120,className:'data-cell--status'},
-  {key:'deviceTemperature',label:'设备温度',width:120,className:'data-cell--number',formatter:v=>v==null?'-':v+'℃'},
-  {key:'signalIntensity',label:'信号强度',width:120,className:'data-cell--number'},
-  {key:'networkFlow',label:'网络流量',width:120,className:'data-cell--number'},
-  {key:'sendTimes',label:'发送次数',width:120,className:'data-cell--number'},
-  {key:'fmMode',label:'FM模式',width:120,className:'data-cell--text'},
-  {key:'fmFrequency',label:'FM频率',width:120,className:'data-cell--number',formatter:v=>v==null?'-':v+'MHz'},
-  {key:'audioType',label:'音频类型',width:120,className:'data-cell--text'},
-  {key:'deviceModel',label:'设备型号',width:120,className:'data-cell--text'},
-  {key:'simCardNo',label:'SIM卡号',width:180,className:'data-cell--text'}
+  ...protocolColumnsMap[13],
+  ...protocolColumnsMap[17]
 ];
+
 
 const columns=computed<XDataColumn[]>(()=>{
   const keys=new Set(props.deviceParameters.flatMap(row=>Object.keys(row)));
@@ -93,6 +85,13 @@ function selectRow(row:DeviceParameterPageVO){
   selectedId.value=row.deviceId??null;
   emit('view',row);
   emit('select',row);
+}
+
+function handleSortChange(
+    field:string,
+    order:SortOrder
+){
+  emit('sort-change', field, order);
 }
 </script>
 

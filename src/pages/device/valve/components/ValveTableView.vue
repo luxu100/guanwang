@@ -2,155 +2,95 @@
   <view class="data-table-container">
     <view class="table-head">
       <text>{{ t('valve.table.title') }}</text>
-      <text class="table-head__meta">  {{ t('common.pagination.totalRecords', { total: pagination.total }) }}</text>
+      <text class="table-head__meta">{{ t('common.pagination.totalRecords',{total:pagination.total}) }}</text>
     </view>
 
-    <scroll-view class="table-scroll" scroll-x scroll-y>
-      <view class="data-table">
-        <view class="data-row data-row--header">
-          <text class="data-cell data-cell--index">{{ t('valve.table.index') }}</text>
-          <text class="data-cell ">{{ t('valve.table.pipelineName') }}</text>
-          <text class="data-cell ">{{ t('valve.table.valveNumber') }}</text>
-          <text class="data-cell ">{{ t('valve.table.valveName') }}</text>
-          <text class="data-cell ">{{ t('valve.table.coordinatePosition') }}</text>
-          <text class="data-cell ">{{ t('valve.table.branchCompany') }}</text>
-          <text class="data-cell ">{{ t('valve.table.region') }}</text>
-          <text class="data-cell ">{{ t('valve.table.tubeBore') }}</text>
-          <text class="data-cell ">{{ t('valve.table.tubeMaterial') }}</text>
-          <text class="data-cell ">{{ t('valve.table.coordinate') }}</text>
-          <text class="data-cell ">{{ t('valve.table.createdAt') }}</text>
-        </view>
-
-        <view v-if="loading" class="table-state">{{ t('valve.table.loading') }}</view>
-        <view v-else-if="filteredValves.length === 0" class="table-state">{{ t('valve.table.noData') }}</view>
-
-        <view
-            v-for="(valve, index) in filteredValves"
-            :key="valve.id"
-            class="data-row"
-            :class="{ 'data-row--active': selectedId === valve.id }"
-            @click="selectRow(valve)"
-        >
-          <text class="data-cell data-cell--index">{{ (pagination.current - 1) * pagination.size + index + 1 }}</text>
-          <text class="data-cell data-cell--text">{{ valve.pipelineName || '-' }}</text>
-          <text class="data-cell data-cell--text">{{ valve.valveNumber || '-' }}</text>
-          <text class="data-cell data-cell--text">{{ valve.valveName || '-' }}</text>
-          <text class="data-cell data-cell--address">{{ valve.coordinatePosition || '-' }}</text>
-          <text class="data-cell data-cell--text">{{ valve.branchCompany || '-' }}</text>
-          <text class="data-cell data-cell--text">{{ valve.region || '-' }}</text>
-          <text class="data-cell data-cell--text">{{ valve.tubeBore || '-' }}</text>
-          <text class="data-cell data-cell--status">{{ valve.tubeMaterial || '-' }}</text>
-          <text
-              class="data-cell data-cell--coord data-cell--link"
-              @click.stop="handleCoordClick(valve.xCoordinate, valve.yCoordinate)"          >
-            {{ valve.xCoordinate && valve.yCoordinate
-              ? `${valve.xCoordinate}, ${valve.yCoordinate}`
-              : '-' }}
-          </text>
-
-          <text class="data-cell data-cell--time">{{ formatDate(valve.createdAt) }}</text>
-        </view>
-      </view>
-    </scroll-view>
-
-    <XPaginationBar
-        :current="pagination.current"
-        :size="pagination.size"
-        :total="pagination.total"
-        @change-page="(page: number) => emit('page-change', page)"
-        @change-size="(size: number) => emit('page-size-change', size)"
-    />
+    <XDataTable
+        :columns="columns"
+        :data="tableData"
+        :show-index="true"
+        :sort-field="sortField"
+        :sort-order="sortOrder"
+        id-key="id"
+        @row-click="selectRow"
+        @sort-change="handleSortChange"
+    >
+      <template #footer>
+        <XPaginationBar
+            :current="pagination.current"
+            :size="pagination.size"
+            :total="pagination.total"
+            @change-page="page=>emit('page-change',page)"
+            @change-size="size=>emit('page-size-change',size)"
+        />
+      </template>
+    </XDataTable>
   </view>
-
-  <XMapPopup
-      v-model:visible="showMap"
-      :lng="lng"
-      :lat="lat"
-      :title="t('map.dialogTitle')"
-  />
 </template>
+
 <script setup lang="ts">
-import {ref, computed, watch} from 'vue';
+import {ref,watch,computed} from 'vue';
+import XDataTable from '@/pages/device/components/x/table/XDataTable.vue';
+import XPaginationBar from '@/pages/device/components/x/table/XPaginationBar.vue';
 import type {Valve} from '@/services/device/types';
-import type {Pagination} from "@/types/api";
-import XPaginationBar from "@/pages/device/components/x/table/XPaginationBar.vue";
+import type {Pagination} from '@/types/api';
+import type {XDataColumn} from '@/pages/device/components/x/types';
+import {createScopedT} from '@/i18n';
+import {formatDate} from '@/utils/time';
 
-import {createScopedT} from "@/i18n";
-import XMapPopup from "@/pages/device/components/x/map/XMapPopup.vue";
-import {formatDate} from "../../../../utils/time";
-const t = createScopedT("devicePage");
+const t=createScopedT('devicePage');
+type SortOrder='asc'|'desc';
 
-const props = defineProps<{
-  valves: Valve[];
-  pagination: Pagination;
+const props=defineProps<{
+  valves:Valve[];
+  pagination:Pagination;
+  sortField:string;
+  sortOrder:SortOrder;
 }>();
 
-watch(
-    () => props.valves,
-    (list) => {
-      if (list.length > 0 && selectedId.value === null) {
-        const first = list[0];
-        selectRow(first);
-      }
-    },
-    { immediate: true }
-);
+const tableData=computed(()=>props.valves.map(item=>({
+  ...item,
+  coordinate:item.xCoordinate&&item.yCoordinate
+      ? `${item.xCoordinate},${item.yCoordinate}`
+      : ''
+})));
 
-
-const loading = ref(false);
-
-const emit = defineEmits<{
-  (e: 'view', valve: Valve): void;
-  (e: 'select', valve: Valve): void;
-  (e: 'page-change', page: number): void;
-  (e: 'page-size-change', size: number): void;
+const emit=defineEmits<{
+  (e:'view',row:Valve):void;
+  (e:'select',row:Valve):void;
+  (e:'page-change',page:number):void;
+  (e:'page-size-change',size:number):void;
+  (e:'sort-change',field:string,order:SortOrder):void;
 }>();
 
-const searchKeyword = ref('');
-const selectedId = ref<number | null>(null);
+const selectedId=ref<number|null>(null);
 
-// ✅ 点击行：选中 + 查看
-function selectRow(valve: Valve) {
-  selectedId.value = valve.id ?? null;
-  emit('view', valve);
-  emit('select', valve);
+const columns:XDataColumn[]=[
+  {key:'pipelineName',label:t('valve.table.pipelineName'),width:160,className:'data-cell--text'},
+  {key:'valveNumber',label:t('valve.table.valveNumber'),width:140,className:'data-cell--text'},
+  {key:'valveName',label:t('valve.table.valveName'),width:140,className:'data-cell--text'},
+  {key:'coordinatePosition',label:t('valve.table.coordinatePosition'),width:180,className:'data-cell--address',formatter:v=>v||'-'},
+  {key:'branchCompany',label:t('valve.table.branchCompany'),width:140,className:'data-cell--text'},
+  {key:'region',label:t('valve.table.region'),width:120,className:'data-cell--text'},
+  {key:'tubeBore',label:t('valve.table.tubeBore'),width:120,className:'data-cell--text'},
+  {key:'tubeMaterial',label:t('valve.table.tubeMaterial'),width:120,className:'data-cell--status'},
+  {key:'coordinate',label:t('valve.table.coordinate'),width:180,className:'data-cell--coord',bodyClassName:'data-cell--link',type:'coord'},
+  {key:'createdAt',label:t('valve.table.createdAt'),width:160,className:'data-cell--time',formatter:v=>v?formatDate(v):'-'}
+];
+
+watch(()=>props.valves,list=>{
+  if(list.length&&!selectedId.value) selectRow(list[0]);
+},{immediate:true});
+
+function selectRow(row:Valve){
+  selectedId.value=row.id??null;
+  emit('view',row);
+  emit('select',row);
 }
 
-// 过滤
-const filteredValves = computed(() => {
-  if (!searchKeyword.value) return props.valves;
-
-  const keyword = searchKeyword.value.toLowerCase();
-
-  return props.valves.filter(d =>
-      d.valveNumber?.toLowerCase().includes(keyword) ?? false
-  );
-});
-
-const showMap = ref(false);
-const lng = ref(0);
-const lat = ref(0);
-
-function openCoord(longitude: number, latitude: number) {
-  lng.value = longitude;
-  lat.value = latitude;
-  showMap.value = true;
+function handleSortChange(field:string,order:SortOrder){
+  emit('sort-change',field,order);
 }
-
-function handleCoordClick(longitude: number, latitude: number) {
-  if (longitude && latitude) {
-    // 有坐标，打开地图
-    openCoord(longitude, latitude);
-  } else {
-    // 没有坐标，弹出提示
-    uni.showToast({
-      title: t('map.noCoordinate'),
-      icon: 'none',
-      duration: 2000
-    });
-  }
-}
-
 </script>
 
 <style scoped lang="scss">

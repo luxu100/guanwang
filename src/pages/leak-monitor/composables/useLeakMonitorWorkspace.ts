@@ -1,4 +1,6 @@
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import type { Ref } from "vue";
+import { useI18n } from "@/i18n";
 import {
   fetchLeakMonitorDailyAudio,
   fetchLeakMonitorDeviceInfo,
@@ -88,8 +90,9 @@ export function createRecentDateRange(days: number): DateRangeValue {
   return { start: format(start), end: format(end) };
 }
 
-export function useLeakMonitorWorkspace() {
-  const { t } = useLeakMonitorI18n();
+export function useLeakMonitorWorkspace(localized?: Readonly<Ref<boolean>>) {
+  const { locale } = useI18n();
+  const { t } = useLeakMonitorI18n(localized);
   const loading = ref(false);
   const sidebarLoading = ref(false);
   const detailLoading = ref(false);
@@ -405,6 +408,7 @@ export function useLeakMonitorWorkspace() {
   }
 
   onMounted(() => void refreshAll(true));
+  watch(locale, () => void refreshAll(true));
   onBeforeUnmount(() => revokeAudioUrl(detail.value));
 
   return {

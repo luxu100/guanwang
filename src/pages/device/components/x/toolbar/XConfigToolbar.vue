@@ -3,8 +3,8 @@
     <view class="toolbar" :class="{ collapsed: !visible }">
       <view class="toolbar-row">
         <view class="filter-group">
-          <view v-for="item in fields" :key="item.key" class="filter-item">
-            <text class="filter-label">{{ t(item.labelKey) }}</text>
+          <view v-for="item in fields" :key="item.key" class="filter-item" :class="item.className">
+            <text class="filter-label">{{ getLabel(item) }}</text>
             <input
                 v-if="item.type==='input'"
                 v-model="model[item.key]"
@@ -26,8 +26,8 @@
                 v-else-if="item.type==='date'"
                 v-model="model[item.key]"
                 class="filter-datetime"
-                :title="t(item.labelKey)"
-                :placeholder="t(item.labelKey)"
+                :title="getLabel(item)"
+                :placeholder="getLabel(item)"
             />
           </view>
         </view>
@@ -67,7 +67,7 @@
 import { reactive, watch } from "vue";
 import XToolbarActions from "./XToolbarActions.vue";
 import XDatetimePicker from "../form/XDatetimePicker.vue";
-import type { Field, DictItem } from "../types";
+import type {Field, DictItem, FieldOption} from "../types";
 import { createScopedT } from "@/i18n";
 
 const t=createScopedT("devicePage");
@@ -130,12 +130,14 @@ watch(
 function getOptions(
     item:Extract<Field,{type:"select"}>
 ){
-
-  return (item.options||[]).map((i:DictItem)=>({
-    label:t(i.labelKey),
+  return (item.options||[]).map((i:FieldOption)=>({
+    label:getLabel(i),
     value:i.value
   }));
+}
 
+function getLabel(item:{label?:string;labelKey?:string}){
+  return item.labelKey ? t(item.labelKey) : item.label ?? '';
 }
 
 function getSelectLabel(
@@ -145,7 +147,7 @@ function getSelectLabel(
   const hit=(item.options||[])
       .find(i=>i.value===model[item.key]);
 
-  return hit ? t(hit.labelKey) : "";
+  return hit ? getLabel(hit) : "";
 
 }
 
@@ -173,97 +175,5 @@ function handleReset(){
 }
 </script>
 <style scoped lang="scss">
-.toolbar-wrapper{
-  position:relative;
-  width:100%;
-}
-
-.toolbar{
-  display:flex;
-  padding:12px 12px 15px;
-  background:#fff;
-  border:1px solid #d8e5ef;
-  overflow:hidden;
-  max-height:600px;
-  opacity:1;
-  transition:max-height .3s ease,opacity .2s ease,padding .2s ease;
-}
-
-.toolbar.collapsed{
-  max-height:0;
-  opacity:0;
-  padding-top:0;
-  padding-bottom:0;
-  border:none;
-}
-
-.toolbar-row{
-  display:flex;
-  width:100%;
-  justify-content:space-between;
-  flex-wrap:wrap;
-  gap:8px 16px;
-}
-
-.filter-group{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px 12px;
-  flex:1;
-}
-
-.filter-item{
-  display:flex;
-  align-items:center;
-  gap:6px;
-}
-
-.filter-label{
-  font-size:13px;
-  font-weight:700;
-  color:#34495e;
-  white-space:nowrap;
-}
-
-.filter-input{
-  width:132px;
-  height:30px;
-  padding:0 10px;
-  font-size:13px;
-  font-weight:600;
-  background:#f9fcff;
-  border:1px solid #cbdced;
-  border-radius:4px;
-}
-
-.filter-select{
-  width:104px;
-  height:30px;
-  padding:0 10px;
-
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-
-  font-size:13px;
-  font-weight:600;
-
-  background:#f9fcff;
-  border:1px solid #cbdced;
-  border-radius:4px;
-}
-
-.filter-select__arrow{
-  width:8px;
-  height:8px;
-  border:2px solid #74879c;
-  border-top:none;
-  border-left:none;
-  transform:rotate(45deg);
-}
-
-.toolbar-actions-wrapper{
-  margin-left:auto;
-  align-self:flex-end;
-}
+@import "@/pages/device/components/x/toolbar/styles/toolbar.css";
 </style>

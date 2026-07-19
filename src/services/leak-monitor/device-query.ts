@@ -1,5 +1,6 @@
 import { getRequest, postRequest } from "@/services/shared/crud";
 import { getAudioWav } from "@/services/data-analysis/audio";
+import { getLocale } from "@/i18n";
 import type {
   AudioRecord,
   CoordinateSystem,
@@ -170,13 +171,17 @@ export function buildLeakMonitorQuery(
 }
 
 export function isDomesticLeakMonitorUser(userInfo = uni.getStorageSync("userInfo")) {
+  // The active interface language controls the live map provider. User region
+  // only supplies the initial locale before a manual language choice exists.
+  const locale = getLocale();
+  if (locale === "zh-CN") return true;
+  if (locale === "en-US") return false;
+
   const region = String(userInfo?.region ?? "").trim().toLowerCase();
   if (["国外", "overseas", "foreign", "international", "global", "en", "us"].includes(region)) {
     return false;
   }
   if (["国内", "china", "cn", "domestic"].includes(region)) return true;
-  const locale = String(uni.getStorageSync("locale") || userInfo?.locale || "").toLowerCase();
-  if (locale === "en-us" || locale.startsWith("en")) return false;
   return true;
 }
 

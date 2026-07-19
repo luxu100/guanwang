@@ -58,22 +58,25 @@ export type Field =
     | {
     key: string;
     label?: string;
-    labelKey: string;
+    labelKey?: string;
+    className?: string;
     type: "input";
 }
     | {
     key: string;
     label?: string;
-    labelKey: string;
+    labelKey?: string;
+    className?: string;
     type: "date";
 }
     | {
     key: string;
     label?: string;
-    labelKey: string;
+    labelKey?: string;
     type: "select";
     dict?: string;
-    options?: DictItem[];
+    className?: string;
+    options?: FieldOption[];
 };
 
 export type DictItem = {
@@ -100,8 +103,10 @@ export type ToolbarButtons = {
 
 export interface XDataColumn {
     key:string;
-    label:string;
+    label?:string;
+    labelKey?: string;
     width?:number;
+    sortable?: boolean;
     align?:'left'|'center'|'right';
     type?:
         | 'text'
@@ -111,9 +116,11 @@ export interface XDataColumn {
         | 'link'
         | 'image';
     className?:string;
+    bodyClassName?:string;
     formatter?:(value:any,row:any)=>any;
     onClick?:(
         value:any,
         row:any
     )=>void;
+
 }

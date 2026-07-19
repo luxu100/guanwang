@@ -5,6 +5,7 @@
         :device-data="props.deviceData"
         :query="props.query"
         ref="tableRef"
+        @device-updated="emit('deviceUpdated', $event)"
     />
   </view>
 </template>
@@ -25,6 +26,9 @@ const props = defineProps<{
 
 const tableRef = ref();
 
+const emit = defineEmits<{
+  (e: "deviceUpdated", deviceId: number): void;
+}>();
 
 defineExpose({
   handleAdd(){

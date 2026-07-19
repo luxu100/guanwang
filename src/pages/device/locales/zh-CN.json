@@ -536,183 +536,6 @@
         "confirmDeleteContent": "确定删除该维护记录吗？"
       }
     },
-    "device-status":{
-      "statusTable": {
-        "title": "设备状态列表",
-
-        "deviceNumber": "设备编号",
-        "leakStatus": "渗漏状态",
-
-        "firmwareVersion": "固件版本",
-        "hardwareVersion": "硬件版本",
-
-        "workMode": "工作模式",
-
-        "batteryVoltage": "电池电压",
-        "deviceTemperature": "设备温度",
-
-        "signalIntensity": "信号强度",
-        "signalQuality": "信号质量",
-
-        "coordinateLocation": "坐标位置",
-
-        "leakEsa": "ESA指标",
-        "leakIntensity": "漏损强度",
-        "leakFrequency": "漏损频率",
-
-        "uploadTime": "上报时间"
-      }
-    },
-    "deviceSetting": {
-      "fields": {
-        "enabledControl": "启用控制",
-        "inspectionControl": "巡检控制",
-        "workMode": "工作模式",
-        "measureLength": "测量长度",
-        "gainMode": "增益模式",
-        "gainValue": "增益值",
-        "leakThreshold": "泄漏阈值",
-        "reportInterval": "上报间隔",
-        "orderTime": "指令时间"
-      },
-      "settingTable": {
-        "title": "设备参数记录",
-        "deviceNumber": "设备编号",
-        "index": "序号",
-        "loading": "加载中...",
-        "noData": "暂无工单数据",
-        "enabled": "启用",
-        "disabled": "停用"
-      },
-      "page": {
-        "addSetting": "新增参数记录",
-        "editSetting": "编辑参数记录",
-        "emptyTip": "请选择左侧设备参数查看详情"
-      },
-      "addSchema": {
-        "basicInfo": {
-          "title": "基础信息",
-          "deviceNumber": "设备编号",
-          "enabledControl": "启用控制",
-          "inspectionControl": "巡检控制",
-          "workMode": "工作模式",
-          "measureLength": "测量长度",
-          "gainMode": "增益模式",
-          "gainValue": "增益值",
-          "leakThreshold": "泄漏阈值",
-          "reportInterval": "上报间隔"
-        },
-        "option": {
-          "workMode": {
-            "0": "待启用",
-            "1": "网络模式",
-            "2": "现场模式",
-            "3": "网络巡检模式"
-          },
-          "gainMode": {
-            "0": "自动",
-            "1": "手动"
-          }
-        }
-      },
-      "message": {
-        "confirmDeleteContent": "确定删除该参数记录吗？"
-      },
-      "settingInfo": {
-        "title": "设备参数详情",
-        "unknownNumber": "未知编号",
-        "tabs": {
-          "basic": "基础控制",
-          "measure": "测量参数",
-          "filter": "滤波参数",
-          "communication": "通信参数",
-          "system": "系统信息"
-        },
-        "empty": "暂无数据",
-        "emptyTip": "请选择左侧设备参数查看详情",
-        "dict": {
-          "enabledControl": {
-            "true": "启用",
-            "false": "停用"
-          },
-          "inspectionControl": {
-            "true": "启用",
-            "false": "停用"
-          },
-          "workMode": {
-            "0": "待启用",
-            "1": "网络模式",
-            "2": "现场模式",
-            "3": "网络巡检模式"
-          },
-          "filterMethod": {
-            "0": "无滤波",
-            "1": "低通滤波",
-            "2": "高通滤波",
-            "3": "带通滤波"
-          },
-          "measureGainMode": {
-            "0": "自动增益",
-            "1": "固定增益"
-          },
-          "audioRule": {
-            "0": "关闭",
-            "1": "开启"
-          },
-          "isDeleted": {
-            "true": "已删除",
-            "false": "正常"
-          }
-        },
-        "fields": {
-          "basic": {
-            "deviceNumber": "设备编号",
-            "enabledControl": "启用控制",
-            "inspectionControl": "巡检控制",
-            "workMode": "工作模式",
-            "onceMeasureLength": "单次测量长度",
-            "signalLevel": "信号等级",
-            "signalChannel": "信号通道"
-          },
-          "measure": {
-            "measureGainMode": "测量增益模式",
-            "benchmarkValue": "基准值",
-            "noiseBenchmarkValue": "噪声基准值",
-            "gainValue": "增益值",
-            "samplingWeekday": "采样星期",
-            "samplingTime": "采样时间",
-            "syncSamplingNumber": "同步采样次数",
-            "syncSamplingTime": "同步采样时间",
-            "samplingPeriodTime": "采样周期",
-            "samplingCount": "采样次数",
-            "leakThreshold": "泄漏阈值"
-          },
-          "filter": {
-            "filterMethod": "滤波方式",
-            "filterLowFrequency": "滤波低频",
-            "filterHighFrequency": "滤波高频",
-            "audioRule": "音频规则"
-          },
-          "communication": {
-            "loraPower": "LoRa功率",
-            "loraSignalFrequency": "LoRa信号频率",
-            "loraOpenDay": "LoRa开启日期",
-            "loraOpenDate": "LoRa开启日期配置",
-            "nb4gTrigger": "NB4G触发配置",
-            "nb4gTransferSet": "NB4G传输配置",
-            "nb4gOpenTimeSet": "NB4G开启时间配置",
-            "reportInterval": "上报间隔"
-          },
-          "system": {
-            "commandAccount": "指令账号",
-            "orderTime": "指令时间",
-            "createdAt": "创建时间",
-            "updatedAt": "更新时间",
-            "isDeleted": "删除状态"
-          }
-        }
-      }
-    },
     "valve": {
       "toolbar": {
         "pipelineName": "管道名称",
@@ -730,7 +553,7 @@
         "pipelineName": "管道名称",
         "valveNumber": "阀门编号",
         "valveName": "阀门名称",
-        "coordinatePosition": "坐标位置",
+        "coordinatePosition": "阀门地址",
         "branchCompany": "分公司",
         "region": "区域",
         "tubeBore": "管道口径",
@@ -815,6 +638,408 @@
       "message": {
         "confirmDeleteTitle": "确定要删除该协议绑定吗？"
       }
+    },
+    "deviceParameter": {
+      "parameterTable": {
+        "title": "设备参数列表",
+        "deviceNumber": "设备编号",
+        "deptName": "分区",
+        "regionType": "区域类型",
+        "gisMinLevel": "GIS最小级别",
+        "gisMaxLevel": "GIS最大级别",
+        "audioDurationMs": "音频时长",
+        "signalQuality": "信号质量",
+        "netSnr": "信噪比",
+        "signalCoverage": "覆盖等级",
+        "batteryVoltage": "电池电压",
+        "rebootRecently": "重启时间",
+        "rebootTimes": "重启次数",
+        "nbgsm4gimei": "IMEI号码",
+        "nbgsm4gimsi": "IMSI号码",
+        "iccid": "ICCID号码",
+        "samplingTime": "采集时间",
+        "coordinateLocation": "设备位置",
+        "gpsLocationTime": "GPS定位时间",
+        "samplingRate": "采样率",
+        "onceMeasureLength": "单次测量长度",
+        "leakThreshold": "漏损阈值",
+        "inspectionControl": "巡检功能状态",
+        "workMode": "工作模式",
+        "deviceTemperature": "设备温度",
+        "signalIntensity": "信号强度",
+        "networkFlow": "网络流量",
+        "sendTimes": "发送次数",
+        "fmMode": "FM模式",
+        "fmFrequency": "FM频率",
+        "audioType": "音频类型",
+        "deviceModel": "设备型号",
+        "simCardNo": "SIM卡号"
+      }
+    },
+    "protocol13PressureMeasureV1": {
+      "firmwareVersion": "固件版本",
+      "firmwareUpdateTime": "固件更新时间",
+      "protocolVersion": "协议版本",
+      "hardwareVersion": "硬件版本",
+      "tubeRemark": "管网备注",
+      "deviceTime": "设备时间",
+
+      "samplingRate": "采样率",
+      "onceMeasureLength": "单次测量长度",
+      "filterLowFrequency": "滤波低频",
+      "filterHighFrequency": "滤波高频",
+      "filterMethod": "滤波方式",
+
+      "signalLevel": "信号等级",
+      "benchmarkValue": "基准值",
+      "noiseBenchmarkValue": "噪声基准值",
+      "signalChannel": "信号通道",
+
+      "syncSamplingTime": "同步采样时间",
+      "syncSamplingNumber": "同步采样次数",
+
+      "audioRule": "音频规则",
+      "samplingCount": "采样次数",
+      "leakThreshold": "漏水阈值",
+      "loraPower": "LoRa功率",
+
+      "gpsSyncMode": "GPS同步模式",
+
+      "lockType": "锁定类型",
+
+      "inspectionControl": "巡检控制",
+      "disassemblyControl": "拆卸控制",
+      "workMode": "工作模式",
+
+      "samplingTime": "采样时间",
+      "lastSamplingTime": "上次采样时间",
+      "recentMeasureTime": "最近测量时间",
+
+      "deviceTemperature": "设备温度",
+      "batteryVoltage": "电池电压",
+
+      "rebootTimes": "重启次数",
+      "rebootRunLength": "重启运行时长",
+      "runLength": "运行时长",
+      "rebootRecently": "最近重启时间",
+
+      "measureDays": "测量天数",
+
+      "leakEsa": "漏水ESA",
+      "leakIntensity": "漏水强度",
+      "leakFrequency": "漏水频率",
+
+      "statusRemark": "状态备注",
+      "leakStatus": "漏水状态",
+      "eventRemark": "事件备注",
+
+      "nbgsm4gimei": "NB/4G IMEI",
+      "nbgsm4gimsi": "NB/4G IMSI",
+
+      "sendTimes": "发送次数",
+      "networkFlow": "网络流量",
+
+      "signalIntensity": "信号强度",
+      "signalQuality": "信号质量",
+      "netSnr": "网络SNR",
+      "signalCoverage": "信号覆盖",
+
+      "pressureThreshold": "压力阈值",
+      "pressure": "压力",
+
+      "thresholdRatio": "阈值比例",
+
+      "batteryGroupVoltage": "电池组电压",
+      "sunBatteryVoltage": "太阳能电池电压",
+
+      "pressureUnit": "压力单位",
+      "pressureDecimals": "压力小数位",
+      "pressureMeasure": "压力测量值",
+
+      "instantaneousFlowRate": "瞬时流量",
+      "cumulativeTrafficInteger": "累计流量整数部分",
+      "cumulativeTrafficDecimal": "累计流量小数部分",
+
+      "liquidLevelMeterHeight": "液位计高度",
+      "airDistance": "空气距离",
+      "coordinateLocation": "坐标位置"
+    },
+    "protocol17NbAfn08ClassThreeSimpleV1": {
+      "deviceModel": "设备型号",
+      "simCardNo": "SIM卡号",
+      "iccid": "ICCID",
+      "audioType": "音频类型",
+      "firmwareVersion": "固件版本",
+      "hardwareVersion": "硬件版本"
+    },
+    "protocol12PressureNullV1": {
+      "firmwareVersion": "固件版本",
+      "firmwareUpdateTime": "固件更新时间",
+      "protocolVersion": "协议版本",
+      "hardwareVersion": "硬件版本",
+      "tubeRemark": "管网备注",
+      "deviceTime": "设备时间",
+
+      "samplingRate": "采样率",
+      "onceMeasureLength": "单次测量长度",
+      "filterLowFrequency": "滤波低频",
+      "filterHighFrequency": "滤波高频",
+      "filterMethod": "滤波方式",
+      "gain": "增益",
+
+      "signalLevel": "信号等级",
+      "benchmarkValue": "基准值",
+      "noiseBenchmarkValue": "噪声基准值",
+      "signalChannel": "信号通道",
+
+      "syncSamplingTime": "同步采样时间",
+      "syncSamplingNumber": "同步采样次数",
+
+      "audioRule": "音频规则",
+      "samplingCount": "采样次数",
+      "leakThreshold": "漏水阈值",
+      "loraPower": "LoRa功率",
+
+      "gpsSyncMode": "GPS同步模式",
+      "gpsLocation": "GPS位置",
+
+      "lockType": "锁定类型",
+
+      "inspectionControl": "巡检控制",
+      "disassemblyControl": "拆卸控制",
+      "workMode": "工作模式",
+
+      "samplingTime": "采样时间",
+      "lastSamplingTime": "上次采样时间",
+      "recentMeasureTime": "最近测量时间",
+
+      "deviceTemperature": "设备温度",
+      "batteryVoltage": "电池电压",
+
+      "rebootTimes": "重启次数",
+      "rebootRunLength": "重启运行时长",
+      "runLength": "运行时长",
+      "rebootRecently": "最近重启时间",
+
+      "measureDays": "测量天数",
+
+      "simulatorMeasureLength": "模拟测量长度",
+      "loraRunLength": "LoRa运行时长",
+      "nbRunLength": "NB运行时长",
+      "gpsRunLength": "GPS运行时长",
+
+      "esaGroupCount": "ESA分组数量",
+      "esaIntensityFrequency": "ESA强度频率",
+
+      "leakEsa": "漏水ESA",
+      "leakIntensity": "漏水强度",
+      "leakFrequency": "漏水频率",
+
+      "statusRemark": "状态备注",
+      "leakStatus": "漏水状态",
+      "eventRemark": "事件备注",
+
+      "nbgsm4gimei": "NB/4G IMEI",
+      "nbgsm4gimsi": "NB/4G IMSI",
+
+      "sendTimes": "发送次数",
+      "networkFlow": "网络流量",
+
+      "signalIntensity": "信号强度",
+      "signalQuality": "信号质量",
+      "netSnr": "网络SNR",
+      "signalCoverage": "信号覆盖",
+
+      "coordinateLocation": "坐标位置",
+
+      "pressureThreshold": "压力阈值",
+      "pressure": "压力",
+
+      "thresholdRatio": "阈值比例",
+
+      "batteryGroupVoltage": "电池组电压",
+      "sunBatteryVoltage": "太阳能电池电压",
+
+      "pressureUnit": "压力单位",
+      "pressureDecimals": "压力小数位",
+      "pressureMeasure": "压力测量值",
+
+      "instantaneousFlowRate": "瞬时流量",
+      "cumulativeTrafficInteger": "累计流量整数部分",
+      "cumulativeTrafficDecimal": "累计流量小数部分",
+
+      "liquidLevelMeterHeight": "液位计高度",
+      "airDistance": "空气距离"
+    },
+    "protocol11NbClassOneV1": {
+      "firmwareVersion": "固件版本",
+      "firmwareUpdateTime": "固件更新时间",
+      "protocolVersion": "协议版本",
+      "hardwareVersion": "硬件版本",
+      "tubeRemark": "管网备注",
+      "deviceTime": "设备时间",
+
+      "samplingRate": "采样率",
+      "onceMeasureLength": "单次测量长度",
+      "filterLowFrequency": "滤波低频",
+      "filterHighFrequency": "滤波高频",
+      "filterMethod": "滤波方式",
+      "gain": "增益",
+
+      "signalLevel": "信号等级",
+      "benchmarkValue": "基准值",
+      "noiseBenchmarkValue": "噪声基准值",
+      "signalChannel": "信号通道",
+
+      "syncSamplingTime": "同步采样时间",
+      "syncSamplingNumber": "同步采样次数",
+
+      "audioRule": "音频规则",
+      "samplingCount": "采样次数",
+      "leakThreshold": "漏水阈值",
+      "loraPower": "LoRa功率",
+
+      "gpsSyncMode": "GPS同步模式",
+      "gpsLocation": "GPS位置",
+
+      "lockType": "锁定类型",
+
+      "inspectionControl": "巡检控制",
+      "disassemblyControl": "拆卸控制",
+      "workMode": "工作模式",
+
+      "samplingTime": "采样时间",
+      "lastSamplingTime": "上次采样时间",
+      "recentMeasureTime": "最近测量时间",
+
+      "deviceTemperature": "设备温度",
+      "batteryVoltage": "电池电压",
+
+      "rebootTimes": "重启次数",
+      "rebootRunLength": "重启运行时长",
+      "runLength": "运行时长",
+      "rebootRecently": "最近重启时间",
+
+      "measureDays": "测量天数",
+
+      "simulatorMeasureLength": "模拟测量长度",
+      "loraRunLength": "LoRa运行时长",
+      "nbRunLength": "NB运行时长",
+      "gpsRunLength": "GPS运行时长",
+
+      "esaGroupCount": "ESA分组数量",
+      "esaIntensityFrequency": "ESA强度频率",
+
+      "leakEsa": "漏水ESA",
+      "leakIntensity": "漏水强度",
+      "leakFrequency": "漏水频率",
+
+      "statusRemark": "状态备注",
+      "leakStatus": "漏水状态",
+      "eventRemark": "事件备注",
+
+      "nbgsm4gimei": "NB/4G IMEI",
+      "nbgsm4gimsi": "NB/4G IMSI",
+
+      "sendTimes": "发送次数",
+      "networkFlow": "网络流量",
+
+      "signalIntensity": "信号强度",
+      "signalQuality": "信号质量",
+      "netSnr": "网络SNR",
+      "signalCoverage": "信号覆盖",
+
+      "coordinateLocation": "坐标位置"
+    },
+    "protocol9001Afn08ClassOneLegacyTest": {
+      "firmwareVersion": "固件版本",
+      "firmwareUpdateTime": "固件更新时间",
+      "protocolVersion": "协议版本",
+      "hardwareVersion": "硬件版本",
+      "deviceTime": "设备时间",
+
+      "samplingRate": "采样率",
+      "onceMeasureLength": "单次测量长度",
+      "filterLowFrequency": "滤波低频",
+      "filterHighFrequency": "滤波高频",
+      "filterMethod": "滤波方式",
+
+      "measureGainMode": "测量增益模式",
+      "gainRaw": "原始增益",
+
+      "signalLevel": "信号等级",
+      "benchmarkValue": "基准值",
+      "noiseBenchmarkValue": "噪声基准值",
+      "signalChannel": "信号通道",
+
+      "syncSamplingTime": "同步采样时间",
+      "syncSamplingNumber": "同步采样次数",
+
+      "audioRule": "音频规则",
+      "samplingCount": "采样次数",
+      "leakThreshold": "漏水阈值",
+      "loraPower": "LoRa功率",
+
+      "gpsSyncMode": "GPS同步模式",
+      "gpsLocation": "GPS位置",
+
+      "lockType": "锁定类型",
+
+      "inspectionControl": "巡检控制",
+      "disassemblyControl": "拆卸控制",
+      "workMode": "工作模式",
+
+      "samplingTime": "采样时间",
+      "lastSamplingTime": "上次采样时间",
+      "recentMeasureTime": "最近测量时间",
+
+      "deviceTemperature": "设备温度",
+      "batteryVoltage": "电池电压",
+
+      "rebootTimes": "重启次数",
+      "rebootRunLength": "重启运行时长",
+      "runLength": "运行时长",
+      "rebootRecently": "最近重启时间",
+
+      "measureDays": "测量天数",
+
+      "leakEsa": "漏水ESA",
+      "leakIntensity": "漏水强度",
+      "leakFrequency": "漏水频率",
+
+      "statusRemark": "状态备注",
+      "leakStatus": "漏水状态",
+      "eventRemark": "事件备注",
+
+      "nbgsm4gimei": "NB/4G IMEI",
+      "nbgsm4gimsi": "NB/4G IMSI",
+
+      "sendTimes": "发送次数",
+      "networkFlow": "网络流量",
+
+      "signalIntensity": "信号强度",
+      "signalQuality": "信号质量",
+      "netSnr": "网络SNR",
+      "signalCoverage": "信号覆盖",
+
+      "coordinateLocation": "坐标位置",
+
+      "pressureThreshold": "压力阈值",
+      "pressure": "压力",
+
+      "batteryGroupVoltage": "电池组电压",
+      "sunBatteryVoltage": "太阳能电池电压",
+
+      "pressureUnit": "压力单位",
+      "pressureDecimals": "压力小数位",
+      "pressureMeasureRaw": "原始压力测量值",
+
+      "instantaneousFlowRate": "瞬时流量",
+      "cumulativeTrafficInteger": "累计流量整数部分",
+      "cumulativeTrafficDecimal": "累计流量小数部分",
+
+      "liquidLevelMeterHeight": "液位计高度",
+      "airDistance": "空气距离"
     }
   }
 }

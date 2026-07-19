@@ -9,8 +9,8 @@
 
     <!-- #ifndef H5 -->
     <view class="locale-coordinate-map__error">
-      地图仅支持 H5 端展示
-    </view>
+        {{ t("h5Only") }}
+      </view>
     <!-- #endif -->
   </view>
 </template>
@@ -24,12 +24,15 @@ import {
   ref,
   watch,
 } from "vue";
-import { useI18n } from "@/i18n";
 import {
-  getMapProvider,
   MAP_CONFIG,
+  getMapProvider,
 } from "@/services/map/map";
 import { loadGoogleMaps } from "@/utils/googleMapsLoader";
+import { createScopedT, useI18n } from "@/i18n";
+
+const t = createScopedT("localeCoordinateMap");
+const { locale } = useI18n();
 
 interface TencentLatLngValue {
   getLat?: () => number;
@@ -90,8 +93,6 @@ const emit = defineEmits<{
     },
   ): void;
 }>();
-
-const { locale } = useI18n();
 
 const provider = computed(() => {
   return getMapProvider(locale.value);
@@ -165,7 +166,7 @@ async function renderMap() {
     mapError.value = "";
   } catch (error) {
     console.error("Map initialization failed:", error);
-    mapError.value = "地图加载失败，请检查 Key、域名限制和网络";
+    mapError.value = t("loadFailed");
   }
 }
 
