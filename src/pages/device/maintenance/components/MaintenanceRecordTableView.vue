@@ -13,15 +13,17 @@
           id-key="id"
           v-model:selected="selectedId"
           @row-click="selectRow"
-      />
-
-      <XPaginationBar
-          :current="pagination.current"
-          :size="pagination.size"
-          :total="pagination.total"
-          @change-page="handlePageChange"
-          @change-size="handlePageSizeChange"
-      />
+      >
+        <template #footer>
+          <XPaginationBar
+              :current="pagination.current"
+              :size="pagination.size"
+              :total="pagination.total"
+              @change-page="handlePageChange"
+              @change-size="handlePageSizeChange"
+          />
+        </template>
+      </XDataTable>
     </view>
   </view>
 
@@ -274,7 +276,7 @@ const fixedColumns:XDataColumn[]=[
   {key:'maintainAccount',labelKey:'maintain.maintainTable.maintainAccount',width:160,className:'data-cell--text',formatter:v=>v||'-'},
   {key:'maintainPicture',labelKey:'maintain.maintainTable.maintainPicture',width:140,className:'data-cell--link',type:'image',formatter:v=>v?t("common.viewImages",{count:getPictureList(v).length}):'-'},
   {key:'installMode',labelKey:'maintain.maintainTable.installMode',width:140,options:installModeOptions},
-  {key:'tubeGroup',labelKey:'maintain.maintainTable.tubeGroup',width:120,className:'data-cell--number',formatter:v=>v??'-'},
+  {key:'tubeGroup',labelKey:'maintain.maintainTable.tubeGroup',width:160,className:'data-cell--number',formatter:v=>v??'-'},
   {key:'tubeMaterial',labelKey:'maintain.maintainTable.tubeMaterial',width:160,className:'data-cell--text',formatter:v=>v||'-'},
   {key:'tubeBore',labelKey:'maintain.maintainTable.tubeBore',width:120,className:'data-cell--number',formatter:v=>v??'-'},
   {key:'remark',labelKey:'maintain.maintainTable.remark',width:240,className:'data-cell--remark',formatter:v=>v||'-'}
@@ -440,14 +442,13 @@ async function updateDeviceInfo(form: MaintenanceCreateForm) {
    * 此处应该调用设备更新接口，同步更新设备安装坐标
    */
   const tempDevice = {...props.deviceData}
+  tempDevice.installState = null;
   if(form.maintainType === 1 && form.coordinate){
     tempDevice.installLongitude = parseFloat(form.coordinate.split(",")[0]);
     tempDevice.installLatitude = parseFloat(form.coordinate.split(",")[1]);
-    tempDevice.installState = 1;
   }else{
     tempDevice.installLongitude = 999;
     tempDevice.installLatitude = 999;
-    tempDevice.installState = 0;
   }
   const ans = updateDeviceT(props.deviceData.id!,{...tempDevice});
   emit("deviceUpdated",props.deviceData.id!);

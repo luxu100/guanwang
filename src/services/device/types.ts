@@ -11,7 +11,7 @@ export interface Device {
     factoryTime?: string;
 
     enableState: number;
-    installState: number;
+    installState?: number | null;
     installMode: number;
 
     installAddress: string;

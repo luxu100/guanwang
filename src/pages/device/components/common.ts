@@ -12,6 +12,11 @@ export const deviceTypeOptions: FieldOption[] = [
     { labelKey: "status.product.NB", value: "NB", tagClass: "status-tag--info" }
 ];
 
+export const algorithmTypeOptions: FieldOption[] = [
+    { labelKey: "common.all", value: null as null | '' },
+    { labelKey: "addSchema.option.algorithmType.NoiseMeter", value: null, tagClass: "status-tag--default" },
+    { labelKey: "addSchema.option.algorithmType.Hydrophone", value: "RN-3H", tagClass: "status-tag--primary" }
+];
 
 export const enableStateOptions: FieldOption[] = [
     { labelKey: "common.all", value: null as null | '' },

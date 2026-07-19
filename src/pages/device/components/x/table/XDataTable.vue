@@ -221,12 +221,12 @@ function getOptionLabel(option:any){
 
 function formatValue(row:any,col:XDataColumn){
   const value=row[col.key];
-  if(value===null||value===undefined||value===''){
-    return '-';
-  }
   // 自定义格式优先
   if(col.formatter){
     return col.formatter(value,row);
+  }
+  if(value===null||value===undefined||value===''){
+    return '-';
   }
   // select映射
   if(col.options){
