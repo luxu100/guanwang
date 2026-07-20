@@ -11,6 +11,7 @@
         :show-index="true"
         :sort-field="sortField"
         :sort-order="sortOrder"
+        :selected="selectedId"
         id-key="id"
         @row-click="selectRow"
         @sort-change="handleSortChange"
