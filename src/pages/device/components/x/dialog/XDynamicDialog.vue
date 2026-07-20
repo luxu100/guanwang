@@ -1107,4 +1107,8 @@ function closeMapPicker() {
     box-shadow: none;
   }
 }
+
+.form-layout:not(.form-layout--with-side) {
+  padding-right: 12px;
+}
 </style>

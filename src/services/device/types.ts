@@ -81,6 +81,28 @@ export interface Device {
     deviceAlias?: string;
 }
 
+export interface DeviceInfoVO {
+    deviceNumber: string;
+    deviceAlias?: string;
+    model: string;
+    installState?: number | null;
+    productionTime?: string;
+    maintenanceTime: string,
+    maintenanceAddress: string,
+    maintenanceCoordinate: string,
+    valveNumber: string,
+    valveName: string,
+    deptNames: string,
+    installer: string,
+    installMode: 0,
+    installTime: string,
+    installAddress:string,
+    tubeBore: string,
+    tubeMaterial: string,
+    coordinate: string,
+    remark: string
+}
+
 export interface DeviceCreateDTO {
     deviceNumber: string;
     productId: number;

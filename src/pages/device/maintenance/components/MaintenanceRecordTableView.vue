@@ -441,16 +441,16 @@ async function updateDeviceInfo(form: MaintenanceCreateForm) {
   /**
    * 此处应该调用设备更新接口，同步更新设备安装坐标
    */
-  const tempDevice = {...props.deviceData}
-  tempDevice.installState = null;
-  if(form.maintainType === 1 && form.coordinate){
-    tempDevice.installLongitude = parseFloat(form.coordinate.split(",")[0]);
-    tempDevice.installLatitude = parseFloat(form.coordinate.split(",")[1]);
-  }else{
-    tempDevice.installLongitude = 999;
-    tempDevice.installLatitude = 999;
-  }
-  const ans = updateDeviceT(props.deviceData.id!,{...tempDevice});
+  // const tempDevice = {...props.deviceData}
+  // tempDevice.installState = null;
+  // if(form.maintainType === 1 && form.coordinate){
+  //   tempDevice.installLongitude = parseFloat(form.coordinate.split(",")[0]);
+  //   tempDevice.installLatitude = parseFloat(form.coordinate.split(",")[1]);
+  // }else{
+  //   tempDevice.installLongitude = 999;
+  //   tempDevice.installLatitude = 999;
+  // }
+  // const ans = updateDeviceT(props.deviceData.id!,{...tempDevice});
   emit("deviceUpdated",props.deviceData.id!);
 }
 

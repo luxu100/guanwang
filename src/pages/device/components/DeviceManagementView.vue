@@ -344,14 +344,15 @@ async function fetchDevices() {
   pagination.value.current = pageData?.current ?? 1;
   pagination.value.size = pageData?.size ?? 10;
 
-  currentDevice.value = deviceList.value[0] || {};
-  selectedDeviceId.value = currentDevice.value.id;
+  const firstDevice = deviceList.value[0] || null;
+  currentDevice.value = firstDevice;
+  selectedDeviceId.value = firstDevice?.id || null;
+  selectedDevice.value = firstDevice;
 }
 
 async function handleUpdateDevice(deviceId: number) {
   const res = await getDeviceDetailT(deviceId);
   const index = deviceList.value.findIndex(item => item.id === deviceId);
-
   if (index !== -1 && res.data) {
     deviceList.value[index] = res.data;
   }
