@@ -74,7 +74,13 @@ import { computed, reactive, watch } from "vue";
 import XDatetimePicker from "@/pages/device/components/x/form/XDatetimePicker.vue";
 import XToolbarActions from "@/pages/device/components/x/toolbar/XToolbarActions.vue";
 import {createScopedT} from "@/i18n";
-import type {ToolbarButtons} from "@/pages/device/components/x/types";
+import type {FieldOption, ToolbarButtons} from "@/pages/device/components/x/types";
+import {
+  deviceTypeOptions,
+  enableStateOptions, installModeOptions,
+  leakStatusOptions, maintainTypeOptions,
+  onlineStatusOptions
+} from "@/pages/device/components/common";
 const t = createScopedT("devicePage");
 
 /**
@@ -82,9 +88,7 @@ const t = createScopedT("devicePage");
  * types
  * =========================
  */
-type Option = { labelKey: string; value: string | number | null };
-
-type DictKey = "product" | "enable" | "install" | "online" | "leak" | "maintain" | "receive";
+type DictKey = "enable" | "install" | "online" | "leak" | "maintain" | "deviceType";
 
 type Field =
     | { key: string; labelKey: string; type: "input" }
@@ -104,14 +108,6 @@ const props = defineProps<{
   modelValue: DeviceForm;
   fields: readonly Field[];
   buttons:ToolbarButtons;
-
-  productOptions: Option[];
-  enableStateOptions: Option[];
-  installStateOptions: Option[];
-  onlineStatusOptions: Option[];
-  leakStatusOptions: Option[];
-  maintainTypeOptions: Option[];
-  receiveStatusOptions: Option[];
 }>();
 
 const emit = defineEmits<{
@@ -155,23 +151,21 @@ watch(
  */
 const dictMap = computed(() => {
   // 封装一个翻译转换函数
-  const translateOptions = (options: Option[]) =>
+  const translateOptions = (options: FieldOption[]) =>
       options.map(opt => ({
         ...opt,
-        labelKey: t(opt.labelKey) // 覆盖原有的 labelKey，变成翻译后的文本
+        labelKey: t(opt.labelKey ?? 'unknown')
       }));
 
   return {
-    product: translateOptions(props.productOptions),
-    enable: translateOptions(props.enableStateOptions),
-    install: translateOptions(props.installStateOptions),
-    online: translateOptions(props.onlineStatusOptions),
-    leak: translateOptions(props.leakStatusOptions),
-    maintain: translateOptions(props.maintainTypeOptions),
-    receive: translateOptions(props.receiveStatusOptions)
+    deviceType: translateOptions(deviceTypeOptions),
+    enable: translateOptions(enableStateOptions),
+    install: translateOptions(installModeOptions),
+    online: translateOptions(onlineStatusOptions),
+    leak: translateOptions(leakStatusOptions),
+    maintain: translateOptions(maintainTypeOptions),
   };
 });
-
 /**
  * =========================
  * computed
@@ -196,7 +190,7 @@ function handleSelect(item: Field, e: PickerEvent) {
   const list = dictMap.value[item.dict];
   const index = e.detail.value;
 
-  model[item.key] = list[index]?.value ?? "";
+  model[item.key] = list[index]?.value;
 }
 
 /**

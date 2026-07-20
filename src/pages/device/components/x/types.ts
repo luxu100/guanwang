@@ -3,7 +3,8 @@
 export interface FieldOption {
     label?: string;
     labelKey?: string;
-    value: number | string | boolean | null;
+    value: number | string | boolean | null
+    tagClass?: string;
 }
 
 export interface FormField {
@@ -122,5 +123,10 @@ export interface XDataColumn {
         value:any,
         row:any
     )=>void;
-
+    options?: {
+        value: any;
+        label?: string;
+        labelKey?: string;
+        tagClass?:string;
+    }[];
 }

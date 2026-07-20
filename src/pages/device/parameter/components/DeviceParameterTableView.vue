@@ -13,6 +13,7 @@
         @row-click="selectRow"
         :sort-field="sortField"
         :sort-order="sortOrder"
+        v-model:selected="selectedId"
         @sort-change="handleSortChange"
     >
       <template #footer>
@@ -30,7 +31,6 @@ import type {Pagination} from '@/types/api';
 import type {DeviceParameterPageVO} from '@/services/device/types';
 import type {XDataColumn} from '@/pages/device/components/x/types';
 import {createScopedT} from '@/i18n';
-import {formatDate} from '@/utils/time';
 import {protocolColumnsMap} from "@/pages/device/components/common";
 
 const t=createScopedT('devicePage');
@@ -68,18 +68,28 @@ const deviceParameterDynamicColumns:XDataColumn[]=[
   ...protocolColumnsMap[17]
 ];
 
-
 const columns=computed<XDataColumn[]>(()=>{
-  const keys=new Set(props.deviceParameters.flatMap(row=>Object.keys(row)));
+  const keys = new Set(Object.keys(props.deviceParameters[0] ?? {}));
   return [
     ...fixedColumns,
     ...deviceParameterDynamicColumns.filter(col=>keys.has(col.key))
   ];
 });
 
-watch(()=>props.deviceParameters,list=>{
-  if(list.length&&!selectedId.value) selectRow(list[0]);
-},{immediate:true});
+watch(
+    ()=>props.deviceParameters,
+    list=>{
+      if(
+          list.length &&
+          selectedId.value===null
+      ){
+        selectRow(list[0]);
+      }
+    },
+    {
+      immediate:true
+    }
+);
 
 function selectRow(row:DeviceParameterPageVO){
   selectedId.value=row.deviceId??null;
@@ -91,6 +101,7 @@ function handleSortChange(
     field:string,
     order:SortOrder
 ){
+  selectedId.value=null;
   emit('sort-change', field, order);
 }
 </script>

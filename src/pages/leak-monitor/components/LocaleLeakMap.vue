@@ -94,6 +94,7 @@ const {
 const mapRef = ref<{
   focusDevice?: (deviceNumber: string) => void;
   fitDevices?: () => void;
+  resize?: () => void;
 } | null>(null);
 
 function handleSelectDevice(device: LeakMonitorDevice) {
@@ -105,10 +106,21 @@ function handleMapDeviceClick(device: MapDevicePoint) {
 }
 function toggleSidebar() {
   sidebarCollapsed.value = !sidebarCollapsed.value;
+  requestMapLayoutRefresh();
+}
+
+function requestMapLayoutRefresh() {
+  window.requestAnimationFrame(() => {
+    mapRef.value?.resize?.();
+    window.setTimeout(() => mapRef.value?.resize?.(), 280);
+  });
 }
 
 watch(() => mapPoints.value.length, () => {
-  setTimeout(() => mapRef.value?.fitDevices?.(), 80);
+  window.requestAnimationFrame(() => {
+    mapRef.value?.resize?.();
+    mapRef.value?.fitDevices?.();
+  });
 });
 </script>
 

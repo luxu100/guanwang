@@ -11,7 +11,7 @@ export interface Device {
     factoryTime?: string;
 
     enableState: number;
-    installState: number;
+    installState?: number | null;
     installMode: number;
 
     installAddress: string;
@@ -79,6 +79,28 @@ export interface Device {
 
     // 设备别名
     deviceAlias?: string;
+}
+
+export interface DeviceInfoVO {
+    deviceNumber: string;
+    deviceAlias?: string;
+    model: string;
+    installState?: number | null;
+    productionTime?: string;
+    maintenanceTime: string,
+    maintenanceAddress: string,
+    maintenanceCoordinate: string,
+    valveNumber: string,
+    valveName: string,
+    deptNames: string,
+    installer: string,
+    installMode: 0,
+    installTime: string,
+    installAddress:string,
+    tubeBore: string,
+    tubeMaterial: string,
+    coordinate: string,
+    remark: string
 }
 
 export interface DeviceCreateDTO {
@@ -346,6 +368,8 @@ export interface MaintenanceRecord {
     createdAt?: string;
     updatedAt?: string;
     isDeleted?: boolean;
+
+    [key:string]: any;
 }
 
 
