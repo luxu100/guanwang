@@ -58,6 +58,9 @@ let resizeObserver: ResizeObserver | null = null;
 let resizeFrame: number | null = null;
 let resizeTimer: ReturnType<typeof window.setTimeout> | null = null;
 
+const DEFAULT_MAP_ZOOM = 13;
+const DEVICE_FOCUS_ZOOM = 15;
+
 onMounted(() => {
   void nextTick(() => {
     bindResizeEvents();
@@ -95,7 +98,7 @@ async function initMap() {
         lat: props.lat,
         lng: props.lng,
       },
-      zoom: 15,
+      zoom: DEFAULT_MAP_ZOOM,
       mapTypeControl: true,
       streetViewControl: false,
       fullscreenControl: true,
@@ -104,7 +107,7 @@ async function initMap() {
     renderMarkers();
     mapInstance.addListener("zoom_changed", renderRegions);
     bindContainerResizeObserver();
-    scheduleMapResize(true);
+    scheduleMapResize();
     emit("ready");
   } catch (error) {
     console.error("Google Maps initialization failed:", error);
@@ -237,7 +240,7 @@ function focusDevice(deviceNumber: string) {
   }
 
   mapInstance.panTo(pointPosition(point));
-  mapInstance.setZoom(17);
+  mapInstance.setZoom(DEVICE_FOCUS_ZOOM);
 }
 
 function fitDevices() {
@@ -328,7 +331,7 @@ function handleMapResize() {
   scheduleMapResize();
 }
 
-function scheduleMapResize(restoreViewport = false) {
+function scheduleMapResize() {
   if (!mapInstance || !mapContainer.value || typeof google === "undefined") {
     return;
   }
@@ -353,19 +356,8 @@ function scheduleMapResize(restoreViewport = false) {
     resizeTimer = window.setTimeout(() => {
       resizeTimer = null;
       refreshViewport();
-      if (restoreViewport) {
-        restoreInitialViewport();
-      }
     }, 260);
   });
-}
-
-function restoreInitialViewport() {
-  if (props.selectedDeviceNumber) {
-    focusDevice(props.selectedDeviceNumber);
-  } else {
-    fitDevices();
-  }
 }
 </script>
 

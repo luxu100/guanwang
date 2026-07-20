@@ -66,6 +66,8 @@ import {
 } from "@/pages/device/components/common";
 import {updateDeviceT} from "@/services/device/info.typed";
 import XDataTable from "@/pages/device/components/x/table/XDataTable.vue";
+import {getFileDetail} from "@/services/device/sysFile";
+import {normalizeUrl} from "@/utils/request";
 
 const t = createScopedT("devicePage");
 
@@ -274,7 +276,7 @@ const fixedColumns:XDataColumn[]=[
   {key:'maintainAddress',labelKey:'maintain.maintainTable.address',width:240,className:'data-cell--remark',formatter:v=>v||'-'},
   {key:'maintainCoordinate',labelKey:'maintain.maintainTable.coordinate',width:160,className:'data-cell--coord',bodyClassName:'data-cell--link',type:'coord'},
   {key:'maintainAccount',labelKey:'maintain.maintainTable.maintainAccount',width:160,className:'data-cell--text',formatter:v=>v||'-'},
-  {key:'maintainPicture',labelKey:'maintain.maintainTable.maintainPicture',width:140,className:'data-cell--link',type:'image',formatter:v=>v?t("common.viewImages",{count:getPictureList(v).length}):'-'},
+  {key:'maintainPicture',labelKey:'maintain.maintainTable.maintainPicture',width:140,bodyClassName:'data-cell--link',type:'image',formatter:v=>v?t("common.viewImages",{count:getPictureList(v).length}):'-'},
   {key:'installMode',labelKey:'maintain.maintainTable.installMode',width:140,options:installModeOptions},
   {key:'tubeGroup',labelKey:'maintain.maintainTable.tubeGroup',width:160,className:'data-cell--number',formatter:v=>v??'-'},
   {key:'tubeMaterial',labelKey:'maintain.maintainTable.tubeMaterial',width:160,className:'data-cell--text',formatter:v=>v||'-'},
@@ -641,7 +643,27 @@ const maintenanceRecordDetailSchema: FormSection[] = [
         key:"maintainPicture",
         labelKey:"maintain.maintainTable.maintainPicture",
         type:"image",
-        layout:"full"
+        layout:"full",
+        imageResolver:async(value)=>{
+          if(!value){
+            return [];
+          }
+          const ids=value
+              .split(",")
+              .map((id:string)=>id.trim())
+              .filter(Boolean);
+          const list = await Promise.all(
+              ids.map((id:string)=>getFileDetail(Number(id)))
+          );
+          return list
+              .filter(item=>item.data)
+              .map(item=>{
+                const path=item.data.filePath;
+                return path.startsWith("http")
+                    ? path
+                    : normalizeUrl(path);
+              });
+        }
       }
     ]
   },
