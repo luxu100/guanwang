@@ -20,7 +20,18 @@
               <view v-for="field in section.fields" :key="field.key" class="detail-item" :class="{'detail-item--full':field.layout==='full'||field.type==='image'}">
                 <text class="detail-label">{{ t(field.labelKey || '--') }}</text>
 
-                <image v-if="field.type==='image'" class="detail-image" mode="aspectFill" :src="getValue(field.key)"/>
+                <view
+                    v-if="field.type==='image'"
+                    class="image-list"
+                >
+                  <image
+                      v-for="url in imageValues[field.key]"
+                      :key="url"
+                      class="detail-image"
+                      mode="aspectFill"
+                      :src="url"
+                  />
+                </view>
 
                 <text v-else-if="field.type==='tag'" class="detail-tag" :class="field.tagClass">
                   {{ getDisplayValue(field) }}
@@ -45,7 +56,7 @@
 </template>
 
 <script setup lang="ts">
-import {computed} from "vue";
+import {computed,watch,ref} from "vue";
 import {createScopedT} from "@/i18n";
 import type {FormSection,FormField} from "@/pages/device/components/x/types";
 import {formatDate} from "@/utils/time";
@@ -106,6 +117,33 @@ function getDisplayValue(field:FormField){
 
   return value;
 }
+
+const imageValues = ref<Record<string,string[]>>({});
+
+watch(
+    ()=>props.modelValue,
+    async(data)=>{
+      if(!data) return;
+      for(const section of props.schema){
+        for(const field of section.fields){
+          if(
+              field.type==="image" &&
+              field.imageResolver
+          ){
+            imageValues.value[field.key]=
+                await field.imageResolver(
+                    data[field.key],
+                    data
+                );
+          }
+        }
+      }
+    },
+    {
+      immediate:true,
+      deep:true
+    }
+);
 
 defineExpose({close});
 </script>

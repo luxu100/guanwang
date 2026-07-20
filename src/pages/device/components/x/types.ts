@@ -47,6 +47,13 @@ export interface FormField {
      * entity detail 使用
      */
     format?: string;
+
+    /**
+     * 图片解析
+     * @param value
+     * @param row
+     */
+    imageResolver?: (value:any, row:any)=>Promise<string[]>;
 }
 
 export interface FormSection {
