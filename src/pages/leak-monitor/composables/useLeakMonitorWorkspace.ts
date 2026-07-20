@@ -132,7 +132,15 @@ export function useLeakMonitorWorkspace(localized?: Readonly<Ref<boolean>>) {
 
   const mapPoints = computed<MapDevicePoint[]>(() =>
     mapDevices.value
-      .filter((device) => typeof device.lat === "number" && typeof device.lng === "number")
+      .filter((device) =>
+        typeof device.lat === "number" &&
+        typeof device.lng === "number" &&
+        Number.isFinite(device.lat) &&
+        Number.isFinite(device.lng) &&
+        device.lat >= -90 &&
+        device.lat <= 90 &&
+        device.lng >= -180 &&
+        device.lng <= 180)
       .map((device) => ({
         id: device.id,
         deviceNumber: device.deviceNumber,

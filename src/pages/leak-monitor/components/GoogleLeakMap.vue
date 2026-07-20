@@ -54,14 +54,20 @@ const emit = defineEmits<{
 let mapInstance: google.maps.Map | null = null;
 let markers: google.maps.Marker[] = [];
 let regionPolygons: google.maps.Polygon[] = [];
+let resizeObserver: ResizeObserver | null = null;
+let resizeFrame: number | null = null;
+let resizeTimer: ReturnType<typeof window.setTimeout> | null = null;
 
 onMounted(() => {
   void nextTick(() => {
+    bindResizeEvents();
     void initMap();
   });
 });
 
 onBeforeUnmount(() => {
+  unbindResizeEvents();
+
   if (mapInstance) {
     google.maps.event.clearInstanceListeners(mapInstance);
   }
@@ -96,14 +102,9 @@ async function initMap() {
     });
     renderRegions();
     renderMarkers();
-    window.setTimeout(() => {
-      if (props.selectedDeviceNumber) {
-        focusDevice(props.selectedDeviceNumber);
-      } else {
-        fitDevices();
-      }
-    }, 80);
     mapInstance.addListener("zoom_changed", renderRegions);
+    bindContainerResizeObserver();
+    scheduleMapResize(true);
     emit("ready");
   } catch (error) {
     console.error("Google Maps initialization failed:", error);
@@ -286,12 +287,86 @@ watch(
 defineExpose({
   focusDevice,
   fitDevices,
-  resize: () => {
-    if (mapInstance && typeof google !== "undefined") {
-      google.maps.event.trigger(mapInstance, "resize");
-    }
-  },
+  resize: () => scheduleMapResize(),
 });
+
+function bindResizeEvents() {
+  window.addEventListener("resize", handleMapResize);
+  document.addEventListener("fullscreenchange", handleMapResize);
+  document.addEventListener("webkitfullscreenchange", handleMapResize);
+}
+
+function bindContainerResizeObserver() {
+  if (!mapContainer.value || typeof ResizeObserver === "undefined") {
+    return;
+  }
+
+  resizeObserver?.disconnect();
+  resizeObserver = new ResizeObserver(handleMapResize);
+  resizeObserver.observe(mapContainer.value);
+}
+
+function unbindResizeEvents() {
+  window.removeEventListener("resize", handleMapResize);
+  document.removeEventListener("fullscreenchange", handleMapResize);
+  document.removeEventListener("webkitfullscreenchange", handleMapResize);
+  resizeObserver?.disconnect();
+  resizeObserver = null;
+
+  if (resizeFrame !== null) {
+    window.cancelAnimationFrame(resizeFrame);
+    resizeFrame = null;
+  }
+
+  if (resizeTimer) {
+    window.clearTimeout(resizeTimer);
+    resizeTimer = null;
+  }
+}
+
+function handleMapResize() {
+  scheduleMapResize();
+}
+
+function scheduleMapResize(restoreViewport = false) {
+  if (!mapInstance || !mapContainer.value || typeof google === "undefined") {
+    return;
+  }
+
+  if (resizeFrame !== null) {
+    window.cancelAnimationFrame(resizeFrame);
+  }
+
+  if (resizeTimer) {
+    window.clearTimeout(resizeTimer);
+  }
+
+  const refreshViewport = () => {
+    if (!mapInstance) return;
+    google.maps.event.trigger(mapInstance, "resize");
+  };
+
+  resizeFrame = window.requestAnimationFrame(() => {
+    resizeFrame = null;
+    refreshViewport();
+
+    resizeTimer = window.setTimeout(() => {
+      resizeTimer = null;
+      refreshViewport();
+      if (restoreViewport) {
+        restoreInitialViewport();
+      }
+    }, 260);
+  });
+}
+
+function restoreInitialViewport() {
+  if (props.selectedDeviceNumber) {
+    focusDevice(props.selectedDeviceNumber);
+  } else {
+    fitDevices();
+  }
+}
 </script>
 
 <style scoped lang="scss">
