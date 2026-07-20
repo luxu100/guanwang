@@ -1,4 +1,4 @@
-import {createCrudServiceTyped, getRequestT} from "@/services/shared/crud.typed";
+import {createCrudServiceTyped, getRequestT, postRequestT} from "@/services/shared/crud.typed";
 import { getRequest, postRequest } from "@/services/shared/crud";
 import type {
   Dept,
@@ -11,7 +11,7 @@ import type {
   TubeNetwork,
   Valve
 } from "./types";
-import type {ApiResponse} from "@/types/api";
+import type {ApiResponse, PageResult} from "@/types/api";
 
 // ================= device =================
 const deviceApi = createCrudServiceTyped<Device>("/api/device");
@@ -130,5 +130,14 @@ export function getValveDevicePageT(valveId: string | number, data: Record<strin
 export function getDeviceRelationInfoT(id: number) {
   return getRequestT<DeviceRelationInfoVO>(
       `/api/device/${id}/relation-info`
+  );
+}
+
+export function getDeviceInfoPageT<T>(
+    data: Record<string, any>
+): Promise<ApiResponse<PageResult<T>>> {
+  return postRequestT<PageResult<T>>(
+      '/api/device-query/device-info/page',
+      data
   );
 }
