@@ -144,6 +144,9 @@ let resizeTimer: ReturnType<typeof window.setTimeout> | null = null;
 let resizeFrame: number | null = null;
 let resizeObserver: ResizeObserver | null = null;
 
+const DEFAULT_MAP_ZOOM = 13;
+const DEVICE_FOCUS_ZOOM = 15;
+
 onMounted(() => {
   // #ifdef H5
   nextTick(() => {
@@ -234,7 +237,7 @@ function initMap() {
   const center = new TMap.LatLng(31.2304, 121.4737);
   const map = new TMap.Map(mapContainer.value, {
     center,
-    zoom: 15,
+    zoom: DEFAULT_MAP_ZOOM,
     pitch: 45,
     rotation: 0,
   });
@@ -242,13 +245,6 @@ function initMap() {
 
   renderRegions();
   renderMarkers();
-  window.setTimeout(() => {
-    if (props.selectedDeviceNumber) {
-      focusDevice(props.selectedDeviceNumber);
-    } else {
-      fitDevices();
-    }
-  }, 80);
   map.on?.("zoom", renderRegions);
 
   bindContainerResizeObserver();
@@ -443,7 +439,7 @@ function focusDevice(deviceNumber: string) {
   const coordinate = convertMapCoordinate(point, point.coordinateSystem, "GCJ02");
   mapInstance.easeTo?.({
     center: new TMap.LatLng(coordinate.lat, coordinate.lng),
-    zoom: 17,
+    zoom: DEVICE_FOCUS_ZOOM,
   });
 }
 
@@ -455,10 +451,7 @@ function fitDevices() {
 
   const firstPoint = props.points[0];
   if (props.points.length === 1) {
-    mapInstance.easeTo?.({
-      center: new TMap.LatLng(firstPoint.lat, firstPoint.lng),
-      zoom: 16,
-    });
+    focusDevice(firstPoint.deviceNumber);
     return;
   }
 

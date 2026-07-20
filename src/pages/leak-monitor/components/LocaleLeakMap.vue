@@ -119,7 +119,6 @@ function requestMapLayoutRefresh() {
 watch(() => mapPoints.value.length, () => {
   window.requestAnimationFrame(() => {
     mapRef.value?.resize?.();
-    mapRef.value?.fitDevices?.();
   });
 });
 </script>
