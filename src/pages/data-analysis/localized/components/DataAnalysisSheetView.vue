@@ -54,7 +54,7 @@
         </view>
 
         <scroll-view class="table-scroll" scroll-x scroll-y>
-          <view class="data-table" :class="{ 'data-table--leakage': props.mode === 'leakage' }">
+          <view class="data-table" :style="gridColumnsStyle" :class="{ 'data-table--leakage': props.mode === 'leakage' }">
             <view class="data-row data-row--header" :class="{ 'data-row--leakage': props.mode === 'leakage' }">
               <view
                 v-for="column in tableColumns"
@@ -490,7 +490,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from "vue";
+import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
 import DatetimePicker from "@/pages/data-analysis/localized/components/DatetimePicker.vue";
 import MapDialog from "@/pages/data-analysis/localized/components/MapDialog.vue";
 import SpectrumDialog from "@/pages/data-analysis/localized/components/SpectrumDialog.vue";
@@ -658,6 +658,9 @@ const audioTotal = ref<number>(0);
 const leakDataList = ref<LeakItem[]>([]);
 const leakTotal = ref<number>(0);
 const loading = ref<boolean>(false);
+
+const gridColumns = ref("");
+const gridColumnsStyle = computed(() => gridColumns.value ? { "--data-col-grid": gridColumns.value } as Record<string, string> : {});
 
 const leakageDetailTab = ref<"base" | "analysis" | "leak-analysis">("base");
 const activeAudioTab = ref<"base" | "audio-info" | "audio-file">("base");
@@ -1159,9 +1162,18 @@ function getWeatherKey(weather: string): string {
   if (weather === "阴") return "overcast";
   return weather;
 }
-function translateStatus(status: string) { return t(`status.${getStatusKey(status)}`); }
-function translateLeakageStatus(status: string) { return t(`status.${getLeakageStatusKey(status)}`); }
-function translateWeather(weather: string) { return t(`weather.${getWeatherKey(weather)}`); }
+function translateStatus(status: string) {
+  if (status === "--") return "--";
+  return t(`status.${getStatusKey(status)}`);
+}
+function translateLeakageStatus(status: string) {
+  if (status === "--") return "--";
+  return t(`status.${getLeakageStatusKey(status)}`);
+}
+function translateWeather(weather: string) {
+  if (weather === "--") return "--";
+  return t(`weather.${getWeatherKey(weather)}`);
+}
 
 function onStatusChange(e: { detail: { value: number } }) {
   filters.status = deviceStatusOptions[e.detail.value]?.value ?? "";
@@ -1305,6 +1317,74 @@ watch(
     }
   }
 );
+
+function logColumnWidths() {
+  const query = uni.createSelectorQuery();
+  query.select(".data-row").boundingClientRect();
+  query.selectAll(".data-row .data-cell").boundingClientRect();
+  query.exec((results: any) => {
+    const [row, cells] = results as [UniApp.NodeInfo, UniApp.NodeInfo[]];
+    if (!row || !cells || cells.length === 0) return;
+
+    const colCount = props.mode === "leakage" ? 8 : 7;
+    const perRow = colCount + 1;
+    const rowCount = Math.floor(cells.length / perRow);
+    if (rowCount === 0) return;
+
+    const indexWidth = Math.round(cells[0]?.width || 0);
+
+    const maxWidths: number[] = new Array(colCount).fill(0);
+    for (let r = 0; r < rowCount; r++) {
+      for (let c = 0; c < colCount; c++) {
+        const cell = cells[r * perRow + 1 + c];
+        if (cell) {
+          maxWidths[c] = Math.max(maxWidths[c], Math.round(cell.width || 0));
+        }
+      }
+    }
+
+    const totalDataWidth = maxWidths.reduce((a: number, b: number) => a + b, 0);
+    const availableWidth = Math.round(row.width || 0) - indexWidth;
+    const gap = availableWidth - totalDataWidth;
+
+    const parts = maxWidths.map((w: number, i: number) => `col${i + 1} max=${w}px`);
+
+    if (gap >= 0) {
+      const share = Math.floor(gap / colCount);
+      const finalWidths = maxWidths.map((w: number) => w + share);
+
+      gridColumns.value = finalWidths.join("px ") + "px";
+
+      console.log(
+        `[ColumnWidth] ${props.mode} | row=${Math.round(row.width)}px index=${indexWidth}px available=${availableWidth}px share=${share}px rows=${rowCount} | ` +
+        `formula: width=max_content+remaining/${colCount} | ` +
+        parts.join(" | ") +
+        ` → final: ${finalWidths.map((w: number) => w + "px").join(" | ")}`
+      );
+    } else {
+
+      console.log(
+        `[ColumnWidth] ${props.mode} | row=${Math.round(row.width)}px index=${indexWidth}px available=${availableWidth}px rows=${rowCount} | ` +
+        `total=${totalDataWidth}px overflow=${gap}px (scrollbar) | ` +
+        `formula: width=max_content | ` +
+        parts.join(" | ")
+      );
+    }
+  });
+}
+
+watch([filteredData, loading, () => getLocale()], ([_data, isLoading]) => {
+  if (!isLoading) {
+    gridColumns.value = "";
+    nextTick(() => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          logColumnWidths();
+        });
+      });
+    });
+  }
+});
 </script>
 
 <style scoped lang="scss">
@@ -1586,27 +1666,34 @@ watch(
 }
 
 .data-table {
+  display: grid;
+  grid-template-columns: 58px var(--data-col-grid, repeat(7, auto));
   width: 100%;
   min-width: max-content;
   background: #ffffff;
 }
 
 .data-table--leakage {
+  grid-template-columns: 58px var(--data-col-grid, repeat(8, auto));
   width: 100%;
   min-width: max-content;
 }
 
 .data-row {
   display: grid;
-  grid-template-columns: 58px repeat(7, minmax(max-content, 1fr));
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   min-height: 42px;
-  width: 100%;
   min-width: 0;
   border-bottom: 1px solid #edf1f5;
   cursor: pointer;
   transition:
     background 0.18s ease,
     box-shadow 0.18s ease;
+}
+
+.data-row--leakage {
+  min-width: 0;
 }
 
 .data-row--header {
@@ -1649,11 +1736,6 @@ watch(
   content: "";
   background: #0d82ee;
   border-radius: 0 999px 999px 0;
-}
-
-.data-row--leakage {
-  grid-template-columns: 58px repeat(8, minmax(max-content, 1fr));
-  min-width: 0;
 }
 
 .data-cell {
@@ -1825,6 +1907,7 @@ watch(
 }
 
 .table-state {
+  grid-column: 1 / -1;
   height: 180px;
   color: #7c8da1;
   font-size: 14px;
@@ -1998,15 +2081,16 @@ watch(
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 38px;
+  min-height: 38px;
   color: #5d7188;
   font-size: 13px;
   font-weight: 800;
-  white-space: nowrap;
+  text-align: center;
   cursor: pointer;
   background: transparent;
   border: 1px solid transparent;
   border-radius: 4px;
+  padding: 6px 8px;
   transition:
     color 0.18s ease,
     background 0.18s ease,
@@ -2393,13 +2477,12 @@ watch(
   min-width: 0;
   }
 
-  .data-row {
-    grid-template-columns: 46px repeat(7, minmax(max-content, 1fr));
+  .data-table {
+    grid-template-columns: 46px var(--data-col-grid, repeat(7, auto));
   }
 
-  .data-row--leakage {
-    grid-template-columns: 46px repeat(8, minmax(max-content, 1fr));
-    min-width: 0;
+  .data-table--leakage {
+    grid-template-columns: 46px var(--data-col-grid, repeat(8, auto));
   }
 }
 
