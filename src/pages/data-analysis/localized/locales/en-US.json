@@ -34,9 +34,9 @@
   "dataAnalysis.item033": "Failed to load partition list",
   "dataAnalysis.item034": "Loading",
   "dataAnalysis.item035": "Longitude: ${p.lng.toFixed (4)} Latitude: ${p.lat.toFixed (4)}",
-  "dataAnalysis.item036": "| Blue whale analysis",
+  "dataAnalysis.item036": "Blue whale analysis",
   "dataAnalysis.item037": "Six",
-  "dataAnalysis.item038": "| Filter method",
+  "dataAnalysis.item038": "Filter method",
   "dataAnalysis.item039": "Filter low frequencies",
   "dataAnalysis.item040": "Filter High Frequency Point",
   "dataAnalysis.item041": "Number of measurement groups per day",
@@ -134,7 +134,7 @@
   "dataAnalysis.item133": "Noise Reference Value",
   "dataAnalysis.item134": "Buff",
   "dataAnalysis.item135": "Gain Raw Value",
-  "dataAnalysis.item136": "&Normal",
+  "dataAnalysis.item136": "Normal",
   "dataAnalysis.item137": "now/next: 'now' event label\u0004Now",
   "dataAnalysis.item138": "Parsing audio signal",
   "dataAnalysis.item139": "to",
@@ -150,5 +150,45 @@
   "dataAnalysis.supplemental001": "Start time",
   "dataAnalysis.supplemental002": "End time",
   "dataAnalysis.supplemental003": "Select Start Time",
-  "dataAnalysis.supplemental004": "Select End Time"
+  "dataAnalysis.supplemental004": "Select End Time",
+  "dataAnalysis.supplemental005": "Please enter",
+  "dataAnalysis.supplemental006": "Per page",
+  "dataAnalysis.supplemental007": "items",
+  "dataAnalysis.supplemental008": "Next",
+  "dataAnalysis.supplemental009": "Go to",
+  "dataAnalysis.supplemental010": "page",
+  "dataAnalysis.supplemental011": "Total ${count} items",
+  "dataAnalysis.supplemental012": "Page ${current} / ${total}",
+  "dataAnalysis": {
+    "ui": {
+      "analysis": "Analysis",
+      "audio": "Audio",
+      "deviceNumberPlaceholder": "Please enter"
+    },
+    "status": {
+      "installed": "Installed",
+      "removed": "Dismantling",
+      "leak": "Leak",
+      "normal": "Normal",
+      "suspected": "Suspected",
+      "unknown": "Unknown"
+    },
+    "weather": {
+      "sunny": "Sunny",
+      "rain": "Rain",
+      "cloudy": "Cloudy",
+      "overcast": "Overcast"
+    },
+    "pagination": {
+      "total": "Total {count} items",
+      "perPage": "Per page",
+      "items": "items",
+      "prev": "Prev",
+      "next": "Next",
+      "pageInfo": "Page {current} / {total}",
+      "goTo": "Go to",
+      "page": "page",
+      "confirm": "Confirm"
+    }
+  }
 }

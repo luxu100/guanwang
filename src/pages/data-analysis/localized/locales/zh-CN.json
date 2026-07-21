@@ -150,5 +150,45 @@
   "dataAnalysis.supplemental001": "请选择开始时间",
   "dataAnalysis.supplemental002": "请选择结束时间",
   "dataAnalysis.supplemental003": "选择开始时间",
-  "dataAnalysis.supplemental004": "选择结束时间"
+  "dataAnalysis.supplemental004": "选择结束时间",
+  "dataAnalysis.supplemental005": "请输入",
+  "dataAnalysis.supplemental006": "每页",
+  "dataAnalysis.supplemental007": "条",
+  "dataAnalysis.supplemental008": "下一页",
+  "dataAnalysis.supplemental009": "到第",
+  "dataAnalysis.supplemental010": "页",
+  "dataAnalysis.supplemental011": "共 ${count} 条",
+  "dataAnalysis.supplemental012": "第 ${current} / ${total} 页",
+  "dataAnalysis": {
+    "ui": {
+      "analysis": "分析",
+      "audio": "音频",
+      "deviceNumberPlaceholder": "请输入"
+    },
+    "status": {
+      "installed": "安装",
+      "removed": "拆卸",
+      "leak": "渗漏",
+      "normal": "正常",
+      "suspected": "疑似",
+      "unknown": "未知"
+    },
+    "weather": {
+      "sunny": "晴",
+      "rain": "雨",
+      "cloudy": "多云",
+      "overcast": "阴"
+    },
+    "pagination": {
+      "total": "共 {count} 条",
+      "perPage": "每页",
+      "items": "条",
+      "prev": "上一页",
+      "next": "下一页",
+      "pageInfo": "第 {current} / {total} 页",
+      "goTo": "到第",
+      "page": "页",
+      "confirm": "确定"
+    }
+  }
 }

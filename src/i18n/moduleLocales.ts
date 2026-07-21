@@ -63,10 +63,12 @@ function createSourceMap(moduleKey: LocalizedModuleKey, locale: LocaleCode) {
   const sourceByKey = messages["zh-CN"];
   const targetByKey = messages[locale];
   return Object.fromEntries(
-    Object.entries(sourceByKey).map(([key, source]) => [
-      source,
-      normalizeTranslatedTemplate(targetByKey[key] || source),
-    ]),
+    Object.entries(sourceByKey)
+      .filter(([, source]) => typeof source === "string")
+      .map(([key, source]) => [
+        source,
+        normalizeTranslatedTemplate(targetByKey[key] || source),
+      ]),
   );
 }
 
