@@ -3,15 +3,15 @@
     <!-- page size -->
     <view class="page-size">
       {{t('common.pagination.pageSizePrefix') }}
-<!--      <picker :range="pageSizeOptions" :value="pageSizeIndex" @change="onSizeChange">-->
-<!--        <text class="page-size-value">{{ size }}</text>-->
-<!--      </picker>-->
-      <view
-          class="page-size-value"
-          @click.stop="showPageSize = !showPageSize"
-      >
-        {{ size }}
-      </view>
+      <picker :range="pageSizeOptions" :value="pageSizeIndex" @change="onSizeChange">
+        <text class="page-size-value">{{ size }}</text>
+      </picker>
+<!--      <view-->
+<!--          class="page-size-value"-->
+<!--          @click.stop="showPageSize = !showPageSize"-->
+<!--      >-->
+<!--        {{ size }}-->
+<!--      </view>-->
 
       <view
           v-if="showPageSize"
@@ -142,6 +142,11 @@ function selectPageSize(size: number) {
 .page-info {
   color: #64748b;
   font-size: 13px;
+
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
 }
 
 .page-size {

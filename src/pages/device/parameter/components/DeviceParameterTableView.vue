@@ -55,7 +55,7 @@ const emit=defineEmits<{
 const selectedId=ref<number|null>(null);
 
 const fixedColumns:XDataColumn[]=[
-  {key:'deviceNumber',labelKey:'deviceParameter.parameterTable.deviceNumber',width:160,className:'data-cell--device'},
+  {key:'deviceNumber',labelKey:'deviceParameter.parameterTable.deviceNumber',width:160,className:'data-cell--number'},
   {key:'deptName',labelKey:'deviceParameter.parameterTable.deptName',width:120,className:'data-cell--text'},
   {key:'regionType',labelKey:'deviceParameter.parameterTable.regionType',width:120,className:'data-cell--text'},
   {key:'gisMinLevel',labelKey:'deviceParameter.parameterTable.gisMinLevel',width:160,className:'data-cell--number'},
@@ -64,8 +64,8 @@ const fixedColumns:XDataColumn[]=[
 ];
 
 const deviceParameterDynamicColumns:XDataColumn[]=[
-  ...protocolColumnsMap[13],
-  ...protocolColumnsMap[17]
+  ...protocolColumnsMap[11],
+  ...protocolColumnsMap[12]
 ];
 
 const columns=computed<XDataColumn[]>(()=>{
