@@ -20,7 +20,7 @@
         <text class="site-title__sub">Urban Pipeline Leakage Early Warning Platform</text>
       </view>
 
-      <view class="site-search" :class="{ 'site-search--focused': isSearchFocused, 'site-search--filled': searchKeyword }">
+      <!-- <view class="site-search" :class="{ 'site-search--focused': isSearchFocused, 'site-search--filled': searchKeyword }">
         <input
           v-model="searchKeyword"
           class="site-search__input"
@@ -42,7 +42,7 @@
         <button class="site-search__submit" hover-class="site-search__submit--hover" aria-label="搜索">
           <text class="site-search__submit-icon"></text>
         </button>
-      </view>
+      </view> -->
 
       <view class="top-actions">
         <view class="warning-entry" aria-label="预警信息" @click="goPage('/pages/alarm/processing/processing')">
