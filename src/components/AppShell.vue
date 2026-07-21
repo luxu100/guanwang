@@ -51,7 +51,7 @@
           </view>
           <text v-if="warningCount > 0" class="warning-entry__badge">{{ warningCountText }}</text>
         </view>
-        <LanguageSelect class="top-actions__lang" />
+        <LanguageSelect :key="locale" class="top-actions__lang" />
         <view class="user-chip">
           <text class="user-name">{{ userName }}</text>
         </view>
@@ -421,7 +421,7 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/data-receive/record/record": { component: DataReceiveView, props: { mode: "record" } },
 };
 
-const searchKeyword = ref("");
+// const searchKeyword = ref("");
 const isSearchFocused = ref(false);
 const isAuthReady = ref(false);
 const isMenuCollapsed = ref(getInitialMenuCollapsed());
@@ -476,9 +476,9 @@ function toggleMenu() {
   uni.setStorageSync(MENU_COLLAPSED_KEY, isMenuCollapsed.value);
 }
 
-function clearSearch() {
-  searchKeyword.value = "";
-}
+// function clearSearch() {
+//   searchKeyword.value = "";
+// }
 
 function isMenuItemActive(item: MenuItem) {
   if (item.children?.length) {
