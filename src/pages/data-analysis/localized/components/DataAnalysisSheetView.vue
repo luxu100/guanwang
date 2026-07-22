@@ -1755,6 +1755,10 @@ watch([filteredData, loading, () => getLocale()], ([_data, isLoading]) => {
   color: #415a73;
   font-size: 12px;
   letter-spacing: 0;
+
+  :deep(uni-text) {
+    white-space: nowrap;
+  }
 }
 
 .data-cell:last-child {
