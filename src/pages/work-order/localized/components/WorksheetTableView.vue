@@ -149,7 +149,7 @@
             hover-class="toolbar-button--hover"
             @click="emit('create')"
           >
-            新增工单
+            {{ localeText("新增工单", "Add") }}
           </button>
         </view>
       </view>
@@ -159,7 +159,7 @@
       <view class="worksheet-table-panel">
         <view class="table-head">
           <text>{{ pageTitle }}</text>
-          <text class="table-head__meta">共 {{ total }} 条</text>
+          <text class="table-head__meta">{{ localizedTotal(total) }}</text>
         </view>
 
         <scroll-view class="table-scroll" scroll-x scroll-y>
@@ -205,9 +205,9 @@
         </scroll-view>
 
         <view class="pagination-bar">
-          <button class="page-button" hover-class="page-button--hover" :disabled="pagination.pageNum <= 1" @click="changePage(-1)">上一页</button>
-          <text class="page-info">第 {{ pagination.pageNum }} / {{ totalPages }} 页</text>
-          <button class="page-button" hover-class="page-button--hover" :disabled="pagination.pageNum >= totalPages" @click="changePage(1)">下一页</button>
+          <button class="page-button" hover-class="page-button--hover" :disabled="pagination.pageNum <= 1" @click="changePage(-1)">{{ localeText("上一页", "Previous") }}</button>
+          <text class="page-info">{{ localizedPageInfo(pagination.pageNum, totalPages) }}</text>
+          <button class="page-button" hover-class="page-button--hover" :disabled="pagination.pageNum >= totalPages" @click="changePage(1)">{{ localeText("下一页", "Next") }}</button>
         </view>
       </view>
 
@@ -398,6 +398,11 @@ import { getWorksheetCreatePage } from "@/services/work-order/create";
 import { closeWorksheet, getWorksheetProcessDetail, getWorksheetProcessPage, updateWorksheetProcess } from "@/services/work-order/processing";
 import { getWorksheetStatisticsPage } from "@/services/work-order/statistics";
 import WorkOrderDatetimePicker from "@/pages/work-order/localized/components/WorkOrderDatetimePicker.vue";
+import { useLocaleText, useLocalizedPageInfo, useLocalizedTotal } from "@/i18n/localeText";
+
+const localeText = useLocaleText();
+const localizedPageInfo = useLocalizedPageInfo();
+const localizedTotal = useLocalizedTotal();
 
 type WorkOrderMode = "create" | "processing" | "statistics";
 type DetailTab = "base" | "content" | "time" | "processing";
@@ -1274,11 +1279,23 @@ function getWorksheetNumber(item: WorksheetRecord) {
 }
 
 function getWorksheetTypeLabel(item: WorksheetRecord) {
-  return getOptionLabel(worksheetTypeOptions, getStableValue(item, ["worksheetType"]), "未知类型");
+  const type = Number(getStableValue(item, ["worksheetType"]));
+  return {
+    0: localeText("巡检", "Inspection"),
+    1: localeText("检漏", "Leak check"),
+    2: localeText("拆装", "Install/remove"),
+    3: localeText("维护", "Maintenance"),
+  }[type] || localeText("未知类型", "Unknown");
 }
 
 function getWorksheetStatusLabel(item: WorksheetRecord) {
-  return getOptionLabel(worksheetStatusOptions, getStableValue(item, ["worksheetStatus"]), "未知状态");
+  const status = Number(getStableValue(item, ["worksheetStatus"]));
+  return {
+    0: localeText("待处理", "Pending"),
+    1: localeText("处理中", "Processing"),
+    2: localeText("已完成", "Completed"),
+    3: localeText("已取消", "Canceled"),
+  }[status] || localeText("未知状态", "Unknown");
 }
 
 function getRiseAccount(item: WorksheetRecord) {
@@ -1294,7 +1311,9 @@ function getDeviceReference(item: WorksheetRecord) {
 }
 
 function getUrgencyLabel(item: WorksheetRecord) {
-  return getOptionLabel(urgencyOptions, getStableValue(item, ["urgencyLevel"]), "一般");
+  return Number(getStableValue(item, ["urgencyLevel"])) === 1
+    ? localeText("紧急", "Urgent")
+    : localeText("一般", "Normal");
 }
 
 function getRiseTime(item: WorksheetRecord) {

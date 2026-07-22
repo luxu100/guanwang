@@ -63,7 +63,7 @@
             hover-class="toolbar-button--hover"
             @click="emit('create')"
           >
-            新增疑点
+            {{ localeText("新增疑点", "Add") }}
           </button>
           <button
             class="toolbar-button"
@@ -71,7 +71,7 @@
             hover-class="toolbar-button--hover"
             @click="selectedSuspect && emit('edit', selectedSuspect)"
           >
-            编辑疑点
+            {{ localeText("编辑疑点", "Edit") }}
           </button>
           <button
             class="toolbar-button toolbar-button--danger"
@@ -79,7 +79,7 @@
             hover-class="toolbar-button--hover"
             @click="removeSuspect"
           >
-            删除疑点
+            {{ localeText("删除疑点", "Delete") }}
           </button>
         </view>
       </view>
@@ -120,7 +120,7 @@
       <view class="suspect-table-panel">
         <view class="table-head">
           <text>{{ pageTitle }}</text>
-          <text class="table-head__meta">共 {{ total }} 条</text>
+          <text class="table-head__meta">{{ localizedTotal(total) }}</text>
         </view>
 
         <scroll-view class="table-scroll" scroll-x scroll-y>
@@ -148,7 +148,7 @@
                 @click="selectSuspect(item, index)"
               >
                 <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
-                <text class="data-cell data-cell--detect-type">{{ getTextValue(item, ["detectType"], "-") }}</text>
+                <text class="data-cell data-cell--detect-type">{{ getDetectTypeLabel(item) }}</text>
                 <text class="data-cell data-cell--process-status">
                   <text class="status-tag" :class="getProcessStatusClass(item)">{{ getProcessStatusLabel(item) }}</text>
                 </text>
@@ -168,14 +168,14 @@
         </scroll-view>
 
         <view class="pagination-bar">
-          <button class="page-button" hover-class="page-button--hover" :disabled="pagination.pageNum <= 1" @click="changePage(-1)">上一页</button>
-          <text class="page-info">第 {{ pagination.pageNum }} / {{ totalPages }} 页</text>
-          <button class="page-button" hover-class="page-button--hover" :disabled="pagination.pageNum >= totalPages" @click="changePage(1)">下一页</button>
+          <button class="page-button" hover-class="page-button--hover" :disabled="pagination.pageNum <= 1" @click="changePage(-1)">{{ localeText("上一页", "Previous") }}</button>
+          <text class="page-info">{{ localizedPageInfo(pagination.pageNum, totalPages) }}</text>
+          <button class="page-button" hover-class="page-button--hover" :disabled="pagination.pageNum >= totalPages" @click="changePage(1)">{{ localeText("下一页", "Next") }}</button>
           <view class="page-jump">
-            <text class="page-jump__prefix">到 第</text>
+            <text class="page-jump__prefix">{{ localeText("到 第", "Go to") }}</text>
             <input v-model="jumpPageInput" class="page-jump__input" type="number" min="1" :max="totalPages" placeholder="" @confirm="jumpToPage" />
-            <text class="page-jump__suffix">页</text>
-            <button class="page-button" hover-class="page-button--hover" :disabled="!jumpPageInput" @click="jumpToPage">跳转</button>
+            <text class="page-jump__suffix">{{ localeText("页", "page") }}</text>
+            <button class="page-button" hover-class="page-button--hover" :disabled="!jumpPageInput" @click="jumpToPage">{{ localeText("跳转", "Go") }}</button>
           </view>
         </view>
       </view>
@@ -692,6 +692,7 @@ import { getDeviceVisibleList } from "@/services/leak-report/device";
 import { getPartitionDeviceList } from "@/services/partition/partition";
 import { uploadFile } from "@/services/leak-report/file-upload";
 import LocaleCoordinateMap from "@/components/map/LocaleCoordinateMap.vue";
+import { useLocaleText, useLocalizedPageInfo, useLocalizedTotal } from "@/i18n/localeText";
 
 // ========== 类型定义 ==========
 type SuspectMode = "management" | "processing";
@@ -750,18 +751,21 @@ const detectTypeFilterOptions: SelectOption[] = [
   { label: "设备检出", value: "设备检出" },
 ];
 
-const processStatusLabelMap: Record<number, string> = {
-  0: "未处理",
-  1: "已派单",
-  2: "处理中",
-  3: "已完成",
-  4: "已排除",
+const processStatusLabelMap: Record<number, [string, string]> = {
+  0: ["未处理", "Pending"],
+  1: ["已派单", "Dispatched"],
+  2: ["处理中", "Processing"],
+  3: ["已完成", "Completed"],
+  4: ["已排除", "Excluded"],
 };
+const localeText = useLocaleText();
+const localizedPageInfo = useLocalizedPageInfo();
+const localizedTotal = useLocalizedTotal();
 
-const isLeakPointLabelMap: Record<number, string> = {
-  0: "否",
-  1: "是",
-  2: "待确认",
+const isLeakPointLabelMap: Record<number, [string, string]> = {
+  0: ["否", "No"],
+  1: ["是", "Yes"],
+  2: ["待确认", "Pending"],
 };
 
 const urgencyOptions: SelectOption[] = [
@@ -1041,7 +1045,7 @@ const baseSummaryMeta = computed(() => {
   return [
     { label: "上报时间", value: formatDateTime(getTextValue(item, ["reportTime"], "-")) },
     { label: "上报人员", value: getTextValue(item, ["reporter"], "-") },
-    { label: "检出类型", value: getTextValue(item, ["detectType"], "-") },
+    { label: "检出类型", value: getDetectTypeLabel(item) },
     { label: "巡检编号", value: getTextValue(item, ["patrolNo"], "-") },
   ];
 });
@@ -1051,7 +1055,7 @@ const baseDetailFields = computed(() => {
   const item = selectedSuspect.value || {};
   return [
     { label: "漏点类型", value: getTextValue(item, ["leakPointType"], "-") },
-    { label: "初判级别", value: getTextValue(item, ["initialLevel"], "-") },
+    { label: "初判级别", value: getInitialLevelLabel(getStableValue(item, ["initialLevel"])) },
     { label: "漏点大小", value: getTextValue(item, ["leakPointSize"], "-") },
     { label: "漏点路面", value: getTextValue(item, ["leakRoadSurface"], "-") },
     { label: "坐标位置", value: getTextValue(item, ["coordinatePosition"], "-") },
@@ -1081,9 +1085,9 @@ const pipeDetailFields = computed(() => {
     { label: "管道材质", value: getTextValue(item, ["tubeMaterial"], "-") },
     { label: "设备编号", value: getTextValue(item, ["deviceNumber"], "-") },
     { label: "噪声时间", value: formatDateTime(getTextValue(item, ["noiseTime"], "-")) },
-    { label: "渗漏状态", value: getTextValue(item, ["leakStatus"], "-") },
+    { label: "渗漏状态", value: getLeakStatusLabel(getStableValue(item, ["leakStatus"])) },
     { label: "特征值", value: getTextValue(item, ["featureValue"], "-") },
-    { label: "修复状态", value: getTextValue(item, ["repairStatus"], "-") },
+    { label: "修复状态", value: getRepairStatusLabel(getStableValue(item, ["repairStatus"])) },
     { label: "修复时间", value: formatDateTime(getTextValue(item, ["repairTime"], "-")) },
     { label: "修复人", value: getTextValue(item, ["repairPerson"], "-") },
     { label: "下漏单位", value: getTextValue(item, ["leakUnit"], "-") },
@@ -1872,9 +1876,61 @@ function getProcessStatus(item: SuspectRecord | null): number {
   return -1;
 }
 
+function getDetectTypeLabel(item: SuspectRecord): string {
+  const value = String(getStableValue(item, ["detectType"]) ?? "").trim();
+  const normalized = value.toUpperCase();
+  if (value === "人工检出" || ["MANUAL", "MANUAL_DETECTION"].includes(normalized)) {
+    return localeText("人工检出", "Manual");
+  }
+  if (value === "设备检出" || ["DEVICE", "DEVICE_DETECTION", "AUTOMATIC"].includes(normalized)) {
+    return localeText("设备检出", "Device");
+  }
+  return value || "-";
+}
+
+function getInitialLevelLabel(value: unknown): string {
+  const text = String(value ?? "").trim();
+  const normalized = text.toUpperCase();
+  if (text === "一般" || ["NORMAL", "GENERAL", "0"].includes(normalized)) {
+    return localeText("一般", "Normal");
+  }
+  if (text === "紧急" || ["URGENT", "1"].includes(normalized)) {
+    return localeText("紧急", "Urgent");
+  }
+  return text || "-";
+}
+
+function getLeakStatusLabel(value: unknown): string {
+  const text = String(value ?? "").trim();
+  const normalized = text.toUpperCase();
+  if (text === "正常" || ["NORMAL", "0"].includes(normalized)) return localeText("正常", "Normal");
+  if (text === "异常" || ["ABNORMAL", "1"].includes(normalized)) return localeText("异常", "Abnormal");
+  if (text === "疑似" || ["SUSPECTED", "SUSPECT", "2"].includes(normalized)) return localeText("疑似", "Suspected");
+  if (text === "渗漏" || ["LEAK", "LEAKAGE", "3"].includes(normalized)) return localeText("渗漏", "Leak");
+  if (text === "未抄" || normalized === "UNREAD") return localeText("未抄", "Unread");
+  if (text === "新装" || normalized === "NEWLY_INSTALLED") return localeText("新装", "New");
+  return text || "-";
+}
+
+function getRepairStatusLabel(value: unknown): string {
+  const text = String(value ?? "").trim();
+  const normalized = text.toUpperCase();
+  if (text === "已修复" || ["REPAIRED", "FIXED", "1"].includes(normalized)) {
+    return localeText("已修复", "Repaired");
+  }
+  if (text === "未修复" || ["UNREPAIRED", "NOT_REPAIRED", "0"].includes(normalized)) {
+    return localeText("未修复", "Unrepaired");
+  }
+  if (text === "处理中" || ["PROCESSING", "IN_PROGRESS", "2"].includes(normalized)) {
+    return localeText("处理中", "Processing");
+  }
+  return text || "-";
+}
+
 function getProcessStatusLabel(item: SuspectRecord): string {
   const status = getProcessStatus(item);
-  return processStatusLabelMap[status] || "未知";
+  const label = processStatusLabelMap[status];
+  return label ? localeText(label[0], label[1]) : localeText("未知", "Unknown");
 }
 
 function getProcessStatusClass(item: SuspectRecord): string {
@@ -1891,12 +1947,18 @@ function getProcessStatusClass(item: SuspectRecord): string {
 
 function getIsLeakPointLabel(item: SuspectRecord): string {
   const val = getStableValue(item, ["isLeakPoint"]);
-  if (typeof val === "number") return isLeakPointLabelMap[val] || "未知";
+  if (typeof val === "number") {
+    const label = isLeakPointLabelMap[val];
+    return label ? localeText(label[0], label[1]) : localeText("未知", "Unknown");
+  }
   if (typeof val === "string" && val.trim()) {
     const num = Number(val);
-    return Number.isNaN(num) ? "未知" : (isLeakPointLabelMap[num] || "未知");
+    const label = isLeakPointLabelMap[num];
+    return Number.isNaN(num) || !label
+      ? localeText("未知", "Unknown")
+      : localeText(label[0], label[1]);
   }
-  return "未知";
+  return localeText("未知", "Unknown");
 }
 
 function getIsLeakPointClass(item: SuspectRecord): string {

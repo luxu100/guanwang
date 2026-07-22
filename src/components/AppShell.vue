@@ -407,7 +407,6 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/work-order/statistics/statistics": { component: WorksheetTableView, props: { mode: "statistics" } },
   "/pages/alarm/strategy/strategy": createPlaceholderContent("/pages/alarm/strategy/strategy"),
   "/pages/alarm/processing/processing": createPlaceholderContent("/pages/alarm/processing/processing"),
-  "/pages/alarm/analysis/analysis": createPlaceholderContent("/pages/alarm/analysis/analysis"),
   "/pages/report/generate/generate": createPlaceholderContent("/pages/report/generate/generate"),
   "/pages/report/operation/operation": createPlaceholderContent("/pages/report/operation/operation"),
   "/pages/report/command/command": createPlaceholderContent("/pages/report/command/command"),
