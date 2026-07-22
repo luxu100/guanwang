@@ -55,12 +55,20 @@
             <!-- 普通字段 -->
             <text
                 v-else
+                :id="`cell-${index}-${col.key}`"
                 class="data-cell"
                 :class="[
                   col.className,
                   col.bodyClassName
                 ]"
                 :style="cellStyle(col)"
+                @mouseenter="
+                  col.tooltip &&
+                  showTooltip(`cell-${index}-${col.key}`,String(formatValue(row,col)))
+                "
+                @mouseleave="
+                  col.tooltip && hideTooltip()
+                "
             >
               <text
                   v-if="col.options"
@@ -92,6 +100,13 @@
         :file-ids="currentPictureIds"
     />
 
+    <XTooltip
+        :visible="tooltip.visible"
+        :text="tooltip.text"
+        :x="tooltip.x"
+        :y="tooltip.y"
+    />
+
     <slot name="footer"/>
   </view>
 </template>
@@ -102,6 +117,7 @@ import type {XDataColumn} from '../types';
 import XMapPopup from "@/pages/device/components/x/map/XMapPopup.vue";
 import {createScopedT} from "@/i18n";
 import XImageViewerDialog from "@/pages/device/components/x/dialog/XImageViewerDialog.vue";
+import XTooltip from "@/pages/device/components/x/table/XTooltip.vue";
 const t = createScopedT("devicePage");
 
 type SortOrder = 'asc' | 'desc';
@@ -333,6 +349,36 @@ function handleCoordinate(coordinate?: string) {
     icon: "none",
     duration: 2000
   });
+}
+
+const tooltip = reactive({
+  visible:false,
+  text:'',
+  x:0,
+  y:0
+});
+
+function showTooltip(id:string,text:string){
+
+  if(!text || text==='-') return;
+
+  uni.createSelectorQuery()
+      .select(`#${id}`)
+      .boundingClientRect((rect:any)=>{
+
+        if(!rect) return;
+
+        tooltip.text=text;
+        tooltip.x=rect.left;
+        tooltip.y=rect.bottom;
+        tooltip.visible=true;
+
+      })
+      .exec();
+}
+
+function hideTooltip(){
+  tooltip.visible=false;
 }
 
 </script>
