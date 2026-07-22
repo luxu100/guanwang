@@ -185,7 +185,7 @@
                     <text class="detail-summary__meta-value">{{ (selectedItem as AudioDataItem).installer }}</text>
                   </view>
                   <view class="detail-summary__meta-item">
-                    <text class="detail-summary__meta-label">所属片区</text>
+                    <text class="detail-summary__meta-label">所属分区</text>
                     <text class="detail-summary__meta-value">{{ (selectedItem as AudioDataItem).deptName }}</text>
                   </view>
                 </view>
@@ -297,7 +297,7 @@
                 </view>
                 <view class="detail-item detail-item--note">
                   <text class="detail-item__label">同步采样时间</text>
-                  <text class="detail-item__value">{{ ((selectedItem as AudioDataItem).syncSamplingTime || '').replace('T', ' ') }}</text>
+                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).syncSamplingTime }}</text>
                 </view>
                 <view class="detail-item detail-item--note">
                   <text class="detail-item__label">同步采样次数</text>
@@ -351,7 +351,7 @@
                       <text class="detail-summary__meta-value">{{ (selectedItem as LeakItem).installer }}</text>
                     </view>
                     <view class="detail-summary__meta-item">
-                      <text class="detail-summary__meta-label">所属片区</text>
+                      <text class="detail-summary__meta-label">所属分区</text>
                       <text class="detail-summary__meta-value">{{ (selectedItem as LeakItem).deptName }}</text>
                     </view>
                   </view>
@@ -917,7 +917,7 @@ async function fetchAudioData() {
 			benchmarkValue: record.benchmarkValue ?? "--",
 			noiseBenchmarkValue: record.noiseBenchmarkValue ?? "--",
 			signalChannel: record.signalChannel ?? "--",
-			syncSamplingTime: record.syncSamplingTime ?? "--",
+			syncSamplingTime: formatSyncSamplingTime(record.syncSamplingTime),
 			syncSamplingNumber: record.syncSamplingNumber ?? "--",
 			audioRule: record.audioRule ?? "--",
 			samplingCount: record.samplingCount ?? "--",
@@ -1101,6 +1101,23 @@ function formatCoordinate(location: string) {
   const lat = Number(parts[1]);
   if (!Number.isFinite(lng) || !Number.isFinite(lat)) return location;
   return `${lng.toFixed(4)},${lat.toFixed(4)}`;
+}
+
+function formatSyncSamplingTime(value: any): string {
+  if (!value || value === "--") return "--";
+  let arr: number[];
+  if (Array.isArray(value)) {
+    arr = value;
+  } else if (typeof value === "string" && value.startsWith("[") && value.endsWith("]")) {
+    try { arr = JSON.parse(value); } catch { return value; }
+  } else {
+    return value;
+  }
+  if (!Array.isArray(arr) || arr.length < 2) return "--";
+  const h = Number(arr[0]);
+  const m = Number(arr[1]);
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return "--";
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00`;
 }
 
 function onLocation(item: AudioDataItem) {

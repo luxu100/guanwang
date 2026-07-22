@@ -42,7 +42,7 @@
   "dataAnalysis.item041": "每天测量组数",
   "dataAnalysis.item042": "排查反馈",
   "dataAnalysis.item043": "频率 / Hz",
-  "dataAnalysis.item044": "频率 ${Number(point.value[0]).toFixed(1)}Hz 幅度 ${Number(point.value[1]).toFixed(0)}dB",
+  "dataAnalysis.item044": "频率 {freq}Hz 幅度 {amp}dB",
   "dataAnalysis.item045": "频谱",
   "dataAnalysis.item046": "频谱分析",
   "dataAnalysis.item047": "频谱分析仅支持 H5 端",
