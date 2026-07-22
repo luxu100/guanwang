@@ -208,8 +208,8 @@ import AdminPlaceholderView from "@/components/admin/AdminPlaceholderView.vue";
 import AppShellModuleHost from "@/components/app-shell/AppShellModuleHost.vue";
 import LanguageSelect from "@/components/common/LanguageSelect.vue";
 
-// import appShellModules from "@/components/app-shell/appShellModules.local";
-import appShellModules from "@/components/app-shell/appShellModules.localized";
+import appShellModules from "@/components/app-shell/appShellModules.local";
+// import appShellModules from "@/components/app-shell/appShellModules.localized";
 
 import { MENU_COLLAPSED_KEY, OPENED_TABS_KEY } from "@/utils/appShellStorage";
 import { clearAuthStorage, createProtectedRouteDecision, LOGIN_PATH } from "@/utils/authGuard";
