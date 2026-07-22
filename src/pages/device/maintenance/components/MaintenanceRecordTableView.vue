@@ -273,7 +273,7 @@ const fixedColumns:XDataColumn[]=[
   {key:'deviceNumber',labelKey:'maintain.maintainTable.deviceNumber',width:180,className:'data-cell--device'},
   {key:'maintainType',labelKey:'maintain.maintainTable.type',width:120,options:maintainTypeOptions},
   {key:'maintainTime',labelKey:'maintain.maintainTable.time',width:180,className:'data-cell--time',formatter:v=>formatDate(v||'-')},
-  {key:'maintainAddress',labelKey:'maintain.maintainTable.address',width:240,className:'data-cell--remark',formatter:v=>v||'-'},
+  {key:'maintainAddress',labelKey:'maintain.maintainTable.address',width:240,className:'data-cell--remark',formatter:v=>v||'-',tooltip:true},
   {key:'maintainCoordinate',labelKey:'maintain.maintainTable.coordinate',width:160,className:'data-cell--coord',bodyClassName:'data-cell--link',type:'coord'},
   {key:'maintainAccount',labelKey:'maintain.maintainTable.maintainAccount',width:160,className:'data-cell--text',formatter:v=>v||'-'},
   {key:'maintainPicture',labelKey:'maintain.maintainTable.maintainPicture',width:140,bodyClassName:'data-cell--link',type:'image',formatter:v=>v?t("common.viewImages",{count:getPictureList(v).length}):'-'},
@@ -281,7 +281,7 @@ const fixedColumns:XDataColumn[]=[
   {key:'tubeGroup',labelKey:'maintain.maintainTable.tubeGroup',width:160,className:'data-cell--number',formatter:v=>v??'-'},
   {key:'tubeMaterial',labelKey:'maintain.maintainTable.tubeMaterial',width:160,className:'data-cell--text',formatter:v=>v||'-'},
   {key:'tubeBore',labelKey:'maintain.maintainTable.tubeBore',width:120,className:'data-cell--number',formatter:v=>v??'-'},
-  {key:'remark',labelKey:'maintain.maintainTable.remark',width:240,className:'data-cell--remark',formatter:v=>v||'-'}
+  {key:'remark',labelKey:'maintain.maintainTable.remark',width:240,className:'data-cell--remark',formatter:v=>v||'-',tooltip:true}
 ];
 
 const deviceParameterDynamicColumns:XDataColumn[]=[

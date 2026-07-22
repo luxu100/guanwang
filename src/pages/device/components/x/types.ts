@@ -136,4 +136,5 @@ export interface XDataColumn {
         labelKey?: string;
         tagClass?:string;
     }[];
+    tooltip?:boolean;
 }
