@@ -185,114 +185,56 @@
       @jump-page="jumpToPage"
       @page-size-change="handlePageSizeChange"
     >
-      <view class="data-table" :style="{ gridTemplateColumns: tableGridTemplateColumns, minWidth: tableMinWidth }">
-        <!-- 渗漏记录列头 -->
-        <view v-if="activeDataTab === 'leakage'" class="data-row data-row--header data-row--leakage">
-          <text class="data-cell data-cell--index">{{ t("table.index") }}</text>
-          <text class="data-cell data-cell--time data-cell--sortable" @click.stop="toggleSort('detectTime')">{{ t("table.detectTime") }}<text class="sort-arrow sort-arrow--active" v-if="sortField === 'detectTime'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
-          <text class="data-cell data-cell--level data-cell--sortable" @click.stop="toggleSort('leakStatus')">{{ t("table.leakStatus") }}<text class="sort-arrow sort-arrow--active" v-if="sortField === 'leakStatus'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
-          <text class="data-cell data-cell--type">{{ t("table.leakPointType") }}</text>
-          <text class="data-cell data-cell--address">{{ t("table.leakPointPosition") }}</text>
-          <text class="data-cell data-cell--account">{{ t("table.inspector") }}</text>
-          <text class="data-cell data-cell--material">{{ t("table.tubeMaterial") }}</text>
-          <text class="data-cell data-cell--remark">{{ t("table.description") }}</text>
-        </view>
-
-        <!-- 设备上报列头 -->
-        <view v-else-if="activeDataTab === 'deviceUpload'" class="data-row data-row--header data-row--deviceUpload">
-          <text class="data-cell data-cell--index">{{ t("table.index") }}</text>
-          <text class="data-cell data-cell--time">{{ t("table.uploadTime") }}</text>
-          <text class="data-cell data-cell--device">{{ t("table.deviceNumber") }}</text>
-          <text class="data-cell data-cell--status">{{ t("table.leakFlag") }}</text>
-          <text class="data-cell data-cell--esa">{{ t("table.leakEsa") }}</text>
-          <text class="data-cell data-cell--intensity">{{ t("table.leakIntensity") }}</text>
-          <text class="data-cell data-cell--frequency">{{ t("table.leakFrequency") }}</text>
-          <text class="data-cell data-cell--firmware">{{ t("table.firmwareVersion") }}</text>
-        </view>
-
-        <!-- 算法分析列头 -->
-        <view v-else-if="activeDataTab === 'algorithm'" class="data-row data-row--header data-row--algorithm">
-          <text class="data-cell data-cell--index">{{ t("table.index") }}</text>
-          <text class="data-cell data-cell--time">{{ t("table.createdAt") }}</text>
-          <text class="data-cell data-cell--device">{{ t("table.deviceNumber") }}</text>
-          <text class="data-cell data-cell--signal">{{ t("table.algorithmName") }}</text>
-          <text class="data-cell data-cell--status">{{ t("table.executeStatus") }}</text>
-          <text class="data-cell data-cell--signal">{{ t("table.outputValue") }}</text>
-          <text class="data-cell data-cell--esa">{{ t("table.duration") }}</text>
-        </view>
-
-        <view v-if="loading" class="table-state table-state--loading"><view class="state-spinner"></view><text class="state-text">{{ t("common.loading") }}</text></view>
-        <view v-else-if="records.length === 0" class="table-state table-state--empty"><view class="state-icon-empty"></view><text class="state-text">{{ t("historyOverview.noHistoryData") }}</text></view>
-
-        <!-- 渗漏记录行 -->
-        <view v-else-if="activeDataTab === 'leakage'">
-          <view
-            v-for="(item, index) in records"
-            :key="getRowKey(item, index)"
-            class="data-row data-row--leakage"
-            :class="{ 'data-row--active': selectedRecordKey === getRowKey(item, index) }"
-            @click="selectRecord(item, index)"
-          >
-            <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
-            <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "detectTime")) }}</text>
-            <text class="data-cell data-cell--level"><text class="status-tag" :class="getLeakageStatusTagClass(item)">{{ getLeakageStatusDisplay(item) }}</text></text>
-            <text class="data-cell data-cell--type">{{ getFieldValue(item, "leakPointType") || "-" }}</text>
-            <text class="data-cell data-cell--address">{{ getFieldValue(item, "leakPointPosition") || "-" }}</text>
-            <text class="data-cell data-cell--account">{{ getFieldValue(item, "inspector") || "-" }}</text>
-            <text class="data-cell data-cell--material">{{ getFieldValue(item, "tubeMaterial") || "-" }}</text>
-            <text class="data-cell data-cell--remark">{{ getFieldValue(item, "description") || "-" }}</text>
-          </view>
-        </view>
-
-        <!-- 设备上报行 -->
-        <view v-else-if="activeDataTab === 'deviceUpload'">
-          <view
-            v-for="(item, index) in records"
-            :key="getRowKey(item, index)"
-            class="data-row data-row--deviceUpload"
-            :class="{ 'data-row--active': selectedRecordKey === getRowKey(item, index) }"
-            @click="selectRecord(item, index)"
-          >
-            <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
-            <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "uploadTime")) }}</text>
-            <text class="data-cell data-cell--device">{{ getFieldValue(item, "deviceNumber") || "-" }}</text>
-            <text class="data-cell data-cell--status">
-              <text class="status-tag" :class="getLeakStatusTagClass(item)">{{ getLeakStatusLabel(item) }}</text>
-            </text>
-            <text class="data-cell data-cell--esa">{{ getFieldValue(item, "leakEsa") ?? "-" }}</text>
-            <text class="data-cell data-cell--intensity">{{ getFieldValue(item, "leakIntensity") ?? "-" }}</text>
-            <text class="data-cell data-cell--frequency">{{ getFieldValue(item, "leakFrequency") ?? "-" }}</text>
-            <text class="data-cell data-cell--firmware">{{ getFieldValue(item, "firmwareVersion") || "-" }}</text>
-          </view>
-        </view>
-
-        <!-- 算法分析行 -->
-        <view v-else-if="activeDataTab === 'algorithm'">
-          <view
-            v-for="(item, index) in records"
-            :key="getRowKey(item, index)"
-            class="data-row data-row--algorithm"
-            :class="{ 'data-row--active': selectedRecordKey === getRowKey(item, index) }"
-            @click="selectRecord(item, index)"
-          >
-            <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
-            <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "createdAt")) }}</text>
-            <text class="data-cell data-cell--device">{{ getFieldValue(item, "deviceNumber") || "-" }}</text>
-            <text class="data-cell data-cell--signal">{{ translateAlgorithmName(getFieldValue(item, "algorithmName")) }}</text>
-            <text class="data-cell data-cell--status">
-              <text v-if="getFieldValue(item, 'status')" class="status-tag" :class="getAlgorithmStatusTagClass(item)">{{ getAlgorithmStatusLabel(item) }}</text>
-              <text v-else>-</text>
-            </text>
-            <text class="data-cell data-cell--signal" :title="String(getFieldValue(item, 'outputValue') || '')">{{ getFieldValue(item, "outputValue") || "-" }}</text>
-            <text class="data-cell data-cell--esa">{{ getFieldValue(item, "costMs") ?? "-" }}</text>
-          </view>
-        </view>
-      </view>
+      <LeakDataTable
+        :columns="activeColumnDefs"
+        :data="records"
+        :loading="loading"
+        :grid-template-columns="tableGridTemplateColumns"
+        :min-width="tableMinWidth"
+        :selected-key="selectedRecordKey"
+        :sort-field="sortField"
+        :sort-order="sortOrder"
+        :empty-text="t('historyOverview.noHistoryData')"
+        :loading-text="t('common.loading')"
+        :page-num="pagination.pageNum"
+        :page-size="pagination.pageSize"
+        :get-row-key="getRowKey"
+        :get-field-value="getFieldValue"
+        :format-date-time="formatDateTime"
+        :label-fn="t"
+        :header-row-class="`data-row--${activeDataTab}`"
+        :body-row-class="`data-row--${activeDataTab}`"
+        @sort="toggleSort"
+        @row-click="selectRecord"
+      >
+        <!-- 状态标签（3种变体） -->
+        <template #cell-statusTag="{ row, col }">
+          <text v-if="col.statusVariant === 'leakage'" class="status-tag" :class="getLeakageStatusTagClass(row)">{{ getLeakageStatusDisplay(row) }}</text>
+          <text v-else-if="col.statusVariant === 'deviceUpload'" class="status-tag" :class="getLeakStatusTagClass(row)">{{ getLeakStatusLabel(row) }}</text>
+          <text v-else-if="col.statusVariant === 'algorithm' && getFieldValue(row, col.key)" class="status-tag" :class="getAlgorithmStatusTagClass(row)">{{ getAlgorithmStatusLabel(row) }}</text>
+          <text v-else>-</text>
+        </template>
+        <!-- 算法名称翻译 -->
+        <template #cell-algorithmName="{ row, col }">
+          {{ translateAlgorithmName(getFieldValue(row, col.key)) }}
+        </template>
+      </LeakDataTable>
 
       <!-- 右侧详情 -->
       <template #detail>
         <view class="detail-body">
-          <view class="detail-section">
+          <view class="detail-tabs">
+            <view
+              v-for="tab in detailTabs"
+              :key="tab.value"
+              class="detail-tab"
+              :class="{ 'detail-tab--active': activeDetailTab === tab.value }"
+              @click="activeDetailTab = tab.value"
+            >{{ tab.label }}</view>
+          </view>
+
+          <!-- 基本信息 tab：摘要 + 时间信息 + 地点信息 + 音视频 -->
+          <view v-if="activeDetailTab === 'basic'" class="detail-section">
             <!-- 摘要 -->
             <view class="detail-summary">
               <view class="detail-summary__main">
@@ -330,22 +272,128 @@
               </view>
             </view>
 
-            <!-- 其他字段（卡片网格） -->
+            <!-- 音视频播放区（仅 leakage tab 显示） -->
+            <view v-if="activeDataTab === 'leakage' && selectedRecord" class="time-section time-section--attach">
+              <text class="detail-section-title">{{ t("historyOverview.relatedAudio") }}</text>
+              <view class="attach-media">
+                <view class="attach-media__item">
+                  <view v-if="getFieldValue(selectedRecord, 'audioFile')" class="attach-media__player">
+                    <button class="attach-play-btn" hover-class="attach-play-btn--hover" @click="openAudioDialog(selectedRecord)"><text class="play-icon icon-play"></text></button>
+                    <text class="attach-media__hint">{{ t("common.clickToPlay") }}</text>
+                  </view>
+                  <text v-else class="attach-media__empty">{{ t("historyOverview.noAudioUploaded") }}</text>
+                </view>
+              </view>
+              <text class="detail-section-title detail-section-title--video">{{ t("historyOverview.relatedVideo") }}</text>
+              <view class="attach-media">
+                <view class="attach-media__item">
+                  <view v-if="getFieldValue(selectedRecord, 'sceneVideo')" class="attach-media__player">
+                    <button class="attach-play-btn" hover-class="attach-play-btn--hover" @click="openVideoDialog(selectedRecord)"><text class="play-icon icon-play"></text></button>
+                    <text class="attach-media__hint">{{ t("common.clickToPlay") }}</text>
+                  </view>
+                  <text v-else class="attach-media__empty">{{ t("historyOverview.noVideoUploaded") }}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <!-- 详细信息 tab：其他字段（卡片网格） -->
+          <view v-if="activeDetailTab === 'detail'" class="detail-section">
             <view v-if="cardFields.length > 0" class="detail-fields-grid">
               <view v-for="item in cardFields" :key="item.label" class="detail-field-card">
                 <text class="detail-field-card__label">{{ item.label }}</text>
                 <text class="detail-field-card__value" :title="item.value">{{ item.value }}</text>
               </view>
             </view>
+            <view v-else class="attach-media__empty">{{ t("historyOverview.noHistoryData") }}</view>
           </view>
         </view>
       </template>
     </LeakTableView>
+
+    <!-- ========== 视频播放浮层 ========== -->
+    <view v-if="videoDialogVisible" class="video-dialog-mask" @click="closeVideoDialog">
+      <view class="video-dialog" @click.stop>
+        <view class="video-dialog__head">
+          <text class="video-dialog__title">{{ t("historyOverview.videoPlay") }}</text>
+          <button class="icon-button" hover-class="icon-button--hover" :aria-label="t('common.close')" @click="closeVideoDialog"><text class="close-icon"></text></button>
+        </view>
+        <view class="video-dialog__body">
+          <video
+            v-if="currentVideoUrl"
+            ref="videoPlayerRef"
+            :src="currentVideoUrl"
+            class="video-player"
+            controls
+            playsinline
+            webkit-playsinline
+            @loadedmetadata="onVideoLoadedMeta"
+            @durationchange="onVideoDurationChange"
+            @canplay="onVideoCanPlay"
+            @timeupdate="onVideoTimeUpdate"
+            @waiting="onVideoWaiting"
+            @playing="onVideoPlaying"
+          ></video>
+          <view v-else class="video-empty">{{ t("historyOverview.videoLoadFailed") }}</view>
+          <view v-if="videoLoading && currentVideoUrl" class="video-loading">{{ t("historyOverview.buffering") }}</view>
+        </view>
+        <view v-if="currentVideoUrl" class="video-dialog__info">
+          <view class="video-info-row">
+            <text class="video-info-label">{{ t("historyOverview.duration") }}</text>
+            <text class="video-info-value">{{ formatMediaTime(videoDuration) }}</text>
+          </view>
+          <view class="video-info-row">
+            <text class="video-info-label">{{ t("historyOverview.progress") }}</text>
+            <text class="video-info-value">{{ formatMediaTime(videoCurrentTime) }} / {{ formatMediaTime(videoDuration) }}</text>
+          </view>
+          <view class="video-seek-bar">
+            <view class="video-seek-filled" :style="{ width: videoProgress + '%' }"></view>
+            <view class="video-seek-thumb" :style="{ left: videoProgress + '%' }"></view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- ========== 音频播放浮层 ========== -->
+    <view v-if="audioDialogVisible" class="audio-dialog-mask" @click="closeAudioDialog">
+      <view class="audio-dialog" @click.stop>
+        <view class="audio-dialog__head">
+          <text class="audio-dialog__title">{{ currentAudioTitle || t("historyOverview.audioPlay") }}</text>
+          <button class="icon-button" hover-class="icon-button--hover" :aria-label="t('common.close')" @click="closeAudioDialog"><text class="close-icon"></text></button>
+        </view>
+        <view class="audio-dialog__body">
+          <view v-if="!currentAudioUrl" class="audio-empty">{{ t("historyOverview.audioLoadFailed") }}</view>
+          <view v-else class="audio-player">
+            <view class="audio-player__icon">
+              <view class="audio-cover">
+                <view class="audio-cover__ring"></view>
+                <view class="audio-cover__dot"></view>
+              </view>
+            </view>
+            <view class="audio-player__info">
+              <text class="audio-player__title">{{ currentAudioTitle }}</text>
+              <view v-if="audioLoading" class="audio-player__loading">{{ t("historyOverview.buffering") }}</view>
+              <view class="audio-player__progress">
+                <text class="audio-time">{{ formatMediaTime(audioCurrentTime) }}</text>
+                <view class="audio-seek-bar">
+                  <view class="audio-seek-filled" :style="{ width: audioProgress + '%' }"></view>
+                  <view class="audio-seek-thumb" :style="{ left: audioProgress + '%' }"></view>
+                </view>
+                <text class="audio-time">{{ formatMediaTime(audioDuration) }}</text>
+              </view>
+              <button class="audio-play-btn" hover-class="audio-play-btn--hover" @click="toggleAudioPlayState">
+                <text class="play-icon-large" :class="audioPlaying ? 'icon-pause-large' : 'icon-play-large'"></text>
+              </button>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, onMounted, onBeforeUnmount, nextTick, watch } from "vue";
+import { computed, reactive, ref, onMounted, onBeforeUnmount, onUnmounted, nextTick, watch } from "vue";
 import * as echarts from "echarts";
 import {
   getLeakageHistoryPage,
@@ -357,6 +405,7 @@ import {
 } from "@/services/leak-report/history-overview";
 import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
 import LeakTableView from "@/pages/leak-report/components/LeakTableView.vue";
+import LeakDataTable from "@/pages/leak-report/components/LeakDataTable.vue";
 import { createScopedT, useI18n } from "@/i18n";
 import {
   LEAK_STATUS,
@@ -373,6 +422,7 @@ import {
   isAlgorithmSkipped,
   normalizeLeakStatusCode,
 } from "@/pages/leak-report/constants/status";
+import type { ColumnDef } from "@/pages/leak-report/constants/columnTypes";
 
 const t = createScopedT("leakReport");
 const { locale } = useI18n();
@@ -444,36 +494,97 @@ const tabLabelMap = computed<Record<DataTab, string>>(() => ({
 }));
 
 /**
- * 表格列宽动态配置（3 套，按 activeDataTab 切换）
+ * 表格列配置（3 套，按 activeDataTab 切换）
  *
- * 英文表头普遍比中文长（如 "Leak Point Position" 19字符 vs "漏点位置" 4字符），
- * 共用一套列宽会导致英文表头截断。根据 locale 返回不同配置：
- * - zh-CN：以中文表头长度为基准
- * - en-US：以英文表头长度为基准（关键列加宽，确保完整展示）
+ * 列定义驱动渲染：列头、数据行、列宽、导出全部从此配置派生。
+ * 后端加字段时只需在对应 tab 的数组中新增一项，无需改模板代码。
  *
  * 三套表格列定义：
  * - leakage（8 列）：序号/检出时间/渗漏状态/漏点类型/漏点位置/巡检人员/管道材质/描述
  * - deviceUpload（8 列）：序号/上报时间/设备编号/渗漏标志位/特征值/强度/频率/固件版本
  * - algorithm（7 列）：序号/创建时间/设备编号/算法名称/执行状态/输出值/耗时(ms)
  */
+const leakageColumnDefs: ColumnDef[] = [
+  { key: "_index", labelKey: "table.index", renderType: "index", widthZh: "58px", widthEn: "58px", cellClass: "data-cell--index", exportable: false },
+  {
+    key: "detectTime",
+    labelKey: "table.detectTime",
+    renderType: "dateTime",
+    widthZh: "minmax(140px, 1.5fr)",
+    widthEn: "minmax(160px, 1.6fr)",
+    cellClass: "data-cell--time data-cell--sortable",
+    sortable: true,
+  },
+  {
+    key: "leakStatus",
+    labelKey: "table.leakStatus",
+    renderType: "statusTag",
+    statusVariant: "leakage",
+    widthZh: "minmax(86px, 0.85fr)",
+    widthEn: "minmax(100px, 1fr)",
+    cellClass: "data-cell--level data-cell--sortable",
+    sortable: true,
+  },
+  { key: "leakPointType", labelKey: "table.leakPointType", renderType: "text", widthZh: "minmax(96px, 0.95fr)", widthEn: "minmax(120px, 1.1fr)", cellClass: "data-cell--type" },
+  { key: "leakPointPosition", labelKey: "table.leakPointPosition", renderType: "title", widthZh: "minmax(140px, 1.6fr)", widthEn: "minmax(170px, 1.7fr)", cellClass: "data-cell--address" },
+  { key: "inspector", labelKey: "table.inspector", renderType: "text", widthZh: "minmax(86px, 0.85fr)", widthEn: "minmax(105px, 1fr)", cellClass: "data-cell--account" },
+  { key: "tubeMaterial", labelKey: "table.tubeMaterial", renderType: "text", widthZh: "minmax(96px, 0.95fr)", widthEn: "minmax(110px, 1fr)", cellClass: "data-cell--material" },
+  { key: "description", labelKey: "table.description", renderType: "title", widthZh: "minmax(120px, 1fr)", widthEn: "minmax(140px, 1.2fr)", cellClass: "data-cell--remark" },
+];
+
+const deviceUploadColumnDefs: ColumnDef[] = [
+  { key: "_index", labelKey: "table.index", renderType: "index", widthZh: "58px", widthEn: "58px", cellClass: "data-cell--index", exportable: false },
+  { key: "uploadTime", labelKey: "table.uploadTime", renderType: "dateTime", widthZh: "minmax(140px, 1.5fr)", widthEn: "minmax(160px, 1.6fr)", cellClass: "data-cell--time" },
+  { key: "deviceNumber", labelKey: "table.deviceNumber", renderType: "text", widthZh: "minmax(120px, 1fr)", widthEn: "minmax(140px, 1.2fr)", cellClass: "data-cell--device" },
+  {
+    key: "leakStatus",
+    labelKey: "table.leakFlag",
+    renderType: "statusTag",
+    statusVariant: "deviceUpload",
+    widthZh: "minmax(100px, 1fr)",
+    widthEn: "minmax(110px, 1fr)",
+    cellClass: "data-cell--status",
+  },
+  { key: "leakEsa", labelKey: "table.leakEsa", renderType: "text", widthZh: "minmax(86px, 0.85fr)", widthEn: "minmax(110px, 1fr)", cellClass: "data-cell--esa" },
+  { key: "leakIntensity", labelKey: "table.leakIntensity", renderType: "text", widthZh: "minmax(72px, 0.7fr)", widthEn: "minmax(90px, 0.85fr)", cellClass: "data-cell--intensity" },
+  { key: "leakFrequency", labelKey: "table.leakFrequency", renderType: "text", widthZh: "minmax(72px, 0.7fr)", widthEn: "minmax(90px, 0.85fr)", cellClass: "data-cell--frequency" },
+  { key: "firmwareVersion", labelKey: "table.firmwareVersion", renderType: "text", widthZh: "minmax(100px, 1fr)", widthEn: "minmax(130px, 1.1fr)", cellClass: "data-cell--firmware" },
+];
+
+const algorithmColumnDefs: ColumnDef[] = [
+  { key: "_index", labelKey: "table.index", renderType: "index", widthZh: "58px", widthEn: "58px", cellClass: "data-cell--index", exportable: false },
+  { key: "createdAt", labelKey: "table.createdAt", renderType: "dateTime", widthZh: "minmax(140px, 1.5fr)", widthEn: "minmax(160px, 1.6fr)", cellClass: "data-cell--time" },
+  { key: "deviceNumber", labelKey: "table.deviceNumber", renderType: "text", widthZh: "minmax(120px, 1fr)", widthEn: "minmax(140px, 1.2fr)", cellClass: "data-cell--device" },
+  { key: "algorithmName", labelKey: "table.algorithmName", renderType: "algorithmName", widthZh: "minmax(120px, 1.2fr)", widthEn: "minmax(140px, 1.3fr)", cellClass: "data-cell--signal" },
+  {
+    key: "status",
+    labelKey: "table.executeStatus",
+    renderType: "statusTag",
+    statusVariant: "algorithm",
+    widthZh: "minmax(100px, 1fr)",
+    widthEn: "minmax(120px, 1.1fr)",
+    cellClass: "data-cell--status",
+  },
+  { key: "outputValue", labelKey: "table.outputValue", renderType: "title", widthZh: "minmax(100px, 1fr)", widthEn: "minmax(110px, 1fr)", cellClass: "data-cell--signal" },
+  { key: "costMs", labelKey: "table.duration", renderType: "text", widthZh: "minmax(86px, 0.85fr)", widthEn: "minmax(110px, 1fr)", cellClass: "data-cell--esa" },
+];
+
+const columnDefsMap: Record<DataTab, ColumnDef[]> = {
+  leakage: leakageColumnDefs,
+  deviceUpload: deviceUploadColumnDefs,
+  algorithm: algorithmColumnDefs,
+};
+
+const activeColumnDefs = computed<ColumnDef[]>(() => columnDefsMap[activeDataTab.value]);
+
+/**
+ * 表格列宽动态配置
+ *
+ * 从 activeColumnDefs 配置派生，根据当前 locale 返回对应列宽。
+ */
 const tableGridTemplateColumns = computed<string>(() => {
   const isEn = locale.value === "en-US";
-  if (activeDataTab.value === "leakage") {
-    // 8 列
-    return isEn
-      ? "58px minmax(160px, 1.6fr) minmax(100px, 1fr) minmax(120px, 1.1fr) minmax(170px, 1.7fr) minmax(105px, 1fr) minmax(110px, 1fr) minmax(140px, 1.2fr)"
-      : "58px minmax(140px, 1.5fr) minmax(86px, 0.85fr) minmax(96px, 0.95fr) minmax(140px, 1.6fr) minmax(86px, 0.85fr) minmax(96px, 0.95fr) minmax(120px, 1fr)";
-  }
-  if (activeDataTab.value === "deviceUpload") {
-    // 8 列
-    return isEn
-      ? "58px minmax(160px, 1.6fr) minmax(140px, 1.2fr) minmax(110px, 1fr) minmax(110px, 1fr) minmax(90px, 0.85fr) minmax(90px, 0.85fr) minmax(130px, 1.1fr)"
-      : "58px minmax(140px, 1.5fr) minmax(120px, 1fr) minmax(100px, 1fr) minmax(86px, 0.85fr) minmax(72px, 0.7fr) minmax(72px, 0.7fr) minmax(100px, 1fr)";
-  }
-  // algorithm 7 列
-  return isEn
-    ? "58px minmax(160px, 1.6fr) minmax(140px, 1.2fr) minmax(140px, 1.3fr) minmax(120px, 1.1fr) minmax(110px, 1fr) minmax(110px, 1fr)"
-    : "58px minmax(140px, 1.5fr) minmax(120px, 1fr) minmax(120px, 1.2fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(86px, 0.85fr)";
+  return activeColumnDefs.value.map((c) => (isEn ? c.widthEn : c.widthZh)).join(" ");
 });
 
 const tableMinWidth = computed<string>(() => {
@@ -506,8 +617,32 @@ const selectedRecord = ref<HistoryRecord | null>(null);
 const selectedRecordKey = ref("");
 const total = ref(0);
 const loading = ref(false);
+let fetchRequestId = 0;
 const activeDataTab = ref<DataTab>("leakage");
 const exportMenuVisible = ref(false);
+type HistoryDetailTab = "basic" | "detail";
+const activeDetailTab = ref<HistoryDetailTab>("basic");
+const detailTabs = computed<Array<{ label: string; value: HistoryDetailTab }>>(() => [
+  { label: t("historyOverview.detailTabs.basic"), value: "basic" },
+  { label: t("historyOverview.detailTabs.detail"), value: "detail" },
+]);
+
+// 音视频播放弹窗状态
+const videoDialogVisible = ref(false);
+const currentVideoUrl = ref("");
+const videoDuration = ref(0);
+const videoCurrentTime = ref(0);
+const videoLoading = ref(false);
+const videoPlayerRef = ref<HTMLVideoElement | null>(null);
+
+const audioDialogVisible = ref(false);
+const currentAudioUrl = ref("");
+const currentAudioTitle = ref("");
+const audioDuration = ref(0);
+const audioCurrentTime = ref(0);
+const audioPlaying = ref(false);
+const audioLoading = ref(false);
+let audioDialogElement: HTMLAudioElement | null = null;
 
 const currentLeakStatusLabel = computed(() =>
   activeLeakStatusOptions.value.find((o) => o.value === filters.leakStatus)?.label || t("status.statusUnlimited"),
@@ -1522,8 +1657,6 @@ const cardFields = computed<DetailField[]>(() => {
       { label: t("detail.fields.tubeAge"), value: String(getFieldValue(r, "tubeAge") ?? "-") },
       { label: t("detail.fields.deviceNumber"), value: String(getFieldValue(r, "deviceNumber") || "-") },
       { label: t("detail.fields.workOrderId"), value: String(getFieldValue(r, "workOrderId") ?? "-") },
-      { label: t("detail.fields.audioFile"), value: String(getFieldValue(r, "audioFile") || "-") },
-      { label: t("detail.fields.sceneVideo"), value: String(getFieldValue(r, "sceneVideo") || "-") },
       { label: t("detail.fields.noiseSample"), value: String(getFieldValue(r, "noiseSample") || "-") },
       { label: t("detail.fields.description"), value: String(getFieldValue(r, "description") || "-") },
     ];
@@ -1559,6 +1692,17 @@ const cardFields = computed<DetailField[]>(() => {
 onMounted(() => {
   fetchHistoryData();
   nextTick(renderChart);
+  // #ifdef H5
+  document.addEventListener("click", handleDocumentClick);
+  document.addEventListener("touchmove", handleDocumentTouchMove, { passive: false });
+  // #endif
+});
+
+onUnmounted(() => {
+  // #ifdef H5
+  document.removeEventListener("click", handleDocumentClick);
+  document.removeEventListener("touchmove", handleDocumentTouchMove);
+  // #endif
 });
 
 onBeforeUnmount(() => {
@@ -1634,10 +1778,12 @@ function getApiFunction() {
 }
 
 async function fetchHistoryData() {
+  const reqId = ++fetchRequestId;
   loading.value = true;
   try {
     const api = getApiFunction();
     const response = (await api.page(buildQueryParams())) as ApiResponseLike;
+    if (reqId !== fetchRequestId) return; // 竞态保护：丢弃过期请求
     assertSuccessResponse(response);
     const parsed = parsePageResponse(response);
     if (parsed.pageNum && parsed.pageNum !== pagination.pageNum) pagination.pageNum = parsed.pageNum;
@@ -1653,13 +1799,14 @@ async function fetchHistoryData() {
     }
     selectFirstRow();
   } catch (error) {
+    if (reqId !== fetchRequestId) return;
     records.value = [];
     total.value = 0;
     selectedRecord.value = null;
     selectedRecordKey.value = "";
     uni.showToast({ title: (error as { msg?: string })?.msg || t("historyOverview.dataLoadFailed"), icon: "none" });
   } finally {
-    loading.value = false;
+    if (reqId === fetchRequestId) loading.value = false;
   }
 }
 
@@ -1690,65 +1837,23 @@ async function handleExport(scope: "current" | "all") {
   }
   // #ifdef H5
   const tab = activeDataTab.value;
-  let headers: string[] = [];
-  let keys: string[] = [];
-  if (tab === "leakage") {
-    headers = [
-      t("table.index"),
-      t("table.detectTime"),
-      t("table.leakStatus"),
-      t("table.leakPointType"),
-      t("table.leakPointPosition"),
-      t("table.inspector"),
-      t("table.tubeMaterial"),
-      t("table.description"),
-    ];
-    keys = ["detectTime", "leakStatus", "leakPointType", "leakPointPosition", "inspector", "tubeMaterial", "description"];
-  } else if (tab === "deviceUpload") {
-    headers = [
-      t("table.index"),
-      t("table.uploadTime"),
-      t("table.deviceNumber"),
-      t("table.leakFlag"),
-      t("table.leakEsa"),
-      t("table.leakIntensity"),
-      t("table.leakFrequency"),
-    ];
-    keys = ["uploadTime", "deviceNumber", "leakStatus", "leakEsa", "leakIntensity", "leakFrequency"];
-  } else if (tab === "algorithm") {
-    headers = [
-      t("table.index"),
-      t("table.createdAt"),
-      t("table.deviceNumber"),
-      t("table.algorithmName"),
-      t("table.executeStatus"),
-      t("table.outputValue"),
-      t("table.duration"),
-    ];
-    keys = ["createdAt", "deviceNumber", "algorithmName", "status", "outputValue", "costMs"];
-  }
-  const rows = exportRecords.map((r, idx) => {
-    const row = [String(idx + 1)];
-    keys.forEach((k) => {
-      if (k === "leakStatus") {
-        if (tab === "leakage") {
-          row.push(getLeakageStatusDisplay(r));
-        } else {
-          row.push(getLeakStatusLabel(r));
-        }
-      } else if (k === "status") {
-        row.push(getAlgorithmStatusLabel(r));
-      } else if (k === "algorithmName") {
-        row.push(translateAlgorithmName(getFieldValue(r, k)));
-      } else if (k === "audioTime" || k === "detectTime" || k === "uploadTime" || k === "createdAt" || k === "samplingTime") {
-        row.push(formatDateTime(getFieldValue(r, k)));
-      } else {
-        const v = getFieldValue(r, k);
-        row.push(v === undefined || v === null ? "" : String(v).replace(/"/g, '""'));
+  // 导出列从 activeColumnDefs 派生：列头、字段顺序与表格保持一致，新增字段自动纳入导出。
+  const exportColumns = activeColumnDefs.value.filter((c) => c.exportable !== false);
+  const headers = exportColumns.map((c) => t(c.exportLabelKey || c.labelKey));
+  const rows = exportRecords.map((r, idx) =>
+    exportColumns.map((c) => {
+      if (c.renderType === "index") return String(idx + 1);
+      if (c.renderType === "dateTime") return formatDateTime(getFieldValue(r, c.key));
+      if (c.renderType === "statusTag") {
+        if (c.statusVariant === "leakage") return getLeakageStatusDisplay(r);
+        if (c.statusVariant === "deviceUpload") return getLeakStatusLabel(r);
+        if (c.statusVariant === "algorithm") return getAlgorithmStatusLabel(r);
       }
-    });
-    return row;
-  });
+      if (c.renderType === "algorithmName") return translateAlgorithmName(getFieldValue(r, c.key));
+      const v = getFieldValue(r, c.key);
+      return v === undefined || v === null ? "" : String(v).replace(/"/g, '""');
+    })
+  );
   const csv = [headers.join(","), ...rows.map((row) => row.map((c) => `"${c}"`).join(","))].join("\n");
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
@@ -1762,6 +1867,223 @@ async function handleExport(scope: "current" | "all") {
   // #ifndef H5
   uni.showToast({ title: t("historyOverview.exportH5Only"), icon: "none" });
   // #endif
+}
+
+function getBaseUrl(): string {
+  return (import.meta as unknown as { env: { VITE_API_BASE_URL?: string } }).env?.VITE_API_BASE_URL || "";
+}
+
+function getPreviewUrl(filePath: string): string {
+  if (!filePath) return "";
+  if (filePath.startsWith("http://") || filePath.startsWith("https://")) return filePath;
+  if (filePath.startsWith("/")) return `${getBaseUrl()}${filePath}`;
+  return `${getBaseUrl()}/${filePath}`;
+}
+
+function formatMediaTime(seconds: number): string {
+  if (!seconds || !isFinite(seconds)) return "00:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  if (m >= 60) {
+    const h = Math.floor(m / 60);
+    return `${String(h).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+const videoProgress = computed(() => {
+  if (!videoDuration.value) return 0;
+  return Math.min(100, (videoCurrentTime.value / videoDuration.value) * 100);
+});
+
+const audioProgress = computed(() => {
+  if (!audioDuration.value) return 0;
+  return Math.min(100, (audioCurrentTime.value / audioDuration.value) * 100);
+});
+
+// 兼容 uni-app video 组件事件（e.detail = { currentTime, duration }）和原生 video 事件（e.target）
+function readVideoDuration(e: Event): number {
+  const detail = (e as { detail?: { duration?: unknown } }).detail;
+  if (detail && typeof detail.duration === "number" && isFinite(detail.duration) && detail.duration > 0) {
+    return detail.duration;
+  }
+  const v = (e.target as HTMLVideoElement) || videoPlayerRef.value;
+  if (v && isFinite(v.duration) && v.duration > 0) return v.duration;
+  return 0;
+}
+
+function readVideoCurrentTime(e: Event): number {
+  const detail = (e as { detail?: { currentTime?: unknown } }).detail;
+  if (detail && typeof detail.currentTime === "number") return detail.currentTime;
+  const v = (e.target as HTMLVideoElement) || videoPlayerRef.value;
+  return v ? v.currentTime || 0 : 0;
+}
+
+function onVideoLoadedMeta(e: Event) {
+  const d = readVideoDuration(e);
+  if (d > 0) videoDuration.value = d;
+  videoLoading.value = false;
+}
+function onVideoDurationChange(e: Event) {
+  const d = readVideoDuration(e);
+  if (d > 0) videoDuration.value = d;
+}
+function onVideoCanPlay(e: Event) {
+  const d = readVideoDuration(e);
+  if (d > 0) videoDuration.value = d;
+  videoLoading.value = false;
+}
+function onVideoTimeUpdate(e: Event) {
+  videoCurrentTime.value = readVideoCurrentTime(e);
+  if (!videoDuration.value) {
+    const d = readVideoDuration(e);
+    if (d > 0) videoDuration.value = d;
+  }
+}
+function onVideoWaiting() { videoLoading.value = true; }
+function onVideoPlaying() { videoLoading.value = false; }
+
+// ===== 进度条拖动：使用 document 原生事件委托，绕过 uni-app 事件系统 =====
+function doSeekVideo(clientX: number, bar: HTMLElement) {
+  const videoEl = document.querySelector(".video-player") as HTMLVideoElement | null;
+  let duration = 0;
+  if (videoEl && isFinite(videoEl.duration) && videoEl.duration > 0) {
+    duration = videoEl.duration;
+  } else if (isFinite(videoDuration.value) && videoDuration.value > 0) {
+    duration = videoDuration.value;
+  }
+  if (!duration || !isFinite(duration)) return;
+  const rect = bar.getBoundingClientRect();
+  if (!rect.width) return;
+  const x = clientX - rect.left;
+  const percent = Math.max(0, Math.min(100, (x / rect.width) * 100));
+  const time = (percent / 100) * duration;
+  if (!isFinite(time) || time < 0) return;
+  if (videoEl) { try { videoEl.currentTime = time; } catch (_) { /* ignore */ } }
+  videoCurrentTime.value = time;
+  videoDuration.value = duration;
+}
+
+function doSeekAudio(clientX: number, bar: HTMLElement) {
+  if (!audioDialogElement) return;
+  let duration = 0;
+  if (isFinite(audioDialogElement.duration) && audioDialogElement.duration > 0) {
+    duration = audioDialogElement.duration;
+  } else if (isFinite(audioDuration.value) && audioDuration.value > 0) {
+    duration = audioDuration.value;
+  }
+  if (!duration || !isFinite(duration)) return;
+  const rect = bar.getBoundingClientRect();
+  if (!rect.width) return;
+  const x = clientX - rect.left;
+  const percent = Math.max(0, Math.min(100, (x / rect.width) * 100));
+  const time = (percent / 100) * duration;
+  if (!isFinite(time) || time < 0) return;
+  try { audioDialogElement.currentTime = time; } catch (_) { /* ignore */ }
+  audioCurrentTime.value = time;
+  audioDuration.value = duration;
+}
+
+function handleDocumentClick(e: MouseEvent) {
+  const target = e.target as HTMLElement;
+  if (!target) return;
+  const videoBar = target.closest(".video-seek-bar") as HTMLElement | null;
+  if (videoBar) { doSeekVideo(e.clientX, videoBar); return; }
+  const audioBar = target.closest(".audio-seek-bar") as HTMLElement | null;
+  if (audioBar) { doSeekAudio(e.clientX, audioBar); return; }
+}
+
+function handleDocumentTouchMove(e: TouchEvent) {
+  const target = e.target as HTMLElement;
+  if (!target) return;
+  const videoBar = target.closest(".video-seek-bar") as HTMLElement | null;
+  if (videoBar && e.touches.length > 0) {
+    doSeekVideo(e.touches[0].clientX, videoBar);
+    e.preventDefault();
+    return;
+  }
+  const audioBar = target.closest(".audio-seek-bar") as HTMLElement | null;
+  if (audioBar && e.touches.length > 0) {
+    doSeekAudio(e.touches[0].clientX, audioBar);
+    e.preventDefault();
+  }
+}
+
+function openVideoDialog(item: HistoryRecord) {
+  const vid = getFieldValue(item, "sceneVideo");
+  if (!vid) return;
+  videoDuration.value = 0;
+  videoCurrentTime.value = 0;
+  videoLoading.value = true;
+  currentVideoUrl.value = getPreviewUrl(String(vid));
+  videoDialogVisible.value = true;
+}
+function closeVideoDialog() {
+  videoDialogVisible.value = false;
+  currentVideoUrl.value = "";
+  videoDuration.value = 0;
+  videoCurrentTime.value = 0;
+  videoLoading.value = false;
+}
+
+function onAudioLoadedMeta() {
+  if (!audioDialogElement) return;
+  if (isFinite(audioDialogElement.duration) && audioDialogElement.duration > 0) {
+    audioDuration.value = audioDialogElement.duration;
+  }
+  audioLoading.value = false;
+}
+function onAudioTimeUpdate() {
+  if (!audioDialogElement) return;
+  audioCurrentTime.value = audioDialogElement.currentTime || 0;
+  if (isFinite(audioDialogElement.duration) && audioDialogElement.duration > 0 && !audioDuration.value) {
+    audioDuration.value = audioDialogElement.duration;
+  }
+}
+function onAudioEnded() { audioPlaying.value = false; audioCurrentTime.value = 0; }
+function toggleAudioPlayState() {
+  if (!audioDialogElement) return;
+  if (audioDialogElement.paused) audioDialogElement.play();
+  else audioDialogElement.pause();
+}
+function seekAudioByEvent(e: Event) {
+  // 已由 document 事件委托处理，此函数保留为空以兼容模板中可能的引用
+}
+function openAudioDialog(item: HistoryRecord) {
+  if (audioDialogElement) { audioDialogElement.pause(); audioDialogElement = null; }
+  const aid = getFieldValue(item, "audioFile");
+  if (!aid) return;
+  currentAudioUrl.value = getPreviewUrl(String(aid));
+  currentAudioTitle.value = t("historyOverview.audioPlay");
+  audioDuration.value = 0;
+  audioCurrentTime.value = 0;
+  audioPlaying.value = false;
+  audioLoading.value = true;
+  audioDialogVisible.value = true;
+  audioDialogElement = new Audio(currentAudioUrl.value);
+  audioDialogElement.addEventListener("loadedmetadata", onAudioLoadedMeta);
+  audioDialogElement.addEventListener("durationchange", onAudioLoadedMeta);
+  audioDialogElement.addEventListener("timeupdate", onAudioTimeUpdate);
+  audioDialogElement.addEventListener("ended", onAudioEnded);
+  audioDialogElement.addEventListener("waiting", () => { audioLoading.value = true; });
+  audioDialogElement.addEventListener("playing", () => { audioLoading.value = false; audioPlaying.value = true; });
+  audioDialogElement.addEventListener("play", () => { audioPlaying.value = true; });
+  audioDialogElement.addEventListener("pause", () => { audioPlaying.value = false; });
+  audioDialogElement.addEventListener("canplay", () => { audioLoading.value = false; });
+  audioDialogElement.play().catch(() => { audioLoading.value = false; });
+}
+function closeAudioDialog() {
+  if (audioDialogElement) {
+    audioDialogElement.pause();
+    audioDialogElement.src = "";
+    audioDialogElement = null;
+  }
+  audioDialogVisible.value = false;
+  currentAudioUrl.value = "";
+  audioDuration.value = 0;
+  audioCurrentTime.value = 0;
+  audioPlaying.value = false;
+  audioLoading.value = false;
 }
 
 function resetFilters() {
@@ -2542,161 +2864,6 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   text-align: center;
 }
 
-.data-table {
-  display: flex;
-  flex-direction: column;
-  background: #ffffff;
-}
-
-.data-row {
-  display: grid;
-  grid-template-columns: 58px minmax(160px, 3.4fr) minmax(96px, 1.8fr) minmax(160px, 3.6fr) minmax(96px, 3fr) minmax(96px, 2.2fr) minmax(120px, 4.2fr);
-  min-height: 42px;
-  border-bottom: 1px solid #edf1f5;
-  cursor: pointer;
-  transition: background 0.18s ease, box-shadow 0.18s ease;
-}
-.data-row--leakage {
-  grid-template-columns: 58px minmax(160px, 3fr) minmax(96px, 1.6fr) minmax(110px, 2fr) minmax(160px, 3fr) minmax(96px, 2fr) minmax(96px, 1.8fr) minmax(120px, 3fr);
-}
-.data-row--deviceUpload {
-  grid-template-columns: 58px minmax(160px, 2.6fr) minmax(110px, 1.8fr) minmax(96px, 1.2fr) minmax(72px, 0.9fr) minmax(72px, 0.9fr) minmax(72px, 0.9fr) minmax(110px, 1.6fr);
-}
-.data-row--algorithm {
-  grid-template-columns: 58px minmax(160px, 2.6fr) minmax(110px, 1.8fr) minmax(130px, 2fr) minmax(96px, 1.2fr) minmax(150px, 2.4fr) minmax(80px, 1fr);
-}
-.data-row:not(.data-row--header):nth-child(odd) { background: #fff; }
-.data-row:not(.data-row--header):nth-child(even) { background: #fbfdff; }
-.data-row:not(.data-row--header):hover { background: #f1f8ff; box-shadow: inset 0 0 0 1px #d7ebfb; }
-
-.data-row--header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  min-height: 44px;
-  color: #20384f;
-  font-weight: 800;
-  background: #f6f9fc;
-  cursor: default;
-  box-shadow: 0 1px 0 #dbe7f0;
-}
-
-.data-row--active {
-  position: relative;
-  background: #e7f3ff !important;
-  box-shadow: inset 0 0 0 1px #b9dcff;
-}
-
-.data-row--active::before {
-  position: absolute;
-  top: 7px;
-  bottom: 7px;
-  left: 0;
-  width: 3px;
-  content: "";
-  background: #0d82ee;
-  border-radius: 0 999px 999px 0;
-}
-
-.data-cell {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 0;
-  padding: 0 12px;
-  overflow: hidden;
-  color: #24384d;
-  font-size: 13px;
-  line-height: 1.35;
-  text-align: center;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  border-right: 1px solid #edf1f5;
-}
-
-.data-row--header .data-cell {
-  color: #415a73;
-  font-size: 12px;
-  letter-spacing: 0;
-}
-
-.data-cell:last-child { border-right: 0; }
-
-.data-cell--index { justify-content: center; color: #64748b; }
-.data-cell--time { color: #0f4c81; font-family: "DIN Alternate", "Arial", sans-serif; font-weight: 800; }
-.data-cell--address { justify-content: center; text-align: center; }
-.data-cell--remark { justify-content: center; text-align: center; }
-.data-cell--device { color: #0f4c81; font-family: "DIN Alternate", "Arial", sans-serif; font-weight: 800; }
-.data-cell--error { color: #475569; text-align: center; justify-content: center; }
-
-.data-cell--sortable { cursor: pointer; user-select: none; }
-.data-cell--sortable:hover { color: #3b82f6; }
-
-.sort-arrow { flex: none; font-size: 10px; line-height: 1; margin-left: 2px; color: #bcc7d6; transition: color 0.18s ease; &--active { color: #3b82f6; } }
-.data-cell--sortable:hover .sort-arrow:not(.sort-arrow--active) { color: #7f8fa3; }
-
-.status-tag {
-  display: inline-block;
-  padding: 2px 10px;
-  font-size: 12px;
-  font-weight: 700;
-  border-radius: 10px;
-  color: #64748b;
-  background: #f1f5f9;
-}
-
-.status-tag--leak { color: #ef4444; background: #fef2f2; border: 1px solid #fecaca; }
-.status-tag--normal { color: #22c55e; background: #f0fdf4; border: 1px solid #bbf7d0; }
-.status-tag--suspect { color: #f59e0b; background: #fffbeb; border: 1px solid #fde68a; }
-.status-tag--unknown { color: #64748b; background: #f1f5f9; }
-.status-tag--pending { color: #d97706; background: #fffbeb; border: 1px solid #fde68a; }
-.status-tag--success { color: #16a34a; background: #f0fdf4; border: 1px solid #bbf7d0; }
-.status-tag--failed { color: #dc2626; background: #fef2f2; border: 1px solid #fecaca; }
-.status-tag--skipped { color: #6b7280; background: #f9fafb; border: 1px solid #e5e7eb; }
-
-.table-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 48px 32px;
-  color: #a0aec0;
-  font-size: 14px;
-  text-align: center;
-}
-
-.state-spinner {
-  width: 28px;
-  height: 28px;
-  border: 3px solid #e2e8f0;
-  border-top-color: #3b82f6;
-  border-radius: 50%;
-  animation: state-spin 0.7s linear infinite;
-}
-
-@keyframes state-spin {
-  to { transform: rotate(360deg); }
-}
-
-.state-icon-empty {
-  width: 40px;
-  height: 40px;
-  border: 2px dashed #cbd5e1;
-  border-radius: 50%;
-  position: relative;
-}
-
-.state-icon-empty::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 14px;
-  height: 2px;
-  background: #cbd5e1;
-  transform: translate(-50%, -50%);
-}
-
 .detail-panel {
   display: flex;
   flex-direction: column;
@@ -2769,4 +2936,77 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   flex: 1 1 auto;
   min-height: 260px;
 }
+
+/* ========== 详情面板 Tab 切换 ========== */
+.detail-tabs { display: flex; flex: none; border-bottom: 1px solid #edf3f8; }
+.detail-tab { flex: 1; display: flex; align-items: center; justify-content: center; height: 42px; color: #64748b; font-size: 13px; font-weight: 700; cursor: pointer; border-bottom: 2px solid transparent; }
+.detail-tab--active { color: #3b82f6; border-bottom-color: #3b82f6; }
+
+/* ========== 通用按钮 / 图标 ========== */
+.icon-button { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; margin: 0; background: #f6fbff; border: 1px solid #d9e7f3; border-radius: 6px; cursor: pointer; }
+.icon-button--hover { background: #eff6ff; border-color: #3b82f6; }
+.close-icon { position: relative; width: 14px; height: 14px; }
+.close-icon::before, .close-icon::after { position: absolute; top: 6px; left: 0; width: 14px; height: 2px; content: ""; background: #64748b; border-radius: 2px; }
+.close-icon::before { transform: rotate(45deg); }
+.close-icon::after { transform: rotate(-45deg); }
+.play-icon { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.icon-play { width: 0; height: 0; border-style: solid; border-width: 6px 0 6px 10px; border-color: transparent transparent transparent #3b82f6; }
+
+/* ========== 视频弹窗 ========== */
+.video-dialog-mask { position: fixed; inset: 0; z-index: 2200; display: flex; align-items: center; justify-content: center; background: rgba(15, 35, 55, 0.55); }
+.video-dialog { width: min(900px, 92vw); background: #fff; border-radius: 10px; box-shadow: 0 12px 36px rgba(15, 35, 55, 0.25); overflow: hidden; }
+.video-dialog__head { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid #edf1f5; }
+.video-dialog__title { color: #0f172a; font-size: 15px; font-weight: 700; }
+.video-dialog__body { position: relative; padding: 16px; background: #000; }
+.video-player { display: block; width: 100%; max-height: 60vh; background: #000; }
+.video-empty { padding: 40px; color: #94a3b8; font-size: 14px; text-align: center; background: #fff; }
+.video-loading { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); padding: 6px 16px; color: #fff; font-size: 12px; background: rgba(0, 0, 0, 0.6); border-radius: 4px; }
+.video-dialog__info { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 12px 18px; border-top: 1px solid #edf1f5; background: #f8fafc; }
+.video-info-row { display: flex; align-items: center; gap: 6px; }
+.video-info-label { color: #64748b; font-size: 12px; font-weight: 700; }
+.video-info-value { color: #0f172a; font-size: 13px; font-weight: 700; font-family: monospace; }
+.video-seek-bar { position: relative; flex: 1; min-width: 120px; height: 6px; background: #e2e8f0; border-radius: 3px; cursor: pointer; }
+.video-seek-filled { position: absolute; top: 0; left: 0; height: 100%; background: linear-gradient(90deg, #3b82f6, #2563eb); border-radius: 3px; }
+.video-seek-thumb { position: absolute; top: 50%; width: 12px; height: 12px; background: #fff; border: 2px solid #3b82f6; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+
+/* ========== 音频弹窗 ========== */
+.audio-dialog-mask { position: fixed; inset: 0; z-index: 2200; display: flex; align-items: center; justify-content: center; background: rgba(15, 35, 55, 0.55); }
+.audio-dialog { width: min(520px, 92vw); background: #fff; border-radius: 10px; box-shadow: 0 12px 36px rgba(15, 35, 55, 0.25); overflow: hidden; }
+.audio-dialog__head { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid #edf1f5; }
+.audio-dialog__title { color: #0f172a; font-size: 15px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 400px; }
+.audio-dialog__body { padding: 24px; background: linear-gradient(135deg, #f0f7ff 0%, #faf5ff 100%); }
+.audio-empty { padding: 40px; color: #94a3b8; font-size: 14px; text-align: center; }
+.audio-player { display: flex; align-items: center; gap: 20px; }
+.audio-player__icon { flex-shrink: 0; }
+.audio-cover { position: relative; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; }
+.audio-cover__ring { position: absolute; inset: 0; border: 3px solid #bfdbfe; border-top-color: #3b82f6; border-radius: 50%; animation: history-audio-spin 2s linear infinite; }
+.audio-cover__dot { width: 12px; height: 12px; background: #3b82f6; border-radius: 50%; box-shadow: 0 0 12px rgba(59, 130, 246, 0.4); }
+.audio-player__info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.audio-player__title { color: #0f172a; font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.audio-player__loading { color: #f59e0b; font-size: 12px; font-weight: 600; }
+.audio-player__progress { display: flex; align-items: center; gap: 8px; }
+.audio-time { color: #64748b; font-size: 12px; font-weight: 700; font-family: monospace; min-width: 40px; text-align: center; flex-shrink: 0; }
+.audio-seek-bar { position: relative; flex: 1; height: 6px; background: #e2e8f0; border-radius: 3px; cursor: pointer; }
+.audio-seek-filled { position: absolute; top: 0; left: 0; height: 100%; background: linear-gradient(90deg, #3b82f6, #2563eb); border-radius: 3px; }
+.audio-seek-thumb { position: absolute; top: 50%; width: 12px; height: 12px; background: #fff; border: 2px solid #3b82f6; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+.audio-play-btn { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; margin: 0; background: #3b82f6; border: 0; border-radius: 50%; cursor: pointer; flex-shrink: 0; }
+.audio-play-btn--hover { background: #2563eb; }
+.play-icon-large { display: inline-flex; align-items: center; justify-content: center; }
+.icon-play-large { width: 0; height: 0; border-style: solid; border-width: 8px 0 8px 14px; border-color: transparent transparent transparent #fff; margin-left: 3px; }
+.icon-pause-large { width: 14px; height: 16px; position: relative; }
+.icon-pause-large::before, .icon-pause-large::after { content: ""; position: absolute; top: 0; width: 4px; height: 100%; background: #fff; border-radius: 1px; }
+.icon-pause-large::before { left: 0; }
+.icon-pause-large::after { right: 0; }
+@keyframes history-audio-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* ========== 附件播放区 ========== */
+.time-section--attach { margin-top: 10px; }
+.detail-section-title--video { margin-top: 16px; }
+.attach-media { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
+.attach-media__item { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 12px; background: #f8fafc; border: 1px solid #dfebf5; border-radius: 6px; }
+.attach-media__player { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.attach-media__hint { color: #64748b; font-size: 12px; }
+.attach-media__empty { color: #94a3b8; font-size: 13px; text-align: center; padding: 8px 0; }
+.attach-play-btn { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; margin: 0; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 50%; cursor: pointer; }
+.attach-play-btn--hover { background: #dbeafe; }
 </style>

@@ -59,39 +59,26 @@
       @jump-page="jumpToPage"
       @page-size-change="handlePageSizeChange"
     >
-      <view class="data-table" :style="{ minWidth: tableMinWidth }">
-        <!-- 算法分析列头 -->
-        <view class="data-row data-row--header data-row--algorithm" :style="{ gridTemplateColumns: tableGridTemplateColumns, minWidth: tableMinWidth }">
-          <text class="data-cell data-cell--index">{{ t('table.index') }}</text>
-          <text class="data-cell data-cell--device">{{ t('table.deviceNumber') }}</text>
-          <text class="data-cell data-cell--time">{{ t('table.audioTime') }}</text>
-          <text class="data-cell data-cell--audio-id">{{ t('table.audioFileId') }}</text>
-          <text class="data-cell data-cell--process-result">{{ t('table.signalprocessingResult') }}</text>
-          <text class="data-cell data-cell--status">{{ t('table.algorithmStatus') }}</text>
-          <text class="data-cell data-cell--error">{{ t('table.algorithmError') }}</text>
-        </view>
-
-        <view v-if="loading" class="table-state table-state--loading"><view class="state-spinner"></view><text class="state-text">{{ t('common.loading') }}</text></view>
-        <view v-else-if="records.length === 0" class="table-state table-state--empty"><view class="state-icon-empty"></view><text class="state-text">{{ t('leakAnalysis.noAnalysisData') }}</text></view>
-
-        <!-- 算法分析行 -->
-        <view
-          v-for="(item, index) in records"
-          v-else
-          :key="getRowKey(item, index)"
-          :class="['data-row', 'data-row--algorithm', { 'data-row--active': selectedRecordKey === getRowKey(item, index) }]"
-          :style="{ gridTemplateColumns: tableGridTemplateColumns, minWidth: tableMinWidth }"
-          @click="selectRecord(item, index)"
-        >
-          <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
-          <text class="data-cell data-cell--device">{{ getFieldValue(item, "deviceNumber") || "-" }}</text>
-          <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "audioTime")) }}</text>
-          <text class="data-cell data-cell--audio-id">{{ getFieldValue(item, "audioFileId") || "-" }}</text>
-          <text class="data-cell data-cell--process-result" :title="getFieldValue(item, 'signalprocessingResult')">{{ getFieldValue(item, "signalprocessingResult") || "-" }}</text>
-          <text class="data-cell data-cell--status"><text v-if="getFieldValue(item, 'algorithmStatus')" class="status-tag" :class="getAlgorithmStatusTagClass(item)">{{ getAlgorithmStatusLabel(item) }}</text><text v-else>-</text></text>
-          <text class="data-cell data-cell--error" :title="getFieldValue(item, 'algorithmError')">{{ getFieldValue(item, "algorithmError") || "-" }}</text>
-        </view>
-      </view>
+      <LeakDataTable
+        :columns="columnDefs"
+        :data="records"
+        :loading="loading"
+        :grid-template-columns="tableGridTemplateColumns"
+        :min-width="tableMinWidth"
+        :selected-key="selectedRecordKey"
+        :empty-text="t('leakAnalysis.noAnalysisData')"
+        :loading-text="t('common.loading')"
+        :page-num="pagination.pageNum"
+        :page-size="pagination.pageSize"
+        :get-row-key="getRowKey"
+        :get-field-value="getFieldValue"
+        :format-date-time="formatDateTime"
+        :label-fn="t"
+        header-row-class="data-row--algorithm"
+        body-row-class="data-row--algorithm"
+        @row-click="selectRecord"
+      >
+      </LeakDataTable>
 
       <!-- 右侧详情 -->
       <template #detail>
@@ -150,6 +137,15 @@
                     <button class="audio-play-btn" hover-class="audio-play-btn--hover" @click="toggleAudioPlay(audio, ai)">{{ playingAudioIndex === ai ? t('table.audioPause') : t('table.audioPlay') }}</button>
                     <a :href="getAudioWavUrl(audio, true)" class="audio-download-link">{{ t('table.audioDownload') }}</a>
                   </view>
+                  <!-- 当前选中音频（播放或暂停）时显示可拖动进度条 -->
+                  <view v-if="activeAudioIndex === ai" class="audio-item__progress">
+                    <text class="audio-item__time-text">{{ formatAudioTime(audioCurrentTime) }}</text>
+                    <view class="audio-item__seek-bar">
+                      <view class="audio-item__seek-filled" :style="{ width: audioProgress + '%' }"></view>
+                      <view class="audio-item__seek-thumb" :style="{ left: audioProgress + '%' }"></view>
+                    </view>
+                    <text class="audio-item__time-text">{{ formatAudioTime(audioDuration) }}</text>
+                  </view>
                 </view>
                 <view v-if="audioList.length > AUDIO_COLLAPSED_LIMIT" class="audio-toggle" @click="audioListExpanded = !audioListExpanded">
                   <text class="audio-toggle__text">{{ audioListExpanded ? t('leakAnalysis.collapse') : t('leakAnalysis.expandAll', { count: audioList.length }) }}</text>
@@ -172,7 +168,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, onMounted } from "vue";
+import { computed, reactive, ref, onMounted, onUnmounted } from "vue";
 import {
   getAlgorithmAnalysisPage,
   getAlgorithmAnalysisDetail,
@@ -180,27 +176,97 @@ import {
 import { getAudioDataPage } from "@/services/data-analysis/audio";
 import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
 import LeakTableView from "@/pages/leak-report/components/LeakTableView.vue";
+import LeakDataTable from "@/pages/leak-report/components/LeakDataTable.vue";
 import { createScopedT, useI18n } from "@/i18n";
 import { ALGORITHM_STATUS } from "@/pages/leak-report/constants/status";
+import type { ColumnDef } from "@/pages/leak-report/constants/columnTypes";
 
 const t = createScopedT("leakReport");
 const { locale } = useI18n();
 
 /**
+ * 表格列配置
+ *
+ * 列定义驱动渲染：列头、数据行、列宽、导出全部从此配置派生。
+ * 后端加字段时只需在此数组新增一项，无需改模板代码。
+ */
+const columnDefs = computed<ColumnDef[]>(() => [
+  {
+    key: "_index",
+    labelKey: "table.index",
+    renderType: "index",
+    widthZh: "58px",
+    widthEn: "58px",
+    cellClass: "data-cell--index",
+  },
+  {
+    key: "deviceNumber",
+    labelKey: "table.deviceNumber",
+    renderType: "text",
+    widthZh: "minmax(110px, 2.2fr)",
+    widthEn: "minmax(110px, 2.0fr)",
+    cellClass: "data-cell--device",
+  },
+  {
+    key: "audioTime",
+    labelKey: "table.audioTime",
+    renderType: "dateTime",
+    widthZh: "minmax(160px, 3fr)",
+    widthEn: "minmax(170px, 3.0fr)",
+    cellClass: "data-cell--time",
+  },
+  {
+    key: "audioFileId",
+    labelKey: "table.audioFileId",
+    renderType: "text",
+    widthZh: "minmax(100px, 1.8fr)",
+    widthEn: "minmax(115px, 1.8fr)",
+    cellClass: "data-cell--audio-id",
+  },
+  {
+    key: "signalprocessingResult",
+    labelKey: "table.signalprocessingResult",
+    renderType: "title",
+    widthZh: "minmax(140px, 2.4fr)",
+    widthEn: "minmax(200px, 3.0fr)",
+    cellClass: "data-cell--process-result",
+  },
+  {
+    key: "algorithmStatus",
+    labelKey: "table.algorithmStatus",
+    renderType: "statusTag",
+    statusVariant: "algorithm",
+    widthZh: "minmax(96px, 1.6fr)",
+    widthEn: "minmax(130px, 1.6fr)",
+    cellClass: "data-cell--status",
+    // 改进 A：使用 options 声明式映射，无需手写 #cell-statusTag slot
+    options: [
+      { value: ALGORITHM_STATUS.PENDING, labelKey: "status.pending", tagClass: "status-tag--pending" },
+      { value: ALGORITHM_STATUS.SUCCESS, labelKey: "status.success", tagClass: "status-tag--success" },
+      { value: ALGORITHM_STATUS.FAILED, labelKey: "status.failed", tagClass: "status-tag--failed" },
+      { value: ALGORITHM_STATUS.SKIPPED, labelKey: "status.skipped", tagClass: "status-tag--skipped" },
+      { value: ALGORITHM_STATUS.TIMEOUT, labelKey: "status.timeout", tagClass: "status-tag--failed" },
+    ],
+  },
+  {
+    key: "algorithmError",
+    labelKey: "table.algorithmError",
+    renderType: "title",
+    widthZh: "minmax(140px, 2.4fr)",
+    widthEn: "minmax(120px, 2.2fr)",
+    cellClass: "data-cell--error",
+  },
+]);
+
+/**
  * 表格列宽动态配置
  *
- * 英文文本普遍比中文长（如 "Algorithm Processing Result" 27字符 vs "算法处理结果" 6字符），
- * 若共用一套列宽会导致英文表头被截断。因此根据当前 locale 返回不同配置：
- * - zh-CN：以中文表头长度为基准，min-width 820px
- * - en-US：以英文表头长度为基准，min-width 903px（关键列加宽）
- *
- * 每列 minmax 的最小值基于英文表头字符数 × 6.5px + 24px padding 计算，确保完整展示。
+ * 英文文本普遍比中文长，若共用一套列宽会导致英文表头被截断。
+ * 从 columnDefs 配置派生，根据当前 locale 返回对应列宽。
  */
 const tableGridTemplateColumns = computed<string>(() => {
-  if (locale.value === "en-US") {
-    return "58px minmax(110px, 2.0fr) minmax(170px, 3.0fr) minmax(115px, 1.8fr) minmax(200px, 3.0fr) minmax(130px, 1.6fr) minmax(120px, 2.2fr)";
-  }
-  return "58px minmax(110px, 2.2fr) minmax(160px, 3fr) minmax(100px, 1.8fr) minmax(140px, 2.4fr) minmax(96px, 1.6fr) minmax(140px, 2.4fr)";
+  const isEn = locale.value === "en-US";
+  return columnDefs.value.map((c) => (isEn ? c.widthEn : c.widthZh)).join(" ");
 });
 
 const tableMinWidth = computed<string>(() => (locale.value === "en-US" ? "903px" : "820px"));
@@ -253,12 +319,21 @@ const selectedRecord = ref<AnalysisRecord | null>(null);
 const selectedRecordKey = ref("");
 const total = ref(0);
 const loading = ref(false);
+let fetchRequestId = 0;
 const activeDetailTab = ref<DetailTab>("base");
 const exportMenuVisible = ref(false);
 const audioList = ref<Record<string, unknown>[]>([]);
 const audioLoading = ref(false);
 const playingAudioIndex = ref(-1);
+const activeAudioIndex = ref(-1);
 let audioPlayerInstance: HTMLAudioElement | null = null;
+const audioDuration = ref(0);
+const audioCurrentTime = ref(0);
+
+const audioProgress = computed(() => {
+  if (!audioDuration.value) return 0;
+  return Math.min(100, (audioCurrentTime.value / audioDuration.value) * 100);
+});
 
 const AUDIO_COLLAPSED_LIMIT = 3;
 const audioListExpanded = ref(false);
@@ -301,6 +376,17 @@ const locationDetailFields = computed<Array<{ label: string; value: string }>>((
 
 onMounted(() => {
   fetchAnalysisData();
+  // #ifdef H5
+  document.addEventListener("click", handleDocumentClick);
+  document.addEventListener("touchmove", handleDocumentTouchMove, { passive: false });
+  // #endif
+});
+
+onUnmounted(() => {
+  // #ifdef H5
+  document.removeEventListener("click", handleDocumentClick);
+  document.removeEventListener("touchmove", handleDocumentTouchMove);
+  // #endif
 });
 
 function handleAlgorithmStatusChange(event: { detail: { value: number } }) {
@@ -340,9 +426,11 @@ function buildQueryParams() {
 }
 
 async function fetchAnalysisData() {
+  const reqId = ++fetchRequestId;
   loading.value = true;
   try {
     const response = (await getAlgorithmAnalysisPage(buildQueryParams())) as ApiResponseLike;
+    if (reqId !== fetchRequestId) return; // 竞态保护：丢弃过期请求
     assertSuccessResponse(response);
     const parsed = parsePageResponse(response);
     if (parsed.pageNum && parsed.pageNum !== pagination.pageNum) pagination.pageNum = parsed.pageNum;
@@ -351,13 +439,14 @@ async function fetchAnalysisData() {
     total.value = parsed.total;
     selectFirstRow();
   } catch (error) {
+    if (reqId !== fetchRequestId) return;
     records.value = [];
     total.value = 0;
     selectedRecord.value = null;
     selectedRecordKey.value = "";
     uni.showToast({ title: (error as { msg?: string })?.msg || t("leakAnalysis.loadFailed", "分析数据加载失败"), icon: "none" });
   } finally {
-    loading.value = false;
+    if (reqId === fetchRequestId) loading.value = false;
   }
 }
 
@@ -386,23 +475,17 @@ async function handleExport(scope: "current" | "all") {
     return;
   }
   // #ifdef H5
-  const headers = [
-    t("table.index"),
-    t("table.deviceNumber"),
-    t("table.audioTime"),
-    t("table.audioFileId"),
-    t("table.signalprocessingResult"),
-    t("table.algorithmStatus"),
-    t("table.algorithmError"),
-  ];
-  const rows = exportRecords.map((r, idx) => {
-    const keys = ["deviceNumber", "audioTime", "audioFileId", "signalprocessingResult", "algorithmStatus", "algorithmError"];
-    return [String(idx + 1), ...keys.map((k) => {
-      if (k === "audioTime") return formatDateTime(getFieldValue(r, k));
-      const v = getFieldValue(r, k);
+  // 导出列从 columnDefs 派生：列头、字段顺序与表格保持一致，新增字段自动纳入导出。
+  const exportColumns = columnDefs.value.filter((c) => c.exportable !== false);
+  const headers = exportColumns.map((c) => t(c.labelKey));
+  const rows = exportRecords.map((r, idx) =>
+    exportColumns.map((c) => {
+      if (c.renderType === "index") return String(idx + 1);
+      if (c.renderType === "dateTime") return formatDateTime(getFieldValue(r, c.key));
+      const v = getFieldValue(r, c.key);
       return v === undefined || v === null ? "" : String(v).replace(/"/g, '""');
-    })];
-  });
+    })
+  );
   const csv = [headers.join(","), ...rows.map((row) => row.map((c) => `"${c}"`).join(","))].join("\n");
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
@@ -502,20 +585,107 @@ async function loadAudioList() {
 
 function toggleAudioPlay(audio: Record<string, unknown>, index: number) {
   // #ifdef H5
-  if (playingAudioIndex.value === index) {
-    audioPlayerInstance?.pause();
-    playingAudioIndex.value = -1;
+  // 同一个音频：切换播放/暂停（暂停时进度条保持显示）
+  if (activeAudioIndex.value === index) {
+    if (playingAudioIndex.value === index) {
+      audioPlayerInstance?.pause();
+      playingAudioIndex.value = -1;
+    } else {
+      audioPlayerInstance?.play();
+      playingAudioIndex.value = index;
+    }
     return;
   }
+  // 切换到新音频
   audioPlayerInstance?.pause();
   audioPlayerInstance = new Audio(getAudioWavUrl(audio));
-  audioPlayerInstance.onended = () => { playingAudioIndex.value = -1; };
+  audioDuration.value = 0;
+  audioCurrentTime.value = 0;
+  audioPlayerInstance.addEventListener("loadedmetadata", () => {
+    if (isFinite(audioPlayerInstance!.duration) && audioPlayerInstance!.duration > 0) {
+      audioDuration.value = audioPlayerInstance!.duration;
+    }
+  });
+  audioPlayerInstance.addEventListener("durationchange", () => {
+    if (isFinite(audioPlayerInstance!.duration) && audioPlayerInstance!.duration > 0) {
+      audioDuration.value = audioPlayerInstance!.duration;
+    }
+  });
+  audioPlayerInstance.addEventListener("timeupdate", () => {
+    if (!audioPlayerInstance) return;
+    if (isSeeking) {
+      isSeeking = false;
+      return;
+    }
+    audioCurrentTime.value = audioPlayerInstance.currentTime || 0;
+    if (!audioDuration.value && isFinite(audioPlayerInstance.duration) && audioPlayerInstance.duration > 0) {
+      audioDuration.value = audioPlayerInstance.duration;
+    }
+  });
+  audioPlayerInstance.onended = () => {
+    playingAudioIndex.value = -1;
+    audioCurrentTime.value = 0;
+  };
   audioPlayerInstance.play();
+  activeAudioIndex.value = index;
   playingAudioIndex.value = index;
   // #endif
   // #ifndef H5
   uni.showToast({ title: t("leakAnalysis.audioH5Only"), icon: "none" });
   // #endif
+}
+
+// ===== 进度条拖动：使用 document 原生事件委托，绕过 uni-app 事件系统 =====
+let isSeeking = false;
+
+function doSeekAudio(clientX: number, bar: HTMLElement) {
+  if (!audioPlayerInstance) return;
+  // 优先用实例的 duration（更准确），兜底 audioDuration.value
+  let duration = 0;
+  if (isFinite(audioPlayerInstance.duration) && audioPlayerInstance.duration > 0) {
+    duration = audioPlayerInstance.duration;
+  } else if (isFinite(audioDuration.value) && audioDuration.value > 0) {
+    duration = audioDuration.value;
+  }
+  if (!duration || !isFinite(duration)) return;
+  const rect = bar.getBoundingClientRect();
+  if (!rect.width) return;
+  const x = clientX - rect.left;
+  const percent = Math.max(0, Math.min(100, (x / rect.width) * 100));
+  const time = (percent / 100) * duration;
+  if (!isFinite(time) || time < 0) return;
+  isSeeking = true;
+  try { audioPlayerInstance.currentTime = time; } catch (_) { /* ignore */ }
+  audioCurrentTime.value = time;
+  audioDuration.value = duration;
+}
+
+function handleDocumentClick(e: MouseEvent) {
+  const target = e.target as HTMLElement;
+  if (!target) return;
+  const seekBar = target.closest(".audio-item__seek-bar") as HTMLElement | null;
+  if (seekBar) doSeekAudio(e.clientX, seekBar);
+}
+
+function handleDocumentTouchMove(e: TouchEvent) {
+  const target = e.target as HTMLElement;
+  if (!target) return;
+  const seekBar = target.closest(".audio-item__seek-bar") as HTMLElement | null;
+  if (seekBar && e.touches.length > 0) {
+    doSeekAudio(e.touches[0].clientX, seekBar);
+    e.preventDefault();
+  }
+}
+
+function formatAudioTime(seconds: number): string {
+  if (!seconds || !isFinite(seconds)) return "00:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  if (m >= 60) {
+    const h = Math.floor(m / 60);
+    return `${String(h).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
 // --- helpers ---
@@ -979,240 +1149,6 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   background: linear-gradient(90deg, #7f9ab4, #4d6f91);
 }
 
-.data-table {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  min-width: 820px;
-  background: #ffffff;
-}
-
-.data-row {
-  display: grid;
-  grid-template-columns: 58px minmax(110px, 2.2fr) minmax(160px, 3fr) minmax(100px, 1.8fr) minmax(140px, 2.4fr) minmax(96px, 1.6fr) minmax(140px, 2.4fr);
-  min-height: 42px;
-  width: 100%;
-  min-width: 820px;
-  border-bottom: 1px solid #edf1f5;
-  cursor: pointer;
-  transition: background 0.18s ease, box-shadow 0.18s ease;
-}
-
-.data-row--algorithm {
-  grid-template-columns: 58px minmax(110px, 2.2fr) minmax(160px, 3fr) minmax(100px, 1.8fr) minmax(140px, 2.4fr) minmax(96px, 1.6fr) minmax(140px, 2.4fr);
-}
-
-
-.data-row--header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  min-height: 44px;
-  color: #20384f;
-  font-weight: 800;
-  background: #f6f9fc;
-  cursor: default;
-  box-shadow: 0 1px 0 #dbe7f0;
-}
-
-.data-row:not(.data-row--header):nth-child(odd) {
-  background: #ffffff;
-}
-
-.data-row:not(.data-row--header):nth-child(even) {
-  background: #fbfdff;
-}
-
-.data-row:not(.data-row--header):hover {
-  background: #f1f8ff;
-  box-shadow: inset 0 0 0 1px #d7ebfb;
-}
-
-.data-row--active {
-  position: relative;
-  background: #e7f3ff !important;
-  box-shadow: inset 0 0 0 1px #b9dcff;
-}
-
-.data-row--active::before {
-  position: absolute;
-  top: 7px;
-  bottom: 7px;
-  left: 0;
-  width: 3px;
-  content: "";
-  background: #0d82ee;
-  border-radius: 0 999px 999px 0;
-}
-
-.data-cell {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 0;
-  padding: 0 12px;
-  overflow: hidden;
-  color: #24384d;
-  font-size: 13px;
-  line-height: 1.35;
-  text-align: center;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  border-right: 1px solid #edf1f5;
-}
-
-.data-row--header .data-cell {
-  color: #415a73;
-  font-size: 12px;
-  letter-spacing: 0;
-}
-
-.data-cell:last-child { border-right: 0; }
-
-.data-cell--index { justify-content: center; color: #64748b; }
-.data-cell--device { color: #0f4c81; }
-.data-cell--time { color: #0f4c81; }
-.data-cell--address { justify-content: center; text-align: center; }
-
-.data-cell--sortable { cursor: pointer; user-select: none; }
-.data-cell--sortable:hover { color: #3b82f6; }
-
-.sort-arrow { flex: none; font-size: 10px; line-height: 1; margin-left: 2px; color: #bcc7d6; transition: color 0.18s ease; &--active { color: #3b82f6; } }
-.data-cell--sortable:hover .sort-arrow:not(.sort-arrow--active) { color: #7f8fa3; }
-
-.level-pill {
-  display: inline-block;
-  padding: 2px 10px;
-  font-size: 12px;
-  font-weight: 700;
-  border-radius: 10px;
-}
-
-.level-pill--light {
-  color: #22c55e;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-}
-
-.level-pill--medium {
-  color: #f59e0b;
-  background: #fffbeb;
-  border: 1px solid #fde68a;
-}
-
-.level-pill--heavy {
-  color: #ef4444;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-}
-
-.level-pill--suspect {
-  color: #8c8c8c;
-  background: #fafafa;
-  border: 1px solid #d9d9d9;
-}
-
-.status-tag {
-  display: inline-block;
-  padding: 2px 10px;
-  font-size: 12px;
-  font-weight: 700;
-  border-radius: 10px;
-  color: #64748b;
-  background: #f1f5f9;
-}
-
-.status-tag--leak {
-  color: #ef4444;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-}
-
-.status-tag--normal {
-  color: #22c55e;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-}
-
-.status-tag--unknown {
-  color: #f59e0b;
-  background: #fffbeb;
-  border: 1px solid #fde68a;
-}
-
-.status-tag--pending {
-  color: #d97706;
-  background: #fffbeb;
-  border: 1px solid #fde68a;
-}
-
-.status-tag--success {
-  color: #16a34a;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-}
-
-.status-tag--failed {
-  color: #dc2626;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-}
-
-.status-tag--skipped {
-  color: #6b7280;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-}
-
-.data-cell--error {
-  color: #475569;
-  text-align: center;
-  justify-content: center;
-}
-
-.table-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 48px 32px;
-  color: #a0aec0;
-  font-size: 14px;
-  text-align: center;
-}
-
-.state-spinner {
-  width: 28px;
-  height: 28px;
-  border: 3px solid #e2e8f0;
-  border-top-color: #3b82f6;
-  border-radius: 50%;
-  animation: state-spin 0.7s linear infinite;
-}
-
-@keyframes state-spin {
-  to { transform: rotate(360deg); }
-}
-
-.state-icon-empty {
-  width: 40px;
-  height: 40px;
-  border: 2px dashed #cbd5e1;
-  border-radius: 50%;
-  position: relative;
-}
-
-.state-icon-empty::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 14px;
-  height: 2px;
-  background: #cbd5e1;
-  transform: translate(-50%, -50%);
-}
-
 .pagination-bar {
   flex: none;
   display: flex;
@@ -1343,6 +1279,11 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 .audio-item__actions { display: flex; align-items: center; gap: 8px; }
 .audio-play-btn { min-width: 48px; height: 28px; padding: 0 10px; font-size: 12px; color: #3b82f6; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px; } .audio-play-btn--hover { background: #dbeafe; }
 .audio-download-link { font-size: 12px; color: #3b82f6; text-decoration: underline; }
+.audio-item__progress { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #edf1f5; }
+.audio-item__time-text { color: #64748b; font-size: 11px; font-weight: 700; font-family: monospace; min-width: 38px; text-align: center; flex-shrink: 0; }
+.audio-item__seek-bar { position: relative; flex: 1; height: 6px; background: #e2e8f0; border-radius: 3px; cursor: pointer; }
+.audio-item__seek-filled { position: absolute; top: 0; left: 0; height: 100%; background: linear-gradient(90deg, #3b82f6, #2563eb); border-radius: 3px; }
+.audio-item__seek-thumb { position: absolute; top: 50%; width: 12px; height: 12px; background: #fff; border: 2px solid #3b82f6; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
 .audio-toggle { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 6px; padding: 6px 10px; cursor: pointer; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 4px; transition: background 0.16s ease, border-color 0.16s ease; }
 .audio-toggle:hover { background: #eff6ff; border-color: #93c5fd; }
 .audio-toggle__text { font-size: 12px; font-weight: 700; color: #3b82f6; }
