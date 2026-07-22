@@ -25,9 +25,9 @@
 				  <button class="secondary-button" aria-label="刷新" @click="deptRefresh">
 				    <text class="icon-refresh"></text>
 				  </button>
-				  <button class="secondary-button" @click="handleCreateDept"> {{ localeText("新增", "Add") }} </button>
-				  <button class="secondary-button" :disabled="!currentDeptId || currentDeptId === 0" @click="handleEditDept"> {{ localeText("编辑", "Edit") }} </button>
-				  <button class="danger-button" :disabled="!currentDeptId || currentDeptId === 0" @click="handleDeleteDept"> {{ localeText("删除", "Delete") }} </button>
+				  <button class="secondary-button" @click="handleCreateDept"> 新增分区 </button>
+				  <button class="secondary-button" :disabled="!currentDeptId || currentDeptId === 0" @click="handleEditDept"> 编辑分区 </button>
+				  <button class="danger-button" :disabled="!currentDeptId || currentDeptId === 0" @click="handleDeleteDept"> 删除分区 </button>
 			</view>
 		</view>
 		
@@ -59,7 +59,7 @@
 		<view class="dept-layout">
 			<view class="table-head">
 				<text> 分区信息 </text>
-				<text class="table-head__meta">{{ localizedTotal(deptPagination.total) }}</text>
+				<text class="table-head__meta">共 {{ deptPagination.total }} 条</text>
 			</view>
 
 			<scroll-view class="table-scroll" scroll-x scroll-y>
@@ -105,16 +105,16 @@
 			
 			<view class="pagination-bar">
 			  <button class="page-btn" :disabled="deptPagination.current <= 1" @click="handlePageChange(deptPagination, deptPagination.current - 1)">
-				{{ localeText("上一页", "Previous") }}
+				上一页
 			  </button>
-			  <text class="page-info">{{ localizedPageInfo(deptPagination.current, Math.ceil(deptPagination.total / deptPagination.size) || 1) }}</text>
+			  <text class="page-info">第 {{ deptPagination.current }}  /  {{ Math.ceil(deptPagination.total / deptPagination.size) || 1 }} 页</text>
 			  <button class="page-btn" :disabled="deptPagination.current >= Math.ceil(deptPagination.total / deptPagination.size)" @click="handlePageChange(deptPagination, deptPagination.current + 1)">
-				{{ localeText("下一页", "Next") }}
+				下一页
 			  </button>
-			  <text class="page-info">{{ localeText("到第", "Go to") }}</text>
+			  <text class="page-info">到第</text>
 			    <input class="page-input" type="number" v-model.number="jumpDeptPage" @keyup.enter="handlePageChange(deptPagination,jumpDeptPage)" />
-			    <text class="page-info">{{ localeText("页", "page") }}</text>
-			    <button class="page-btn" :disabled="jumpDeptPage === null || jumpDeptPage < 1 || jumpDeptPage > Math.ceil(deptPagination.total / deptPagination.size) " @click="handlePageChange(deptPagination,jumpDeptPage)">{{ localeText("跳转", "Go") }}</button>
+			    <text class="page-info">页</text>
+			    <button class="page-btn" :disabled="jumpDeptPage === null || jumpDeptPage < 1 || jumpDeptPage > Math.ceil(deptPagination.total / deptPagination.size) " @click="handlePageChange(deptPagination,jumpDeptPage)">跳转</button>
 			</view>
 		</view> 
 		
@@ -122,7 +122,7 @@
 		<view class="device-layout">
 			<view class="table-head">
 				<text> 设备列表 </text>
-				<text class="table-head__meta">{{ localizedTotal(deptDevicePagination.total) }}</text>
+				<text class="table-head__meta">共 {{ deptDevicePagination.total }} 条</text>
 			</view>
 
 			<scroll-view class="table-scroll" scroll-x scroll-y>
@@ -159,7 +159,7 @@
 						</text> 
 					  </view>
 					  <view class="table-cell col-action ">
-						  <button class="table-action-btn"  @click.stop="handleCheckDevice(item)" > {{ localeText("查看详情", "View") }} </button>
+						  <button class="table-action-btn"  @click.stop="handleCheckDevice(item)" > 查看详情 </button>
 					  </view>		  
 					</view>
 					
@@ -169,16 +169,16 @@
 		
 			<view class="pagination-bar">
 			  <button class="page-btn" :disabled="deptDevicePagination.current <= 1" @click="handlePageChange(deptDevicePagination,deptDevicePagination.current - 1)">
-				{{ localeText("上一页", "Previous") }}
+				上一页
 			  </button>
-			  <text class="page-info">{{ localizedPageInfo(deptDevicePagination.current, Math.ceil(deptDevicePagination.total / deptDevicePagination.size) || 1) }}</text>
+			  <text class="page-info">第 {{ deptDevicePagination.current }}  /  {{ Math.ceil(deptDevicePagination.total / deptDevicePagination.size) || 1 }} 页</text>
 			  <button class="page-btn" :disabled="deptDevicePagination.current >= Math.ceil(deptDevicePagination.total / deptDevicePagination.size)" @click="handlePageChange(deptDevicePagination, deptDevicePagination.current + 1)">
-				{{ localeText("下一页", "Next") }}
+				下一页
 			  </button>
-			  <text class="page-info">{{ localeText("到第", "Go to") }}</text>
+			  <text class="page-info">到第</text>
 			  <input class="page-input" type="number" v-model.number="jumpDevicePage" @keyup.enter="handlePageChange(deptDevicePagination,jumpDevicePage)" />
-			  <text class="page-info">{{ localeText("页", "page") }}</text>
-			  <button class="page-btn" :disabled="jumpDevicePage === null || jumpDevicePage < 1 || jumpDevicePage > Math.ceil(deptDevicePagination.total / deptDevicePagination.size) " @click="handlePageChange(deptDevicePagination,jumpDevicePage)">{{ localeText("跳转", "Go") }}</button>
+			  <text class="page-info">页</text>
+			  <button class="page-btn" :disabled="jumpDevicePage === null || jumpDevicePage < 1 || jumpDevicePage > Math.ceil(deptDevicePagination.total / deptDevicePagination.size) " @click="handlePageChange(deptDevicePagination,jumpDevicePage)">跳转</button>
 			</view>
 		</view>
 		
@@ -724,7 +724,6 @@
 import { ref, computed, nextTick, onMounted, onBeforeUnmount, reactive } from "vue";
 import LocaleCoordinateMap from "@/components/map/LocaleCoordinateMap.vue";
 import { useI18n } from "@/i18n";
-import { useLocaleText, useLocalizedPageInfo, useLocalizedTotal } from "@/i18n/localeText";
 import { getMapProvider, MAP_CONFIG } from "@/services/map/map";
 import { loadGoogleMaps } from "@/utils/googleMapsLoader";
 import { 
@@ -742,10 +741,6 @@ import {
 import { uploadFile } from "@/services/leak-report/file-upload";
 import { getFileDetail } from "@/services/device/sysFile";
 import { normalizeUrl } from "@/utils/request";
-
-const localeText = useLocaleText();
-const localizedPageInfo = useLocalizedPageInfo();
-const localizedTotal = useLocalizedTotal();
 
 interface DeptApiItem {
   id: number;
@@ -3540,9 +3535,9 @@ const handleCheckDevice = (item: DeptDeviceItem) => {
 const getEnableStateText = (status: number): string => {
   switch(status) {
     case 0:
-      return localeText("停用", "Disabled");
+      return '停用';
     case 1:
-      return localeText("启用", "Enabled");
+      return '启用';
     default:
       return '-';
   }
@@ -3551,9 +3546,9 @@ const getEnableStateText = (status: number): string => {
 const getInstallStateText = (status: number): string => {
   switch(status) {
     case 0:
-      return localeText("未安装", "Not installed");
+      return '未安装';
     case 1:
-      return localeText("已安装", "Installed");
+      return '已安装';
     default:
       return '-';
   }
@@ -3563,9 +3558,9 @@ const getInstallStateText = (status: number): string => {
 const getInstallMode = (status: number): string => {
   switch(status) {
     case 0:
-      return localeText("固定点", "Fixed");
+      return '固定点';
     case 1:
-      return localeText("流动点", "Mobile");
+      return '流动点';
     default:
       return '-';
   }
@@ -3574,9 +3569,9 @@ const getInstallMode = (status: number): string => {
 const getOnlineStatusText = (status: number): string => {
   switch(status) {
     case 0:
-      return localeText("离线", "Offline");
+      return '离线';
     case 1:
-      return localeText("在线", "Online");
+      return '在线';
     default:
       return '-';
   }
@@ -3585,13 +3580,13 @@ const getOnlineStatusText = (status: number): string => {
 const getLeakStatusText = (status: number): string => {
   switch(status) {
     case 0:
-      return localeText("渗漏", "Leak");
+      return '渗漏';
     case 1:
-      return localeText("正常", "Normal");
+      return '正常';
 	case 2:
-	  return localeText("疑似", "Suspected");
+	  return '疑似';
 	case 3:
-	  return localeText("未知", "Unknown");
+	  return '未知';
     default:
       return '-';
   }

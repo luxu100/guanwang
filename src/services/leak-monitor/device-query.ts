@@ -50,12 +50,12 @@ function toNumber(value: unknown): number | undefined {
   return undefined;
 }
 
-function normalizeAnalysisStatus(value: unknown): { status: LeakDeviceStatus } {
+function normalizeAnalysisStatus(value: unknown): { status: LeakDeviceStatus; text: string } {
   const code = toNumber(value);
-  if (code === 1) return { status: "normal" };
-  if (code === 2) return { status: "suspect" };
-  if (code === 0) return { status: "leak" };
-  return { status: "unknown" };
+  if (code === 1) return { status: "normal", text: "正常" };
+  if (code === 2) return { status: "suspect", text: "疑似" };
+  if (code === 0) return { status: "leak", text: "渗漏" };
+  return { status: "unknown", text: "未知" };
 }
 
 function parseCoordinate(value: unknown): Partial<MapCoordinate> {
@@ -113,11 +113,11 @@ export function normalizeLeakDevice(
     deviceNumber,
     model: toText(record.model || record.deviceType, "--"),
     status: status.status,
-    statusText: status.status,
+    statusText: status.text,
     manualStatus: manualStatus.status,
-    manualStatusText: manualStatus.status,
+    manualStatusText: manualStatus.text,
     algorithmStatus: algorithmStatus.status,
-    algorithmStatusText: algorithmStatus.status,
+    algorithmStatusText: algorithmStatus.text,
     leakProperty: leakProperty ?? null,
     onlineStatus: toNumber(record.deviceStatus ?? record.onlineStatus) ?? null,
     regionId: (record.regionId ?? record.deptId ?? record.departmentId ?? null) as string | number | null,

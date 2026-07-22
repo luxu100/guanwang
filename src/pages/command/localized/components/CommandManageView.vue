@@ -83,7 +83,7 @@
           </view>
           <view class="panel-head__meta-group">
             <button v-if="tasks.length" class="text-button text-button--danger" @click="clearMockTasks">清空模拟记录</button>
-            <text class="panel-head__meta">{{ localizedTotal(filteredTasks.length) }}</text>
+            <text class="panel-head__meta">共 {{ filteredTasks.length }} 条</text>
           </view>
         </view>
 
@@ -327,9 +327,9 @@
             </view>
 
             <view class="pagination-bar">
-              <button class="page-button" :disabled="devicePage.current <= 1" @click="devicePage.current--">{{ localeText("上一页", "Previous") }}</button>
-              <text>{{ localizedPageInfo(devicePage.current, devicePageCount) }}</text>
-              <button class="page-button" :disabled="devicePage.current >= devicePageCount" @click="devicePage.current++">{{ localeText("下一页", "Next") }}</button>
+              <button class="page-button" :disabled="devicePage.current <= 1" @click="devicePage.current--">上一页</button>
+              <text>第 {{ devicePage.current }} / {{ devicePageCount }} 页</text>
+              <button class="page-button" :disabled="devicePage.current >= devicePageCount" @click="devicePage.current++">下一页</button>
             </view>
           </view>
 
@@ -463,7 +463,7 @@
             </view>
             <view v-for="device in progressTask.devices" :key="device.id" class="progress-row">
               <text class="progress-cell progress-cell--number">{{ device.deviceNumber }}</text>
-              <view class="progress-cell progress-cell--online"><text class="online-pill" :class="device.onlineStatus ? 'online-pill--online' : 'online-pill--offline'">{{ device.onlineStatus ? localeText("在线", "Online") : localeText("离线", "Offline") }}</text></view>
+              <view class="progress-cell progress-cell--online"><text class="online-pill" :class="device.onlineStatus ? 'online-pill--online' : 'online-pill--offline'">{{ device.onlineStatus ? "在线" : "离线" }}</text></view>
               <view class="progress-cell progress-cell--phase">
                 <text v-if="isDeviceLoading(device.status)" class="loading-spinner"></text>
                 <text>{{ device.phaseText }}</text>
@@ -493,7 +493,6 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
-import { useLocaleText, useLocalizedPageInfo, useLocalizedTotal } from "@/i18n/localeText";
 import {
   prototypeAudioRecords,
   prototypeCommands,
@@ -510,10 +509,6 @@ import type {
   MockDeviceTask,
   MockScenario,
 } from "../commandManage.types";
-
-const localeText = useLocaleText();
-const localizedPageInfo = useLocalizedPageInfo();
-const localizedTotal = useLocalizedTotal();
 
 interface PickerChangeEvent {
   detail: { value: number | string };
@@ -1153,22 +1148,18 @@ function formatRound(device: MockDeviceTask) {
 }
 
 function getExecutionTypeLabel(type: CommandExecutionType) {
-  return {
-    PARAM_SETTING: localeText("参数设置", "Parameter setup"),
-    FIRMWARE_UPGRADE: localeText("固件升级", "Firmware upgrade"),
-    AUDIO_REPAIR: localeText("音频补帧", "Audio repair"),
-  }[type];
+  return { PARAM_SETTING: "参数设置", FIRMWARE_UPGRADE: "固件升级", AUDIO_REPAIR: "音频补帧" }[type];
 }
 
 function getTaskStatusLabel(status: CommandTaskStatus) {
   return {
-    WAITING: localeText("等待执行", "Waiting"),
-    RUNNING: localeText("执行中", "Running"),
-    PARTIAL: localeText("部分完成", "Partial"),
-    SUCCESS: localeText("已完成", "Completed"),
-    FAILED: localeText("失败", "Failed"),
-    ABANDONED: localeText("已放弃", "Abandoned"),
-    PAUSED: localeText("已暂停", "Paused"),
+    WAITING: "等待执行",
+    RUNNING: "执行中",
+    PARTIAL: "部分完成",
+    SUCCESS: "已完成",
+    FAILED: "失败",
+    ABANDONED: "已放弃",
+    PAUSED: "已暂停",
   }[status];
 }
 
@@ -1184,23 +1175,11 @@ function getDeviceStatusClass(status: DeviceTaskStatus) {
 }
 
 function getScenarioLabel(value: MockScenario) {
-  const labels: Record<MockScenario, [string, string]> = {
-    NORMAL: ["正常完成", "Completed"],
-    PARTIAL_MISSING: ["部分帧缺失", "Missing frames"],
-    NO_RESPONSE: ["设备无响应", "No response"],
-    FAILURE: ["最终失败", "Failed"],
-  };
-  const label = labels[value];
-  return label ? localeText(label[0], label[1]) : localeText("未配置", "Not set");
+  return scenarioOptions.find((item) => item.value === value)?.label || "未配置";
 }
 
 function getParamLabel(key: string) {
-  return {
-    sampleInterval: localeText("采样间隔", "Sample interval"),
-    uploadInterval: localeText("上报间隔", "Upload interval"),
-    serverHost: localeText("服务器地址", "Server"),
-    serverPort: localeText("服务器端口", "Port"),
-  }[key] || key;
+  return { sampleInterval: "采样间隔", uploadInterval: "上报间隔", serverHost: "服务器地址", serverPort: "服务器端口" }[key] || key;
 }
 
 function formatMissingFrames(frames: number[]) {

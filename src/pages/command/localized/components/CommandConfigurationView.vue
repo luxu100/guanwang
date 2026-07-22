@@ -64,7 +64,7 @@
             <text class="table-head__title">TCP 指令配置</text>
             <text class="table-head__subtitle">维护采集设备常用 TCP 指令帧、超时与重试策略</text>
           </view>
-          <text class="table-head__meta">{{ localizedTotal(filteredCommands.length) }}</text>
+          <text class="table-head__meta">共 {{ filteredCommands.length }} 条</text>
         </view>
 
         <scroll-view class="table-scroll" scroll-x scroll-y>
@@ -101,7 +101,7 @@
               <text class="data-cell data-cell--retry">{{ item.retryTimes }} 次</text>
               <text class="data-cell data-cell--status">
                 <text class="status-pill" :class="item.enabled ? 'status-pill--enabled' : 'status-pill--disabled'">
-                  {{ getEnabledLabel(item.enabled) }}
+                  {{ item.enabled ? "启用" : "停用" }}
                 </text>
               </text>
               <text class="data-cell data-cell--time">{{ item.updatedAt }}</text>
@@ -119,7 +119,7 @@
               <text class="detail-head__title">{{ selectedCommand.name }}</text>
             </view>
             <text class="status-pill" :class="selectedCommand.enabled ? 'status-pill--enabled' : 'status-pill--disabled'">
-              {{ getEnabledLabel(selectedCommand.enabled) }}
+              {{ selectedCommand.enabled ? "启用" : "停用" }}
             </text>
           </view>
 
@@ -148,7 +148,7 @@
                   hover-class="mini-button--hover"
                   @click="startEdit"
                 >
-                  {{ localeText("编辑", "Edit") }}
+                  编辑
                 </button>
               </view>
 
@@ -180,7 +180,7 @@
                 <view class="form-field">
                   <text class="form-label">启用状态</text>
                   <picker :disabled="!editing" :range="enabledOptions" range-key="label" :value="editEnabledIndex" @change="handleFormEnabledChange">
-                    <view class="form-select" :class="{ 'form-select--disabled': !editing }">{{ getEnabledLabel(form.enabled) }}</view>
+                    <view class="form-select" :class="{ 'form-select--disabled': !editing }">{{ form.enabled ? "启用" : "停用" }}</view>
                   </picker>
                 </view>
 
@@ -263,10 +263,6 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref } from "vue";
-import { useLocaleText, useLocalizedTotal } from "@/i18n/localeText";
-
-const localeText = useLocaleText();
-const localizedTotal = useLocalizedTotal();
 
 type CommandCategory = "sampling" | "control" | "diagnosis" | "maintenance";
 type CommandDirection = "downlink" | "uplink" | "duplex";
@@ -314,34 +310,32 @@ interface PickerChangeEvent {
 
 const STORAGE_KEY = "commandConfigurationTcpRecords";
 
-const categoryOptions = computed(() => [
-  { label: localeText("全部类型", "All types"), value: "all" },
-  { label: localeText("采集指令", "Sampling"), value: "sampling" },
-  { label: localeText("控制指令", "Control"), value: "control" },
-  { label: localeText("诊断指令", "Diagnostics"), value: "diagnosis" },
-  { label: localeText("维护指令", "Maintenance"), value: "maintenance" },
-]);
+const categoryOptions = [
+  { label: "全部类型", value: "all" },
+  { label: "采集指令", value: "sampling" },
+  { label: "控制指令", value: "control" },
+  { label: "诊断指令", value: "diagnosis" },
+  { label: "维护指令", value: "maintenance" },
+] as const;
 
-const editCategoryOptions = computed(
-  () => categoryOptions.value.slice(1) as Array<{ label: string; value: CommandCategory }>,
-);
+const editCategoryOptions = categoryOptions.slice(1) as Array<{ label: string; value: CommandCategory }>;
 
-const statusOptions = computed(() => [
-  { label: localeText("全部状态", "All statuses"), value: "all" },
-  { label: localeText("启用", "Enabled"), value: "enabled" },
-  { label: localeText("停用", "Disabled"), value: "disabled" },
-]);
+const statusOptions = [
+  { label: "全部状态", value: "all" },
+  { label: "启用", value: "enabled" },
+  { label: "停用", value: "disabled" },
+] as const;
 
-const directionOptions = computed<Array<{ label: string; value: CommandDirection }>>(() => [
-  { label: localeText("平台下发", "Downlink"), value: "downlink" },
-  { label: localeText("设备上报", "Uplink"), value: "uplink" },
-  { label: localeText("双向握手", "Duplex"), value: "duplex" },
-]);
+const directionOptions: Array<{ label: string; value: CommandDirection }> = [
+  { label: "平台下发", value: "downlink" },
+  { label: "设备上报", value: "uplink" },
+  { label: "双向握手", value: "duplex" },
+];
 
-const enabledOptions = computed(() => [
-  { label: localeText("启用", "Enabled"), value: true },
-  { label: localeText("停用", "Disabled"), value: false },
-]);
+const enabledOptions = [
+  { label: "启用", value: true },
+  { label: "停用", value: false },
+];
 
 const defaultCommands: CommandRecord[] = [
   {
@@ -474,12 +468,12 @@ const summaryCards = computed(() => {
   ];
 });
 
-const currentCategoryIndex = computed(() => categoryOptions.value.findIndex((item) => item.value === filters.category));
-const currentStatusIndex = computed(() => statusOptions.value.findIndex((item) => item.value === filters.status));
-const currentCategoryLabel = computed(() => categoryOptions.value[currentCategoryIndex.value]?.label || localeText("全部类型", "All types"));
-const currentStatusLabel = computed(() => statusOptions.value[currentStatusIndex.value]?.label || localeText("全部状态", "All statuses"));
-const editCategoryIndex = computed(() => Math.max(0, editCategoryOptions.value.findIndex((item) => item.value === form.category)));
-const editDirectionIndex = computed(() => Math.max(0, directionOptions.value.findIndex((item) => item.value === form.direction)));
+const currentCategoryIndex = computed(() => categoryOptions.findIndex((item) => item.value === filters.category));
+const currentStatusIndex = computed(() => statusOptions.findIndex((item) => item.value === filters.status));
+const currentCategoryLabel = computed(() => categoryOptions[currentCategoryIndex.value]?.label || "全部类型");
+const currentStatusLabel = computed(() => statusOptions[currentStatusIndex.value]?.label || "全部状态");
+const editCategoryIndex = computed(() => Math.max(0, editCategoryOptions.findIndex((item) => item.value === form.category)));
+const editDirectionIndex = computed(() => Math.max(0, directionOptions.findIndex((item) => item.value === form.direction)));
 const editEnabledIndex = computed(() => (form.enabled ? 0 : 1));
 
 function loadStoredCommands() {
@@ -611,41 +605,37 @@ function isValidPort(port: number) {
 
 function handleCategoryChange(event: PickerChangeEvent) {
   const index = Number(event.detail.value);
-  filters.category = categoryOptions.value[index]?.value || "all";
+  filters.category = categoryOptions[index]?.value || "all";
   searchCommands();
 }
 
 function handleStatusChange(event: PickerChangeEvent) {
   const index = Number(event.detail.value);
-  filters.status = statusOptions.value[index]?.value || "all";
+  filters.status = statusOptions[index]?.value || "all";
   searchCommands();
 }
 
 function handleFormCategoryChange(event: PickerChangeEvent) {
   const index = Number(event.detail.value);
-  form.category = editCategoryOptions.value[index]?.value || "sampling";
+  form.category = editCategoryOptions[index]?.value || "sampling";
 }
 
 function handleFormDirectionChange(event: PickerChangeEvent) {
   const index = Number(event.detail.value);
-  form.direction = directionOptions.value[index]?.value || "downlink";
+  form.direction = directionOptions[index]?.value || "downlink";
 }
 
 function handleFormEnabledChange(event: PickerChangeEvent) {
   const index = Number(event.detail.value);
-  form.enabled = enabledOptions.value[index]?.value ?? true;
+  form.enabled = enabledOptions[index]?.value ?? true;
 }
 
 function getCategoryLabel(value: CommandCategory) {
-  return editCategoryOptions.value.find((item) => item.value === value)?.label || localeText("未分类", "Uncategorized");
+  return editCategoryOptions.find((item) => item.value === value)?.label || "未分类";
 }
 
 function getDirectionLabel(value: CommandDirection) {
-  return directionOptions.value.find((item) => item.value === value)?.label || localeText("未配置", "Not set");
-}
-
-function getEnabledLabel(value: boolean) {
-  return value ? localeText("启用", "Enabled") : localeText("停用", "Disabled");
+  return directionOptions.find((item) => item.value === value)?.label || "未配置";
 }
 
 function formatNow() {

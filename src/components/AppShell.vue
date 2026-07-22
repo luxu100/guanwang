@@ -208,8 +208,8 @@ import AdminPlaceholderView from "@/components/admin/AdminPlaceholderView.vue";
 import AppShellModuleHost from "@/components/app-shell/AppShellModuleHost.vue";
 import LanguageSelect from "@/components/common/LanguageSelect.vue";
 
-// import appShellModules from "@/components/app-shell/appShellModules.local";
-import appShellModules from "@/components/app-shell/appShellModules.localized";
+import appShellModules from "@/components/app-shell/appShellModules.local";
+// import appShellModules from "@/components/app-shell/appShellModules.localized";
 
 import { MENU_COLLAPSED_KEY, OPENED_TABS_KEY } from "@/utils/appShellStorage";
 import { clearAuthStorage, createProtectedRouteDecision, LOGIN_PATH } from "@/utils/authGuard";
@@ -407,6 +407,7 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/work-order/statistics/statistics": { component: WorksheetTableView, props: { mode: "statistics" } },
   "/pages/alarm/strategy/strategy": createPlaceholderContent("/pages/alarm/strategy/strategy"),
   "/pages/alarm/processing/processing": createPlaceholderContent("/pages/alarm/processing/processing"),
+  "/pages/alarm/analysis/analysis": createPlaceholderContent("/pages/alarm/analysis/analysis"),
   "/pages/report/generate/generate": createPlaceholderContent("/pages/report/generate/generate"),
   "/pages/report/operation/operation": createPlaceholderContent("/pages/report/operation/operation"),
   "/pages/report/command/command": createPlaceholderContent("/pages/report/command/command"),

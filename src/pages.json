@@ -148,6 +148,13 @@
       }
     },
     {
+      "path": "pages/alarm/analysis/analysis",
+      "style": {
+        "navigationBarTitleText": "报警分析",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/leak-report/suspect-management/suspect-management",
       "style": {
         "navigationBarTitleText": "疑点管理",

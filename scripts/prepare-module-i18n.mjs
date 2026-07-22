@@ -65,13 +65,6 @@ const modules = {
 
 const forceCopy = process.argv.includes("--force-copy");
 const translate = process.argv.includes("--translate");
-const syncOnly = process.argv.includes("--sync-only");
-const selectedModules = process.argv
-  .find((argument) => argument.startsWith("--modules="))
-  ?.slice("--modules=".length)
-  .split(",")
-  .map((value) => value.trim())
-  .filter(Boolean);
 const collection = JSON.parse(fs.readFileSync(COLLECTION_FILE, "utf8"));
 const translationCache = fs.existsSync(CACHE_FILE)
   ? JSON.parse(fs.readFileSync(CACHE_FILE, "utf8"))
@@ -157,18 +150,6 @@ function copyModuleFiles(moduleName, config) {
   for (const relativeFile of config.files) {
     const source = path.resolve(config.root, relativeFile);
     const destination = path.resolve(destinationRoot, relativeFile);
-    if (syncOnly && fs.existsSync(destination)) {
-      const sourceContent = fs.readFileSync(source, "utf8");
-      const localizedContent = fs.readFileSync(destination, "utf8");
-      const sourceComparable = normalizeForLocalizedComparison(sourceContent);
-      const localizedComparable = normalizeForLocalizedComparison(localizedContent);
-      if (sourceComparable === localizedComparable) {
-        console.log(`Already synchronized: ${moduleName}/${relativeFile}`);
-      } else {
-        console.warn(`Localized differences require review: ${moduleName}/${relativeFile}`);
-      }
-      continue;
-    }
     if (!forceCopy && fs.existsSync(destination)) continue;
 
     ensureDirectory(destination);
@@ -196,14 +177,6 @@ function copyModuleFiles(moduleName, config) {
   }
 
   return destinationRoot;
-}
-
-function normalizeForLocalizedComparison(content) {
-  return content
-    .replaceAll("/localized/components/", "/components/")
-    .replaceAll("data-i18n-ui", "")
-    .replace(/\r\n/g, "\n")
-    .trim();
 }
 
 function createBatches(values) {
@@ -277,7 +250,6 @@ async function translateValues(values) {
 }
 
 function writeModuleLocales(moduleName, destinationRoot) {
-  if (syncOnly) return;
   const entries = collection.modules[moduleName] || [];
   const zhCN = Object.fromEntries(entries.map((entry) => [entry.keySuggestion, entry.value]));
   const enUS = Object.fromEntries(entries.map((entry) => [
@@ -309,7 +281,6 @@ const allValues = Object.keys(modules)
 await translateValues([...new Set(allValues)]);
 
 for (const [moduleName, config] of Object.entries(modules)) {
-  if (selectedModules && !selectedModules.includes(moduleName)) continue;
   const destinationRoot = copyModuleFiles(moduleName, config);
   writeModuleLocales(moduleName, destinationRoot);
   console.log(`Prepared ${moduleName}: ${destinationRoot}`);

@@ -50,7 +50,7 @@
       <view class="sheet-table-panel">
         <view class="table-head">
           <text>{{ pageTitle }}</text>
-          <text class="table-head__meta">{{ localizedTotal(props.mode === "audio" ? audioTotal : leakTotal) }}</text>
+          <text class="table-head__meta">共 {{ props.mode === 'audio' ? audioTotal : leakTotal }} 条</text>
         </view>
 
         <scroll-view class="table-scroll" scroll-x scroll-y>
@@ -85,13 +85,13 @@
                 <text class="data-cell data-cell--time">{{ ((item as AudioDataItem).audioTime || '').replace('T', ' ') }}</text>
                 <text class="data-cell data-cell--dept">{{ (item as AudioDataItem).deptName }}</text>
                 <text class="data-cell data-cell--spectrum">
-                  <text class="data-link" @click.stop="openSpectrumDialog(item as AudioDataItem)"><text class="spectrum-icon"></text>{{ localeText("分析", "Analyze") }}</text>
+                  <text class="data-link" @click.stop="openSpectrumDialog(item as AudioDataItem)"><text class="spectrum-icon"></text>分析</text>
                 </text>
                 <text class="data-cell data-cell--download">
-                  <text class="data-link" @click.stop="onDownload(item as AudioDataItem)"><text class="download-icon"></text>{{ localeText("音频", "Audio") }}</text>
+                  <text class="data-link" @click.stop="onDownload(item as AudioDataItem)"><text class="download-icon"></text>音频</text>
                 </text>
                 <text class="data-cell data-cell--status">
-                  <text class="status-pill" :class="getInstallStatusClass((item as AudioDataItem).status)">{{ getInstallStatusLabel((item as AudioDataItem).status) }}</text>
+                  <text class="status-pill" :class="getInstallStatusClass((item as AudioDataItem).status)">{{ (item as AudioDataItem).status }}</text>
                 </text>
                 <text class="data-cell data-cell--location">
                   <text class="data-link" @click.stop="onLocation(item as AudioDataItem)">{{ formatCoordinate((item as AudioDataItem).location) }}</text>
@@ -104,10 +104,10 @@
                 <text class="data-cell data-cell--time">{{ ((item as LeakItem).detectedTime || '').replace(/\.\d+/, '').replace('T', ' ') }}</text>
                 <text class="data-cell data-cell--dept">{{ (item as LeakItem).deptName }}</text>
                 <text class="data-cell data-cell--status">
-                  <text class="status-pill" :class="getLeakageStatusClass(item as LeakItem)">{{ getLeakageStatusLabel(item as LeakItem) }}</text>
+                  <text class="status-pill" :class="getLeakageStatusClass(item as LeakItem)">{{ (item as LeakItem).leakageStatus }}</text>
                 </text>
                 <text class="data-cell data-cell--install">
-                  <text class="status-pill" :class="getInstallStatusClass((item as LeakItem).installStatus)">{{ getInstallStatusLabel((item as LeakItem).installStatus) }}</text>
+                  <text class="status-pill" :class="getInstallStatusClass((item as LeakItem).installStatus)">{{ (item as LeakItem).installStatus }}</text>
                 </text>
                 <text class="data-cell data-cell--bluewhale">{{ (item as LeakItem).blueWhaleAnalysis }}</text>
                 <text class="data-cell data-cell--manualanalysis">{{ (item as LeakItem).manualAnalysis }}</text>
@@ -121,7 +121,7 @@
 
         <view class="pagination-bar">
           <view class="page-size">
-            {{ localeText("每页", "Per page") }}
+            每页
             <view class="page-size-value" @click.stop="showPageSize = !showPageSize">
               {{ pageSize }}
             </view>
@@ -135,18 +135,18 @@
                 {{ item }}
               </view>
             </view>
-            {{ localeText("条", "items") }}
+            条
           </view>
 
-          <button class="page-button" :disabled="currentPage <= 1" @click="changePage(-1)">{{ localeText("上一页", "Previous") }}</button>
-          <text class="page-info">{{ localizedPageInfo(currentPage, totalPages) }}</text>
-          <button class="page-button" :disabled="currentPage >= totalPages" @click="changePage(1)">{{ localeText("下一页", "Next") }}</button>
+          <button class="page-button" :disabled="currentPage <= 1" @click="changePage(-1)">上一页</button>
+          <text class="page-info">第 {{ currentPage }} / {{ totalPages }} 页</text>
+          <button class="page-button" :disabled="currentPage >= totalPages" @click="changePage(1)">下一页</button>
 
           <view class="jump-box">
-            {{ localeText("到第", "Go to") }}
+            到第
             <input class="page-input" type="number" v-model.number="jumpPage" />
-            {{ localeText("页", "page") }}
-            <button class="page-button jump-btn" @click="jumpToPage">{{ localeText("确定", "Go") }}</button>
+            页
+            <button class="page-button jump-btn" @click="jumpToPage">确定</button>
           </view>
         </view>
       </view>
@@ -199,7 +199,7 @@
                 </view>
                 <view class="detail-item detail-item--base">
                   <text class="detail-item__label">拆/装</text>
-                  <text class="detail-item__value">{{ getInstallStatusLabel((selectedItem as AudioDataItem).status) }}</text>
+                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).status }}</text>
                 </view>
                 <view class="detail-item detail-item--base">
                   <text class="detail-item__label">阀门编号</text>
@@ -365,7 +365,7 @@
                 </view>
                 <view class="detail-item detail-item--base">
                   <text class="detail-item__label">拆/装</text>
-                  <text class="detail-item__value">{{ getInstallStatusLabel((selectedItem as LeakItem).installStatus) }}</text>
+                  <text class="detail-item__value">{{ (selectedItem as LeakItem).installStatus }}</text>
                 </view>
                 <view class="detail-item detail-item--base">
                   <text class="detail-item__label">阀门编号</text>
@@ -417,7 +417,7 @@
                 <view class="detail-grid detail-grid--content">
                   <view class="detail-item detail-item--note" :class="'detail-item--status-' + getLeakageStatusColor(selectedItem as LeakItem)">
                     <text class="detail-item__label">泄露状态</text>
-                    <text class="detail-item__value">{{ getLeakageStatusLabel(selectedItem as LeakItem) }}</text>
+                    <text class="detail-item__value">{{ (selectedItem as LeakItem).leakageStatus }}</text>
                   </view>
                   <view class="detail-item detail-item--note">
                     <text class="detail-item__label">增益</text>
@@ -498,12 +498,8 @@ import SpectrumDialog from "@/pages/data-analysis/localized/components/SpectrumD
 import { getAudioDataPage, getDataQueryAudioPage, getDataQueryAudioDetail, getAudioWav } from "@/services/data-analysis/audio";
 import { getLeakageDataPage, getDataQueryLeakagePage, getDataQueryLeakageDetail } from "@/services/data-analysis/leakage";
 import { getDeptList } from "@/services/partition/partition";
-import { useLocaleText, useLocalizedPageInfo, useLocalizedTotal } from "@/i18n/localeText";
 
 type DataAnalysisMode = "audio" | "leakage";
-const localeText = useLocaleText();
-const localizedPageInfo = useLocalizedPageInfo();
-const localizedTotal = useLocalizedTotal();
 
 const props = defineProps<{
   mode: DataAnalysisMode;
@@ -884,10 +880,10 @@ async function fetchAudioData() {
       valveNumber: record.valveNumber ?? "--",
 			samplingTime: record.samplingTime ?? "--",
 			lastSamplingTime: record.lastSamplingTime ?? "--",
-			samplingRate: record.samplingRate == null ? "--" : `${record.samplingRate}HZ`,
-			onceMeasureLength: record.onceMeasureLength == null ? "--" : `${record.onceMeasureLength}ms`,
-			filterLowFrequency: record.filterLowFrequency == null ? "--" : `${record.filterLowFrequency}HZ`,
-			filterHighFrequency: record.filterHighFrequency == null ? "--" : `${record.filterHighFrequency}HZ`,
+			samplingRate: record.samplingRate + "HZ" ?? "--",
+			onceMeasureLength: record.onceMeasureLength + "ms" ?? "--",
+			filterLowFrequency: record.filterLowFrequency + "HZ" ?? "--",
+			filterHighFrequency: record.filterHighFrequency + "HZ" ?? "--",
 			filterMethod: record.filterMethod ?? "--",
 			gain: record.gain?.raw ?? "--",
 			signalLevel: record.signalLevel ?? "--",
@@ -1106,14 +1102,6 @@ function getLeakageStatusClass(item: LeakItem) {
   return "status-pill--unknown";
 }
 
-function getLeakageStatusLabel(item: LeakItem) {
-  const status = item.leakageStatus;
-  if (status === "渗漏" || status === "0") return localeText("渗漏", "Leak");
-  if (status === "正常" || status === "1") return localeText("正常", "Normal");
-  if (status === "疑似" || status === "2") return localeText("疑似", "Suspected");
-  return localeText("未知", "Unknown");
-}
-
 function getLeakageStatusColor(item: LeakItem) {
   const status = item.leakageStatus;
   if (status === "渗漏" || status === "0") return "leak";
@@ -1126,20 +1114,6 @@ function getInstallStatusClass(status: string) {
   if (status === "安装") return "status-pill--installed";
   if (status === "拆卸") return "status-pill--removed";
   return "status-pill--unknown";
-}
-
-function getInstallStatusLabel(status: string) {
-  const normalized = String(status ?? "").trim();
-  if (["安装", "已安装", "1", "INSTALLED"].includes(normalized.toUpperCase())) {
-    return localeText("已安装", "Installed");
-  }
-  if (["拆卸", "已拆卸", "0", "REMOVED", "UNINSTALLED"].includes(normalized.toUpperCase())) {
-    return localeText("拆卸", "Removed");
-  }
-  if (["报废", "2", "SCRAPPED"].includes(normalized.toUpperCase())) {
-    return localeText("报废", "Scrapped");
-  }
-  return localeText(normalized || "未知", normalized || "Unknown");
 }
 
 function onStatusChange(e: { detail: { value: number } }) {
