@@ -14,7 +14,7 @@
 
         <view class="filter-group">
           <text class="filter-label">设备编号</text>
-          <input v-model="filters.deviceNumber" class="filter-input" placeholder="请输入编号" placeholder-class="input-placeholder" />
+          <input v-model="filters.deviceNumber" class="filter-input" placeholder="请输入" placeholder-class="input-placeholder" />
         </view>
 
         <view v-if="props.mode === 'leakage'" class="filter-group">
@@ -50,11 +50,11 @@
       <view class="sheet-table-panel">
         <view class="table-head">
           <text>{{ pageTitle }}</text>
-          <text class="table-head__meta">{{ localizedTotal(props.mode === "audio" ? audioTotal : leakTotal) }}</text>
+          <text class="table-head__meta">{{ t('pagination.total', { count: props.mode === 'audio' ? audioTotal : leakTotal }) }}</text>
         </view>
 
         <scroll-view class="table-scroll" scroll-x scroll-y>
-          <view class="data-table" :class="{ 'data-table--leakage': props.mode === 'leakage' }">
+          <view class="data-table" :style="gridColumnsStyle" :class="{ 'data-table--leakage': props.mode === 'leakage' }">
             <view class="data-row data-row--header" :class="{ 'data-row--leakage': props.mode === 'leakage' }">
               <view
                 v-for="column in tableColumns"
@@ -85,18 +85,17 @@
                 <text class="data-cell data-cell--time">{{ ((item as AudioDataItem).audioTime || '').replace('T', ' ') }}</text>
                 <text class="data-cell data-cell--dept">{{ (item as AudioDataItem).deptName }}</text>
                 <text class="data-cell data-cell--spectrum">
-                  <text class="data-link" @click.stop="openSpectrumDialog(item as AudioDataItem)"><text class="spectrum-icon"></text>{{ localeText("分析", "Analyze") }}</text>
+                  <text class="data-link" @click.stop="openSpectrumDialog(item as AudioDataItem)"><text class="spectrum-icon"></text>{{ t('ui.analysis') }}</text>
                 </text>
                 <text class="data-cell data-cell--download">
-                  <text class="data-link" @click.stop="onDownload(item as AudioDataItem)"><text class="download-icon"></text>{{ localeText("音频", "Audio") }}</text>
+                  <text class="data-link" @click.stop="onDownload(item as AudioDataItem)"><text class="download-icon"></text>{{ t('ui.audio') }}</text>
                 </text>
                 <text class="data-cell data-cell--status">
-                  <text class="status-pill" :class="getInstallStatusClass((item as AudioDataItem).status)">{{ getInstallStatusLabel((item as AudioDataItem).status) }}</text>
+                  <text class="status-pill" :class="getInstallStatusClass((item as AudioDataItem).status)">{{ translateStatus((item as AudioDataItem).status) }}</text>
                 </text>
                 <text class="data-cell data-cell--location">
                   <text class="data-link" @click.stop="onLocation(item as AudioDataItem)">{{ formatCoordinate((item as AudioDataItem).location) }}</text>
                 </text>
-                <text class="data-cell data-cell--repair">{{ ((item as AudioDataItem).repairTime || '').replace('T', ' ') }}</text>
               </template>
               <template v-else-if="props.mode === 'leakage'">
                 <text class="data-cell data-cell--index">{{ index + 1 }}</text>
@@ -104,10 +103,10 @@
                 <text class="data-cell data-cell--time">{{ ((item as LeakItem).detectedTime || '').replace(/\.\d+/, '').replace('T', ' ') }}</text>
                 <text class="data-cell data-cell--dept">{{ (item as LeakItem).deptName }}</text>
                 <text class="data-cell data-cell--status">
-                  <text class="status-pill" :class="getLeakageStatusClass(item as LeakItem)">{{ getLeakageStatusLabel(item as LeakItem) }}</text>
+                  <text class="status-pill" :class="getLeakageStatusClass(item as LeakItem)">{{ translateLeakageStatus((item as LeakItem).leakageStatus) }}</text>
                 </text>
                 <text class="data-cell data-cell--install">
-                  <text class="status-pill" :class="getInstallStatusClass((item as LeakItem).installStatus)">{{ getInstallStatusLabel((item as LeakItem).installStatus) }}</text>
+                  <text class="status-pill" :class="getInstallStatusClass((item as LeakItem).installStatus)">{{ translateStatus((item as LeakItem).installStatus) }}</text>
                 </text>
                 <text class="data-cell data-cell--bluewhale">{{ (item as LeakItem).blueWhaleAnalysis }}</text>
                 <text class="data-cell data-cell--manualanalysis">{{ (item as LeakItem).manualAnalysis }}</text>
@@ -119,9 +118,9 @@
           </view>
         </scroll-view>
 
-        <view class="pagination-bar">
+        <view class="pagination-bar" data-i18n-ui>
           <view class="page-size">
-            {{ localeText("每页", "Per page") }}
+            每页
             <view class="page-size-value" @click.stop="showPageSize = !showPageSize">
               {{ pageSize }}
             </view>
@@ -135,18 +134,18 @@
                 {{ item }}
               </view>
             </view>
-            {{ localeText("条", "items") }}
+            条
           </view>
 
-          <button class="page-button" :disabled="currentPage <= 1" @click="changePage(-1)">{{ localeText("上一页", "Previous") }}</button>
-          <text class="page-info">{{ localizedPageInfo(currentPage, totalPages) }}</text>
-          <button class="page-button" :disabled="currentPage >= totalPages" @click="changePage(1)">{{ localeText("下一页", "Next") }}</button>
+          <button class="page-button" :disabled="currentPage <= 1" @click="changePage(-1)">上一页</button>
+          <text class="page-info">{{ t('pagination.pageInfo', { current: currentPage, total: totalPages }) }}</text>
+          <button class="page-button" :disabled="currentPage >= totalPages" @click="changePage(1)">下一页</button>
 
           <view class="jump-box">
-            {{ localeText("到第", "Go to") }}
+            到第
             <input class="page-input" type="number" v-model.number="jumpPage" />
-            {{ localeText("页", "page") }}
-            <button class="page-button jump-btn" @click="jumpToPage">{{ localeText("确定", "Go") }}</button>
+            页
+            <button class="page-button jump-btn" @click="jumpToPage">确定</button>
           </view>
         </view>
       </view>
@@ -195,11 +194,11 @@
               <view class="detail-grid detail-grid--base">
                 <view class="detail-item detail-item--base">
                   <text class="detail-item__label">天气</text>
-                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).weather }}</text>
+                  <text class="detail-item__value">{{ translateWeather((selectedItem as AudioDataItem).weather) }}</text>
                 </view>
                 <view class="detail-item detail-item--base">
                   <text class="detail-item__label">拆/装</text>
-                  <text class="detail-item__value">{{ getInstallStatusLabel((selectedItem as AudioDataItem).status) }}</text>
+                  <text class="detail-item__value">{{ translateStatus((selectedItem as AudioDataItem).status) }}</text>
                 </view>
                 <view class="detail-item detail-item--base">
                   <text class="detail-item__label">阀门编号</text>
@@ -361,11 +360,11 @@
               <view class="detail-grid detail-grid--base">
                 <view class="detail-item detail-item--base">
                   <text class="detail-item__label">天气</text>
-                  <text class="detail-item__value">{{ (selectedItem as LeakItem).weather }}</text>
+                  <text class="detail-item__value">{{ translateWeather((selectedItem as LeakItem).weather) }}</text>
                 </view>
                 <view class="detail-item detail-item--base">
                   <text class="detail-item__label">拆/装</text>
-                  <text class="detail-item__value">{{ getInstallStatusLabel((selectedItem as LeakItem).installStatus) }}</text>
+                  <text class="detail-item__value">{{ translateStatus((selectedItem as LeakItem).installStatus) }}</text>
                 </view>
                 <view class="detail-item detail-item--base">
                   <text class="detail-item__label">阀门编号</text>
@@ -417,7 +416,7 @@
                 <view class="detail-grid detail-grid--content">
                   <view class="detail-item detail-item--note" :class="'detail-item--status-' + getLeakageStatusColor(selectedItem as LeakItem)">
                     <text class="detail-item__label">泄露状态</text>
-                    <text class="detail-item__value">{{ getLeakageStatusLabel(selectedItem as LeakItem) }}</text>
+                    <text class="detail-item__value">{{ translateLeakageStatus((selectedItem as LeakItem).leakageStatus) }}</text>
                   </view>
                   <view class="detail-item detail-item--note">
                     <text class="detail-item__label">增益</text>
@@ -491,19 +490,41 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from "vue";
+import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
 import DatetimePicker from "@/pages/data-analysis/localized/components/DatetimePicker.vue";
 import MapDialog from "@/pages/data-analysis/localized/components/MapDialog.vue";
 import SpectrumDialog from "@/pages/data-analysis/localized/components/SpectrumDialog.vue";
 import { getAudioDataPage, getDataQueryAudioPage, getDataQueryAudioDetail, getAudioWav } from "@/services/data-analysis/audio";
 import { getLeakageDataPage, getDataQueryLeakagePage, getDataQueryLeakageDetail } from "@/services/data-analysis/leakage";
 import { getDeptList } from "@/services/partition/partition";
-import { useLocaleText, useLocalizedPageInfo, useLocalizedTotal } from "@/i18n/localeText";
+import { getLocale } from "@/i18n";
+import "@/i18n/moduleLocales";
+import daZhCN from "@/pages/data-analysis/localized/locales/zh-CN.json";
+import daEnUS from "@/pages/data-analysis/localized/locales/en-US.json";
+
+function getByPath(source: unknown, key: string): unknown {
+  return key.split(".").reduce<unknown>((value, segment) => {
+    if (value && typeof value === "object" && segment in value) {
+      return (value as Record<string, unknown>)[segment];
+    }
+    return undefined;
+  }, source);
+}
+
+const daMessages: Record<string, unknown> = {
+  "zh-CN": (daZhCN as Record<string, unknown>).dataAnalysis,
+  "en-US": (daEnUS as Record<string, unknown>).dataAnalysis,
+};
+
+function t(key: string, params?: Record<string, unknown>): string {
+  const localeValue = getByPath(daMessages[getLocale()], key);
+  const defaultValue = getByPath(daMessages["zh-CN"], key);
+  const message = localeValue ?? defaultValue ?? key;
+  if (!params) return String(message);
+  return String(message).replace(/\{(\w+)\}/g, (_, k) => params[k] != null ? String(params[k]) : `{${k}}`);
+}
 
 type DataAnalysisMode = "audio" | "leakage";
-const localeText = useLocaleText();
-const localizedPageInfo = useLocalizedPageInfo();
-const localizedTotal = useLocalizedTotal();
 
 const props = defineProps<{
   mode: DataAnalysisMode;
@@ -638,6 +659,9 @@ const leakDataList = ref<LeakItem[]>([]);
 const leakTotal = ref<number>(0);
 const loading = ref<boolean>(false);
 
+const gridColumns = ref("");
+const gridColumnsStyle = computed(() => gridColumns.value ? { "--data-col-grid": gridColumns.value } as Record<string, string> : {});
+
 const leakageDetailTab = ref<"base" | "analysis" | "leak-analysis">("base");
 const activeAudioTab = ref<"base" | "audio-info" | "audio-file">("base");
 
@@ -755,7 +779,6 @@ const tableColumns = computed<TableColumn[]>(() => {
       { key: "download", label: "下载", className: "data-header-cell--download" },
       { key: "status", label: "拆/装", className: "data-header-cell--status", sortable: true },
       { key: "location", label: "位置坐标", className: "data-header-cell--location" },
-      { key: "repairTime", label: "修复时间", className: "data-header-cell--repair" },
     ];
   }
   if (props.mode === "leakage") {
@@ -884,10 +907,10 @@ async function fetchAudioData() {
       valveNumber: record.valveNumber ?? "--",
 			samplingTime: record.samplingTime ?? "--",
 			lastSamplingTime: record.lastSamplingTime ?? "--",
-			samplingRate: record.samplingRate == null ? "--" : `${record.samplingRate}HZ`,
-			onceMeasureLength: record.onceMeasureLength == null ? "--" : `${record.onceMeasureLength}ms`,
-			filterLowFrequency: record.filterLowFrequency == null ? "--" : `${record.filterLowFrequency}HZ`,
-			filterHighFrequency: record.filterHighFrequency == null ? "--" : `${record.filterHighFrequency}HZ`,
+			samplingRate: record.samplingRate + "HZ" ?? "--",
+			onceMeasureLength: record.onceMeasureLength + "ms" ?? "--",
+			filterLowFrequency: record.filterLowFrequency + "HZ" ?? "--",
+			filterHighFrequency: record.filterHighFrequency + "HZ" ?? "--",
 			filterMethod: record.filterMethod ?? "--",
 			gain: record.gain?.raw ?? "--",
 			signalLevel: record.signalLevel ?? "--",
@@ -1106,14 +1129,6 @@ function getLeakageStatusClass(item: LeakItem) {
   return "status-pill--unknown";
 }
 
-function getLeakageStatusLabel(item: LeakItem) {
-  const status = item.leakageStatus;
-  if (status === "渗漏" || status === "0") return localeText("渗漏", "Leak");
-  if (status === "正常" || status === "1") return localeText("正常", "Normal");
-  if (status === "疑似" || status === "2") return localeText("疑似", "Suspected");
-  return localeText("未知", "Unknown");
-}
-
 function getLeakageStatusColor(item: LeakItem) {
   const status = item.leakageStatus;
   if (status === "渗漏" || status === "0") return "leak";
@@ -1128,18 +1143,36 @@ function getInstallStatusClass(status: string) {
   return "status-pill--unknown";
 }
 
-function getInstallStatusLabel(status: string) {
-  const normalized = String(status ?? "").trim();
-  if (["安装", "已安装", "1", "INSTALLED"].includes(normalized.toUpperCase())) {
-    return localeText("已安装", "Installed");
-  }
-  if (["拆卸", "已拆卸", "0", "REMOVED", "UNINSTALLED"].includes(normalized.toUpperCase())) {
-    return localeText("拆卸", "Removed");
-  }
-  if (["报废", "2", "SCRAPPED"].includes(normalized.toUpperCase())) {
-    return localeText("报废", "Scrapped");
-  }
-  return localeText(normalized || "未知", normalized || "Unknown");
+function getStatusKey(status: string): string {
+  if (status === "安装") return "installed";
+  if (status === "拆卸") return "removed";
+  return status;
+}
+function getLeakageStatusKey(status: string): string {
+  if (status === "渗漏" || status === "0") return "leak";
+  if (status === "正常" || status === "1") return "normal";
+  if (status === "疑似" || status === "2") return "suspected";
+  if (status === "未知" || status === "3") return "unknown";
+  return status;
+}
+function getWeatherKey(weather: string): string {
+  if (weather === "晴") return "sunny";
+  if (weather === "雨") return "rain";
+  if (weather === "多云") return "cloudy";
+  if (weather === "阴") return "overcast";
+  return weather;
+}
+function translateStatus(status: string) {
+  if (status === "--") return "--";
+  return t(`status.${getStatusKey(status)}`);
+}
+function translateLeakageStatus(status: string) {
+  if (status === "--") return "--";
+  return t(`status.${getLeakageStatusKey(status)}`);
+}
+function translateWeather(weather: string) {
+  if (weather === "--") return "--";
+  return t(`weather.${getWeatherKey(weather)}`);
 }
 
 function onStatusChange(e: { detail: { value: number } }) {
@@ -1284,6 +1317,74 @@ watch(
     }
   }
 );
+
+function logColumnWidths() {
+  const query = uni.createSelectorQuery();
+  query.select(".data-row").boundingClientRect();
+  query.selectAll(".data-row .data-cell").boundingClientRect();
+  query.exec((results: any) => {
+    const [row, cells] = results as [UniApp.NodeInfo, UniApp.NodeInfo[]];
+    if (!row || !cells || cells.length === 0) return;
+
+    const colCount = props.mode === "leakage" ? 8 : 7;
+    const perRow = colCount + 1;
+    const rowCount = Math.floor(cells.length / perRow);
+    if (rowCount === 0) return;
+
+    const indexWidth = Math.round(cells[0]?.width || 0);
+
+    const maxWidths: number[] = new Array(colCount).fill(0);
+    for (let r = 0; r < rowCount; r++) {
+      for (let c = 0; c < colCount; c++) {
+        const cell = cells[r * perRow + 1 + c];
+        if (cell) {
+          maxWidths[c] = Math.max(maxWidths[c], Math.round(cell.width || 0));
+        }
+      }
+    }
+
+    const totalDataWidth = maxWidths.reduce((a: number, b: number) => a + b, 0);
+    const availableWidth = Math.round(row.width || 0) - indexWidth;
+    const gap = availableWidth - totalDataWidth;
+
+    const parts = maxWidths.map((w: number, i: number) => `col${i + 1} max=${w}px`);
+
+    if (gap >= 0) {
+      const share = Math.floor(gap / colCount);
+      const finalWidths = maxWidths.map((w: number) => w + share);
+
+      gridColumns.value = finalWidths.join("px ") + "px";
+
+      console.log(
+        `[ColumnWidth] ${props.mode} | row=${Math.round(row.width)}px index=${indexWidth}px available=${availableWidth}px share=${share}px rows=${rowCount} | ` +
+        `formula: width=max_content+remaining/${colCount} | ` +
+        parts.join(" | ") +
+        ` → final: ${finalWidths.map((w: number) => w + "px").join(" | ")}`
+      );
+    } else {
+
+      console.log(
+        `[ColumnWidth] ${props.mode} | row=${Math.round(row.width)}px index=${indexWidth}px available=${availableWidth}px rows=${rowCount} | ` +
+        `total=${totalDataWidth}px overflow=${gap}px (scrollbar) | ` +
+        `formula: width=max_content | ` +
+        parts.join(" | ")
+      );
+    }
+  });
+}
+
+watch([filteredData, loading, () => getLocale()], ([_data, isLoading]) => {
+  if (!isLoading) {
+    gridColumns.value = "";
+    nextTick(() => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          logColumnWidths();
+        });
+      });
+    });
+  }
+});
 </script>
 
 <style scoped lang="scss">
@@ -1560,31 +1661,39 @@ watch(
   flex: 1;
   height: auto;
   min-height: 0;
+  overflow-x: auto;
   background: #ffffff;
 }
 
 .data-table {
+  display: grid;
+  grid-template-columns: 58px var(--data-col-grid, repeat(7, auto));
   width: 100%;
-  min-width: 1000px;
+  min-width: max-content;
   background: #ffffff;
 }
 
 .data-table--leakage {
+  grid-template-columns: 58px var(--data-col-grid, repeat(8, auto));
   width: 100%;
-  min-width: 860px;
+  min-width: max-content;
 }
 
 .data-row {
   display: grid;
-  grid-template-columns: 58px 1.2fr 1.3fr 1fr 0.8fr 0.8fr 1fr 1.5fr 1.1fr;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   min-height: 42px;
-  width: 100%;
-  min-width: 1000px;
+  min-width: 0;
   border-bottom: 1px solid #edf1f5;
   cursor: pointer;
   transition:
     background 0.18s ease,
     box-shadow 0.18s ease;
+}
+
+.data-row--leakage {
+  min-width: 0;
 }
 
 .data-row--header {
@@ -1629,23 +1738,15 @@ watch(
   border-radius: 0 999px 999px 0;
 }
 
-.data-row--leakage {
-  grid-template-columns: 58px 1.2fr 1.3fr 1fr 0.8fr 0.8fr 1fr 1fr 1.5fr;
-  min-width: 920px;
-}
-
 .data-cell {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 0;
   padding: 0 12px;
-  overflow: hidden;
   color: #24384d;
   font-size: 13px;
   line-height: 1.35;
   text-align: center;
-  text-overflow: ellipsis;
   white-space: nowrap;
   border-right: 1px solid #edf1f5;
 }
@@ -1654,6 +1755,10 @@ watch(
   color: #415a73;
   font-size: 12px;
   letter-spacing: 0;
+
+  :deep(uni-text) {
+    white-space: nowrap;
+  }
 }
 
 .data-cell:last-child {
@@ -1758,7 +1863,7 @@ watch(
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 54px;
+  min-width: 80px;
   height: 24px;
   padding: 0 9px;
   border: 1px solid transparent;
@@ -1766,6 +1871,7 @@ watch(
   font-size: 12px;
   font-weight: 800;
   line-height: 24px;
+  white-space: nowrap;
 }
 
 .status-pill--leak {
@@ -1805,6 +1911,7 @@ watch(
 }
 
 .table-state {
+  grid-column: 1 / -1;
   height: 180px;
   color: #7c8da1;
   font-size: 14px;
@@ -1967,7 +2074,7 @@ watch(
 .detail-tabs {
   flex: none;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 6px;
   padding: 8px 14px;
   background: #f6fafe;
@@ -1978,14 +2085,16 @@ watch(
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 38px;
+  min-height: 38px;
   color: #5d7188;
   font-size: 13px;
   font-weight: 800;
+  text-align: center;
   cursor: pointer;
   background: transparent;
   border: 1px solid transparent;
   border-radius: 4px;
+  padding: 6px 8px;
   transition:
     color 0.18s ease,
     background 0.18s ease,
@@ -2369,16 +2478,15 @@ watch(
 
   .data-table,
   .data-row {
-  min-width: 860px;
+  min-width: 0;
   }
 
-  .data-row {
-    grid-template-columns: 46px 1fr 1.1fr 0.9fr 0.7fr 0.7fr 0.9fr 1.3fr 1fr;
+  .data-table {
+    grid-template-columns: 46px var(--data-col-grid, repeat(7, auto));
   }
 
-  .data-row--leakage {
-    grid-template-columns: 46px 1fr 1.1fr 0.9fr 0.7fr 0.7fr 0.9fr 0.9fr 1.3fr;
-    min-width: 700px;
+  .data-table--leakage {
+    grid-template-columns: 46px var(--data-col-grid, repeat(8, auto));
   }
 }
 
