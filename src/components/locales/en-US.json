@@ -18,19 +18,11 @@
     "statisticsDataOverview": "System Overview",
     "dataAnalysis": "Data Analysis",
     "dataAnalysisAudio": "Audio Data",
-<<<<<<< HEAD
-    "dataAnalysisLeakage": "Leakage Data",
-    "leakReport": "Leak Reporting",
-    "suspectManagement": "Suspects",
-    "suspectProcessing": "Review Suspects",
-    "leakManagement": "Leak Management",
-=======
     "dataAnalysisLeakage": "Leak Data",
     "leakReport": "Leak Reports",
     "suspectManagement": "Suspects",
     "suspectProcessing": "Suspect Review",
     "leakManagement": "Leaks",
->>>>>>> dev
     "leakAnalysis": "Leak Analysis",
     "workOrder": "Work Orders",
     "workOrderCreate": "Create Order",

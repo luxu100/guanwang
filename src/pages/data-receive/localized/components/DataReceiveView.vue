@@ -63,7 +63,7 @@
           <text class="protocol-editor-subtitle">保存时会同步更新协议信息和字段列表</text>
         </view>
         <view class="protocol-editor-actions">
-          <button class="primary-button" hover-class="primary-button--hover" @click="addInlineFieldRecord">新增字段</button>
+          <button class="primary-button" hover-class="primary-button--hover" @click="addInlineFieldRecord">{{ localeText("新增字段", "Add") }}</button>
           <button class="secondary-button" hover-class="secondary-button--hover" @click="openProtocolTemplateImportDialog">导入模板</button>
           <button class="secondary-button" @click="openSaveProtocolTemplateDialog">保存模板</button>
           <button class="secondary-button" :disabled="importingProtocolJson" hover-class="secondary-button--hover" @click="openProtocolJsonDialog">
@@ -151,7 +151,7 @@
             <text class="table-title">{{ activeConfig.title }}</text>
             <text class="table-subtitle">{{ activeConfig.description }}</text>
           </view>
-          <text class="table-count">共 {{ total }} 条</text>
+          <text class="table-count">{{ localizedTotal(total) }}</text>
         </view>
 
         <scroll-view class="table-scroll" scroll-x scroll-y>
@@ -195,11 +195,11 @@
                   <template v-if="isProtocolFieldEditor">
                     <!-- <text class="row-action-link" @click.stop="moveFieldRecord(index, -1)">上移</text>
                     <text class="row-action-link" @click.stop="moveFieldRecord(index, 1)">下移</text> -->
-                    <text class="row-action-link row-action-link--danger" @click.stop="deleteInlineFieldRecord(index)">删除</text>
+                    <text class="row-action-link row-action-link--danger" @click.stop="deleteInlineFieldRecord(index)">{{ localeText("删除", "Delete") }}</text>
                   </template>
-                  <text v-else-if="activeConfig.key === 'protocol'" class="row-action-link" @click.stop="openProtocolFieldEditor(item, index)">编辑字段</text>
-                  <text v-else class="row-action-link" @click.stop="editTableRecord(item, index)">编辑</text>
-                  <text v-if="!isProtocolFieldEditor && activeConfig.deleteRecord" class="row-action-link row-action-link--danger" @click.stop="deleteTableRecord(item)">删除</text>
+                  <text v-else-if="activeConfig.key === 'protocol'" class="row-action-link" @click.stop="openProtocolFieldEditor(item, index)">{{ localeText("编辑字段", "Edit") }}</text>
+                  <text v-else class="row-action-link" @click.stop="editTableRecord(item, index)">{{ localeText("编辑", "Edit") }}</text>
+                  <text v-if="!isProtocolFieldEditor && activeConfig.deleteRecord" class="row-action-link row-action-link--danger" @click.stop="deleteTableRecord(item)">{{ localeText("删除", "Delete") }}</text>
                 </view>
                 <template v-else-if="isProtocolFieldEditor">
                   <picker v-if="isInlineBooleanField(column)" :range="booleanOptions" range-key="label" @change="handleInlineFieldBooleanChange(item, column.key, $event)">
@@ -225,7 +225,7 @@
 
         <view class="pagination-bar">
           <view class="page-size">
-            <text class="page-info">每页</text>
+            <text class="page-info">{{ localeText("每页", "Per page") }}</text>
             <input
               v-model="pageSizeInputValue"
               class="page-size-input"
@@ -234,11 +234,11 @@
               @blur="commitPageSizeInput"
               @confirm="commitPageSizeInput"
             />
-            <text class="page-info">条</text>
+            <text class="page-info">{{ localeText("条", "items") }}</text>
           </view>
-          <button class="page-button" :disabled="pagination.pageNum <= 1" hover-class="page-button--hover" @click="changePage(-1)">上一页</button>
+          <button class="page-button" :disabled="pagination.pageNum <= 1" hover-class="page-button--hover" @click="changePage(-1)">{{ localeText("上一页", "Previous") }}</button>
           <view class="page-jump">
-            <text class="page-info">第</text>
+            <text class="page-info">{{ localeText("第", "Page") }}</text>
             <input
               v-model="pageInputValue"
               class="page-input"
@@ -246,9 +246,9 @@
               @blur="commitPageInput"
               @confirm="commitPageInput"
             />
-            <text class="page-info">/ {{ totalPages }} 页</text>
+            <text class="page-info">/ {{ totalPages }} {{ localeText("页", "pages") }}</text>
           </view>
-          <button class="page-button" :disabled="pagination.pageNum >= totalPages" hover-class="page-button--hover" @click="changePage(1)">下一页</button>
+          <button class="page-button" :disabled="pagination.pageNum >= totalPages" hover-class="page-button--hover" @click="changePage(1)">{{ localeText("下一页", "Next") }}</button>
         </view>
       </view>
 
@@ -316,7 +316,7 @@
         <view v-if="activeConfig.formFields?.length" class="detail-actions">
           <button class="secondary-button" hover-class="secondary-button--hover" @click="startCreate">清空</button>
           <button v-if="activeConfig.key === 'protocol' && !selectedRecord" class="secondary-button" hover-class="secondary-button--hover" @click="openProtocolTemplateImportDialog">导入模板</button>
-          <button v-if="selectedRecord && activeConfig.deleteRecord" class="danger-button" hover-class="danger-button--hover" @click="deleteSelectedRecord">删除</button>
+          <button v-if="selectedRecord && activeConfig.deleteRecord" class="danger-button" hover-class="danger-button--hover" @click="deleteSelectedRecord">{{ localeText("删除", "Delete") }}</button>
           <button class="primary-button" :disabled="submitting" hover-class="primary-button--hover" @click="saveRecord">
             {{ submitting ? "保存中..." : "保存" }}
           </button>
@@ -401,7 +401,7 @@
                     <text class="select-arrow"></text>
                   </view>
                 </picker>
-                <button class="danger-button template-delete-button" hover-class="danger-button--hover" @click="deleteSelectedProtocolTemplate">删除</button>
+                <button class="danger-button template-delete-button" hover-class="danger-button--hover" @click="deleteSelectedProtocolTemplate">{{ localeText("删除", "Delete") }}</button>
               </view>
             </view>
           </view>
@@ -420,6 +420,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import WorkOrderDatetimePicker from "@/pages/work-order/localized/components/WorkOrderDatetimePicker.vue";
+import { useLocaleText, useLocalizedTotal } from "@/i18n/localeText";
 import {
   createDeviceProtocolRelation,
   createProtocolDefinition,
@@ -525,6 +526,9 @@ interface SectionConfig {
   updateRecord?: (id: string | number, data: RecordLike) => Promise<ApiResponseLike>;
   deleteRecord?: (id: string | number) => Promise<ApiResponseLike>;
 }
+
+const localeText = useLocaleText();
+const localizedTotal = useLocalizedTotal();
 
 const props = defineProps<{
   mode: DataReceiveMode;
@@ -879,10 +883,10 @@ const formatFieldConfig = computed(() => sectionConfigs.field.formFields?.find((
 const isProtocolFieldEditor = computed(() => activeConfig.value.key === "field" && Boolean(activeFieldProtocol.value));
 const isTableOnly = computed(() => props.mode === "record");
 const createActionText = computed(() => {
-  if (isProtocolFieldEditor.value) {
-    return "新增字段";
-  }
-  return activeConfig.value.key === "protocol" ? "新增协议" : "新增";
+  if (isProtocolFieldEditor.value) return localeText("新增字段", "Add");
+  return activeConfig.value.key === "protocol"
+    ? localeText("新增协议", "Add")
+    : localeText("新增", "Add");
 });
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pagination.pageSize)));
 const activeTableMinWidth = computed(() => `${activeConfig.value.columns.reduce((sum, column) => sum + (column.width || 120), 0)}px`);
@@ -2372,10 +2376,14 @@ function getFieldOptionLabel(field: FieldConfig, value: unknown) {
 
 function getBooleanLabel(value: unknown) {
   if (activeConfig.value.key === "protocol") {
-    return value === false || value === "false" ? "已关闭" : "已开启";
+    return value === false || value === "false"
+      ? localeText("已关闭", "Disabled")
+      : localeText("已开启", "Enabled");
   }
 
-  return value === false || value === "false" ? "停用" : "启用";
+  return value === false || value === "false"
+    ? localeText("停用", "Disabled")
+    : localeText("启用", "Enabled");
 }
 
 function getColumnText(item: RecordLike, field: FieldConfig) {
@@ -2397,7 +2405,7 @@ function getColumnText(item: RecordLike, field: FieldConfig) {
   }
 
   if (typeof value === "boolean") {
-    return value ? "是" : "否";
+    return value ? localeText("是", "Yes") : localeText("否", "No");
   }
 
   return getText(item, [field.key], "-");
@@ -2410,14 +2418,20 @@ function getColumnMinWidth(field: FieldConfig) {
 function getStatusLabel(value: unknown, key: string) {
   if (key === "enabled" || key === "required") {
     if (activeConfig.value.key === "protocol" && key === "enabled") {
-      return value === false || value === 0 ? "已关闭" : "已开启";
+      return value === false || value === 0
+        ? localeText("已关闭", "Disabled")
+        : localeText("已开启", "Enabled");
     }
 
-    return value === false || value === 0 ? "否" : "是";
+    return value === false || value === 0
+      ? localeText("否", "No")
+      : localeText("是", "Yes");
   }
 
   if (key === "leakStatus") {
-    return Number(value) === 1 ? "异常" : "正常";
+    return Number(value) === 1
+      ? localeText("异常", "Abnormal")
+      : localeText("正常", "Normal");
   }
 
   const text = String(value ?? "");
@@ -2427,11 +2441,11 @@ function getStatusLabel(value: unknown, key: string) {
 
   const normalizedText = text.toUpperCase();
   if (normalizedText === "SUCCESS") {
-    return "成功";
+    return localeText("成功", "Success");
   }
 
   if (normalizedText === "FAILED" || normalizedText === "FAIL" || normalizedText === "FAILURE" || normalizedText === "ERROR") {
-    return "失败";
+    return localeText("失败", "Failed");
   }
 
   return text;

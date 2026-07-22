@@ -102,10 +102,10 @@
             <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="searchCurrent">查询</button>
             <button class="toolbar-button" hover-class="toolbar-button--hover" @click="resetFilters">重置</button>
             <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="startCreate">{{ createButtonText }}</button>
-            <button class="toolbar-button toolbar-button--danger" :disabled="!canDelete" hover-class="toolbar-button--hover" @click="deleteCurrent">删除</button>
+            <button class="toolbar-button toolbar-button--danger" :disabled="!canDelete" hover-class="toolbar-button--hover" @click="deleteCurrent">{{ localeText("删除", "Delete") }}</button>
             <view v-if="mode === 'user'" class="user-pagination">
               <view class="user-page-size">
-                <text class="user-page-info">每页</text>
+                <text class="user-page-info">{{ localeText("每页", "Per page") }}</text>
                 <input
                   v-model="pageSizeInputValue"
                   class="user-page-size__input"
@@ -114,11 +114,11 @@
                   @confirm="commitPageSizeInput"
                   @blur="commitPageSizeInput"
                 />
-                <text class="user-page-info">条</text>
+                <text class="user-page-info">{{ localeText("条", "items") }}</text>
               </view>
-              <button class="user-page-button" :disabled="pagination.pageNum <= 1" hover-class="user-page-button--hover" @click="changePage(-1)">上一页</button>
+              <button class="user-page-button" :disabled="pagination.pageNum <= 1" hover-class="user-page-button--hover" @click="changePage(-1)">{{ localeText("上一页", "Previous") }}</button>
               <view class="user-page-jump">
-                <text class="user-page-info">第</text>
+                <text class="user-page-info">{{ localeText("第", "Page") }}</text>
                 <input
                   v-model="pageInputValue"
                   class="user-page-input"
@@ -127,9 +127,9 @@
                   @confirm="commitPageInput"
                   @blur="commitPageInput"
                 />
-                <text class="user-page-info">/ {{ userTotalPages }} 页</text>
+                <text class="user-page-info">/ {{ userTotalPages }} {{ localeText("页", "pages") }}</text>
               </view>
-              <button class="user-page-button" :disabled="pagination.pageNum >= userTotalPages" hover-class="user-page-button--hover" @click="changePage(1)">下一页</button>
+              <button class="user-page-button" :disabled="pagination.pageNum >= userTotalPages" hover-class="user-page-button--hover" @click="changePage(1)">{{ localeText("下一页", "Next") }}</button>
             </view>
           </view>
         </view>
@@ -138,7 +138,7 @@
           <view class="table-panel">
             <view class="table-head">
               <text>用户列表</text>
-              <text class="table-head__meta">共 {{  userDisplayTotal  }} 条</text>
+              <text class="table-head__meta">{{ localizedTotal(userDisplayTotal) }}</text>
             </view>
             <scroll-view class="table-scroll" scroll-x scroll-y>
               <view class="data-table data-table--user">
@@ -372,7 +372,7 @@
             <view class="table-head">
               <text>菜单资源列表</text>
               <view class="table-head__actions">
-                <text class="table-head__meta">共 {{ total }} 条</text>
+                <text class="table-head__meta">{{ localizedTotal(total) }}</text>
                 <button
                   class="toolbar-button toolbar-button--danger toolbar-button--compact"
                   :disabled="saving || selectedMenuIds.length === 0"
@@ -480,7 +480,7 @@
           <view class="table-panel">
             <view class="table-head">
               <text>字典项明细：{{ selectedDictType ? getDictTypeName(selectedDictType) : "未选择分类" }}</text>
-              <text class="table-head__meta">共 {{ total }} 条</text>
+              <text class="table-head__meta">{{ localizedTotal(total) }}</text>
             </view>
             <scroll-view class="table-scroll" scroll-x scroll-y>
               <view class="data-table data-table--dict">
@@ -535,8 +535,8 @@
               </view>
             </view>
             <view class="form-actions">
-              <button class="toolbar-button" hover-class="toolbar-button--hover" @click="startCreateDictType">新增分类</button>
-              <button class="toolbar-button" hover-class="toolbar-button--hover" @click="startCreateDictItem">新增字典项</button>
+              <button class="toolbar-button" hover-class="toolbar-button--hover" @click="startCreateDictType">{{ localeText("新增分类", "Add") }}</button>
+              <button class="toolbar-button" hover-class="toolbar-button--hover" @click="startCreateDictItem">{{ localeText("新增字典项", "Add") }}</button>
               <button class="toolbar-button toolbar-button--primary" :disabled="saving" hover-class="toolbar-button--hover" @click="saveDict">
                 {{ saving ? "保存中..." : "保存字典" }}
               </button>
@@ -562,7 +562,7 @@
           <view class="partition-dialog-toolbar">
             <view>
               <text class="partition-dialog-toolbar__title">可绑定分区</text>
-              <text class="partition-dialog-toolbar__meta">共 {{ availableUserPartitionOptions.length }} 个</text>
+              <text class="partition-dialog-toolbar__meta">{{ localizedCount(availableUserPartitionOptions.length) }}</text>
             </view>
             <view class="check-item check-item--select-all" :class="{ 'check-item--checked': isAllUserPartitionDraftSelected }" @click="toggleAllUserPartitionDraft">
               <text class="check-box"></text>
@@ -609,6 +609,11 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
+import { useLocaleText, useLocalizedCount, useLocalizedTotal } from "@/i18n/localeText";
+
+const localeText = useLocaleText();
+const localizedCount = useLocalizedCount();
+const localizedTotal = useLocalizedTotal();
 import { assignUserDepts, getUserDepts,getUserList, assignUserRoles, deleteUser, getUserPage, register, updateUser, type RegisterParams } from "@/services/system/user";
 import { applyUserLocale } from "@/i18n";
 import { getRolePermissions,assignRolePermissions, createRole, deleteRole, getPermissionList, getPermissionTree, getRoleDetail, getRoleList, getRolePage, updateRole } from "@/services/system/auth";
@@ -650,7 +655,17 @@ const LOCAL_MENU_ID_PREFIX = "local-menu:";
 const STALE_DEFAULT_MENU_CODES = new Set([
   "page:device:status",
   "page:work-order:statistics",
+  "page:alarm:analysis",
 ]);
+const STALE_DEFAULT_MENU_PATHS = new Set([
+  "/pages/alarm/analysis/analysis",
+]);
+
+function isStaleDefaultMenu(item: RecordLike) {
+  const code = getText(item, ["permissionCode", "code"], "").trim().toLowerCase();
+  const path = getText(item, ["path", "url", "routePath"], "").trim().toLowerCase();
+  return STALE_DEFAULT_MENU_CODES.has(code) || STALE_DEFAULT_MENU_PATHS.has(path);
+}
 
 const defaultMenuTree: RecordLike[] = [
   { id: `${LOCAL_MENU_ID_PREFIX}favorite`, permissionName: "我的收藏", permissionCode: "page:favorite", path: "/pages/index/index", permissionType: 1, status: 1 },
@@ -943,17 +958,13 @@ const searchPlaceholder = computed(() => {
   return map[props.mode];
 });
 const createButtonText = computed(() => {
-  if (props.mode === "dict") {
-    return dictCreateTarget.value === "type" ? "新增分类" : "新增字典项";
-  }
-
   const map: Record<AdminMode, string> = {
     user: "新增用户",
     auth: "新增角色",
     menu: "新增菜单",
-    dict: "新增字典项",
+    dict: dictCreateTarget.value === "type" ? "新增分类" : "新增字典项",
   };
-  return map[props.mode];
+  return localeText(map[props.mode], "Add");
 });
 const currentUserRegionFilterLabel = computed(() => userRegionFilterOptions.find((item) => item.value === filters.region)?.label || "全部");
 const currentUserRegionLabel = computed(() => userRegionOptions.find((item) => item.value === userForm.region)?.label || "国内");
@@ -1472,7 +1483,7 @@ async function loadMenus() {
     const keyword = filters.keyword.trim();
     const treeResponse = await getMenuTree({ keyword }) as ApiResponseLike;
     assertSuccessResponse(treeResponse);
-    const treeRecords = toTreeRows(parseListResponse(treeResponse));
+    const treeRecords = toTreeRows(parseListResponse(treeResponse)).filter((item) => !isStaleDefaultMenu(item));
 
     if (treeRecords.length) {
       menus.value = treeRecords;
@@ -1487,8 +1498,8 @@ async function loadMenus() {
       assertSuccessResponse(pageResponse);
       const parsed = parsePageResponse(pageResponse);
       if (parsed.records.length) {
-        menus.value = toTreeRows(parsed.records);
-        total.value = parsed.total;
+        menus.value = toTreeRows(parsed.records).filter((item) => !isStaleDefaultMenu(item));
+        total.value = menus.value.length;
         menuSource.value = "api";
       } else {
         menus.value = getDefaultMenuResources(keyword);
@@ -2057,6 +2068,7 @@ async function syncDefaultMenusToBackend() {
   }
 
   saving.value = true;
+  uni.showLoading({ title: localeText("正在同步菜单", "Syncing menus") });
   try {
     const backendRecords = await loadBackendMenuRecords();
     const backendMenuMap = createBackendMenuCodeMap(backendRecords);
@@ -2066,15 +2078,24 @@ async function syncDefaultMenusToBackend() {
       await ensureDefaultMenuNode(item, 0, backendMenuMap, result);
     }
     await pruneStaleDefaultMenus(backendRecords, backendMenuMap, result);
+    await assertStaleDefaultMenusRemoved();
 
-    uni.showToast({
-      title: `同步完成：新增${result.created}个，更新${result.updated}个，删除${result.deleted}个`,
-      icon: "none",
-    });
     await loadMenus();
+    const changed = result.created + result.updated + result.deleted;
+    uni.showToast({
+      title: changed
+        ? localeText(
+            `同步完成：新增${result.created}个，更新${result.updated}个，删除${result.deleted}个`,
+            `Synced: ${result.created} added, ${result.updated} updated, ${result.deleted} deleted`,
+          )
+        : localeText("菜单已是最新，无需更新", "Menus are already up to date"),
+      icon: "none",
+      duration: 3000,
+    });
   } catch (error) {
     toastError(error, "默认菜单同步失败");
   } finally {
+    uni.hideLoading();
     saving.value = false;
   }
 }
@@ -2151,6 +2172,11 @@ async function pruneStaleDefaultMenus(
 
   backendRecords.forEach((item) => {
     const code = getText(item, ["permissionCode"], "");
+    const path = getText(item, ["path", "url", "routePath"], "");
+    if (isStaleDefaultMenu(item)) {
+      grouped.set(`__stale_path__${path}`, [...(grouped.get(`__stale_path__${path}`) || []), item]);
+      return;
+    }
     if (!code) {
       return;
     }
@@ -2158,7 +2184,7 @@ async function pruneStaleDefaultMenus(
   });
 
   for (const [code, records] of grouped) {
-    if (STALE_DEFAULT_MENU_CODES.has(code)) {
+    if (isStaleDefaultMenu({ permissionCode: code }) || code.startsWith("__stale_path__")) {
       for (const item of records) {
         await deleteDefaultMenuRecord(item, result);
       }
@@ -2209,7 +2235,9 @@ function shouldUpdateDefaultMenu(existed: RecordLike | undefined, payload: Recor
 
 function buildDefaultMenuPayload(item: RecordLike, parentId: string | number) {
   return removeEmptyFields({
-    permissionName: getPermissionName(item),
+    // Backend menu names are data, not UI labels. Keep the source value stable
+    // when syncing while getPermissionName() may return the current locale.
+    permissionName: getText(item, ["permissionName", "menuName", "name"], ""),
     permissionCode: getText(item, ["permissionCode"], ""),
     path: getText(item, ["path"], ""),
     parentId: Number(parentId) || 0,
@@ -2249,20 +2277,40 @@ async function refreshBackendMenuCodeMap(map: Map<string, RecordLike>) {
 }
 
 async function loadBackendMenuRecords() {
+  let treeRecords: RecordLike[] = [];
   try {
     const treeResponse = await getMenuTree({}) as ApiResponseLike;
     assertSuccessResponse(treeResponse);
-    const treeRecords = toTreeRows(parseListResponse(treeResponse));
-    if (treeRecords.length) {
-      return treeRecords;
-    }
+    treeRecords = toTreeRows(parseListResponse(treeResponse));
   } catch {
     // tree接口不可用时降级使用分页接口。
   }
 
   const pageResponse = await getMenuPage({ pageNum: 1, pageSize: 500 }) as ApiResponseLike;
   assertSuccessResponse(pageResponse);
-  return parsePageResponse(pageResponse).records;
+  const pageRecords = parsePageResponse(pageResponse).records;
+  const merged = new Map<string, RecordLike>();
+  [...treeRecords, ...pageRecords].forEach((item, index) => {
+    const id = getId(item);
+    merged.set(isValidId(id) ? String(id) : `row:${index}`, item);
+  });
+  return Array.from(merged.values());
+}
+
+async function assertStaleDefaultMenusRemoved() {
+  const remaining = (await loadBackendMenuRecords()).filter(isStaleDefaultMenu);
+  if (!remaining.length) {
+    return;
+  }
+
+  const details = remaining
+    .map((item) => {
+      const id = getId(item);
+      const code = getText(item, ["permissionCode", "code"], "-");
+      return `${code}${isValidId(id) ? ` (#${id})` : ""}`;
+    })
+    .join(", ");
+  throw { msg: `旧菜单仍存在，删除未生效：${details}` };
 }
 
 function findDefaultMenuById(id: string | number) {
@@ -2762,7 +2810,140 @@ function userMatchesPartition(user: RecordLike, partitionId: string, partitionNa
 }
 
 function getPermissionName(item: RecordLike) {
-  return getText(item, ["permissionName", "menuName", "name"], "未命名资源");
+  const permissionCode = getText(item, ["permissionCode", "code"], "").trim().toLowerCase();
+  const permissionPath = getText(item, ["path", "url", "routePath"], "").trim().toLowerCase();
+  const localizedNameMap: Record<string, [string, string]> = {
+    "page:favorite": ["我的收藏", "Favorites"],
+    "page:leak-monitor": ["渗漏监测", "Leak Monitor"],
+    "page:partition": ["分区管理", "Partitions"],
+    "module:device": ["设备管理", "Devices"],
+    "page:device:info": ["设备信息", "Device Info"],
+    "page:device:maintenance": ["拆装维护", "Maintenance"],
+    "page:device:settings": ["设备参数", "Parameters"],
+    "page:device:valve": ["阀门管理", "Valves"],
+    "module:system": ["系统设置", "System"],
+    "page:system:user": ["用户配置", "Users"],
+    "page:system:auth": ["权限管理", "Permissions"],
+    "page:system:menu": ["菜单管理", "Menus"],
+    "page:system:search": ["查询模板", "Search Templates"],
+    "page:system:dict": ["数据字典", "Dictionary"],
+    "module:command": ["指令管理", "Commands"],
+    "page:command:manage": ["指令管理", "Command List"],
+    "page:command:configuration": ["指令配置", "Command Setup"],
+    "module:data-analysis": ["数据分析", "Data Analysis"],
+    "page:data-analysis:audio": ["音频数据", "Audio Data"],
+    "page:data-analysis:leakage": ["渗漏数据", "Leak Data"],
+    "module:leak-report": ["疑漏点上报", "Leak Reports"],
+    "page:leak-report:suspect-management": ["疑点管理", "Suspects"],
+    "page:leak-report:suspect-processing": ["疑点处理", "Suspect Review"],
+    "page:leak-report:leak-management": ["漏点管理", "Leaks"],
+    "page:leak-report:leak-analysis": ["漏点分析", "Leak Analysis"],
+    "module:statistics": ["统计分析", "Statistics"],
+    "page:leak-report:history-overview": ["疑漏模块总览", "Leak Overview"],
+    "page:data-analysis:overview": ["数据系统总览", "System Overview"],
+    "module:work-order": ["工单管理", "Work Orders"],
+    "page:work-order:create": ["工单创建", "Create Order"],
+    "page:work-order:processing": ["工单处理", "Process Orders"],
+    "module:alarm": ["实时报警", "Alarms"],
+    "page:alarm:strategy": ["报警策略", "Alarm Rules"],
+    "page:alarm:processing": ["报警处理", "Alarm Handling"],
+    "module:report": ["统计报表", "Reports"],
+    "page:report:generate": ["报表生成", "Generate Report"],
+    "page:report:operation": ["报表操作", "Report History"],
+    "module:data-receive": ["数据接收和解析", "Data Intake"],
+    "page:data-receive:protocol": ["协议管理", "Protocols"],
+    "page:data-receive:parse": ["数据解析", "Parsing"],
+    "page:data-receive:record": ["数据记录", "Records"],
+  };
+  const mapped = localizedNameMap[permissionCode];
+  if (mapped) {
+    return localeText(mapped[0], mapped[1]);
+  }
+
+  const pathMap: Record<string, [string, string]> = {
+    "/pages/index/index": ["我的收藏", "Favorites"],
+    "/pages/leak-monitor/leak-monitor": ["渗漏监测", "Leak Monitor"],
+    "/pages/partition/partition": ["分区管理", "Partitions"],
+    "/pages/device/info/info": ["设备信息", "Device Info"],
+    "/pages/device/maintenance/maintenance": ["拆装维护", "Maintenance"],
+    "/pages/device/parameter/parameter": ["设备参数", "Parameters"],
+    "/pages/device/settings/settings": ["设备参数", "Parameters"],
+    "/pages/device/valve/valve": ["阀门管理", "Valves"],
+    "/pages/system/user/user": ["用户配置", "Users"],
+    "/pages/system/auth/auth": ["权限管理", "Permissions"],
+    "/pages/system/menu/menu": ["菜单管理", "Menus"],
+    "/pages/system/search/search": ["查询模板", "Search Templates"],
+    "/pages/system/dict/dict": ["数据字典", "Dictionary"],
+    "/pages/command/commandmanage": ["指令管理", "Command List"],
+    "/pages/command/commandconfiguration": ["指令配置", "Command Setup"],
+    "/pages/data-analysis/audio/audio": ["音频数据", "Audio Data"],
+    "/pages/data-analysis/leakage/leakage": ["渗漏数据", "Leak Data"],
+    "/pages/data-analysis/overview/overview": ["数据系统总览", "System Overview"],
+    "/pages/leak-report/suspect-management/suspect-management": ["疑点管理", "Suspects"],
+    "/pages/leak-report/suspect-processing/suspect-processing": ["疑点处理", "Suspect Review"],
+    "/pages/leak-report/leak-management/leak-management": ["漏点管理", "Leaks"],
+    "/pages/leak-report/leak-analysis/leak-analysis": ["漏点分析", "Leak Analysis"],
+    "/pages/leak-report/history-overview/history-overview": ["疑漏模块总览", "Leak Overview"],
+    "/pages/work-order/create/create": ["工单创建", "Create Order"],
+    "/pages/work-order/processing/processing": ["工单处理", "Process Orders"],
+    "/pages/alarm/strategy/strategy": ["报警策略", "Alarm Rules"],
+    "/pages/alarm/processing/processing": ["报警处理", "Alarm Handling"],
+    "/pages/report/generate/generate": ["报表生成", "Generate Report"],
+    "/pages/report/operation/operation": ["报表操作", "Report History"],
+    "/pages/data-receive/access/access": ["协议管理", "Protocols"],
+    "/pages/data-receive/parse/parse": ["数据解析", "Parsing"],
+    "/pages/data-receive/record/record": ["数据记录", "Records"],
+  };
+  const pathMapped = pathMap[permissionPath];
+  if (pathMapped) {
+    return localeText(pathMapped[0], pathMapped[1]);
+  }
+
+  const rawName = getText(item, ["permissionName", "menuName", "name"], "未命名资源");
+  const rawNameMap: Record<string, [string, string]> = {
+    "我的收藏": ["我的收藏", "Favorites"],
+    "渗漏监测": ["渗漏监测", "Leak Monitor"],
+    "分区管理": ["分区管理", "Partitions"],
+    "设备管理": ["设备管理", "Devices"],
+    "设备信息": ["设备信息", "Device Info"],
+    "拆装维护": ["拆装维护", "Maintenance"],
+    "设备参数": ["设备参数", "Parameters"],
+    "阀门管理": ["阀门管理", "Valves"],
+    "系统设置": ["系统设置", "System"],
+    "用户配置": ["用户配置", "Users"],
+    "权限管理": ["权限管理", "Permissions"],
+    "菜单管理": ["菜单管理", "Menus"],
+    "查询模板": ["查询模板", "Search Templates"],
+    "数据字典": ["数据字典", "Dictionary"],
+    "指令管理": ["指令管理", "Command List"],
+    "指令配置": ["指令配置", "Command Setup"],
+    "数据分析": ["数据分析", "Data Analysis"],
+    "音频数据": ["音频数据", "Audio Data"],
+    "渗漏数据": ["渗漏数据", "Leak Data"],
+    "疑漏点上报": ["疑漏点上报", "Leak Reports"],
+    "疑点管理": ["疑点管理", "Suspects"],
+    "疑点处理": ["疑点处理", "Suspect Review"],
+    "漏点管理": ["漏点管理", "Leaks"],
+    "漏点分析": ["漏点分析", "Leak Analysis"],
+    "统计分析": ["统计分析", "Statistics"],
+    "疑漏模块总览": ["疑漏模块总览", "Leak Overview"],
+    "数据系统总览": ["数据系统总览", "System Overview"],
+    "工单管理": ["工单管理", "Work Orders"],
+    "工单创建": ["工单创建", "Create Order"],
+    "工单处理": ["工单处理", "Process Orders"],
+    "实时报警": ["实时报警", "Alarms"],
+    "报警策略": ["报警策略", "Alarm Rules"],
+    "报警处理": ["报警处理", "Alarm Handling"],
+    "统计报表": ["统计报表", "Reports"],
+    "报表生成": ["报表生成", "Generate Report"],
+    "报表操作": ["报表操作", "Report History"],
+    "数据接收和解析": ["数据接收和解析", "Data Intake"],
+    "协议管理": ["协议管理", "Protocols"],
+    "数据解析": ["数据解析", "Parsing"],
+    "数据记录": ["数据记录", "Records"],
+  };
+  const rawMapped = rawNameMap[rawName];
+  return rawMapped ? localeText(rawMapped[0], rawMapped[1]) : rawName;
 }
 
 function getDictTypeCode(item: RecordLike) {
@@ -2786,7 +2967,9 @@ function getTreeLevel(item: RecordLike) {
 }
 
 function getStatusLabel(value: unknown) {
-  return Number(value ?? 1) === 0 ? "禁用" : "启用";
+  return Number(value ?? 1) === 0
+    ? localeText("禁用", "Disabled")
+    : localeText("启用", "Enabled");
 }
 
 function getStatusClass(item: RecordLike) {

@@ -650,7 +650,17 @@ const LOCAL_MENU_ID_PREFIX = "local-menu:";
 const STALE_DEFAULT_MENU_CODES = new Set([
   "page:device:status",
   "page:work-order:statistics",
+  "page:alarm:analysis",
 ]);
+const STALE_DEFAULT_MENU_PATHS = new Set([
+  "/pages/alarm/analysis/analysis",
+]);
+
+function isStaleDefaultMenu(item: RecordLike) {
+  const code = getText(item, ["permissionCode", "code"], "").trim().toLowerCase();
+  const path = getText(item, ["path", "url", "routePath"], "").trim().toLowerCase();
+  return STALE_DEFAULT_MENU_CODES.has(code) || STALE_DEFAULT_MENU_PATHS.has(path);
+}
 
 const defaultMenuTree: RecordLike[] = [
   { id: `${LOCAL_MENU_ID_PREFIX}favorite`, permissionName: "我的收藏", permissionCode: "page:favorite", path: "/pages/index/index", permissionType: 1, status: 1 },
@@ -1472,7 +1482,7 @@ async function loadMenus() {
     const keyword = filters.keyword.trim();
     const treeResponse = await getMenuTree({ keyword }) as ApiResponseLike;
     assertSuccessResponse(treeResponse);
-    const treeRecords = toTreeRows(parseListResponse(treeResponse));
+    const treeRecords = toTreeRows(parseListResponse(treeResponse)).filter((item) => !isStaleDefaultMenu(item));
 
     if (treeRecords.length) {
       menus.value = treeRecords;
@@ -1487,8 +1497,8 @@ async function loadMenus() {
       assertSuccessResponse(pageResponse);
       const parsed = parsePageResponse(pageResponse);
       if (parsed.records.length) {
-        menus.value = toTreeRows(parsed.records);
-        total.value = parsed.total;
+        menus.value = toTreeRows(parsed.records).filter((item) => !isStaleDefaultMenu(item));
+        total.value = menus.value.length;
         menuSource.value = "api";
       } else {
         menus.value = getDefaultMenuResources(keyword);
@@ -2057,6 +2067,7 @@ async function syncDefaultMenusToBackend() {
   }
 
   saving.value = true;
+  uni.showLoading({ title: "正在同步菜单" });
   try {
     const backendRecords = await loadBackendMenuRecords();
     const backendMenuMap = createBackendMenuCodeMap(backendRecords);
@@ -2066,15 +2077,21 @@ async function syncDefaultMenusToBackend() {
       await ensureDefaultMenuNode(item, 0, backendMenuMap, result);
     }
     await pruneStaleDefaultMenus(backendRecords, backendMenuMap, result);
+    await assertStaleDefaultMenusRemoved();
 
-    uni.showToast({
-      title: `同步完成：新增${result.created}个，更新${result.updated}个，删除${result.deleted}个`,
-      icon: "none",
-    });
     await loadMenus();
+    const changed = result.created + result.updated + result.deleted;
+    uni.showToast({
+      title: changed
+        ? `同步完成：新增${result.created}个，更新${result.updated}个，删除${result.deleted}个`
+        : "菜单已是最新，无需更新",
+      icon: "none",
+      duration: 3000,
+    });
   } catch (error) {
     toastError(error, "默认菜单同步失败");
   } finally {
+    uni.hideLoading();
     saving.value = false;
   }
 }
@@ -2151,6 +2168,11 @@ async function pruneStaleDefaultMenus(
 
   backendRecords.forEach((item) => {
     const code = getText(item, ["permissionCode"], "");
+    const path = getText(item, ["path", "url", "routePath"], "");
+    if (isStaleDefaultMenu(item)) {
+      grouped.set(`__stale_path__${path}`, [...(grouped.get(`__stale_path__${path}`) || []), item]);
+      return;
+    }
     if (!code) {
       return;
     }
@@ -2158,7 +2180,7 @@ async function pruneStaleDefaultMenus(
   });
 
   for (const [code, records] of grouped) {
-    if (STALE_DEFAULT_MENU_CODES.has(code)) {
+    if (isStaleDefaultMenu({ permissionCode: code }) || code.startsWith("__stale_path__")) {
       for (const item of records) {
         await deleteDefaultMenuRecord(item, result);
       }
@@ -2209,7 +2231,7 @@ function shouldUpdateDefaultMenu(existed: RecordLike | undefined, payload: Recor
 
 function buildDefaultMenuPayload(item: RecordLike, parentId: string | number) {
   return removeEmptyFields({
-    permissionName: getPermissionName(item),
+    permissionName: getText(item, ["permissionName", "menuName", "name"], ""),
     permissionCode: getText(item, ["permissionCode"], ""),
     path: getText(item, ["path"], ""),
     parentId: Number(parentId) || 0,
@@ -2249,20 +2271,40 @@ async function refreshBackendMenuCodeMap(map: Map<string, RecordLike>) {
 }
 
 async function loadBackendMenuRecords() {
+  let treeRecords: RecordLike[] = [];
   try {
     const treeResponse = await getMenuTree({}) as ApiResponseLike;
     assertSuccessResponse(treeResponse);
-    const treeRecords = toTreeRows(parseListResponse(treeResponse));
-    if (treeRecords.length) {
-      return treeRecords;
-    }
+    treeRecords = toTreeRows(parseListResponse(treeResponse));
   } catch {
     // tree接口不可用时降级使用分页接口。
   }
 
   const pageResponse = await getMenuPage({ pageNum: 1, pageSize: 500 }) as ApiResponseLike;
   assertSuccessResponse(pageResponse);
-  return parsePageResponse(pageResponse).records;
+  const pageRecords = parsePageResponse(pageResponse).records;
+  const merged = new Map<string, RecordLike>();
+  [...treeRecords, ...pageRecords].forEach((item, index) => {
+    const id = getId(item);
+    merged.set(isValidId(id) ? String(id) : `row:${index}`, item);
+  });
+  return Array.from(merged.values());
+}
+
+async function assertStaleDefaultMenusRemoved() {
+  const remaining = (await loadBackendMenuRecords()).filter(isStaleDefaultMenu);
+  if (!remaining.length) {
+    return;
+  }
+
+  const details = remaining
+    .map((item) => {
+      const id = getId(item);
+      const code = getText(item, ["permissionCode", "code"], "-");
+      return `${code}${isValidId(id) ? ` (#${id})` : ""}`;
+    })
+    .join(", ");
+  throw { msg: `旧菜单仍存在，删除未生效：${details}` };
 }
 
 function findDefaultMenuById(id: string | number) {

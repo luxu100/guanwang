@@ -28,11 +28,11 @@ export interface LeakMonitorDevice {
   deviceNumber: string;
   model: string;
   status: LeakDeviceStatus;
-  statusText: string;
+  statusText: LeakDeviceStatus;
   manualStatus: LeakDeviceStatus;
-  manualStatusText: string;
+  manualStatusText: LeakDeviceStatus;
   algorithmStatus: LeakDeviceStatus;
-  algorithmStatusText: string;
+  algorithmStatusText: LeakDeviceStatus;
   leakProperty: number | null;
   onlineStatus: number | null;
   regionId: string | number | null;

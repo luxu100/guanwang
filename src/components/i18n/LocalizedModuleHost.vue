@@ -7,11 +7,13 @@
   >
     <slot></slot>
   </view>
+  <LocalizedTableTooltip />
 </template>
 
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, onUpdated, ref, watch } from "vue";
 import { useI18n } from "@/i18n";
+import LocalizedTableTooltip from "./LocalizedTableTooltip.vue";
 import {
   setActiveLocalizedModule,
   translateModuleText,
