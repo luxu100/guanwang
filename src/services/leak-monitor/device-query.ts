@@ -11,9 +11,11 @@ import type {
   LeakMonitorFilters,
   MapCoordinate,
   MapRegion,
+  NearbyAnalysisDevice,
   ManualAnalysisPayload,
   ManualAnalysisRecord,
   MaintenanceRecord,
+  CorrelationAudioOption,
 } from "@/pages/leak-monitor/types";
 import { normalizeCoordinateSystem } from "@/pages/leak-monitor/coordinateTransform";
 
@@ -246,6 +248,13 @@ export function getLeakMonitorDailyLatestAudio(
   });
 }
 
+export function getLeakMonitorNearbyAnalysis(deviceNumber: string, radiusKm: number) {
+  return getRequest(
+    `/api/device-query/nearby-analysis/${encodeURIComponent(deviceNumber)}`,
+    { radiusKm },
+  );
+}
+
 export function getLeakMonitorMaintenancePage(deviceNumber: string) {
   return postRequest("/api/maintenance-record/page", {
     pageNum: 1,
@@ -334,6 +343,62 @@ export async function fetchLeakMonitorLatestAudio(
   const data = unwrapData<Record<string, unknown>>(response) || {};
   const records = Array.isArray(data.records) ? data.records : [];
   return (records[0] || null) as AudioRecord | null;
+}
+
+export async function fetchLeakMonitorAudioOptions(
+  deviceNumber: string,
+  pageSize = 20,
+): Promise<CorrelationAudioOption[]> {
+  const response = await getLeakMonitorAudioPage({
+    pageNum: 1,
+    pageSize,
+    sortOrder: "desc",
+    sortField: "createdAt",
+    deviceNumber,
+    parseStatus: "success",
+  });
+  const options: CorrelationAudioOption[] = [];
+  extractRecords(unwrapData<unknown>(response)).forEach((item) => {
+    const row = item && typeof item === "object" ? item as Record<string, unknown> : {};
+    const audioId = Number(row.audioId ?? row.id);
+    if (Number.isFinite(audioId)) {
+      options.push({
+        ...row,
+        audioId,
+        deviceNumber,
+        audioTime: toText(
+          row.audioTime ?? row.samplingTime ?? row.time ?? row.createdAt ?? row.parseTime,
+        ),
+        intensity: toNumber(
+          row.noiseValue ?? row.intensity ?? row.soundLevel ?? row.leakEsa,
+        ) ?? null,
+      });
+    }
+  });
+  return options;
+}
+
+export async function fetchLeakMonitorNearbyAnalysis(
+  deviceNumber: string,
+  radiusKm: number,
+): Promise<NearbyAnalysisDevice[]> {
+  const response = await getLeakMonitorNearbyAnalysis(deviceNumber, radiusKm);
+  const data = unwrapData<unknown>(response);
+  const records = Array.isArray(data) ? data : extractRecords(data);
+  return records
+    .map((item) => {
+      const row = item && typeof item === "object" ? item as Record<string, unknown> : {};
+      const nearbyDeviceNumber = toText(row.deviceNumber);
+      if (!nearbyDeviceNumber) return null;
+      return {
+        deviceNumber: nearbyDeviceNumber,
+        distanceKm: toNumber(row.distanceKm) ?? 0,
+        signalprocessingResults: Array.isArray(row.signalprocessingResults)
+          ? row.signalprocessingResults
+          : [],
+      } satisfies NearbyAnalysisDevice;
+    })
+    .filter((item): item is NearbyAnalysisDevice => Boolean(item));
 }
 
 export async function fetchLeakMonitorTrend(

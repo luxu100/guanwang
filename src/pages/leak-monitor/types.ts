@@ -47,11 +47,26 @@ export interface MapDevicePoint {
   deviceNumber: string;
   title: string;
   status: LeakDeviceStatus;
+  algorithmStatus: LeakDeviceStatus;
   leakProperty: number | null;
+  onlineStatus?: number | null;
+  installAddress?: string;
+  model?: string;
   regionId: string | number | null;
   coordinateSystem: CoordinateSystem;
   lat: number;
   lng: number;
+}
+
+export interface NearbyAnalysisDevice {
+  deviceNumber: string;
+  distanceKm: number;
+  signalprocessingResults: unknown[];
+}
+
+export interface CorrelationAudioOption extends AudioRecord {
+  audioTime: string;
+  intensity: number | null;
 }
 
 export interface MapRegion {
