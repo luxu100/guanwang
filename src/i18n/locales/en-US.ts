@@ -82,7 +82,7 @@ const enUS = {
     deviceStatus: "Device Status",
     command: "Commands",
     commandManage: "Command List",
-    commandConfiguration: "Command Setup",
+    commandConfiguration: "Firmware Management",
     dataAnalysis: "Data Analysis",
     dataAnalysisOverview: "System Overview",
     dataAnalysisAudio: "Audio Data",
