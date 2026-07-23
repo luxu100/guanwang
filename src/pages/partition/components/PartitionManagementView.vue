@@ -11,8 +11,7 @@
 			  <text class="filter-label">分区类型</text>
 			  <picker :range="deptTypeOptions" range-key="label" :value="currentTypeIndex" @change="handleTypeChange">
 			    <view class="filter-select">
-			      <!-- <text>{{ currentTypeLabel }}</text> -->
-				  <text>{{ getDeptTypeLabel(filters.regionType, "不限") }}</text>
+				  <text class="filter-select__text" :title="getDeptTypeLabel(filters.regionType, '不限')">{{ getDeptTypeLabel(filters.regionType, "不限") }}</text>
 				  
 			      <text class="filter-select__arrow"></text>
 			    </view>
@@ -89,8 +88,8 @@
 					>
 					  <text class="table-cell col-index " > {{ (deptPagination.current - 1) * deptPagination.size + index + 1 }} </text>
 					  <text class="table-cell col-dept-name " :title="item.deptName"> {{ item.deptName }} </text>
-					  <text class="table-cell col-region-type " :title="item.regionType"> {{ getDeptTypeLabel(item.regionType, "-") }} </text>
-					  <text class="table-cell col-region-color " :title="item.regionType"> 
+					  <text class="table-cell col-region-type " :title="getDeptTypeLabel(item.regionType, '-')"> {{ getDeptTypeLabel(item.regionType, "-") }} </text>
+					  <text class="table-cell col-region-color " > 
 						<view v-if="item.regionColor !== null && item.regionColor !== '' " class="color-preview" :style="{ backgroundColor: item.regionColor }"></view>
 						<text v-else>-</text>
 					  </text>
@@ -903,6 +902,7 @@ const loadDeptDeviceList = async (page = 1) => {
 const deptRefresh = async () => {
   await loadDeptList(1);
   const currentId = currentDeptId.value;
+  deviceKeyword.value = "";
   await loadDeptDeviceList(1);
   if (currentId != undefined) {
     const current = deptList.value.find(item => item.id === currentId);
@@ -1003,10 +1003,6 @@ const openDeptDialog = () => {
   deptDialogVisible.value = true;
 };
 
-const openDeviceDialog = () => {
-  deviceDialogVisible.value = true;
-};
-
 const deptColumns: DeptColumn[] = [
   { key: "index", label: "序号", className: "col-index" },
   { key: "deptName", label: "分区名称", className: "col-dept-name" },
@@ -1085,6 +1081,7 @@ const resetFilters = async () => {
   filters.deptName = "";
   filters.regionType = "";
   filters.gisVisible = "";
+  deviceKeyword.value = "";
   searchDept();
 };
 
@@ -1134,15 +1131,6 @@ const handleDeviceSearch = async () => {
   }
 };
 
-const handleDeviceRefresh = async () => {
-  if (currentDeptId.value === undefined) {
-    uni.showToast({ title: "请先选择分区", icon: "none" });
-    return;
-  }
-  deviceKeyword.value = "";
-  loadDeptDeviceList(1);
-};
-
 const getDeptName = () => {
 	const dept = getDeptById(currentDeptId.value!);
 	return dept ? dept.deptName : "-";
@@ -1171,7 +1159,7 @@ type SelectOption = {
 };
 
 const deptTypeOptions: SelectOption[] = [
-  { label: "不限", value: "" },	
+  { label: "不限", value: "" },
   { label: "漏水噪音监测终端", value: "0" },
   { label: "测压点", value: "1" },
   { label: "测流点", value: "2" },
@@ -1196,12 +1184,12 @@ const validationErrors = reactive<Record<ValidationKey, string>>(getEmptyValidat
 const currentTypeIndex = computed(() => getOptionIndex(deptTypeOptions, filters.regionType));
 
 function getOptionIndex(options: SelectOption[], value: unknown) {
-  const normalized = typeof value === "string" && value.trim() !== "" ? Number(value) : value;
+  const normalized = value === "" || value === null || value === undefined ? "" : String(value);
   return Math.max(0, options.findIndex((item) => item.value === normalized));
 }
 
 function getOptionLabel(options: SelectOption[], value: unknown, fallback: string) {
-  const normalized = typeof value === "string" && value.trim() !== "" ? Number(value) : value;
+  const normalized = value === "" || value === null || value === undefined ? "" : String(value);
   return options.find((item) => item.value === normalized)?.label || fallback;
 }
 
@@ -1288,10 +1276,11 @@ const closeDeviceDialog = () => {
 }
 
 const getDeptTypeLabel = (value: any, fallback:string) => {
-  if(value === ""){
+  if(value === "" || value === null || value === undefined){
 	  return fallback;
   }
-  return deptTypeOptions.find((item) => item.value === value)?.label || fallback;
+  const normalized = String(value);
+  return deptTypeOptions.find((item) => item.value === normalized)?.label || fallback;
 };
 
 const colorDialogVisible = ref(false);
@@ -1703,6 +1692,7 @@ function clamp(value: number, min: number, max: number) {
 
 onBeforeUnmount(() => {
   stopColorDrag();
+  clearRangePointClickTimer();
   stopRangePointDrag();
   destroyRangeNativeMap();
 });
@@ -1726,6 +1716,7 @@ type RangePoint = CoordinateValue & {
 
 const RANGE_MAP_ZOOM = 15;
 const RANGE_DRAG_THRESHOLD = 3;
+const RANGE_POINT_DOUBLE_CLICK_DELAY = 260;
 
 const rangeDialogVisible = ref(false);
 const rangeDrawing = ref(false);
@@ -1758,7 +1749,7 @@ const rangeSearchDisabled = computed(() => {
   );
 });
 
-const rangeDrawDisabled = computed(() => rangeDrawing.value || rangePoints.value.length >= 3);
+const rangeDrawDisabled = computed(() => rangeDrawing.value);
 
 const rangePointPositions = computed(() => {
   return rangePoints.value
@@ -1843,7 +1834,6 @@ let googleRangeIdleListener: google.maps.MapsEventListener | null = null;
 let googleRangeMarkers: google.maps.Marker[] = [];
 let googleRangePolyline: google.maps.Polyline | null = null;
 let googleRangePolygon: google.maps.Polygon | null = null;
-let googleRangeDblClickListener: google.maps.MapsEventListener | null = null;
 let lastRangeMarkerDragEndTime = 0;
 let lastRangeMarkerClickTime = 0;
 let rangePointDragStartedAt: { x: number; y: number } | null = null;
@@ -1855,6 +1845,8 @@ let rangePointDragTarget:
       releasePointerCapture?: (pointerId: number) => void;
     })
   | null = null;
+let rangePointClickTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingRangePointClickId = "";
 
 const openRangeDialog = () => {
   activeSelect.value = false;
@@ -1886,18 +1878,18 @@ const closeRangeDialog = () => {
   rangeSearching.value = false;
   rangeLastEdited.value = "";
   selectedRangePointId.value = "";
+  clearRangePointClickTimer();
   stopRangePointDrag();
   destroyRangeNativeMap();
 };
 
 const startRangeDrawing = () => {
   if (rangeDrawDisabled.value) {
-    uni.showToast({ title: "请先删除已有范围后再重新绘制", icon: "none" });
     return;
   }
 
   rangeDrawing.value = true;
-  uni.showToast({ title: "点击地图添加点，双击地图结束绘制", icon: "none" });
+  uni.showToast({ title: "点击地图新增范围点", icon: "none" });
   void nextTick(initRangeNativeMap);
 };
 
@@ -1949,22 +1941,6 @@ const handleRangePointClick = (id: string) => {
   const point = points[index];
   const previousPoint = points[(index - 1 + points.length) % points.length];
   const nextPoint = points[(index + 1) % points.length];
-
-  if (areRangePointsCollinear(previousPoint, point, nextPoint)) {
-    const previousMiddlePoint = createRangePoint(getRangeMidpoint(previousPoint, point));
-    const nextMiddlePoint = createRangePoint(getRangeMidpoint(point, nextPoint));
-    rangePoints.value = [
-      ...points.slice(0, index),
-      previousMiddlePoint,
-      point,
-      nextMiddlePoint,
-      ...points.slice(index + 1),
-    ];
-    selectedRangePointId.value = point.id;
-    syncRangeCoordinateInputs(point);
-    renderRangeOverlays();
-    return;
-  }
 
   const middlePoint = getRangeMidpoint(previousPoint, nextPoint);
   const nextPoints = points.map((item) => {
@@ -2074,8 +2050,55 @@ function stopRangePointDrag(event?: PointerEvent) {
   }
 
   if (clickedPointId && shouldHandleClick) {
-    handleRangePointClick(clickedPointId);
+    scheduleRangePointClick(clickedPointId);
   }
+}
+
+function scheduleRangePointClick(id: string) {
+  lastRangeMarkerClickTime = Date.now();
+
+  if (rangePointClickTimer && pendingRangePointClickId === id) {
+    clearRangePointClickTimer();
+    deleteRangePoint(id);
+    return;
+  }
+
+  clearRangePointClickTimer();
+  pendingRangePointClickId = id;
+  rangePointClickTimer = setTimeout(() => {
+    const pointId = pendingRangePointClickId;
+    rangePointClickTimer = null;
+    pendingRangePointClickId = "";
+
+    if (pointId) {
+      handleRangePointClick(pointId);
+    }
+  }, RANGE_POINT_DOUBLE_CLICK_DELAY);
+}
+
+function clearRangePointClickTimer() {
+  if (rangePointClickTimer) {
+    clearTimeout(rangePointClickTimer);
+  }
+
+  rangePointClickTimer = null;
+  pendingRangePointClickId = "";
+}
+
+function deleteRangePoint(id: string) {
+  const index = rangePoints.value.findIndex((point) => point.id === id);
+
+  if (index < 0) {
+    return;
+  }
+
+  const nextPoints = rangePoints.value.filter((point) => point.id !== id);
+  const selectedPoint = nextPoints[Math.min(index, nextPoints.length - 1)] || null;
+
+  rangePoints.value = nextPoints;
+  selectedRangePointId.value = selectedPoint?.id || "";
+  syncRangeCoordinateInputs(selectedPoint);
+  renderRangeOverlays();
 }
 
 function addRangePoint(coordinate: CoordinateValue) {
@@ -2084,21 +2107,8 @@ function addRangePoint(coordinate: CoordinateValue) {
   rangePoints.value = [...rangePoints.value, point];
   selectedRangePointId.value = point.id;
   syncRangeCoordinateInputs(point);
-  renderRangeOverlays();
-}
-
-function finishRangeDrawing() {
-  if (!rangeDrawing.value) {
-    return;
-  }
-
-  if (rangePoints.value.length < 3) {
-    uni.showToast({ title: "至少需要三个范围点", icon: "none" });
-    return;
-  }
-
   rangeDrawing.value = false;
-  uni.showToast({ title: "绘制已结束", icon: "success" });
+  renderRangeOverlays();
 }
 
 const searchRangeLocation = async () => {
@@ -2164,6 +2174,7 @@ const deleteRangeDrawing = () => {
         return;
       }
 
+      clearRangePointClickTimer();
       rangePoints.value = [];
       selectedRangePointId.value = "";
       rangeDrawing.value = false;
@@ -2230,40 +2241,6 @@ function getRangeMidpoint(firstPoint: CoordinateValue, secondPoint: CoordinateVa
   });
 }
 
-function areRangePointsCollinear(
-  firstPoint: CoordinateValue,
-  middlePoint: CoordinateValue,
-  lastPoint: CoordinateValue,
-) {
-  const first = toLocalMeterPoint(firstPoint, middlePoint);
-  const middle = { x: 0, y: 0 };
-  const last = toLocalMeterPoint(lastPoint, middlePoint);
-  const baseLength = Math.hypot(last.x - first.x, last.y - first.y);
-
-  if (baseLength < 0.001) {
-    return true;
-  }
-
-  const areaTwice = Math.abs(
-    (last.x - first.x) * (middle.y - first.y) -
-      (middle.x - first.x) * (last.y - first.y),
-  );
-  const distanceToLine = areaTwice / baseLength;
-
-  return distanceToLine <= 1.5;
-}
-
-function toLocalMeterPoint(coordinate: CoordinateValue, origin: CoordinateValue) {
-  const metersPerDegreeLat = 111_320;
-  const metersPerDegreeLng =
-    metersPerDegreeLat * Math.cos((origin.lat * Math.PI) / 180);
-
-  return {
-    x: (coordinate.lng - origin.lng) * metersPerDegreeLng,
-    y: (coordinate.lat - origin.lat) * metersPerDegreeLat,
-  };
-}
-
 function getRangeMapRect(): DOMRect | null {
   const element = getElement(rangeMapWrapRef.value) || getElement(rangeNativeMapRef.value);
 
@@ -2299,6 +2276,14 @@ function projectRangeCoordinateToScreen(coordinate: CoordinateValue) {
   if (!rect) {
     return null;
   }
+
+  return projectRangeCoordinateToScreenWithRect(coordinate, rect);
+}
+
+function projectRangeCoordinateToScreenWithRect(
+  coordinate: CoordinateValue,
+  rect: { width: number; height: number },
+) {
 
   const zoom = rangeMapZoom.value;
   const centerWorld = getMercatorWorldPoint(rangeMapCenter.value, zoom);
@@ -2501,7 +2486,6 @@ async function initTencentRangeMap(mapElement: HTMLElement) {
   });
 
   tencentRangeMap.on?.("click", handleTencentRangeMapClick);
-  tencentRangeMap.on?.("dblclick", handleTencentRangeMapDoubleClick);
   tencentRangeMap.on?.("idle", handleTencentRangeMapIdle);
   syncTencentRangeMapViewport();
 }
@@ -2534,10 +2518,6 @@ async function initGoogleRangeMap(mapElement: HTMLElement) {
         lat: event.latLng.lat(),
       });
     },
-  );
-  googleRangeDblClickListener = googleRangeMap.addListener(
-    "dblclick",
-    () => finishRangeDrawing(),
   );
   googleRangeIdleListener = googleRangeMap.addListener("idle", syncGoogleRangeMapViewport);
   syncGoogleRangeMapViewport();
@@ -2610,10 +2590,6 @@ function handleTencentRangeMapClick(event: TencentMapEvent) {
   if (coordinate) {
     addRangePoint(coordinate);
   }
-}
-
-function handleTencentRangeMapDoubleClick() {
-  finishRangeDrawing();
 }
 
 function handleTencentRangeMapIdle() {
@@ -2833,7 +2809,6 @@ function destroyRangeNativeMap() {
 
 function destroyTencentRangeMap() {
   tencentRangeMap?.off?.("click", handleTencentRangeMapClick);
-  tencentRangeMap?.off?.("dblclick", handleTencentRangeMapDoubleClick);
   tencentRangeMap?.off?.("idle", handleTencentRangeMapIdle);
   clearTencentRangeMarkers();
   tencentRangePolyline?.setMap?.(null);
@@ -2846,10 +2821,8 @@ function destroyTencentRangeMap() {
 
 function destroyGoogleRangeMap() {
   googleRangeClickListener?.remove();
-  googleRangeDblClickListener?.remove();
   googleRangeIdleListener?.remove();
   googleRangeClickListener = null;
-  googleRangeDblClickListener = null;
   googleRangeIdleListener = null;
   clearGoogleRangeMarkers();
   googleRangePolyline?.setMap(null);
@@ -3855,9 +3828,23 @@ function getStatusClass(value: number) {
   gap: 6px;
   flex: 0 0 136px;
   min-width: 0;
+  overflow: hidden;
+}
+
+.filter-group picker,
+.filter-group uni-picker {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .dept-toolbar .filter-group:first-child {
+  flex-basis: 236px;
+}
+
+.dept-toolbar .filter-group:nth-child(2) {
   flex-basis: 236px;
 }
 
@@ -3934,9 +3921,24 @@ function getStatusClass(value: number) {
   align-items: center;
   justify-content: space-between;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.filter-select__text {
+  display: block;
+  flex: 1;
+  width: 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .filter-select__arrow {
+  flex: none;
   width: 8px;
   height: 8px;
   border: solid #74879c;
@@ -4014,12 +4016,12 @@ function getStatusClass(value: number) {
 .dept-table-row{
 	min-width: 920px;
 	cursor: pointer;
-	grid-template-columns: 54px minmax(180px, 1.5fr) minmax(110px, 0.82fr) minmax(110px, 0.82fr) minmax(110px, 0.8fr) minmax(110px, 0.8fr) minmax(180px, 1.5fr) minmax(60px, 1fr);
+	grid-template-columns: 54px minmax(180px, 1.5fr) minmax(140px, 0.82fr) minmax(100px, 0.82fr) minmax(100px, 0.8fr) minmax(100px, 0.8fr) minmax(180px, 1.5fr) minmax(60px, 1fr);
 }
 
 .device-table-row{
 	min-width: 750px;
-	grid-template-columns: 54px minmax(180px, 1.5fr) minmax(80px, 0.82fr) minmax(150px, 1fr) minmax(80px, 0.82fr) minmax(80px, 0.82fr) minmax(110px, 1fr);
+	grid-template-columns: 54px minmax(180px, 1.5fr) minmax(80px, 0.82fr) minmax(150px, 1fr) minmax(80px, 0.82fr) minmax(110px, 0.82fr) minmax(110px, 1fr);
 }
 
 .table-row--header {
@@ -4723,6 +4725,7 @@ function getStatusClass(value: number) {
 }
 
 .center-map-wrap {
+  position: relative;
   flex: 1;
   min-height: 360px;
   overflow: hidden;

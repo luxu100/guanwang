@@ -1172,23 +1172,24 @@ type ValidationKey =
 // type OptionValue = number | string;
 type SelectOption = {
   label: string;
+  enLabel: string;
   value: string;
 };
 
 const deptTypeOptions: SelectOption[] = [
-  { label: "不限", value: "" },	
-  { label: "漏水噪音监测终端", value: "0" },
-  { label: "测压点", value: "1" },
-  { label: "测流点", value: "2" },
-  { label: "消火栓", value: "3" },
-  { label: "水锤", value: "4" },
-  { label: "温振", value: "5" },
-  { label: "取水栓", value: "6" },
-  { label: "远控蝶阀", value: "7" },
-  { label: "智能井盖", value: "8" },
-  { label: "电子界桩", value: "9" },
-  { label: "超级水表", value: "10" },
-  { label: "H86Q", value: "11" },
+  { label: "不限", enLabel: "Unlimited", value: "" },
+  { label: "漏水噪音监测终端", enLabel: "Water Leakage Noise Monitoring Terminal", value: "0" },
+  { label: "测压点", enLabel: "Pressure Measurement Points", value: "1" },
+  { label: "测流点", enLabel: "Flow Measurement Points", value: "2" },
+  { label: "消火栓", enLabel: "Fire hydrant", value: "3" },
+  { label: "水锤", enLabel: "Water Hammer", value: "4" },
+  { label: "温振", enLabel: "Warm vibration", value: "5" },
+  { label: "取水栓", enLabel: "Faucet", value: "6" },
+  { label: "远控蝶阀", enLabel: "Remote control butterfly valve", value: "7" },
+  { label: "智能井盖", enLabel: "Smart Manhole Cover", value: "8" },
+  { label: "电子界桩", enLabel: "Electronic Pillar", value: "9" },
+  { label: "超级水表", enLabel: "Super Water Meter", value: "10" },
+  { label: "H86Q", enLabel: "H86Q", value: "11" },
 ];
 
 const deviceDialogVisible = ref(false);
@@ -1296,7 +1297,10 @@ const getDeptTypeLabel = (value: any, fallback:string) => {
   if(value === ""){
 	  return fallback;
   }
-  return deptTypeOptions.find((item) => item.value === value)?.label || fallback;
+  const normalized = String(value);
+  const option = deptTypeOptions.find((item) => item.value === normalized);
+  
+  return option ? localeText(option.label, option.enLabel) : fallback;
 };
 
 const colorDialogVisible = ref(false);
