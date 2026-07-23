@@ -7,6 +7,8 @@
       "cancel": "取消",
       "confirm": "确定",
       "close": "关闭",
+      "bound": "已绑定",
+      "newBind": "新增绑定",
       "table": {
         "index": "序号",
         "loading": "加载中...",
@@ -123,7 +125,8 @@
       "bindDeptTitle": "绑定分区",
       "bindDeptSubtitle": "请选择想要绑定的分区",
       "bindValveTitle": "绑定阀门",
-      "bindValveSubtitle": "请选择想要绑定的阀门"
+      "bindValveSubtitle": "请选择想要绑定的阀门",
+      "deptLabel": "分区"
     },
     "fields": {
       "deviceNumber": "设备编号",

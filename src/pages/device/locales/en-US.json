@@ -7,6 +7,8 @@
       "cancel": "Cancel",
       "confirm": "Confirm",
       "close": "Close",
+      "bound": "Bound",
+      "newBind": "New Binding",
       "table": {
         "index": "No.",
         "loading": "Loading...",
@@ -123,7 +125,8 @@
       "bindDeptTitle": "Bind Partition",
       "bindDeptSubtitle": "Please select the partition to bind",
       "bindValveTitle": "Bind Valve",
-      "bindValveSubtitle": "Please select the valve to bind."
+      "bindValveSubtitle": "Please select the valve to bind.",
+      "deptLabel": "Partition"
     },
     "fields": {
       "deviceNumber": "Device No.",

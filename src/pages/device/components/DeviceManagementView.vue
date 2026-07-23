@@ -106,10 +106,11 @@
       @cancel="dialogVisible = false"
   />
 
-  <XTreeSelectDialog
+  <XTreeMultiSelectDialog
       v-model:visible="treeVisible"
-      v-model="deptId"
+      v-model="deptIds"
       :tree-data="deptTree"
+      :bound-ids="boundDeptIds"
       :title="t('page.bindDeptTitle')"
       :subtitle="t('page.bindDeptSubtitle')"
       @confirm="onDeptConfirm"
@@ -121,6 +122,7 @@
       :dept-list="deviceDeptList"
       :title="t('page.bindValveTitle')"
       :subtitle="t('page.bindValveSubtitle')"
+      :dept-label="t('page.deptLabel')"
       @confirm="handleValveConfirm"
   />
 
@@ -154,9 +156,14 @@ import type {FormSection} from "@/pages/device/components/x/types";
 import type {PartitionNode} from "@/pages/device/components/x/tree/XTreeNode.vue";
 
 import {createScopedT} from "@/i18n";
-import {bindValveDevices, getDeptIdByDeviceId, getDeptInfoByDeviceId} from "@/services/device/dept-device.typed";
+import {
+  bindValveDevices,
+  getDeptIdByDeviceId,
+  getDeptInfoByDeviceIdT
+} from "@/services/device/dept-device.typed";
 import ValveTableDialog from "@/pages/device/valve/components/ValveTableDialog.vue";
 import DeviceProtocolPanel from "@/pages/device/protocol/components/DeviceProtocolPanel.vue";
+import XTreeMultiSelectDialog from "@/pages/device/components/x/dialog/XTreeMultiSelectDialog.vue";
 const t = createScopedT("devicePage");
 
 /**
@@ -861,27 +868,7 @@ const valveDialogVisible = ref(false);
 const valveId = ref<number|null>(null);
 const deviceDeptList = ref<DeviceDeptVO[]>([]);
 async function handleBindValve() {
-  if (!currentDevice.value) {
-    uni.showToast({
-      title: t("message.pleaseSelectDevice"),
-      icon: "none"
-    });
-    return;
-  }
-
-  const res = await getDeptInfoByDeviceId(currentDevice.value.id);
-
-  const list = res.data || [];
-
-  if (!list.length) {
-    uni.showToast({
-      title: t("message.noPartitionAssigned"),
-      icon: "none"
-    });
-    return;
-  }
-
-  deviceDeptList.value = list;
+  await loadDeviceDept();
   valveDialogVisible.value = true;
 }
 
@@ -913,51 +900,82 @@ async function handleValveConfirm(valve: any) {
  * 部门树形控件
  */
 const treeVisible = ref(false);
-const deptId = ref<number | null>(null);
-const deptName = ref("");
+const deptIds = ref<number[]>([]);
+const boundDeptIds = ref<number[]>([]);
 const deptTree = ref<PartitionNode[]>([]);
 
-function handleBindDept(){
-  fetchDeptTree();
-  treeVisible.value = true;
+async function handleBindDept(){
+  await loadDeviceDept();
+  boundDeptIds.value=deviceDeptList.value.map(
+      item=>item.deptId
+  );
+  deptIds.value=[...boundDeptIds.value];
+  await fetchDeptTree();
+  treeVisible.value=true;
 }
 
-async function onDeptConfirm(node: PartitionNode | null) {
-  if (!node) return;
+async function onDeptConfirm(ids:number[]) {
+  if(!currentDevice.value){
+    uni.showToast({
+      title:t('message.pleaseSelectDevice'),
+      icon:"none"
+    });
+    return;
+  }
+
+  // 过滤新增绑定
+  const addIds=ids.filter(
+      id=>!boundDeptIds.value.includes(id)
+  );
+
+  if(addIds.length===0){
+    uni.showToast({
+      title:t('message.noNewDept'),
+      icon:"none"
+    });
+    return;
+  }
+
+  try{
+    for(const deptId of addIds){
+      const deptDevice:DeptDevice={
+        deviceId:currentDevice.value.id,
+        deptId,
+        createdAt:new Date().toISOString(),
+        updatedAt:new Date().toISOString()
+      };
+      const res=await createDeptDeviceT(deptDevice);
+      if(res.code!==200){
+        throw new Error(res.msg);
+      }
+    }
+    uni.showToast({
+      title:t('message.bindSuccess'),
+      icon:"success"
+    });
+    // 更新绑定列表
+    await loadDeviceDept();
+  }catch(e){
+    console.error(e);
+    uni.showToast({
+      title:t('message.bindFailed'),
+      icon:"none"
+    });
+  }
+}
+
+async function loadDeviceDept(){
   if (!currentDevice.value) {
     uni.showToast({
-      title: t('message.pleaseSelectDevice'),
+      title: t("message.pleaseSelectDevice"),
       icon: "none"
     });
     return;
   }
-  const deptDevice: DeptDevice = {
-    deviceId: currentDevice.value.id,
-    deptId: node.id,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  try {
-    const res = await createDeptDeviceT(deptDevice);
-    if (res.code === 200) {
-      uni.showToast({
-        title: res.msg || t('message.bindSuccess'),
-        icon: "success"
-      });
-    } else {
-      uni.showToast({
-        title: res.msg || t('message.bindFailed'),
-        icon: "none"
-      });
-    }
-  } catch (e) {
-    console.error(e);
-    uni.showToast({
-      title: t('message.requestError'),
-      icon:"none"
-    });
-  }
-  deptName.value = node.name;
+  const res=await getDeptInfoByDeviceIdT(
+      currentDevice.value.id
+  );
+  deviceDeptList.value=res.data ?? [];
 }
 
 function convertDeptTree(

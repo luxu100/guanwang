@@ -5,6 +5,10 @@
         <view class="dialog-head-content">
           <view class="dialog-title">{{ title }}</view>
           <view v-if="deptList.length" class="dept-tabs">
+            <view class="dept-tabs-label">
+              {{ deptLabel }}:
+            </view>
+
             <view
                 v-for="dept in deptList"
                 :key="dept.deptId"
@@ -81,6 +85,7 @@ const props=defineProps<{
   deptList:DeviceDeptVO[];
   title?:string;
   subtitle?:string;
+  deptLabel?:string;
 }>();
 
 const emit=defineEmits<{
@@ -422,5 +427,15 @@ function confirm(){
   color:#34495e;
   background:#f6fbff;
   border-color:#d9e7f3;
+}
+
+.dept-tabs-label{
+  height:26px;
+  display:flex;
+  align-items:center;
+  color:#183755;
+  font-size:13px;
+  font-weight:700;
+  margin-right:4px;
 }
 </style>
