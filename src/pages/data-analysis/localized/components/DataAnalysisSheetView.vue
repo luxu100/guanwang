@@ -1867,6 +1867,7 @@ watch([filteredData, loading, () => getLocale()], ([_data, isLoading]) => {
   color: #0d82ee;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .download-icon { position: relative; display: inline-block; width: 12px; height: 14px; margin-right: 4px; vertical-align: middle; background: linear-gradient(to right, transparent 5px, currentColor 5px, currentColor 7px, transparent 7px) no-repeat top center / 100% 8px; }
