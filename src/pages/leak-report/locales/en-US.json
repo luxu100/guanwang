@@ -270,8 +270,8 @@
         "leakPointPosition": "Leak Point Position",
         "inspector": "Inspector",
         "locator": "Locator",
-        "audioFile": "Audio File ID",
-        "sceneVideo": "Scene Video ID",
+        "audioFile": "Audio File Path",
+        "sceneVideo": "Scene Video Path",
         "worksheetNumber": "Work Order",
         "deviceNumber": "Device"
       },
@@ -376,6 +376,21 @@
       "dataLoadFailed": "Failed to load history data",
       "fetchAllFailed": "Failed to fetch all data",
       "detailEmpty": "Please select a record on the left to view details",
+      "detailTabs": {
+        "basic": "Basic Info",
+        "detail": "Details"
+      },
+      "relatedAudio": "Related Audio",
+      "relatedVideo": "Scene Video",
+      "noAudioUploaded": "No audio uploaded",
+      "noVideoUploaded": "No video uploaded",
+      "audioPlay": "Audio Playback",
+      "videoPlay": "Scene Video Playback",
+      "audioLoadFailed": "Audio failed to load",
+      "videoLoadFailed": "Video failed to load",
+      "buffering": "Buffering…",
+      "duration": "Duration",
+      "progress": "Progress",
       "noDataToExport": "No data to export",
       "exportSuccess": "Exported Successfully",
       "exportH5Only": "Export is only supported on H5",
@@ -392,17 +407,17 @@
     },
     "detail": {
       "tabs": {
-        "basic": "Basic Information",
+        "basic": "Basic Info",
         "leakDetail": "Leak Detail",
-        "pipeInfo": "Pipeline Information",
-        "attachment": "Attachment Notes"
+        "pipeInfo": "Pipeline Info",
+        "attachment": "Attachment"
       },
       "fields": {
         "id": "ID",
         "deviceId": "Device ID",
         "deviceNumber": "Device Number",
         "samplingId": "Sampling Record ID",
-        "audioFileId": "Audio File ID",
+        "audioFileId": "Audio File Path",
         "algorithmStatus": "Algorithm Status",
         "signalprocessingResult": "Algorithm Processing Result",
         "algorithmError": "Failure Reason",

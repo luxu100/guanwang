@@ -2,6 +2,25 @@
   <view class="leak-map" :class="{ 'leak-map--compact': compact }">
     <!-- #ifdef H5 -->
     <div ref="mapContainer" class="leak-map__canvas"></div>
+    <view
+      v-if="hoveredPoint"
+      class="device-hover-card"
+      :style="{ left: `${hoverPosition.x}px`, top: `${hoverPosition.y}px` }"
+    >
+      <text class="device-hover-card__title">{{ hoveredPoint.deviceNumber }}</text>
+      <view class="device-hover-card__row">
+        <text>{{ t("leakStatusLabel") }}</text><text>{{ manualStatusLabel(hoveredPoint) }}</text>
+      </view>
+      <view class="device-hover-card__row">
+        <text>{{ t("deviceStatus") }}</text><text>{{ deviceStatusLabel(hoveredPoint) }}</text>
+      </view>
+      <view class="device-hover-card__row">
+        <text>{{ t("featureValue") }}</text><text>{{ hoveredPoint.leakProperty ?? "-" }}</text>
+      </view>
+      <view class="device-hover-card__row">
+        <text>{{ t("address") }}</text><text>{{ hoveredPoint.installAddress || "-" }}</text>
+      </view>
+    </view>
     <view v-if="mapError" class="leak-map__error">{{ mapError }}</view>
     <!-- #endif -->
 
@@ -72,7 +91,10 @@ interface TencentMultiMarkerConstructor {
     setMap?: (map: TencentMapInstance | null) => void;
     setStyles?: (styles: Record<string, unknown>) => void;
     setGeometries?: (geometries: Array<{ id: string; styleId?: string; position: unknown; properties?: Record<string, unknown> }>) => void;
-    on?: (event: string, handler: (event: { geometry?: { id?: string; properties?: Record<string, unknown> } }) => void) => void;
+    on?: (event: string, handler: (event: {
+      geometry?: { id?: string; properties?: Record<string, unknown> };
+      originalEvent?: { clientX?: number; clientY?: number };
+    }) => void) => void;
   };
 }
 
@@ -136,6 +158,8 @@ const emit = defineEmits<{
 
 const mapContainer = ref<HTMLElement | null>(null);
 const mapError = ref("");
+const hoveredPoint = ref<MapDevicePoint | null>(null);
+const hoverPosition = ref({ x: 18, y: 18 });
 let mapInstance: TencentMapInstance | null = null;
 let markerLayer: InstanceType<TencentMultiMarkerConstructor> | null = null;
 let polygonLayer: InstanceType<TencentMultiPolygonConstructor> | null = null;
@@ -146,6 +170,7 @@ let resizeObserver: ResizeObserver | null = null;
 
 const DEFAULT_MAP_ZOOM = 13;
 const DEVICE_FOCUS_ZOOM = 15;
+const COMPACT_DEVICE_FOCUS_ZOOM = 18;
 
 onMounted(() => {
   // #ifdef H5
@@ -246,6 +271,9 @@ function initMap() {
   renderRegions();
   renderMarkers();
   map.on?.("zoom", renderRegions);
+  if (props.compact && props.selectedDeviceNumber) {
+    window.setTimeout(() => focusDevice(props.selectedDeviceNumber), 0);
+  }
 
   bindContainerResizeObserver();
   resizeTimer = window.setTimeout(() => {
@@ -343,6 +371,11 @@ function renderMarkers() {
         emit("device-click", point);
       }
     });
+    layer.on?.("mouseover", showMarkerInfo);
+    layer.on?.("mousemove", showMarkerInfo);
+    layer.on?.("mouseout", () => {
+      hoveredPoint.value = null;
+    });
     markerLayer = layer;
   } else {
     markerLayer.setStyles?.(styles);
@@ -439,8 +472,37 @@ function focusDevice(deviceNumber: string) {
   const coordinate = convertMapCoordinate(point, point.coordinateSystem, "GCJ02");
   mapInstance.easeTo?.({
     center: new TMap.LatLng(coordinate.lat, coordinate.lng),
-    zoom: DEVICE_FOCUS_ZOOM,
+    zoom: props.compact ? COMPACT_DEVICE_FOCUS_ZOOM : DEVICE_FOCUS_ZOOM,
   });
+}
+
+function showMarkerInfo(event: {
+  geometry?: { id?: string; properties?: Record<string, unknown> };
+  originalEvent?: { clientX?: number; clientY?: number };
+}) {
+  const deviceNumber = String(event.geometry?.id || event.geometry?.properties?.deviceNumber || "");
+  const point = props.points.find((item) => item.deviceNumber === deviceNumber);
+  if (!point) return;
+  hoveredPoint.value = point;
+  const rect = mapContainer.value?.getBoundingClientRect();
+  if (rect && event.originalEvent?.clientX !== undefined && event.originalEvent?.clientY !== undefined) {
+    hoverPosition.value = {
+      x: Math.min(rect.width - 245, Math.max(12, event.originalEvent.clientX - rect.left + 14)),
+      y: Math.min(rect.height - 145, Math.max(12, event.originalEvent.clientY - rect.top + 14)),
+    };
+  }
+}
+
+function manualStatusLabel(point: MapDevicePoint) {
+  return analysisStatusText(point.manualStatus);
+}
+
+function deviceStatusLabel(point: MapDevicePoint) {
+  return analysisStatusText(point.status);
+}
+
+function analysisStatusText(status: MapDevicePoint["status"]) {
+  return t(status === "suspect" ? "suspect" : status);
 }
 
 function fitDevices() {
@@ -473,6 +535,13 @@ watch(
     renderMarkers();
   },
   { deep: true },
+);
+
+watch(
+  () => props.compact,
+  () => {
+    if (props.compact && props.selectedDeviceNumber) focusDevice(props.selectedDeviceNumber);
+  },
 );
 
 watch(
@@ -578,6 +647,23 @@ function scheduleMapResize() {
   border: 1px solid #fecdd3;
   border-radius: 6px;
 }
+.device-hover-card {
+  position: absolute;
+  z-index: 4;
+  width: 220px;
+  padding: 10px 12px;
+  pointer-events: none;
+  color: #334155;
+  background: rgba(255, 255, 255, .97);
+  border: 1px solid #cbd8e5;
+  border-left: 4px solid #1686a0;
+  border-radius: 5px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, .18);
+}
+.device-hover-card__title { display: block; margin-bottom: 6px; color: #172b3a; font-size: 14px; font-weight: 900; }
+.device-hover-card__row { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 8px; font-size: 11px; line-height: 20px; }
+.device-hover-card__row text:first-child { color: #64748b; font-weight: 800; }
+.device-hover-card__row text:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .leak-map--compact,
 .leak-map--compact .leak-map__canvas {
   min-height: 0;

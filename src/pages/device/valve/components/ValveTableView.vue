@@ -68,7 +68,7 @@ const selectedId=ref<number|null>(null);
 
 const columns:XDataColumn[]=[
   {key:'pipelineName',label:t('valve.table.pipelineName'),width:160,className:'data-cell--text'},
-  {key:'valveNumber',label:t('valve.table.valveNumber'),width:140,className:'data-cell--text'},
+  {key:'valveNumber',label:t('valve.table.valveNumber'),width:140,className:'data-cell--number'},
   {key:'valveName',label:t('valve.table.valveName'),width:140,className:'data-cell--text'},
   {key:'coordinatePosition',label:t('valve.table.coordinatePosition'),width:180,className:'data-cell--address',formatter:v=>v||'-'},
   {key:'branchCompany',label:t('valve.table.branchCompany'),width:140,className:'data-cell--text'},

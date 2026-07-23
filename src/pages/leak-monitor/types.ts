@@ -28,11 +28,11 @@ export interface LeakMonitorDevice {
   deviceNumber: string;
   model: string;
   status: LeakDeviceStatus;
-  statusText: string;
+  statusText: LeakDeviceStatus;
   manualStatus: LeakDeviceStatus;
-  manualStatusText: string;
+  manualStatusText: LeakDeviceStatus;
   algorithmStatus: LeakDeviceStatus;
-  algorithmStatusText: string;
+  algorithmStatusText: LeakDeviceStatus;
   leakProperty: number | null;
   onlineStatus: number | null;
   regionId: string | number | null;
@@ -47,11 +47,27 @@ export interface MapDevicePoint {
   deviceNumber: string;
   title: string;
   status: LeakDeviceStatus;
+  manualStatus: LeakDeviceStatus;
+  algorithmStatus: LeakDeviceStatus;
   leakProperty: number | null;
+  onlineStatus?: number | null;
+  installAddress?: string;
+  model?: string;
   regionId: string | number | null;
   coordinateSystem: CoordinateSystem;
   lat: number;
   lng: number;
+}
+
+export interface NearbyAnalysisDevice {
+  deviceNumber: string;
+  distanceKm: number;
+  signalprocessingResults: unknown[];
+}
+
+export interface CorrelationAudioOption extends AudioRecord {
+  audioTime: string;
+  intensity: number | null;
 }
 
 export interface MapRegion {

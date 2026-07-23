@@ -11,9 +11,11 @@ import type {
   LeakMonitorFilters,
   MapCoordinate,
   MapRegion,
+  NearbyAnalysisDevice,
   ManualAnalysisPayload,
   ManualAnalysisRecord,
   MaintenanceRecord,
+  CorrelationAudioOption,
 } from "@/pages/leak-monitor/types";
 import { normalizeCoordinateSystem } from "@/pages/leak-monitor/coordinateTransform";
 
@@ -50,12 +52,12 @@ function toNumber(value: unknown): number | undefined {
   return undefined;
 }
 
-function normalizeAnalysisStatus(value: unknown): { status: LeakDeviceStatus; text: string } {
+function normalizeAnalysisStatus(value: unknown): { status: LeakDeviceStatus } {
   const code = toNumber(value);
-  if (code === 1) return { status: "normal", text: "正常" };
-  if (code === 2) return { status: "suspect", text: "疑似" };
-  if (code === 0) return { status: "leak", text: "渗漏" };
-  return { status: "unknown", text: "未知" };
+  if (code === 1) return { status: "normal" };
+  if (code === 2) return { status: "suspect" };
+  if (code === 0) return { status: "leak" };
+  return { status: "unknown" };
 }
 
 function parseCoordinate(value: unknown): Partial<MapCoordinate> {
@@ -113,11 +115,11 @@ export function normalizeLeakDevice(
     deviceNumber,
     model: toText(record.model || record.deviceType, "--"),
     status: status.status,
-    statusText: status.text,
+    statusText: status.status,
     manualStatus: manualStatus.status,
-    manualStatusText: manualStatus.text,
+    manualStatusText: manualStatus.status,
     algorithmStatus: algorithmStatus.status,
-    algorithmStatusText: algorithmStatus.text,
+    algorithmStatusText: algorithmStatus.status,
     leakProperty: leakProperty ?? null,
     onlineStatus: toNumber(record.deviceStatus ?? record.onlineStatus) ?? null,
     regionId: (record.regionId ?? record.deptId ?? record.departmentId ?? null) as string | number | null,
@@ -217,6 +219,19 @@ export function getLeakMonitorAudioPage(data: Record<string, unknown>) {
   return postRequest("/api/data-query/audio/page", data);
 }
 
+export function getLeakMonitorDailyLatestAudioByDate(
+  deviceNumber: string,
+  date: string,
+) {
+  return getRequest(
+    `/api/data-query/audio/daily-latest/${encodeURIComponent(deviceNumber)}`,
+    {
+      startDate: date,
+      endDate: date,
+    },
+  );
+}
+
 export function getLeakMonitorFeatureTrend(
   deviceNumber: string,
   params: { startTime: string; endTime: string },
@@ -244,6 +259,13 @@ export function getLeakMonitorDailyLatestAudio(
     parseStatus: "success",
     ...params,
   });
+}
+
+export function getLeakMonitorNearbyAnalysis(deviceNumber: string, radiusKm: number) {
+  return getRequest(
+    `/api/device-query/nearby-analysis/${encodeURIComponent(deviceNumber)}`,
+    { radiusKm },
+  );
 }
 
 export function getLeakMonitorMaintenancePage(deviceNumber: string) {
@@ -334,6 +356,96 @@ export async function fetchLeakMonitorLatestAudio(
   const data = unwrapData<Record<string, unknown>>(response) || {};
   const records = Array.isArray(data.records) ? data.records : [];
   return (records[0] || null) as AudioRecord | null;
+}
+
+export async function fetchLeakMonitorAudioOptions(
+  deviceNumber: string,
+  pageSize = 20,
+): Promise<CorrelationAudioOption[]> {
+  const response = await getLeakMonitorAudioPage({
+    pageNum: 1,
+    pageSize,
+    sortOrder: "desc",
+    sortField: "createdAt",
+    deviceNumber,
+    parseStatus: "success",
+  });
+  const options: CorrelationAudioOption[] = [];
+  extractRecords(unwrapData<unknown>(response)).forEach((item) => {
+    const row = item && typeof item === "object" ? item as Record<string, unknown> : {};
+    const audioId = Number(row.audioId ?? row.id);
+    if (Number.isFinite(audioId)) {
+      options.push({
+        ...row,
+        audioId,
+        deviceNumber,
+        audioTime: toText(
+          row.audioTime ?? row.samplingTime ?? row.time ?? row.createdAt ?? row.parseTime,
+        ),
+        intensity: toNumber(
+          row.noiseValue ?? row.intensity ?? row.soundLevel ?? row.leakEsa,
+        ) ?? null,
+      });
+    }
+  });
+  return options;
+}
+
+export async function fetchLeakMonitorDailyLatestAudioOption(
+  deviceNumber: string,
+  date: string,
+): Promise<CorrelationAudioOption[]> {
+  const response = await getLeakMonitorDailyLatestAudioByDate(deviceNumber, date);
+  const data = unwrapData<unknown>(response);
+  const records = Array.isArray(data)
+    ? data
+    : extractRecords(data).length
+      ? extractRecords(data)
+      : data && typeof data === "object"
+        ? [data]
+        : [];
+
+  return records.flatMap((item) => {
+    const row = item && typeof item === "object"
+      ? item as Record<string, unknown>
+      : {};
+    const audioId = Number(row.audioId ?? row.audioFileId ?? row.id);
+    if (!Number.isFinite(audioId)) return [];
+    return [{
+      ...row,
+      audioId,
+      deviceNumber,
+      audioTime: toText(
+        row.audioTime ?? row.samplingTime ?? row.time ?? row.createdAt ?? row.parseTime,
+      ),
+      intensity: toNumber(
+        row.noiseValue ?? row.intensity ?? row.soundLevel ?? row.leakEsa,
+      ) ?? null,
+    } satisfies CorrelationAudioOption];
+  });
+}
+
+export async function fetchLeakMonitorNearbyAnalysis(
+  deviceNumber: string,
+  radiusKm: number,
+): Promise<NearbyAnalysisDevice[]> {
+  const response = await getLeakMonitorNearbyAnalysis(deviceNumber, radiusKm);
+  const data = unwrapData<unknown>(response);
+  const records = Array.isArray(data) ? data : extractRecords(data);
+  return records
+    .map((item) => {
+      const row = item && typeof item === "object" ? item as Record<string, unknown> : {};
+      const nearbyDeviceNumber = toText(row.deviceNumber);
+      if (!nearbyDeviceNumber) return null;
+      return {
+        deviceNumber: nearbyDeviceNumber,
+        distanceKm: toNumber(row.distanceKm) ?? 0,
+        signalprocessingResults: Array.isArray(row.signalprocessingResults)
+          ? row.signalprocessingResults
+          : [],
+      } satisfies NearbyAnalysisDevice;
+    })
+    .filter((item): item is NearbyAnalysisDevice => Boolean(item));
 }
 
 export async function fetchLeakMonitorTrend(

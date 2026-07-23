@@ -67,15 +67,15 @@ defineExpose({
 const loading = ref(false);
 const deviceProtocolList = ref<DeviceProtocolRelationVO[]>([]);
 const columns:XDataColumn[]=[
-  {key:'protocolCode',labelKey:'deviceProtocol.table.protocolCode',width:240,className:'data-cell--remark'},
-  {key:'protocolName',labelKey:'deviceProtocol.table.protocolName',width:240,className:'data-cell--remark'},
+  {key:'protocolCode',labelKey:'deviceProtocol.table.protocolCode',width:240,className:'data-cell--remark',tooltip:true},
+  {key:'protocolName',labelKey:'deviceProtocol.table.protocolName',width:240,className:'data-cell--remark',tooltip:true},
   {key:'protocolVersion',labelKey:'deviceProtocol.table.protocolVersion',width:160,className:'data-cell--text'},
   {key:'afn',labelKey:'deviceProtocol.table.afn',width:120,className:'data-cell--text'},
   {key:'taskType',labelKey:'deviceProtocol.table.taskType',width:120,className:'data-cell--text'},
   {key:'contentPrefix',labelKey:'deviceProtocol.table.contentPrefix',width:160,className:'data-cell--text'},
   {key:'priority',labelKey:'deviceProtocol.table.priority',width:100,className:'data-cell--number',formatter:v=>v??'-'},
   {key:'enabled',labelKey:'deviceProtocol.table.enabled',width:120,options:enableStateBooleanOptions},
-  {key:'description',labelKey:'deviceProtocol.table.description',width:240,className:'data-cell--remark',formatter:v=>v||'-'},
+  {key:'description',labelKey:'deviceProtocol.table.description',width:240,className:'data-cell--remark',formatter:v=>v||'-',tooltip:true},
   {key:'updatedAt',labelKey:'deviceProtocol.table.updatedAt',width:180,className:'data-cell--time',formatter:v=>formatDate(v||'-')}
 ];
 

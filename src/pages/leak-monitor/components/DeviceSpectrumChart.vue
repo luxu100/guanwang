@@ -7,6 +7,17 @@
     <!-- #ifdef H5 -->
     <div ref="chartEl" class="chart-panel__canvas"></div>
     <!-- #endif -->
+    <view
+      v-if="mode === 'history3d' && (loading || !chartReady)"
+      class="chart-panel__loading"
+    >
+      <image
+        class="chart-panel__loading-icon"
+        src="/static/icons/loadin_minior.svg"
+        mode="aspectFit"
+      />
+      <text>{{ t("loadingHistory") }}</text>
+    </view>
     <!-- #ifndef H5 -->
     <view class="chart-panel__fallback">{{ t("currentChartH5Only") }}</view>
     <!-- #endif -->
@@ -36,6 +47,7 @@ const props = withDefaults(defineProps<{
   series?: NamedSeries[];
   xMaximum?: number;
   yMaximum?: number;
+  loading?: boolean;
 }>(), {
   data: () => [],
   matrix: () => [],
@@ -43,11 +55,14 @@ const props = withDefaults(defineProps<{
   series: () => [],
   xMaximum: 0,
   yMaximum: 0,
+  loading: false,
 });
 
 const chartEl = ref<HTMLElement | null>(null);
+const chartReady = ref(false);
 let chart: echarts.ECharts | null = null;
 let resizeObserver: ResizeObserver | null = null;
+let renderFallbackTimer: ReturnType<typeof window.setTimeout> | null = null;
 
 const unitLabel = computed(() => {
   if (props.mode === "waveform") return t("amplitude");
@@ -57,13 +72,15 @@ const unitLabel = computed(() => {
 
 onMounted(() => void nextTick(renderChart));
 onBeforeUnmount(() => {
+  if (renderFallbackTimer) window.clearTimeout(renderFallbackTimer);
   resizeObserver?.disconnect();
   chart?.dispose();
+  renderFallbackTimer = null;
   resizeObserver = null;
   chart = null;
 });
 watch(
-  () => [props.mode, props.data, props.matrix, props.labels, props.series, props.xMaximum, props.yMaximum],
+  () => [props.mode, props.data, props.matrix, props.labels, props.series, props.xMaximum, props.yMaximum, props.loading],
   renderChart,
   { deep: true },
 );
@@ -143,7 +160,7 @@ function valueTooltip(xLabel: string, yLabel: string, xDigits = 2) {
       item?.marker ? item.marker + (item.seriesName || "") : "",
       `${xLabel}: ${Number(value[0] ?? 0).toFixed(xDigits)}`,
       `${yLabel}: ${Number(value[1] ?? 0).toFixed(3)}`,
-    ].filter(Boolean).join("<br/>");
+    ].filter(Boolean).join("\n");
   };
 }
 
@@ -186,14 +203,15 @@ function buildHistoryOption(): echarts.EChartsOption {
     color: palette,
     tooltip: {
       trigger: "item",
+      renderMode: "richText",
       formatter(params: any) {
         const value = params?.value || [];
         return [
-          params?.marker + (params?.seriesName || ""),
+          String(params?.seriesName || ""),
           `${t("frequency")}: ${Number(value[0] || 0).toFixed(1)}`,
           `${t("dateLayer")}: ${String(value[1] || params?.seriesName || "")}`,
           `${t("amplitude")}: ${Number(value[2] || 0).toFixed(2)}`,
-        ].join("<br/>");
+        ].join("\n");
       },
     },
     toolbox: {
@@ -207,10 +225,10 @@ function buildHistoryOption(): echarts.EChartsOption {
       },
     },
     grid3D: {
-      left: 8,
-      right: 8,
-      top: 8,
-      bottom: 4,
+      left: 28,
+      right: 0,
+      top: 0,
+      bottom: 2,
       boxWidth: 210,
       boxDepth: Math.max(72, Math.min(132, dates.length * 18)),
       boxHeight: 112,
@@ -230,10 +248,11 @@ function buildHistoryOption(): echarts.EChartsOption {
         areaStyle: { color: ["rgba(248,250,252,.72)", "rgba(241,245,249,.42)"] },
       },
       viewControl: {
+        center: [0, -20, 0],
         projection: "perspective",
-        alpha: 20,
-        beta: -34,
-        distance: 200,
+        alpha: 30,
+        beta: 2,
+        distance: 220,
         minDistance: 88,
         maxDistance: 300,
         rotateSensitivity: 1,
@@ -322,6 +341,7 @@ function buildOption(): echarts.EChartsOption {
       backgroundColor: "#ffffff",
       tooltip: {
         trigger: "item",
+        renderMode: "richText",
         axisPointer: { type: "cross" },
         formatter(params: any) {
           const timeIndex = Number(params.value[0]);
@@ -330,7 +350,7 @@ function buildOption(): echarts.EChartsOption {
             `${t("time")}: ${timeLabels[timeIndex] || "0.00"} s`,
             `${t("frequency")}: ${frequencyLabels[frequencyIndex] || "0.0"}`,
             `${t("intensity")}: ${Number(params.value[2]).toFixed(2)}`,
-          ].join("<br/>");
+          ].join("\n");
         },
       },
       toolbox: toolbox(),
@@ -427,6 +447,7 @@ function buildOption(): echarts.EChartsOption {
     animation: false,
     tooltip: {
       trigger: "axis",
+      renderMode: "richText",
       axisPointer: { type: "cross", snap: true },
       formatter: valueTooltip(xLabel, yLabel, isSpectrum ? 1 : 3),
     },
@@ -465,25 +486,51 @@ function renderChart() {
   if (!chartEl.value) return;
   if (!chart) {
     chart = echarts.init(chartEl.value);
+    chart.on("finished", markChartReady);
     resizeObserver = new ResizeObserver(() => chart?.resize());
     resizeObserver.observe(chartEl.value);
   }
+  if (props.mode === "history3d") chartReady.value = false;
   chart.setOption(buildOption(), true);
+  scheduleRenderFallback();
+}
+
+function markChartReady() {
+  chartReady.value = true;
+  if (renderFallbackTimer) {
+    window.clearTimeout(renderFallbackTimer);
+    renderFallbackTimer = null;
+  }
+}
+
+function scheduleRenderFallback() {
+  if (props.mode !== "history3d") {
+    chartReady.value = true;
+    return;
+  }
+  if (renderFallbackTimer) window.clearTimeout(renderFallbackTimer);
+  // Some WebGL implementations do not emit ECharts' finished event reliably.
+  renderFallbackTimer = window.setTimeout(markChartReady, 1600);
 }
 </script>
 
 <style scoped lang="scss">
 .chart-panel {
   position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
   height: 250px;
+  overflow: hidden;
   background: #fff;
   border: 1px solid #e1e8f0;
   border-radius: 5px;
 }
 .chart-panel--large {
-  height: clamp(520px, calc(100vh - 560px), 680px);
-  min-height: 520px;
+  height: clamp(420px, 48vh, 540px);
+  min-height: 420px;
+  max-height: calc(var(--shell-viewport-height, 100vh) - 300px);
 }
 .chart-panel__header {
   position: absolute;
@@ -500,6 +547,43 @@ function renderChart() {
 }
 .chart-panel__title { color: #26384d; font-size: 13px; font-weight: 800; }
 .chart-panel__unit { color: #64748b; font-size: 11px; font-weight: 700; }
-.chart-panel__canvas { position: absolute; top: 30px; right: 0; bottom: 0; left: 0; width: 100%; height: auto; }
+.chart-panel__canvas {
+  position: absolute;
+  top: 30px;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  height: calc(100% - 30px);
+  min-height: 0;
+  overflow: hidden;
+}
+.chart-panel__loading {
+  position: absolute;
+  inset: 30px 0 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px;
+  color: #52677d;
+  font-size: 12px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.95);
+}
+.chart-panel__loading-icon {
+  width: 38px;
+  height: 38px;
+  animation: chart-loading-spin 1.05s linear infinite;
+}
 .chart-panel__fallback { color: #64748b; font-size: 14px; line-height: 250px; text-align: center; }
+
+@keyframes chart-loading-spin {
+  to { transform: rotate(360deg); }
+}
 </style>

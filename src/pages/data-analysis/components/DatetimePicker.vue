@@ -79,6 +79,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref } from "vue";
+import { useI18n } from "@/i18n";
 
 type TimeKey = "hour" | "minute" | "second";
 
@@ -110,7 +111,13 @@ const emit = defineEmits<{
   (event: "update:modelValue", value: string): void;
 }>();
 
-const weekLabels = ["日", "一", "二", "三", "四", "五", "六"];
+const { locale } = useI18n();
+
+const weekLabels = computed(() => {
+  return locale.value === "en-US"
+    ? ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    : ["日", "一", "二", "三", "四", "五", "六"];
+});
 const panelVisible = ref(false);
 const activeTab = ref<"date" | "time">("date");
 const draft = reactive({

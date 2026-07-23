@@ -70,7 +70,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import type { Device, DeviceProduct, Dept, TubeNetwork } from '@/services/device/types';
+import type {Device, DeviceProduct, Dept, TubeNetwork, DeptVO} from '@/services/device/types';
 import {
   getDeviceProductByIdT,
   getDeptByIdT,
@@ -401,7 +401,6 @@ function resolveValue(field:FieldConfig){
 
   if(field.key==='productName') value=product.value?.productName;
   else if(field.key==='tubeName') value=tube.value?.tubeName;
-  else if(field.key==='deptName') value=dept.value?.deptName;
   else value=props.deviceData[field.key as keyof Device];
 
   if(field.type==='date') return formatDate(value);
@@ -429,15 +428,63 @@ function resolveSections(config:SectionConfig[]){
 }
 
 
-const currentSections=computed(()=>{
-  const sections =
-      detailTabConfig.value[activeTab.value];
-  if(!sections){
+const currentSections = computed(() => {
+  const sections = detailTabConfig.value[activeTab.value];
+  if (!sections) {
     return [];
   }
-  return resolveSections(sections);
+  // 非关联信息保持原来的逻辑
+  if (activeTab.value !== 'relation') {
+    return resolveSections(sections);
+  }
+  const result = [];
+  for (const section of sections) {
+    // product
+    if (section.key === 'product') {
+      result.push({
+        key: section.key,
+        title: section.title,
+        fields: section.fields.map(field => ({
+          key: field.key,
+          label: field.label,
+          value: product.value?.[field.key as keyof DeviceProduct] ?? '--',
+          span: 'full'
+        }))
+      });
+      continue;
+    }
+    // tube
+    if (section.key === 'tube') {
+      result.push({
+        key: section.key,
+        title: section.title,
+        fields: section.fields.map(field => ({
+          key: field.key,
+          label: field.label,
+          value: tube.value?.[field.key as keyof TubeNetwork] ?? '--',
+          span: 'full'
+        }))
+      });
+      continue;
+    }
+    // dept（重点）
+    if (section.key === 'dept') {
+      depts.value.forEach((dept,index)=>{
+        result.push({
+          key:`dept-${index}`,
+          title:`${section.title} ${index+1}`,
+          fields:section.fields.map(field=>({
+            key:field.key,
+            label:field.label,
+            value:dept[field.key as keyof DeptVO] ?? '--',
+            span: 'full'
+          }))
+        });
+      });
+    }
+  }
+  return result;
 });
-
 
 const getDeviceStatusLabel=computed(()=>{
   const s=props.deviceData.onlineStatus;
@@ -461,7 +508,7 @@ watch(()=>props.deviceData.id,async id=>{
 
 const product=ref<DeviceProduct>();
 const tube=ref<TubeNetwork>();
-const dept=ref<Dept>();
+const depts = ref<DeptVO[]>([]);
 
 async function loadRelationData(device: Partial<Device>) {
   if (!device.id) return;
@@ -470,7 +517,7 @@ async function loadRelationData(device: Partial<Device>) {
 
   product.value = res.data?.product;
   tube.value = res.data?.tube;
-  dept.value = res.data?.dept;
+  depts.value = res.data?.depts ?? [];
 }
 </script>
 

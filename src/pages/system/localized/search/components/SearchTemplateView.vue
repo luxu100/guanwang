@@ -76,7 +76,7 @@
             <text class="pqt-card__title">动态协议解析字段查询模板</text>
             <text class="pqt-card__subtitle">一个模板只能从一个协议下选择部分字段</text>
           </view>
-          <text class="pqt-card__meta">共 {{ displayTotal }} 条</text>
+          <text class="pqt-card__meta">{{ localizedTotal(displayTotal) }}</text>
         </view>
 
         <scroll-view class="pqt-table-scroll" scroll-x scroll-y>
@@ -110,7 +110,7 @@
               <view class="pqt-cell pqt-cell--count">{{ getFieldNames(item).length }}</view>
               <view class="pqt-cell pqt-cell--status">
                 <text class="pqt-status" :class="{ 'pqt-status--disabled': !getEnabled(item) }">
-                  {{ getEnabled(item) ? "启用" : "停用" }}
+                  {{ getEnabledLabel(getEnabled(item)) }}
                 </text>
               </view>
               <view class="pqt-cell pqt-cell--remark">{{ getText(item, ["remark"], "-") }}</view>
@@ -121,7 +121,7 @@
 
         <view class="pqt-pagination">
           <view class="pqt-page-size">
-            <text class="pqt-page-info">每页</text>
+            <text class="pqt-page-info">{{ localeText("每页", "Per page") }}</text>
             <input
               v-model="pageSizeInputValue"
               class="pqt-page-size__input"
@@ -130,11 +130,11 @@
               @confirm="commitPageSizeInput"
               @blur="commitPageSizeInput"
             />
-            <text class="pqt-page-info">条</text>
+            <text class="pqt-page-info">{{ localeText("条", "items") }}</text>
           </view>
-          <button class="pqt-page-button" :disabled="pagination.pageNum <= 1" hover-class="pqt-page-button--hover" @click="changePage(-1)">上一页</button>
+          <button class="pqt-page-button" :disabled="pagination.pageNum <= 1" hover-class="pqt-page-button--hover" @click="changePage(-1)">{{ localeText("上一页", "Previous") }}</button>
           <view class="pqt-page-jump">
-            <text class="pqt-page-info">第</text>
+            <text class="pqt-page-info">{{ localeText("第", "Page") }}</text>
             <input
               v-model="pageInputValue"
               class="pqt-page-input"
@@ -143,9 +143,9 @@
               @confirm="commitPageInput"
               @blur="commitPageInput"
             />
-            <text class="pqt-page-info">/ {{ totalPages }} 页</text>
+            <text class="pqt-page-info">/ {{ totalPages }} {{ localeText("页", "pages") }}</text>
           </view>
-          <button class="pqt-page-button" :disabled="pagination.pageNum >= totalPages" hover-class="pqt-page-button--hover" @click="changePage(1)">下一页</button>
+          <button class="pqt-page-button" :disabled="pagination.pageNum >= totalPages" hover-class="pqt-page-button--hover" @click="changePage(1)">{{ localeText("下一页", "Next") }}</button>
         </view>
       </view>
 
@@ -210,7 +210,7 @@
               <view class="pqt-fields__head">
                 <text class="pqt-form__label pqt-form__label--required">模板字段</text>
                 <view class="pqt-fields__head-actions">
-                  <text class="pqt-fields__count">已选 {{ selectedFieldNames.length }} / {{ protocolFields.length }}</text>
+                  <text class="pqt-fields__count">{{ localizedSelectedCount(selectedFieldNames.length, protocolFields.length) }}</text>
                   <button
                     class="pqt-btn pqt-btn--primary pqt-btn--compact pqt-fields__select-btn"
                     :disabled="!form.protocolId"
@@ -293,7 +293,7 @@
         </scroll-view>
 
         <view class="pqt-modal__foot">
-          <text class="pqt-fields__count">已选 {{ dialogFieldNames.length }} / {{ protocolFields.length }}</text>
+          <text class="pqt-fields__count">{{ localizedSelectedCount(dialogFieldNames.length, protocolFields.length) }}</text>
           <view class="pqt-modal__actions">
             <button class="pqt-btn" hover-class="pqt-btn--hover" @click="closeFieldDialog">取消</button>
             <button class="pqt-btn pqt-btn--primary" hover-class="pqt-btn--hover" @click="confirmFieldDialog">确定</button>
@@ -306,6 +306,12 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
+import { useLocaleText, useLocalizedTotal } from "@/i18n/localeText";
+
+const localeText = useLocaleText();
+const localizedTotal = useLocalizedTotal();
+const localizedSelectedCount = (selected: number, total: number) =>
+  localeText(`已选 ${selected} / ${total}`, `Selected ${selected} / ${total}`);
 import { getProtocolDefinitionList } from "@/services/data-receive/access";
 import { getFieldsByProtocol } from "@/services/data-receive/parse";
 import {
@@ -331,25 +337,25 @@ interface Option<T = string | boolean> {
   value: T;
 }
 
-const scopeFilterOptions: Option<string>[] = [
-  { label: "全部", value: "" },
-  { label: "全局", value: "GLOBAL" },
-  { label: "协议", value: "PROTOCOL" },
-  { label: "设备", value: "DEVICE" },
-];
+const scopeFilterOptions = computed<Option<string>[]>(() => [
+  { label: localeText("全部", "All"), value: "" },
+  { label: localeText("全局", "Global"), value: "GLOBAL" },
+  { label: localeText("协议", "Protocol"), value: "PROTOCOL" },
+  { label: localeText("设备", "Device"), value: "DEVICE" },
+]);
 
-const scopeOptions = scopeFilterOptions.slice(1);
+const scopeOptions = computed(() => scopeFilterOptions.value.slice(1));
 
-const enabledFilterOptions: Option<string | boolean>[] = [
-  { label: "全部", value: "" },
-  { label: "启用", value: true },
-  { label: "停用", value: false },
-];
+const enabledFilterOptions = computed<Option<string | boolean>[]>(() => [
+  { label: localeText("全部", "All"), value: "" },
+  { label: localeText("启用", "Enabled"), value: true },
+  { label: localeText("停用", "Disabled"), value: false },
+]);
 
-const recordEnabledOptions: Option<boolean>[] = [
-  { label: "启用", value: true },
-  { label: "停用", value: false },
-];
+const recordEnabledOptions = computed<Option<boolean>[]>(() => [
+  { label: localeText("启用", "Enabled"), value: true },
+  { label: localeText("停用", "Disabled"), value: false },
+]);
 const templates = ref<SearchTemplateItem[]>([]);
 const protocols = ref<RecordLike[]>([]);
 const protocolFields = ref<RecordLike[]>([]);
@@ -400,17 +406,17 @@ const displayTotal = computed(() => total.value || templates.value.length);
 const totalPages = computed(() => Math.max(1, Math.ceil(displayTotal.value / pagination.pageSize)));
 
 const currentScopeFilterLabel = computed(
-  () => scopeFilterOptions.find((item) => item.value === filters.scopeType)?.label || "全部",
+  () => scopeFilterOptions.value.find((item) => item.value === filters.scopeType)?.label || localeText("全部", "All"),
 );
 
 const currentEnabledFilterLabel = computed(
-  () => enabledFilterOptions.find((item) => item.value === filters.enabled)?.label || "全部",
+  () => enabledFilterOptions.value.find((item) => item.value === filters.enabled)?.label || localeText("全部", "All"),
 );
 
 const currentFormScopeLabel = computed(() => getScopeLabel(form.scopeType));
 
 const currentFormEnabledLabel = computed(
-  () => recordEnabledOptions.find((item) => item.value === form.enabled)?.label || "启用",
+  () => recordEnabledOptions.value.find((item) => item.value === form.enabled)?.label || localeText("启用", "Enabled"),
 );
 
 const protocolOptions = computed(() =>
@@ -528,12 +534,16 @@ function getEnabled(item: unknown) {
   return toBoolean(getValue(item, ["enabled"]), true);
 }
 
+function getEnabledLabel(enabled: boolean) {
+  return enabled ? localeText("启用", "Enabled") : localeText("停用", "Disabled");
+}
+
 function getFieldNames(item: unknown) {
   return normalizeStringArray(getValue(item, ["fieldNames"]));
 }
 
 function getScopeLabel(value: string) {
-  return scopeFilterOptions.find((item) => item.value === value)?.label || value || "全局";
+  return scopeFilterOptions.value.find((item) => item.value === value)?.label || value || localeText("全局", "Global");
 }
 
 function getRowKey(item: unknown, index: number) {
@@ -634,19 +644,19 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 function handleScopeFilterChange(event: { detail: { value: number } }) {
-  filters.scopeType = scopeFilterOptions[event.detail.value]?.value || "";
+  filters.scopeType = scopeFilterOptions.value[event.detail.value]?.value || "";
 }
 
 function handleEnabledFilterChange(event: { detail: { value: number } }) {
-  filters.enabled = enabledFilterOptions[event.detail.value]?.value ?? "";
+  filters.enabled = enabledFilterOptions.value[event.detail.value]?.value ?? "";
 }
 
 function handleFormScopeChange(event: { detail: { value: number } }) {
-  form.scopeType = scopeOptions[event.detail.value]?.value || "PROTOCOL";
+  form.scopeType = scopeOptions.value[event.detail.value]?.value || "PROTOCOL";
 }
 
 function handleFormEnabledChange(event: { detail: { value: number } }) {
-  form.enabled = recordEnabledOptions[event.detail.value]?.value ?? true;
+  form.enabled = recordEnabledOptions.value[event.detail.value]?.value ?? true;
 }
 
 function handleProtocolChange(event: { detail: { value: number } }) {

@@ -2,6 +2,25 @@
   <view class="google-map" :class="{ 'google-map--compact': compact }">
     <!-- #ifdef H5 -->
     <div ref="mapContainer" class="google-map__canvas"></div>
+    <view
+      v-if="hoveredPoint"
+      class="device-hover-card"
+      :style="{ left: `${hoverPosition.x}px`, top: `${hoverPosition.y}px` }"
+    >
+      <text class="device-hover-card__title">{{ hoveredPoint.deviceNumber }}</text>
+      <view class="device-hover-card__row">
+        <text>{{ t("leakStatusLabel") }}</text><text>{{ manualStatusLabel(hoveredPoint) }}</text>
+      </view>
+      <view class="device-hover-card__row">
+        <text>{{ t("deviceStatus") }}</text><text>{{ deviceStatusLabel(hoveredPoint) }}</text>
+      </view>
+      <view class="device-hover-card__row">
+        <text>{{ t("featureValue") }}</text><text>{{ hoveredPoint.leakProperty ?? "-" }}</text>
+      </view>
+      <view class="device-hover-card__row">
+        <text>{{ t("address") }}</text><text>{{ hoveredPoint.installAddress || "-" }}</text>
+      </view>
+    </view>
     <view v-if="mapError" class="google-map__error">{{ mapError }}</view>
     <!-- #endif -->
 
@@ -25,6 +44,8 @@ const { language, t } = useLeakMonitorI18n();
 
 const mapContainer = ref<HTMLElement | null>(null);
 const mapError = ref("");
+const hoveredPoint = ref<MapDevicePoint | null>(null);
+const hoverPosition = ref({ x: 18, y: 18 });
 
 const props = withDefaults(
   defineProps<{
@@ -60,6 +81,7 @@ let resizeTimer: ReturnType<typeof window.setTimeout> | null = null;
 
 const DEFAULT_MAP_ZOOM = 13;
 const DEVICE_FOCUS_ZOOM = 15;
+const COMPACT_DEVICE_FOCUS_ZOOM = 18;
 
 onMounted(() => {
   void nextTick(() => {
@@ -105,6 +127,9 @@ async function initMap() {
     });
     renderRegions();
     renderMarkers();
+    if (props.compact && props.selectedDeviceNumber) {
+      window.setTimeout(() => focusDevice(props.selectedDeviceNumber), 0);
+    }
     mapInstance.addListener("zoom_changed", renderRegions);
     bindContainerResizeObserver();
     scheduleMapResize();
@@ -185,6 +210,13 @@ function renderMarkers() {
     });
 
     marker.addListener("click", () => emit("device-click", point));
+    marker.addListener("mouseover", () => {
+      hoveredPoint.value = point;
+      updateHoverPosition(position);
+    });
+    marker.addListener("mouseout", () => {
+      hoveredPoint.value = null;
+    });
     return marker;
   });
 }
@@ -240,7 +272,38 @@ function focusDevice(deviceNumber: string) {
   }
 
   mapInstance.panTo(pointPosition(point));
-  mapInstance.setZoom(DEVICE_FOCUS_ZOOM);
+  mapInstance.setZoom(props.compact ? COMPACT_DEVICE_FOCUS_ZOOM : DEVICE_FOCUS_ZOOM);
+}
+
+function updateHoverPosition(position: { lat: number; lng: number }) {
+  if (!mapInstance || !mapContainer.value || typeof google === "undefined") return;
+  const bounds = mapInstance.getBounds();
+  if (!bounds) return;
+  const northEast = bounds.getNorthEast();
+  const southWest = bounds.getSouthWest();
+  const lngSpan = northEast.lng() - southWest.lng();
+  const latSpan = northEast.lat() - southWest.lat();
+  if (!lngSpan || !latSpan) return;
+  const width = mapContainer.value.clientWidth;
+  const height = mapContainer.value.clientHeight;
+  const x = (position.lng - southWest.lng()) / lngSpan * width;
+  const y = (northEast.lat() - position.lat) / latSpan * height;
+  hoverPosition.value = {
+    x: Math.min(width - 245, Math.max(12, x + 14)),
+    y: Math.min(height - 145, Math.max(12, y + 14)),
+  };
+}
+
+function manualStatusLabel(point: MapDevicePoint) {
+  return analysisStatusText(point.manualStatus);
+}
+
+function deviceStatusLabel(point: MapDevicePoint) {
+  return analysisStatusText(point.status);
+}
+
+function analysisStatusText(status: MapDevicePoint["status"]) {
+  return t(status === "suspect" ? "suspect" : status);
 }
 
 function fitDevices() {
@@ -264,6 +327,13 @@ watch(
   () => props.points,
   () => renderMarkers(),
   { deep: true },
+);
+
+watch(
+  () => props.compact,
+  () => {
+    if (props.compact && props.selectedDeviceNumber) focusDevice(props.selectedDeviceNumber);
+  },
 );
 
 watch(
@@ -391,6 +461,23 @@ function scheduleMapResize() {
   border: 1px solid #fecdd3;
   border-radius: 6px;
 }
+.device-hover-card {
+  position: absolute;
+  z-index: 4;
+  width: 220px;
+  padding: 10px 12px;
+  pointer-events: none;
+  color: #334155;
+  background: rgba(255, 255, 255, .97);
+  border: 1px solid #cbd8e5;
+  border-left: 4px solid #1686a0;
+  border-radius: 5px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, .18);
+}
+.device-hover-card__title { display: block; margin-bottom: 6px; color: #172b3a; font-size: 14px; font-weight: 900; }
+.device-hover-card__row { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 8px; font-size: 11px; line-height: 20px; }
+.device-hover-card__row text:first-child { color: #64748b; font-weight: 800; }
+.device-hover-card__row text:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .google-map--compact,
 .google-map--compact .google-map__canvas {
   min-height: 0;

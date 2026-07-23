@@ -105,7 +105,7 @@ const columns = computed<XDataColumn[]>(()=>{
   if(columnVisible.value.enableState) list.push({ key:'enableState', labelKey:'deviceTable.enableState', width:120, className:'data-cell--status', options:enableStateOptions });
   if(columnVisible.value.installState) list.push({ key:'installState', labelKey:'deviceTable.installState', width:160, className:'data-cell--status', options:installStateOptions });
   if(columnVisible.value.installMode) list.push({ key:'installMode', labelKey:'deviceTable.installMode', width:160, className:'data-cell--status', options:installModeOptions });
-  if(columnVisible.value.installAddress) list.push({ key:'installAddress', labelKey:'deviceTable.installAddress', width:240, className:'data-cell--address', formatter:value=>value || '-' });
+  if(columnVisible.value.installAddress) list.push({ key:'installAddress', labelKey:'deviceTable.installAddress', width:240, className:'data-cell--address', formatter:value=>value || '-' ,tooltip:true });
   if(columnVisible.value.coordinate) list.push({ key:'coordinate', labelKey:'deviceTable.coordinate', width:180, className:'data-cell--coord', bodyClassName:'data-cell--link', type:'coord', formatter:(_,row)=>row.installLongitude===999&&row.installLatitude===999?'-':row.installLongitude&&row.installLatitude?`${row.installLongitude},${row.installLatitude}`:'-' });
   if(columnVisible.value.algorithmType) list.push({ key:'algorithmType', labelKey:'deviceTable.algorithmType', width:150, className:'data-cell--text', options:algorithmTypeOptions });
   if(columnVisible.value.algorithmVersion) list.push({ key:'algorithmVersion', labelKey:'deviceTable.algorithmVersion', width:160, className:'data-cell--text', formatter:value=>value || '-' });
