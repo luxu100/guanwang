@@ -122,7 +122,6 @@
       <view class="detail-panel">
         <view v-if="detailLoading" class="detail-state">正在加载详情…</view>
         <view v-else-if="!selectedDetail" class="detail-state">
-          <text class="detail-state__icon">⌁</text>
           <text>请选择一条记录查看详情</text>
         </view>
 
@@ -144,9 +143,9 @@
               <view class="info-list">
                 <view class="info-row"><text>设备编号</text><text>{{ displayValue(selectedDetail.deviceNumber) }}</text></view>
                 <view class="info-row"><text>指令名称</text><text>{{ displayValue(selectedDetail.commandName) }}</text></view>
-                <view class="info-row"><text>指令码</text><text>{{ displayValue(selectedDetail.commandCode) }}</text></view>
-                <view class="info-row"><text>下发时间</text><text>{{ displayValue(selectedDetail.sendTime || selectedDetail.createdAt) }}</text></view>
-                <view class="info-row"><text>完成时间</text><text>{{ displayValue(selectedDetail.finishTime || selectedDetail.updatedAt) }}</text></view>
+                <view class="info-row"><text>指令类型</text><text>{{ displayValue(selectedDetail.commandCode) }}</text></view>
+                <view class="info-row"><text>下发时间</text><text>{{ formatDateTime(selectedDetail.sendTime) }}</text></view>
+                <view class="info-row"><text>完成时间</text><text>{{ formatDateTime(selectedDetail.expiresAt) }}</text></view>
               </view>
             </view>
             <view class="info-section">
@@ -213,11 +212,11 @@
                 <view class="info-list">
                   <view class="info-row"><text>固件版本</text><text>{{ displayValue(selectedDetail.firmwareVersion) }}</text></view>
                   <view class="info-row"><text>传输通道</text><text>{{ getTransportText(selectedDetail.transportChannel) }}</text></view>
-                  <view class="info-row"><text>开始时间</text><text>{{ displayValue(selectedDetail.startTime || selectedDetail.createdAt) }}</text></view>
-                  <view class="info-row"><text>结束时间</text><text>{{ displayValue(selectedDetail.finishTime) }}</text></view>
+                  <view class="info-row"><text>开始时间</text><text>{{ formatDateTime(selectedDetail.startTime || selectedDetail.createdAt) }}</text></view>
+                  <view class="info-row"><text>结束时间</text><text>{{ formatDateTime(selectedDetail.finishTime) }}</text></view>
                   <view class="info-row"><text>当前会话</text><text class="ellipsis-text" :title="selectedDetail.currentSessionId">{{ displayValue(selectedDetail.currentSessionId) }}</text></view>
-                  <view class="info-row"><text>最后发送</text><text>{{ displayValue(selectedDetail.lastFrameSentAt) }}</text></view>
-                  <view class="info-row"><text>最后上报</text><text>{{ displayValue(selectedDetail.lastReportAt) }}</text></view>
+                  <view class="info-row"><text>最后发送</text><text>{{ formatDateTime(selectedDetail.lastFrameSentAt) }}</text></view>
+                  <view class="info-row"><text>最后上报</text><text>{{ formatDateTime(selectedDetail.lastReportAt) }}</text></view>
                   <view class="info-row"><text>固件 MD5</text><text class="ellipsis-text" :title="selectedDetail.firmwareMd5">{{ displayValue(selectedDetail.firmwareMd5) }}</text></view>
                 </view>
                 <view v-if="selectedDetail.failureReason" class="error-card">{{ selectedDetail.failureReason }}</view>
@@ -240,7 +239,7 @@
                   <text>{{ displayValue(frame.sendRound, "0") }}</text>
                   <text>{{ displayValue(frame.sendAttempts, "0") }}</text>
                   <text class="hex-preview" :title="frame.payloadHex">{{ previewHex(frame.payloadHex) }}</text>
-                  <text>{{ displayValue(frame.lastSentAt) }}</text>
+                  <text>{{ formatDateTime(frame.lastSentAt) }}</text>
                 </view>
               </view>
             </template>
@@ -256,7 +255,7 @@
                 <view v-for="event in events" :key="event.id" class="timeline-item" :class="`timeline-item--${String(event.direction || 'SYSTEM').toLowerCase()}`">
                   <text class="timeline-item__dot"></text>
                   <view class="timeline-item__content">
-                    <view><text class="timeline-item__title">{{ getEventTypeText(event.eventType) }}</text><text class="timeline-item__time">{{ displayValue(event.createdAt) }}</text></view>
+                    <view><text class="timeline-item__title">{{ getEventTypeText(event.eventType) }}</text><text class="timeline-item__time">{{ formatDateTime(event.createdAt) }}</text></view>
                     <text class="timeline-item__meta">{{ getDirectionText(event.direction) }}<template v-if="event.frameIndex !== undefined"> · 帧 {{ event.frameIndex }}</template></text>
                     <text v-if="event.detail" class="timeline-item__detail">{{ event.detail }}</text>
                     <text v-if="event.rawHex" class="timeline-item__hex" :title="event.rawHex">{{ previewHex(event.rawHex) }}</text>
@@ -299,7 +298,7 @@
                 <view class="choice-content">
                   <view><text class="choice-title">{{ displayValue(firmware.firmwareName) }}</text><text class="version-pill">{{ displayValue(firmware.firmwareVersion) }}</text></view>
                   <text class="choice-description">{{ displayValue(firmware.instruction || firmware.remark, "暂无说明") }}</text>
-                  <text class="choice-meta">上传时间：{{ displayValue(firmware.uploadTime || firmware.createdAt) }}</text>
+                  <text class="choice-meta">上传时间：{{ formatDateTime(firmware.uploadTime || firmware.createdAt) }}</text>
                 </view>
               </view>
               <view v-if="!firmwareCandidates.length" class="resource-state">暂无可用固件，请先到固件管理页面上传</view>
@@ -480,8 +479,8 @@ const commandColumns: CommandTableColumn[] = [
   { key: "commandName", label: "指令名称", width: 170 },
   { key: "commandCode", label: "指令码", width: 120 },
   { key: "executeStatus", label: "执行状态", width: 120 },
-  { key: "sendTime", label: "下发时间", width: 170 },
-  { key: "finishTime", label: "完成时间", width: 170 },
+  { key: "sendTime", label: "下发时间", width: 170, formatter: value => formatDateTime(value) },
+  { key: "expiresAt", label: "完成时间", width: 170, formatter: value => formatDateTime(value) },
 ];
 const upgradeColumns: CommandTableColumn[] = [
   { key: "id", label: "任务 ID", width: 90 },
@@ -492,7 +491,7 @@ const upgradeColumns: CommandTableColumn[] = [
   { key: "finishPercent", label: "进度", width: 170 },
   { key: "frameSummary", label: "已收/总帧", width: 110 },
   { key: "repairRound", label: "补帧轮次", width: 100 },
-  { key: "startTime", label: "开始时间", width: 170 },
+  { key: "startTime", label: "开始时间", width: 170, formatter: value => formatDateTime(value) },
 ];
 
 const activeView = ref<RecordView>("COMMAND");
@@ -918,6 +917,7 @@ function normalizeCommandLog(source: ApiRecord = {}) {
     commandCode: source.commandCode ?? source.command ?? source.commandType,
     executeStatus: source.executeStatus ?? source.sendStatus ?? source.status,
     sendTime: source.sendTime ?? source.createdAt ?? source.createTime,
+    expiresAt: source.expiresAt,
     finishTime: source.finishTime ?? source.updatedAt ?? source.updateTime,
   };
 }
@@ -1049,6 +1049,23 @@ function stringifyContent(value: unknown) {
   } catch {
     return String(value);
   }
+}
+
+/** 将后端 ISO 时间统一显示为 YYYY-MM-DD HH:mm:ss，并去掉微秒部分。 */
+function formatDateTime(value: unknown) {
+  if (value === undefined || value === null || value === "") return "--";
+
+  if (typeof value === "number") {
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) {
+      const pad = (part: number) => String(part).padStart(2, "0");
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+    }
+  }
+
+  const text = String(value).trim();
+  const matched = text.match(/^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2}:\d{2})/);
+  return matched ? `${matched[1]} ${matched[2]}` : text;
 }
 
 function displayValue(value: unknown, fallback = "--") {
