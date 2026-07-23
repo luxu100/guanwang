@@ -10,6 +10,7 @@
         @edit="handleEdit"
         @delete="handleDelete"
         @add="handleAdd"
+        @bind-dept="handleBindDept"
     />
 
 
@@ -151,6 +152,7 @@ const deptId = ref<number | null>(null);
 const deptTree = ref<PartitionNode[]>([]);
 
 function handleBindDept(){
+  deptId.value = currentValve.value?.deptId ?? null;
   fetchDeptTree();
   treeVisible.value = true;
 }

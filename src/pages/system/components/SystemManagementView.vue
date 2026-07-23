@@ -704,7 +704,7 @@ const defaultMenuTree: RecordLike[] = [
     status: 1,
     children: [
       { id: `${LOCAL_MENU_ID_PREFIX}command-manage`, permissionName: "指令管理", permissionCode: "page:command:manage", path: "/pages/command/commandManage", parentId: `${LOCAL_MENU_ID_PREFIX}command`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}command-configuration`, permissionName: "指令配置", permissionCode: "page:command:configuration", path: "/pages/command/commandConfiguration", parentId: `${LOCAL_MENU_ID_PREFIX}command`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}command-configuration`, permissionName: "固件管理", permissionCode: "page:command:configuration", path: "/pages/command/commandConfiguration", parentId: `${LOCAL_MENU_ID_PREFIX}command`, permissionType: 1, status: 1 },
     ],
   },
   {

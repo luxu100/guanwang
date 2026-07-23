@@ -82,7 +82,7 @@ const zhCN = {
     deviceStatus: "设备参数",
     command: "指令管理",
     commandManage: "指令管理",
-    commandConfiguration: "指令配置",
+    commandConfiguration: "固件管理",
     dataAnalysis: "数据分析",
     dataAnalysisOverview: "系统总览",
     dataAnalysisAudio: "音频数据",

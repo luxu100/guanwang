@@ -901,7 +901,7 @@ export interface DeviceProtocolRelationVO {
 export interface DeviceRelationInfoVO {
     product?: DeviceProductVO;
     tube?: TubeNetworkVO;
-    dept?: DeptVO;
+    depts?: DeptVO[];
 }
 
 export interface DeviceProductVO {
