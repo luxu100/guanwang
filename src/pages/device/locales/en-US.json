@@ -318,7 +318,7 @@
         "communication": "Communication Information",
         "product": "Product Information",
         "tube": "Pipeline Information",
-        "dept": "Organization Information"
+        "dept": "Partition Information"
       },
 
       "fields": {
