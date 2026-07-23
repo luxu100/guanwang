@@ -1,53 +1,47 @@
 <template>
   <view v-if="visible" class="dialog-mask" @click="closeDialog">
     <view class="dialog-panel" @click.stop>
-      <!-- Header -->
       <view class="dialog-head">
         <view class="dialog-head-content">
           <view class="dialog-title">{{ title }}</view>
-          <view v-if="deptName" class="dialog-dept">
-            {{t('formDialog.departmentPartition')}}：{{ deptName }}
+          <view v-if="deptList.length" class="dept-tabs">
+            <view
+                v-for="dept in deptList"
+                :key="dept.deptId"
+                class="dept-tab"
+                :class="{active: activeDeptId===dept.deptId}"
+                @click="changeDept(dept.deptId)"
+            >
+              {{ dept.deptName }}
+            </view>
           </view>
           <view v-if="subtitle" class="dialog-subtitle">{{ subtitle }}</view>
         </view>
         <button class="icon-button" @click="closeDialog">✕</button>
       </view>
 
-      <!-- Body -->
       <scroll-view scroll-y class="dialog-body">
-        <!-- 加载状态 -->
-        <view v-if="loading" class="empty-state">
-          {{ t('common.table.loading') }}
-        </view>
+        <view v-if="loading" class="empty-state">{{ t('common.table.loading') }}</view>
+        <view v-else-if="!valveList.length" class="empty-state">{{ t('common.table.empty') }}</view>
 
-        <!-- 空状态 -->
-        <view v-else-if="!valveList || valveList.length === 0" class="empty-state">
-          {{ t('common.table.empty') }}
-        </view>
-
-        <!-- 阀门列表 -->
         <view v-else class="valve-list">
           <view
               v-for="(valve,index) in valveList"
               :key="valve.id"
               class="valve-item"
-              :class="{ 'valve-item--active': innerValue === valve.id }"
+              :class="{'valve-item--active':innerValue===valve.id}"
               @click="handleSelect(valve)"
           >
-            <view class="valve-index">
-              {{ (pagination.current - 1) * pagination.size + index + 1 }}
-            </view>
-
+            <view class="valve-index">{{ (pagination.current-1)*pagination.size+index+1 }}</view>
             <view class="valve-info">
               <text class="valve-name">{{ valve.valveName || valve.name || `阀门 ${valve.id}` }}</text>
               <text class="valve-meta">ID: {{ valve.id }}</text>
             </view>
-            <view v-if="innerValue === valve.id" class="valve-check">✓</view>
+            <view v-if="innerValue===valve.id" class="valve-check">✓</view>
           </view>
         </view>
       </scroll-view>
 
-      <!-- 分页组件 -->
       <XPaginationBar
           :current="pagination.current"
           :size="pagination.size"
@@ -56,246 +50,377 @@
           @change-size="handlePageSizeChange"
       />
 
-      <!-- Footer -->
       <view class="dialog-actions">
-        <button class="secondary-button" @click="closeDialog">
-          {{ t('common.cancel') }}
-        </button>
-        <button class="primary-button" @click="confirm">
-          {{ t('common.confirm') }}
-        </button>
+        <button class="secondary-button" @click="closeDialog">{{ t('common.cancel') }}</button>
+        <button class="primary-button" @click="confirm">{{ t('common.confirm') }}</button>
       </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
-import { createScopedT } from "@/i18n";
+import {ref,watch} from "vue";
+import {createScopedT} from "@/i18n";
 import XPaginationBar from "@/pages/device/components/x/table/XPaginationBar.vue";
-import type { Pagination } from "@/types/api";
-import { getValvePageT } from "@/services/device/valve.typed";
+import type {Pagination} from "@/types/api";
+import {getValvePageT} from "@/services/device/valve.typed";
+import type {DeviceDeptVO} from "@/services/device/types";
 
-const t = createScopedT("devicePage");
+const t=createScopedT("devicePage");
 
-// 定义阀门的基础类型
-interface Valve {
-  id: number;
-  valveName?: string;
-  name?: string;
-  [key: string]: any;
+interface Valve{
+  id:number;
+  valveName?:string;
+  name?:string;
+  [key:string]:any;
 }
 
-const props = defineProps<{
-  visible: boolean;
-  modelValue: number | null;
-  deptId: number | null;        // 外部只需传入分区 ID
-  title?: string;
-  subtitle?: string;
-  deptName: string | null;
+const props=defineProps<{
+  visible:boolean;
+  modelValue:number|null;
+  deptList:DeviceDeptVO[];
+  title?:string;
+  subtitle?:string;
 }>();
 
-const emit = defineEmits<{
-  (e: "update:visible", value: boolean): void;
-  (e: "update:modelValue", value: number | null): void;
-  (e: "confirm", valve: Valve | null): void;
+const emit=defineEmits<{
+  (e:"update:visible",value:boolean):void;
+  (e:"update:modelValue",value:number|null):void;
+  (e:"confirm",valve:Valve|null):void;
 }>();
 
-// ===== 内部状态 =====
-const innerValue = ref<number | null>(null);
-const selectedValve = ref<Valve | null>(null);
-const valveList = ref<Valve[]>([]);
-const loading = ref(false);
+const innerValue=ref<number|null>(null);
+const selectedValve=ref<Valve|null>(null);
+const valveList=ref<Valve[]>([]);
+const loading=ref(false);
+const activeDeptId=ref<number|null>(null);
 
-const pagination = ref<Pagination>({
-  current: 1,
-  size: 10,
-  total: 0
+const pagination=ref<Pagination>({
+  current:1,
+  size:10,
+  total:0
 });
 
-// 监听外部传入的 modelValue，同步内部状态
 watch(
-    () => props.modelValue,
-    (val) => {
-      innerValue.value = val;
-      // 尝试从当前列表中找回完整的阀门对象
-      selectedValve.value = valveList.value.find(v => v.id === val) || null;
+    ()=>props.modelValue,
+    val=>{
+      innerValue.value=val;
+      selectedValve.value=valveList.value.find(v=>v.id===val)||null;
     },
-    { immediate: true }
+    {immediate:true}
 );
 
-// 核心：当弹窗打开且存在 deptId 时，自动重置分页并请求数据
 watch(
-    () => [props.visible, props.deptId],
-    () => {
-      if (props.visible && props.deptId) {
-        pagination.value.current = 1;
+    ()=>props.deptList,
+    list=>{
+      activeDeptId.value=list?.length?list[0].deptId:null;
+      if(props.visible){
+        pagination.value.current=1;
+        fetchAvailableValves();
+      }
+    },
+    {immediate:true,deep:true}
+);
+
+watch(
+    ()=>props.visible,
+    visible=>{
+      if(visible){
+        pagination.value.current=1;
         fetchAvailableValves();
       }
     }
 );
 
-// 获取阀门列表
-async function fetchAvailableValves() {
-  if (!props.deptId) return;
+async function fetchAvailableValves(){
+  if(!activeDeptId.value){
+    valveList.value=[];
+    return;
+  }
 
-  loading.value = true;
-  try {
-    const res = await getValvePageT({
-      deptId: props.deptId,
-      pageNum: pagination.value.current,
-      pageSize: pagination.value.size,
+  loading.value=true;
+
+  try{
+    const res=await getValvePageT({
+      deptId:activeDeptId.value,
+      pageNum:pagination.value.current,
+      pageSize:pagination.value.size
     });
 
-    const pageData = res.data;
-    valveList.value = pageData?.records || [];
-    pagination.value.total = pageData?.total || 0;
-    pagination.value.current = pageData?.current || 1;
-    pagination.value.size = pageData?.size || 10;
+    const data=res.data;
 
-    // 如果当前有选中项，尝试在列表里找回完整对象
-    if (innerValue.value !== null && !selectedValve.value) {
-      selectedValve.value = valveList.value.find(v => v.id === innerValue.value) || null;
+    valveList.value=data?.records||[];
+    pagination.value.total=data?.total||0;
+    pagination.value.current=data?.current||1;
+    pagination.value.size=data?.size||10;
+
+    if(innerValue.value!==null){
+      selectedValve.value=valveList.value.find(v=>v.id===innerValue.value)||null;
     }
-  } catch (error) {
-    console.error("获取阀门列表失败", error);
-    valveList.value = [];
-  } finally {
-    loading.value = false;
+  }catch(e){
+    console.error("获取阀门列表失败",e);
+    valveList.value=[];
+  }finally{
+    loading.value=false;
   }
 }
 
-// ===== 分页交互 =====
-function handlePageChange(page: number) {
-  pagination.value.current = page;
+function changeDept(deptId:number){
+  if(activeDeptId.value===deptId)return;
+  activeDeptId.value=deptId;
+  pagination.value.current=1;
   fetchAvailableValves();
 }
 
-function handlePageSizeChange(pageSize: number) {
-  pagination.value.size = pageSize;
-  pagination.value.current = 1;
+function handlePageChange(page:number){
+  pagination.value.current=page;
   fetchAvailableValves();
 }
 
-function closeDialog() {
-  emit("update:visible", false);
+function handlePageSizeChange(size:number){
+  pagination.value.size=size;
+  pagination.value.current=1;
+  fetchAvailableValves();
 }
 
-function handleSelect(valve: Valve) {
-  innerValue.value = valve.id;
-  selectedValve.value = valve;
+function handleSelect(valve:Valve){
+  innerValue.value=valve.id;
+  selectedValve.value=valve;
 }
 
-function confirm() {
-  emit("update:modelValue", innerValue.value);
-  emit("confirm", selectedValve.value);
+function closeDialog(){
+  emit("update:visible",false);
+}
+
+function confirm(){
+  emit("update:modelValue",innerValue.value);
+  emit("confirm",selectedValve.value);
   closeDialog();
 }
 </script>
 
-<!-- 样式部分保持你之前的即可，这里不再重复展示 -->
-
 <style scoped lang="scss">
-/* 遮罩与面板基础样式（复用你之前的样式） */
-.dialog-mask {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 14px;
-  background: rgba(15, 35, 55, 0.36);
+.dialog-mask{
+  position:fixed;
+  inset:0;
+  z-index:1000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:14px;
+  background:rgba(15,35,55,.36);
 }
 
-.dialog-panel {
-  width: 60vw;
-  max-width: 900px;
-  min-width: 320px;
-  height: min(620px, calc(100vh - 28px));
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: #fff;
-  border: 1px solid #d8e6f2;
-  border-radius: 6px;
-  box-shadow: 0 18px 46px rgba(15, 35, 55, 0.2);
+.dialog-panel{
+  width:60vw;
+  max-width:900px;
+  min-width:320px;
+  height:min(620px,calc(100vh - 28px));
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  background:#fff;
+  border:1px solid #d8e6f2;
+  border-radius:6px;
+  box-shadow:0 18px 46px rgba(15,35,55,.2);
 }
 
 /* Header */
-.dialog-head {
-  flex: none;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 18px 24px;
-  background: #f8fbfe;
-  border-bottom: 1px solid #edf3f8;
+.dialog-head{
+  flex:none;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:18px 24px;
+  background:#f8fbfe;
+  border-bottom:1px solid #edf3f8;
 }
-.dialog-head-content { flex: 1; min-width: 0; }
-.dialog-title { color: #183755; font-size: 20px; font-weight: 900; line-height: 1.2; }
-.dialog-subtitle { margin-top: 4px; color: #5f7188; font-size: 13px; }
-.icon-button {
-  width: 32px; height: 32px; margin: 0 0 0 16px; padding: 0; line-height: 1; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  color: #64748b; background: #f6fbff; border: 1px solid #d9e7f3; border-radius: 4px; font-size: 14px;
+
+.dialog-head-content{
+  flex:1;
+  min-width:0;
 }
-.icon-button:hover { background: #edf7ff; color: #0d82ee; }
+
+.dialog-title{
+  color:#183755;
+  font-size:20px;
+  font-weight:900;
+  line-height:1.2;
+}
+
+.dialog-subtitle{
+  margin-top:6px;
+  color:#5f7188;
+  font-size:13px;
+}
+
+/* 分区 Tab */
+.dept-tabs{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-top:10px;
+  flex-wrap:wrap;
+}
+
+.dept-tab{
+  height:26px;
+  padding:0 12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#64748b;
+  font-size:12px;
+  background:#f6fbff;
+  border:1px solid #d9e7f3;
+  border-radius:4px;
+  cursor:pointer;
+  transition:.18s;
+}
+
+.dept-tab:hover{
+  color:#0d82ee;
+  background:#eef7ff;
+}
+
+.dept-tab.active{
+  color:#0d82ee;
+  background:#e7f3ff;
+  border-color:#b9dcff;
+  font-weight:600;
+}
+
+.icon-button{
+  width:32px;
+  height:32px;
+  margin-left:16px;
+  padding:0;
+  flex-shrink:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#64748b;
+  background:#f6fbff;
+  border:1px solid #d9e7f3;
+  border-radius:4px;
+  font-size:14px;
+}
+
+.icon-button:hover{
+  background:#edf7ff;
+  color:#0d82ee;
+}
 
 /* Body */
-.dialog-body { flex: 1; padding: 0; background: #fff; }
-.empty-state { padding: 60px 0; text-align: center; color: #9aa9b8; font-size: 14px; }
-
-/* 阀门列表样式 */
-.valve-list { display: flex; flex-direction: column; }
-.valve-item {
-  display: flex;
-  align-items: center;
-  justify-content: left;
-  padding: 14px 24px;
-  border-bottom: 1px solid #edf1f5;
-  cursor: pointer;
-  transition: background 0.18s ease;
+.dialog-body{
+  flex:1;
+  padding:0;
+  background:#fff;
 }
-.valve-index {
+
+.empty-state{
+  padding:60px 0;
+  text-align:center;
+  color:#9aa9b8;
+  font-size:14px;
+}
+
+/* 阀门列表 */
+.valve-list{
+  display:flex;
+  flex-direction:column;
+}
+
+.valve-item{
+  display:flex;
+  align-items:center;
+  padding:14px 24px;
+  border-bottom:1px solid #edf1f5;
+  cursor:pointer;
+  transition:background .18s;
+}
+
+.valve-item:hover{
+  background:#f1f8ff;
+}
+
+.valve-item--active{
+  background:#e7f3ff!important;
+  box-shadow:inset 0 0 0 1px #b9dcff;
+}
+
+.valve-index{
   width:40px;
   color:#64748b;
   font-size:13px;
 }
-.valve-item:hover { background: #f1f8ff; }
-.valve-item--active {
-  background: #e7f3ff !important;
-  box-shadow: inset 0 0 0 1px #b9dcff;
+
+.valve-info{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  min-width:0;
 }
-.valve-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.valve-name { color: #183755; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.valve-meta { color: #64748b; font-size: 12px; }
-.valve-check { color: #0d82ee; font-size: 16px; font-weight: bold; flex-shrink: 0; margin-left: auto; padding-left: 12px;}
+
+.valve-name{
+  color:#183755;
+  font-size:14px;
+  font-weight:600;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.valve-meta{
+  color:#64748b;
+  font-size:12px;
+}
+
+.valve-check{
+  margin-left:auto;
+  padding-left:12px;
+  color:#0d82ee;
+  font-size:16px;
+  font-weight:bold;
+  flex-shrink:0;
+}
 
 /* Footer */
-.dialog-actions {
-  flex: none; display: flex; justify-content: flex-end; align-items: center; gap: 12px;
-  padding: 16px 24px; background: #fff; border-top: 1px solid #edf3f8;
+.dialog-actions{
+  flex:none;
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  gap:12px;
+  padding:16px 24px;
+  background:#fff;
+  border-top:1px solid #edf3f8;
 }
-.dialog-actions button { margin: 0; }
-.primary-button, .secondary-button {
-  height: 38px; padding: 0 24px; border-radius: 4px; font-size: 14px; font-weight: 900;
-  border: 1px solid transparent; display: flex; align-items: center; justify-content: center;
+
+.dialog-actions button{
+  margin:0;
 }
-.primary-button { background: #0d82ee; color: white; }
-.secondary-button { background: #f6fbff; color: #34495e; border-color: #d9e7f3; }
-.dialog-dept {
-  display: inline-flex;
-  width: fit-content;
 
-  margin-top: 6px;
-  padding: 3px 8px;
+.primary-button,.secondary-button{
+  height:38px;
+  padding:0 24px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:4px;
+  font-size:14px;
+  font-weight:900;
+  border:1px solid transparent;
+}
 
-  color: #0d82ee;
-  font-size: 12px;
+.primary-button{
+  background:#0d82ee;
+  color:#fff;
+}
 
-  background: #eef7ff;
-  border: 1px solid #cbdced;
-  border-radius: 4px;
+.secondary-button{
+  color:#34495e;
+  background:#f6fbff;
+  border-color:#d9e7f3;
 }
 </style>

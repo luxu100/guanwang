@@ -118,8 +118,7 @@
   <ValveTableDialog
       v-model:visible="valveDialogVisible"
       v-model="valveId"
-      :dept-id="currentDeptId"
-      :dept-name="currentDeptName"
+      :dept-list="deviceDeptList"
       :title="t('page.bindValveTitle')"
       :subtitle="t('page.bindValveSubtitle')"
       @confirm="handleValveConfirm"
@@ -133,7 +132,7 @@ import type {
   DeptDevice,
   DeptTreeVO,
   Device,
-  DeviceCreateForm,
+  DeviceCreateForm, DeviceDeptVO,
   ValveBindDeviceDTO
 } from "@/services/device/types";
 import {
@@ -155,7 +154,7 @@ import type {FormSection} from "@/pages/device/components/x/types";
 import type {PartitionNode} from "@/pages/device/components/x/tree/XTreeNode.vue";
 
 import {createScopedT} from "@/i18n";
-import {bindValveDevices, getDeptIdByDeviceId} from "@/services/device/dept-device.typed";
+import {bindValveDevices, getDeptIdByDeviceId, getDeptInfoByDeviceId} from "@/services/device/dept-device.typed";
 import ValveTableDialog from "@/pages/device/valve/components/ValveTableDialog.vue";
 import DeviceProtocolPanel from "@/pages/device/protocol/components/DeviceProtocolPanel.vue";
 const t = createScopedT("devicePage");
@@ -860,8 +859,7 @@ function handleShowDetail() {
  */
 const valveDialogVisible = ref(false);
 const valveId = ref<number|null>(null);
-const currentDeptId = ref<number|null>(null);
-const currentDeptName = ref<string|null>(null);
+const deviceDeptList = ref<DeviceDeptVO[]>([]);
 async function handleBindValve() {
   if (!currentDevice.value) {
     uni.showToast({
@@ -871,21 +869,19 @@ async function handleBindValve() {
     return;
   }
 
-  // 1. 获取当前设备所在分区
-  const res = await getDeptIdByDeviceId(currentDevice.value.id);
+  const res = await getDeptInfoByDeviceId(currentDevice.value.id);
 
-  const deptId = res.data;
+  const list = res.data || [];
 
-  if (!deptId) {
-    uni.showToast({ title: t("message.noPartitionAssigned"), icon: "none" });
+  if (!list.length) {
+    uni.showToast({
+      title: t("message.noPartitionAssigned"),
+      icon: "none"
+    });
     return;
   }
 
-  // 2. 将分区 ID 存入响应式变量，并打开弹窗
-  // 弹窗内部的 watch 监听到 deptId 变化且 visible 为 true 时，会自动请求数据
-  const deptRes = await getDeptByIdT(deptId)
-  currentDeptId.value = deptId;
-  currentDeptName.value = deptRes.data?.deptName || null;
+  deviceDeptList.value = list;
   valveDialogVisible.value = true;
 }
 
