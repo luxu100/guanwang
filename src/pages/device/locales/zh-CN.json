@@ -9,6 +9,7 @@
       "close": "关闭",
       "bound": "已绑定",
       "newBind": "新增绑定",
+      "removeBind": "移除绑定",
       "table": {
         "index": "序号",
         "loading": "加载中...",

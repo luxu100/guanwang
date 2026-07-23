@@ -6,7 +6,10 @@
           <view class="dialog__title">{{ title }}</view>
           <view v-if="subtitle" class="dialog__subtitle">{{ subtitle }}</view>
         </view>
-        <button class="button button__icon" @click="closeDialog"> <view class="close-icon"/> </button>
+
+        <button class="button button__icon" @click="closeDialog">
+          <view class="close-icon"/>
+        </button>
       </view>
 
       <view class="tree-legend">
@@ -18,6 +21,11 @@
         <view class="legend-item">
           <view class="legend-color legend-color--selected"></view>
           <text>{{ t('common.newBind') }}</text>
+        </view>
+
+        <view class="legend-item">
+          <view class="legend-color legend-color--remove"></view>
+          <text>{{ t('common.removeBind') }}</text>
         </view>
       </view>
 
@@ -32,6 +40,7 @@
             :node="node"
             :selected-ids="innerValue"
             :bound-ids="boundIds"
+            :remove-ids="removeIds"
             @select="handleSelect"
         />
       </scroll-view>
@@ -40,6 +49,7 @@
         <button class="button button__secondary" @click="closeDialog">
           {{ t('common.cancel') }}
         </button>
+
         <button class="button button__primary" @click="confirm">
           {{ t('common.confirm') }}
         </button>
@@ -61,6 +71,7 @@ const props=defineProps<{
   modelValue:number[];
   treeData:PartitionNode[];
   boundIds:number[];
+  removeIds:number[];
   title?:string;
   subtitle?:string;
 }>();
@@ -68,15 +79,30 @@ const props=defineProps<{
 const emit=defineEmits<{
   (e:"update:visible",value:boolean):void;
   (e:"update:modelValue",value:number[]):void;
-  (e:"confirm",value:number[]):void;
+  (e:"confirm",value:{
+    addIds:number[];
+    removeIds:number[];
+  }):void;
 }>();
 
 const innerValue=ref<number[]>([]);
+const removeIds=ref<number[]>([]);
 
 watch(
     ()=>props.modelValue,
-    val=>innerValue.value=[...(val||[])],
+    val=>{
+      innerValue.value=[...(val||[])];
+    },
     {immediate:true}
+);
+
+watch(
+    ()=>props.visible,
+    visible=>{
+      if(visible){
+        removeIds.value=[];
+      }
+    }
 );
 
 function closeDialog(){
@@ -84,10 +110,17 @@ function closeDialog(){
 }
 
 function handleSelect(node:PartitionNode){
-  if(props.boundIds.includes(node.id)) return;
-
+  const isBound=props.boundIds.includes(node.id);
+  if(isBound){
+    const index=removeIds.value.indexOf(node.id);
+    if(index>-1){
+      removeIds.value.splice(index,1);
+    }else{
+      removeIds.value.push(node.id);
+    }
+    return;
+  }
   const index=innerValue.value.indexOf(node.id);
-
   if(index>-1){
     innerValue.value.splice(index,1);
   }else{
@@ -96,8 +129,14 @@ function handleSelect(node:PartitionNode){
 }
 
 function confirm(){
+  const addIds=innerValue.value.filter(
+      id=>!props.boundIds.includes(id)
+  );
   emit("update:modelValue",innerValue.value);
-  emit("confirm",innerValue.value);
+  emit("confirm",{
+    addIds,
+    removeIds:removeIds.value
+  });
   closeDialog();
 }
 </script>
@@ -134,6 +173,10 @@ function confirm(){
 
 .legend-color--selected{
   background:#0d82ee;
+}
+
+.legend-color--remove{
+  background:#ef4444;
 }
 
 @keyframes fadeIn{

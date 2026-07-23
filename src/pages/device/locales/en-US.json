@@ -9,6 +9,7 @@
       "close": "Close",
       "bound": "Bound",
       "newBind": "New Binding",
+      "removeBind": "Remove Binding",
       "table": {
         "index": "No.",
         "loading": "Loading...",

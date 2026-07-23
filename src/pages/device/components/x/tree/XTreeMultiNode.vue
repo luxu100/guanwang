@@ -11,10 +11,11 @@
       </view>
 
       <view class="tree-check" :class="{
-        'tree-check--bound': isBound,
-        'tree-check--selected': !isBound && checked
+        'tree-check--bound': isBound && !isRemove,
+        'tree-check--selected': !isBound && checked,
+        'tree-check--remove': isRemove
       }">
-        <view v-if="checked" class="checkbox">✓</view>
+        <view v-if="checked || isRemove" class="checkbox">✓</view>
         <view v-else class="checkbox"></view>
       </view>
     </view>
@@ -26,6 +27,7 @@
           :node="child"
           :selected-ids="selectedIds"
           :bound-ids="boundIds"
+          :remove-ids="removeIds"
           @select="$emit('select',$event)"
       />
     </view>
@@ -40,6 +42,7 @@ const props=defineProps<{
   node:PartitionNode;
   selectedIds:(string|number)[];
   boundIds:(string|number)[];
+  removeIds:(string|number)[];
 }>();
 
 const emit=defineEmits<{
@@ -50,9 +53,18 @@ const expanded=ref(false);
 
 const hasChildren=computed(()=>!!props.node.children?.length);
 
-const isBound=computed(()=>props.boundIds.includes(props.node.id));
+const isBound=computed(()=>
+    props.boundIds.includes(props.node.id)
+);
 
-const checked=computed(()=>isBound.value || props.selectedIds.includes(props.node.id));
+const isRemove=computed(()=>
+    props.removeIds.includes(props.node.id)
+);
+
+const checked=computed(()=>
+    props.selectedIds.includes(props.node.id) ||
+    (isBound.value && !isRemove.value)
+);
 
 function toggle(){
   if(hasChildren.value){
@@ -157,6 +169,11 @@ function select(){
 .tree-check--selected .checkbox{
   background:#0d82ee;
   border-color:#0d82ee;
+}
+
+.tree-check--remove .checkbox{
+  background:#ef4444;
+  border-color:#ef4444;
 }
 
 .tree-children{

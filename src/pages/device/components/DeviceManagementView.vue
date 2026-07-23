@@ -111,6 +111,7 @@
       v-model="deptIds"
       :tree-data="deptTree"
       :bound-ids="boundDeptIds"
+      :remove-ids="removeIds"
       :title="t('page.bindDeptTitle')"
       :subtitle="t('page.bindDeptSubtitle')"
       @confirm="onDeptConfirm"
@@ -139,7 +140,7 @@ import type {
 } from "@/services/device/types";
 import {
   createDeptDeviceT,
-  createDeviceT,
+  createDeviceT, deleteDeptDeviceT,
   deleteDeviceT, getDeptByIdT, getDeptTreeT, getDeviceDetailT,
   getDevicePageT,
   getDeviceProductListT,
@@ -903,6 +904,7 @@ const treeVisible = ref(false);
 const deptIds = ref<number[]>([]);
 const boundDeptIds = ref<number[]>([]);
 const deptTree = ref<PartitionNode[]>([]);
+const removeIds = ref<number[]>([]);
 
 async function handleBindDept(){
   await loadDeviceDept();
@@ -914,7 +916,11 @@ async function handleBindDept(){
   treeVisible.value=true;
 }
 
-async function onDeptConfirm(ids:number[]) {
+async function onDeptConfirm(data:{
+  addIds:number[];
+  removeIds:number[];
+}) {
+
   if(!currentDevice.value){
     uni.showToast({
       title:t('message.pleaseSelectDevice'),
@@ -923,20 +929,10 @@ async function onDeptConfirm(ids:number[]) {
     return;
   }
 
-  // 过滤新增绑定
-  const addIds=ids.filter(
-      id=>!boundDeptIds.value.includes(id)
-  );
-
-  if(addIds.length===0){
-    uni.showToast({
-      title:t('message.noNewDept'),
-      icon:"none"
-    });
-    return;
-  }
+  const {addIds,removeIds}=data;
 
   try{
+    // 新增绑定
     for(const deptId of addIds){
       const deptDevice:DeptDevice={
         deviceId:currentDevice.value.id,
@@ -949,16 +945,31 @@ async function onDeptConfirm(ids:number[]) {
         throw new Error(res.msg);
       }
     }
+
+    // 删除绑定
+    for(const deptId of removeIds){
+      const binding=deviceDeptList.value.find(
+          item=>item.deptId===deptId
+      );
+      if(!binding){
+        continue;
+      }
+      const res=await deleteDeptDeviceT(
+          binding.deptDeviceId
+      );
+      if(res.code!==200){
+        throw new Error(res.msg);
+      }
+    }
     uni.showToast({
-      title:t('message.bindSuccess'),
+      title:t('message.operationSuccess'),
       icon:"success"
     });
-    // 更新绑定列表
     await loadDeviceDept();
   }catch(e){
     console.error(e);
     uni.showToast({
-      title:t('message.bindFailed'),
+      title:t('message.operationFailed'),
       icon:"none"
     });
   }
