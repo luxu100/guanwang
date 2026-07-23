@@ -12,7 +12,7 @@
     "deviceValve": "Valves",
     "command": "Commands",
     "commandManage": "Command List",
-    "commandConfiguration": "Command Setup",
+    "commandConfiguration": "Firmware Management",
     "statistics": "Statistics",
     "statisticsLeakOverview": "Leak Overview",
     "statisticsDataOverview": "System Overview",
