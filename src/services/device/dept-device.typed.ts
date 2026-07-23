@@ -16,7 +16,7 @@ export function getDeptIdByDeviceId(deviceId: number) {
 }
 
 export function getDeptInfoByDeviceId(deviceId: number) {
-    return getRequestT<DeviceDeptVO>(`/api/dept-device/dept-info/${deviceId}`);
+    return getRequestT<DeviceDeptVO[]>(`/api/dept-device/dept-info/${deviceId}`);
 }
 
 /**
