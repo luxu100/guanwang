@@ -144,6 +144,7 @@
                 :title="t('dailySpectrum')"
                 mode="history3d"
                 :series="dailySeries"
+                :loading="detail.historyLoading"
               />
             </view>
             <view v-if="detail.historyError" class="detail-error">{{ detail.historyError }}</view>
@@ -485,6 +486,26 @@ watch(() => props.visible, (visible) => {
   correlationTarget.value = null;
   resetManualForm();
 });
+watch(
+  () => props.device?.deviceNumber,
+  (deviceNumber, previousDeviceNumber) => {
+    if (!deviceNumber || !previousDeviceNumber || deviceNumber === previousDeviceNumber) return;
+
+    maintenancePage.value = 1;
+    relatedDeviceNumber.value = "";
+    nearbyAnalysis.value = [];
+    nearbyError.value = "";
+    correlationDialogVisible.value = false;
+    correlationTarget.value = null;
+    resetManualForm();
+
+    // The dialog remains mounted when switching map devices, so the active tab
+    // does not receive another click event. Reload data for the currently open tab.
+    if (activeTab.value === "history") loadHistory();
+    if (activeTab.value === "manual") emit("load-manual");
+    if (activeTab.value === "correlation") void loadNearbyDevices();
+  },
+);
 watch(() => props.detail.maintenance.length, () => {
   maintenancePage.value = Math.min(maintenancePage.value, maintenanceTotalPages.value);
 });
@@ -587,6 +608,7 @@ const currentDevicePoint = computed(() => {
     deviceNumber: props.device.deviceNumber,
     title: props.device.model || props.device.deviceNumber,
     status: props.device.status,
+    manualStatus: props.device.manualStatus,
     algorithmStatus: props.device.algorithmStatus,
     leakProperty: props.device.leakProperty,
     onlineStatus: props.device.onlineStatus,
@@ -823,7 +845,19 @@ onBeforeUnmount(() => {
 .chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .chart-grid__wide { grid-column: 1 / -1; }
 .chart-loading-panel { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 250px; padding: 16px; color: #64748b; font-size: 12px; text-align: center; background: #fff; border: 1px solid #e1e8f0; border-radius: 5px; }
-.history-grid { display: grid; gap: 10px; }
+.history-grid {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  gap: 10px;
+  overflow: hidden;
+}
+.history-grid :deep(.chart-panel) {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
 .inline-state { padding: 12px; color: #64748b; font-size: 12px; text-align: center; background: #fff; border: 1px dashed #cbd5e1; border-radius: 5px; }
 .dialog-state { display: flex; align-items: center; justify-content: center; min-height: 220px; padding: 40px; color: #64748b; font-size: 14px; text-align: center; }
 .dialog-state--compact { min-height: 100px; padding: 20px; }
@@ -878,13 +912,39 @@ onBeforeUnmount(() => {
 .table-loading { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 110px; color: #64748b; font-size: 12px; }
 .correlation-table__row.selected { background: #f0f9ff; }
 .correlation-table__row > text { padding: 0 12px; font-size: 12px; }
+.correlation-table__head > text:last-child { text-align: center; }
 .mini-trend { display: grid; grid-template-columns: repeat(7, minmax(28px, 1fr)); gap: 3px; padding: 5px 8px; }
 .mini-trend__value { min-width: 0; height: 26px; color: #047857; font-size: 11px; font-weight: 800; line-height: 26px; text-align: center; background: #d1fae5; }
 .mini-trend__value.trend-chip--warning { color: #b45309; background: #fef3c7; }
 .mini-trend__value.trend-chip--danger { color: #b91c1c; background: #fee2e2; }
 .mini-trend__value.trend-chip--empty { color: #64748b; background: #f1f5f9; }
-.row-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: center; gap: 6px; padding: 0 8px; }
-.table-button { height: 28px; margin: 0; padding: 0 9px; color: #075985; font-size: 11px; line-height: 28px; background: #e0f2fe; border: 0; border-radius: 4px; }
+.row-actions {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  gap: 6px;
+  padding: 0 8px;
+}
+.table-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  padding: 0 9px;
+  color: #075985;
+  font-size: 11px;
+  line-height: normal;
+  text-align: center;
+  background: #e0f2fe;
+  border: 0;
+  border-radius: 4px;
+}
 .detail-error--inside { margin: 10px; }
 .comparison-panel { display: flex; align-items: center; gap: 18px; margin-top: 12px; padding: 12px 16px; background: #fff; border: 1px solid #d8e5ef; border-radius: 5px; }
 .comparison-item { display: grid; grid-template-columns: 120px 90px auto; align-items: center; gap: 10px; flex: 1; color: #475569; font-size: 12px; }

@@ -151,6 +151,7 @@ export function useLeakMonitorWorkspace(localized?: Readonly<Ref<boolean>>) {
           deviceNumber: device.deviceNumber,
           title: device.model || device.deviceNumber,
           status: monitorDevice?.status ?? device.status,
+          manualStatus: monitorDevice?.manualStatus ?? device.manualStatus,
           algorithmStatus: monitorDevice?.algorithmStatus ?? device.algorithmStatus,
           leakProperty: monitorDevice?.leakProperty ?? device.leakProperty,
           onlineStatus: monitorDevice?.onlineStatus ?? device.onlineStatus,

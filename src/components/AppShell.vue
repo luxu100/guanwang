@@ -20,7 +20,7 @@
         <text class="site-title__sub">Urban Pipeline Leakage Early Warning Platform</text>
       </view>
 
-      <view class="site-search" :class="{ 'site-search--focused': isSearchFocused, 'site-search--filled': searchKeyword }">
+      <!-- <view class="site-search" :class="{ 'site-search--focused': isSearchFocused, 'site-search--filled': searchKeyword }">
         <input
           v-model="searchKeyword"
           class="site-search__input"
@@ -42,7 +42,7 @@
         <button class="site-search__submit" hover-class="site-search__submit--hover" aria-label="搜索">
           <text class="site-search__submit-icon"></text>
         </button>
-      </view>
+      </view> -->
 
       <view class="top-actions">
         <view class="warning-entry" aria-label="预警信息" @click="goPage('/pages/alarm/processing/processing')">
@@ -51,7 +51,7 @@
           </view>
           <text v-if="warningCount > 0" class="warning-entry__badge">{{ warningCountText }}</text>
         </view>
-        <LanguageSelect class="top-actions__lang" />
+        <LanguageSelect :key="locale" class="top-actions__lang" />
         <view class="user-chip">
           <text class="user-name">{{ userName }}</text>
         </view>
@@ -208,8 +208,8 @@ import AdminPlaceholderView from "@/components/admin/AdminPlaceholderView.vue";
 import AppShellModuleHost from "@/components/app-shell/AppShellModuleHost.vue";
 import LanguageSelect from "@/components/common/LanguageSelect.vue";
 
-// import appShellModules from "@/components/app-shell/appShellModules.local";
-import appShellModules from "@/components/app-shell/appShellModules.localized";
+import appShellModules from "@/components/app-shell/appShellModules.local";
+// import appShellModules from "@/components/app-shell/appShellModules.localized";
 
 import { MENU_COLLAPSED_KEY, OPENED_TABS_KEY } from "@/utils/appShellStorage";
 import { clearAuthStorage, createProtectedRouteDecision, LOGIN_PATH } from "@/utils/authGuard";
@@ -407,6 +407,7 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/work-order/statistics/statistics": { component: WorksheetTableView, props: { mode: "statistics" } },
   "/pages/alarm/strategy/strategy": createPlaceholderContent("/pages/alarm/strategy/strategy"),
   "/pages/alarm/processing/processing": createPlaceholderContent("/pages/alarm/processing/processing"),
+  "/pages/alarm/analysis/analysis": createPlaceholderContent("/pages/alarm/analysis/analysis"),
   "/pages/report/generate/generate": createPlaceholderContent("/pages/report/generate/generate"),
   "/pages/report/operation/operation": createPlaceholderContent("/pages/report/operation/operation"),
   "/pages/report/command/command": createPlaceholderContent("/pages/report/command/command"),
@@ -420,7 +421,7 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/data-receive/record/record": { component: DataReceiveView, props: { mode: "record" } },
 };
 
-const searchKeyword = ref("");
+// const searchKeyword = ref("");
 const isSearchFocused = ref(false);
 const isAuthReady = ref(false);
 const isMenuCollapsed = ref(getInitialMenuCollapsed());
@@ -439,13 +440,14 @@ const isFullscreen = ref(false);
 const isFallbackFullscreen = ref(false);
 const appShellRef = ref<HTMLElement | { $el?: HTMLElement } | null>(null);
 const pageTabsListRef = ref<HTMLElement | { $el?: HTMLElement } | null>(null);
-const shellContentRef = ref<HTMLElement | { $el?: HTMLElement } | null>(null);
+
 
 const isContentFullscreen = computed(() => isFullscreen.value || isFallbackFullscreen.value);
 const isLeakMonitorActive = computed(() => currentPath.value === LEAK_MONITOR_PATH);
 const shellContentDefinition = computed(() => shellContentDefinitions[currentPath.value]);
 const shellContentComponent = computed(() => shellContentDefinition.value?.component || null);
 const shellContentProps = computed(() => shellContentDefinition.value?.props || {});
+
 const shouldRenderPageSlot = computed(() => currentPath.value === routePath.value && !isLeakMonitorActive.value && !shellContentComponent.value);
 
 const menuAccessState = computed(() => ({
@@ -474,9 +476,9 @@ function toggleMenu() {
   uni.setStorageSync(MENU_COLLAPSED_KEY, isMenuCollapsed.value);
 }
 
-function clearSearch() {
-  searchKeyword.value = "";
-}
+// function clearSearch() {
+//   searchKeyword.value = "";
+// }
 
 function isMenuItemActive(item: MenuItem) {
   if (item.children?.length) {

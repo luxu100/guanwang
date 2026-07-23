@@ -219,6 +219,19 @@ export function getLeakMonitorAudioPage(data: Record<string, unknown>) {
   return postRequest("/api/data-query/audio/page", data);
 }
 
+export function getLeakMonitorDailyLatestAudioByDate(
+  deviceNumber: string,
+  date: string,
+) {
+  return getRequest(
+    `/api/data-query/audio/daily-latest/${encodeURIComponent(deviceNumber)}`,
+    {
+      startDate: date,
+      endDate: date,
+    },
+  );
+}
+
 export function getLeakMonitorFeatureTrend(
   deviceNumber: string,
   params: { startTime: string; endTime: string },
@@ -376,6 +389,40 @@ export async function fetchLeakMonitorAudioOptions(
     }
   });
   return options;
+}
+
+export async function fetchLeakMonitorDailyLatestAudioOption(
+  deviceNumber: string,
+  date: string,
+): Promise<CorrelationAudioOption[]> {
+  const response = await getLeakMonitorDailyLatestAudioByDate(deviceNumber, date);
+  const data = unwrapData<unknown>(response);
+  const records = Array.isArray(data)
+    ? data
+    : extractRecords(data).length
+      ? extractRecords(data)
+      : data && typeof data === "object"
+        ? [data]
+        : [];
+
+  return records.flatMap((item) => {
+    const row = item && typeof item === "object"
+      ? item as Record<string, unknown>
+      : {};
+    const audioId = Number(row.audioId ?? row.audioFileId ?? row.id);
+    if (!Number.isFinite(audioId)) return [];
+    return [{
+      ...row,
+      audioId,
+      deviceNumber,
+      audioTime: toText(
+        row.audioTime ?? row.samplingTime ?? row.time ?? row.createdAt ?? row.parseTime,
+      ),
+      intensity: toNumber(
+        row.noiseValue ?? row.intensity ?? row.soundLevel ?? row.leakEsa,
+      ) ?? null,
+    } satisfies CorrelationAudioOption];
+  });
 }
 
 export async function fetchLeakMonitorNearbyAnalysis(

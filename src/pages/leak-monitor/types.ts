@@ -47,6 +47,7 @@ export interface MapDevicePoint {
   deviceNumber: string;
   title: string;
   status: LeakDeviceStatus;
+  manualStatus: LeakDeviceStatus;
   algorithmStatus: LeakDeviceStatus;
   leakProperty: number | null;
   onlineStatus?: number | null;

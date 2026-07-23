@@ -9,7 +9,7 @@
     >
       <text class="device-hover-card__title">{{ hoveredPoint.deviceNumber }}</text>
       <view class="device-hover-card__row">
-        <text>{{ t("leakStatusLabel") }}</text><text>{{ algorithmStatusLabel(hoveredPoint) }}</text>
+        <text>{{ t("leakStatusLabel") }}</text><text>{{ manualStatusLabel(hoveredPoint) }}</text>
       </view>
       <view class="device-hover-card__row">
         <text>{{ t("deviceStatus") }}</text><text>{{ deviceStatusLabel(hoveredPoint) }}</text>
@@ -493,8 +493,8 @@ function showMarkerInfo(event: {
   }
 }
 
-function algorithmStatusLabel(point: MapDevicePoint) {
-  return analysisStatusText(point.algorithmStatus);
+function manualStatusLabel(point: MapDevicePoint) {
+  return analysisStatusText(point.manualStatus);
 }
 
 function deviceStatusLabel(point: MapDevicePoint) {
