@@ -54,8 +54,8 @@
           :selected="selectedFirmware?.id"
           :page-current="pagination.pageNum"
           :page-size="pagination.pageSize"
-          loading-text="正在加载固件数据…"
-          empty-text="暂无固件记录"
+          :loading-text="localeText('正在加载固件数据…', 'Loading firmware…')"
+          :empty-text="localeText('暂无固件记录', 'No firmware records')"
           @row-click="selectFirmware"
         >
           <template #header-selected>
@@ -131,7 +131,7 @@
           <view class="detail-actions">
             <button class="button" @click="openEdit(selectedFirmware)">{{ localeText("编辑信息", "Edit") }}</button>
             <button class="button button--danger" :disabled="deleting" @click="confirmDelete(selectedFirmware)">
-              {{ deleting ? "正在删除…" : localeText("删除固件", "Delete") }}
+              {{ deleting ? localeText("正在删除…", "Deleting…") : localeText("删除固件", "Delete") }}
             </button>
           </view>
         </template>
@@ -195,8 +195,8 @@
             @click="chooseFirmwareFile"
           >
             <text class="upload-box__icon">{{ uploadForm.file || uploadForm.filePath ? "TXT" : "＋" }}</text>
-            <text class="upload-box__title">{{ uploadForm.fileName || "点击从文件夹选择 TXT 固件文件" }}</text>
-            <text class="upload-box__hint">仅支持 .txt 文件，不限制文件帧数</text>
+            <text class="upload-box__title">{{ uploadForm.fileName || localeText("点击从文件夹选择 TXT 固件文件", "Choose a TXT firmware file") }}</text>
+            <text class="upload-box__hint">{{ localeText("仅支持 .txt 文件，不限制文件帧数", "TXT files only; no frame limit") }}</text>
           </view>
           <view v-if="uploading" class="upload-progress">
             <view class="upload-progress__track"><view :style="{ width: `${uploadPercent}%` }"></view></view>
@@ -314,11 +314,11 @@ const isPageSelected = computed(
 );
 const firmwareColumns = computed<CommandTableColumn[]>(() => [
   { key: "selected", label: "", width: 48, align: "center" },
-  { key: "firmwareName", label: "固件名称", width: 180, className: "data-cell--number", align: "center", tooltip: true },
-  { key: "firmwareVersion", label: "版本", width: 100, align: "center" },
+  { key: "firmwareName", label: localeText("固件名称", "Firmware name"), width: 180, className: "data-cell--number", align: "center", tooltip: true },
+  { key: "firmwareVersion", label: localeText("版本", "Version"), width: 100, align: "center" },
   {
     key: "filePath",
-    label: "文件路径",
+    label: localeText("文件路径", "File path"),
     width: 280,
     className: "data-cell--address",
     bodyClassName: "data-cell--path",
@@ -328,7 +328,7 @@ const firmwareColumns = computed<CommandTableColumn[]>(() => [
   },
   {
     key: "instruction",
-    label: "固件说明",
+    label: localeText("固件说明", "Description"),
     width: 220,
     className: "data-cell--remark",
     align: "center",
@@ -337,7 +337,7 @@ const firmwareColumns = computed<CommandTableColumn[]>(() => [
   },
   {
     key: "uploadTime",
-    label: "上传时间",
+    label: localeText("上传时间", "Uploaded at"),
     width: 170,
     className: "data-cell--time",
     align: "center",
@@ -529,6 +529,8 @@ function confirmDelete(item: FirmwareRow) {
       `将强制删除固件“${item.firmwareName}（${item.firmwareVersion}）”，此操作不可撤销。`,
       `Permanently delete “${item.firmwareName} (${item.firmwareVersion})”?`,
     ),
+    cancelText: localeText("取消", "Cancel"),
+    confirmText: localeText("删除", "Delete"),
     confirmColor: "#d14343",
     success(result) {
       if (result.confirm) removeFirmware(item.id);
@@ -562,6 +564,8 @@ function confirmBatchDelete() {
       `将强制删除已选择的 ${selectedIds.value.length} 个固件，此操作不可撤销。`,
       `Permanently delete ${selectedIds.value.length} selected firmware records?`,
     ),
+    cancelText: localeText("取消", "Cancel"),
+    confirmText: localeText("删除", "Delete"),
     confirmColor: "#d14343",
     success(result) {
       if (result.confirm) removeSelectedFirmware();
@@ -640,7 +644,7 @@ function chooseFirmwareFile() {
       uploadForm.filePath = file.path;
       uploadForm.fileName = file.name || getFileName(file.path);
       uploadError.value = "";
-      uploadStatusText.value = `已选择 ${uploadForm.fileName}`;
+      uploadStatusText.value = localeText(`已选择 ${uploadForm.fileName}`, `Selected ${uploadForm.fileName}`);
       if (!uploadForm.firmwareName) uploadForm.firmwareName = uploadForm.fileName.replace(/\.txt$/i, "");
     },
     fail() {
@@ -651,7 +655,7 @@ function chooseFirmwareFile() {
 
 function applySelectedFile(file: File) {
   if (!file.name.toLowerCase().endsWith(".txt")) {
-    uploadError.value = "请选择 TXT 固件文件";
+    uploadError.value = localeText("请选择 TXT 固件文件", "Choose a TXT firmware file");
     uploadStatusText.value = uploadError.value;
     return;
   }
@@ -660,7 +664,7 @@ function applySelectedFile(file: File) {
   uploadForm.filePath = "";
   uploadForm.fileName = file.name;
   uploadError.value = "";
-  uploadStatusText.value = `已选择 ${file.name}`;
+  uploadStatusText.value = localeText(`已选择 ${file.name}`, `Selected ${file.name}`);
   if (!uploadForm.firmwareName) {
     uploadForm.firmwareName = file.name.replace(/\.txt$/i, "");
   }
@@ -671,7 +675,7 @@ async function submitUpload() {
   uploadStatusText.value = "";
   const validationMessage = validateMetadata(uploadForm);
   if (!uploadForm.file && !uploadForm.filePath) {
-    uploadError.value = "请选择 TXT 固件文件";
+    uploadError.value = localeText("请选择 TXT 固件文件", "Choose a TXT firmware file");
     uploadStatusText.value = uploadError.value;
     return;
   }
@@ -683,7 +687,7 @@ async function submitUpload() {
 
   uploading.value = true;
   uploadPercent.value = 1;
-  uploadStatusText.value = "正在连接服务器并上传固件…";
+  uploadStatusText.value = localeText("正在连接服务器并上传固件…", "Connecting and uploading firmware…");
   try {
     const response = await uploadFirmware(
       {
@@ -696,7 +700,9 @@ async function submitUpload() {
       },
       (percent) => {
         uploadPercent.value = Math.max(1, percent);
-        uploadStatusText.value = percent >= 100 ? "文件已上传，正在等待服务器处理…" : `正在上传固件… ${percent}%`;
+        uploadStatusText.value = percent >= 100
+          ? localeText("文件已上传，正在等待服务器处理…", "File uploaded; waiting for server processing…")
+          : localeText(`正在上传固件… ${percent}%`, `Uploading firmware… ${percent}%`);
       },
     );
     const created = unwrapResponse<Firmware>(response);

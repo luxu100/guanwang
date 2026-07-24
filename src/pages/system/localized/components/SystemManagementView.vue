@@ -255,7 +255,7 @@
                       @click="toggleUserRole(getId(item))"
                     >
                       <text class="check-box"></text>
-                      <text>{{ getRoleName(item) }}</text>
+                      <text data-i18n-raw>{{ getRoleName(item) }}</text>
                     </view>
                   </view>
                 </view>

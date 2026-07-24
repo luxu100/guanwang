@@ -3,7 +3,7 @@
     <scroll-view class="table-scroll" scroll-x scroll-y>
       <view class="data-table">
         <view class="data-row data-row--header">
-          <text v-if="showIndex" class="data-cell data-cell--index">序号</text>
+          <text v-if="showIndex" class="data-cell data-cell--index">{{ localeText("序号", "No.") }}</text>
           <view
             v-for="column in columns"
             :key="column.key"
@@ -17,8 +17,8 @@
           </view>
         </view>
 
-        <view v-if="loading" class="loading-mask">{{ loadingText }}</view>
-        <view v-else-if="!data.length" class="table-state">{{ emptyText }}</view>
+        <view v-if="loading" class="loading-mask">{{ loadingText || localeText("正在加载…", "Loading…") }}</view>
+        <view v-else-if="!data.length" class="table-state">{{ emptyText || localeText("暂无数据", "No data") }}</view>
 
         <view
           v-for="(row, index) in data"
@@ -56,7 +56,10 @@
 </template>
 
 <script setup lang="ts">
+import { useLocaleText } from "@/i18n/localeText";
 import type { CommandTableColumn } from "./types";
+
+const localeText = useLocaleText();
 
 const props = withDefaults(defineProps<{
   columns: CommandTableColumn[];
@@ -75,8 +78,8 @@ const props = withDefaults(defineProps<{
   showIndex: true,
   pageCurrent: 1,
   pageSize: 10,
-  loadingText: "正在加载…",
-  emptyText: "暂无数据",
+  loadingText: "",
+  emptyText: "",
 });
 
 const emit = defineEmits<{
