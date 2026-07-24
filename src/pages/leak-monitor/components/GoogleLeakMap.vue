@@ -57,8 +57,8 @@ const props = withDefaults(
     compact?: boolean;
   }>(),
   {
-    lat: 30.2741,
-    lng: 120.1551,
+    lat: 31.2304,
+    lng: 121.4737,
     points: () => [],
     regions: () => [],
     selectedDeviceNumber: "",
@@ -79,7 +79,7 @@ let resizeObserver: ResizeObserver | null = null;
 let resizeFrame: number | null = null;
 let resizeTimer: ReturnType<typeof window.setTimeout> | null = null;
 
-const DEFAULT_MAP_ZOOM = 10;
+const DEFAULT_MAP_ZOOM = 13;
 const DEVICE_FOCUS_ZOOM = 15;
 const COMPACT_DEVICE_FOCUS_ZOOM = 18;
 
