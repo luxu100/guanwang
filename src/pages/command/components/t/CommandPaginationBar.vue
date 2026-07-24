@@ -1,26 +1,30 @@
 <template>
   <view class="pagination-bar">
     <view class="page-size">
-      每页
+      {{ localeText("每页", "Per page") }}
       <picker :range="pageSizeOptions" :value="pageSizeIndex" @change="changeSize">
         <text class="page-size__value">{{ size }}</text>
       </picker>
-      条
+      {{ localeText("条", "items") }}
     </view>
-    <button class="page-button" :disabled="current <= 1" @click="emit('change-page', current - 1)">上一页</button>
-    <text class="page-info">第 {{ current }} / {{ totalPages }} 页</text>
-    <button class="page-button" :disabled="current >= totalPages" @click="emit('change-page', current + 1)">下一页</button>
+    <button class="page-button" :disabled="current <= 1" @click="emit('change-page', current - 1)">{{ localeText("上一页", "Previous") }}</button>
+    <text class="page-info">{{ localizedPageInfo(current, totalPages) }}</text>
+    <button class="page-button" :disabled="current >= totalPages" @click="emit('change-page', current + 1)">{{ localeText("下一页", "Next") }}</button>
     <view class="jump-box">
-      前往
+      {{ localeText("前往", "Go to") }}
       <input v-model.number="jumpPage" class="page-input" type="number" />
-      页
-      <button class="page-button" @click="jumpToPage">确定</button>
+      {{ localeText("页", "page") }}
+      <button class="page-button" @click="jumpToPage">{{ localeText("确定", "Go") }}</button>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useLocaleText, useLocalizedPageInfo } from "@/i18n/localeText";
+
+const localeText = useLocaleText();
+const localizedPageInfo = useLocalizedPageInfo();
 
 const props = withDefaults(defineProps<{
   current?: number;

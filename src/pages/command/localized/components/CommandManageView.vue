@@ -3,17 +3,17 @@
     <view class="toolbar">
       <view class="toolbar__filters">
         <view class="filter-field filter-field--keyword">
-          <text class="filter-label">{{ activeView === "COMMAND" ? "记录检索" : "设备编号" }}</text>
+          <text class="filter-label">{{ localeText("设备编号", "Device number") }}</text>
           <input
             v-model="activeFilters.keyword"
             class="filter-input"
-            :placeholder="activeView === 'COMMAND' ? '输入设备编号、指令名称或指令码' : '输入设备编号'"
+            :placeholder="localeText('输入设备编号', 'Enter device number')"
             @confirm="handleSearch"
           />
         </view>
 
         <view class="filter-field">
-          <text class="filter-label">执行状态</text>
+          <text class="filter-label">{{ localeText("执行状态", "Status") }}</text>
           <picker
             :range="activeStatusOptions"
             range-key="label"
@@ -28,42 +28,35 @@
         </view>
 
         <view v-if="activeView === 'UPGRADE'" class="filter-field">
-          <text class="filter-label">固件版本</text>
-          <input v-model="upgradeFilters.firmwareVersion" class="filter-input filter-input--short" placeholder="如 V1.1" @confirm="handleSearch" />
+          <text class="filter-label">{{ localeText("固件版本", "Firmware version") }}</text>
+          <input v-model="upgradeFilters.firmwareVersion" class="filter-input filter-input--short" :placeholder="localeText('如 V1.1', 'e.g. V1.1')" @confirm="handleSearch" />
         </view>
 
         <view class="filter-field filter-field--date">
-          <text class="filter-label">开始日期</text>
+          <text class="filter-label">{{ localeText("开始日期", "Start date") }}</text>
           <picker mode="date" :value="activeFilters.startDate" @change="handleStartDateChange">
-            <view class="filter-select">{{ activeFilters.startDate || "不限" }}<text class="select-arrow"></text></view>
+            <view class="filter-select">{{ activeFilters.startDate || localeText("不限", "Any") }}<text class="select-arrow"></text></view>
           </picker>
         </view>
 
         <view class="filter-field filter-field--date">
-          <text class="filter-label">结束日期</text>
+          <text class="filter-label">{{ localeText("结束日期", "End date") }}</text>
           <picker mode="date" :value="activeFilters.endDate" @change="handleEndDateChange">
-            <view class="filter-select">{{ activeFilters.endDate || "不限" }}<text class="select-arrow"></text></view>
+            <view class="filter-select">{{ activeFilters.endDate || localeText("不限", "Any") }}<text class="select-arrow"></text></view>
           </picker>
         </view>
       </view>
 
       <view class="toolbar__actions">
-        <button class="action-button action-button--primary" :disabled="activeLoading" @click="handleSearch">查询</button>
-        <button class="action-button" @click="resetFilters">重置</button>
-        <button class="action-button" :disabled="activeLoading" @click="loadActivePage(true)">刷新</button>
+        <button class="action-button action-button--primary" :disabled="activeLoading" @click="handleSearch">{{ localeText("查询", "Search") }}</button>
+        <button class="action-button" @click="resetFilters">{{ localeText("重置", "Reset") }}</button>
+        <button class="action-button" :disabled="activeLoading" @click="loadActivePage(true)">{{ localeText("刷新", "Refresh") }}</button>
         <button
-          v-if="activeView === 'COMMAND'"
-          class="action-button action-button--primary"
-          @click="showCommandSendNotice"
-        >
-          指令下发
-        </button>
-        <button
-          v-else
+          v-if="activeView === 'UPGRADE'"
           class="action-button action-button--primary"
           @click="openUpgradeDialog"
         >
-          发起固件升级
+          {{ localeText("发起固件升级", "Start firmware upgrade") }}
         </button>
       </view>
     </view>
@@ -82,7 +75,7 @@
               {{ tab.label }}
             </button>
           </view>
-          <text class="panel-head__meta">共 {{ activePage.total }} 条</text>
+          <text class="panel-head__meta">{{ localizedTotal(activePage.total) }}</text>
         </view>
 
         <CommandDataTable
@@ -92,12 +85,16 @@
           :selected="selectedId"
           :page-current="activePage.current"
           :page-size="activePage.size"
-          :empty-text="activeView === 'COMMAND' ? '暂无指令下发记录' : '暂无固件升级记录'"
+          :loading-text="localeText('正在加载…', 'Loading…')"
+          :empty-text="activeView === 'COMMAND' ? localeText('暂无指令下发记录', 'No command records') : localeText('暂无固件升级记录', 'No upgrade records')"
           @row-click="selectRow"
         >
           <template #cell-executeStatus="{ row }">
-            <text class="status-tag" :class="getStatusClass(row.executeStatus)">
-              {{ getStatusText(row.executeStatus) }}
+            <text
+              class="status-tag"
+              :class="activeView === 'COMMAND' ? getCommandStatusClass(row.executeStatus) : getStatusClass(row.executeStatus)"
+            >
+              {{ activeView === "COMMAND" ? getCommandStatusText(row.executeStatus) : getStatusText(row.executeStatus) }}
             </text>
           </template>
 
@@ -120,17 +117,17 @@
       </view>
 
       <view class="detail-panel">
-        <view v-if="detailLoading" class="detail-state">正在加载详情…</view>
+        <view v-if="detailLoading" class="detail-state">{{ localeText("正在加载详情…", "Loading details…") }}</view>
         <view v-else-if="!selectedDetail" class="detail-state">
-          <text>请选择一条记录查看详情</text>
+          <text>{{ localeText("请选择一条记录查看详情", "Select a record to view details") }}</text>
         </view>
 
         <template v-else-if="activeView === 'COMMAND'">
           <view class="detail-head">
             <view>
-              <text class="detail-head__eyebrow">指令下发详情</text>
+              <text class="detail-head__eyebrow">{{ localeText("指令下发详情", "Command details") }}</text>
               <text class="detail-head__title">{{ displayValue(selectedDetail.commandName || selectedDetail.commandCode) }}</text>
-              <text class="detail-head__id">记录 ID：{{ displayValue(selectedDetail.id) }}</text>
+              <text class="detail-head__id">{{ localeText("记录 ID", "Record ID") }}: {{ displayValue(selectedDetail.id) }}</text>
             </view>
             <text class="status-tag" :class="getCommandStatusClass(selectedDetail.executeStatus)">
               {{ getCommandStatusText(selectedDetail.executeStatus) }}
@@ -139,19 +136,19 @@
 
           <scroll-view class="detail-scroll" scroll-y>
             <view class="info-section">
-              <text class="section-title">下发信息</text>
+              <text class="section-title">{{ localeText("下发信息", "Dispatch information") }}</text>
               <view class="info-list">
-                <view class="info-row"><text>设备编号</text><text>{{ displayValue(selectedDetail.deviceNumber) }}</text></view>
-                <view class="info-row"><text>指令名称</text><text>{{ displayValue(selectedDetail.commandName) }}</text></view>
-                <view class="info-row"><text>指令类型</text><text>{{ displayValue(selectedDetail.commandCode) }}</text></view>
-                <view class="info-row"><text>下发时间</text><text>{{ formatDateTime(selectedDetail.sendTime) }}</text></view>
-                <view class="info-row"><text>完成时间</text><text>{{ formatDateTime(selectedDetail.expiresAt) }}</text></view>
+                <view class="info-row"><text>{{ localeText("设备编号", "Device number") }}</text><text>{{ displayValue(selectedDetail.deviceNumber) }}</text></view>
+                <view class="info-row"><text>{{ localeText("指令名称", "Command name") }}</text><text>{{ displayValue(selectedDetail.commandName) }}</text></view>
+                <view class="info-row"><text>{{ localeText("指令类型", "Command type") }}</text><text>{{ displayValue(selectedDetail.commandCode) }}</text></view>
+                <view class="info-row"><text>{{ localeText("下发时间", "Sent at") }}</text><text>{{ formatDateTime(selectedDetail.sendTime) }}</text></view>
+                <view class="info-row"><text>{{ localeText("完成时间", "Expires at") }}</text><text>{{ formatDateTime(selectedDetail.expiresAt) }}</text></view>
               </view>
             </view>
             <view class="info-section">
-              <text class="section-title">请求与响应</text>
-              <view class="code-card"><text class="code-card__label">请求内容</text><text>{{ stringifyContent(selectedDetail.requestContent || selectedDetail.requestData || selectedDetail.commandContent) }}</text></view>
-              <view class="code-card"><text class="code-card__label">响应内容</text><text>{{ stringifyContent(selectedDetail.responseContent || selectedDetail.responseData || selectedDetail.result) }}</text></view>
+              <text class="section-title">{{ localeText("请求与响应", "Request and response") }}</text>
+              <view class="code-card"><text class="code-card__label">{{ localeText("请求内容", "Request") }}</text><text>{{ stringifyContent(selectedDetail.requestContent || selectedDetail.requestData || selectedDetail.commandContent) }}</text></view>
+              <view class="code-card"><text class="code-card__label">{{ localeText("响应内容", "Response") }}</text><text>{{ stringifyContent(selectedDetail.responseContent || selectedDetail.responseData || selectedDetail.result) }}</text></view>
               <view v-if="selectedDetail.failureReason || selectedDetail.errorMessage" class="error-card">
                 {{ selectedDetail.failureReason || selectedDetail.errorMessage }}
               </view>
@@ -162,9 +159,9 @@
         <template v-else>
           <view class="detail-head">
             <view>
-              <text class="detail-head__eyebrow">固件升级任务</text>
+              <text class="detail-head__eyebrow">{{ localeText("固件升级任务", "Firmware upgrade task") }}</text>
               <text class="detail-head__title">{{ displayValue(selectedDetail.deviceNumber) }}</text>
-              <text class="detail-head__id">任务 ID：{{ displayValue(selectedDetail.id) }}</text>
+              <text class="detail-head__id">{{ localeText("任务 ID", "Task ID") }}: {{ displayValue(selectedDetail.id) }}</text>
             </view>
             <view class="detail-head__actions">
               <text class="status-tag" :class="getStatusClass(selectedDetail.executeStatus)">
@@ -176,7 +173,7 @@
                 :disabled="canceling"
                 @click="confirmCancelUpgrade"
               >
-                {{ canceling ? "正在取消" : "取消升级" }}
+                {{ canceling ? localeText("正在取消", "Cancelling") : localeText("取消升级", "Cancel upgrade") }}
               </button>
             </view>
           </view>
@@ -196,28 +193,28 @@
           <scroll-view class="detail-scroll" scroll-y>
             <template v-if="detailTab === 'OVERVIEW'">
               <view class="progress-overview">
-                <view class="progress-overview__head"><text>升级进度</text><text>{{ clampProgress(selectedDetail.finishPercent) }}%</text></view>
+                <view class="progress-overview__head"><text>{{ localeText("升级进度", "Upgrade progress") }}</text><text>{{ clampProgress(selectedDetail.finishPercent) }}%</text></view>
                 <view class="progress-overview__track"><view :style="{ width: `${clampProgress(selectedDetail.finishPercent)}%` }"></view></view>
                 <text class="stage-text">{{ getStageText(selectedDetail.upgradeStage, selectedDetail.repairRound) }}</text>
               </view>
 
               <view class="stat-grid">
-                <view><text>{{ displayValue(selectedDetail.frameCount, "0") }}</text><text>总帧数</text></view>
-                <view><text>{{ displayValue(selectedDetail.receivedFrameCount, "0") }}</text><text>已收帧数</text></view>
-                <view><text>{{ displayValue(selectedDetail.repairRound, "0") }}</text><text>补帧轮次</text></view>
+                <view><text>{{ displayValue(selectedDetail.frameCount, "0") }}</text><text>{{ localeText("总帧数", "Total frames") }}</text></view>
+                <view><text>{{ displayValue(selectedDetail.receivedFrameCount, "0") }}</text><text>{{ localeText("已收帧数", "Received frames") }}</text></view>
+                <view><text>{{ displayValue(selectedDetail.repairRound, "0") }}</text><text>{{ localeText("补帧轮次", "Repair round") }}</text></view>
               </view>
 
               <view class="info-section">
-                <text class="section-title">任务信息</text>
+                <text class="section-title">{{ localeText("任务信息", "Task information") }}</text>
                 <view class="info-list">
-                  <view class="info-row"><text>固件版本</text><text>{{ displayValue(selectedDetail.firmwareVersion) }}</text></view>
-                  <view class="info-row"><text>传输通道</text><text>{{ getTransportText(selectedDetail.transportChannel) }}</text></view>
-                  <view class="info-row"><text>开始时间</text><text>{{ formatDateTime(selectedDetail.startTime || selectedDetail.createdAt) }}</text></view>
-                  <view class="info-row"><text>结束时间</text><text>{{ formatDateTime(selectedDetail.finishTime) }}</text></view>
-                  <view class="info-row"><text>当前会话</text><text class="ellipsis-text" :title="selectedDetail.currentSessionId">{{ displayValue(selectedDetail.currentSessionId) }}</text></view>
-                  <view class="info-row"><text>最后发送</text><text>{{ formatDateTime(selectedDetail.lastFrameSentAt) }}</text></view>
-                  <view class="info-row"><text>最后上报</text><text>{{ formatDateTime(selectedDetail.lastReportAt) }}</text></view>
-                  <view class="info-row"><text>固件 MD5</text><text class="ellipsis-text" :title="selectedDetail.firmwareMd5">{{ displayValue(selectedDetail.firmwareMd5) }}</text></view>
+                  <view class="info-row"><text>{{ localeText("固件版本", "Firmware version") }}</text><text>{{ displayValue(selectedDetail.firmwareVersion) }}</text></view>
+                  <view class="info-row"><text>{{ localeText("传输通道", "Transport") }}</text><text>{{ getTransportText(selectedDetail.transportChannel) }}</text></view>
+                  <view class="info-row"><text>{{ localeText("开始时间", "Started at") }}</text><text>{{ formatDateTime(selectedDetail.startTime || selectedDetail.createdAt) }}</text></view>
+                  <view class="info-row"><text>{{ localeText("结束时间", "Finished at") }}</text><text>{{ formatDateTime(selectedDetail.finishTime) }}</text></view>
+                  <view class="info-row"><text>{{ localeText("当前会话", "Current session") }}</text><text class="ellipsis-text" :title="selectedDetail.currentSessionId">{{ displayValue(selectedDetail.currentSessionId) }}</text></view>
+                  <view class="info-row"><text>{{ localeText("最后发送", "Last sent") }}</text><text>{{ formatDateTime(selectedDetail.lastFrameSentAt) }}</text></view>
+                  <view class="info-row"><text>{{ localeText("最后上报", "Last report") }}</text><text>{{ formatDateTime(selectedDetail.lastReportAt) }}</text></view>
+                  <view class="info-row"><text>{{ localeText("固件 MD5", "Firmware MD5") }}</text><text class="ellipsis-text" :title="selectedDetail.firmwareMd5">{{ displayValue(selectedDetail.firmwareMd5) }}</text></view>
                 </view>
                 <view v-if="selectedDetail.failureReason" class="error-card">{{ selectedDetail.failureReason }}</view>
               </view>
@@ -225,13 +222,13 @@
 
             <template v-else-if="detailTab === 'FRAMES'">
               <view class="subsection-head">
-                <view><text class="section-title">固件帧记录</text><text class="subsection-hint">帧数据按需加载，不参与自动轮询</text></view>
-                <button class="mini-button" :disabled="subResourceLoading" @click="loadFrames(true)">刷新</button>
+                <view><text class="section-title">{{ localeText("固件帧记录", "Firmware frames") }}</text><text class="subsection-hint">{{ localeText("帧数据按需加载，不参与自动轮询", "Frame data is loaded on demand") }}</text></view>
+                <button class="mini-button" :disabled="subResourceLoading" @click="loadFrames(true)">{{ localeText("刷新", "Refresh") }}</button>
               </view>
-              <view v-if="subResourceLoading" class="resource-state">正在加载帧记录…</view>
-              <view v-else-if="!frames.length" class="resource-state">暂无帧记录</view>
+              <view v-if="subResourceLoading" class="resource-state">{{ localeText("正在加载帧记录…", "Loading frames…") }}</view>
+              <view v-else-if="!frames.length" class="resource-state">{{ localeText("暂无帧记录", "No frame records") }}</view>
               <view v-else class="compact-table">
-                <view class="compact-row compact-row--header"><text>帧序号</text><text>长度</text><text>状态</text><text>轮次</text><text>尝试</text><text>Hex 摘要</text><text>最后发送</text></view>
+                <view class="compact-row compact-row--header"><text>{{ localeText("帧序号", "Frame") }}</text><text>{{ localeText("长度", "Length") }}</text><text>{{ localeText("状态", "Status") }}</text><text>{{ localeText("轮次", "Round") }}</text><text>{{ localeText("尝试", "Attempts") }}</text><text>{{ localeText("Hex 摘要", "Hex preview") }}</text><text>{{ localeText("最后发送", "Last sent") }}</text></view>
                 <view v-for="frame in frames" :key="frame.id || frame.frameIndex" class="compact-row">
                   <text>{{ displayValue(frame.frameIndex) }}</text>
                   <text>{{ displayValue(frame.dataLength) }}</text>
@@ -246,17 +243,17 @@
 
             <template v-else>
               <view class="subsection-head">
-                <view><text class="section-title">上下行事件</text><text class="subsection-hint">按时间展示系统与设备交互过程</text></view>
-                <button class="mini-button" :disabled="subResourceLoading" @click="loadEvents(true)">刷新</button>
+                <view><text class="section-title">{{ localeText("上下行事件", "Events") }}</text><text class="subsection-hint">{{ localeText("按时间展示系统与设备交互过程", "System and device events in chronological order") }}</text></view>
+                <button class="mini-button" :disabled="subResourceLoading" @click="loadEvents(true)">{{ localeText("刷新", "Refresh") }}</button>
               </view>
-              <view v-if="subResourceLoading" class="resource-state">正在加载事件…</view>
-              <view v-else-if="!events.length" class="resource-state">暂无事件记录</view>
+              <view v-if="subResourceLoading" class="resource-state">{{ localeText("正在加载事件…", "Loading events…") }}</view>
+              <view v-else-if="!events.length" class="resource-state">{{ localeText("暂无事件记录", "No event records") }}</view>
               <view v-else class="timeline">
                 <view v-for="event in events" :key="event.id" class="timeline-item" :class="`timeline-item--${String(event.direction || 'SYSTEM').toLowerCase()}`">
                   <text class="timeline-item__dot"></text>
                   <view class="timeline-item__content">
                     <view><text class="timeline-item__title">{{ getEventTypeText(event.eventType) }}</text><text class="timeline-item__time">{{ formatDateTime(event.createdAt) }}</text></view>
-                    <text class="timeline-item__meta">{{ getDirectionText(event.direction) }}<template v-if="event.frameIndex !== undefined"> · 帧 {{ event.frameIndex }}</template></text>
+                    <text class="timeline-item__meta">{{ getDirectionText(event.direction) }}<template v-if="event.frameIndex !== undefined"> · {{ localeText("帧", "Frame") }} {{ event.frameIndex }}</template></text>
                     <text v-if="event.detail" class="timeline-item__detail">{{ event.detail }}</text>
                     <text v-if="event.rawHex" class="timeline-item__hex" :title="event.rawHex">{{ previewHex(event.rawHex) }}</text>
                   </view>
@@ -271,8 +268,8 @@
     <view v-if="upgradeDialogVisible" class="modal-mask" @click.self="closeUpgradeDialog">
       <view class="upgrade-modal">
         <view class="modal-head">
-          <view><text class="modal-head__eyebrow">固件升级</text><text class="modal-head__title">创建升级任务</text></view>
-          <button class="modal-close" aria-label="关闭" @click="closeUpgradeDialog">×</button>
+          <view><text class="modal-head__eyebrow">{{ localeText("固件升级", "Firmware upgrade") }}</text><text class="modal-head__title">{{ localeText("创建升级任务", "Create upgrade tasks") }}</text></view>
+          <button class="modal-close" :aria-label="localeText('关闭', 'Close')" @click="closeUpgradeDialog">×</button>
         </view>
 
         <view class="step-bar">
@@ -284,8 +281,8 @@
 
         <scroll-view class="modal-body" scroll-y>
           <view v-if="upgradeStep === 1" class="wizard-section">
-            <view class="wizard-head"><view><text class="wizard-title">选择固件</text><text class="wizard-hint">请选择已经上传并验证通过的固件记录</text></view><text class="selected-count">共 {{ firmwareCandidates.length }} 个</text></view>
-            <view v-if="candidateLoading" class="resource-state">正在加载固件…</view>
+            <view class="wizard-head"><view><text class="wizard-title">{{ localeText("选择固件", "Select firmware") }}</text><text class="wizard-hint">{{ localeText("请选择已经上传并验证通过的固件记录", "Choose an uploaded and validated firmware record") }}</text></view><text class="selected-count">{{ localizedCount(firmwareCandidates.length) }}</text></view>
+            <view v-if="candidateLoading" class="resource-state">{{ localeText("正在加载固件…", "Loading firmware…") }}</view>
             <view v-else class="choice-list">
               <view
                 v-for="firmware in firmwareCandidates"
@@ -297,29 +294,29 @@
                 <text class="choice-radio"><text></text></text>
                 <view class="choice-content">
                   <view><text class="choice-title">{{ displayValue(firmware.firmwareName) }}</text><text class="version-pill">{{ displayValue(firmware.firmwareVersion) }}</text></view>
-                  <text class="choice-description">{{ displayValue(firmware.instruction || firmware.remark, "暂无说明") }}</text>
-                  <text class="choice-meta">上传时间：{{ formatDateTime(firmware.uploadTime || firmware.createdAt) }}</text>
+                  <text class="choice-description">{{ displayValue(firmware.instruction || firmware.remark, localeText("暂无说明", "No description")) }}</text>
+                  <text class="choice-meta">{{ localeText("上传时间", "Uploaded at") }}: {{ formatDateTime(firmware.uploadTime || firmware.createdAt) }}</text>
                 </view>
               </view>
-              <view v-if="!firmwareCandidates.length" class="resource-state">暂无可用固件，请先到固件管理页面上传</view>
+              <view v-if="!firmwareCandidates.length" class="resource-state">{{ localeText("暂无可用固件，请先到固件管理页面上传", "No firmware available. Upload firmware first.") }}</view>
             </view>
           </view>
 
           <view v-else-if="upgradeStep === 2" class="wizard-section">
-            <view class="wizard-head"><view><text class="wizard-title">选择设备</text><text class="wizard-hint">仅允许选择直连设备；离线设备创建后将等待连接</text></view><text class="selected-count">已选择 {{ selectedDevices.length }} 台</text></view>
+            <view class="wizard-head"><view><text class="wizard-title">{{ localeText("选择设备", "Select devices") }}</text><text class="wizard-hint">{{ localeText("仅允许选择直连设备；离线设备创建后将等待连接", "Only direct TCP devices are supported; offline devices will wait for connection") }}</text></view><text class="selected-count">{{ localeText(`已选择 ${selectedDevices.length} 台`, `${selectedDevices.length} selected`) }}</text></view>
             <view class="device-filter">
-              <input v-model="deviceKeyword" class="filter-input" placeholder="筛选当前列表中的设备编号或别名" />
-              <button class="mini-button" @click="toggleSelectableDevices">{{ currentSelectableSelected ? "取消可选设备" : "选择全部可用设备" }}</button>
+              <input v-model="deviceKeyword" class="filter-input" :placeholder="localeText('筛选当前列表中的设备编号或别名', 'Filter by device number or alias')" />
+              <button class="mini-button" @click="toggleSelectableDevices">{{ currentSelectableSelected ? localeText("取消可选设备", "Clear selectable") : localeText("选择全部可用设备", "Select all available") }}</button>
             </view>
-            <view v-if="candidateLoading" class="resource-state">正在加载设备…</view>
+            <view v-if="candidateLoading" class="resource-state">{{ localeText("正在加载设备…", "Loading devices…") }}</view>
             <view v-else class="device-table">
               <view class="device-row device-row--header">
                 <view class="device-check-cell"></view>
-                <text>设备编号</text>
-                <text>设备别名</text>
-                <text>下发方式</text>
-                <text>TCP 状态</text>
-                <text>当前固件</text>
+                <text>{{ localeText("设备编号", "Device number") }}</text>
+                <text>{{ localeText("设备别名", "Device alias") }}</text>
+                <text>{{ localeText("下发方式", "Dispatch method") }}</text>
+                <text>{{ localeText("TCP 状态", "TCP status") }}</text>
+                <text>{{ localeText("当前固件", "Current firmware") }}</text>
               </view>
               <view
                 v-for="device in filteredDeviceCandidates"
@@ -334,41 +331,41 @@
                 <text>{{ displayValue(device.deviceNumber) }}</text>
                 <text>{{ displayValue(device.deviceAlias || device.deviceName) }}</text>
                 <text>{{ getCommandSendwayText(device.commandSendway) }}</text>
-                <text><text class="online-pill" :class="isDeviceOnline(device) ? 'online-pill--online' : 'online-pill--offline'">{{ isDeviceOnline(device) ? "在线" : "离线" }}</text></text>
+                <text><text class="online-pill" :class="isDeviceOnline(device) ? 'online-pill--online' : 'online-pill--offline'">{{ isDeviceOnline(device) ? localeText("在线", "Online") : localeText("离线", "Offline") }}</text></text>
                 <text>{{ displayValue(device.firmwareVersion) }}</text>
               </view>
-              <view v-if="!filteredDeviceCandidates.length" class="resource-state">暂无符合条件的设备</view>
+              <view v-if="!filteredDeviceCandidates.length" class="resource-state">{{ localeText("暂无符合条件的设备", "No matching devices") }}</view>
             </view>
           </view>
 
           <view v-else class="wizard-section">
-            <view class="wizard-head"><view><text class="wizard-title">升级检查与确认</text><text class="wizard-hint">提交前检查设备是否存在未结束的升级任务</text></view><button class="mini-button" :disabled="checkingUpdatable" @click="runUpdatableCheck">{{ checkingUpdatable ? "正在检查" : "重新检查" }}</button></view>
+            <view class="wizard-head"><view><text class="wizard-title">{{ localeText("升级检查与确认", "Check and confirm") }}</text><text class="wizard-hint">{{ localeText("提交前检查设备是否存在未结束的升级任务", "Check for unfinished upgrade tasks before submission") }}</text></view><button class="mini-button" :disabled="checkingUpdatable" @click="runUpdatableCheck">{{ checkingUpdatable ? localeText("正在检查", "Checking") : localeText("重新检查", "Check again") }}</button></view>
 
             <view class="confirm-summary">
-              <view><text>固件</text><text>{{ selectedFirmware?.firmwareName || "--" }}</text></view>
-              <view><text>版本</text><text>{{ selectedFirmware?.firmwareVersion || "--" }}</text></view>
-              <view><text>设备数量</text><text>{{ selectedDevices.length }} 台</text></view>
+              <view><text>{{ localeText("固件", "Firmware") }}</text><text>{{ selectedFirmware?.firmwareName || "--" }}</text></view>
+              <view><text>{{ localeText("版本", "Version") }}</text><text>{{ selectedFirmware?.firmwareVersion || "--" }}</text></view>
+              <view><text>{{ localeText("设备数量", "Devices") }}</text><text>{{ localeText(`${selectedDevices.length} 台`, String(selectedDevices.length)) }}</text></view>
             </view>
 
             <view class="check-list">
               <view v-for="device in selectedDevices" :key="device.id" class="check-item">
-                <view><text class="check-item__number">{{ device.deviceNumber }}</text><text>{{ isDeviceOnline(device) ? "TCP 在线" : "TCP 离线，任务将等待连接" }}</text></view>
+                <view><text class="check-item__number">{{ device.deviceNumber }}</text><text>{{ isDeviceOnline(device) ? localeText("TCP 在线", "TCP online") : localeText("TCP 离线，任务将等待连接", "TCP offline; task will wait for connection") }}</text></view>
                 <text class="check-result" :class="getCheckResult(device.deviceNumber).updatable ? 'check-result--success' : 'check-result--danger'">
                   {{ getCheckResult(device.deviceNumber).label }}
                 </text>
               </view>
             </view>
-            <view v-if="hasBlockedDevice" class="warning-card">存在不可升级设备，请返回上一步移除后再提交。</view>
+            <view v-if="hasBlockedDevice" class="warning-card">{{ localeText("存在不可升级设备，请返回上一步移除后再提交。", "Remove unavailable devices before submitting.") }}</view>
           </view>
         </scroll-view>
 
         <view class="modal-actions">
-          <button class="action-button" :disabled="submittingUpgrade" @click="closeUpgradeDialog">取消</button>
+          <button class="action-button" :disabled="submittingUpgrade" @click="closeUpgradeDialog">{{ localeText("取消", "Cancel") }}</button>
           <view>
-            <button v-if="upgradeStep > 1" class="action-button" :disabled="submittingUpgrade" @click="upgradeStep--">上一步</button>
-            <button v-if="upgradeStep < 3" class="action-button action-button--primary" :disabled="candidateLoading" @click="nextUpgradeStep">下一步</button>
+            <button v-if="upgradeStep > 1" class="action-button" :disabled="submittingUpgrade" @click="upgradeStep--">{{ localeText("上一步", "Previous") }}</button>
+            <button v-if="upgradeStep < 3" class="action-button action-button--primary" :disabled="candidateLoading" @click="nextUpgradeStep">{{ localeText("下一步", "Next") }}</button>
             <button v-else class="action-button action-button--primary" :disabled="!canSubmitUpgrade || submittingUpgrade" @click="submitUpgrade">
-              {{ submittingUpgrade ? "正在创建" : "确认发起升级" }}
+              {{ submittingUpgrade ? localeText("正在创建", "Creating") : localeText("确认发起升级", "Start upgrade") }}
             </button>
           </view>
         </view>
@@ -379,6 +376,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref } from "vue";
+import { useLocaleText, useLocalizedCount, useLocalizedTotal } from "@/i18n/localeText";
 import CommandDataTable from "@/pages/command/components/t/CommandDataTable.vue";
 import CommandPaginationBar from "@/pages/command/components/t/CommandPaginationBar.vue";
 import type { CommandTableColumn } from "@/pages/command/components/t/types";
@@ -411,88 +409,74 @@ interface FilterState {
   endDate: string;
 }
 
-const recordTabs: Array<{ label: string; value: RecordView }> = [
-  { label: "指令下发记录", value: "COMMAND" },
-  { label: "固件升级记录", value: "UPGRADE" },
-];
-const detailTabs: Array<{ label: string; value: DetailTab }> = [
-  { label: "任务概览", value: "OVERVIEW" },
-  { label: "固件帧记录", value: "FRAMES" },
-  { label: "上下行事件", value: "EVENTS" },
-];
-const upgradeSteps = [
-  { value: 1, label: "选择固件" },
-  { value: 2, label: "选择设备" },
-  { value: 3, label: "升级检查" },
-];
+const localeText = useLocaleText();
+const localizedTotal = useLocalizedTotal();
+const localizedCount = useLocalizedCount();
 
-const upgradeStatusMap: Record<number, { label: string; tone: string; terminal: boolean }> = {
-  0: { label: "等待发送", tone: "waiting", terminal: false },
-  1: { label: "升级中", tone: "running", terminal: false },
-  2: { label: "取消中", tone: "warning", terminal: false },
-  3: { label: "升级失败", tone: "danger", terminal: true },
-  4: { label: "升级完成", tone: "success", terminal: true },
-  5: { label: "已取消", tone: "muted", terminal: true },
-  6: { label: "设备或网络异常", tone: "danger", terminal: true },
-};
-const upgradeStageMap: Record<string, string> = {
-  PREPARING: "正在准备任务",
-  WAITING_CONNECTION: "等待设备连接",
-  SENDING_INITIAL: "正在发送固件",
-  WAITING_DEVICE_REPORT: "等待设备收帧报告",
-  WAITING_RECONNECT: "存在丢帧，等待设备重连",
-  SENDING_REPAIR: "正在补发缺失帧",
-  DEVICE_UPGRADING: "设备正在升级",
-  CANCEL_PENDING: "等待发送取消指令",
-  CANCEL_SENT: "取消指令已发送",
-  TERMINAL: "任务已结束",
-};
-const eventTypeMap: Record<string, string> = {
-  TASK_CREATED: "任务创建",
-  DATA_FRAME: "下发固件帧",
-  LOSS_REPORT: "设备上报丢帧",
-  RECEIVE_COMPLETE: "设备已收齐",
-  UPGRADE_SUCCESS: "升级成功",
-  UPGRADE_FAILED: "升级失败",
-  CANCEL_COMMAND: "下发取消指令",
-  CANCEL_RECEIVED: "设备收到取消指令",
-  CANCEL_SUCCESS: "取消成功",
-  CONNECTION_CLOSED: "TCP 连接断开",
-  SEND_FAILED: "发送失败或等待超时",
+const recordTabs = computed<Array<{ label: string; value: RecordView }>>(() => [
+  { label: localeText("指令下发记录", "Command records"), value: "COMMAND" },
+  { label: localeText("固件升级记录", "Firmware upgrades"), value: "UPGRADE" },
+]);
+const detailTabs = computed<Array<{ label: string; value: DetailTab }>>(() => [
+  { label: localeText("任务概览", "Overview"), value: "OVERVIEW" },
+  { label: localeText("固件帧记录", "Firmware frames"), value: "FRAMES" },
+  { label: localeText("上下行事件", "Events"), value: "EVENTS" },
+]);
+const upgradeSteps = computed(() => [
+  { value: 1, label: localeText("选择固件", "Select firmware") },
+  { value: 2, label: localeText("选择设备", "Select devices") },
+  { value: 3, label: localeText("升级检查", "Upgrade check") },
+]);
+
+const upgradeStatusMap: Record<number, { tone: string; terminal: boolean }> = {
+  0: { tone: "waiting", terminal: false },
+  1: { tone: "running", terminal: false },
+  2: { tone: "warning", terminal: false },
+  3: { tone: "danger", terminal: true },
+  4: { tone: "success", terminal: true },
+  5: { tone: "muted", terminal: true },
+  6: { tone: "danger", terminal: true },
 };
 
-const commandStatusOptions = [
-  { label: "全部状态", value: "" },
-  { label: "等待执行", value: "0" },
-  { label: "执行中", value: "1" },
-  { label: "执行成功", value: "2" },
-  { label: "执行失败", value: "3" },
-];
-const upgradeStatusOptions = [
-  { label: "全部状态", value: "" },
-  ...Object.entries(upgradeStatusMap).map(([value, item]) => ({ label: item.label, value })),
-];
+const commandStatusMap: Record<number, { tone: string; terminal: boolean }> = {
+  0: { tone: "waiting", terminal: false },
+  1: { tone: "waiting", terminal: false },
+  2: { tone: "running", terminal: false },
+  3: { tone: "success", terminal: true },
+  4: { tone: "danger", terminal: true },
+  5: { tone: "muted", terminal: true },
+  6: { tone: "success", terminal: true },
+};
 
-const commandColumns: CommandTableColumn[] = [
-  { key: "id", label: "记录 ID", width: 90 },
-  { key: "deviceNumber", label: "设备编号", width: 150 },
-  { key: "commandName", label: "指令名称", width: 170 },
-  { key: "commandCode", label: "指令码", width: 120 },
-  { key: "executeStatus", label: "执行状态", width: 120 },
-  { key: "sendTime", label: "下发时间", width: 170, formatter: value => formatDateTime(value) },
-  { key: "expiresAt", label: "完成时间", width: 170, formatter: value => formatDateTime(value) },
-];
-const upgradeColumns: CommandTableColumn[] = [
-  { key: "id", label: "任务 ID", width: 90 },
-  { key: "deviceNumber", label: "设备编号", width: 150 },
-  { key: "firmwareVersion", label: "固件版本", width: 110 },
-  { key: "executeStatus", label: "执行状态", width: 130 },
-  { key: "upgradeStageText", label: "当前阶段", width: 190 },
-  { key: "finishPercent", label: "进度", width: 170 },
-  { key: "frameSummary", label: "已收/总帧", width: 110 },
-  { key: "repairRound", label: "补帧轮次", width: 100 },
-  { key: "startTime", label: "开始时间", width: 170, formatter: value => formatDateTime(value) },
-];
+const commandStatusOptions = computed(() => [
+  { label: localeText("全部状态", "All statuses"), value: "" },
+  ...Object.keys(commandStatusMap).map(value => ({ label: getCommandStatusText(value), value })),
+]);
+const upgradeStatusOptions = computed(() => [
+  { label: localeText("全部状态", "All statuses"), value: "" },
+  ...Object.keys(upgradeStatusMap).map(value => ({ label: getStatusText(value), value })),
+]);
+
+const commandColumns = computed<CommandTableColumn[]>(() => [
+  { key: "id", label: localeText("记录 ID", "Record ID"), width: 90 },
+  { key: "deviceNumber", label: localeText("设备编号", "Device number"), width: 150 },
+  { key: "commandName", label: localeText("指令名称", "Command name"), width: 170 },
+  { key: "commandCode", label: localeText("指令码", "Command code"), width: 120 },
+  { key: "executeStatus", label: localeText("执行状态", "Status"), width: Number(localeText("120", "168")) },
+  { key: "sendTime", label: localeText("下发时间", "Sent at"), width: 170, formatter: value => formatDateTime(value) },
+  { key: "expiresAt", label: localeText("完成时间", "Completed at"), width: 170, formatter: value => formatDateTime(value) },
+]);
+const upgradeColumns = computed<CommandTableColumn[]>(() => [
+  { key: "id", label: localeText("任务 ID", "Task ID"), width: 90 },
+  { key: "deviceNumber", label: localeText("设备编号", "Device number"), width: 150 },
+  { key: "firmwareVersion", label: localeText("固件版本", "Firmware version"), width: 110 },
+  { key: "executeStatus", label: localeText("执行状态", "Status"), width: Number(localeText("130", "200")) },
+  { key: "upgradeStageText", label: localeText("当前阶段", "Current stage"), width: 190 },
+  { key: "finishPercent", label: localeText("进度", "Progress"), width: 170 },
+  { key: "frameSummary", label: localeText("已收/总帧", "Received/total"), width: 110 },
+  { key: "repairRound", label: localeText("补帧轮次", "Repair round"), width: 100 },
+  { key: "startTime", label: localeText("开始时间", "Started at"), width: 170, formatter: value => formatDateTime(value) },
+]);
 
 const activeView = ref<RecordView>("COMMAND");
 const commandFilters = reactive<FilterState>({ keyword: "", status: "", startDate: "", endDate: "" });
@@ -529,9 +513,9 @@ const activeFilters = computed(() => activeView.value === "COMMAND" ? commandFil
 const activePage = computed(() => activeView.value === "COMMAND" ? commandPage : upgradePage);
 const activeRows = computed(() => activeView.value === "COMMAND" ? commandRows.value : upgradeRows.value);
 const activeLoading = computed(() => activeView.value === "COMMAND" ? commandLoading.value : upgradeLoading.value);
-const activeColumns = computed(() => activeView.value === "COMMAND" ? commandColumns : upgradeColumns);
+const activeColumns = computed(() => activeView.value === "COMMAND" ? commandColumns.value : upgradeColumns.value);
 const selectedId = computed(() => activeView.value === "COMMAND" ? selectedCommandId.value : selectedUpgradeId.value);
-const activeStatusOptions = computed(() => activeView.value === "COMMAND" ? commandStatusOptions : upgradeStatusOptions);
+const activeStatusOptions = computed(() => activeView.value === "COMMAND" ? commandStatusOptions.value : upgradeStatusOptions.value);
 const activeStatusIndex = computed(() => Math.max(0, activeStatusOptions.value.findIndex(item => item.value === activeFilters.value.status)));
 const selectedFirmware = computed(() => firmwareCandidates.value.find(item => item.id === upgradeDraft.firmwareId) || null);
 const selectedDevices = computed(() => upgradeDraft.devices);
@@ -561,7 +545,8 @@ async function switchRecordView(view: RecordView) {
   activeView.value = view;
   selectedDetail.value = null;
   detailTab.value = "OVERVIEW";
-  await loadActivePage(false);
+  // 每次进入记录模块都选中当前页第一条，避免保留旧 ID 时右侧详情为空。
+  await loadActivePage(true);
 }
 
 async function loadActivePage(selectFirst = false) {
@@ -575,7 +560,7 @@ async function loadCommandPage(selectFirst = false) {
     const response = await getCommandSendLogPage({
       pageNum: commandPage.current,
       pageSize: commandPage.size,
-      keyword: commandFilters.keyword || undefined,
+      deviceNumber: commandFilters.keyword.trim() || undefined,
       executeStatus: toOptionalNumber(commandFilters.status),
       startTime: toStartTime(commandFilters.startDate),
       endTime: toEndTime(commandFilters.endDate),
@@ -589,7 +574,7 @@ async function loadCommandPage(selectFirst = false) {
       else clearSelection("COMMAND");
     }
   } catch (error) {
-    showError(error, "指令记录加载失败");
+    showError(error, localeText("指令记录加载失败", "Failed to load command records"));
   } finally {
     commandLoading.value = false;
   }
@@ -616,7 +601,7 @@ async function loadUpgradePage(selectFirst = false) {
       else clearSelection("UPGRADE");
     }
   } catch (error) {
-    showError(error, "升级记录加载失败");
+    showError(error, localeText("升级记录加载失败", "Failed to load upgrade records"));
   } finally {
     upgradeLoading.value = false;
   }
@@ -632,10 +617,12 @@ async function selectCommandRow(row: ApiRecord) {
   selectedCommandId.value = row.id;
   detailLoading.value = true;
   try {
-    selectedDetail.value = normalizeCommandLog(unwrapResponse(await getCommandSendLogDetail(row.id)));
+    const detail = unwrapResponse(await getCommandSendLogDetail(row.id));
+    // 详情接口缺少部分字段时，用列表行数据补齐右侧展示内容。
+    selectedDetail.value = normalizeCommandLog({ ...row, ...(detail || {}) });
   } catch (error) {
     selectedDetail.value = row;
-    showError(error, "指令详情加载失败");
+    showError(error, localeText("指令详情加载失败", "Failed to load command details"));
   } finally {
     detailLoading.value = false;
   }
@@ -660,7 +647,7 @@ async function loadSelectedUpgradeDetail(silent = false) {
     if (index >= 0) upgradeRows.value.splice(index, 1, detail);
     if (isTerminalStatus(detail.executeStatus)) stopPolling();
   } catch (error) {
-    if (!silent) showError(error, "升级详情加载失败");
+    if (!silent) showError(error, localeText("升级详情加载失败", "Failed to load upgrade details"));
   } finally {
     if (!silent) detailLoading.value = false;
   }
@@ -690,9 +677,9 @@ async function loadFrames(showMessage: boolean) {
   subResourceLoading.value = true;
   try {
     frames.value = asArray(unwrapResponse(await getFirmwareUpgradeFrames(selectedUpgradeId.value)));
-    if (showMessage) showToast("帧记录已刷新");
+    if (showMessage) showToast(localeText("帧记录已刷新", "Frame records refreshed"));
   } catch (error) {
-    showError(error, "帧记录加载失败");
+    showError(error, localeText("帧记录加载失败", "Failed to load frame records"));
   } finally {
     subResourceLoading.value = false;
   }
@@ -703,9 +690,9 @@ async function loadEvents(showMessage: boolean) {
   subResourceLoading.value = true;
   try {
     events.value = asArray(unwrapResponse(await getFirmwareUpgradeEvents(selectedUpgradeId.value)));
-    if (showMessage) showToast("事件记录已刷新");
+    if (showMessage) showToast(localeText("事件记录已刷新", "Event records refreshed"));
   } catch (error) {
-    showError(error, "事件记录加载失败");
+    showError(error, localeText("事件记录加载失败", "Failed to load event records"));
   } finally {
     subResourceLoading.value = false;
   }
@@ -713,16 +700,20 @@ async function loadEvents(showMessage: boolean) {
 
 async function confirmCancelUpgrade() {
   if (!selectedDetail.value || !canCancelUpgrade(selectedDetail.value)) return;
-  const confirmed = await showConfirm("取消固件升级", `确认取消设备 ${selectedDetail.value.deviceNumber || "--"} 的升级任务吗？`);
+  const deviceNumber = selectedDetail.value.deviceNumber || "--";
+  const confirmed = await showConfirm(
+    localeText("取消固件升级", "Cancel firmware upgrade"),
+    localeText(`确认取消设备 ${deviceNumber} 的升级任务吗？`, `Cancel the upgrade task for device ${deviceNumber}?`),
+  );
   if (!confirmed) return;
   canceling.value = true;
   try {
     unwrapResponse(await cancelFirmwareUpgrade({ upgradeLogIds: [selectedDetail.value.id] }));
-    showToast("取消请求已提交");
+    showToast(localeText("取消请求已提交", "Cancellation request submitted"));
     await loadSelectedUpgradeDetail(false);
     startPollingIfNeeded();
   } catch (error) {
-    showError(error, "取消升级失败");
+    showError(error, localeText("取消升级失败", "Failed to cancel upgrade"));
   } finally {
     canceling.value = false;
   }
@@ -755,7 +746,7 @@ async function loadFirmwareCandidates() {
     if (!upgradeDraft.firmwareId && firmwareCandidates.value[0]) upgradeDraft.firmwareId = firmwareCandidates.value[0].id;
   } catch (error) {
     firmwareCandidates.value = [];
-    showError(error, "固件列表加载失败");
+    showError(error, localeText("固件列表加载失败", "Failed to load firmware"));
   }
 }
 
@@ -765,17 +756,17 @@ async function loadDeviceCandidates() {
     deviceCandidates.value = getPageRecords(page);
   } catch (error) {
     deviceCandidates.value = [];
-    showError(error, "设备列表加载失败");
+    showError(error, localeText("设备列表加载失败", "Failed to load devices"));
   }
 }
 
 async function nextUpgradeStep() {
   if (upgradeStep.value === 1) {
-    if (!upgradeDraft.firmwareId) return showToast("请选择固件");
+    if (!upgradeDraft.firmwareId) return showToast(localeText("请选择固件", "Select firmware"));
     upgradeStep.value = 2;
     return;
   }
-  if (!selectedDevices.value.length) return showToast("请选择至少一台设备");
+  if (!selectedDevices.value.length) return showToast(localeText("请选择至少一台设备", "Select at least one device"));
   upgradeStep.value = 3;
   await runUpdatableCheck();
 }
@@ -790,7 +781,7 @@ async function runUpdatableCheck() {
     updatableResults.value = asArray(result);
   } catch (error) {
     updatableResults.value = [];
-    showError(error, "设备升级检查失败");
+    showError(error, localeText("设备升级检查失败", "Failed to check device eligibility"));
   } finally {
     checkingUpdatable.value = false;
   }
@@ -810,17 +801,17 @@ async function submitUpgrade() {
     upgradeDialogVisible.value = false;
     activeView.value = "UPGRADE";
     upgradePage.current = 1;
-    showToast(`已创建 ${taskCount} 个升级任务`);
+    showToast(localeText(`已创建 ${taskCount} 个升级任务`, `${taskCount} upgrade task(s) created`));
     await loadUpgradePage(true);
   } catch (error) {
-    showError(error, "发起固件升级失败");
+    showError(error, localeText("发起固件升级失败", "Failed to start firmware upgrade"));
   } finally {
     submittingUpgrade.value = false;
   }
 }
 
 function toggleDevice(device: ApiRecord) {
-  if (!isDirectDevice(device)) return showToast("该设备不是 TCP 直连下发方式");
+  if (!isDirectDevice(device)) return showToast(localeText("该设备不是 TCP 直连下发方式", "This device does not use direct TCP dispatch"));
   const index = upgradeDraft.devices.findIndex(item => item.id === device.id);
   if (index >= 0) upgradeDraft.devices.splice(index, 1);
   else upgradeDraft.devices.push(device);
@@ -852,10 +843,15 @@ function isDeviceOnline(device: ApiRecord) {
 }
 
 function getCheckResult(deviceNumber: string) {
-  if (checkingUpdatable.value) return { updatable: false, label: "检查中" };
+  if (checkingUpdatable.value) return { updatable: false, label: localeText("检查中", "Checking") };
   const result = updatableResults.value.find(item => String(item.deviceNumber) === String(deviceNumber));
-  if (!result) return { updatable: false, label: "尚未检查" };
-  return { updatable: result.updatable === true || Number(result.updatable) === 1, label: result.updatable === true || Number(result.updatable) === 1 ? "可以升级" : (result.reason || result.message || "存在未结束任务") };
+  if (!result) return { updatable: false, label: localeText("尚未检查", "Not checked") };
+  return {
+    updatable: result.updatable === true || Number(result.updatable) === 1,
+    label: result.updatable === true || Number(result.updatable) === 1
+      ? localeText("可以升级", "Upgradable")
+      : (result.reason || result.message || localeText("存在未结束任务", "An unfinished task exists")),
+  };
 }
 
 function handleSearch() {
@@ -898,14 +894,6 @@ function clearSelection(view: RecordView) {
   else selectedUpgradeId.value = null;
   selectedDetail.value = null;
   stopPolling();
-}
-
-function showCommandSendNotice() {
-  uni.showModal({
-    title: "指令下发",
-    content: "当前后端仅提供指令下发记录查询接口，尚未提供创建指令下发任务的接口。",
-    showCancel: false,
-  });
 }
 
 function normalizeCommandLog(source: ApiRecord = {}) {
@@ -970,10 +958,40 @@ function toEndTime(date: string) {
 }
 
 function getStatusText(status: unknown) {
-  return upgradeStatusMap[Number(status)]?.label || "未知状态";
+  const labels: Record<number, string> = {
+    0: localeText("等待发送", "Waiting to send"),
+    1: localeText("升级中", "Upgrading"),
+    2: localeText("取消中", "Cancelling"),
+    3: localeText("升级失败", "Upgrade failed"),
+    4: localeText("升级完成", "Completed"),
+    5: localeText("已取消", "Cancelled"),
+    6: localeText("设备或网络异常", "Device or network error"),
+  };
+  return labels[Number(status)] || localeText("未知状态", "Unknown status");
 }
 
 function getStatusClass(status: unknown) {
+  return getStatusToneClass(upgradeStatusMap[Number(status)]?.tone);
+}
+
+function getCommandStatusText(status: unknown) {
+  const labels: Record<number, string> = {
+    0: localeText("待传输", "Pending transfer"),
+    1: localeText("待发送", "Pending send"),
+    2: localeText("已发送", "Sent"),
+    3: localeText("已送达", "Delivered"),
+    4: localeText("失败", "Failed"),
+    5: localeText("已取消", "Cancelled"),
+    6: localeText("已成功", "Succeeded"),
+  };
+  return labels[Number(status)] || localeText("未知状态", "Unknown status");
+}
+
+function getCommandStatusClass(status: unknown) {
+  return getStatusToneClass(commandStatusMap[Number(status)]?.tone);
+}
+
+function getStatusToneClass(tone = "muted") {
   const toneMap: Record<string, string> = {
     waiting: "default",
     running: "primary",
@@ -982,45 +1000,73 @@ function getStatusClass(status: unknown) {
     success: "success",
     muted: "default",
   };
-  return `status-tag--${toneMap[upgradeStatusMap[Number(status)]?.tone || "muted"]}`;
-}
-
-function getCommandStatusText(status: unknown) {
-  const textMap: Record<string, string> = { "0": "等待执行", "1": "执行中", "2": "执行成功", "3": "执行失败", SUCCESS: "执行成功", FAILED: "执行失败", RUNNING: "执行中", WAITING: "等待执行" };
-  return textMap[String(status)] || displayValue(status, "未知状态");
-}
-
-function getCommandStatusClass(status: unknown) {
-  const text = getCommandStatusText(status);
-  if (text.includes("成功")) return "status-tag--success";
-  if (text.includes("失败") || text.includes("异常")) return "status-tag--danger";
-  if (text.includes("中")) return "status-tag--primary";
-  return "status-tag--default";
+  return `status-tag--${toneMap[tone] || "default"}`;
 }
 
 function getStageText(stage: unknown, round?: unknown) {
-  const text = upgradeStageMap[String(stage)] || displayValue(stage, "等待任务状态");
-  return String(stage) === "SENDING_REPAIR" && Number(round) > 0 ? `${text}（第 ${round} 轮）` : text;
+  const labels: Record<string, string> = {
+    PREPARING: localeText("正在准备任务", "Preparing task"),
+    WAITING_CONNECTION: localeText("等待设备连接", "Waiting for device connection"),
+    SENDING_INITIAL: localeText("正在发送固件", "Sending firmware"),
+    WAITING_DEVICE_REPORT: localeText("等待设备收帧报告", "Waiting for device frame report"),
+    WAITING_RECONNECT: localeText("存在丢帧，等待设备重连", "Frames lost; waiting for device reconnection"),
+    SENDING_REPAIR: localeText("正在补发缺失帧", "Resending missing frames"),
+    DEVICE_UPGRADING: localeText("设备正在升级", "Device is upgrading"),
+    CANCEL_PENDING: localeText("等待发送取消指令", "Waiting to send cancellation"),
+    CANCEL_SENT: localeText("取消指令已发送", "Cancellation sent"),
+    TERMINAL: localeText("任务已结束", "Task finished"),
+  };
+  const text = labels[String(stage)] || displayValue(stage, localeText("等待任务状态", "Waiting for task status"));
+  if (String(stage) !== "SENDING_REPAIR" || Number(round) <= 0) return text;
+  return localeText(`${text}（第 ${round} 轮）`, `${text} (round ${round})`);
 }
 
 function getTransportText(channel: unknown) {
-  return ({ DIRECT_TCP: "TCP 直连", AEP_TCP: "AEP TCP", AEP_NB: "AEP NB" } as Record<string, string>)[String(channel)] || displayValue(channel);
+  return ({ DIRECT_TCP: localeText("TCP 直连", "Direct TCP"), AEP_TCP: "AEP TCP", AEP_NB: "AEP NB" } as Record<string, string>)[String(channel)] || displayValue(channel);
 }
 
 function getFrameStatusText(status: unknown) {
-  return ({ 0: "待发送", 1: "发送中", 2: "已发送", 3: "发送失败" } as Record<number, string>)[Number(status)] || "未知";
+  return ({
+    0: localeText("待发送", "Pending"),
+    1: localeText("发送中", "Sending"),
+    2: localeText("已发送", "Sent"),
+    3: localeText("发送失败", "Failed"),
+  } as Record<number, string>)[Number(status)] || localeText("未知", "Unknown");
 }
 
 function getEventTypeText(type: unknown) {
-  return eventTypeMap[String(type)] || displayValue(type, "系统事件");
+  const labels: Record<string, string> = {
+    TASK_CREATED: localeText("任务创建", "Task created"),
+    DATA_FRAME: localeText("下发固件帧", "Firmware frame sent"),
+    LOSS_REPORT: localeText("设备上报丢帧", "Frame loss reported"),
+    RECEIVE_COMPLETE: localeText("设备已收齐", "All frames received"),
+    UPGRADE_SUCCESS: localeText("升级成功", "Upgrade succeeded"),
+    UPGRADE_FAILED: localeText("升级失败", "Upgrade failed"),
+    CANCEL_COMMAND: localeText("下发取消指令", "Cancellation sent"),
+    CANCEL_RECEIVED: localeText("设备收到取消指令", "Cancellation received"),
+    CANCEL_SUCCESS: localeText("取消成功", "Cancellation succeeded"),
+    CONNECTION_CLOSED: localeText("TCP 连接断开", "TCP connection closed"),
+    SEND_FAILED: localeText("发送失败或等待超时", "Send failed or timed out"),
+  };
+  return labels[String(type)] || displayValue(type, localeText("系统事件", "System event"));
 }
 
 function getDirectionText(direction: unknown) {
-  return ({ DOWN: "系统下发", UP: "设备上报", SYSTEM: "系统事件" } as Record<string, string>)[String(direction)] || displayValue(direction);
+  return ({
+    DOWN: localeText("系统下发", "System to device"),
+    UP: localeText("设备上报", "Device to system"),
+    SYSTEM: localeText("系统事件", "System event"),
+  } as Record<string, string>)[String(direction)] || displayValue(direction);
 }
 
 function getCommandSendwayText(value: unknown) {
-  return ({ 0: "4G/TCP 直连", 1: "NB", 2: "光纤", 3: "串口", 4: "网口" } as Record<number, string>)[Number(value)] || displayValue(value);
+  return ({
+    0: localeText("4G/TCP 直连", "4G/Direct TCP"),
+    1: "NB",
+    2: localeText("光纤", "Fiber"),
+    3: localeText("串口", "Serial"),
+    4: localeText("网口", "Ethernet"),
+  } as Record<number, string>)[Number(value)] || displayValue(value);
 }
 
 function canCancelUpgrade(task: ApiRecord) {
@@ -1082,7 +1128,14 @@ function showError(error: any, fallback: string) {
 
 function showConfirm(title: string, content: string): Promise<boolean> {
   return new Promise(resolve => {
-    uni.showModal({ title, content, success: result => resolve(Boolean(result.confirm)), fail: () => resolve(false) });
+    uni.showModal({
+      title,
+      content,
+      cancelText: localeText("取消", "Cancel"),
+      confirmText: localeText("确定", "Confirm"),
+      success: result => resolve(Boolean(result.confirm)),
+      fail: () => resolve(false),
+    });
   });
 }
 </script>
@@ -1131,7 +1184,7 @@ button::after { border: 0; }
 .detail-tab--active { color: #0875cc; font-weight: 800; }
 .detail-tab--active::after { position: absolute; right: 8px; bottom: 0; left: 8px; height: 2px; content: ""; background: #0d82ee; }
 .detail-scroll { flex: 1; height: auto; min-height: 0; padding: 13px; box-sizing: border-box; }
-.status-tag { display: inline-flex; align-items: center; justify-content: center; min-width: 54px; height: 24px; padding: 0 9px; font-size: 12px; font-weight: 800; line-height: 24px; border: 1px solid transparent; border-radius: 999px; box-sizing: border-box; }
+.status-tag { display: inline-flex; align-items: center; justify-content: center; min-width: 54px; height: 24px; padding: 0 9px; font-size: 12px; font-weight: 800; line-height: 24px; white-space: nowrap; word-break: keep-all; border: 1px solid transparent; border-radius: 999px; box-sizing: border-box; }
 .status-tag--primary { color: #0d82ee; background: #f3f9ff; border-color: #d7eaff; }
 .status-tag--success { color: #177245; background: #eaf8ef; border-color: #bfe8ce; }
 .status-tag--warning { color: #b54708; background: #fff8eb; border-color: #fedf89; }
