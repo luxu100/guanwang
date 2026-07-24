@@ -223,20 +223,27 @@
             <template v-else-if="detailTab === 'FRAMES'">
               <view class="subsection-head">
                 <view><text class="section-title">{{ localeText("固件帧记录", "Firmware frames") }}</text><text class="subsection-hint">{{ localeText("帧数据按需加载，不参与自动轮询", "Frame data is loaded on demand") }}</text></view>
-                <button class="mini-button" :disabled="subResourceLoading" @click="loadFrames(true)">{{ localeText("刷新", "Refresh") }}</button>
+                <view class="subsection-actions">
+                  <button class="mini-button" :disabled="!frames.length" @click="openFrameDetail">{{ localeText("详情", "Details") }}</button>
+                  <button class="mini-button" :disabled="subResourceLoading" @click="loadFrames(true)">{{ localeText("刷新", "Refresh") }}</button>
+                </view>
               </view>
               <view v-if="subResourceLoading" class="resource-state">{{ localeText("正在加载帧记录…", "Loading frames…") }}</view>
               <view v-else-if="!frames.length" class="resource-state">{{ localeText("暂无帧记录", "No frame records") }}</view>
-              <view v-else class="compact-table">
-                <view class="compact-row compact-row--header"><text>{{ localeText("帧序号", "Frame") }}</text><text>{{ localeText("长度", "Length") }}</text><text>{{ localeText("状态", "Status") }}</text><text>{{ localeText("轮次", "Round") }}</text><text>{{ localeText("尝试", "Attempts") }}</text><text>{{ localeText("Hex 摘要", "Hex preview") }}</text><text>{{ localeText("最后发送", "Last sent") }}</text></view>
-                <view v-for="frame in frames" :key="frame.id || frame.frameIndex" class="compact-row">
-                  <text>{{ displayValue(frame.frameIndex) }}</text>
-                  <text>{{ displayValue(frame.dataLength) }}</text>
-                  <text>{{ getFrameStatusText(frame.sendStatus) }}</text>
-                  <text>{{ displayValue(frame.sendRound, "0") }}</text>
-                  <text>{{ displayValue(frame.sendAttempts, "0") }}</text>
-                  <text class="hex-preview" :title="frame.payloadHex">{{ previewHex(frame.payloadHex) }}</text>
-                  <text>{{ formatDateTime(frame.lastSentAt) }}</text>
+              <view v-else class="compact-table-scroll">
+                <view class="compact-table">
+                  <view class="compact-row compact-row--header"><text>{{ localeText("帧序号", "Frame") }}</text><text>{{ localeText("长度", "Length") }}</text><text>{{ localeText("状态", "Status") }}</text></view>
+                  <view
+                    v-for="frame in frames"
+                    :key="frame.id || frame.frameIndex"
+                    class="compact-row"
+                    :class="{ 'compact-row--active': selectedFrame === frame }"
+                    @click="selectedFrame = frame"
+                  >
+                    <text>{{ displayValue(frame.frameIndex) }}</text>
+                    <text>{{ displayValue(frame.dataLength) }}</text>
+                    <text>{{ getFrameStatusText(frame.sendStatus) }}</text>
+                  </view>
                 </view>
               </view>
             </template>
@@ -262,6 +269,52 @@
             </template>
           </scroll-view>
         </template>
+      </view>
+    </view>
+
+    <view v-if="frameDetailVisible" class="modal-mask" @click.self="closeFrameDetail">
+      <view class="frame-detail-modal">
+        <view class="modal-head">
+          <view>
+            <text class="modal-head__eyebrow">{{ localeText("固件帧记录", "Firmware frame") }}</text>
+            <text class="modal-head__title">{{ localeText("全部固件帧详情", "All firmware frame details") }}</text>
+          </view>
+          <text class="panel-head__meta">{{ localizedTotal(frames.length) }}</text>
+          <button class="modal-close" :aria-label="localeText('关闭', 'Close')" @click="closeFrameDetail">×</button>
+        </view>
+        <view class="frame-detail-body">
+          <view
+            class="frame-full-table"
+            :style="{ width: `${frameDetailTableWidth}px`, minWidth: `${frameDetailTableWidth}px` }"
+          >
+            <view class="frame-full-row frame-full-row--header" :style="{ gridTemplateColumns: frameDetailGridTemplate }">
+              <text v-for="column in frameDetailColumns" :key="column.key">{{ column.label }}</text>
+            </view>
+            <view
+              v-for="frame in frames"
+              :key="frame.id || frame.frameIndex"
+              class="frame-full-row"
+              :class="{ 'frame-full-row--active': selectedFrame === frame }"
+              :style="{ gridTemplateColumns: frameDetailGridTemplate }"
+              @click="selectedFrame = frame"
+            >
+              <text
+                v-for="column in frameDetailColumns"
+                :key="column.key"
+                :class="{
+                  'frame-full-cell--code': column.code,
+                  'frame-full-cell--ellipsis': column.key === 'payloadHex',
+                }"
+                :title="formatFrameFieldValue(column.key, frame[column.key])"
+              >
+                {{ formatFrameFieldValue(column.key, frame[column.key]) }}
+              </text>
+            </view>
+          </view>
+        </view>
+        <view class="modal-actions">
+          <button class="action-button action-button--primary" @click="closeFrameDetail">{{ localeText("关闭", "Close") }}</button>
+        </view>
       </view>
     </view>
 
@@ -375,7 +428,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { useLocaleText, useLocalizedCount, useLocalizedTotal } from "@/i18n/localeText";
 import CommandDataTable from "@/pages/command/components/t/CommandDataTable.vue";
 import CommandPaginationBar from "@/pages/command/components/t/CommandPaginationBar.vue";
@@ -493,10 +546,11 @@ const selectedDetail = ref<ApiRecord | null>(null);
 const detailLoading = ref(false);
 const detailTab = ref<DetailTab>("OVERVIEW");
 const frames = ref<ApiRecord[]>([]);
+const selectedFrame = ref<ApiRecord | null>(null);
+const frameDetailVisible = ref(false);
 const events = ref<ApiRecord[]>([]);
 const subResourceLoading = ref(false);
 const canceling = ref(false);
-let pollingTimer: ReturnType<typeof setInterval> | null = null;
 
 const upgradeDialogVisible = ref(false);
 const upgradeStep = ref(1);
@@ -530,18 +584,42 @@ const currentSelectableSelected = computed(() => {
 });
 const hasBlockedDevice = computed(() => selectedDevices.value.some(device => !getCheckResult(device.deviceNumber).updatable));
 const canSubmitUpgrade = computed(() => selectedDevices.value.length > 0 && updatableResults.value.length === selectedDevices.value.length && !hasBlockedDevice.value);
+const frameDetailColumns = computed(() => {
+  const fieldOrder = [
+    "id",
+    "frameIndex",
+    "payloadHex",
+    "dataLength",
+    "sendStatus",
+    "sendRound",
+    "sendAttempts",
+    "lastSessionId",
+    "lastSentAt",
+  ];
+  const keys = [...new Set(frames.value.flatMap(frame => Object.keys(frame)))].sort((left, right) => {
+    const leftIndex = fieldOrder.indexOf(left);
+    const rightIndex = fieldOrder.indexOf(right);
+    if (leftIndex === -1 && rightIndex === -1) return left.localeCompare(right);
+    if (leftIndex === -1) return 1;
+    if (rightIndex === -1) return -1;
+    return leftIndex - rightIndex;
+  });
+  return keys.map(key => ({
+    key,
+    label: getFrameFieldLabel(key),
+    code: /hex|payload|content|raw/i.test(key),
+    width: getFrameColumnWidth(key),
+  }));
+});
+const frameDetailGridTemplate = computed(() => frameDetailColumns.value.map(column => `${column.width}px`).join(" "));
+const frameDetailTableWidth = computed(() => frameDetailColumns.value.reduce((total, column) => total + column.width, 0));
 
 onMounted(() => {
   loadCommandPage(true);
 });
 
-onUnmounted(() => {
-  stopPolling();
-});
-
 async function switchRecordView(view: RecordView) {
   if (activeView.value === view) return;
-  stopPolling();
   activeView.value = view;
   selectedDetail.value = null;
   detailTab.value = "OVERVIEW";
@@ -613,7 +691,6 @@ async function selectRow(row: ApiRecord) {
 }
 
 async function selectCommandRow(row: ApiRecord) {
-  stopPolling();
   selectedCommandId.value = row.id;
   detailLoading.value = true;
   try {
@@ -632,9 +709,10 @@ async function selectUpgradeRow(row: ApiRecord) {
   selectedUpgradeId.value = row.id;
   detailTab.value = "OVERVIEW";
   frames.value = [];
+  selectedFrame.value = null;
+  frameDetailVisible.value = false;
   events.value = [];
   await loadSelectedUpgradeDetail(false);
-  startPollingIfNeeded();
 }
 
 async function loadSelectedUpgradeDetail(silent = false) {
@@ -645,25 +723,11 @@ async function loadSelectedUpgradeDetail(silent = false) {
     selectedDetail.value = detail;
     const index = upgradeRows.value.findIndex(item => item.id === detail.id);
     if (index >= 0) upgradeRows.value.splice(index, 1, detail);
-    if (isTerminalStatus(detail.executeStatus)) stopPolling();
   } catch (error) {
     if (!silent) showError(error, localeText("升级详情加载失败", "Failed to load upgrade details"));
   } finally {
     if (!silent) detailLoading.value = false;
   }
-}
-
-function startPollingIfNeeded() {
-  stopPolling();
-  if (!selectedDetail.value || isTerminalStatus(selectedDetail.value.executeStatus)) return;
-  pollingTimer = setInterval(() => {
-    if (activeView.value === "UPGRADE" && detailTab.value === "OVERVIEW") loadSelectedUpgradeDetail(true);
-  }, 5000);
-}
-
-function stopPolling() {
-  if (pollingTimer) clearInterval(pollingTimer);
-  pollingTimer = null;
 }
 
 async function switchDetailTab(tab: DetailTab) {
@@ -676,13 +740,28 @@ async function loadFrames(showMessage: boolean) {
   if (selectedUpgradeId.value === null) return;
   subResourceLoading.value = true;
   try {
+    const previousId = selectedFrame.value?.id;
+    const previousFrameIndex = selectedFrame.value?.frameIndex;
     frames.value = asArray(unwrapResponse(await getFirmwareUpgradeFrames(selectedUpgradeId.value)));
+    selectedFrame.value = frames.value.find(frame =>
+      previousId !== undefined
+        ? frame.id === previousId
+        : previousFrameIndex !== undefined && frame.frameIndex === previousFrameIndex,
+    ) || frames.value[0] || null;
     if (showMessage) showToast(localeText("帧记录已刷新", "Frame records refreshed"));
   } catch (error) {
     showError(error, localeText("帧记录加载失败", "Failed to load frame records"));
   } finally {
     subResourceLoading.value = false;
   }
+}
+
+function openFrameDetail() {
+  if (frames.value.length) frameDetailVisible.value = true;
+}
+
+function closeFrameDetail() {
+  frameDetailVisible.value = false;
 }
 
 async function loadEvents(showMessage: boolean) {
@@ -711,7 +790,6 @@ async function confirmCancelUpgrade() {
     unwrapResponse(await cancelFirmwareUpgrade({ upgradeLogIds: [selectedDetail.value.id] }));
     showToast(localeText("取消请求已提交", "Cancellation request submitted"));
     await loadSelectedUpgradeDetail(false);
-    startPollingIfNeeded();
   } catch (error) {
     showError(error, localeText("取消升级失败", "Failed to cancel upgrade"));
   } finally {
@@ -893,7 +971,6 @@ function clearSelection(view: RecordView) {
   if (view === "COMMAND") selectedCommandId.value = null;
   else selectedUpgradeId.value = null;
   selectedDetail.value = null;
-  stopPolling();
 }
 
 function normalizeCommandLog(source: ApiRecord = {}) {
@@ -1030,8 +1107,42 @@ function getFrameStatusText(status: unknown) {
     0: localeText("待发送", "Pending"),
     1: localeText("发送中", "Sending"),
     2: localeText("已发送", "Sent"),
-    3: localeText("发送失败", "Failed"),
+    3: localeText("失败", "Failed"),
   } as Record<number, string>)[Number(status)] || localeText("未知", "Unknown");
+}
+
+function getFrameFieldLabel(key: string) {
+  const labels: Record<string, string> = {
+    id: localeText("记录 ID", "Record ID"),
+    frameIndex: localeText("帧序号", "Frame index"),
+    payloadHex: localeText("帧十六进制内容", "Payload Hex"),
+    dataLength: localeText("数据长度（字节）", "Data length (bytes)"),
+    sendStatus: localeText("发送状态", "Send status"),
+    sendRound: localeText("发送轮次", "Send round"),
+    sendAttempts: localeText("尝试次数", "Send attempts"),
+    lastSessionId: localeText("最近会话 ID", "Last session ID"),
+    lastSentAt: localeText("最近发送时间", "Last sent at"),
+    upgradeLogId: localeText("升级任务 ID", "Upgrade task ID"),
+    createdAt: localeText("创建时间", "Created at"),
+    updatedAt: localeText("更新时间", "Updated at"),
+  };
+  return labels[key] || key.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+}
+
+function getFrameColumnWidth(key: string) {
+  if (/hex|payload|content|data/i.test(key) && key !== "dataLength") return 420;
+  if (/time|at$/i.test(key)) return 180;
+  if (key === "sendStatus") return 140;
+  if (/id$/i.test(key)) return 120;
+  return 150;
+}
+
+function formatFrameFieldValue(key: string, value: unknown) {
+  if (key === "sendStatus") {
+    return `${displayValue(value)} (${getFrameStatusText(value)})`;
+  }
+  if (/time|at$/i.test(key)) return formatDateTime(value);
+  return stringifyContent(value);
 }
 
 function getEventTypeText(type: unknown) {
@@ -1071,10 +1182,6 @@ function getCommandSendwayText(value: unknown) {
 
 function canCancelUpgrade(task: ApiRecord) {
   return [0, 1].includes(Number(task.executeStatus));
-}
-
-function isTerminalStatus(status: unknown) {
-  return upgradeStatusMap[Number(status)]?.terminal === true;
 }
 
 function clampProgress(value: unknown) {
@@ -1206,10 +1313,13 @@ button::after { border: 0; }
 .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); margin: 10px 0 14px; gap: 8px; }.stat-grid > view { display: flex; align-items: center; flex-direction: column; padding: 9px; gap: 3px; background: #f7fafc; border: 1px solid #e2eaf1; border-radius: 5px; }.stat-grid text:first-child { color: #2177b7; font-size: 18px; font-weight: 900; }.stat-grid text:last-child { color: #7b8d9e; font-size: 10px; }
 .mini-button { height: 29px; padding: 0 10px; color: #31506d; font-size: 11px; line-height: 29px; background: #f6fbff; border: 1px solid #cbdced; }.mini-button--danger { color: #b13f3f; background: #fff5f5; border-color: #edc4c4; }
 .subsection-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }.subsection-head > view { display: flex; flex-direction: column; gap: 3px; }.subsection-hint { color: #8798a8; font-size: 9px; }
+.subsection-head > .subsection-actions { align-items: center; flex-direction: row; gap: 7px; }
 .resource-state { padding: 40px 12px; color: #7a8d9f; font-size: 12px; text-align: center; }
-.compact-table { min-width: 720px; overflow: hidden; border: 1px solid #e1e9ef; border-radius: 5px; }.compact-row { display: grid; grid-template-columns: 70px 60px 75px 55px 55px minmax(180px, 1fr) 140px; min-height: 36px; border-bottom: 1px solid #edf2f6; }.compact-row:last-child { border-bottom: 0; }.compact-row > text { display: flex; align-items: center; justify-content: center; min-width: 0; padding: 5px 7px; overflow: hidden; color: #425d73; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; border-right: 1px solid #edf2f6; box-sizing: border-box; }.compact-row--header { background: #f5f8fb; }.compact-row--header text { color: #516b81; font-weight: 900; }.hex-preview { font-family: Consolas, monospace; }
+.compact-table-scroll { display: block; width: 100%; min-width: 0; overflow: hidden; box-sizing: border-box; }
+.compact-table { width: 100%; min-width: 0; overflow: hidden; border: 1px solid #e1e9ef; border-radius: 5px; box-sizing: border-box; }.compact-row { display: grid; grid-template-columns: repeat(3, minmax(86px, 1fr)); min-height: 44px; border-bottom: 1px solid #edf2f6; cursor: pointer; }.compact-row:last-child { border-bottom: 0; }.compact-row > text { display: flex; align-items: center; justify-content: center; min-width: 0; padding: 7px; overflow: hidden; color: #425d73; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; border-right: 1px solid #edf2f6; box-sizing: border-box; }.compact-row--header { background: #f5f8fb; cursor: default; }.compact-row--header text { color: #516b81; font-weight: 900; }.compact-row--active { background: #e8f4fe; box-shadow: inset 3px 0 0 #0d82ee; }.compact-row:not(.compact-row--header):hover { background: #f3f9fe; }
 .timeline { padding-left: 8px; }.timeline-item { position: relative; padding: 0 0 14px 22px; border-left: 1px solid #d9e4ec; }.timeline-item__dot { position: absolute; top: 3px; left: -5px; width: 9px; height: 9px; background: #8195a7; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 0 1px #8195a7; }.timeline-item--down .timeline-item__dot { background: #1989e5; box-shadow: 0 0 0 1px #1989e5; }.timeline-item--up .timeline-item__dot { background: #22a36c; box-shadow: 0 0 0 1px #22a36c; }.timeline-item__content { display: flex; flex-direction: column; gap: 4px; }.timeline-item__content > view { display: flex; justify-content: space-between; gap: 10px; }.timeline-item__title { color: #294b66; font-size: 11px; font-weight: 900; }.timeline-item__time, .timeline-item__meta { color: #8496a6; font-size: 9px; }.timeline-item__detail { color: #5d7488; font-size: 10px; line-height: 1.5; }.timeline-item__hex { overflow: hidden; color: #51728d; font-size: 9px; font-family: Consolas, monospace; text-overflow: ellipsis; white-space: nowrap; }
 .modal-mask { position: fixed; z-index: 3000; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(20, 39, 56, 0.55); box-sizing: border-box; }.upgrade-modal { display: flex; flex-direction: column; width: min(1180px, 95vw); height: min(800px, 90vh); overflow: hidden; background: #fff; border: 1px solid #c9d9e6; border-radius: 8px; box-shadow: 0 26px 70px rgba(13, 39, 59, 0.3); }.modal-head { background: #fbfdff; }.upgrade-modal .modal-head__eyebrow { font-size: 13px; }.upgrade-modal .modal-head__title { font-size: 21px; }.modal-close { width: 38px; height: 38px; padding: 0; color: #718497; font-size: 28px; line-height: 35px; background: transparent; border: 0; }
+.frame-detail-modal { display: flex; flex-direction: column; width: min(1380px, 96vw); height: min(820px, 90vh); overflow: hidden; background: #fff; border: 1px solid #c9d9e6; border-radius: 8px; box-shadow: 0 26px 70px rgba(13, 39, 59, 0.3); }.frame-detail-modal .modal-head { align-items: center; }.frame-detail-modal .modal-head__eyebrow { font-size: 12px; }.frame-detail-modal .modal-head__title { font-size: 20px; }.frame-detail-body { flex: 1; height: auto; min-width: 0; min-height: 0; padding: 16px 18px; overflow: auto; scrollbar-color: #8fa4b8 #e8eef4; scrollbar-gutter: stable; background: #f7fafc; box-sizing: border-box; }.frame-detail-body::-webkit-scrollbar { width: 10px; height: 10px; }.frame-detail-body::-webkit-scrollbar-track { background: #e8eef4; }.frame-detail-body::-webkit-scrollbar-thumb { background: #8fa4b8; border: 2px solid #e8eef4; border-radius: 999px; }.frame-full-table { overflow: hidden; background: #fff; border: 1px solid #dce6ed; border-radius: 5px; box-sizing: border-box; }.frame-full-row { display: grid; min-height: 48px; border-bottom: 1px solid #e8eef4; cursor: pointer; }.frame-full-row:last-child { border-bottom: 0; }.frame-full-row > text { display: flex; align-items: center; justify-content: center; min-width: 0; padding: 9px 10px; overflow: hidden; color: #3f5c73; font-size: 12px; line-height: 1.5; text-align: center; word-break: break-all; border-right: 1px solid #e8eef4; box-sizing: border-box; }.frame-full-row > text:last-child { border-right: 0; }.frame-full-row--header { position: sticky; z-index: 2; top: 0; min-height: 52px; color: #4e687e; font-weight: 900; background: #f3f7fa; cursor: default; }.frame-full-row--active { background: #e8f4fe; box-shadow: inset 3px 0 0 #0d82ee; }.frame-full-row:not(.frame-full-row--header):hover { background: #f2f8fd; }.frame-full-cell--code { align-items: flex-start !important; justify-content: flex-start !important; font-family: Consolas, monospace; text-align: left !important; white-space: pre-wrap; }.frame-full-cell--ellipsis { display: block !important; align-self: center; overflow: hidden !important; text-overflow: ellipsis; white-space: nowrap !important; }.frame-detail-modal .modal-actions { justify-content: flex-end; min-height: 62px; }.frame-detail-modal .action-button { min-width: 86px; }
 .step-bar { flex: none; display: grid; grid-template-columns: repeat(3, 1fr); padding: 16px 24px; background: #f5f9fc; border-bottom: 1px solid #e2eaf1; }.step-item { display: flex; align-items: center; justify-content: center; gap: 9px; color: #8495a5; font-size: 14px; font-weight: 800; }.step-item__number { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; font-size: 14px; background: #fff; border: 1px solid #c5d5e2; border-radius: 50%; box-sizing: border-box; }.step-item--active { color: #0874cb; }.step-item--active .step-item__number { color: #fff; background: #0d82ee; border-color: #0d82ee; }.step-item--done { color: #208a5f; }.step-item--done .step-item__number { color: #fff; background: #27a471; border-color: #27a471; }
 .modal-body { flex: 1; height: auto; min-height: 0; padding: 22px 26px; background: #f7fafc; box-sizing: border-box; }.wizard-section { width: 100%; max-width: 1080px; margin: 0 auto; }.wizard-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 12px; }.wizard-head > view:first-child { display: flex; flex-direction: column; gap: 5px; }.wizard-title { color: #294b66; font-size: 20px; font-weight: 900; }.wizard-hint { color: #7d90a2; font-size: 14px; }.selected-count { padding: 6px 12px; color: #0875cc; font-size: 14px; font-weight: 900; background: #e8f4fe; border: 1px solid #c6e2f8; border-radius: 999px; }
 .choice-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }.choice-card { display: flex; padding: 15px; gap: 12px; background: #fff; border: 1px solid #d9e4ec; border-radius: 6px; cursor: pointer; }.choice-card--active { background: #eff8ff; border-color: #58a7e5; box-shadow: inset 0 0 0 1px #bce0f8; }.choice-radio { flex: none; display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; margin-top: 2px; border: 2px solid #b3c3d0; border-radius: 50%; box-sizing: border-box; }.choice-card--active .choice-radio { border-color: #0d82ee; }.choice-card--active .choice-radio text { width: 9px; height: 9px; background: #0d82ee; border-radius: 50%; }.choice-content { display: flex; flex: 1; flex-direction: column; min-width: 0; gap: 7px; }.choice-content > view { display: flex; align-items: center; justify-content: space-between; gap: 10px; }.choice-title { color: #294b66; font-size: 16px; font-weight: 900; }.version-pill { padding: 4px 9px; color: #13755c; font-size: 13px; font-weight: 900; background: #eaf8f2; border-radius: 999px; }.choice-description, .choice-meta { overflow: hidden; color: #718698; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
