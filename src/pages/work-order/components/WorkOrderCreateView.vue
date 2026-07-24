@@ -3,11 +3,14 @@
       <WorksheetTableView ref="tableViewRef" mode="create" @create="openCreateDialog" />
 
       <view v-if="dialogVisible" class="dialog-mask" @click="closeCreateDialog">
-        <view class="dialog-panel" @click.stop="closeCreateSelect">
+        <view class="dialog-panel" @click.stop>
           <view class="dialog-head">
-            <view>
-              <text class="dialog-title">新增工单</text>
-              <text class="dialog-subtitle">按 Worksheet 字段填写工单类型、人员、时间和现场信息</text>
+            <view class="dialog-heading">
+              <view class="dialog-heading__icon">工</view>
+              <view>
+                <text class="dialog-title">新增工单</text>
+                <text class="dialog-subtitle">按工单接口字段填写派单信息与现场凭证</text>
+              </view>
             </view>
             <button class="icon-button" hover-class="icon-button--hover" aria-label="关闭" @click="closeCreateDialog">
               <text class="close-icon"></text>
@@ -19,170 +22,53 @@
           <scroll-view class="dialog-body" scroll-y>
             <view class="form-layout">
               <view class="form-main">
-                <view class="form-section">
-                  <view class="section-head">
-                    <text class="section-title">基础信息</text>
-                  </view>
+                <view class="form-section form-card">
+                  <view class="section-head"><text class="section-title">基础信息</text><text class="section-desc">工单标识与时间安排</text></view>
                   <view class="form-grid form-grid--main">
-                    <view class="form-field">
-                      <text class="form-label">工单编号</text>
-                      <input v-model="createForm.worksheetNumber" class="form-input" placeholder="不填则自动生成" placeholder-class="input-placeholder" />
-                    </view>
-                    <view class="form-field">
-                      <text class="form-label form-label--required">工单类型</text>
-                      <view class="select-field">
-                        <view class="form-select form-select--dropdown" :class="{ 'form-select--open': activeSelect === 'worksheetType', 'form-control--error': validationErrors.worksheetType }" @click.stop="toggleCreateSelect('worksheetType')">
-                          <text :class="{ 'select-placeholder': createForm.worksheetType === '' }">{{ currentTypeLabel }}</text>
-                          <text class="select-arrow"></text>
-                        </view>
-                        <view v-if="activeSelect === 'worksheetType'" class="select-menu">
-                          <view
-                            v-for="item in worksheetTypeOptions"
-                            :key="item.value"
-                            class="select-option"
-                            :class="{ 'select-option--active': createForm.worksheetType === item.value }"
-                            @click.stop="selectWorksheetType(item.value)"
-                          >
-                            {{ item.label }}
-                          </view>
-                        </view>
-                      </view>
-                      <text v-if="validationErrors.worksheetType" class="form-error">{{ validationErrors.worksheetType }}</text>
-                    </view>
-                    <view class="form-field">
-                      <text class="form-label form-label--required">紧急等级</text>
-                      <view class="select-field">
-                        <view class="form-select form-select--dropdown" :class="{ 'form-select--open': activeSelect === 'urgencyLevel', 'form-control--error': validationErrors.urgencyLevel }" @click.stop="toggleCreateSelect('urgencyLevel')">
-                          <text :class="{ 'select-placeholder': createForm.urgencyLevel === '' }">{{ currentUrgencyLabel }}</text>
-                          <text class="select-arrow"></text>
-                        </view>
-                        <view v-if="activeSelect === 'urgencyLevel'" class="select-menu">
-                          <view
-                            v-for="item in urgencyOptions"
-                            :key="item.value"
-                            class="select-option"
-                            :class="{ 'select-option--active': createForm.urgencyLevel === item.value }"
-                            @click.stop="selectUrgencyLevel(item.value)"
-                          >
-                            {{ item.label }}
-                          </view>
-                        </view>
-                      </view>
-                      <text v-if="validationErrors.urgencyLevel" class="form-error">{{ validationErrors.urgencyLevel }}</text>
-                    </view>
-                    <view class="form-field">
-                      <text class="form-label form-label--required">工单状态</text>
-                      <view class="select-field">
-                        <view class="form-select form-select--dropdown" :class="{ 'form-select--open': activeSelect === 'worksheetStatus', 'form-control--error': validationErrors.worksheetStatus }" @click.stop="toggleCreateSelect('worksheetStatus')">
-                          <text :class="{ 'select-placeholder': createForm.worksheetStatus === '' }">{{ currentStatusLabel }}</text>
-                          <text class="select-arrow"></text>
-                        </view>
-                        <view v-if="activeSelect === 'worksheetStatus'" class="select-menu">
-                          <view
-                            v-for="item in worksheetStatusOptions"
-                            :key="item.value"
-                            class="select-option"
-                            :class="{ 'select-option--active': createForm.worksheetStatus === item.value }"
-                            @click.stop="selectWorksheetStatus(item.value)"
-                          >
-                            {{ item.label }}
-                          </view>
-                        </view>
-                      </view>
-                      <text v-if="validationErrors.worksheetStatus" class="form-error">{{ validationErrors.worksheetStatus }}</text>
-                    </view>
+                    <view class="form-field"><text class="form-label">工单编号</text><input v-model="createForm.worksheetNumber" class="form-input" :placeholder="text.autoNumberPlaceholder" /></view>
+                    <view class="form-field"><text class="form-label form-label--required">工单类型</text><WorkOrderSelect v-model="createForm.worksheetType" class="form-select" :options="worksheetTypeOptions" :placeholder="text.typePlaceholder" @change="handleCreateSelectChange('worksheetType')" /></view>
+                    <view class="form-field"><text class="form-label form-label--required">紧急程度</text><WorkOrderSelect v-model="createForm.urgencyLevel" class="form-select" :options="urgencyOptions" :placeholder="text.urgencyPlaceholder" @change="handleCreateSelectChange('urgencyLevel')" /></view>
+                    <view class="form-field"><text class="form-label form-label--required">工单状态</text><WorkOrderSelect v-model="createForm.worksheetStatus" class="form-select" :options="worksheetStatusOptions" :placeholder="text.statusPlaceholder" @change="handleCreateSelectChange('worksheetStatus')" /></view>
+                    <view class="form-field"><text class="form-label form-label--required">发起时间</text><WorkOrderDatetimePicker v-model="createForm.riseTime" :title="text.riseTimeTitle" :placeholder="text.riseTimePlaceholder" /></view>
+                    <view class="form-field"><text class="form-label">截止时间</text><WorkOrderDatetimePicker v-model="createForm.deadlineTime" :title="text.deadlineTitle" :placeholder="text.deadlinePlaceholder" /></view>
+                    <view v-if="isCreateWorksheetFinished" class="form-field"><text class="form-label form-label--required">完成时间</text><WorkOrderDatetimePicker v-model="createForm.finishTime" :title="text.finishTimeTitle" :placeholder="finishTimePlaceholder" /></view>
                   </view>
                 </view>
-
-                <view class="form-section">
-                  <view class="section-head">
-                    <text class="section-title">时间安排</text>
-                  </view>
+                <view class="form-section form-card">
+                  <view class="section-head"><text class="section-title">处理安排</text><text class="section-desc">指派人员与处理流程</text></view>
                   <view class="form-grid form-grid--main">
-                    <view class="form-field">
-                      <text class="form-label form-label--required">工单发起时间</text>
-                      <WorkOrderDatetimePicker v-model="createForm.riseTime" title="选择工单发起时间" placeholder="请选择工单发起时间" :clearable="false" />
-                    </view>
-                    <view class="form-field">
-                      <text class="form-label">工单截止时间</text>
-                      <WorkOrderDatetimePicker v-model="createForm.deadlineTime" title="选择工单截止时间" placeholder="请选择工单截止时间" :min-value="createForm.riseTime" />
-                      <text v-if="validationErrors.deadlineTime" class="form-error">{{ validationErrors.deadlineTime }}</text>
-                    </view>
-                    <view class="form-field">
-                      <text class="form-label">工单完成时间</text>
-                      <WorkOrderDatetimePicker v-model="createForm.finishTime" title="选择工单完成时间" :placeholder="finishTimePlaceholder" :min-value="createForm.riseTime" :disabled="!isCreateWorksheetFinished" />
-                      <text v-if="validationErrors.finishTime" class="form-error">{{ validationErrors.finishTime }}</text>
-                    </view>
-                  </view>
-                </view>
-
-                <view class="form-section">
-                  <view class="section-head">
-                    <text class="section-title">派发信息</text>
-                  </view>
-                  <view class="form-grid form-grid--main">
-                    <view class="form-field">
-                      <text class="form-label form-label--required">工单发起人</text>
-                      <input v-model="createForm.riseAccount" class="form-input" :class="{ 'form-control--error': validationErrors.riseAccount }" placeholder="请输入工单发起人" placeholder-class="input-placeholder" @input="clearCreateError('riseAccount')" />
-                      <text v-if="validationErrors.riseAccount" class="form-error">{{ validationErrors.riseAccount }}</text>
-                    </view>
-                    <view class="form-field">
-                      <text class="form-label form-label--required">工单执行人</text>
-                      <input v-model="createForm.executeAccount" class="form-input" :class="{ 'form-control--error': validationErrors.executeAccount }" placeholder="请输入工单执行人" placeholder-class="input-placeholder" @input="clearCreateError('executeAccount')" />
-                      <text v-if="validationErrors.executeAccount" class="form-error">{{ validationErrors.executeAccount }}</text>
-                    </view>
-                  </view>
-                </view>
-
-                <view class="form-section">
-                  <view class="section-head">
-                    <text class="section-title">说明备注</text>
-                  </view>
-                  <view class="form-grid form-grid--main">
-                    <view class="form-field form-field--wide">
-                      <text class="form-label form-label--required">工单说明</text>
-                      <textarea v-model="createForm.worksheetInstruction" class="form-textarea form-textarea--large" :class="{ 'form-control--error': validationErrors.worksheetInstruction }" placeholder="请输入工单说明" placeholder-class="input-placeholder" @input="clearCreateError('worksheetInstruction')" />
-                      <text v-if="validationErrors.worksheetInstruction" class="form-error">{{ validationErrors.worksheetInstruction }}</text>
-                    </view>
-                    <view class="form-field form-field--wide">
-                      <text class="form-label">工单反馈</text>
-                      <textarea v-model="createForm.worksheetFeedback" class="form-textarea" placeholder="未处理可不填" placeholder-class="input-placeholder" />
-                    </view>
+                    <view class="form-field"><text class="form-label form-label--required">工单发起人</text><input v-model="createForm.riseAccount" class="form-input" :placeholder="text.initiatorPlaceholder" /></view>
+                    <view class="form-field"><text class="form-label form-label--required">工单执行人</text><input v-model="createForm.executeAccount" class="form-input" :placeholder="text.assigneePlaceholder" /></view>
+                    <view class="form-field"><text class="form-label">关联设备</text><input v-model="createForm.deviceReference" class="form-input" :placeholder="text.devicePlaceholder" /></view>
+                    <view class="form-field"><text class="form-label">关联渗漏记录ID</text><input v-model="createForm.leakageId" class="form-input" type="number" :placeholder="text.leakageIdPlaceholder" /></view>
+                    <view class="form-field form-field--wide"><text class="form-label form-label--required">工单说明</text><textarea v-model="createForm.worksheetInstruction" class="form-textarea" :placeholder="text.descriptionPlaceholder" /></view>
+                    <view class="form-field form-field--wide"><text class="form-label">工单反馈</text><textarea v-model="createForm.worksheetFeedback" class="form-textarea" :placeholder="text.feedbackPlaceholder" /></view>
+                    <view class="form-field form-field--wide"><text class="form-label">备注</text><textarea v-model="createForm.remark" class="form-textarea" :placeholder="text.remarkPlaceholder" /></view>
                   </view>
                 </view>
               </view>
-
               <view class="form-side">
-                <view class="form-section">
-                  <view class="section-head">
-                    <text class="section-title">位置与关联</text>
+                <view class="form-section form-card form-card--side">
+                  <view class="section-head"><text class="section-title">现场信息</text><text class="section-desc">位置与图片凭证</text></view>
+                  <view class="form-field">
+                    <text class="form-label">工单地址</text>
+                    <input v-model="createForm.address" class="form-input" :placeholder="text.addressPlaceholder" />
                   </view>
-                  <view class="form-grid form-grid--side">
-                    <view class="form-field">
-                      <text class="form-label">关联设备</text>
-                      <input v-model="createForm.deviceReference" class="form-input" placeholder="设备编号列表，多个用逗号分隔" placeholder-class="input-placeholder" />
+                  <view class="form-field"><text class="form-label">工单坐标</text><input v-model="createForm.coordinate" class="form-input" :placeholder="text.coordinatePlaceholder" /></view>
+                  <view class="form-field upload-field">
+                    <text class="form-label">工单照片</text>
+                    <view v-if="installImageItem.url" class="upload-preview">
+                      <image :src="installImageItem.url" class="upload-preview__image" mode="aspectFill" @click="previewInstallImage" />
+                      <view class="upload-preview__shade"><text>{{ uploadingImage ? `上传中 ${uploadProgress}%` : "点击图片预览" }}</text></view>
+                      <button class="upload-remove" :disabled="uploadingImage" @click.stop="removeInstallImage">×</button>
                     </view>
-                    <view class="form-field">
-                      <text class="form-label">关联渗漏记录ID</text>
-                      <input v-model="createForm.leakageId" class="form-input" type="number" placeholder="请输入关联渗漏记录ID" placeholder-class="input-placeholder" />
-                    </view>
-                    <view class="form-field">
-                      <text class="form-label">工单地址</text>
-                      <input v-model="createForm.address" class="form-input" placeholder="请输入工单地址" placeholder-class="input-placeholder" />
-                    </view>
-                    <view class="form-field">
-                      <text class="form-label">工单坐标</text>
-                      <input v-model="createForm.coordinate" class="form-input" placeholder="经度,纬度" placeholder-class="input-placeholder" />
-                    </view>
-                    <view class="form-field">
-                      <text class="form-label">工单照片</text>
-                      <input v-model="createForm.pictureIds" class="form-input" placeholder="文件 ID 列表，多个用逗号分隔" placeholder-class="input-placeholder" />
-                    </view>
-                    <view class="form-field">
-                      <text class="form-label">备注</text>
-                      <textarea v-model="createForm.remark" class="form-textarea form-textarea--large" placeholder="请输入备注" placeholder-class="input-placeholder" />
+                    <view v-else class="upload-placeholder" @click="pickInstallImage">
+                      <view class="upload-placeholder__icon"><text>+</text></view>
+                      <text class="upload-placeholder__title">选择本地图片</text>
+                      <text class="upload-placeholder__hint">支持 JPG、PNG、WEBP，最多 1 张</text>
                     </view>
                   </view>
+                  <view class="upload-tip"><text class="upload-tip__dot"></text><text>图片将在创建工单时自动上传</text></view>
                 </view>
               </view>
             </view>
@@ -201,15 +87,25 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import { useI18n } from "@/i18n";
 import WorksheetTableView from "@/pages/work-order/components/WorksheetTableView.vue";
 import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
+import WorkOrderSelect from "@/pages/work-order/components/WorkOrderSelect.vue";
 import { createWorksheet } from "@/services/work-order/create";
+import { uploadFile } from "@/services/leak-report/file-upload";
 
 interface ApiResponseLike {
   code?: number;
   msg?: string;
   data?: unknown;
+}
+
+interface InstallImageItem {
+  file?: File;
+  path?: string;
+  name: string;
+  url: string;
 }
 
 interface CreateForm {
@@ -232,7 +128,6 @@ interface CreateForm {
   leakageId: string;
 }
 
-type CreateSelectKey = "worksheetType" | "urgencyLevel" | "worksheetStatus";
 type CreateValidationKey =
   | "worksheetType"
   | "urgencyLevel"
@@ -243,38 +138,92 @@ type CreateValidationKey =
   | "deadlineTime"
   | "finishTime";
 
-const worksheetTypeOptions = [
-  { label: "巡检", value: 0 },
-  { label: "检漏", value: 1 },
-  { label: "拆装", value: 2 },
-  { label: "维护", value: 3 },
-];
+type NumericOption = { label: string; value: number };
 
-const worksheetStatusOptions = [
-  { label: "待处理", value: 0 },
-  { label: "处理中", value: 1 },
-  { label: "已完成", value: 2 },
-  { label: "已取消", value: 3 },
-];
-
-const urgencyOptions = [
-  { label: "一般", value: 0 },
-  { label: "紧急", value: 1 },
-];
-
+const { locale } = useI18n();
 const tableViewRef = ref<InstanceType<typeof WorksheetTableView> | null>(null);
 const dialogVisible = ref(false);
 const submitting = ref(false);
-const activeSelect = ref<CreateSelectKey | "">("");
+const uploadingImage = ref(false);
+const uploadProgress = ref(0);
+const installImageItem = ref<InstallImageItem>({ name: "", url: "" });
 const createForm = reactive<CreateForm>(getDefaultCreateForm());
 const validationErrors = reactive<Record<CreateValidationKey, string>>(getEmptyValidationErrors());
+let installFileInput: HTMLInputElement | null = null;
 
-const currentTypeLabel = computed(() => getOptionLabel(worksheetTypeOptions, createForm.worksheetType, "请选择工单类型"));
-const currentStatusLabel = computed(() => getOptionLabel(worksheetStatusOptions, createForm.worksheetStatus, "请选择工单状态"));
-const currentUrgencyLabel = computed(() => getOptionLabel(urgencyOptions, createForm.urgencyLevel, "请选择紧急等级"));
+const worksheetTypeOptions = reactive<NumericOption[]>([]);
+const worksheetStatusOptions = reactive<NumericOption[]>([]);
+const urgencyOptions = reactive<NumericOption[]>([]);
+const text = computed(() => {
+  const isEnglish = locale.value === "en-US";
+  return {
+    autoNumberPlaceholder: isEnglish ? "Leave blank to auto-generate" : "留空将自动生成",
+    typePlaceholder: isEnglish ? "Select order type" : "请选择工单类型",
+    urgencyPlaceholder: isEnglish ? "Select urgency level" : "请选择紧急程度",
+    statusPlaceholder: isEnglish ? "Select order status" : "请选择工单状态",
+    riseTimeTitle: isEnglish ? "Select initiation time" : "选择发起时间",
+    riseTimePlaceholder: isEnglish ? "Select initiation time" : "请选择发起时间",
+    deadlineTitle: isEnglish ? "Select deadline" : "选择截止时间",
+    deadlinePlaceholder: isEnglish ? "Select deadline" : "请选择截止时间",
+    finishTimeTitle: isEnglish ? "Select completion time" : "选择完成时间",
+    initiatorPlaceholder: isEnglish ? "Enter initiator account" : "请输入发起人账号",
+    assigneePlaceholder: isEnglish ? "Enter assignee account" : "请输入执行人账号",
+    devicePlaceholder: isEnglish ? "Multiple device numbers separated by commas" : "多个设备编号用逗号分隔",
+    leakageIdPlaceholder: isEnglish ? "Enter associated leak record ID" : "请输入渗漏记录ID",
+    descriptionPlaceholder: isEnglish ? "Enter order description" : "请输入工单说明",
+    feedbackPlaceholder: isEnglish ? "Optional until the order is processed" : "未处理时可不填",
+    remarkPlaceholder: isEnglish ? "Add requirements or notes for the order" : "补充说明工单要求或注意事项",
+    addressPlaceholder: isEnglish ? "Enter order address" : "请输入工单地址",
+    coordinatePlaceholder: isEnglish ? "Longitude, Latitude" : "经度,纬度",
+  };
+});
 const isCreateWorksheetFinished = computed(() => createForm.worksheetStatus === 2);
-const finishTimePlaceholder = computed(() => isCreateWorksheetFinished.value ? "请选择工单完成时间" : "未完成状态不可填写");
+const finishTimePlaceholder = computed(() => {
+  if (locale.value === "en-US") {
+    return isCreateWorksheetFinished.value ? "Select completion time" : "Unavailable until completed";
+  }
+  return isCreateWorksheetFinished.value ? "请选择工单完成时间" : "未完成状态不可填写";
+});
 const firstCreateError = computed(() => Object.values(validationErrors).find(Boolean) || "");
+
+watch(() => locale.value, syncCreateOptions, { immediate: true });
+
+onMounted(() => {
+  // #ifdef H5
+  ensureInstallFileInput();
+  // #endif
+});
+
+onBeforeUnmount(() => {
+  // #ifdef H5
+  removeInstallFileInput();
+  // #endif
+  clearInstallImage();
+});
+
+function syncCreateOptions() {
+  const isEnglish = locale.value === "en-US";
+  replaceNumericOptions(worksheetTypeOptions, [
+    { label: isEnglish ? "Inspection" : "巡检", value: 0 },
+    { label: isEnglish ? "Leak Inspection" : "检漏", value: 1 },
+    { label: isEnglish ? "Installation / Removal" : "拆装", value: 2 },
+    { label: isEnglish ? "Maintenance" : "维护", value: 3 },
+  ]);
+  replaceNumericOptions(worksheetStatusOptions, [
+    { label: isEnglish ? "Pending" : "待处理", value: 0 },
+    { label: isEnglish ? "In Progress" : "处理中", value: 1 },
+    { label: isEnglish ? "Completed" : "已完成", value: 2 },
+    { label: isEnglish ? "Canceled" : "已取消", value: 3 },
+  ]);
+  replaceNumericOptions(urgencyOptions, [
+    { label: isEnglish ? "Normal" : "一般", value: 0 },
+    { label: isEnglish ? "Urgent" : "紧急", value: 1 },
+  ]);
+}
+
+function replaceNumericOptions(target: NumericOption[], source: NumericOption[]) {
+  target.splice(0, target.length, ...source);
+}
 
 function getDefaultCreateForm(): CreateForm {
   return {
@@ -283,11 +232,11 @@ function getDefaultCreateForm(): CreateForm {
     riseAccount: "",
     executeAccount: "",
     deviceReference: "",
-    urgencyLevel: "",
+    urgencyLevel: 0,
     riseTime: toDatetimeLocal(new Date()),
     finishTime: "",
     deadlineTime: "",
-    worksheetStatus: "",
+    worksheetStatus: 0,
     worksheetFeedback: "",
     worksheetInstruction: "",
     remark: "",
@@ -313,8 +262,8 @@ function getEmptyValidationErrors(): Record<CreateValidationKey, string> {
 
 function openCreateDialog() {
   Object.assign(createForm, getDefaultCreateForm());
+  clearInstallImage();
   clearCreateErrors();
-  activeSelect.value = "";
   dialogVisible.value = true;
 }
 
@@ -323,44 +272,23 @@ function closeCreateDialog() {
     return;
   }
 
-  activeSelect.value = "";
   dialogVisible.value = false;
 }
 
 function resetCreateForm() {
   Object.assign(createForm, getDefaultCreateForm());
+  clearInstallImage();
   clearCreateErrors();
-  activeSelect.value = "";
 }
 
-function toggleCreateSelect(key: CreateSelectKey) {
-  activeSelect.value = activeSelect.value === key ? "" : key;
-}
-
-function closeCreateSelect() {
-  activeSelect.value = "";
-}
-
-function selectWorksheetType(value: number) {
-  createForm.worksheetType = value;
-  clearCreateError("worksheetType");
-  activeSelect.value = "";
-}
-
-function selectWorksheetStatus(value: number) {
-  createForm.worksheetStatus = value;
-  clearCreateError("worksheetStatus");
-  clearCreateError("finishTime");
-  if (createForm.worksheetStatus !== 2) {
-    createForm.finishTime = "";
+function handleCreateSelectChange(key: "worksheetType" | "urgencyLevel" | "worksheetStatus") {
+  clearCreateError(key);
+  if (key === "worksheetStatus") {
+    clearCreateError("finishTime");
+    if (createForm.worksheetStatus !== 2) {
+      createForm.finishTime = "";
+    }
   }
-  activeSelect.value = "";
-}
-
-function selectUrgencyLevel(value: number) {
-  createForm.urgencyLevel = value;
-  clearCreateError("urgencyLevel");
-  activeSelect.value = "";
 }
 
 async function submitCreate() {
@@ -371,6 +299,7 @@ async function submitCreate() {
   submitting.value = true;
 
   try {
+    createForm.pictureIds = await uploadInstallImage();
     const response = await createWorksheet(buildCreatePayload()) as ApiResponseLike;
     assertSuccessResponse(response);
     uni.showToast({ title: "工单创建成功", icon: "success" });
@@ -384,7 +313,120 @@ async function submitCreate() {
     });
   } finally {
     submitting.value = false;
+    uploadingImage.value = false;
   }
+}
+
+function pickInstallImage() {
+  // #ifdef H5
+  const input = ensureInstallFileInput();
+  input.click();
+  // #endif
+
+  // #ifndef H5
+  uni.chooseImage({
+    count: 1,
+    sizeType: ["compressed"],
+    sourceType: ["album", "camera"],
+    success: (result) => {
+      const path = result.tempFilePaths[0];
+      if (!path) return;
+      clearInstallImage();
+      installImageItem.value = {
+        path,
+        name: path.split("/").pop() || "install-image.jpg",
+        url: path,
+      };
+    },
+  });
+  // #endif
+}
+
+function ensureInstallFileInput() {
+  if (installFileInput) {
+    return installFileInput;
+  }
+
+  installFileInput = document.createElement("input");
+  installFileInput.type = "file";
+  installFileInput.accept = "image/jpeg,image/png,image/webp";
+  installFileInput.style.position = "fixed";
+  installFileInput.style.left = "-9999px";
+  installFileInput.style.top = "-9999px";
+  installFileInput.style.width = "1px";
+  installFileInput.style.height = "1px";
+  installFileInput.style.opacity = "0";
+  installFileInput.style.pointerEvents = "none";
+  installFileInput.addEventListener("change", handleInstallFileInputChange);
+  document.body.appendChild(installFileInput);
+  return installFileInput;
+}
+
+function removeInstallFileInput() {
+  if (!installFileInput) {
+    return;
+  }
+
+  installFileInput.removeEventListener("change", handleInstallFileInputChange);
+  installFileInput.remove();
+  installFileInput = null;
+}
+
+function handleInstallFileInputChange(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = "";
+  if (!file) return;
+  clearInstallImage();
+  installImageItem.value = {
+    file,
+    name: file.name || "install-image.jpg",
+    url: URL.createObjectURL(file),
+  };
+}
+
+function previewInstallImage() {
+  if (!installImageItem.value.url) return;
+  uni.previewImage({
+    current: installImageItem.value.url,
+    urls: [installImageItem.value.url],
+  });
+}
+
+function removeInstallImage() {
+  if (uploadingImage.value) return;
+  clearInstallImage();
+}
+
+function clearInstallImage() {
+  const currentUrl = installImageItem.value.url;
+  if (currentUrl.startsWith("blob:")) {
+    URL.revokeObjectURL(currentUrl);
+  }
+  installImageItem.value = { name: "", url: "" };
+  createForm.pictureIds = "";
+  uploadProgress.value = 0;
+}
+
+async function uploadInstallImage() {
+  const image = installImageItem.value;
+  const source = image.file || image.path;
+  if (!source) {
+    return "";
+  }
+
+  uploadingImage.value = true;
+  uploadProgress.value = 0;
+  const response = await uploadFile(source, image.name, (progress: number) => {
+    uploadProgress.value = progress;
+  }) as { data?: Record<string, unknown>; msg?: string };
+  const data = response?.data || {};
+  const uploadedValue = data.id ?? data.fileId ?? data.filePath ?? data.file_path ?? data.url;
+  if (!uploadedValue) {
+    throw { msg: response?.msg || "图片上传成功但未返回文件地址" };
+  }
+  uploadProgress.value = 100;
+  return String(uploadedValue);
 }
 
 function validateCreateForm() {
@@ -395,7 +437,7 @@ function validateCreateForm() {
   }
 
   if (createForm.urgencyLevel === "") {
-    return setCreateError("urgencyLevel", "请选择紧急等级");
+    return setCreateError("urgencyLevel", "请选择紧急程度");
   }
 
   if (createForm.worksheetStatus === "") {
@@ -415,11 +457,11 @@ function validateCreateForm() {
   }
 
   if (createForm.deadlineTime && !isDeadlineAfterRiseTime()) {
-    return setCreateError("deadlineTime", "截止时间必须大于发起时间");
+    return setCreateError("deadlineTime", "截止时间必须晚于发起时间");
   }
 
-  if (!isCreateWorksheetFinished.value && createForm.finishTime) {
-    createForm.finishTime = "";
+  if (isCreateWorksheetFinished.value && !createForm.finishTime) {
+    return setCreateError("finishTime", "请选择工单完成时间");
   }
 
   if (createForm.finishTime && !isFinishAfterRiseTime()) {
@@ -448,15 +490,15 @@ function clearCreateErrors() {
 function buildCreatePayload() {
   return removeEmptyFields({
     worksheetNumber: createForm.worksheetNumber.trim() || generateWorksheetNumber(),
-    worksheetType: createForm.worksheetType,
+    worksheetType: Number(createForm.worksheetType),
     riseAccount: createForm.riseAccount.trim(),
     executeAccount: createForm.executeAccount.trim(),
     deviceReference: createForm.deviceReference.trim(),
-    urgencyLevel: createForm.urgencyLevel,
+    urgencyLevel: Number(createForm.urgencyLevel),
     riseTime: normalizeDatetimeForApi(createForm.riseTime),
-    finishTime: isCreateWorksheetFinished.value ? normalizeDatetimeForApi(createForm.finishTime) : undefined,
+    finishTime: normalizeDatetimeForApi(createForm.finishTime),
     deadlineTime: normalizeDatetimeForApi(createForm.deadlineTime),
-    worksheetStatus: createForm.worksheetStatus,
+    worksheetStatus: Number(createForm.worksheetStatus),
     worksheetFeedback: createForm.worksheetFeedback.trim(),
     worksheetInstruction: createForm.worksheetInstruction.trim(),
     remark: createForm.remark.trim(),
@@ -478,10 +520,6 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
     msg: response?.msg || "请求失败",
     data: response?.data,
   };
-}
-
-function getOptionLabel(options: Array<{ label: string; value: number }>, value: number | "", fallback: string) {
-  return options.find((item) => item.value === value)?.label || fallback;
 }
 
 function removeEmptyFields(data: Record<string, unknown>) {
@@ -639,8 +677,8 @@ function generateWorksheetNumber() {
   overflow: hidden;
   background: #ffffff;
   border: 1px solid #d8e6f2;
-  border-radius: 6px;
-  box-shadow: 0 18px 46px rgba(15, 35, 55, 0.2);
+  border-radius: 14px;
+  box-shadow: 0 24px 64px rgba(15, 35, 55, 0.24);
 }
 
 .dialog-head {
@@ -648,9 +686,30 @@ function generateWorksheetNumber() {
   align-items: center;
   justify-content: space-between;
   flex: none;
-  padding: 18px 24px;
-  background: #f8fbfe;
+  padding: 20px 26px;
+  background: linear-gradient(135deg, #f4faff 0%, #ffffff 58%, #eef7ff 100%);
   border-bottom: 1px solid #edf3f8;
+}
+
+.dialog-heading {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 14px;
+}
+
+.dialog-heading__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  color: #ffffff;
+  font-size: 19px;
+  font-weight: 900;
+  background: linear-gradient(145deg, #0d82ee, #0867c2);
+  border-radius: 12px;
+  box-shadow: 0 8px 18px rgba(13, 130, 238, 0.24);
 }
 
 .dialog-title {
@@ -663,8 +722,12 @@ function generateWorksheetNumber() {
 .dialog-subtitle {
   display: block;
   margin-top: 4px;
+  max-width: min(680px, calc(100vw - 180px));
+  overflow: hidden;
   color: #5f7188;
   font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .icon-button {
@@ -708,11 +771,21 @@ function generateWorksheetNumber() {
 }
 
 .dialog-body {
+  box-sizing: border-box;
   flex: 1;
   min-height: 0;
   max-height: none;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
   padding: 18px 24px 16px;
   background: #ffffff;
+}
+
+.dialog-body :deep(.uni-scroll-view-content) {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
 }
 
 .error-summary {
@@ -729,10 +802,13 @@ function generateWorksheetNumber() {
 
 .form-layout {
   display: grid;
-  grid-template-columns: 640px 360px;
-  gap: 24px;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  gap: 18px;
   min-height: 100%;
-  justify-content: start;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .form-main {
@@ -744,21 +820,39 @@ function generateWorksheetNumber() {
 
 .form-side {
   min-width: 0;
-  padding-left: 20px;
-  border-left: 1px solid #e4edf6;
+  padding-left: 0;
+  border-left: 0;
 }
 
 .form-section {
+  min-width: 0;
   padding: 0;
   background: #ffffff;
   border: 0;
   border-radius: 0;
 }
 
+.form-card {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  padding: 18px;
+  background: #ffffff;
+  border: 1px solid #e2ebf3;
+  border-radius: 10px;
+  box-shadow: 0 5px 16px rgba(26, 66, 105, 0.05);
+}
+
+.form-card--side {
+  min-height: 100%;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbfe 100%);
+}
+
 .section-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+  min-width: 0;
   gap: 12px;
   margin-bottom: 11px;
   padding-bottom: 9px;
@@ -767,6 +861,7 @@ function generateWorksheetNumber() {
 
 .section-title {
   position: relative;
+  flex: none;
   padding-left: 10px;
   color: #183755;
   font-size: 16px;
@@ -785,14 +880,23 @@ function generateWorksheetNumber() {
   transform: translateY(-50%);
 }
 
+.section-desc {
+  min-width: 0;
+  overflow: hidden;
+  color: #8798aa;
+  font-size: 12px;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .form-grid {
   display: grid;
   gap: 12px 18px;
 }
 
 .form-grid--main {
-  grid-template-columns: repeat(2, 305px);
-  justify-content: start;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .form-grid--side {
@@ -846,6 +950,14 @@ function generateWorksheetNumber() {
   max-width: 100%;
 }
 
+.form-select__value {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .form-grid--side .form-input,
 .form-grid--side .form-select,
 .form-grid--side .form-textarea {
@@ -867,6 +979,7 @@ function generateWorksheetNumber() {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
 
 .form-select--dropdown {
@@ -915,6 +1028,7 @@ function generateWorksheetNumber() {
 }
 
 .select-arrow {
+  flex: none;
   width: 8px;
   height: 8px;
   border: solid #74879c;
@@ -971,12 +1085,150 @@ function generateWorksheetNumber() {
 .dialog-actions {
   display: flex;
   flex: none;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 12px;
+  min-width: 0;
   padding: 12px 22px;
   background: #ffffff;
   border-top: 1px solid #edf3f8;
   box-shadow: 0 -8px 18px rgba(24, 55, 85, 0.04);
+}
+
+.dialog-actions .primary-button,
+.dialog-actions .secondary-button {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upload-field {
+  margin-top: 18px;
+}
+
+.upload-placeholder {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 205px;
+  padding: 24px 18px;
+  background: linear-gradient(180deg, #f8fcff, #f2f8fd);
+  border: 2px dashed #bad3e8;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.18s ease;
+}
+
+.upload-placeholder:hover {
+  background: #edf7ff;
+  border-color: #0d82ee;
+  transform: translateY(-1px);
+}
+
+.upload-placeholder__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 3px;
+  color: #0d82ee;
+  font-size: 30px;
+  font-weight: 300;
+  background: #ffffff;
+  border: 1px solid #cce2f5;
+  border-radius: 50%;
+  box-shadow: 0 7px 18px rgba(13, 130, 238, 0.12);
+}
+
+.upload-placeholder__title {
+  max-width: 100%;
+  overflow: hidden;
+  color: #24445f;
+  font-size: 15px;
+  font-weight: 800;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upload-placeholder__hint {
+  max-width: 100%;
+  overflow: hidden;
+  color: #8496a8;
+  font-size: 12px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upload-preview {
+  position: relative;
+  height: 245px;
+  overflow: hidden;
+  background: #eef5fa;
+  border: 1px solid #cdddea;
+  border-radius: 10px;
+}
+
+.upload-preview__image {
+  width: 100%;
+  height: 100%;
+  cursor: zoom-in;
+}
+
+.upload-preview__shade {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: 9px 12px;
+  color: #ffffff;
+  font-size: 12px;
+  text-align: center;
+  background: linear-gradient(transparent, rgba(10, 30, 48, 0.72));
+  pointer-events: none;
+}
+
+.upload-remove {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  color: #ffffff;
+  font-size: 20px;
+  line-height: 26px;
+  background: rgba(185, 35, 35, 0.9);
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(93, 18, 18, 0.24);
+}
+
+.upload-remove::after {
+  border: 0;
+}
+
+.upload-tip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 12px;
+  color: #6c8194;
+  font-size: 12px;
+}
+
+.upload-tip__dot {
+  width: 6px;
+  height: 6px;
+  background: #22a06b;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(34, 160, 107, 0.12);
 }
 
 @media (max-width: 980px) {
@@ -992,6 +1244,31 @@ function generateWorksheetNumber() {
 
   .form-field--wide {
     grid-column: span 1;
+  }
+}
+
+@media (max-width: 1180px) {
+  .dialog-body {
+    padding: 16px 18px 14px;
+  }
+
+  .form-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(250px, 320px);
+    gap: 16px;
+  }
+}
+
+@media (max-width: 560px) {
+  .dialog-panel {
+    width: calc(100vw - 20px);
+  }
+
+  .dialog-head {
+    padding: 16px;
+  }
+
+  .dialog-subtitle {
+    max-width: calc(100vw - 132px);
   }
 }
 </style>
