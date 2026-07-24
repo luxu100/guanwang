@@ -1,21 +1,21 @@
 <template>
-  <view class="datetime-picker">
+  <view class="datetime-picker" data-i18n-ui>
     <view class="datetime-picker__control" :class="{ 'datetime-picker__control--empty': !displayValue, 'datetime-picker__control--disabled': disabled }" @click="openPanel">
       <text class="datetime-picker__icon" aria-hidden="true"></text>
-      <text class="datetime-picker__value">{{ displayValue || placeholder }}</text>
+      <text class="datetime-picker__value" data-i18n-ui>{{ displayValue || placeholder }}</text>
     </view>
 
     <view v-if="panelVisible" class="datetime-panel-mask" @click="closePanel">
       <view class="datetime-panel" @click.stop>
         <view class="datetime-panel__tabs">
-          <button class="datetime-panel__tab" :class="{ 'datetime-panel__tab--active': activeTab === 'date' }" @click="activeTab = 'date'">日期</button>
-          <button class="datetime-panel__tab" :class="{ 'datetime-panel__tab--active': activeTab === 'time' }" @click="activeTab = 'time'">时间</button>
+          <button class="datetime-panel__tab" :class="{ 'datetime-panel__tab--active': activeTab === 'date' }" @click="activeTab = 'date'">{{ panelText.date }}</button>
+          <button class="datetime-panel__tab" :class="{ 'datetime-panel__tab--active': activeTab === 'time' }" @click="activeTab = 'time'">{{ panelText.time }}</button>
         </view>
 
         <view v-if="activeTab === 'date'" class="calendar-panel">
           <view class="calendar-panel__month">
             <button class="calendar-panel__arrow" hover-class="calendar-panel__arrow--hover" @click="changeMonth(-1)">‹</button>
-            <text class="calendar-panel__title">{{ draft.year }}年{{ padNumber(draft.month) }}月</text>
+            <text class="calendar-panel__title">{{ monthTitle }}</text>
             <button class="calendar-panel__arrow" hover-class="calendar-panel__arrow--hover" @click="changeMonth(1)">›</button>
           </view>
 
@@ -42,7 +42,7 @@
         </view>
 
         <view v-else class="time-panel">
-          <text class="time-panel__title">选择时间</text>
+          <text class="time-panel__title">{{ panelText.selectTime }}</text>
           <view class="time-panel__columns">
             <view class="time-wheel">
               <button class="time-wheel__item time-wheel__item--muted" @click="adjustTime('hour', -1)">{{ padNumber(wrap(draft.hour - 1, 0, 23)) }}</button>
@@ -65,10 +65,10 @@
         </view>
 
         <view class="datetime-panel__actions">
-          <button v-if="clearable" class="datetime-panel__button datetime-panel__button--link" hover-class="datetime-panel__button--hover" @click="clearValue">清除</button>
+          <button v-if="clearable" class="datetime-panel__button datetime-panel__button--link" hover-class="datetime-panel__button--hover" @click="clearValue">{{ panelText.clear }}</button>
           <view class="datetime-panel__spacer"></view>
-          <button class="datetime-panel__button" hover-class="datetime-panel__button--hover" @click="closePanel">取消</button>
-          <button class="datetime-panel__button datetime-panel__button--primary" hover-class="datetime-panel__button--primary-hover" @click="confirmValue">确定</button>
+          <button class="datetime-panel__button" hover-class="datetime-panel__button--hover" @click="closePanel">{{ panelText.cancel }}</button>
+          <button class="datetime-panel__button datetime-panel__button--primary" hover-class="datetime-panel__button--primary-hover" @click="confirmValue">{{ panelText.confirm }}</button>
         </view>
       </view>
     </view>
@@ -77,6 +77,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref } from "vue";
+import { useI18n } from "@/i18n";
 
 type TimeKey = "hour" | "minute" | "second";
 
@@ -110,7 +111,7 @@ const emit = defineEmits<{
   (event: "update:modelValue", value: string): void;
 }>();
 
-const weekLabels = ["日", "一", "二", "三", "四", "五", "六"];
+const { locale } = useI18n();
 const panelVisible = ref(false);
 const activeTab = ref<"date" | "time">("date");
 const draft = reactive({
@@ -124,6 +125,18 @@ const draft = reactive({
 
 const displayValue = computed(() => formatDatetimeForDisplay(props.modelValue));
 const calendarDays = computed(() => buildCalendarDays());
+const isEnglish = computed(() => locale.value === "en-US");
+const weekLabels = computed(() => isEnglish.value ? ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] : ["日", "一", "二", "三", "四", "五", "六"]);
+const monthTitle = computed(() => isEnglish.value ? `${padNumber(draft.month)}/${draft.year}` : `${draft.year}/${padNumber(draft.month)}`);
+const panelText = computed(() => ({
+  date: isEnglish.value ? "Date" : "日期",
+  time: isEnglish.value ? "Time" : "时间",
+  selectTime: isEnglish.value ? "Select Time" : "选择时间",
+  clear: isEnglish.value ? "Clear" : "清除",
+  cancel: isEnglish.value ? "Cancel" : "取消",
+  confirm: isEnglish.value ? "Confirm" : "确定",
+  minError: isEnglish.value ? "End time must be later than start time" : "结束时间必须晚于开始时间",
+}));
 
 function openPanel() {
   if (props.disabled) {
@@ -169,7 +182,7 @@ function confirmValue() {
   const nextTimestamp = getTimestamp(nextValue);
 
   if (minTimestamp !== undefined && nextTimestamp !== undefined && nextTimestamp <= minTimestamp) {
-    uni.showToast({ title: "截止时间必须大于发起时间", icon: "none" });
+    uni.showToast({ title: panelText.value.minError, icon: "none" });
     return;
   }
 
