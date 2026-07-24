@@ -1,5 +1,5 @@
 <template>
-	<view class="dept-view">
+	<view class="dept-view" :class="{ 'dept-view--en': locale === 'en-US' }">
 	  <view class="toolbar-panel">
 		<view class="dept-toolbar">
 			<view class="filter-group">
@@ -39,19 +39,6 @@
 			  <button class="primary-button" @click="handleDeviceSearch"> 查询 </button>
 			</view>
 		</view>
-		  
-		  
-		  
-		  
-<!-- 		  <view class="filter-group">
-		    <text class="filter-label">gis显示</text>
-		    <picker :range="worksheetStatusOptions" range-key="label" :value="currentStatusIndex" @change="handleStatusChange">
-		      <view class="filter-select">
-		        <text>{{ currentStatusLabel }}</text>
-		        <text class="filter-select__arrow"></text>
-		      </view>
-		    </picker>
-		  </view> -->
 	  </view>
       <view class="dept">
 		<!-- 分区信息 -->
@@ -203,7 +190,7 @@
 				    <text class="form-label">分区类型</text>
 				    <view class="select-field">
 					    <view class="form-select form-select--dropdown" :class="{ 'form-select--open': activeSelect }" @click.stop="toggleSelect">
-						   <text :class="{ 'select-placeholder': deptForm.regionType === '' || deptForm.regionType === null}">{{getDeptTypeLabel(deptForm.regionType, "请选择分区类型") }}</text>
+						   <text class="filter-select__text" :class="{ 'select-placeholder': deptForm.regionType === '' || deptForm.regionType === null}">{{getDeptTypeLabel(deptForm.regionType, "请选择分区类型") }}</text>
 						   <text class="select-arrow"></text>
 					    </view>
 					    <view v-if="activeSelect" class="select-menu" >
@@ -344,18 +331,23 @@
 							</view>
 										
 							<view class="detail-item">
-							  <text class="detail-label">设备名称</text>
+							  <text class="detail-label">设备别名</text>
 							  <text class="detail-value"> {{ deviceDetail?.deviceAlias ?? "-" }} </text>
-							</view>
-							
-							<view class="detail-item">
-							  <text class="detail-label">所属分区</text>
-							  <text class="detail-value"> {{ getDeptName() }} </text>
 							</view>
 							
 							<view class="detail-item">
 							  <text class="detail-label">设备类型</text>
 							  <text class="detail-value"> {{ deviceDetail?.deviceType ?? "-" }} </text>
+							</view>
+							
+							<view class="detail-item">
+							  <text class="detail-label">产品名称</text>
+							  <text class="detail-value"> {{ deviceDetail?.productName ?? "-" }} </text>
+							</view>
+							
+							<view class="detail-item detail-item--wide">
+							  <text class="detail-label">所属分区</text>
+							  <text class="detail-value"> {{ deviceDetailDeptLoading ? "加载中..." : deviceDetailDeptNames }} </text>
 							</view>
 						</view>
 					</view>
@@ -375,14 +367,14 @@
 							  <text class="detail-value"> {{ getInstallMode(deviceDetail?.installMode) }} </text>
 							</view>
 							
-							<view class="detail-item">
+							<view class="detail-item detail-item--wide">
 							  <text class="detail-label">安装地址</text>
 							  <text class="detail-value"> {{ deviceDetail?.installAddress ?? "-" }} </text>
 							</view>
 							
 							<view class="detail-item">
 							  <text class="detail-label">地理位置</text>
-							  <text class="detail-value"> {{ deviceDetail.installLongitude && deviceDetail.installLatitude ? `${deviceDetail.installLongitude}, ${deviceDetail.installLatitude}` : '-'}} </text>
+							  <text class="detail-value"> {{ formatDeviceLocation(deviceDetail) }} </text>
 							</view>
 						</view>
 					</view>
@@ -404,23 +396,22 @@
 							
 							<view class="detail-item">
 							  <text class="detail-label">渗漏状态</text>
-							  <text class="detail-value"> {{ deviceDetail?.leakStatus ?? "-" }} </text>
+							  <text class="detail-value"> {{ getLeakStatusText(deviceDetail?.leakStatus) }} </text>
 							</view>
 							
 							<view class="detail-item">
 							  <text class="detail-label">最后采样时间</text>
 							  <text class="detail-value"> {{ deviceDetail?.lastSamplingTime ?? "-" }} </text>
 							</view>
+							
+							<view class="detail-item">
+							  <text class="detail-label">管段编号</text>
+							  <text class="detail-value">
+							    {{ deviceDetail?.tubeNumber ?? "-" }}
+							  </text>
+							</view>
 						</view>
 					</view>
-			
-			        <view class="detail-item">
-			          <text class="detail-label">管段编号</text>
-			          <text class="detail-value">
-			            {{ deviceDetail?.tubeNumber ?? "-" }}
-			          </text>
-			        </view>
-					
 			      </view>
 			    </view>
 			
@@ -650,13 +641,8 @@
 	      <view class="center-dialog-body">
 	        <view class="center-map-wrap" :class="{ 'center-map-wrap--drawing': centerDrawing }">
 	          <!-- #ifdef H5 -->
-	          <LocaleCoordinateMap
-	            :key="centerMapKey"
-	            :lng="centerMapCoordinate.lng"
-	            :lat="centerMapCoordinate.lat"
-	            :selectable="centerDrawing"
-	            @pick="handleCenterPick"
-	          />
+	          <div ref="centerNativeMapRef" class="center-native-map"></div>
+	          <view v-if="centerMapError" class="center-map-error">{{ centerMapError }}</view>
 	          <!-- #endif -->
 	          <!-- #ifndef H5 -->
 	          <view class="center-map-fallback">地图选点仅支持 H5 端</view>
@@ -721,7 +707,6 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onBeforeUnmount, reactive } from "vue";
-import LocaleCoordinateMap from "@/components/map/LocaleCoordinateMap.vue";
 import { useI18n } from "@/i18n";
 import { getMapProvider, MAP_CONFIG } from "@/services/map/map";
 import { loadGoogleMaps } from "@/utils/googleMapsLoader";
@@ -733,6 +718,7 @@ import {
 	updateDept,
 	deleteDept,
 	getDeptDeviceList,
+	getDeptDeviceDeptIds,
 	getDeptDevicePage,
 	getDeptDeviceBindingList,
 	updateDeptDeviceBinding,
@@ -941,7 +927,9 @@ type DeptDeviceColumn = {
 interface DeptDeviceItem {
   id: number;
   deviceNumber: string;
+  deviceId?: number;
   deviceAlias?: string;
+  productName?: string;
   deviceType?: string;
   enableState: number
   installState: number;
@@ -1693,8 +1681,10 @@ function clamp(value: number, min: number, max: number) {
 onBeforeUnmount(() => {
   stopColorDrag();
   clearRangePointClickTimer();
+  clearRangeMapClickTimer();
   stopRangePointDrag();
   destroyRangeNativeMap();
+  destroyCenterNativeMap();
 });
 
 interface CoordinateValue {
@@ -1714,12 +1704,16 @@ type RangePoint = CoordinateValue & {
   id: string;
 };
 
+type RangeDrawingMode = "continuous" | "single" | "";
+
 const RANGE_MAP_ZOOM = 15;
 const RANGE_DRAG_THRESHOLD = 3;
 const RANGE_POINT_DOUBLE_CLICK_DELAY = 260;
+const RANGE_MAP_DOUBLE_CLICK_DELAY = 260;
 
 const rangeDialogVisible = ref(false);
 const rangeDrawing = ref(false);
+const rangeDrawingMode = ref<RangeDrawingMode>("");
 const rangeMapCenter = ref<CoordinateValue>({ ...defaultMapCoordinate });
 const rangeMapZoom = ref(RANGE_MAP_ZOOM);
 const rangePoints = ref<RangePoint[]>([]);
@@ -1831,9 +1825,15 @@ let tencentRangeLoadingPromise: Promise<TencentMapApi> | null = null;
 let googleRangeMap: google.maps.Map | null = null;
 let googleRangeClickListener: google.maps.MapsEventListener | null = null;
 let googleRangeIdleListener: google.maps.MapsEventListener | null = null;
+let googleRangeDblClickListener: google.maps.MapsEventListener | null = null;
 let googleRangeMarkers: google.maps.Marker[] = [];
 let googleRangePolyline: google.maps.Polyline | null = null;
 let googleRangePolygon: google.maps.Polygon | null = null;
+let tencentCenterMap: TencentMapInstance | null = null;
+let tencentCenterMarker: TencentLayerInstance | null = null;
+let googleCenterMap: google.maps.Map | null = null;
+let googleCenterMarker: google.maps.Marker | null = null;
+let googleCenterClickListener: google.maps.MapsEventListener | null = null;
 let lastRangeMarkerDragEndTime = 0;
 let lastRangeMarkerClickTime = 0;
 let rangePointDragStartedAt: { x: number; y: number } | null = null;
@@ -1847,6 +1847,8 @@ let rangePointDragTarget:
   | null = null;
 let rangePointClickTimer: ReturnType<typeof setTimeout> | null = null;
 let pendingRangePointClickId = "";
+let rangeMapClickTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingRangeMapCoordinate: CoordinateValue | null = null;
 
 const openRangeDialog = () => {
   activeSelect.value = false;
@@ -1866,6 +1868,7 @@ const openRangeDialog = () => {
   rangeLocationText.value = "";
   rangeLastEdited.value = "";
   rangeDrawing.value = false;
+  rangeDrawingMode.value = "";
   rangeSearching.value = false;
   syncRangeCoordinateInputs(fallbackCenter || null);
   rangeDialogVisible.value = true;
@@ -1875,10 +1878,12 @@ const openRangeDialog = () => {
 const closeRangeDialog = () => {
   rangeDialogVisible.value = false;
   rangeDrawing.value = false;
+  rangeDrawingMode.value = "";
   rangeSearching.value = false;
   rangeLastEdited.value = "";
   selectedRangePointId.value = "";
   clearRangePointClickTimer();
+  clearRangeMapClickTimer();
   stopRangePointDrag();
   destroyRangeNativeMap();
 };
@@ -1889,7 +1894,14 @@ const startRangeDrawing = () => {
   }
 
   rangeDrawing.value = true;
-  uni.showToast({ title: "点击地图新增范围点", icon: "none" });
+  rangeDrawingMode.value = rangePoints.value.length >= 3 ? "single" : "continuous";
+  uni.showToast({
+    title:
+      rangeDrawingMode.value === "continuous"
+        ? "点击地图添加点，双击地图结束绘制"
+        : "点击地图新增一个范围点",
+    icon: "none",
+  });
   void nextTick(initRangeNativeMap);
 };
 
@@ -1912,6 +1924,11 @@ const selectRangePoint = (id: string) => {
 
 const handleRangeMapPick = (coordinate: CoordinateValue) => {
   if (!rangeDrawing.value) {
+    return;
+  }
+
+  if (rangeDrawingMode.value === "continuous") {
+    scheduleRangeMapPick(coordinate);
     return;
   }
 
@@ -2101,14 +2118,62 @@ function deleteRangePoint(id: string) {
   renderRangeOverlays();
 }
 
+function scheduleRangeMapPick(coordinate: CoordinateValue) {
+  pendingRangeMapCoordinate = coordinate;
+  clearRangeMapClickTimer(false);
+  rangeMapClickTimer = setTimeout(() => {
+    const nextCoordinate = pendingRangeMapCoordinate;
+    rangeMapClickTimer = null;
+    pendingRangeMapCoordinate = null;
+
+    if (nextCoordinate && rangeDrawing.value && rangeDrawingMode.value === "continuous") {
+      addRangePoint(nextCoordinate);
+    }
+  }, RANGE_MAP_DOUBLE_CLICK_DELAY);
+}
+
+function clearRangeMapClickTimer(clearCoordinate = true) {
+  if (rangeMapClickTimer) {
+    clearTimeout(rangeMapClickTimer);
+  }
+
+  rangeMapClickTimer = null;
+
+  if (clearCoordinate) {
+    pendingRangeMapCoordinate = null;
+  }
+}
+
 function addRangePoint(coordinate: CoordinateValue) {
   syncRangeMapViewportFromMap();
   const point = createRangePoint(coordinate);
   rangePoints.value = [...rangePoints.value, point];
   selectedRangePointId.value = point.id;
   syncRangeCoordinateInputs(point);
-  rangeDrawing.value = false;
+
+  if (rangeDrawingMode.value !== "continuous") {
+    rangeDrawing.value = false;
+    rangeDrawingMode.value = "";
+  }
+
   renderRangeOverlays();
+}
+
+function finishRangeDrawing() {
+  if (!rangeDrawing.value || rangeDrawingMode.value !== "continuous") {
+    return;
+  }
+
+  clearRangeMapClickTimer();
+
+  if (rangePoints.value.length < 3) {
+    uni.showToast({ title: "至少需要三个范围点", icon: "none" });
+    return;
+  }
+
+  rangeDrawing.value = false;
+  rangeDrawingMode.value = "";
+  uni.showToast({ title: "绘制已结束", icon: "success" });
 }
 
 const searchRangeLocation = async () => {
@@ -2175,9 +2240,11 @@ const deleteRangeDrawing = () => {
       }
 
       clearRangePointClickTimer();
+      clearRangeMapClickTimer();
       rangePoints.value = [];
       selectedRangePointId.value = "";
       rangeDrawing.value = false;
+      rangeDrawingMode.value = "";
       renderRangeOverlays();
       uni.showToast({ title: "绘制内容已删除", icon: "success" });
     },
@@ -2486,6 +2553,7 @@ async function initTencentRangeMap(mapElement: HTMLElement) {
   });
 
   tencentRangeMap.on?.("click", handleTencentRangeMapClick);
+  tencentRangeMap.on?.("dblclick", handleTencentRangeMapDoubleClick);
   tencentRangeMap.on?.("idle", handleTencentRangeMapIdle);
   syncTencentRangeMapViewport();
 }
@@ -2513,11 +2581,15 @@ async function initGoogleRangeMap(mapElement: HTMLElement) {
         return;
       }
 
-      addRangePoint({
+      handleRangeMapPick({
         lng: event.latLng.lng(),
         lat: event.latLng.lat(),
       });
     },
+  );
+  googleRangeDblClickListener = googleRangeMap.addListener(
+    "dblclick",
+    () => finishRangeDrawing(),
   );
   googleRangeIdleListener = googleRangeMap.addListener("idle", syncGoogleRangeMapViewport);
   syncGoogleRangeMapViewport();
@@ -2588,8 +2660,12 @@ function handleTencentRangeMapClick(event: TencentMapEvent) {
   const coordinate = getTencentCoordinate(event.latLng);
 
   if (coordinate) {
-    addRangePoint(coordinate);
+    handleRangeMapPick(coordinate);
   }
+}
+
+function handleTencentRangeMapDoubleClick() {
+  finishRangeDrawing();
 }
 
 function handleTencentRangeMapIdle() {
@@ -2809,6 +2885,7 @@ function destroyRangeNativeMap() {
 
 function destroyTencentRangeMap() {
   tencentRangeMap?.off?.("click", handleTencentRangeMapClick);
+  tencentRangeMap?.off?.("dblclick", handleTencentRangeMapDoubleClick);
   tencentRangeMap?.off?.("idle", handleTencentRangeMapIdle);
   clearTencentRangeMarkers();
   tencentRangePolyline?.setMap?.(null);
@@ -2821,8 +2898,10 @@ function destroyTencentRangeMap() {
 
 function destroyGoogleRangeMap() {
   googleRangeClickListener?.remove();
+  googleRangeDblClickListener?.remove();
   googleRangeIdleListener?.remove();
   googleRangeClickListener = null;
+  googleRangeDblClickListener = null;
   googleRangeIdleListener = null;
   clearGoogleRangeMarkers();
   googleRangePolyline?.setMap(null);
@@ -2906,11 +2985,8 @@ const centerLngText = ref("");
 const centerLatText = ref("");
 const centerSearching = ref(false);
 const centerLastEdited = ref<"location" | "coordinate" | "">("");
-const centerMapKey = computed(() => {
-  const mode = centerDrawing.value ? "select" : "preview";
-  const coordinate = centerMapCoordinate.value;
-  return `${mode}-${coordinate.lng}-${coordinate.lat}`;
-});
+const centerNativeMapRef = ref<HTMLElement | null>(null);
+const centerMapError = ref("");
 const centerInputCoordinate = computed(() => parseCoordinateInputs());
 const centerHasSearchText = computed(() => centerLocationText.value.trim() !== "");
 const centerHasCoordinateText = computed(() => {
@@ -2937,6 +3013,7 @@ const openCenterDialog = () => {
   syncCenterCoordinateInputs(currentCoordinate || null);
   centerDrawing.value = false;
   centerDialogVisible.value = true;
+  void nextTick(initCenterNativeMap);
 };
 
 const closeCenterDialog = () => {
@@ -2945,10 +3022,12 @@ const closeCenterDialog = () => {
   centerPickedCoordinate.value = null;
   centerSearching.value = false;
   centerLastEdited.value = "";
+  destroyCenterNativeMap();
 };
 
 const startCenterDrawing = () => {
   centerDrawing.value = true;
+  void nextTick(initCenterNativeMap);
 };
 
 const markCenterLocationEdited = () => {
@@ -3096,6 +3175,198 @@ function updateCenterMapCoordinate(coordinate: CoordinateValue) {
   centerMapCoordinate.value = nextCoordinate;
   centerLastEdited.value = "coordinate";
   syncCenterCoordinateInputs(nextCoordinate);
+  focusCenterNativeMap(nextCoordinate);
+}
+
+async function initCenterNativeMap() {
+  const mapElement = getElement(centerNativeMapRef.value);
+
+  if (!centerDialogVisible.value || !mapElement) {
+    return;
+  }
+
+  centerMapError.value = "";
+
+  try {
+    if (rangeMapProvider.value === "tencent") {
+      destroyGoogleCenterMap();
+
+      if (!tencentCenterMap) {
+        await initTencentCenterMap(mapElement);
+      }
+    } else {
+      destroyTencentCenterMap();
+
+      if (!googleCenterMap) {
+        await initGoogleCenterMap(mapElement);
+      }
+    }
+
+    focusCenterNativeMap(centerMapCoordinate.value);
+  } catch (error) {
+    console.error("Center map initialization failed:", error);
+    centerMapError.value = "地图加载失败，请检查 Key、域名限制和网络";
+  }
+}
+
+async function initTencentCenterMap(mapElement: HTMLElement) {
+  const api = await loadRangeTencentMaps();
+  const center = createTencentLatLng(api, centerMapCoordinate.value);
+
+  tencentCenterMap = new api.Map(mapElement, {
+    center,
+    zoom: RANGE_MAP_ZOOM,
+    pitch: 0,
+    rotation: 0,
+  });
+
+  tencentCenterMap.on?.("click", handleTencentCenterMapClick);
+  renderTencentCenterMarker();
+}
+
+async function initGoogleCenterMap(mapElement: HTMLElement) {
+  const { Map } = await loadGoogleMaps();
+
+  googleCenterMap = new Map(mapElement, {
+    center: toGoogleCoordinate(centerMapCoordinate.value),
+    zoom: RANGE_MAP_ZOOM,
+    mapTypeControl: true,
+    streetViewControl: false,
+    fullscreenControl: true,
+  });
+
+  googleCenterClickListener = googleCenterMap.addListener(
+    "click",
+    (event: google.maps.MapMouseEvent) => {
+      if (!centerDrawing.value || !event.latLng) {
+        return;
+      }
+
+      handleCenterPick({
+        lng: event.latLng.lng(),
+        lat: event.latLng.lat(),
+      });
+    },
+  );
+
+  renderGoogleCenterMarker();
+}
+
+function handleTencentCenterMapClick(event: TencentMapEvent) {
+  if (!centerDrawing.value) {
+    return;
+  }
+
+  const coordinate = getTencentCoordinate(event.latLng);
+
+  if (coordinate) {
+    handleCenterPick(coordinate);
+  }
+}
+
+function focusCenterNativeMap(coordinate: CoordinateValue) {
+  const nextCoordinate = normalizeCoordinate(coordinate);
+
+  centerMapCoordinate.value = nextCoordinate;
+
+  if (rangeMapProvider.value === "tencent") {
+    const api = (window as TencentRuntimeWindow).TMap;
+
+    if (!api || !tencentCenterMap) {
+      return;
+    }
+
+    const center = createTencentLatLng(api, nextCoordinate);
+    tencentCenterMap.easeTo?.({ center, zoom: RANGE_MAP_ZOOM });
+    tencentCenterMap.setCenter?.(center);
+    renderTencentCenterMarker();
+    return;
+  }
+
+  if (!googleCenterMap) {
+    return;
+  }
+
+  googleCenterMap.panTo(toGoogleCoordinate(nextCoordinate));
+  googleCenterMap.setZoom(RANGE_MAP_ZOOM);
+  renderGoogleCenterMarker();
+}
+
+function renderTencentCenterMarker() {
+  const api = (window as TencentRuntimeWindow).TMap;
+
+  if (!api?.MultiMarker || !tencentCenterMap) {
+    return;
+  }
+
+  const geometries = [
+    {
+      id: "partition-center-point",
+      position: createTencentLatLng(api, centerMapCoordinate.value),
+    },
+  ];
+
+  if (!tencentCenterMarker) {
+    tencentCenterMarker = new api.MultiMarker({
+      map: tencentCenterMap,
+      geometries,
+    });
+    return;
+  }
+
+  tencentCenterMarker.setGeometries?.(geometries);
+  tencentCenterMarker.setMap?.(tencentCenterMap);
+}
+
+function renderGoogleCenterMarker() {
+  if (!googleCenterMap || typeof google === "undefined") {
+    return;
+  }
+
+  const position = toGoogleCoordinate(centerMapCoordinate.value);
+
+  if (!googleCenterMarker) {
+    googleCenterMarker = new google.maps.Marker({
+      map: googleCenterMap,
+      position,
+      title: "分区中心",
+    });
+    return;
+  }
+
+  googleCenterMarker.setPosition(position);
+  googleCenterMarker.setMap(googleCenterMap);
+}
+
+function destroyCenterNativeMap() {
+  destroyTencentCenterMap();
+  destroyGoogleCenterMap();
+  centerMapError.value = "";
+}
+
+function destroyTencentCenterMap() {
+  tencentCenterMap?.off?.("click", handleTencentCenterMapClick);
+  tencentCenterMarker?.setMap?.(null);
+  tencentCenterMarker = null;
+  tencentCenterMap?.destroy?.();
+  tencentCenterMap = null;
+}
+
+function destroyGoogleCenterMap() {
+  googleCenterClickListener?.remove();
+  googleCenterClickListener = null;
+
+  if (googleCenterMarker) {
+    googleCenterMarker.setMap(null);
+  }
+
+  googleCenterMarker = null;
+
+  if (googleCenterMap && typeof google !== "undefined") {
+    google.maps.event.clearInstanceListeners(googleCenterMap);
+  }
+
+  googleCenterMap = null;
 }
 
 interface TencentPlaceSearchResponse {
@@ -3498,10 +3769,71 @@ const handleDeleteDept = async () => {
 };
 
 const deviceDetail = ref<DeptDeviceItem | null>(null);
+const deviceDetailDeptNames = ref("-");
+const deviceDetailDeptLoading = ref(false);
 
-const handleCheckDevice = (item: DeptDeviceItem) => {
+function formatDeviceLocation(detail: DeptDeviceItem | null) {
+  const longitude = Number(detail?.installLongitude);
+  const latitude = Number(detail?.installLatitude);
+
+  if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) {
+    return "-";
+  }
+
+  return `${longitude.toFixed(4)}, ${latitude.toFixed(4)}`;
+}
+
+function normalizeDeptIds(data: unknown): number[] {
+  const raw = Array.isArray(data)
+    ? data
+    : Array.isArray((data as { deptIds?: unknown[] })?.deptIds)
+      ? (data as { deptIds: unknown[] }).deptIds
+      : [];
+
+  return raw.map(Number).filter(Number.isFinite);
+}
+
+function getDeviceId(item: DeptDeviceItem) {
+  return Number((item as DeptDeviceItem & { deviceId?: number }).deviceId ?? item.id);
+}
+
+async function getDeviceDetailDeptName(deptId: number) {
+  const cached = getDeptById(deptId);
+  if (cached?.deptName) return cached.deptName;
+
+  const res = await getDeptDetail(deptId) as ApiResponseLike;
+  assertSuccessResponse(res);
+
+  return (res.data as DeptApiItem | undefined)?.deptName || String(deptId);
+}
+
+async function loadDeviceDetailDeptNames(deviceId: number) {
+  deviceDetailDeptLoading.value = true;
+  deviceDetailDeptNames.value = "-";
+
+  try {
+    const res = await getDeptDeviceDeptIds(deviceId) as ApiResponseLike;
+    assertSuccessResponse(res);
+
+    const deptIds = normalizeDeptIds(res.data);
+    if (!deptIds.length) return;
+
+    const names = await Promise.all(deptIds.map(getDeviceDetailDeptName));
+    deviceDetailDeptNames.value = names.filter(Boolean).join("、") || "-";
+  } catch (error) {
+    uni.showToast({
+      title: (error as { msg?: string })?.msg || "加载设备所属分区失败",
+      icon: "none",
+    });
+  } finally {
+    deviceDetailDeptLoading.value = false;
+  }
+}
+
+const handleCheckDevice = async (item: DeptDeviceItem) => {
   deviceDialogVisible.value = true;
   deviceDetail.value = item;
+  await loadDeviceDetailDeptNames(getDeviceId(item));
   console.log("查看设备", item);
 };
 
@@ -3550,7 +3882,7 @@ const getOnlineStatusText = (status: number): string => {
   }
 };
 
-const getLeakStatusText = (status: number): string => {
+const getLeakStatusText = (status?: number | null): string => {
   switch(status) {
     case 0:
       return '渗漏';
@@ -3726,6 +4058,9 @@ function getStatusClass(value: number) {
 }
 
 .dept-view{
+	--device-install-state-column: minmax(80px, 0.82fr);
+	--device-detail-column: minmax(110px, 0.82fr);
+	--device-detail-label-width: 120px;
 	display: flex;
 	flex-direction: column;
 	box-sizing: border-box;
@@ -3734,6 +4069,12 @@ function getStatusClass(value: number) {
 	padding: 0 14px 14px;
 	overflow: hidden;
 	background: #eef4f8;
+}
+
+.dept-view--en {
+	--device-install-state-column: minmax(110px, 0.82fr);
+	--device-detail-column: minmax(80px, 0.82fr);
+	--device-detail-label-width: 170px;
 }
 
 .dept {
@@ -4021,7 +4362,7 @@ function getStatusClass(value: number) {
 
 .device-table-row{
 	min-width: 750px;
-	grid-template-columns: 54px minmax(180px, 1.5fr) minmax(80px, 0.82fr) minmax(150px, 1fr) minmax(80px, 0.82fr) minmax(110px, 0.82fr) minmax(110px, 1fr);
+	grid-template-columns: 54px minmax(180px, 1.5fr) minmax(80px, 0.82fr) minmax(150px, 1fr) minmax(80px, 0.82fr) var(--device-install-state-column) var(--device-detail-column);
 }
 
 .table-row--header {
@@ -4726,6 +5067,8 @@ function getStatusClass(value: number) {
 
 .center-map-wrap {
   position: relative;
+  z-index: 0;
+  isolation: isolate;
   flex: 1;
   min-height: 360px;
   overflow: hidden;
@@ -4737,6 +5080,29 @@ function getStatusClass(value: number) {
 .center-map-wrap--drawing,
 .center-map-wrap--drawing :deep(*) {
   cursor: crosshair !important;
+}
+
+.center-native-map {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+}
+
+.center-map-error {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+  padding: 8px 12px;
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 700;
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  border-radius: 4px;
 }
 
 .center-map-fallback {
@@ -5000,8 +5366,12 @@ function getStatusClass(value: number) {
   overflow: hidden;
 }
 
+.detail-item--wide {
+  grid-column: 1 / -1;
+}
+
 .detail-label {
-  width: 120px;
+  width: var(--device-detail-label-width);
   flex-shrink: 0;
   font-size: 15px;
   padding: 10px 12px;
@@ -5125,7 +5495,7 @@ function getStatusClass(value: number) {
   
   .device-table-row {
 	min-width: 670px;
-    grid-template-columns: 46px minmax(150px, 1.3fr) minmax(75px, 0.78fr) minmax(130px, 0.78fr) minmax(75px, 0.78fr) minmax(75px, 0.78fr) minmax(110px, 0.78fr);
+    grid-template-columns: 46px minmax(150px, 1.3fr) minmax(75px, 0.78fr) minmax(130px, 0.78fr) minmax(75px, 0.78fr) var(--device-install-state-column) var(--device-detail-column);
   }
 }
 

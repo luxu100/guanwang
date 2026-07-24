@@ -29,6 +29,7 @@ export function deleteDept(id: ServiceId, isForce?: boolean): Promise<ApiRespons
 export function batchDeleteDept(data: ServicePayload): Promise<ApiResponse>;
 export function getDeptDevicePage(deptId: ServiceId, data?: ServiceQuery): Promise<ApiResponse>;
 export function getDeptDeviceList(deptId: ServiceId, params?: ServiceQuery): Promise<ApiResponse>;
+export function getDeptDeviceDeptIds(deviceId: ServiceId): Promise<ApiResponse<number[]>>;
 export function getDeptTree(params?: ServiceQuery): Promise<ApiResponse>;
 
 export function getRegionPage(data: ServiceQuery): Promise<ApiResponse>;
@@ -94,6 +95,7 @@ declare const service: {
   batchDeleteDept: typeof batchDeleteDept;
   getDeptDevicePage: typeof getDeptDevicePage;
   getDeptDeviceList: typeof getDeptDeviceList;
+  getDeptDeviceDeptIds: typeof getDeptDeviceDeptIds;
   getDeptTree: typeof getDeptTree;
   getRegionPage: typeof getRegionPage;
   getRegionList: typeof getRegionList;
