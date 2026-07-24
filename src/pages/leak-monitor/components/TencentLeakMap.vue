@@ -168,7 +168,11 @@ let resizeTimer: ReturnType<typeof window.setTimeout> | null = null;
 let resizeFrame: number | null = null;
 let resizeObserver: ResizeObserver | null = null;
 
-const DEFAULT_MAP_ZOOM = 13;
+const HANGZHOU_CENTER = {
+  lat: 30.2741,
+  lng: 120.1551,
+};
+const DEFAULT_MAP_ZOOM = 10;
 const DEVICE_FOCUS_ZOOM = 15;
 const COMPACT_DEVICE_FOCUS_ZOOM = 18;
 
@@ -248,7 +252,7 @@ function getTMap() {
 /**
  * 初始化地图实例和中心标记。
  *
- * 当前坐标是上海中心点，后续接入真实站点/设备数据后应由接口返回或配置驱动。
+ * 默认展示杭州市及周边区域，让页面进入后可以直接看到杭州范围内的设备站点。
  */
 function initMap() {
   mapError.value = "";
@@ -259,7 +263,7 @@ function initMap() {
     return;
   }
 
-  const center = new TMap.LatLng(31.2304, 121.4737);
+  const center = new TMap.LatLng(HANGZHOU_CENTER.lat, HANGZHOU_CENTER.lng);
   const map = new TMap.Map(mapContainer.value, {
     center,
     zoom: DEFAULT_MAP_ZOOM,
