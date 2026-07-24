@@ -99,7 +99,7 @@
             <view class="detail-summary">
               <view class="detail-summary__main">
                 <text class="detail-summary__label">{{ t('detail.fields.deviceNumber') }}</text>
-                <text class="detail-summary__value">{{ getFieldValue(selectedRecord, 'deviceNumber') || '-' }}</text>
+                <text class="detail-summary__value">{{ displayValue(getFieldValue(selectedRecord, 'deviceNumber')) }}</text>
               </view>
               <view class="detail-summary__meta">
                 <view v-for="item in baseDetailFields" :key="item.label" class="detail-summary__meta-item">
@@ -131,7 +131,7 @@
                 <view v-for="(audio, ai) in visibleAudioList" :key="ai" class="audio-item">
                   <view class="audio-item__info">
                     <text class="audio-item__time">{{ formatDateTime(getFieldValue(audio, "audioTime")) }}</text>
-                    <text class="audio-item__rate">{{ t('leakAnalysis.samplingRate') }}: {{ getFieldValue(audio, "samplingRate") || "-" }}</text>
+                    <text class="audio-item__rate">{{ t('leakAnalysis.samplingRate') }}: {{ displayValue(getFieldValue(audio, "samplingRate")) }}</text>
                   </view>
                   <view class="audio-item__actions">
                     <button class="audio-play-btn" hover-class="audio-play-btn--hover" @click="toggleAudioPlay(audio, ai)">{{ playingAudioIndex === ai ? t('table.audioPause') : t('table.audioPlay') }}</button>
@@ -320,6 +320,7 @@ const selectedRecordKey = ref("");
 const total = ref(0);
 const loading = ref(false);
 let fetchRequestId = 0;
+let detailRequestId = 0;
 const activeDetailTab = ref<DetailTab>("base");
 const exportMenuVisible = ref(false);
 const audioList = ref<Record<string, unknown>[]>([]);
@@ -353,12 +354,12 @@ const baseDetailFields = computed(() => {
   return [
     { label: t("leakAnalysis.id"), value: String(getFieldValue(r, "id") ?? "-") },
     { label: t("leakAnalysis.deviceId"), value: String(getFieldValue(r, "deviceId") ?? "-") },
-    { label: t("detail.fields.deviceNumber"), value: String(getFieldValue(r, "deviceNumber") || "-") },
+    { label: t("detail.fields.deviceNumber"), value: displayValue(getFieldValue(r, "deviceNumber")) },
     { label: t("leakAnalysis.samplingId"), value: String(getFieldValue(r, "samplingId") ?? "-") },
     { label: t("detail.fields.audioFileId"), value: String(getFieldValue(r, "audioFileId") ?? "-") },
     { label: t("detail.fields.algorithmStatus"), value: getAlgorithmStatusLabel(r) },
-    { label: t("detail.fields.signalprocessingResult"), value: String(getFieldValue(r, "signalprocessingResult") || "-") },
-    { label: t("detail.fields.algorithmError"), value: String(getFieldValue(r, "algorithmError") || "-") },
+    { label: t("detail.fields.signalprocessingResult"), value: displayValue(getFieldValue(r, "signalprocessingResult")) },
+    { label: t("detail.fields.algorithmError"), value: displayValue(getFieldValue(r, "algorithmError")) },
   ];
 });
 
@@ -386,6 +387,7 @@ onUnmounted(() => {
   // #ifdef H5
   document.removeEventListener("click", handleDocumentClick);
   document.removeEventListener("touchmove", handleDocumentTouchMove);
+  if (audioPlayerInstance) { audioPlayerInstance.pause(); audioPlayerInstance.src = ""; audioPlayerInstance = null; }
   // #endif
 });
 
@@ -397,7 +399,7 @@ function handleAlgorithmStatusChange(event: { detail: { value: number } }) {
 function toggleSort(field: string) {
   if (sortField.value === field) {
     if (sortOrder.value === "asc") { sortOrder.value = "desc"; }
-    else if (sortOrder.value === "desc") { sortField.value = ""; sortOrder.value = ""; return; }
+    else if (sortOrder.value === "desc") { sortField.value = ""; sortOrder.value = ""; }
   } else {
     sortField.value = field;
     sortOrder.value = "asc";
@@ -455,6 +457,13 @@ function searchAnalysis() {
   fetchAnalysisData();
 }
 
+function escapeCsvCell(value: unknown): string {
+  if (value === undefined || value === null) return "";
+  const text = String(value).replace(/"/g, '""');
+  return /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+}
+
+// 已知技术债：导出全部使用 pageSize:99999 一次性拉取，后端限制最大 pageSize 或数据量超过 10 万时导出会静默不全。后续应改为循环分页拉取。
 async function handleExport(scope: "current" | "all") {
   exportMenuVisible.value = false;
   let exportRecords = records.value;
@@ -480,10 +489,9 @@ async function handleExport(scope: "current" | "all") {
   const headers = exportColumns.map((c) => t(c.labelKey));
   const rows = exportRecords.map((r, idx) =>
     exportColumns.map((c) => {
-      if (c.renderType === "index") return String(idx + 1);
-      if (c.renderType === "dateTime") return formatDateTime(getFieldValue(r, c.key));
-      const v = getFieldValue(r, c.key);
-      return v === undefined || v === null ? "" : String(v).replace(/"/g, '""');
+      if (c.renderType === "index") return escapeCsvCell(String(idx + 1));
+      if (c.renderType === "dateTime") return escapeCsvCell(formatDateTime(getFieldValue(r, c.key)));
+      return escapeCsvCell(getFieldValue(r, c.key));
     })
   );
   const csv = [headers.join(","), ...rows.map((row) => row.map((c) => `"${c}"`).join(","))].join("\n");
@@ -529,6 +537,7 @@ function handlePageSizeChange(size: number) {
 }
 
 function selectFirstRow() {
+  detailRequestId++; // 使之前未完成的详情请求失效
   if (records.value.length === 0) {
     selectedRecord.value = null;
     selectedRecordKey.value = "";
@@ -548,11 +557,13 @@ function selectRecord(item: AnalysisRecord, index: number) {
   activeDetailTab.value = "base";
   loadAudioList();
 
+  const reqId = ++detailRequestId;
   const id = getRowId(item);
   if (!id) return;
 
   getAlgorithmAnalysisDetail(id)
     .then((response: unknown) => {
+      if (reqId !== detailRequestId) return; // 竞态保护：丢弃过期请求
       assertSuccessResponse(response as ApiResponseLike);
       const detailData = (response as ApiResponseLike)?.data;
       if (isObject(detailData)) {
@@ -702,6 +713,12 @@ function getRowKey(item: AnalysisRecord, index: number) {
 function getFieldValue(item: AnalysisRecord | null, key: string): unknown {
   if (!item) return undefined;
   return Object.prototype.hasOwnProperty.call(item, key) ? item[key] : undefined;
+}
+
+/** 显示值：只把 null/undefined/空字符串显示为 '-'，保留合法的 0/false */
+function displayValue(value: unknown): string {
+  if (value === null || value === undefined || value === '') return '-';
+  return String(value);
 }
 
 function getAlgorithmStatusLabel(item: AnalysisRecord) {

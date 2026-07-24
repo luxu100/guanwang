@@ -236,11 +236,11 @@
             <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
             <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "detectTime")) }}</text>
             <text class="data-cell data-cell--level"><text class="status-tag" :class="getLeakageStatusTagClass(item)">{{ getLeakageStatusDisplay(item) }}</text></text>
-            <text class="data-cell data-cell--type">{{ getFieldValue(item, "leakPointType") || "-" }}</text>
-            <text class="data-cell data-cell--address">{{ getFieldValue(item, "leakPointPosition") || "-" }}</text>
-            <text class="data-cell data-cell--account">{{ getFieldValue(item, "inspector") || "-" }}</text>
-            <text class="data-cell data-cell--material">{{ getFieldValue(item, "tubeMaterial") || "-" }}</text>
-            <text class="data-cell data-cell--remark">{{ getFieldValue(item, "description") || "-" }}</text>
+            <text class="data-cell data-cell--type">{{ displayValue(getFieldValue(item, "leakPointType")) }}</text>
+            <text class="data-cell data-cell--address">{{ displayValue(getFieldValue(item, "leakPointPosition")) }}</text>
+            <text class="data-cell data-cell--account">{{ displayValue(getFieldValue(item, "inspector")) }}</text>
+            <text class="data-cell data-cell--material">{{ displayValue(getFieldValue(item, "tubeMaterial")) }}</text>
+            <text class="data-cell data-cell--remark">{{ displayValue(getFieldValue(item, "description")) }}</text>
           </view>
         </view>
 
@@ -255,14 +255,14 @@
           >
             <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
             <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "uploadTime")) }}</text>
-            <text class="data-cell data-cell--device">{{ getFieldValue(item, "deviceNumber") || "-" }}</text>
+            <text class="data-cell data-cell--device">{{ displayValue(getFieldValue(item, "deviceNumber")) }}</text>
             <text class="data-cell data-cell--status">
               <text class="status-tag" :class="getLeakStatusTagClass(item)">{{ getLeakStatusLabel(item) }}</text>
             </text>
             <text class="data-cell data-cell--esa">{{ getFieldValue(item, "leakEsa") ?? "-" }}</text>
             <text class="data-cell data-cell--intensity">{{ getFieldValue(item, "leakIntensity") ?? "-" }}</text>
             <text class="data-cell data-cell--frequency">{{ getFieldValue(item, "leakFrequency") ?? "-" }}</text>
-            <text class="data-cell data-cell--firmware">{{ getFieldValue(item, "firmwareVersion") || "-" }}</text>
+            <text class="data-cell data-cell--firmware">{{ displayValue(getFieldValue(item, "firmwareVersion")) }}</text>
           </view>
         </view>
 
@@ -277,13 +277,13 @@
           >
             <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
             <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "createdAt")) }}</text>
-            <text class="data-cell data-cell--device">{{ getFieldValue(item, "deviceNumber") || "-" }}</text>
+            <text class="data-cell data-cell--device">{{ displayValue(getFieldValue(item, "deviceNumber")) }}</text>
             <text class="data-cell data-cell--signal">{{ translateAlgorithmName(getFieldValue(item, "algorithmName")) }}</text>
             <text class="data-cell data-cell--status">
               <text v-if="getFieldValue(item, 'status')" class="status-tag" :class="getAlgorithmStatusTagClass(item)">{{ getAlgorithmStatusLabel(item) }}</text>
               <text v-else>-</text>
             </text>
-            <text class="data-cell data-cell--signal" :title="String(getFieldValue(item, 'outputValue') || '')">{{ getFieldValue(item, "outputValue") || "-" }}</text>
+            <text class="data-cell data-cell--signal" :title="String(getFieldValue(item, 'outputValue') || '')">{{ displayValue(getFieldValue(item, "outputValue")) }}</text>
             <text class="data-cell data-cell--esa">{{ getFieldValue(item, "costMs") ?? "-" }}</text>
           </view>
         </view>
@@ -292,7 +292,18 @@
       <!-- 右侧详情 -->
       <template #detail>
         <view class="detail-body">
-          <view class="detail-section">
+          <view class="detail-tabs">
+            <view
+              v-for="tab in detailTabs"
+              :key="tab.value"
+              class="detail-tab"
+              :class="{ 'detail-tab--active': activeDetailTab === tab.value }"
+              @click="activeDetailTab = tab.value"
+            >{{ tab.label }}</view>
+          </view>
+
+          <!-- 基本信息 tab：摘要 + 时间信息 + 地点信息 + 音视频 -->
+          <view v-if="activeDetailTab === 'basic'" class="detail-section">
             <!-- 摘要 -->
             <view class="detail-summary">
               <view class="detail-summary__main">
@@ -330,22 +341,128 @@
               </view>
             </view>
 
-            <!-- 其他字段（卡片网格） -->
+            <!-- 音视频播放区（仅 leakage tab 显示） -->
+            <view v-if="activeDataTab === 'leakage' && selectedRecord" class="time-section time-section--attach">
+              <text class="detail-section-title">{{ t("historyOverview.relatedAudio") }}</text>
+              <view class="attach-media">
+                <view class="attach-media__item">
+                  <view v-if="getFieldValue(selectedRecord, 'audioFile')" class="attach-media__player">
+                    <button class="attach-play-btn" hover-class="attach-play-btn--hover" @click="openAudioDialog(selectedRecord)"><text class="play-icon icon-play"></text></button>
+                    <text class="attach-media__hint">{{ t("common.clickToPlay") }}</text>
+                  </view>
+                  <text v-else class="attach-media__empty">{{ t("historyOverview.noAudioUploaded") }}</text>
+                </view>
+              </view>
+              <text class="detail-section-title detail-section-title--video">{{ t("historyOverview.relatedVideo") }}</text>
+              <view class="attach-media">
+                <view class="attach-media__item">
+                  <view v-if="getFieldValue(selectedRecord, 'sceneVideo')" class="attach-media__player">
+                    <button class="attach-play-btn" hover-class="attach-play-btn--hover" @click="openVideoDialog(selectedRecord)"><text class="play-icon icon-play"></text></button>
+                    <text class="attach-media__hint">{{ t("common.clickToPlay") }}</text>
+                  </view>
+                  <text v-else class="attach-media__empty">{{ t("historyOverview.noVideoUploaded") }}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <!-- 详细信息 tab：其他字段（卡片网格） -->
+          <view v-if="activeDetailTab === 'detail'" class="detail-section">
             <view v-if="cardFields.length > 0" class="detail-fields-grid">
               <view v-for="item in cardFields" :key="item.label" class="detail-field-card">
                 <text class="detail-field-card__label">{{ item.label }}</text>
                 <text class="detail-field-card__value" :title="item.value">{{ item.value }}</text>
               </view>
             </view>
+            <view v-else class="attach-media__empty">{{ t("historyOverview.noHistoryData") }}</view>
           </view>
         </view>
       </template>
     </LeakTableView>
+
+    <!-- ========== 视频播放浮层 ========== -->
+    <view v-if="videoDialogVisible" class="video-dialog-mask" @click="onVideoMaskClick">
+      <view class="video-dialog">
+        <view class="video-dialog__head">
+          <text class="video-dialog__title">{{ t("historyOverview.videoPlay") }}</text>
+          <button class="icon-button" hover-class="icon-button--hover" :aria-label="t('common.close')" @click="closeVideoDialog"><text class="close-icon"></text></button>
+        </view>
+        <view class="video-dialog__body">
+          <video
+            v-if="currentVideoUrl"
+            ref="videoPlayerRef"
+            :src="currentVideoUrl"
+            class="video-player"
+            controls
+            playsinline
+            webkit-playsinline
+            @loadedmetadata="onVideoLoadedMeta"
+            @durationchange="onVideoDurationChange"
+            @canplay="onVideoCanPlay"
+            @timeupdate="onVideoTimeUpdate"
+            @waiting="onVideoWaiting"
+            @playing="onVideoPlaying"
+          ></video>
+          <view v-else class="video-empty">{{ t("historyOverview.videoLoadFailed") }}</view>
+          <view v-if="videoLoading && currentVideoUrl" class="video-loading">{{ t("historyOverview.buffering") }}</view>
+        </view>
+        <view v-if="currentVideoUrl" class="video-dialog__info">
+          <view class="video-info-row">
+            <text class="video-info-label">{{ t("historyOverview.duration") }}</text>
+            <text class="video-info-value">{{ formatMediaTime(videoDuration) }}</text>
+          </view>
+          <view class="video-info-row">
+            <text class="video-info-label">{{ t("historyOverview.progress") }}</text>
+            <text class="video-info-value">{{ formatMediaTime(videoCurrentTime) }} / {{ formatMediaTime(videoDuration) }}</text>
+          </view>
+          <view class="video-seek-bar">
+            <view class="video-seek-filled" :style="{ width: videoProgress + '%' }"></view>
+            <view class="video-seek-thumb" :style="{ left: videoProgress + '%' }"></view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- ========== 音频播放浮层 ========== -->
+    <view v-if="audioDialogVisible" class="audio-dialog-mask" @click="onAudioMaskClick">
+      <view class="audio-dialog">
+        <view class="audio-dialog__head">
+          <text class="audio-dialog__title">{{ currentAudioTitle || t("historyOverview.audioPlay") }}</text>
+          <button class="icon-button" hover-class="icon-button--hover" :aria-label="t('common.close')" @click="closeAudioDialog"><text class="close-icon"></text></button>
+        </view>
+        <view class="audio-dialog__body">
+          <view v-if="!currentAudioUrl" class="audio-empty">{{ t("historyOverview.audioLoadFailed") }}</view>
+          <view v-else class="audio-player">
+            <view class="audio-player__icon">
+              <view class="audio-cover">
+                <view class="audio-cover__ring"></view>
+                <view class="audio-cover__dot"></view>
+              </view>
+            </view>
+            <view class="audio-player__info">
+              <text class="audio-player__title">{{ currentAudioTitle }}</text>
+              <view v-if="audioLoading" class="audio-player__loading">{{ t("historyOverview.buffering") }}</view>
+              <view class="audio-player__progress">
+                <text class="audio-time">{{ formatMediaTime(audioCurrentTime) }}</text>
+                <view class="audio-seek-bar">
+                  <view class="audio-seek-filled" :style="{ width: audioProgress + '%' }"></view>
+                  <view class="audio-seek-thumb" :style="{ left: audioProgress + '%' }"></view>
+                </view>
+                <text class="audio-time">{{ formatMediaTime(audioDuration) }}</text>
+              </view>
+              <button class="audio-play-btn" hover-class="audio-play-btn--hover" @click="toggleAudioPlayState">
+                <text class="play-icon-large" :class="audioPlaying ? 'icon-pause-large' : 'icon-play-large'"></text>
+              </button>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, onMounted, onBeforeUnmount, nextTick, watch } from "vue";
+import { computed, reactive, ref, onMounted, onBeforeUnmount, onUnmounted, nextTick, watch } from "vue";
 import * as echarts from "echarts";
 import {
   getLeakageHistoryPage,
@@ -506,8 +623,33 @@ const selectedRecord = ref<HistoryRecord | null>(null);
 const selectedRecordKey = ref("");
 const total = ref(0);
 const loading = ref(false);
+let detailRequestId = 0;
+let fetchRequestId = 0;
 const activeDataTab = ref<DataTab>("leakage");
 const exportMenuVisible = ref(false);
+type HistoryDetailTab = "basic" | "detail";
+const activeDetailTab = ref<HistoryDetailTab>("basic");
+const detailTabs = computed<Array<{ label: string; value: HistoryDetailTab }>>(() => [
+  { label: t("historyOverview.detailTabs.basic"), value: "basic" },
+  { label: t("historyOverview.detailTabs.detail"), value: "detail" },
+]);
+
+// 音视频播放弹窗状态
+const videoDialogVisible = ref(false);
+const currentVideoUrl = ref("");
+const videoDuration = ref(0);
+const videoCurrentTime = ref(0);
+const videoLoading = ref(false);
+const videoPlayerRef = ref<HTMLVideoElement | null>(null);
+
+const audioDialogVisible = ref(false);
+const currentAudioUrl = ref("");
+const currentAudioTitle = ref("");
+const audioDuration = ref(0);
+const audioCurrentTime = ref(0);
+const audioPlaying = ref(false);
+const audioLoading = ref(false);
+let audioDialogElement: HTMLAudioElement | null = null;
 
 const currentLeakStatusLabel = computed(() =>
   activeLeakStatusOptions.value.find((o) => o.value === filters.leakStatus)?.label || t("status.statusUnlimited"),
@@ -1429,8 +1571,8 @@ const summaryLabel = computed(() => {
 
 const summaryValue = computed(() => {
   const r = selectedRecord.value || {};
-  if (activeDataTab.value === "leakage") return String(getFieldValue(r, "leakPointPosition") || "-");
-  return String(getFieldValue(r, "deviceNumber") || "-");
+  if (activeDataTab.value === "leakage") return displayValue(getFieldValue(r, "leakPointPosition"));
+  return displayValue(getFieldValue(r, "deviceNumber"));
 });
 
 const summaryMetaFields = computed<DetailField[]>(() => {
@@ -1438,25 +1580,25 @@ const summaryMetaFields = computed<DetailField[]>(() => {
   if (activeDataTab.value === "leakage") {
     return [
       { label: t("detail.fields.leakStatus"), value: getLeakageStatusDisplay(r) },
-      { label: t("detail.fields.leakPointType"), value: String(getFieldValue(r, "leakPointType") || "-") },
-      { label: t("detail.fields.inspector"), value: String(getFieldValue(r, "inspector") || "-") },
-      { label: t("detail.fields.detectType"), value: String(getFieldValue(r, "detectType") || "-") },
-      { label: t("detail.fields.detectDifficulty"), value: String(getFieldValue(r, "detectDifficulty") || "-") },
-      { label: t("detail.fields.locator"), value: String(getFieldValue(r, "locator") || "-") },
+      { label: t("detail.fields.leakPointType"), value: displayValue(getFieldValue(r, "leakPointType")) },
+      { label: t("detail.fields.inspector"), value: displayValue(getFieldValue(r, "inspector")) },
+      { label: t("detail.fields.detectType"), value: displayValue(getFieldValue(r, "detectType")) },
+      { label: t("detail.fields.detectDifficulty"), value: displayValue(getFieldValue(r, "detectDifficulty")) },
+      { label: t("detail.fields.locator"), value: displayValue(getFieldValue(r, "locator")) },
     ];
   }
   if (activeDataTab.value === "deviceUpload") {
     return [
       { label: t("table.leakFlag"), value: getLeakStatusLabel(r) },
-      { label: t("detail.fields.firmwareVersion"), value: String(getFieldValue(r, "firmwareVersion") || "-") },
-      { label: t("detail.fields.hardwareVersion"), value: String(getFieldValue(r, "hardwareVersion") || "-") },
+      { label: t("detail.fields.firmwareVersion"), value: displayValue(getFieldValue(r, "firmwareVersion")) },
+      { label: t("detail.fields.hardwareVersion"), value: displayValue(getFieldValue(r, "hardwareVersion")) },
       { label: t("detail.fields.workMode"), value: String(getFieldValue(r, "workMode") ?? "-") },
     ];
   }
   if (activeDataTab.value === "algorithm") {
     return [
       { label: t("table.executeStatus"), value: getAlgorithmStatusLabel(r) },
-      { label: t("detail.fields.errorMessage"), value: String(getFieldValue(r, "errorMessage") || "-") },
+      { label: t("detail.fields.errorMessage"), value: displayValue(getFieldValue(r, "errorMessage")) },
     ];
   }
   return [];
@@ -1491,7 +1633,7 @@ const locationFields = computed<DetailField[]>(() => {
   if (activeDataTab.value === "leakage") {
     return [
       { label: t("detail.fields.coordinatePosition"), value: formatCoordinate(getFieldValue(r, "coordinatePosition")) },
-      { label: t("detail.fields.leakArea"), value: String(getFieldValue(r, "leakArea") || "-") },
+      { label: t("detail.fields.leakArea"), value: displayValue(getFieldValue(r, "leakArea")) },
     ];
   }
   if (activeDataTab.value === "deviceUpload") {
@@ -1508,30 +1650,28 @@ const cardFields = computed<DetailField[]>(() => {
     return [
       { label: t("detail.fields.id"), value: String(getFieldValue(r, "id") ?? "-") },
       { label: t("detail.fields.suspectedLeakId"), value: String(getFieldValue(r, "suspectedLeakId") ?? "-") },
-      { label: t("detail.fields.leakPointPart"), value: String(getFieldValue(r, "leakPart") || "-") },
+      { label: t("detail.fields.leakPointPart"), value: displayValue(getFieldValue(r, "leakPart")) },
       { label: t("detail.fields.leakDistance"), value: String(getFieldValue(r, "leakDistance") ?? "-") },
       { label: t("detail.fields.leakVolume"), value: String(getFieldValue(r, "leakVolume") ?? "-") },
-      { label: t("detail.fields.leakReason"), value: String(getFieldValue(r, "leakReason") || "-") },
+      { label: t("detail.fields.leakReason"), value: displayValue(getFieldValue(r, "leakReason")) },
       { label: t("detail.fields.leakEsa"), value: String(getFieldValue(r, "featureValue") ?? "-") },
-      { label: t("detail.fields.cost"), value: String(getFieldValue(r, "cost") || "-") },
+      { label: t("detail.fields.cost"), value: displayValue(getFieldValue(r, "cost")) },
       { label: t("detail.fields.manualReviewCount"), value: String(getFieldValue(r, "manualReviewCount") ?? "-") },
-      { label: t("detail.fields.repairMethod"), value: String(getFieldValue(r, "repairMethod") || "-") },
-      { label: t("detail.fields.tubeMaterial"), value: String(getFieldValue(r, "tubeMaterial") || "-") },
+      { label: t("detail.fields.repairMethod"), value: displayValue(getFieldValue(r, "repairMethod")) },
+      { label: t("detail.fields.tubeMaterial"), value: displayValue(getFieldValue(r, "tubeMaterial")) },
       { label: t("detail.fields.tubeBore"), value: String(getFieldValue(r, "tubeBore") ?? "-") },
       { label: t("detail.fields.tubeBuriedDepth"), value: String(getFieldValue(r, "tubeBuriedDepth") ?? "-") },
       { label: t("detail.fields.tubeAge"), value: String(getFieldValue(r, "tubeAge") ?? "-") },
-      { label: t("detail.fields.deviceNumber"), value: String(getFieldValue(r, "deviceNumber") || "-") },
+      { label: t("detail.fields.deviceNumber"), value: displayValue(getFieldValue(r, "deviceNumber")) },
       { label: t("detail.fields.workOrderId"), value: String(getFieldValue(r, "workOrderId") ?? "-") },
-      { label: t("detail.fields.audioFile"), value: String(getFieldValue(r, "audioFile") || "-") },
-      { label: t("detail.fields.sceneVideo"), value: String(getFieldValue(r, "sceneVideo") || "-") },
-      { label: t("detail.fields.noiseSample"), value: String(getFieldValue(r, "noiseSample") || "-") },
-      { label: t("detail.fields.description"), value: String(getFieldValue(r, "description") || "-") },
+      { label: t("detail.fields.noiseSample"), value: displayValue(getFieldValue(r, "noiseSample")) },
+      { label: t("detail.fields.description"), value: displayValue(getFieldValue(r, "description")) },
     ];
   }
   if (activeDataTab.value === "deviceUpload") {
     return [
-      { label: t("detail.fields.id"), value: String(getFieldValue(r, "id") || "-") },
-      { label: t("detail.fields.deviceId"), value: String(getFieldValue(r, "deviceId") || "-") },
+      { label: t("detail.fields.id"), value: displayValue(getFieldValue(r, "id")) },
+      { label: t("detail.fields.deviceId"), value: displayValue(getFieldValue(r, "deviceId")) },
       { label: t("detail.fields.batteryVoltage"), value: String(getFieldValue(r, "batteryVoltage") ?? "-") },
       { label: t("detail.fields.deviceTemperature"), value: String(getFieldValue(r, "deviceTemperature") ?? "-") },
       { label: t("detail.fields.signalIntensity"), value: String(getFieldValue(r, "signalIntensity") ?? "-") },
@@ -1547,10 +1687,10 @@ const cardFields = computed<DetailField[]>(() => {
       { label: t("detail.fields.deviceId"), value: String(getFieldValue(r, "deviceId") ?? "-") },
       { label: t("detail.fields.audioId"), value: String(getFieldValue(r, "audioId") ?? "-") },
       { label: t("detail.fields.algorithmName"), value: translateAlgorithmName(getFieldValue(r, "algorithmName")) },
-      { label: t("detail.fields.outputValue"), value: String(getFieldValue(r, "outputValue") || "-") },
+      { label: t("detail.fields.outputValue"), value: displayValue(getFieldValue(r, "outputValue")) },
       { label: t("detail.fields.duration"), value: String(getFieldValue(r, "costMs") ?? "-") },
-      { label: t("detail.fields.matlabInstance"), value: String(getFieldValue(r, "matlabInstance") || "-") },
-      { label: t("detail.fields.errorMessage"), value: String(getFieldValue(r, "errorMessage") || "-") },
+      { label: t("detail.fields.matlabInstance"), value: displayValue(getFieldValue(r, "matlabInstance")) },
+      { label: t("detail.fields.errorMessage"), value: displayValue(getFieldValue(r, "errorMessage")) },
     ];
   }
   return [];
@@ -1559,6 +1699,19 @@ const cardFields = computed<DetailField[]>(() => {
 onMounted(() => {
   fetchHistoryData();
   nextTick(renderChart);
+  // #ifdef H5
+  document.addEventListener("click", handleDocumentClick);
+  document.addEventListener("touchmove", handleDocumentTouchMove, { passive: false });
+  // #endif
+});
+
+onUnmounted(() => {
+  // #ifdef H5
+  document.removeEventListener("click", handleDocumentClick);
+  document.removeEventListener("touchmove", handleDocumentTouchMove);
+  closeAudioDialog();
+  closeVideoDialog();
+  // #endif
 });
 
 onBeforeUnmount(() => {
@@ -1589,7 +1742,7 @@ function switchDataTab(tab: DataTab) {
 function toggleSort(field: string) {
   if (sortField.value === field) {
     if (sortOrder.value === "asc") { sortOrder.value = "desc"; }
-    else if (sortOrder.value === "desc") { sortField.value = ""; sortOrder.value = ""; return; }
+    else if (sortOrder.value === "desc") { sortField.value = ""; sortOrder.value = ""; }
   } else {
     sortField.value = field;
     sortOrder.value = "asc";
@@ -1634,10 +1787,12 @@ function getApiFunction() {
 }
 
 async function fetchHistoryData() {
+  const reqId = ++fetchRequestId;
   loading.value = true;
   try {
     const api = getApiFunction();
     const response = (await api.page(buildQueryParams())) as ApiResponseLike;
+    if (reqId !== fetchRequestId) return;
     assertSuccessResponse(response);
     const parsed = parsePageResponse(response);
     if (parsed.pageNum && parsed.pageNum !== pagination.pageNum) pagination.pageNum = parsed.pageNum;
@@ -1653,13 +1808,14 @@ async function fetchHistoryData() {
     }
     selectFirstRow();
   } catch (error) {
+    if (reqId !== fetchRequestId) return;
     records.value = [];
     total.value = 0;
     selectedRecord.value = null;
     selectedRecordKey.value = "";
     uni.showToast({ title: (error as { msg?: string })?.msg || t("historyOverview.dataLoadFailed"), icon: "none" });
   } finally {
-    loading.value = false;
+    if (reqId === fetchRequestId) loading.value = false;
   }
 }
 
@@ -1668,6 +1824,13 @@ function searchHistory() {
   fetchHistoryData();
 }
 
+function escapeCsvCell(value: unknown): string {
+  if (value === undefined || value === null) return "";
+  const text = String(value).replace(/"/g, '""');
+  return /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+}
+
+// 已知技术债：导出全部使用 pageSize:99999 一次性拉取，后端限制最大 pageSize 或数据量超过 10 万时导出会静默不全。后续应改为循环分页拉取。
 async function handleExport(scope: "current" | "all") {
   exportMenuVisible.value = false;
   let exportRecords = records.value;
@@ -1732,19 +1895,18 @@ async function handleExport(scope: "current" | "all") {
     keys.forEach((k) => {
       if (k === "leakStatus") {
         if (tab === "leakage") {
-          row.push(getLeakageStatusDisplay(r));
+          row.push(escapeCsvCell(getLeakageStatusDisplay(r)));
         } else {
-          row.push(getLeakStatusLabel(r));
+          row.push(escapeCsvCell(getLeakStatusLabel(r)));
         }
       } else if (k === "status") {
-        row.push(getAlgorithmStatusLabel(r));
+        row.push(escapeCsvCell(getAlgorithmStatusLabel(r)));
       } else if (k === "algorithmName") {
-        row.push(translateAlgorithmName(getFieldValue(r, k)));
+        row.push(escapeCsvCell(translateAlgorithmName(getFieldValue(r, k))));
       } else if (k === "audioTime" || k === "detectTime" || k === "uploadTime" || k === "createdAt" || k === "samplingTime") {
-        row.push(formatDateTime(getFieldValue(r, k)));
+        row.push(escapeCsvCell(formatDateTime(getFieldValue(r, k))));
       } else {
-        const v = getFieldValue(r, k);
-        row.push(v === undefined || v === null ? "" : String(v).replace(/"/g, '""'));
+        row.push(escapeCsvCell(getFieldValue(r, k)));
       }
     });
     return row;
@@ -1762,6 +1924,233 @@ async function handleExport(scope: "current" | "all") {
   // #ifndef H5
   uni.showToast({ title: t("historyOverview.exportH5Only"), icon: "none" });
   // #endif
+}
+
+function getBaseUrl(): string {
+  return (import.meta as unknown as { env: { VITE_API_BASE_URL?: string } }).env?.VITE_API_BASE_URL || "";
+}
+
+function getPreviewUrl(filePath: string): string {
+  if (!filePath) return "";
+  if (filePath.startsWith("http://") || filePath.startsWith("https://")) return filePath;
+  if (filePath.startsWith("/")) return `${getBaseUrl()}${filePath}`;
+  return `${getBaseUrl()}/${filePath}`;
+}
+
+function formatMediaTime(seconds: number): string {
+  if (!seconds || !isFinite(seconds)) return "00:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  if (m >= 60) {
+    const h = Math.floor(m / 60);
+    return `${String(h).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+const videoProgress = computed(() => {
+  if (!videoDuration.value) return 0;
+  return Math.min(100, (videoCurrentTime.value / videoDuration.value) * 100);
+});
+
+const audioProgress = computed(() => {
+  if (!audioDuration.value) return 0;
+  return Math.min(100, (audioCurrentTime.value / audioDuration.value) * 100);
+});
+
+// 兼容 uni-app video 组件事件（e.detail = { currentTime, duration }）和原生 video 事件（e.target）
+function readVideoDuration(e: Event): number {
+  const detail = (e as { detail?: { duration?: unknown } }).detail;
+  if (detail && typeof detail.duration === "number" && isFinite(detail.duration) && detail.duration > 0) {
+    return detail.duration;
+  }
+  const v = (e.target as HTMLVideoElement) || videoPlayerRef.value;
+  if (v && isFinite(v.duration) && v.duration > 0) return v.duration;
+  return 0;
+}
+
+function readVideoCurrentTime(e: Event): number {
+  const detail = (e as { detail?: { currentTime?: unknown } }).detail;
+  if (detail && typeof detail.currentTime === "number") return detail.currentTime;
+  const v = (e.target as HTMLVideoElement) || videoPlayerRef.value;
+  return v ? v.currentTime || 0 : 0;
+}
+
+function onVideoLoadedMeta(e: Event) {
+  const d = readVideoDuration(e);
+  if (d > 0) videoDuration.value = d;
+  videoLoading.value = false;
+}
+function onVideoDurationChange(e: Event) {
+  const d = readVideoDuration(e);
+  if (d > 0) videoDuration.value = d;
+}
+function onVideoCanPlay(e: Event) {
+  const d = readVideoDuration(e);
+  if (d > 0) videoDuration.value = d;
+  videoLoading.value = false;
+}
+function onVideoTimeUpdate(e: Event) {
+  videoCurrentTime.value = readVideoCurrentTime(e);
+  if (!videoDuration.value) {
+    const d = readVideoDuration(e);
+    if (d > 0) videoDuration.value = d;
+  }
+}
+function onVideoWaiting() { videoLoading.value = true; }
+function onVideoPlaying() { videoLoading.value = false; }
+
+// ===== 进度条拖动：使用 document 原生事件委托，绕过 uni-app 事件系统 =====
+function doSeekVideo(clientX: number, bar: HTMLElement) {
+  const videoEl = document.querySelector(".video-player") as HTMLVideoElement | null;
+  let duration = 0;
+  if (videoEl && isFinite(videoEl.duration) && videoEl.duration > 0) {
+    duration = videoEl.duration;
+  } else if (isFinite(videoDuration.value) && videoDuration.value > 0) {
+    duration = videoDuration.value;
+  }
+  if (!duration || !isFinite(duration)) return;
+  const rect = bar.getBoundingClientRect();
+  if (!rect.width) return;
+  const x = clientX - rect.left;
+  const percent = Math.max(0, Math.min(100, (x / rect.width) * 100));
+  const time = (percent / 100) * duration;
+  if (!isFinite(time) || time < 0) return;
+  if (videoEl) { try { videoEl.currentTime = time; } catch (_) { /* ignore */ } }
+  videoCurrentTime.value = time;
+  videoDuration.value = duration;
+}
+
+function doSeekAudio(clientX: number, bar: HTMLElement) {
+  if (!audioDialogElement) return;
+  let duration = 0;
+  if (isFinite(audioDialogElement.duration) && audioDialogElement.duration > 0) {
+    duration = audioDialogElement.duration;
+  } else if (isFinite(audioDuration.value) && audioDuration.value > 0) {
+    duration = audioDuration.value;
+  }
+  if (!duration || !isFinite(duration)) return;
+  const rect = bar.getBoundingClientRect();
+  if (!rect.width) return;
+  const x = clientX - rect.left;
+  const percent = Math.max(0, Math.min(100, (x / rect.width) * 100));
+  const time = (percent / 100) * duration;
+  if (!isFinite(time) || time < 0) return;
+  try { audioDialogElement.currentTime = time; } catch (_) { /* ignore */ }
+  audioCurrentTime.value = time;
+  audioDuration.value = duration;
+}
+
+function handleDocumentClick(e: MouseEvent) {
+  const target = e.target as HTMLElement;
+  if (!target) return;
+  const videoBar = target.closest(".video-seek-bar") as HTMLElement | null;
+  if (videoBar) { doSeekVideo(e.clientX, videoBar); return; }
+  const audioBar = target.closest(".audio-seek-bar") as HTMLElement | null;
+  if (audioBar) { doSeekAudio(e.clientX, audioBar); return; }
+}
+
+function handleDocumentTouchMove(e: TouchEvent) {
+  const target = e.target as HTMLElement;
+  if (!target) return;
+  const videoBar = target.closest(".video-seek-bar") as HTMLElement | null;
+  if (videoBar && e.touches.length > 0) {
+    doSeekVideo(e.touches[0].clientX, videoBar);
+    e.preventDefault();
+    return;
+  }
+  const audioBar = target.closest(".audio-seek-bar") as HTMLElement | null;
+  if (audioBar && e.touches.length > 0) {
+    doSeekAudio(e.touches[0].clientX, audioBar);
+    e.preventDefault();
+  }
+}
+
+function openVideoDialog(item: HistoryRecord) {
+  const vid = getFieldValue(item, "sceneVideo");
+  if (!vid) return;
+  videoDuration.value = 0;
+  videoCurrentTime.value = 0;
+  videoLoading.value = true;
+  currentVideoUrl.value = getPreviewUrl(String(vid));
+  videoDialogVisible.value = true;
+}
+function closeVideoDialog() {
+  videoDialogVisible.value = false;
+  currentVideoUrl.value = "";
+  videoDuration.value = 0;
+  videoCurrentTime.value = 0;
+  videoLoading.value = false;
+}
+
+/** 只有点击 mask 本身才关闭对话框，点击内部内容（含进度条）不关闭 */
+function onVideoMaskClick(e: MouseEvent) {
+  if (e.target === e.currentTarget) closeVideoDialog();
+}
+
+function onAudioLoadedMeta() {
+  if (!audioDialogElement) return;
+  if (isFinite(audioDialogElement.duration) && audioDialogElement.duration > 0) {
+    audioDuration.value = audioDialogElement.duration;
+  }
+  audioLoading.value = false;
+}
+function onAudioTimeUpdate() {
+  if (!audioDialogElement) return;
+  audioCurrentTime.value = audioDialogElement.currentTime || 0;
+  if (isFinite(audioDialogElement.duration) && audioDialogElement.duration > 0 && !audioDuration.value) {
+    audioDuration.value = audioDialogElement.duration;
+  }
+}
+function onAudioEnded() { audioPlaying.value = false; audioCurrentTime.value = 0; }
+function toggleAudioPlayState() {
+  if (!audioDialogElement) return;
+  if (audioDialogElement.paused) audioDialogElement.play();
+  else audioDialogElement.pause();
+}
+function seekAudioByEvent(e: Event) {
+  // 已由 document 事件委托处理，此函数保留为空以兼容模板中可能的引用
+}
+function openAudioDialog(item: HistoryRecord) {
+  if (audioDialogElement) { audioDialogElement.pause(); audioDialogElement = null; }
+  const aid = getFieldValue(item, "audioFile");
+  if (!aid) return;
+  currentAudioUrl.value = getPreviewUrl(String(aid));
+  currentAudioTitle.value = t("historyOverview.audioPlay");
+  audioDuration.value = 0;
+  audioCurrentTime.value = 0;
+  audioPlaying.value = false;
+  audioLoading.value = true;
+  audioDialogVisible.value = true;
+  audioDialogElement = new Audio(currentAudioUrl.value);
+  audioDialogElement.addEventListener("loadedmetadata", onAudioLoadedMeta);
+  audioDialogElement.addEventListener("durationchange", onAudioLoadedMeta);
+  audioDialogElement.addEventListener("timeupdate", onAudioTimeUpdate);
+  audioDialogElement.addEventListener("ended", onAudioEnded);
+  audioDialogElement.addEventListener("waiting", () => { audioLoading.value = true; });
+  audioDialogElement.addEventListener("playing", () => { audioLoading.value = false; audioPlaying.value = true; });
+  audioDialogElement.addEventListener("play", () => { audioPlaying.value = true; });
+  audioDialogElement.addEventListener("pause", () => { audioPlaying.value = false; });
+  audioDialogElement.addEventListener("canplay", () => { audioLoading.value = false; });
+  audioDialogElement.play().catch(() => { audioLoading.value = false; });
+}
+function closeAudioDialog() {
+  if (audioDialogElement) {
+    audioDialogElement.pause();
+    audioDialogElement.src = "";
+    audioDialogElement = null;
+  }
+  audioDialogVisible.value = false;
+  currentAudioUrl.value = "";
+  audioDuration.value = 0;
+  audioCurrentTime.value = 0;
+  audioPlaying.value = false;
+  audioLoading.value = false;
+}
+
+/** 只有点击 mask 本身才关闭对话框，点击内部内容（含进度条）不关闭 */
+function onAudioMaskClick(e: MouseEvent) {
+  if (e.target === e.currentTarget) closeAudioDialog();
 }
 
 function resetFilters() {
@@ -1795,6 +2184,7 @@ function handlePageSizeChange(size: number) {
 }
 
 function selectFirstRow() {
+  detailRequestId++; // 使之前未完成的详情请求失效
   if (records.value.length === 0) {
     selectedRecord.value = null;
     selectedRecordKey.value = "";
@@ -1809,11 +2199,13 @@ function selectRecord(item: HistoryRecord, index: number) {
   selectedRecord.value = item;
   selectedRecordKey.value = getRowKey(item, index);
 
+  const reqId = ++detailRequestId;
   const id = getRowId(item);
   if (!id) return;
 
   getApiFunction().detail(id)
     .then((response: unknown) => {
+      if (reqId !== detailRequestId) return; // 竞态保护：丢弃过期请求
       assertSuccessResponse(response as ApiResponseLike);
       const detailData = (response as ApiResponseLike)?.data;
       if (isObject(detailData)) {
@@ -1837,6 +2229,12 @@ function getRowKey(item: HistoryRecord, index: number) {
 
 function getFieldValue(item: HistoryRecord, key: string): unknown {
   return Object.prototype.hasOwnProperty.call(item, key) ? item[key] : undefined;
+}
+
+/** 显示值：只把 null/undefined/空字符串显示为 '-'，保留合法的 0/false */
+function displayValue(value: unknown): string {
+  if (value === null || value === undefined || value === '') return '-';
+  return String(value);
 }
 
 // 格式化经纬度字符串，保留 4 位小数（支持 "经度,纬度" 或 "经度 纬度" 格式）
@@ -2769,4 +3167,77 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   flex: 1 1 auto;
   min-height: 260px;
 }
+
+/* ========== 详情面板 Tab 切换 ========== */
+.detail-tabs { display: flex; flex: none; border-bottom: 1px solid #edf3f8; }
+.detail-tab { flex: 1; display: flex; align-items: center; justify-content: center; height: 42px; color: #64748b; font-size: 13px; font-weight: 700; cursor: pointer; border-bottom: 2px solid transparent; }
+.detail-tab--active { color: #3b82f6; border-bottom-color: #3b82f6; }
+
+/* ========== 通用按钮 / 图标 ========== */
+.icon-button { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; margin: 0; background: #f6fbff; border: 1px solid #d9e7f3; border-radius: 6px; cursor: pointer; }
+.icon-button--hover { background: #eff6ff; border-color: #3b82f6; }
+.close-icon { position: relative; width: 14px; height: 14px; }
+.close-icon::before, .close-icon::after { position: absolute; top: 6px; left: 0; width: 14px; height: 2px; content: ""; background: #64748b; border-radius: 2px; }
+.close-icon::before { transform: rotate(45deg); }
+.close-icon::after { transform: rotate(-45deg); }
+.play-icon { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.icon-play { width: 0; height: 0; border-style: solid; border-width: 6px 0 6px 10px; border-color: transparent transparent transparent #3b82f6; }
+
+/* ========== 视频弹窗 ========== */
+.video-dialog-mask { position: fixed; inset: 0; z-index: 2200; display: flex; align-items: center; justify-content: center; background: rgba(15, 35, 55, 0.55); }
+.video-dialog { width: min(900px, 92vw); background: #fff; border-radius: 10px; box-shadow: 0 12px 36px rgba(15, 35, 55, 0.25); overflow: hidden; }
+.video-dialog__head { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid #edf1f5; }
+.video-dialog__title { color: #0f172a; font-size: 15px; font-weight: 700; }
+.video-dialog__body { position: relative; padding: 16px; background: #000; }
+.video-player { display: block; width: 100%; max-height: 60vh; background: #000; }
+.video-empty { padding: 40px; color: #94a3b8; font-size: 14px; text-align: center; background: #fff; }
+.video-loading { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); padding: 6px 16px; color: #fff; font-size: 12px; background: rgba(0, 0, 0, 0.6); border-radius: 4px; }
+.video-dialog__info { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 12px 18px; border-top: 1px solid #edf1f5; background: #f8fafc; }
+.video-info-row { display: flex; align-items: center; gap: 6px; }
+.video-info-label { color: #64748b; font-size: 12px; font-weight: 700; }
+.video-info-value { color: #0f172a; font-size: 13px; font-weight: 700; font-family: monospace; }
+.video-seek-bar { position: relative; flex: 1; min-width: 120px; height: 6px; background: #e2e8f0; border-radius: 3px; cursor: pointer; }
+.video-seek-filled { position: absolute; top: 0; left: 0; height: 100%; background: linear-gradient(90deg, #3b82f6, #2563eb); border-radius: 3px; }
+.video-seek-thumb { position: absolute; top: 50%; width: 12px; height: 12px; background: #fff; border: 2px solid #3b82f6; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+
+/* ========== 音频弹窗 ========== */
+.audio-dialog-mask { position: fixed; inset: 0; z-index: 2200; display: flex; align-items: center; justify-content: center; background: rgba(15, 35, 55, 0.55); }
+.audio-dialog { width: min(520px, 92vw); background: #fff; border-radius: 10px; box-shadow: 0 12px 36px rgba(15, 35, 55, 0.25); overflow: hidden; }
+.audio-dialog__head { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid #edf1f5; }
+.audio-dialog__title { color: #0f172a; font-size: 15px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 400px; }
+.audio-dialog__body { padding: 24px; background: linear-gradient(135deg, #f0f7ff 0%, #faf5ff 100%); }
+.audio-empty { padding: 40px; color: #94a3b8; font-size: 14px; text-align: center; }
+.audio-player { display: flex; align-items: center; gap: 20px; }
+.audio-player__icon { flex-shrink: 0; }
+.audio-cover { position: relative; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; }
+.audio-cover__ring { position: absolute; inset: 0; border: 3px solid #bfdbfe; border-top-color: #3b82f6; border-radius: 50%; animation: history-audio-spin 2s linear infinite; }
+.audio-cover__dot { width: 12px; height: 12px; background: #3b82f6; border-radius: 50%; box-shadow: 0 0 12px rgba(59, 130, 246, 0.4); }
+.audio-player__info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.audio-player__title { color: #0f172a; font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.audio-player__loading { color: #f59e0b; font-size: 12px; font-weight: 600; }
+.audio-player__progress { display: flex; align-items: center; gap: 8px; }
+.audio-time { color: #64748b; font-size: 12px; font-weight: 700; font-family: monospace; min-width: 40px; text-align: center; flex-shrink: 0; }
+.audio-seek-bar { position: relative; flex: 1; height: 6px; background: #e2e8f0; border-radius: 3px; cursor: pointer; }
+.audio-seek-filled { position: absolute; top: 0; left: 0; height: 100%; background: linear-gradient(90deg, #3b82f6, #2563eb); border-radius: 3px; }
+.audio-seek-thumb { position: absolute; top: 50%; width: 12px; height: 12px; background: #fff; border: 2px solid #3b82f6; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+.audio-play-btn { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; margin: 0; background: #3b82f6; border: 0; border-radius: 50%; cursor: pointer; flex-shrink: 0; }
+.audio-play-btn--hover { background: #2563eb; }
+.play-icon-large { display: inline-flex; align-items: center; justify-content: center; }
+.icon-play-large { width: 0; height: 0; border-style: solid; border-width: 8px 0 8px 14px; border-color: transparent transparent transparent #fff; margin-left: 3px; }
+.icon-pause-large { width: 14px; height: 16px; position: relative; }
+.icon-pause-large::before, .icon-pause-large::after { content: ""; position: absolute; top: 0; width: 4px; height: 100%; background: #fff; border-radius: 1px; }
+.icon-pause-large::before { left: 0; }
+.icon-pause-large::after { right: 0; }
+@keyframes history-audio-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* ========== 附件播放区 ========== */
+.time-section--attach { margin-top: 10px; }
+.detail-section-title--video { margin-top: 16px; }
+.attach-media { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
+.attach-media__item { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 12px; background: #f8fafc; border: 1px solid #dfebf5; border-radius: 6px; }
+.attach-media__player { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.attach-media__hint { color: #64748b; font-size: 12px; }
+.attach-media__empty { color: #94a3b8; font-size: 13px; text-align: center; padding: 8px 0; }
+.attach-play-btn { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; margin: 0; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 50%; cursor: pointer; }
+.attach-play-btn--hover { background: #dbeafe; }
 </style>

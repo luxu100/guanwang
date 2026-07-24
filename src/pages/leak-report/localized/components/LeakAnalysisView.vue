@@ -84,12 +84,12 @@
           @click="selectRecord(item, index)"
         >
           <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
-          <text class="data-cell data-cell--device">{{ getFieldValue(item, "deviceNumber") || "-" }}</text>
+          <text class="data-cell data-cell--device">{{ displayValue(getFieldValue(item, "deviceNumber")) }}</text>
           <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "audioTime")) }}</text>
-          <text class="data-cell data-cell--audio-id">{{ getFieldValue(item, "audioFileId") || "-" }}</text>
-          <text class="data-cell data-cell--process-result" :title="getFieldValue(item, 'signalprocessingResult')">{{ getFieldValue(item, "signalprocessingResult") || "-" }}</text>
+          <text class="data-cell data-cell--audio-id">{{ displayValue(getFieldValue(item, "audioFileId")) }}</text>
+          <text class="data-cell data-cell--process-result" :title="getFieldValue(item, 'signalprocessingResult')">{{ displayValue(getFieldValue(item, "signalprocessingResult")) }}</text>
           <text class="data-cell data-cell--status"><text v-if="getFieldValue(item, 'algorithmStatus')" class="status-tag" :class="getAlgorithmStatusTagClass(item)">{{ getAlgorithmStatusLabel(item) }}</text><text v-else>-</text></text>
-          <text class="data-cell data-cell--error" :title="getFieldValue(item, 'algorithmError')">{{ getFieldValue(item, "algorithmError") || "-" }}</text>
+          <text class="data-cell data-cell--error" :title="getFieldValue(item, 'algorithmError')">{{ displayValue(getFieldValue(item, "algorithmError")) }}</text>
         </view>
       </view>
 
@@ -112,7 +112,7 @@
             <view class="detail-summary">
               <view class="detail-summary__main">
                 <text class="detail-summary__label">{{ t('detail.fields.deviceNumber') }}</text>
-                <text class="detail-summary__value">{{ getFieldValue(selectedRecord, 'deviceNumber') || '-' }}</text>
+                <text class="detail-summary__value">{{ displayValue(getFieldValue(selectedRecord, 'deviceNumber')) }}</text>
               </view>
               <view class="detail-summary__meta">
                 <view v-for="item in baseDetailFields" :key="item.label" class="detail-summary__meta-item">
@@ -144,11 +144,20 @@
                 <view v-for="(audio, ai) in visibleAudioList" :key="ai" class="audio-item">
                   <view class="audio-item__info">
                     <text class="audio-item__time">{{ formatDateTime(getFieldValue(audio, "audioTime")) }}</text>
-                    <text class="audio-item__rate">{{ t('leakAnalysis.samplingRate') }}: {{ getFieldValue(audio, "samplingRate") || "-" }}</text>
+                    <text class="audio-item__rate">{{ t('leakAnalysis.samplingRate') }}: {{ displayValue(getFieldValue(audio, "samplingRate")) }}</text>
                   </view>
                   <view class="audio-item__actions">
                     <button class="audio-play-btn" hover-class="audio-play-btn--hover" @click="toggleAudioPlay(audio, ai)">{{ playingAudioIndex === ai ? t('table.audioPause') : t('table.audioPlay') }}</button>
                     <a :href="getAudioWavUrl(audio, true)" class="audio-download-link">{{ t('table.audioDownload') }}</a>
+                  </view>
+                  <!-- 当前选中音频（播放或暂停）时显示可拖动进度条 -->
+                  <view v-if="activeAudioIndex === ai" class="audio-item__progress">
+                    <text class="audio-item__time-text">{{ formatAudioTime(audioCurrentTime) }}</text>
+                    <view class="audio-item__seek-bar">
+                      <view class="audio-item__seek-filled" :style="{ width: audioProgress + '%' }"></view>
+                      <view class="audio-item__seek-thumb" :style="{ left: audioProgress + '%' }"></view>
+                    </view>
+                    <text class="audio-item__time-text">{{ formatAudioTime(audioDuration) }}</text>
                   </view>
                 </view>
                 <view v-if="audioList.length > AUDIO_COLLAPSED_LIMIT" class="audio-toggle" @click="audioListExpanded = !audioListExpanded">
@@ -172,7 +181,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, onMounted } from "vue";
+import { computed, reactive, ref, onMounted, onUnmounted } from "vue";
 import {
   getAlgorithmAnalysisPage,
   getAlgorithmAnalysisDetail,
@@ -258,7 +267,18 @@ const exportMenuVisible = ref(false);
 const audioList = ref<Record<string, unknown>[]>([]);
 const audioLoading = ref(false);
 const playingAudioIndex = ref(-1);
+const activeAudioIndex = ref(-1);
 let audioPlayerInstance: HTMLAudioElement | null = null;
+const audioDuration = ref(0);
+const audioCurrentTime = ref(0);
+
+const audioProgress = computed(() => {
+  if (!audioDuration.value) return 0;
+  return Math.min(100, (audioCurrentTime.value / audioDuration.value) * 100);
+});
+
+let detailRequestId = 0;
+let fetchRequestId = 0;
 
 const AUDIO_COLLAPSED_LIMIT = 3;
 const audioListExpanded = ref(false);
@@ -278,12 +298,12 @@ const baseDetailFields = computed(() => {
   return [
     { label: t("leakAnalysis.id"), value: String(getFieldValue(r, "id") ?? "-") },
     { label: t("leakAnalysis.deviceId"), value: String(getFieldValue(r, "deviceId") ?? "-") },
-    { label: t("detail.fields.deviceNumber"), value: String(getFieldValue(r, "deviceNumber") || "-") },
+    { label: t("detail.fields.deviceNumber"), value: displayValue(getFieldValue(r, "deviceNumber")) },
     { label: t("leakAnalysis.samplingId"), value: String(getFieldValue(r, "samplingId") ?? "-") },
     { label: t("detail.fields.audioFileId"), value: String(getFieldValue(r, "audioFileId") ?? "-") },
     { label: t("detail.fields.algorithmStatus"), value: getAlgorithmStatusLabel(r) },
-    { label: t("detail.fields.signalprocessingResult"), value: String(getFieldValue(r, "signalprocessingResult") || "-") },
-    { label: t("detail.fields.algorithmError"), value: String(getFieldValue(r, "algorithmError") || "-") },
+    { label: t("detail.fields.signalprocessingResult"), value: displayValue(getFieldValue(r, "signalprocessingResult")) },
+    { label: t("detail.fields.algorithmError"), value: displayValue(getFieldValue(r, "algorithmError")) },
   ];
 });
 
@@ -301,6 +321,18 @@ const locationDetailFields = computed<Array<{ label: string; value: string }>>((
 
 onMounted(() => {
   fetchAnalysisData();
+  // #ifdef H5
+  document.addEventListener("click", handleDocumentClick);
+  document.addEventListener("touchmove", handleDocumentTouchMove, { passive: false });
+  // #endif
+});
+
+onUnmounted(() => {
+  // #ifdef H5
+  document.removeEventListener("click", handleDocumentClick);
+  document.removeEventListener("touchmove", handleDocumentTouchMove);
+  // #endif
+  if (audioPlayerInstance) { audioPlayerInstance.pause(); audioPlayerInstance.src = ""; audioPlayerInstance = null; }
 });
 
 function handleAlgorithmStatusChange(event: { detail: { value: number } }) {
@@ -311,7 +343,7 @@ function handleAlgorithmStatusChange(event: { detail: { value: number } }) {
 function toggleSort(field: string) {
   if (sortField.value === field) {
     if (sortOrder.value === "asc") { sortOrder.value = "desc"; }
-    else if (sortOrder.value === "desc") { sortField.value = ""; sortOrder.value = ""; return; }
+    else if (sortOrder.value === "desc") { sortField.value = ""; sortOrder.value = ""; }
   } else {
     sortField.value = field;
     sortOrder.value = "asc";
@@ -340,9 +372,11 @@ function buildQueryParams() {
 }
 
 async function fetchAnalysisData() {
+  const reqId = ++fetchRequestId;
   loading.value = true;
   try {
     const response = (await getAlgorithmAnalysisPage(buildQueryParams())) as ApiResponseLike;
+    if (reqId !== fetchRequestId) return;
     assertSuccessResponse(response);
     const parsed = parsePageResponse(response);
     if (parsed.pageNum && parsed.pageNum !== pagination.pageNum) pagination.pageNum = parsed.pageNum;
@@ -351,13 +385,14 @@ async function fetchAnalysisData() {
     total.value = parsed.total;
     selectFirstRow();
   } catch (error) {
+    if (reqId !== fetchRequestId) return;
     records.value = [];
     total.value = 0;
     selectedRecord.value = null;
     selectedRecordKey.value = "";
     uni.showToast({ title: (error as { msg?: string })?.msg || t("leakAnalysis.loadFailed", "分析数据加载失败"), icon: "none" });
   } finally {
-    loading.value = false;
+    if (reqId === fetchRequestId) loading.value = false;
   }
 }
 
@@ -366,6 +401,13 @@ function searchAnalysis() {
   fetchAnalysisData();
 }
 
+function escapeCsvCell(value: unknown): string {
+  if (value === undefined || value === null) return "";
+  const text = String(value).replace(/"/g, '""');
+  return /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+}
+
+// 已知技术债：导出全部使用 pageSize:99999 一次性拉取，后端限制最大 pageSize 或数据量超过 10 万时导出会静默不全。后续应改为循环分页拉取。
 async function handleExport(scope: "current" | "all") {
   exportMenuVisible.value = false;
   let exportRecords = records.value;
@@ -398,9 +440,8 @@ async function handleExport(scope: "current" | "all") {
   const rows = exportRecords.map((r, idx) => {
     const keys = ["deviceNumber", "audioTime", "audioFileId", "signalprocessingResult", "algorithmStatus", "algorithmError"];
     return [String(idx + 1), ...keys.map((k) => {
-      if (k === "audioTime") return formatDateTime(getFieldValue(r, k));
-      const v = getFieldValue(r, k);
-      return v === undefined || v === null ? "" : String(v).replace(/"/g, '""');
+      if (k === "audioTime") return escapeCsvCell(formatDateTime(getFieldValue(r, k)));
+      return escapeCsvCell(getFieldValue(r, k));
     })];
   });
   const csv = [headers.join(","), ...rows.map((row) => row.map((c) => `"${c}"`).join(","))].join("\n");
@@ -446,6 +487,7 @@ function handlePageSizeChange(size: number) {
 }
 
 function selectFirstRow() {
+  detailRequestId++; // 使之前未完成的详情请求失效
   if (records.value.length === 0) {
     selectedRecord.value = null;
     selectedRecordKey.value = "";
@@ -465,11 +507,13 @@ function selectRecord(item: AnalysisRecord, index: number) {
   activeDetailTab.value = "base";
   loadAudioList();
 
+  const reqId = ++detailRequestId;
   const id = getRowId(item);
   if (!id) return;
 
   getAlgorithmAnalysisDetail(id)
     .then((response: unknown) => {
+      if (reqId !== detailRequestId) return; // 竞态保护：丢弃过期请求
       assertSuccessResponse(response as ApiResponseLike);
       const detailData = (response as ApiResponseLike)?.data;
       if (isObject(detailData)) {
@@ -502,20 +546,107 @@ async function loadAudioList() {
 
 function toggleAudioPlay(audio: Record<string, unknown>, index: number) {
   // #ifdef H5
-  if (playingAudioIndex.value === index) {
-    audioPlayerInstance?.pause();
-    playingAudioIndex.value = -1;
+  // 同一个音频：切换播放/暂停（暂停时进度条保持显示）
+  if (activeAudioIndex.value === index) {
+    if (playingAudioIndex.value === index) {
+      audioPlayerInstance?.pause();
+      playingAudioIndex.value = -1;
+    } else {
+      audioPlayerInstance?.play();
+      playingAudioIndex.value = index;
+    }
     return;
   }
+  // 切换到新音频
   audioPlayerInstance?.pause();
   audioPlayerInstance = new Audio(getAudioWavUrl(audio));
-  audioPlayerInstance.onended = () => { playingAudioIndex.value = -1; };
+  audioDuration.value = 0;
+  audioCurrentTime.value = 0;
+  audioPlayerInstance.addEventListener("loadedmetadata", () => {
+    if (isFinite(audioPlayerInstance!.duration) && audioPlayerInstance!.duration > 0) {
+      audioDuration.value = audioPlayerInstance!.duration;
+    }
+  });
+  audioPlayerInstance.addEventListener("durationchange", () => {
+    if (isFinite(audioPlayerInstance!.duration) && audioPlayerInstance!.duration > 0) {
+      audioDuration.value = audioPlayerInstance!.duration;
+    }
+  });
+  audioPlayerInstance.addEventListener("timeupdate", () => {
+    if (!audioPlayerInstance) return;
+    if (isSeeking) {
+      isSeeking = false;
+      return;
+    }
+    audioCurrentTime.value = audioPlayerInstance.currentTime || 0;
+    if (!audioDuration.value && isFinite(audioPlayerInstance.duration) && audioPlayerInstance.duration > 0) {
+      audioDuration.value = audioPlayerInstance.duration;
+    }
+  });
+  audioPlayerInstance.onended = () => {
+    playingAudioIndex.value = -1;
+    audioCurrentTime.value = 0;
+  };
   audioPlayerInstance.play();
+  activeAudioIndex.value = index;
   playingAudioIndex.value = index;
   // #endif
   // #ifndef H5
   uni.showToast({ title: t("leakAnalysis.audioH5Only"), icon: "none" });
   // #endif
+}
+
+// ===== 进度条拖动：使用 document 原生事件委托，绕过 uni-app 事件系统 =====
+let isSeeking = false;
+
+function doSeekAudio(clientX: number, bar: HTMLElement) {
+  if (!audioPlayerInstance) return;
+  // 优先用实例的 duration（更准确），兜底 audioDuration.value
+  let duration = 0;
+  if (isFinite(audioPlayerInstance.duration) && audioPlayerInstance.duration > 0) {
+    duration = audioPlayerInstance.duration;
+  } else if (isFinite(audioDuration.value) && audioDuration.value > 0) {
+    duration = audioDuration.value;
+  }
+  if (!duration || !isFinite(duration)) return;
+  const rect = bar.getBoundingClientRect();
+  if (!rect.width) return;
+  const x = clientX - rect.left;
+  const percent = Math.max(0, Math.min(100, (x / rect.width) * 100));
+  const time = (percent / 100) * duration;
+  if (!isFinite(time) || time < 0) return;
+  isSeeking = true;
+  try { audioPlayerInstance.currentTime = time; } catch (_) { /* ignore */ }
+  audioCurrentTime.value = time;
+  audioDuration.value = duration;
+}
+
+function handleDocumentClick(e: MouseEvent) {
+  const target = e.target as HTMLElement;
+  if (!target) return;
+  const seekBar = target.closest(".audio-item__seek-bar") as HTMLElement | null;
+  if (seekBar) doSeekAudio(e.clientX, seekBar);
+}
+
+function handleDocumentTouchMove(e: TouchEvent) {
+  const target = e.target as HTMLElement;
+  if (!target) return;
+  const seekBar = target.closest(".audio-item__seek-bar") as HTMLElement | null;
+  if (seekBar && e.touches.length > 0) {
+    doSeekAudio(e.touches[0].clientX, seekBar);
+    e.preventDefault();
+  }
+}
+
+function formatAudioTime(seconds: number): string {
+  if (!seconds || !isFinite(seconds)) return "00:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  if (m >= 60) {
+    const h = Math.floor(m / 60);
+    return `${String(h).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
 // --- helpers ---
@@ -532,6 +663,12 @@ function getRowKey(item: AnalysisRecord, index: number) {
 function getFieldValue(item: AnalysisRecord | null, key: string): unknown {
   if (!item) return undefined;
   return Object.prototype.hasOwnProperty.call(item, key) ? item[key] : undefined;
+}
+
+/** 显示值：只把 null/undefined/空字符串显示为 '-'，保留合法的 0/false */
+function displayValue(value: unknown): string {
+  if (value === null || value === undefined || value === '') return '-';
+  return String(value);
 }
 
 function getAlgorithmStatusLabel(item: AnalysisRecord) {
@@ -1343,6 +1480,11 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 .audio-item__actions { display: flex; align-items: center; gap: 8px; }
 .audio-play-btn { min-width: 48px; height: 28px; padding: 0 10px; font-size: 12px; color: #3b82f6; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px; } .audio-play-btn--hover { background: #dbeafe; }
 .audio-download-link { font-size: 12px; color: #3b82f6; text-decoration: underline; }
+.audio-item__progress { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #edf1f5; }
+.audio-item__time-text { color: #64748b; font-size: 11px; font-weight: 700; font-family: monospace; min-width: 38px; text-align: center; flex-shrink: 0; }
+.audio-item__seek-bar { position: relative; flex: 1; height: 6px; background: #e2e8f0; border-radius: 3px; cursor: pointer; }
+.audio-item__seek-filled { position: absolute; top: 0; left: 0; height: 100%; background: linear-gradient(90deg, #3b82f6, #2563eb); border-radius: 3px; }
+.audio-item__seek-thumb { position: absolute; top: 50%; width: 12px; height: 12px; background: #fff; border: 2px solid #3b82f6; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
 .audio-toggle { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 6px; padding: 6px 10px; cursor: pointer; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 4px; transition: background 0.16s ease, border-color 0.16s ease; }
 .audio-toggle:hover { background: #eff6ff; border-color: #93c5fd; }
 .audio-toggle__text { font-size: 12px; font-weight: 700; color: #3b82f6; }
