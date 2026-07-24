@@ -194,7 +194,9 @@
                 class="location-track__marker"
                 :style="{ left: `${result.positionPercent}%` }"
                 :title="`${result.positionMeters.toFixed(1)} m`"
-              ></view>
+              >
+                <text class="location-track__result">{{ t("resultPoint") }}</text>
+              </view>
               <text class="location-track__endpoint">B</text>
             </view>
             <view class="location-track__scale">
@@ -743,7 +745,22 @@ function formatDate(date: Date) {
 .location-track__line::before { position: absolute; right: 16px; left: 16px; height: 4px; content: ""; background: #75c9aa; }
 .location-track__endpoint { z-index: 1; width: 30px; height: 30px; color: #fff; font-size: 12px; font-weight: 900; line-height: 30px; text-align: center; background: #00a870; border-radius: 50%; }
 .location-track__endpoint:last-child { background: #008f62; }
-.location-track__marker { position: absolute; z-index: 2; width: 18px; height: 18px; margin-left: -9px; background: #007d55; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 0 0 2px rgba(0,168,112,.25); }
+.location-track__marker { position: absolute; z-index: 2; width: 18px; height: 18px; margin-left: -9px; background: #ef4444; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 0 0 2px rgba(239,68,68,.28); }
+.location-track__result {
+  position: absolute;
+  bottom: 23px;
+  left: 50%;
+  padding: 2px 6px;
+  color: #b91c1c;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 16px;
+  white-space: nowrap;
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  border-radius: 3px;
+  transform: translateX(-50%);
+}
 .result-description { display: block; margin: 14px 0; color: #43576a; font-size: 13px; line-height: 1.7; }
 .result-panel :deep(.chart-panel) { height: 280px; }
 @keyframes audio-pulse {

@@ -12,12 +12,18 @@
     <view v-if="isFallbackFullscreen" class="fullscreen-exit-tip">ESC 退出</view>
     <view class="top-bar">
       <view class="brand">
-        <image class="brand__logo" :src="logoImage" mode="heightFix" />
-      </view>
-
-      <view class="site-title">
-        <text class="site-title__name">城市管网渗漏预警平台</text>
-        <text class="site-title__sub">Urban Pipeline Leakage Early Warning Platform</text>
+        <image
+          v-if="isChineseLocale"
+          class="brand__logo brand__logo--domestic"
+          :src="logoImage"
+          mode="widthFix"
+        />
+        <image
+          v-else
+          class="brand__logo brand__logo--foreign"
+          :src="logoForeignImage"
+          mode="widthFix"
+        />
       </view>
 
       <!-- <view class="site-search" :class="{ 'site-search--focused': isSearchFocused, 'site-search--filled': searchKeyword }">
@@ -203,7 +209,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import type { Component } from "vue";
-import logoImage from "@/assets/images/logo.webp";
+import logoImage from "@/assets/images/logo-nav.webp";
+import logoForeignImage from "@/assets/images/logo-foreign-nav.webp";
 import AdminPlaceholderView from "@/components/admin/AdminPlaceholderView.vue";
 import AppShellModuleHost from "@/components/app-shell/AppShellModuleHost.vue";
 import LanguageSelect from "@/components/common/LanguageSelect.vue";
@@ -235,12 +242,12 @@ interface ShellContentDefinition {
   component: Component;
   props?: Record<string, unknown>;
 }
-
 const LEAK_MONITOR_PATH = "/pages/leak-monitor/leak-monitor";
 const DEFAULT_PAGE_PATH = LEAK_MONITOR_PATH;
 const menuT = createScopedT("appShellMenu");
 const shellT = createScopedT("appShell");
 const { locale } = useI18n();
+const isChineseLocale = computed(() => locale.value === "zh-CN");
 const {
   CommandConfigurationView,
   CommandManageView,
@@ -1136,20 +1143,21 @@ onMounted(() => {
 .brand {
   display: flex;
   align-items: center;
-  flex: 0 0 56px;
-  width: 56px;
-  height: 48px;
+  flex: 0 0 320px;
+  width: 320px;
+  height: 52px;
   min-width: 0;
   overflow: hidden;
 }
 
 .brand__logo {
   flex: none;
-  width: 250px;
-  height: 42px;
+  height: auto;
   opacity: 1;
   filter: drop-shadow(0 2px 3px rgba(0, 45, 104, 0.16));
 }
+.brand__logo--domestic { width: 286px; }
+.brand__logo--foreign { width: 312px; }
 
 .site-title {
   display: flex;
@@ -2301,15 +2309,13 @@ onMounted(() => {
   }
 
   .brand {
-    flex: 0 0 52px;
-    width: 52px;
+    flex: 0 0 286px;
+    width: 286px;
     height: 44px;
   }
 
-  .brand__logo {
-    width: 232px;
-    height: 39px;
-  }
+  .brand__logo--domestic { width: 254px; }
+  .brand__logo--foreign { width: 278px; }
 
   .site-title {
     flex: 1 1 320px;
@@ -2347,15 +2353,13 @@ onMounted(() => {
   }
 
   .brand {
-    flex-basis: 42px;
-    width: 42px;
+    flex-basis: 230px;
+    width: 230px;
     height: 38px;
   }
 
-  .brand__logo {
-    width: 198px;
-    height: 34px;
-  }
+  .brand__logo--domestic { width: 208px; }
+  .brand__logo--foreign { width: 226px; }
 
   .site-title {
     flex: 1 1 calc(100% - 144px);
