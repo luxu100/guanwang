@@ -144,12 +144,54 @@ function toolbox(): echarts.ToolboxComponentOption {
     right: 8,
     top: 0,
     itemSize: 14,
+    itemGap: 10,
     feature: {
-      dataZoom: { yAxisIndex: false },
+      myZoomIn: {
+        show: true,
+        title: t("chartZoomIn"),
+        icon: "path://M480 64C250.2 64 64 250.2 64 480s186.2 416 416 416 416-186.2 416-416S709.8 64 480 64zm0 752c-185.6 0-336-150.4-336-336s150.4-336 336-336 336 150.4 336 336-150.4 336-336 336zm-40-520h80v144h144v80H520v144h-80V520H296v-80h144V296z",
+        onclick: () => zoomChart(0.65),
+      },
+      myZoomOut: {
+        show: true,
+        title: t("chartZoomOut"),
+        icon: "path://M480 64C250.2 64 64 250.2 64 480s186.2 416 416 416 416-186.2 416-416S709.8 64 480 64zm0 752c-185.6 0-336-150.4-336-336s150.4-336 336-336 336 150.4 336 336-150.4 336-336 336zM296 440h368v80H296z",
+        onclick: () => zoomChart(1.55),
+      },
       restore: {},
-      saveAsImage: { pixelRatio: 2 },
+      saveAsImage: { name: props.title, pixelRatio: 2 },
     },
   } as echarts.ToolboxComponentOption;
+}
+
+function zoomChart(scale: number) {
+  if (!chart || props.mode === "history3d") return;
+  const option = chart.getOption() as {
+    dataZoom?: Array<{ start?: number; end?: number }>;
+  };
+  const current = option.dataZoom?.[0];
+  const start = Number(current?.start ?? 0);
+  const end = Number(current?.end ?? 100);
+  const center = (start + end) / 2;
+  const width = Math.min(100, Math.max(2, (end - start) * scale));
+  let nextStart = center - width / 2;
+  let nextEnd = center + width / 2;
+
+  if (nextStart < 0) {
+    nextEnd -= nextStart;
+    nextStart = 0;
+  }
+  if (nextEnd > 100) {
+    nextStart -= nextEnd - 100;
+    nextEnd = 100;
+  }
+
+  chart.dispatchAction({
+    type: "dataZoom",
+    dataZoomIndex: 0,
+    start: Math.max(0, nextStart),
+    end: Math.min(100, nextEnd),
+  });
 }
 
 function valueTooltip(xLabel: string, yLabel: string, xDigits = 2) {

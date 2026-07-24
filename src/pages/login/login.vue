@@ -21,7 +21,18 @@
     </view>
 
     <view class="login-brand">
-      <image class="login-logo" :src="logoImage" mode="widthFix" />
+      <image
+        v-if="locale === 'zh-CN'"
+        class="login-logo login-logo--domestic"
+        :src="logoImage"
+        mode="widthFix"
+      />
+      <image
+        v-else
+        class="login-logo login-logo--foreign"
+        :src="logoForeignImage"
+        mode="widthFix"
+      />
       <view class="login-brand__line"></view>
       <text class="login-brand__eyebrow">URBAN PIPELINE INTELLIGENCE</text>
       <text class="login-brand__description">
@@ -214,6 +225,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from "vue";
 import logoImage from "@/assets/images/logo.webp";
+import logoForeignImage from "@/assets/images/logo-foreign.webp";
 import { applyUserLocale, useI18n } from "@/i18n";
 import type { LocaleCode } from "@/i18n/types";
 import { login } from "@/services/user/user";
