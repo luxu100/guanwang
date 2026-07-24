@@ -488,7 +488,6 @@ const upgradeStatusMap: Record<number, { tone: string; terminal: boolean }> = {
   3: { tone: "danger", terminal: true },
   4: { tone: "success", terminal: true },
   5: { tone: "muted", terminal: true },
-  6: { tone: "danger", terminal: true },
 };
 
 const commandStatusMap: Record<number, { tone: string; terminal: boolean }> = {
@@ -1036,13 +1035,13 @@ function toEndTime(date: string) {
 
 function getStatusText(status: unknown) {
   const labels: Record<number, string> = {
-    0: localeText("等待发送", "Waiting to send"),
+    0: localeText("待发送", "Pending"),
     1: localeText("升级中", "Upgrading"),
     2: localeText("取消中", "Cancelling"),
     3: localeText("升级失败", "Upgrade failed"),
     4: localeText("升级完成", "Completed"),
     5: localeText("已取消", "Cancelled"),
-    6: localeText("设备或网络异常", "Device or network error"),
+    6: localeText("未知故障", "Unknown status"),
   };
   return labels[Number(status)] || localeText("未知状态", "Unknown status");
 }
