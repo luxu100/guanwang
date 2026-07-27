@@ -1,1291 +1,2184 @@
-<!-- 指令管理业务视图：当前为纯前端流程原型，不调用接口、不连接真实设备。 -->
 <template>
-  <view class="command-manage">
-    <view class="command-toolbar">
+  <view class="task-center">
+    <view class="toolbar">
       <view class="toolbar__filters">
         <view class="filter-field filter-field--keyword">
-          <text class="filter-label">历史检索</text>
-          <input
-            v-model="filters.keyword"
-            class="filter-input"
-            placeholder="输入任务编号、指令名称或设备编号"
-            placeholder-class="input-placeholder"
-          />
+          <text class="filter-label">{{ localeText("设备编号", "Device number") }}</text>
+          <input v-model="activeFilters.keyword" class="filter-input"
+            :placeholder="localeText('输入设备编号', 'Enter device number')" @confirm="handleSearch" />
         </view>
 
         <view class="filter-field">
-          <text class="filter-label">指令类型</text>
-          <picker :range="typeFilterOptions" range-key="label" :value="typeFilterIndex" @change="handleTypeFilterChange">
+          <text class="filter-label">{{ localeText("执行状态", "Status") }}</text>
+          <picker :range="activeStatusOptions" range-key="label" :value="activeStatusIndex"
+            @change="handleStatusChange">
             <view class="filter-select">
-              <text>{{ typeFilterOptions[typeFilterIndex]?.label }}</text>
+              <text>{{ activeStatusOptions[activeStatusIndex]?.label }}</text>
               <text class="select-arrow"></text>
             </view>
           </picker>
         </view>
 
-        <view class="filter-field">
-          <text class="filter-label">执行状态</text>
-          <picker :range="taskStatusFilterOptions" range-key="label" :value="statusFilterIndex" @change="handleStatusFilterChange">
-            <view class="filter-select">
-              <text>{{ taskStatusFilterOptions[statusFilterIndex]?.label }}</text>
-              <text class="select-arrow"></text>
-            </view>
+        <view v-if="activeView === 'UPGRADE'" class="filter-field">
+          <text class="filter-label">{{ localeText("固件版本", "Firmware version") }}</text>
+          <input v-model="upgradeFilters.firmwareVersion" class="filter-input filter-input--short"
+            :placeholder="localeText('如 V1.1', 'e.g. V1.1')" @confirm="handleSearch" />
+        </view>
+
+        <view class="filter-field filter-field--date">
+          <text class="filter-label">{{ localeText("开始日期", "Start date") }}</text>
+          <picker mode="date" :value="activeFilters.startDate" @change="handleStartDateChange">
+            <view class="filter-select">{{ activeFilters.startDate || localeText("不限", "Any") }}<text
+                class="select-arrow"></text></view>
           </picker>
         </view>
 
         <view class="filter-field filter-field--date">
-          <text class="filter-label">开始日期</text>
-          <picker mode="date" :value="filters.startDate" @change="handleStartDateChange">
-            <view class="filter-select">
-              <text>{{ filters.startDate || "不限" }}</text>
-              <text class="select-arrow"></text>
-            </view>
-          </picker>
-        </view>
-
-        <view class="filter-field filter-field--date">
-          <text class="filter-label">结束日期</text>
-          <picker mode="date" :value="filters.endDate" @change="handleEndDateChange">
-            <view class="filter-select">
-              <text>{{ filters.endDate || "不限" }}</text>
-              <text class="select-arrow"></text>
-            </view>
+          <text class="filter-label">{{ localeText("结束日期", "End date") }}</text>
+          <picker mode="date" :value="activeFilters.endDate" @change="handleEndDateChange">
+            <view class="filter-select">{{ activeFilters.endDate || localeText("不限", "Any") }}<text
+                class="select-arrow"></text></view>
           </picker>
         </view>
       </view>
 
       <view class="toolbar__actions">
-        <button class="toolbar-button" hover-class="button-hover" @click="resetFilters">重置</button>
-        <button class="toolbar-button" hover-class="button-hover" @click="refreshTasks">刷新</button>
-        <button class="toolbar-button toolbar-button--primary" hover-class="button-hover" @click="openDispatch">指令下发</button>
+        <button class="action-button action-button--primary" :disabled="activeLoading" @click="handleSearch">{{
+          localeText("查询", "Search") }}</button>
+        <button class="action-button" @click="resetFilters">{{ localeText("重置", "Reset") }}</button>
+        <button class="action-button" :disabled="activeLoading" @click="loadActivePage(true)">{{ localeText("刷新",
+          "Refresh") }}</button>
+        <button v-if="activeView === 'UPGRADE'" class="action-button action-button--primary" @click="openUpgradeDialog">
+          {{ localeText("发起固件升级", "Start firmware upgrade") }}
+        </button>
+        <button v-if="activeView === 'SETTING'" class="action-button action-button--primary"
+          @click="deviceSettingDialogVisible = true">
+          {{ localeText("设置设备参数", "Set device parameters") }}
+        </button>
       </view>
     </view>
 
-    <view class="summary-grid">
-      <view v-for="item in summaryCards" :key="item.label" class="summary-card" :class="`summary-card--${item.tone}`">
-        <view class="summary-card__head">
-          <text class="summary-card__label">{{ item.label }}</text>
-          <text class="summary-card__mark"></text>
-        </view>
-        <view class="summary-card__body">
-          <text class="summary-card__value">{{ item.value }}</text>
-          <text class="summary-card__unit">{{ item.unit }}</text>
-        </view>
-      </view>
-    </view>
-
-    <view class="command-layout">
-      <view class="table-panel">
+    <view class="content-layout">
+      <view class="list-panel">
         <view class="panel-head">
-          <view class="panel-head__title-group">
-            <text class="panel-head__title">历史指令</text>
-            <text class="panel-head__subtitle">本地保存的模拟下发批次，点击记录查看完整过程</text>
+          <view class="record-switch">
+            <button v-for="tab in recordTabs" :key="tab.value" class="record-switch__button"
+              :class="{ 'record-switch__button--active': activeView === tab.value }"
+              @click="switchRecordView(tab.value)">
+              {{ tab.label }}
+            </button>
           </view>
-          <view class="panel-head__meta-group">
-            <button v-if="tasks.length" class="text-button text-button--danger" @click="clearMockTasks">清空模拟记录</button>
-            <text class="panel-head__meta">{{ localizedTotal(filteredTasks.length) }}</text>
-          </view>
+          <text class="panel-head__meta">{{ localizedTotal(activePage.total) }}</text>
         </view>
 
-        <scroll-view class="table-scroll" scroll-x scroll-y>
-          <view class="history-table">
-            <view class="history-row history-row--header">
-              <text class="history-cell history-cell--index">序号</text>
-              <text class="history-cell history-cell--task">任务编号</text>
-              <text class="history-cell history-cell--command">指令名称</text>
-              <text class="history-cell history-cell--type">类型</text>
-              <text class="history-cell history-cell--devices">设备</text>
-              <text class="history-cell history-cell--progress">总体进度</text>
-              <text class="history-cell history-cell--status">状态</text>
-              <text class="history-cell history-cell--time">创建时间</text>
-            </view>
+        <CommandDataTable :columns="activeColumns" :data="activeRows" :loading="activeLoading" :selected="selectedId"
+          :page-current="activePage.current" :page-size="activePage.size"
+          :loading-text="localeText('正在加载…', 'Loading…')" :empty-text="getActiveEmptyText()" @row-click="selectRow">
+          <template #cell-executeStatus="{ row }">
+            <text class="status-tag"
+              :class="activeView === 'COMMAND' ? getCommandStatusClass(row.executeStatus) : getStatusClass(row.executeStatus)">
+              {{ activeView === "COMMAND" ? getCommandStatusText(row.executeStatus) : getStatusText(row.executeStatus)
+              }}
+            </text>
+          </template>
 
-            <view v-if="filteredTasks.length === 0" class="table-state">
-              <text class="table-state__title">暂无历史指令</text>
-              <text class="table-state__hint">点击右上角“指令下发”创建第一条模拟任务</text>
-            </view>
+          <template #cell-commandStatus="{ row }">
+            <text class="status-tag" :class="getSettingStatusClass(row.commandStatus)">
+              {{ getSettingStatusText(row.commandStatus) }}
+            </text>
+          </template>
 
-            <view
-              v-for="(task, index) in filteredTasks"
-              v-else
-              :key="task.id"
-              class="history-row"
-              :class="{ 'history-row--active': selectedTask?.id === task.id }"
-              @click="selectTask(task)"
-            >
-              <text class="history-cell history-cell--index">{{ index + 1 }}</text>
-              <text class="history-cell history-cell--task">{{ task.taskNo }}</text>
-              <text class="history-cell history-cell--command">{{ task.commandName }}</text>
-              <text class="history-cell history-cell--type">{{ getExecutionTypeLabel(task.executionType) }}</text>
-              <text class="history-cell history-cell--devices">{{ task.devices.length }} 台</text>
-              <view class="history-cell history-cell--progress">
-                <view class="compact-progress">
-                  <view class="compact-progress__track">
-                    <view class="compact-progress__value" :style="{ width: `${task.progress}%` }"></view>
-                  </view>
-                  <text>{{ task.progress }}%</text>
-                </view>
+          <template #cell-commandExecuteStatus="{ row }">
+            <text class="status-tag" :class="getCommandStatusClass(row.commandExecuteStatus)">
+              {{ getCommandStatusText(row.commandExecuteStatus) }}
+            </text>
+          </template>
+
+          <template #cell-status="{ row }">
+            <text class="status-tag" :class="getAudioRepairStatusClass(row.status)">
+              {{ getAudioRepairStatusText(row.status) }}
+            </text>
+          </template>
+
+          <template #cell-finishPercent="{ row }">
+            <view class="progress-cell">
+              <view class="progress-track">
+                <view :style="{ width: `${clampProgress(row.finishPercent)}%` }"></view>
               </view>
-              <view class="history-cell history-cell--status">
-                <text class="status-pill" :class="getTaskStatusClass(task.status)">{{ getTaskStatusLabel(task.status) }}</text>
-              </view>
-              <text class="history-cell history-cell--time">{{ task.createdAt }}</text>
+              <text>{{ clampProgress(row.finishPercent) }}%</text>
             </view>
-          </view>
-        </scroll-view>
+          </template>
+          <template #cell-repairProgress="{ row }">
+            <view class="progress-cell">
+              <view class="progress-track">
+                <view :style="{ width: `${clampProgress(row.repairProgress)}%` }"></view>
+              </view>
+              <text>{{ clampProgress(row.repairProgress) }}%</text>
+            </view>
+          </template>
+          <template #footer>
+            <CommandPaginationBar :current="activePage.current" :size="activePage.size" :total="activePage.total"
+              @change-page="changePage" @change-size="changePageSize" />
+          </template>
+        </CommandDataTable>
       </view>
 
       <view class="detail-panel">
-        <view v-if="!selectedTask" class="detail-empty">
-          <text class="detail-empty__icon">⌁</text>
-          <text>请选择左侧历史指令查看详情</text>
+        <view v-if="detailLoading" class="detail-state">{{ localeText("正在加载详情…", "Loading details…") }}</view>
+        <view v-else-if="!selectedDetail" class="detail-state">
+          <text>{{ localeText("请选择一条记录查看详情", "Select a record to view details") }}</text>
         </view>
 
-        <template v-else>
+        <template v-else-if="activeView === 'COMMAND'">
           <view class="detail-head">
-            <view class="detail-head__title-group">
-              <text class="detail-head__label">任务详情</text>
-              <text class="detail-head__title">{{ selectedTask.commandName }}</text>
-              <text class="detail-head__task-no">{{ selectedTask.taskNo }}</text>
+            <view>
+              <text class="detail-head__eyebrow">{{ localeText("指令下发详情", "Command details") }}</text>
+              <text class="detail-head__title">{{ displayValue(selectedDetail.commandName || selectedDetail.commandCode)
+                }}</text>
+              <text class="detail-head__id">{{ localeText("记录 ID", "Record ID") }}: {{ displayValue(selectedDetail.id)
+                }}</text>
             </view>
-            <text class="status-pill" :class="getTaskStatusClass(selectedTask.status)">{{ getTaskStatusLabel(selectedTask.status) }}</text>
+            <text class="status-tag" :class="getCommandStatusClass(selectedDetail.executeStatus)">
+              {{ getCommandStatusText(selectedDetail.executeStatus) }}
+            </text>
           </view>
 
           <scroll-view class="detail-scroll" scroll-y>
-            <view class="detail-stat-grid">
-              <view class="detail-stat">
-                <text class="detail-stat__value">{{ selectedTask.devices.length }}</text>
-                <text class="detail-stat__label">设备总数</text>
-              </view>
-              <view class="detail-stat detail-stat--success">
-                <text class="detail-stat__value">{{ selectedTask.successCount }}</text>
-                <text class="detail-stat__label">已完成</text>
-              </view>
-              <view class="detail-stat detail-stat--danger">
-                <text class="detail-stat__value">{{ selectedTask.failedCount }}</text>
-                <text class="detail-stat__label">异常</text>
-              </view>
-            </view>
-
-            <view class="detail-section">
-              <view class="detail-section__head">
-                <text class="detail-section__title">下发信息</text>
-                <button class="mini-button mini-button--primary" @click="openProgress(selectedTask)">查看设备进度</button>
-              </view>
+            <view class="info-section">
+              <text class="section-title">{{ localeText("下发信息", "Dispatch information") }}</text>
               <view class="info-list">
-                <view class="info-row"><text>指令码</text><text>{{ selectedTask.commandCode }}</text></view>
-                <view class="info-row"><text>执行类型</text><text>{{ getExecutionTypeLabel(selectedTask.executionType) }}</text></view>
-                <view class="info-row"><text>模拟场景</text><text>{{ getScenarioLabel(selectedTask.scenario) }}</text></view>
-                <view class="info-row"><text>创建时间</text><text>{{ selectedTask.createdAt }}</text></view>
-                <view class="info-row"><text>最后更新</text><text>{{ selectedTask.updatedAt }}</text></view>
+                <view class="info-row"><text>{{ localeText("设备编号", "Device number") }}</text><text>{{
+                  displayValue(selectedDetail.deviceNumber) }}</text></view>
+                <view class="info-row"><text>{{ localeText("指令名称", "Command name") }}</text><text>{{
+                  displayValue(selectedDetail.commandName) }}</text></view>
+                <view class="info-row"><text>{{ localeText("指令类型", "Command type") }}</text><text>{{
+                  displayValue(selectedDetail.commandCode) }}</text></view>
+                <view class="info-row"><text>{{ localeText("下发时间", "Sent at") }}</text><text>{{
+                  formatDateTime(selectedDetail.sendTime) }}</text></view>
+                <view class="info-row"><text>{{ localeText("完成时间", "Expires at") }}</text><text>{{
+                  formatDateTime(selectedDetail.expiresAt) }}</text></view>
               </view>
             </view>
+            <view class="info-section">
+              <text class="section-title">{{ localeText("请求与响应", "Request and response") }}</text>
+              <view class="code-card"><text class="code-card__label">{{ localeText("请求内容", "Request") }}</text><text>{{
+                stringifyContent(selectedDetail.requestContent || selectedDetail.requestData ||
+                  selectedDetail.commandContent) }}</text></view>
+              <view class="code-card"><text class="code-card__label">{{ localeText("响应内容", "Response") }}</text><text>{{
+                stringifyContent(selectedDetail.responseContent || selectedDetail.responseData ||
+                  selectedDetail.result) }}</text></view>
+              <view v-if="selectedDetail.failureReason || selectedDetail.errorMessage" class="error-card">
+                {{ selectedDetail.failureReason || selectedDetail.errorMessage }}
+              </view>
+            </view>
+          </scroll-view>
+        </template>
 
-            <view v-if="selectedTask.executionType === 'PARAM_SETTING'" class="detail-section">
-              <text class="detail-section__title">参数快照</text>
-              <view class="parameter-chips">
-                <view v-for="(value, key) in selectedTask.params" :key="key" class="parameter-chip">
-                  <text>{{ getParamLabel(String(key)) }}</text>
-                  <text>{{ value }}</text>
+        <template v-else-if="activeView === 'UPGRADE'">
+          <view class="detail-head">
+            <view>
+              <text class="detail-head__eyebrow">{{ localeText("固件升级任务", "Firmware upgrade task") }}</text>
+              <text class="detail-head__title">{{ displayValue(selectedDetail.deviceNumber) }}</text>
+              <text class="detail-head__id">{{ localeText("任务 ID", "Task ID") }}: {{ displayValue(selectedDetail.id)
+                }}</text>
+            </view>
+            <view class="detail-head__actions">
+              <text class="status-tag" :class="getStatusClass(selectedDetail.executeStatus)">
+                {{ getStatusText(selectedDetail.executeStatus) }}
+              </text>
+              <button v-if="canCancelUpgrade(selectedDetail)" class="mini-button mini-button--danger"
+                :disabled="canceling" @click="confirmCancelUpgrade">
+                {{ canceling ? localeText("正在取消", "Cancelling") : localeText("取消升级", "Cancel upgrade") }}
+              </button>
+            </view>
+          </view>
+
+          <view class="detail-tabs">
+            <button v-for="tab in detailTabs" :key="tab.value" class="detail-tab"
+              :class="{ 'detail-tab--active': detailTab === tab.value }" @click="switchDetailTab(tab.value)">
+              {{ tab.label }}
+            </button>
+          </view>
+
+          <scroll-view class="detail-scroll" scroll-y>
+            <template v-if="detailTab === 'OVERVIEW'">
+              <view class="progress-overview">
+                <view class="progress-overview__head"><text>{{ localeText("升级进度", "Upgrade progress") }}</text><text>{{
+                  clampProgress(selectedDetail.finishPercent) }}%</text></view>
+                <view class="progress-overview__track">
+                  <view :style="{ width: `${clampProgress(selectedDetail.finishPercent)}%` }"></view>
+                </view>
+                <text class="stage-text">{{ getStageText(selectedDetail.upgradeStage, selectedDetail.repairRound)
+                  }}</text>
+              </view>
+
+              <view class="stat-grid">
+                <view><text>{{ displayValue(selectedDetail.frameCount, "0") }}</text><text>{{ localeText("总帧数", "Total frames") }}</text></view>
+                <view><text>{{ displayValue(selectedDetail.receivedFrameCount, "0") }}</text><text>{{ localeText("已收帧数",
+                    "Received frames") }}</text></view>
+                <view><text>{{ displayValue(selectedDetail.repairRound, "0") }}</text><text>{{ localeText("补帧轮次",
+                    "Repair round") }}</text></view>
+              </view>
+
+              <view class="info-section">
+                <text class="section-title">{{ localeText("任务信息", "Task information") }}</text>
+                <view class="info-list">
+                  <view class="info-row"><text>{{ localeText("固件版本", "Firmware version") }}</text><text>{{
+                    displayValue(selectedDetail.firmwareVersion) }}</text></view>
+                  <view class="info-row"><text>{{ localeText("传输通道", "Transport") }}</text><text>{{
+                    getTransportText(selectedDetail.transportChannel) }}</text></view>
+                  <view class="info-row"><text>{{ localeText("开始时间", "Started at") }}</text><text>{{
+                    formatDateTime(selectedDetail.startTime || selectedDetail.createdAt) }}</text></view>
+                  <view class="info-row"><text>{{ localeText("结束时间", "Finished at") }}</text><text>{{
+                    formatDateTime(selectedDetail.finishTime) }}</text></view>
+                  <view class="info-row"><text>{{ localeText("当前会话", "Current session") }}</text><text
+                      class="ellipsis-text" :title="selectedDetail.currentSessionId">{{
+                        displayValue(selectedDetail.currentSessionId) }}</text></view>
+                  <view class="info-row"><text>{{ localeText("最后发送", "Last sent") }}</text><text>{{
+                    formatDateTime(selectedDetail.lastFrameSentAt) }}</text></view>
+                  <view class="info-row"><text>{{ localeText("最后上报", "Last report") }}</text><text>{{
+                    formatDateTime(selectedDetail.lastReportAt) }}</text></view>
+                  <view class="info-row"><text>{{ localeText("固件 MD5", "Firmware MD5") }}</text><text
+                      class="ellipsis-text" :title="selectedDetail.firmwareMd5">{{
+                        displayValue(selectedDetail.firmwareMd5) }}</text></view>
+                </view>
+                <view v-if="selectedDetail.failureReason" class="error-card">{{ selectedDetail.failureReason }}</view>
+              </view>
+            </template>
+
+            <template v-else-if="detailTab === 'FRAMES'">
+              <view class="subsection-head">
+                <view><text class="section-title">{{ localeText("固件帧记录", "Firmware frames") }}</text><text
+                    class="subsection-hint">{{ localeText("帧数据按需加载，不参与自动轮询", "Frame data is loaded on demand") }}</text>
+                </view>
+                <view class="subsection-actions">
+                  <button class="mini-button" :disabled="!frames.length" @click="openFrameDetail">{{ localeText("详情",
+                    "Details") }}</button>
+                  <button class="mini-button" :disabled="subResourceLoading" @click="loadFrames(true)">{{
+                    localeText("刷新", "Refresh") }}</button>
                 </view>
               </view>
-            </view>
-
-            <view v-if="selectedTask.firmware" class="detail-section">
-              <text class="detail-section__title">固件文件</text>
-              <view class="file-card">
-                <view class="file-card__icon">TXT</view>
-                <view class="file-card__content">
-                  <text class="file-card__name">{{ selectedTask.firmware.fileName }}</text>
-                  <text class="file-card__meta">{{ formatBytes(selectedTask.firmware.fileSize) }} · {{ selectedTask.firmware.totalFrames }} 帧 · 每帧最多 500 字节</text>
+              <view v-if="subResourceLoading" class="resource-state">{{ localeText("正在加载帧记录…", "Loading frames…") }}
+              </view>
+              <view v-else-if="!frames.length" class="resource-state">{{ localeText("暂无帧记录", "No frame records") }}
+              </view>
+              <view v-else class="compact-table-scroll">
+                <view class="compact-table">
+                  <view class="compact-row compact-row--header"><text>{{ localeText("帧序号", "Frame") }}</text><text>{{
+                    localeText("长度", "Length") }}</text><text>{{ localeText("状态", "Status") }}</text></view>
+                  <view v-for="frame in frames" :key="frame.id || frame.frameIndex" class="compact-row"
+                    :class="{ 'compact-row--active': selectedFrame === frame }" @click="selectedFrame = frame">
+                    <text>{{ displayValue(frame.frameIndex) }}</text>
+                    <text>{{ displayValue(frame.dataLength) }}</text>
+                    <text>{{ getFrameStatusText(frame.sendStatus) }}</text>
+                  </view>
                 </view>
               </view>
-            </view>
+            </template>
 
-            <view v-if="selectedTask.audio" class="detail-section">
-              <text class="detail-section__title">音频记录</text>
-              <view class="audio-summary">
-                <view><text>总帧数</text><text>{{ selectedTask.audio.totalFrames }}</text></view>
-                <view><text>初始已收</text><text>{{ selectedTask.audio.initialReceivedFrames }}</text></view>
-                <view><text>初始缺失</text><text>{{ selectedTask.audio.initialMissingFrames.length }}</text></view>
+            <template v-else>
+              <view class="subsection-head">
+                <view><text class="section-title">{{ localeText("上下行事件", "Events") }}</text><text
+                    class="subsection-hint">{{ localeText("按时间展示系统与设备交互过程", "System and device events in chronological order") }}</text></view>
+                <view class="subsection-actions">
+                  <button class="mini-button" :disabled="!events.length" @click="openEventDetail">{{ localeText("详情",
+                    "Details") }}</button>
+                  <button class="mini-button" :disabled="subResourceLoading" @click="loadEvents(true)">{{
+                    localeText("刷新", "Refresh") }}</button>
+                </view>
               </view>
-            </view>
-
-            <view class="detail-section">
-              <view class="detail-section__head">
-                <text class="detail-section__title">设备结果</text>
-                <text class="detail-section__meta">{{ selectedTask.progress }}%</text>
+              <view v-if="subResourceLoading" class="resource-state">{{ localeText("正在加载事件…", "Loading events…") }}
               </view>
-              <view class="device-result-list">
-                <view v-for="device in selectedTask.devices" :key="device.id" class="device-result-item">
-                  <view class="device-result-item__top">
+              <view v-else-if="!events.length" class="resource-state">{{ localeText("暂无事件记录", "No event records") }}
+              </view>
+              <view v-else class="timeline">
+                <view v-for="event in events" :key="event.id" class="timeline-item"
+                  :class="`timeline-item--${String(event.direction || 'SYSTEM').toLowerCase()}`">
+                  <text class="timeline-item__dot"></text>
+                  <view class="timeline-item__content">
                     <view>
-                      <text class="device-result-item__number">{{ device.deviceNumber }}</text>
-                      <text class="device-result-item__phase">{{ device.phaseText }}</text>
+                      <text class="timeline-item__title">{{ event.eventTypeName || getEventTypeText(event.eventType) }}</text>
+                      <text class="event-level" :class="getEventLevelClass(event.eventLevel)">{{ displayValue(event.eventLevel, "INFO") }}</text>
+                      <text class="timeline-item__time">{{ formatDateTime(event.createdAt) }}</text>
                     </view>
-                    <text class="device-status-dot" :class="getDeviceStatusClass(device.status)"></text>
+                    <text class="timeline-item__meta">{{ event.directionName || getDirectionText(event.direction) }}（{{ displayValue(event.direction, localeText("未知", "Unknown")) }}）<template
+                        v-if="event.frameIndex !== undefined && event.frameIndex !== null"> · {{ localeText("帧", "Frame") }} {{ event.frameIndex
+                        }}</template></text>
+                    <text v-if="event.summary" class="timeline-item__summary">{{ event.summary }}</text>
+                    <text v-if="event.detail" class="timeline-item__detail">{{ event.detail }}</text>
+                    <text v-if="event.rawHex" class="timeline-item__hex" :title="event.rawHex">{{
+                      previewHex(event.rawHex) }}</text>
+                    <text v-if="event.rawHexBytes !== undefined && event.rawHexBytes !== null" class="timeline-item__meta">{{ localeText("原始报文字节数", "Raw bytes") }}：{{ event.rawHexBytes }}</text>
                   </view>
-                  <view class="device-result-item__progress">
-                    <view class="device-result-item__track"><view :style="{ width: `${device.progress}%` }"></view></view>
-                    <text>{{ device.progress }}%</text>
-                  </view>
-                  <text class="device-result-item__message">{{ device.responseMessage || "尚未收到模拟返回" }}</text>
                 </view>
               </view>
+            </template>
+          </scroll-view>
+        </template>
+
+        <template v-else-if="activeView === 'SETTING'">
+          <view class="detail-head">
+            <view>
+              <text class="detail-head__eyebrow">{{ localeText("设备参数设置详情", "Device parameter task") }}</text>
+              <!-- <text class="detail-head__title">{{ displayValue(selectedDetail.deviceNumber) }}</text> -->
+              <text class="detail-head__id">{{ localeText("记录 ID", "Record ID") }}: {{ displayValue(selectedDetail.id)
+                }}</text>
             </view>
+            <text class="status-tag">
+              {{ displayValue(selectedDetail.deviceNumber) }}
+            </text>
+          </view>
+          <scroll-view class="detail-scroll" scroll-y>
+            <view class="info-section">
+              <text class="section-title">{{ localeText("任务信息", "Task information") }}</text>
+              <view class="info-list">
+                <view class="info-row"><text>{{ localeText("设备编号", "Device number") }}</text><text>{{
+                  displayValue(selectedDetail.deviceNumber) }}</text></view>
+                <view class="info-row"><text>{{ localeText("批次 ID", "Batch ID") }}</text><text class="ellipsis-text"
+                    :title="selectedDetail.batchId">{{ displayValue(selectedDetail.batchId) }}</text></view>
+                <view class="info-row"><text>{{ localeText("指令 ID", "Command ID") }}</text><text>{{
+                  displayValue(selectedDetail.commandSendLogId) }}</text></view>
+                <view class="info-row"><text>{{ localeText("指令执行状态", "Command status") }}</text><text>{{
+                  getCommandStatusText(selectedDetail.commandExecuteStatus) }}</text></view>
+                <view class="info-row"><text>{{ localeText("记录来源", "Record source") }}</text><text>{{
+                  displayValue(selectedDetail.recordSource) }}</text></view>
+                <view class="info-row"><text>{{ localeText("操作账号", "Command account") }}</text><text>{{
+                  displayValue(selectedDetail.commandAccount) }}</text></view>
+                <view class="info-row"><text>{{ localeText("下单时间", "Ordered at") }}</text><text>{{
+                  formatDateTime(selectedDetail.orderTime) }}</text></view>
+                <view class="info-row"><text>{{ localeText("创建时间", "Created at") }}</text><text>{{
+                  formatDateTime(selectedDetail.createdAt) }}</text></view>
+                <view class="info-row"><text>{{ localeText("发送时间", "Sent at") }}</text><text>{{
+                  formatDateTime(selectedDetail.commandSentAt) }}</text></view>
+                <view class="info-row"><text>{{ localeText("过期时间", "Expires at") }}</text><text>{{
+                  formatDateTime(selectedDetail.commandExpiresAt) }}</text></view>
+              </view>
+            </view>
+            <view class="info-section">
+              <text class="section-title">{{ localeText("设置参数", "Parameters") }}</text>
+              <view v-if="selectedSettingParameters.length" class="info-list">
+                <view v-for="parameter in selectedSettingParameters" :key="parameter.key" class="info-row">
+                  <text>{{ parameter.label }}</text>
+                  <text :title="stringifyContent(parameter.value)">{{ stringifyContent(parameter.value) }}</text>
+                </view>
+              </view>
+              <view v-else class="empty-inline">{{ localeText("本条记录没有非空设置参数", "No configured parameters") }}</view>
+            </view>
+            <view class="info-section">
+              <text class="section-title">{{ localeText("原始指令内容", "Raw command") }}</text>
+              <view class="code-card"><text>{{ stringifyContent(selectedDetail.detailHex) }}</text></view>
+            </view>
+            <view class="info-section">
+              <text class="section-title">{{ localeText("任务反馈", "Task feedback") }}</text>
+              <view class="code-card"><text>{{ stringifyContent(selectedDetail.commandFeedback) }}</text></view>
+              <view v-if="String(selectedDetail.commandStatus || '').toUpperCase() === 'TCP_SENT'" class="warning-card">
+                {{ localeText("已写入设备连接，但当前没有可匹配的设备回执，不能视为参数已经生效。", "Written to the device connection, but no matching acknowledgement is available; parameters are not confirmed effective.") }}
+              </view>
+            </view>
+          </scroll-view>
+        </template>
+
+        <template v-else>
+          <view class="detail-head">
+            <view>
+              <text class="detail-head__eyebrow">{{ localeText("TCP 音频补帧任务", "TCP audio repair task") }}</text>
+              <text class="detail-head__title">{{ displayValue(selectedDetail.deviceNumber) }}</text>
+              <text class="detail-head__id">{{ localeText("任务 ID", "Task ID") }}: {{
+                displayValue(selectedDetail.transferId || selectedDetail.id) }}</text>
+            </view>
+            <text class="status-tag" :class="getAudioRepairStatusClass(selectedDetail.status)">
+              {{ getAudioRepairStatusText(selectedDetail.status) }}
+            </text>
+          </view>
+
+          <view class="detail-tabs">
+            <button v-for="tab in audioDetailTabs" :key="tab.value" class="detail-tab"
+              :class="{ 'detail-tab--active': audioDetailTab === tab.value }" @click="switchAudioDetailTab(tab.value)">
+              {{ tab.label }}
+            </button>
+          </view>
+
+          <scroll-view class="detail-scroll" scroll-y>
+            <template v-if="audioDetailTab === 'OVERVIEW'">
+              <view class="progress-overview">
+                <view class="progress-overview__head"><text>{{ localeText("分片收集进度", "Frame collection progress")
+                    }}</text><text>{{ clampProgress(selectedDetail.repairProgress) }}%</text></view>
+                <view class="progress-overview__track">
+                  <view :style="{ width: `${clampProgress(selectedDetail.repairProgress)}%` }"></view>
+                </view>
+                <text class="stage-text">{{ getAudioRepairStatusText(selectedDetail.status) }}</text>
+              </view>
+              <view class="stat-grid">
+                <view><text>{{ displayValue(selectedDetail.totalFrames, "0") }}</text><text>{{ localeText("总分片数", "Total frames") }}</text></view>
+                <view><text>{{ displayValue(selectedDetail.receivedFrames, "0") }}</text><text>{{ localeText("已接收",
+                    "Received") }}</text></view>
+                <view><text>{{ displayValue(selectedDetail.missingFrameCount, "0") }}</text><text>{{ localeText("缺失分片",
+                    "Missing") }}</text></view>
+              </view>
+              <view class="info-section">
+                <text class="section-title">{{ localeText("任务信息", "Task information") }}</text>
+                <view class="info-list">
+                  <view class="info-row"><text>{{ localeText("设备编号", "Device number") }}</text><text>{{
+                    displayValue(selectedDetail.deviceNumber) }}</text></view>
+                  <view class="info-row"><text>{{ localeText("任务状态", "Status") }}</text><text>{{
+                    getAudioRepairStatusText(selectedDetail.status) }}</text></view>
+                  <view class="info-row"><text>{{ localeText("开始时间", "Started at") }}</text><text>{{
+                    formatDateTime(selectedDetail.createdAt) }}</text></view>
+                  <view class="info-row"><text>{{ localeText("更新时间", "Updated at") }}</text><text>{{
+                    formatDateTime(selectedDetail.updatedAt) }}</text></view>
+                  <view class="info-row"><text>{{ localeText("最近指令", "Latest command") }}</text><text>{{
+                    displayValue(selectedDetail.lastCommandType || selectedDetail.commandType) }}</text></view>
+                </view>
+                <view v-if="selectedDetail.failureReason || selectedDetail.errorMessage" class="error-card">{{
+                  selectedDetail.failureReason || selectedDetail.errorMessage }}</view>
+              </view>
+              <view class="info-section">
+                <text class="section-title">{{ localeText("缺失分片序号", "Missing frame numbers") }}</text>
+                <view v-if="audioMissingFrames.length" class="missing-frame-list">
+                  <text v-for="frameNumber in audioMissingFrames" :key="frameNumber">{{ frameNumber }}</text>
+                </view>
+                <view v-else class="empty-inline">{{ localeText("当前没有缺失分片", "No missing frames") }}</view>
+              </view>
+            </template>
+
+            <template v-else-if="audioDetailTab === 'FRAMES'">
+              <view class="subsection-head">
+                <view><text class="section-title">{{ localeText("已接收分片", "Received frames") }}</text><text
+                    class="subsection-hint">{{ localeText("点击详情可查看全部分片字段", "View all frame fields in details") }}</text>
+                </view>
+                <view class="subsection-actions">
+                  <button class="mini-button" :disabled="!audioFrames.length" @click="openAudioFrameDetail">{{
+                    localeText("详情", "Details") }}</button>
+                  <button class="mini-button" :disabled="audioResourceLoading" @click="loadAudioFrames(true)">{{
+                    localeText("刷新", "Refresh") }}</button>
+                </view>
+              </view>
+              <view v-if="audioResourceLoading" class="resource-state">{{ localeText("正在加载分片…", "Loading frames…") }}
+              </view>
+              <view v-else-if="!audioFrames.length" class="resource-state">{{ localeText("暂无已接收分片", "No received frames") }}</view>
+              <view v-else class="compact-table-scroll">
+                <view class="compact-table compact-table--audio">
+                  <view class="compact-row compact-row--audio compact-row--header">
+                    <text>{{ localeText("分片序号", "Frame") }}</text>
+                    <text>{{ localeText("任务 ID", "Task ID") }}</text>
+                    <text>{{localeText("报文字节数", "Raw bytes") }}</text>
+                  </view>
+                  <view v-for="frame in audioFrames" :key="frame.id || `${frame.transferId}-${frame.frameNo}`"
+                    class="compact-row compact-row--audio">
+                    <text>{{ displayValue(frame.frameNo ) }}</text>
+                    <text>{{ displayValue(frame.transferId) }}</text>
+                    <text>{{ displayValue(frame.rawHexBytes) }}</text>
+                  </view>
+                </view>
+              </view>
+            </template>
+
+            <template v-else>
+              <view class="subsection-head">
+                <view><text class="section-title">{{ localeText("相关指令记录", "Related commands") }}</text><text
+                    class="subsection-hint">{{ localeText("仅展示补帧和收齐确认指令", "Repair and completion commands only")
+                    }}</text></view>
+                <button class="mini-button" :disabled="audioResourceLoading" @click="loadAudioCommands(true)">{{
+                  localeText("刷新", "Refresh") }}</button>
+              </view>
+              <view v-if="audioResourceLoading" class="resource-state">{{ localeText("正在加载指令…", "Loading commands…") }}
+              </view>
+              <view v-else-if="!audioCommands.length" class="resource-state">{{ localeText("暂无相关指令", "No related commands") }}</view>
+              <view v-else class="audio-command-list">
+                <view v-for="command in audioCommands" :key="command.id" class="audio-command-card">
+                  <view class="audio-command-card__head">
+                    <view><text>{{ getAudioCommandTypeText(command.commandCode || command.commandType)
+                        }}</text><text>#{{ displayValue(command.id) }}</text></view>
+                    <text class="status-tag" :class="getCommandStatusClass(command.executeStatus)">{{
+                      getCommandStatusText(command.executeStatus) }}</text>
+                  </view>
+                  <view class="audio-command-card__time">{{ formatDateTime(command.sendTime || command.createdAt) }}
+                  </view>
+                  <view
+                    v-if="command.requestContent || command.requestData || command.requestHex || command.commandContent"
+                    class="audio-command-card__content">
+                    <text class="audio-command-card__label">{{ localeText("请求内容", "Request") }}</text>
+                    {{ stringifyContent(command.requestContent || command.requestData || command.requestHex ||
+                      command.commandContent) }}
+                  </view>
+                  <view v-if="command.responseContent || command.responseData || command.responseHex || command.result"
+                    class="audio-command-card__content">
+                    <text class="audio-command-card__label">{{ localeText("响应内容", "Response") }}</text>
+                    {{ stringifyContent(command.responseContent || command.responseData || command.responseHex ||
+                    command.result) }}
+                  </view>
+                  <view v-if="command.failureReason || command.errorMessage" class="error-card">{{ command.failureReason
+                    || command.errorMessage }}</view>
+                </view>
+              </view>
+            </template>
           </scroll-view>
         </template>
       </view>
     </view>
 
-    <!-- 三步指令下发弹窗 -->
-    <view v-if="dispatchVisible" class="modal-mask" @click.self="closeDispatch">
-      <view class="modal modal--dispatch">
+    <view v-if="frameDetailVisible" class="modal-mask" @click.self="closeFrameDetail">
+      <view class="frame-detail-modal">
         <view class="modal-head">
           <view>
-            <text class="modal-head__eyebrow">纯前端流程原型</text>
-            <text class="modal-head__title">指令下发</text>
+            <text class="modal-head__eyebrow">{{ localeText("固件帧记录", "Firmware frame") }}</text>
+            <text class="modal-head__title">{{ localeText("全部固件帧详情", "All firmware frame details") }}</text>
           </view>
-          <button class="modal-close" aria-label="关闭" @click="closeDispatch">×</button>
+          <text class="panel-head__meta">{{ localizedTotal(frames.length) }}</text>
+          <button class="modal-close" :aria-label="localeText('关闭', 'Close')" @click="closeFrameDetail">×</button>
+        </view>
+        <view class="frame-detail-body">
+          <view class="frame-full-table"
+            :style="{ width: `${frameDetailTableWidth}px`, minWidth: `${frameDetailTableWidth}px` }">
+            <view class="frame-full-row frame-full-row--header"
+              :style="{ gridTemplateColumns: frameDetailGridTemplate }">
+              <text v-for="column in frameDetailColumns" :key="column.key">{{ column.label }}</text>
+            </view>
+            <view v-for="frame in frames" :key="frame.id || frame.frameIndex" class="frame-full-row"
+              :class="{ 'frame-full-row--active': selectedFrame === frame }"
+              :style="{ gridTemplateColumns: frameDetailGridTemplate }" @click="selectedFrame = frame">
+              <text v-for="column in frameDetailColumns" :key="column.key" :class="{
+                'frame-full-cell--code': column.code,
+                'frame-full-cell--ellipsis': column.key === 'payloadHex' || 'sessionId',
+              }" :title="formatFrameFieldValue(column.key, frame[column.key])">
+                {{ formatFrameFieldValue(column.key, frame[column.key]) }}
+              </text>
+            </view>
+          </view>
+        </view>
+        <view class="modal-actions">
+          <button class="action-button action-button--primary" @click="closeFrameDetail">{{ localeText("关闭", "Close")
+            }}</button>
+        </view>
+      </view>
+    </view>
+
+    <view v-if="eventDetailVisible" class="modal-mask" @click.self="closeEventDetail">
+      <view class="frame-detail-modal">
+        <view class="modal-head">
+          <view>
+            <text class="modal-head__eyebrow">{{ localeText("上下行事件", "Upgrade events") }}</text>
+            <text class="modal-head__title">{{ localeText("全部上下行事件详情", "All upgrade event details") }}</text>
+          </view>
+          <text class="panel-head__meta">{{ localizedTotal(events.length) }}</text>
+          <button class="modal-close" :aria-label="localeText('关闭', 'Close')" @click="closeEventDetail">×</button>
+        </view>
+        <view class="frame-detail-body">
+          <view class="frame-full-table"
+            :style="{ width: `${eventDetailTableWidth}px`, minWidth: `${eventDetailTableWidth}px` }">
+            <view class="frame-full-row frame-full-row--header"
+              :style="{ gridTemplateColumns: eventDetailGridTemplate }">
+              <text v-for="column in eventDetailColumns" :key="column.key">{{ column.label }}</text>
+            </view>
+            <view v-for="event in events" :key="event.id || `${event.eventType}-${event.createdAt}-${event.frameIndex}`"
+              class="frame-full-row" :class="{ 'frame-full-row--active': selectedEvent === event }"
+              :style="{ gridTemplateColumns: eventDetailGridTemplate }" @click="selectedEvent = event">
+              <text v-for="column in eventDetailColumns" :key="column.key" :class="{
+                'frame-full-cell--code': column.code,
+                'frame-full-cell--ellipsis': column.key === 'rawHex' || 'sessionId',
+              }" :title="formatEventFieldValue(column.key, event[column.key])">
+                {{ formatEventFieldValue(column.key, event[column.key]) }}
+              </text>
+            </view>
+          </view>
+        </view>
+        <view class="modal-actions">
+          <button class="action-button action-button--primary" @click="closeEventDetail">{{ localeText("关闭", "Close")
+            }}</button>
+        </view>
+      </view>
+    </view>
+
+    <view v-if="audioFrameDetailVisible" class="modal-mask" @click.self="closeAudioFrameDetail">
+      <view class="frame-detail-modal audio-frame-detail-modal">
+        <view class="modal-head">
+          <view>
+            <text class="modal-head__eyebrow">{{ localeText("音频补帧分片", "Audio repair frames") }}</text>
+            <text class="modal-head__title">{{ localeText("全部已接收分片详情", "All received frame details") }}</text>
+          </view>
+          <text class="panel-head__meta">{{ localizedTotal(audioFrameDetails.length) }}</text>
+          <button class="modal-close" :aria-label="localeText('关闭', 'Close')" @click="closeAudioFrameDetail">×</button>
+        </view>
+        <view v-if="!audioFrameDetails.length" class="frame-detail-body resource-state">{{ localeText("暂无已接收分片", "No received frames") }}</view>
+        <view v-else class="frame-detail-body">
+          <view class="frame-full-table"
+            :style="{ width: `${audioFrameDetailTableWidth}px`, minWidth: `${audioFrameDetailTableWidth}px` }">
+            <view class="frame-full-row frame-full-row--header"
+              :style="{ gridTemplateColumns: audioFrameDetailGridTemplate }">
+              <text v-for="column in audioFrameDetailColumns" :key="column.key">{{ column.label }}</text>
+            </view>
+            <view v-for="frame in audioFrameDetails" :key="frame.id || `${frame.transferId}-${frame.frameNo}`"
+              class="frame-full-row" :style="{ gridTemplateColumns: audioFrameDetailGridTemplate }">
+              <text v-for="column in audioFrameDetailColumns" :key="column.key"
+                :class="{
+                  'frame-full-cell--code': column.code,
+                  'frame-full-cell--ellipsis': column.key === 'rawHex',
+                }"
+                :title="formatAudioFrameFieldValue(column.key, frame[column.key])">
+                {{ formatAudioFrameFieldValue(column.key, frame[column.key]) }}
+              </text>
+            </view>
+          </view>
+        </view>
+        <view class="modal-actions">
+          <button class="action-button action-button--primary" @click="closeAudioFrameDetail">{{ localeText("关闭",
+            "Close")
+            }}</button>
+        </view>
+      </view>
+    </view>
+
+    <view v-if="upgradeDialogVisible" class="modal-mask" @click.self="closeUpgradeDialog">
+      <view class="upgrade-modal">
+        <view class="modal-head">
+          <view><text class="modal-head__eyebrow">{{ localeText("固件升级", "Firmware upgrade") }}</text><text
+              class="modal-head__title">{{ localeText("创建升级任务", "Create upgrade tasks") }}</text></view>
+          <button class="modal-close" :aria-label="localeText('关闭', 'Close')" @click="closeUpgradeDialog">×</button>
         </view>
 
         <view class="step-bar">
-          <view v-for="step in dispatchSteps" :key="step.value" class="step-item" :class="{ 'step-item--active': dispatchStep === step.value, 'step-item--done': dispatchStep > step.value }">
-            <text class="step-item__number">{{ dispatchStep > step.value ? "✓" : step.value }}</text>
+          <view v-for="step in upgradeSteps" :key="step.value" class="step-item"
+            :class="{ 'step-item--active': upgradeStep === step.value, 'step-item--done': upgradeStep > step.value }">
+            <text class="step-item__number">{{ upgradeStep > step.value ? "✓" : step.value }}</text>
             <text>{{ step.label }}</text>
           </view>
         </view>
 
         <scroll-view class="modal-body" scroll-y>
-          <view v-if="dispatchStep === 1" class="wizard-section">
-            <view class="wizard-intro">
-              <text class="wizard-intro__title">选择要下发的指令</text>
-              <text class="wizard-intro__text">三个内置指令分别用于演示参数设置、固件断点续传和音频四轮补帧。</text>
+          <view v-if="upgradeStep === 1" class="wizard-section">
+            <view class="wizard-head">
+              <view><text class="wizard-title">{{ localeText("选择固件", "Select firmware") }}</text><text
+                  class="wizard-hint">{{ localeText("请选择已经上传并验证通过的固件记录", "Choose an uploaded and validated firmware record")
+                  }}</text></view><text class="selected-count">{{ localizedCount(firmwareCandidates.length) }}</text>
             </view>
-            <view class="command-choice-list">
-              <view
-                v-for="command in availableCommands"
-                :key="command.id"
-                class="command-choice"
-                :class="{ 'command-choice--active': draft.commandId === command.id }"
-                @click="draft.commandId = command.id"
-              >
-                <view class="command-choice__radio"><text></text></view>
-                <view class="command-choice__main">
-                  <view class="command-choice__head">
-                    <text class="command-choice__name">{{ command.name }}</text>
-                    <text class="command-choice__code">{{ command.commandCode }}</text>
-                  </view>
-                  <text class="command-choice__type">{{ getExecutionTypeLabel(command.executionType) }} · {{ command.category }}</text>
-                  <text class="command-choice__desc">{{ command.description }}</text>
-                  <text class="command-choice__frame">{{ command.requestFrame }}</text>
+            <view v-if="candidateLoading" class="resource-state">{{ localeText("正在加载固件…", "Loading firmware…") }}</view>
+            <view v-else class="choice-list">
+              <view v-for="firmware in firmwareCandidates" :key="firmware.id" class="choice-card"
+                :class="{ 'choice-card--active': upgradeDraft.firmwareId === firmware.id }"
+                @click="upgradeDraft.firmwareId = firmware.id">
+                <text class="choice-radio"><text></text></text>
+                <view class="choice-content">
+                  <view><text class="choice-title">{{ displayValue(firmware.firmwareName) }}</text><text
+                      class="version-pill">{{ displayValue(firmware.firmwareVersion) }}</text></view>
+                  <text class="choice-description">{{ displayValue(firmware.instruction || firmware.remark,
+                    localeText("暂无说明", "No description")) }}</text>
+                  <text class="choice-meta">{{ localeText("上传时间", "Uploaded at") }}: {{
+                    formatDateTime(firmware.uploadTime
+                    || firmware.createdAt) }}</text>
                 </view>
               </view>
+              <view v-if="!firmwareCandidates.length" class="resource-state">{{ localeText("暂无可用固件，请先到固件管理页面上传", "No firmware available. Upload firmware first.") }}</view>
             </view>
           </view>
 
-          <view v-if="dispatchStep === 2" class="wizard-section wizard-section--devices">
-            <view class="wizard-intro wizard-intro--inline">
-              <view>
-                <text class="wizard-intro__title">批量选择设备</text>
-                <text class="wizard-intro__text">离线设备会进入“等待设备上线”，可在进度弹窗中手动模拟连接。</text>
-              </view>
-              <text class="selected-count">已选择 {{ draft.deviceIds.length }} 台</text>
+          <view v-else-if="upgradeStep === 2" class="wizard-section">
+            <view class="wizard-head">
+              <view><text class="wizard-title">{{ localeText("选择设备", "Select devices") }}</text><text
+                  class="wizard-hint">{{
+                    localeText("仅允许选择直连设备；离线设备创建后将等待连接", "Only direct TCP devices are supported; offline devices will wait for connection") }}</text></view><text class="selected-count">{{ localeText(`已选择 ${selectedDevices.length}
+                台`,
+                    `${selectedDevices.length} selected`) }}</text>
             </view>
-
-            <view class="device-toolbar">
-              <input v-model="deviceFilters.keyword" class="filter-input" placeholder="搜索设备编号或安装位置" placeholder-class="input-placeholder" />
-              <picker :range="deviceStatusOptions" range-key="label" :value="deviceStatusIndex" @change="handleDeviceStatusChange">
-                <view class="filter-select device-status-select">{{ deviceStatusOptions[deviceStatusIndex]?.label }}<text class="select-arrow"></text></view>
-              </picker>
-              <button class="mini-button" @click="toggleCurrentDevicePage">{{ isCurrentDevicePageSelected ? "取消本页" : "选择本页" }}</button>
+            <view class="device-filter">
+              <input v-model="deviceKeyword" class="filter-input"
+                :placeholder="localeText('筛选当前列表中的设备编号或别名', 'Filter by device number or alias')" />
+              <button class="mini-button" @click="toggleSelectableDevices">{{ currentSelectableSelected ?
+                localeText("取消可选设备", "Clear selectable") : localeText("选择全部可用设备", "Select all available") }}</button>
             </view>
-
-            <view class="device-select-table">
-              <view class="device-select-row device-select-row--header">
-                <text class="device-select-cell device-select-cell--check"></text>
-                <text class="device-select-cell device-select-cell--number">设备编号</text>
-                <text class="device-select-cell device-select-cell--type">设备类型</text>
-                <text class="device-select-cell device-select-cell--version">固件版本</text>
-                <text class="device-select-cell device-select-cell--online">在线状态</text>
-                <text class="device-select-cell device-select-cell--address">安装位置</text>
+            <view v-if="candidateLoading" class="resource-state">{{ localeText("正在加载设备…", "Loading devices…") }}</view>
+            <view v-else class="device-table">
+              <view class="device-row device-row--header">
+                <view class="device-check-cell"></view>
+                <text>{{ localeText("设备编号", "Device number") }}</text>
+                <text>{{ localeText("设备别名", "Device alias") }}</text>
+                <text>{{ localeText("下发方式", "Dispatch method") }}</text>
+                <text>{{ localeText("TCP 状态", "TCP status") }}</text>
+                <text>{{ localeText("当前固件", "Current firmware") }}</text>
               </view>
-              <view
-                v-for="device in pagedDevices"
-                :key="device.id"
-                class="device-select-row"
-                :class="{ 'device-select-row--active': draft.deviceIds.includes(device.id) }"
-                @click="toggleDevice(device.id)"
-              >
-                <view class="device-select-cell device-select-cell--check"><text class="mock-checkbox">{{ draft.deviceIds.includes(device.id) ? "✓" : "" }}</text></view>
-                <text class="device-select-cell device-select-cell--number">{{ device.deviceNumber }}</text>
-                <text class="device-select-cell device-select-cell--type">{{ device.deviceType }}</text>
-                <text class="device-select-cell device-select-cell--version">{{ device.firmwareVersion }}</text>
-                <view class="device-select-cell device-select-cell--online"><text class="online-pill" :class="device.onlineStatus ? 'online-pill--online' : 'online-pill--offline'">{{ device.onlineStatus ? "在线" : "离线" }}</text></view>
-                <text class="device-select-cell device-select-cell--address">{{ device.installAddress }}</text>
+              <view v-for="device in filteredDeviceCandidates" :key="device.id" class="device-row"
+                :class="{ 'device-row--selected': isDeviceSelected(device), 'device-row--disabled': !isDirectDevice(device) }"
+                @click="toggleDevice(device)">
+                <view class="device-check-cell">
+                  <text class="checkbox">{{ isDeviceSelected(device) ? "✓" : "" }}</text>
+                </view>
+                <text>{{ displayValue(device.deviceNumber) }}</text>
+                <text>{{ displayValue(device.deviceAlias || device.deviceName) }}</text>
+                <text>{{ getCommandSendwayText(device.commandSendway) }}</text>
+                <text><text class="online-pill"
+                    :class="isDeviceOnline(device) ? 'online-pill--online' : 'online-pill--offline'">{{
+                      isDeviceOnline(device) ? localeText("在线", "Online") : localeText("离线", "Offline") }}</text></text>
+                <text>{{ displayValue(device.firmwareVersion) }}</text>
               </view>
-            </view>
-
-            <view class="pagination-bar">
-              <button class="page-button" :disabled="devicePage.current <= 1" @click="devicePage.current--">{{ localeText("上一页", "Previous") }}</button>
-              <text>{{ localizedPageInfo(devicePage.current, devicePageCount) }}</text>
-              <button class="page-button" :disabled="devicePage.current >= devicePageCount" @click="devicePage.current++">{{ localeText("下一页", "Next") }}</button>
+              <view v-if="!filteredDeviceCandidates.length" class="resource-state">{{ localeText("暂无符合条件的设备", "No matching devices") }}</view>
             </view>
           </view>
 
-          <view v-if="dispatchStep === 3" class="wizard-section">
-            <view class="wizard-intro wizard-intro--inline">
-              <view>
-                <text class="wizard-intro__title">配置并确认模拟流程</text>
-                <text class="wizard-intro__text">当前不会请求接口，也不会向真实设备发送任何数据。</text>
-              </view>
-              <view v-if="selectedDraftCommand" class="selected-command-badge">
-                <text>{{ selectedDraftCommand.commandCode }}</text>
-                <text>{{ selectedDraftCommand.name }}</text>
-              </view>
+          <view v-else class="wizard-section">
+            <view class="wizard-head">
+              <view><text class="wizard-title">{{ localeText("升级检查与确认", "Check and confirm") }}</text><text
+                  class="wizard-hint">{{ localeText("提交前检查设备是否存在未结束的升级任务", "Check for unfinished upgrade tasks before submission") }}</text></view><button class="mini-button" :disabled="checkingUpdatable"
+                @click="runUpdatableCheck">{{ checkingUpdatable ? localeText("正在检查", "Checking") : localeText("重新检查", "Check again") }}</button>
             </view>
 
-            <view class="config-card">
-              <text class="config-card__title">模拟场景</text>
-              <picker :range="scenarioOptions" range-key="label" :value="scenarioIndex" @change="handleScenarioChange">
-                <view class="form-select">{{ scenarioOptions[scenarioIndex]?.label }}<text class="select-arrow"></text></view>
-              </picker>
-              <text class="form-hint">场景结果固定可复现，便于反复检查页面状态。</text>
+            <view class="confirm-summary">
+              <view><text>{{ localeText("固件", "Firmware") }}</text><text>{{ selectedFirmware?.firmwareName || "--"
+                  }}</text>
+              </view>
+              <view><text>{{ localeText("版本", "Version") }}</text><text>{{ selectedFirmware?.firmwareVersion || "--"
+                  }}</text></view>
+              <view><text>{{ localeText("设备数量", "Devices") }}</text><text>{{ localeText(`${selectedDevices.length} 台`,
+                String(selectedDevices.length)) }}</text></view>
             </view>
 
-            <view v-if="selectedDraftCommand?.executionType === 'PARAM_SETTING'" class="config-card">
-              <text class="config-card__title">参数设置</text>
-              <view class="form-grid">
-                <view class="form-field">
-                  <text class="form-label">采样间隔（分钟）</text>
-                  <input v-model="parameterForm.sampleInterval" class="form-input" type="number" />
-                </view>
-                <view class="form-field">
-                  <text class="form-label">上报间隔（分钟）</text>
-                  <input v-model="parameterForm.uploadInterval" class="form-input" type="number" />
-                </view>
-                <view class="form-field">
-                  <text class="form-label">服务器地址</text>
-                  <input v-model="parameterForm.serverHost" class="form-input" />
-                </view>
-                <view class="form-field">
-                  <text class="form-label">服务器端口</text>
-                  <input v-model="parameterForm.serverPort" class="form-input" type="number" />
-                </view>
+            <view class="check-list">
+              <view v-for="device in selectedDevices" :key="device.id" class="check-item">
+                <view><text class="check-item__number">{{ device.deviceNumber }}</text><text>{{ isDeviceOnline(device) ?
+                  localeText("TCP 在线", "TCP online") : localeText("TCP 离线，任务将等待连接", "TCP offline; task will wait for connection") }}</text></view>
+                <text class="check-result"
+                  :class="getCheckResult(device.deviceNumber).updatable ? 'check-result--success' : 'check-result--danger'">
+                  {{ getCheckResult(device.deviceNumber).label }}
+                </text>
               </view>
-              <view class="flow-note"><text>模拟规则</text><text>设备上线 → 等待 1 秒 → 10 秒窗口内下发 → 显示模拟结果</text></view>
             </view>
-
-            <view v-if="selectedDraftCommand?.executionType === 'FIRMWARE_UPGRADE'" class="config-card">
-              <text class="config-card__title">固件 TXT 文件</text>
-              <view v-if="!firmwareDraft" class="file-uploader" @click="chooseFirmwareFile">
-                <text class="file-uploader__icon">＋</text>
-                <text class="file-uploader__title">选择本地 TXT 文件</text>
-                <text class="file-uploader__hint">仅在浏览器内读取并按 500 字节拆帧，不会上传</text>
-              </view>
-              <view v-else class="file-card file-card--selected">
-                <view class="file-card__icon">TXT</view>
-                <view class="file-card__content">
-                  <text class="file-card__name">{{ firmwareDraft.fileName }}</text>
-                  <text class="file-card__meta">{{ formatBytes(firmwareDraft.fileSize) }} · {{ firmwareDraft.totalFrames }} 帧</text>
-                  <text class="file-card__frames">帧长度：{{ getFrameLengthPreview(firmwareDraft.frameLengths) }}</text>
-                </view>
-                <button class="mini-button" @click.stop="chooseFirmwareFile">重新选择</button>
-              </view>
-              <view class="flow-note"><text>模拟规则</text><text>上线后等待 1 秒 → 每秒一帧 → 返回缺失帧 → 重连后仅补缺失帧</text></view>
-            </view>
-
-            <view v-if="selectedDraftCommand?.executionType === 'AUDIO_REPAIR'" class="config-card">
-              <text class="config-card__title">音频记录</text>
-              <picker :range="audioRecordOptions" range-key="label" :value="audioRecordIndex" @change="handleAudioRecordChange">
-                <view class="form-select">{{ audioRecordOptions[audioRecordIndex]?.label || "请选择音频记录" }}<text class="select-arrow"></text></view>
-              </picker>
-              <view v-if="selectedAudioRecord" class="audio-summary audio-summary--wide">
-                <view><text>总帧数</text><text>{{ selectedAudioRecord.totalFrames }}</text></view>
-                <view><text>已接收</text><text>{{ selectedAudioRecord.receivedFrames }}</text></view>
-                <view><text>缺失帧</text><text>{{ selectedAudioRecord.missingFrames.length }}</text></view>
-                <view><text>缺失序号</text><text>{{ formatMissingFrames(selectedAudioRecord.missingFrames) }}</text></view>
-              </view>
-              <view class="flow-note"><text>模拟规则</text><text>每次设备连接执行一轮，收齐即结束，最多补发 4 轮</text></view>
-            </view>
-
-            <view class="confirm-card">
-              <view><text>指令</text><text>{{ selectedDraftCommand?.name }}</text></view>
-              <view><text>设备</text><text>{{ draft.deviceIds.length }} 台</text></view>
-              <view><text>场景</text><text>{{ scenarioOptions[scenarioIndex]?.label }}</text></view>
-            </view>
+            <view v-if="hasBlockedDevice" class="warning-card">{{ localeText("存在不可升级设备，请返回上一步移除后再提交。", "Remove unavailable devices before submitting.") }}</view>
           </view>
         </scroll-view>
 
         <view class="modal-actions">
-          <button class="toolbar-button" @click="closeDispatch">取消</button>
-          <view class="modal-actions__right">
-            <button v-if="dispatchStep > 1" class="toolbar-button" @click="dispatchStep--">上一步</button>
-            <button v-if="dispatchStep < 3" class="toolbar-button toolbar-button--primary" @click="goNextStep">下一步</button>
-            <button v-else class="toolbar-button toolbar-button--primary" @click="createMockTask">开始模拟下发</button>
-          </view>
-        </view>
-      </view>
-    </view>
-
-    <!-- 逐设备进度弹窗 -->
-    <view v-if="progressVisible && progressTask" class="modal-mask" @click.self="closeProgress">
-      <view class="modal modal--progress">
-        <view class="modal-head">
+          <button class="action-button" :disabled="submittingUpgrade" @click="closeUpgradeDialog">{{ localeText("取消",
+            "Cancel") }}</button>
           <view>
-            <text class="modal-head__eyebrow">{{ progressTask.taskNo }}</text>
-            <text class="modal-head__title">设备下发进度</text>
+            <button v-if="upgradeStep > 1" class="action-button" :disabled="submittingUpgrade" @click="upgradeStep--">{{
+              localeText("上一步", "Previous") }}</button>
+            <button v-if="upgradeStep < 3" class="action-button action-button--primary" :disabled="candidateLoading"
+              @click="nextUpgradeStep">{{ localeText("下一步", "Next") }}</button>
+            <button v-else class="action-button action-button--primary"
+              :disabled="!canSubmitUpgrade || submittingUpgrade" @click="submitUpgrade">
+              {{ submittingUpgrade ? localeText("正在创建", "Creating") : localeText("确认发起升级", "Start upgrade") }}
+            </button>
           </view>
-          <view class="progress-head-actions">
-            <button v-if="hasActionableDevices(progressTask)" class="mini-button mini-button--primary" @click="simulateAllPending(progressTask)">模拟全部上线/重连</button>
-            <button class="modal-close" aria-label="关闭" @click="closeProgress">×</button>
-          </view>
-        </view>
-
-        <view class="progress-summary-bar">
-          <view><text>指令</text><text>{{ progressTask.commandName }}</text></view>
-          <view><text>设备</text><text>{{ progressTask.devices.length }} 台</text></view>
-          <view><text>完成</text><text>{{ progressTask.successCount }} 台</text></view>
-          <view><text>总体进度</text><text>{{ progressTask.progress }}%</text></view>
-        </view>
-
-        <scroll-view class="progress-table-scroll" scroll-x scroll-y>
-          <view class="progress-table">
-            <view class="progress-row progress-row--header">
-              <text class="progress-cell progress-cell--number">设备编号</text>
-              <text class="progress-cell progress-cell--online">连接</text>
-              <text class="progress-cell progress-cell--phase">当前阶段</text>
-              <text class="progress-cell progress-cell--round">轮次</text>
-              <text class="progress-cell progress-cell--value">下发进度</text>
-              <text class="progress-cell progress-cell--message">最近返回消息</text>
-              <text class="progress-cell progress-cell--time">更新时间</text>
-              <text class="progress-cell progress-cell--action">操作</text>
-            </view>
-            <view v-for="device in progressTask.devices" :key="device.id" class="progress-row">
-              <text class="progress-cell progress-cell--number">{{ device.deviceNumber }}</text>
-              <view class="progress-cell progress-cell--online"><text class="online-pill" :class="device.onlineStatus ? 'online-pill--online' : 'online-pill--offline'">{{ device.onlineStatus ? localeText("在线", "Online") : localeText("离线", "Offline") }}</text></view>
-              <view class="progress-cell progress-cell--phase">
-                <text v-if="isDeviceLoading(device.status)" class="loading-spinner"></text>
-                <text>{{ device.phaseText }}</text>
-              </view>
-              <text class="progress-cell progress-cell--round">{{ formatRound(device) }}</text>
-              <view class="progress-cell progress-cell--value">
-                <view class="table-progress"><view><text :style="{ width: `${device.progress}%` }"></text></view><text>{{ getDeviceProgressText(progressTask, device) }}</text></view>
-              </view>
-              <text class="progress-cell progress-cell--message" :title="device.responseMessage">{{ device.responseMessage || "尚未收到返回消息" }}</text>
-              <text class="progress-cell progress-cell--time">{{ device.updatedAt }}</text>
-              <view class="progress-cell progress-cell--action">
-                <button v-if="canSimulateConnection(device.status)" class="table-action-button" @click="simulateDeviceConnection(progressTask, device)">{{ device.status === "WAITING_ONLINE" ? "模拟上线" : "继续模拟" }}</button>
-                <text v-else class="action-placeholder">—</text>
-              </view>
-            </view>
-          </view>
-        </scroll-view>
-
-        <view class="modal-actions">
-          <text class="prototype-tip">当前所有状态均为本地模拟，不代表真实设备执行结果。</text>
-          <button class="toolbar-button toolbar-button--primary" @click="closeProgress">完成</button>
         </view>
       </view>
     </view>
+
+    <DeviceSettingDialog v-if="deviceSettingDialogVisible" @close="deviceSettingDialogVisible = false"
+      @submitted="handleDeviceSettingSubmitted" />
   </view>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
-import { useLocaleText, useLocalizedPageInfo, useLocalizedTotal } from "@/i18n/localeText";
+import { computed, onMounted, reactive, ref } from "vue";
+import { useLocaleText, useLocalizedCount, useLocalizedTotal } from "@/i18n/localeText";
+import CommandDataTable from "@/pages/command/components/t/CommandDataTable.vue";
+import CommandPaginationBar from "@/pages/command/components/t/CommandPaginationBar.vue";
+import DeviceSettingDialog from "@/pages/command/localized/components/DeviceSettingDialog.vue";
+import type { CommandTableColumn } from "@/pages/command/components/t/types";
+import { getCommandSendLogDetail, getCommandSendLogPage } from "@/services/commandSend/manage";
+import { getDevicePage } from "@/services/device/info";
+import { getFirmwarePage } from "@/services/firmware/manage";
 import {
-  prototypeAudioRecords,
-  prototypeCommands,
-  prototypeDevices,
-  scenarioOptions,
-} from "../mock/commandMockData";
-import type {
-  CommandExecutionType,
-  CommandTaskStatus,
-  DeviceTaskStatus,
-  FirmwarePrototypeInfo,
-  MockAudioRecord,
-  MockCommandTask,
-  MockDeviceTask,
-  MockScenario,
-} from "../commandManage.types";
+  cancelFirmwareUpgrade,
+  checkFirmwareUpdatable,
+  getFirmwareUpgradeEvents,
+  getFirmwareUpgradeFrames,
+  startFirmwareUpgrade,
+} from "@/services/firmware/upgrade";
+import { getFirmwareUpgradeLogDetail, getFirmwareUpgradeLogPage } from "@/services/firmware/upgrade-log";
+import { getDeviceSettingDetail, getDeviceSettingPage } from "@/services/deviceSetting/manage";
+import {
+  getAudioRepairCommands,
+  getAudioRepairDetail,
+  getAudioRepairFrames,
+  getAudioRepairPage,
+} from "@/services/audioRepair/manage";
+
+type RecordView = "COMMAND" | "UPGRADE" | "SETTING" | "AUDIO_REPAIR";
+type DetailTab = "OVERVIEW" | "FRAMES" | "EVENTS";
+type AudioDetailTab = "OVERVIEW" | "FRAMES" | "COMMANDS";
+type ApiRecord = Record<string, any>;
+
+interface PageState {
+  current: number;
+  size: number;
+  total: number;
+}
+
+interface FilterState {
+  keyword: string;
+  status: string;
+  startDate: string;
+  endDate: string;
+}
 
 const localeText = useLocaleText();
-const localizedPageInfo = useLocalizedPageInfo();
 const localizedTotal = useLocalizedTotal();
+const localizedCount = useLocalizedCount();
 
-interface PickerChangeEvent {
-  detail: { value: number | string };
-}
+const recordTabs = computed<Array<{ label: string; value: RecordView }>>(() => [
+  { label: localeText("指令下发记录", "Command records"), value: "COMMAND" },
+  { label: localeText("固件升级记录", "Firmware upgrades"), value: "UPGRADE" },
+  { label: localeText("设备参数设置记录", "Device parameter tasks"), value: "SETTING" },
+  { label: localeText("音频补帧记录", "Audio repair tasks"), value: "AUDIO_REPAIR" },
+]);
+const detailTabs = computed<Array<{ label: string; value: DetailTab }>>(() => [
+  { label: localeText("任务概览", "Overview"), value: "OVERVIEW" },
+  { label: localeText("固件帧记录", "Firmware frames"), value: "FRAMES" },
+  { label: localeText("上下行事件", "Events"), value: "EVENTS" },
+]);
+const upgradeSteps = computed(() => [
+  { value: 1, label: localeText("选择固件", "Select firmware") },
+  { value: 2, label: localeText("选择设备", "Select devices") },
+  { value: 3, label: localeText("升级检查", "Upgrade check") },
+]);
 
-const TASK_STORAGE_KEY = "commandManageMockTasks";
-const ACTIVE_DEVICE_STATUSES: DeviceTaskStatus[] = ["WAITING_DELAY", "SENDING", "WAITING_RESPONSE"];
-const timers = new Map<string, Array<ReturnType<typeof setTimeout>>>();
+const upgradeStatusMap: Record<number, { tone: string; terminal: boolean }> = {
+  0: { tone: "waiting", terminal: false },
+  1: { tone: "running", terminal: false },
+  2: { tone: "warning", terminal: false },
+  3: { tone: "danger", terminal: true },
+  4: { tone: "success", terminal: true },
+  5: { tone: "muted", terminal: true },
+};
 
-const filters = reactive({
-  keyword: "",
-  executionType: "ALL" as "ALL" | CommandExecutionType,
-  status: "ALL" as "ALL" | CommandTaskStatus,
-  startDate: "",
-  endDate: "",
-});
+const commandStatusMap: Record<number, { tone: string; terminal: boolean }> = {
+  0: { tone: "waiting", terminal: false },
+  1: { tone: "waiting", terminal: false },
+  2: { tone: "running", terminal: false },
+  3: { tone: "success", terminal: true },
+  4: { tone: "danger", terminal: true },
+  5: { tone: "muted", terminal: true },
+  6: { tone: "success", terminal: true },
+};
 
-const typeFilterOptions: Array<{ label: string; value: "ALL" | CommandExecutionType }> = [
-  { label: "全部类型", value: "ALL" },
-  { label: "参数设置", value: "PARAM_SETTING" },
-  { label: "固件升级", value: "FIRMWARE_UPGRADE" },
-  { label: "音频补帧", value: "AUDIO_REPAIR" },
-];
-
-const taskStatusFilterOptions: Array<{ label: string; value: "ALL" | CommandTaskStatus }> = [
-  { label: "全部状态", value: "ALL" },
-  { label: "等待执行", value: "WAITING" },
-  { label: "执行中", value: "RUNNING" },
-  { label: "部分完成", value: "PARTIAL" },
-  { label: "已完成", value: "SUCCESS" },
-  { label: "失败", value: "FAILED" },
-  { label: "已放弃", value: "ABANDONED" },
-  { label: "已暂停", value: "PAUSED" },
-];
-
-const tasks = ref<MockCommandTask[]>(loadTasks());
-const selectedTaskId = ref(tasks.value[0]?.id || "");
-const selectedTask = computed(() => tasks.value.find((item) => item.id === selectedTaskId.value) || null);
-
-const typeFilterIndex = computed(() => Math.max(0, typeFilterOptions.findIndex((item) => item.value === filters.executionType)));
-const statusFilterIndex = computed(() => Math.max(0, taskStatusFilterOptions.findIndex((item) => item.value === filters.status)));
-
-const filteredTasks = computed(() => {
-  const keyword = filters.keyword.trim().toLowerCase();
-  return tasks.value.filter((task) => {
-    const searchable = [task.taskNo, task.commandName, task.commandCode, ...task.devices.map((device) => device.deviceNumber)]
-      .join(" ")
-      .toLowerCase();
-    const matchesKeyword = !keyword || searchable.includes(keyword);
-    const matchesType = filters.executionType === "ALL" || task.executionType === filters.executionType;
-    const matchesStatus = filters.status === "ALL" || task.status === filters.status;
-    const date = task.createdAt.slice(0, 10);
-    const matchesStart = !filters.startDate || date >= filters.startDate;
-    const matchesEnd = !filters.endDate || date <= filters.endDate;
-    return matchesKeyword && matchesType && matchesStatus && matchesStart && matchesEnd;
-  });
-});
-
-const summaryCards = computed(() => {
-  const today = formatDate(new Date()).slice(0, 10);
-  const todayCount = tasks.value.filter((task) => task.createdAt.startsWith(today)).length;
-  const waiting = tasks.value.filter((task) => ["WAITING", "PAUSED"].includes(task.status)).length;
-  const running = tasks.value.filter((task) => task.status === "RUNNING").length;
-  const abnormal = tasks.value.filter((task) => ["FAILED", "ABANDONED", "PARTIAL"].includes(task.status)).length;
-  return [
-    { label: "今日下发", value: todayCount, unit: "批", tone: "blue" },
-    { label: "等待执行", value: waiting, unit: "批", tone: "orange" },
-    { label: "模拟执行中", value: running, unit: "批", tone: "cyan" },
-    { label: "异常任务", value: abnormal, unit: "批", tone: "red" },
-  ];
-});
-
-const dispatchVisible = ref(false);
-const dispatchStep = ref(1);
-const dispatchSteps = [
-  { value: 1, label: "选择指令" },
-  { value: 2, label: "选择设备" },
-  { value: 3, label: "配置确认" },
-];
-const availableCommands = prototypeCommands;
-const draft = reactive({
-  commandId: prototypeCommands[0].id,
-  deviceIds: [] as number[],
-  scenario: "NORMAL" as MockScenario,
-  audioRecordId: prototypeAudioRecords[0].id,
-});
-const parameterForm = reactive({
-  sampleInterval: "15",
-  uploadInterval: "60",
-  serverHost: "192.168.10.20",
-  serverPort: "6101",
-});
-const firmwareDraft = ref<FirmwarePrototypeInfo | null>(null);
-
-const selectedDraftCommand = computed(() => availableCommands.find((item) => item.id === draft.commandId) || null);
-const scenarioIndex = computed(() => Math.max(0, scenarioOptions.findIndex((item) => item.value === draft.scenario)));
-const audioRecordOptions = prototypeAudioRecords.map((record) => ({
-  label: `${record.deviceNumber} · ${record.collectedAt} · 缺 ${record.missingFrames.length} 帧`,
-  value: record.id,
-}));
-const audioRecordIndex = computed(() => Math.max(0, audioRecordOptions.findIndex((item) => item.value === draft.audioRecordId)));
-const selectedAudioRecord = computed(() => prototypeAudioRecords.find((item) => item.id === draft.audioRecordId) || null);
-
-const deviceFilters = reactive({ keyword: "", onlineStatus: "ALL" as "ALL" | "ONLINE" | "OFFLINE" });
-const devicePage = reactive({ current: 1, size: 8 });
-const deviceStatusOptions = [
-  { label: "全部连接状态", value: "ALL" },
-  { label: "在线", value: "ONLINE" },
-  { label: "离线", value: "OFFLINE" },
+const commandStatusOptions = computed(() => [
+  { label: localeText("全部状态", "All statuses"), value: "" },
+  ...Object.keys(commandStatusMap).map(value => ({ label: getCommandStatusText(value), value })),
+]);
+const upgradeStatusOptions = computed(() => [
+  { label: localeText("全部状态", "All statuses"), value: "" },
+  ...Object.keys(upgradeStatusMap).map(value => ({ label: getStatusText(value), value })),
+]);
+const settingStatusValues = ["QUEUED", "CLAIMED", "TCP_SENT", "FAILED", "EXPIRED", "CANCELED", "NOT_QUEUED", "DEVICE_DELIVERED", "SUCCESS"];
+const deviceSettingParameterFields = [
+  "onceMeasureLength",
+  "signalLevel",
+  "benchmarkValue",
+  "noiseBenchmarkValue",
+  "samplingCount",
+  "samplingWeekday",
+  "samplingTime",
+  "syncSamplingTime",
+  "syncSamplingNumber",
+  "samplingPeriodTime",
+  "audioRule",
+  "reportInterval",
+  "dayMeasureDataGroup",
+  "leakThreshold",
+  "nb4gTrigger",
+  "nb4gTransferSet",
+  "nb4gOpenTimeSet",
+  "loraOpenDay",
+  "loraSignalFrequency",
+  "loraPower",
+  "loraOpenDate",
+  "workMode",
+  "measureGainMode",
+  "gainValue",
+  "filterMethod",
+  "filterLowFrequency",
+  "filterHighFrequency",
+  "thresholdRate",
+  "rtcUploadInterval",
+  "pressureSettings",
+  "signalChannel",
+  "inspectDelay",
+  "inspectionControl",
+  "enabledControl",
 ] as const;
-const deviceStatusIndex = computed(() => Math.max(0, deviceStatusOptions.findIndex((item) => item.value === deviceFilters.onlineStatus)));
-const filteredDevices = computed(() => {
-  const keyword = deviceFilters.keyword.trim().toLowerCase();
-  return prototypeDevices.filter((device) => {
-    const matchesKeyword = !keyword || [device.deviceNumber, device.deviceType, device.installAddress].join(" ").toLowerCase().includes(keyword);
-    const matchesStatus =
-      deviceFilters.onlineStatus === "ALL" ||
-      (deviceFilters.onlineStatus === "ONLINE" ? device.onlineStatus === 1 : device.onlineStatus === 0);
-    return matchesKeyword && matchesStatus;
+const settingStatusOptions = computed(() => [
+  { label: localeText("全部状态", "All statuses"), value: "" },
+  ...settingStatusValues.map(value => ({ label: getSettingStatusText(value), value })),
+]);
+const audioRepairStatusValues = ["COLLECTING", "REPAIR_PENDING", "WAITING_UPLOAD", "COMPLETE", "FAILED"];
+const audioRepairStatusOptions = computed(() => [
+  { label: localeText("全部状态", "All statuses"), value: "" },
+  ...audioRepairStatusValues.map(value => ({ label: getAudioRepairStatusText(value), value })),
+]);
+const audioDetailTabs = computed<Array<{ label: string; value: AudioDetailTab }>>(() => [
+  { label: localeText("任务概览", "Overview"), value: "OVERVIEW" },
+  { label: localeText("已接收分片", "Received frames"), value: "FRAMES" },
+  { label: localeText("相关指令", "Commands"), value: "COMMANDS" },
+]);
+
+const commandColumns = computed<CommandTableColumn[]>(() => [
+  { key: "id", label: localeText("记录 ID", "Record ID"), width: 90 },
+  { key: "deviceNumber", label: localeText("设备编号", "Device number"), width: 150 },
+  { key: "commandName", label: localeText("指令名称", "Command name"), width: 170 },
+  { key: "commandCode", label: localeText("指令码", "Command code"), width: 120 },
+  { key: "executeStatus", label: localeText("执行状态", "Status"), width: Number(localeText("120", "168")) },
+  { key: "sendTime", label: localeText("下发时间", "Sent at"), width: 170, formatter: value => formatDateTime(value) },
+  { key: "expiresAt", label: localeText("完成时间", "Completed at"), width: 170, formatter: value => formatDateTime(value) },
+]);
+const upgradeColumns = computed<CommandTableColumn[]>(() => [
+  { key: "id", label: localeText("任务 ID", "Task ID"), width: 90 },
+  { key: "deviceNumber", label: localeText("设备编号", "Device number"), width: 150 },
+  { key: "firmwareVersion", label: localeText("固件版本", "Firmware version"), width: 110 },
+  { key: "executeStatus", label: localeText("执行状态", "Status"), width: Number(localeText("130", "200")) },
+  { key: "upgradeStageText", label: localeText("当前阶段", "Current stage"), width: 190 },
+  { key: "finishPercent", label: localeText("进度", "Progress"), width: 170 },
+  { key: "frameSummary", label: localeText("已收/总帧", "Received/total"), width: 110 },
+  { key: "repairRound", label: localeText("补帧轮次", "Repair round"), width: 100 },
+  { key: "startTime", label: localeText("开始时间", "Started at"), width: 170, formatter: value => formatDateTime(value) },
+]);
+const settingColumns = computed<CommandTableColumn[]>(() => [
+  { key: "id", label: localeText("任务 ID", "Task ID"), width: 95 },
+  { key: "deviceNumber", label: localeText("设备编号", "Device number"), width: 150 },
+  { key: "batchId", label: localeText("批次 ID", "Batch ID"), width: 210 },
+  // { key: "commandStatus", label: localeText("任务状态", "Task status"), width: Number(localeText("180", "230")) },
+  { key: "commandExecuteStatus", label: localeText("指令执行状态", "Command status"), width: Number(localeText("150", "210")) },
+  { key: "commandSentAt", label: localeText("发送时间", "Sent at"), width: 170, formatter: value => formatDateTime(value) },
+  { key: "commandExpiresAt", label: localeText("过期时间", "Expires at"), width: 170, formatter: value => formatDateTime(value) },
+  { key: "createdAt", label: localeText("创建时间", "Created at"), width: 170, formatter: value => formatDateTime(value) },
+]);
+const audioRepairColumns = computed<CommandTableColumn[]>(() => [
+  { key: "id", label: localeText("任务 ID", "Task ID"), width: 100 },
+  { key: "deviceNumber", label: localeText("设备编号", "Device number"), width: 150 },
+  { key: "status", label: localeText("任务状态", "Status"), width: Number(localeText("140", "190")) },
+  { key: "repairProgress", label: localeText("收集进度", "Progress"), width: 170 },
+  { key: "frameSummary", label: localeText("已收/总帧", "Received/total"), width: 120 },
+  { key: "missingFrameCount", label: localeText("缺失帧数", "Missing frames"), width: 110 },
+  { key: "updatedAt", label: localeText("更新时间", "Updated at"), width: 170, formatter: value => formatDateTime(value) },
+]);
+
+const activeView = ref<RecordView>("COMMAND");
+const commandFilters = reactive<FilterState>({ keyword: "", status: "", startDate: "", endDate: "" });
+const upgradeFilters = reactive<FilterState & { firmwareVersion: string }>({ keyword: "", firmwareVersion: "", status: "", startDate: "", endDate: "" });
+const settingFilters = reactive<FilterState>({ keyword: "", status: "", startDate: "", endDate: "" });
+const audioRepairFilters = reactive<FilterState>({ keyword: "", status: "", startDate: "", endDate: "" });
+const commandPage = reactive<PageState>({ current: 1, size: 10, total: 0 });
+const upgradePage = reactive<PageState>({ current: 1, size: 10, total: 0 });
+const settingPage = reactive<PageState>({ current: 1, size: 10, total: 0 });
+const audioRepairPage = reactive<PageState>({ current: 1, size: 10, total: 0 });
+const commandRows = ref<ApiRecord[]>([]);
+const upgradeRows = ref<ApiRecord[]>([]);
+const settingRows = ref<ApiRecord[]>([]);
+const audioRepairRows = ref<ApiRecord[]>([]);
+const commandLoading = ref(false);
+const upgradeLoading = ref(false);
+const settingLoading = ref(false);
+const audioRepairLoading = ref(false);
+const selectedCommandId = ref<string | number | null>(null);
+const selectedUpgradeId = ref<string | number | null>(null);
+const selectedSettingId = ref<string | number | null>(null);
+const selectedAudioRepairId = ref<string | number | null>(null);
+const selectedDetail = ref<ApiRecord | null>(null);
+const detailLoading = ref(false);
+const detailTab = ref<DetailTab>("OVERVIEW");
+const frames = ref<ApiRecord[]>([]);
+const selectedFrame = ref<ApiRecord | null>(null);
+const frameDetailVisible = ref(false);
+const events = ref<ApiRecord[]>([]);
+const selectedEvent = ref<ApiRecord | null>(null);
+const eventDetailVisible = ref(false);
+const subResourceLoading = ref(false);
+const canceling = ref(false);
+const deviceSettingDialogVisible = ref(false);
+const audioDetailTab = ref<AudioDetailTab>("OVERVIEW");
+const audioFrames = ref<ApiRecord[]>([]);
+const audioCommands = ref<ApiRecord[]>([]);
+const audioResourceLoading = ref(false);
+const audioFrameDetails = ref<ApiRecord[]>([]);
+const audioFrameDetailVisible = ref(false);
+
+const upgradeDialogVisible = ref(false);
+const upgradeStep = ref(1);
+const candidateLoading = ref(false);
+const checkingUpdatable = ref(false);
+const submittingUpgrade = ref(false);
+const firmwareCandidates = ref<ApiRecord[]>([]);
+const deviceCandidates = ref<ApiRecord[]>([]);
+const deviceKeyword = ref("");
+const upgradeDraft = reactive<{ firmwareId: string | number | null; devices: ApiRecord[] }>({ firmwareId: null, devices: [] });
+const updatableResults = ref<ApiRecord[]>([]);
+
+const activeFilters = computed(() => {
+  if (activeView.value === "COMMAND") return commandFilters;
+  if (activeView.value === "UPGRADE") return upgradeFilters;
+  if (activeView.value === "SETTING") return settingFilters;
+  return audioRepairFilters;
+});
+const activePage = computed(() => {
+  if (activeView.value === "COMMAND") return commandPage;
+  if (activeView.value === "UPGRADE") return upgradePage;
+  if (activeView.value === "SETTING") return settingPage;
+  return audioRepairPage;
+});
+const activeRows = computed(() => {
+  if (activeView.value === "COMMAND") return commandRows.value;
+  if (activeView.value === "UPGRADE") return upgradeRows.value;
+  if (activeView.value === "SETTING") return settingRows.value;
+  return audioRepairRows.value;
+});
+const activeLoading = computed(() => {
+  if (activeView.value === "COMMAND") return commandLoading.value;
+  if (activeView.value === "UPGRADE") return upgradeLoading.value;
+  if (activeView.value === "SETTING") return settingLoading.value;
+  return audioRepairLoading.value;
+});
+const activeColumns = computed(() => {
+  if (activeView.value === "COMMAND") return commandColumns.value;
+  if (activeView.value === "UPGRADE") return upgradeColumns.value;
+  if (activeView.value === "SETTING") return settingColumns.value;
+  return audioRepairColumns.value;
+});
+const selectedId = computed(() => {
+  if (activeView.value === "COMMAND") return selectedCommandId.value;
+  if (activeView.value === "UPGRADE") return selectedUpgradeId.value;
+  if (activeView.value === "SETTING") return selectedSettingId.value;
+  return selectedAudioRepairId.value;
+});
+const activeStatusOptions = computed(() => {
+  if (activeView.value === "COMMAND") return commandStatusOptions.value;
+  if (activeView.value === "UPGRADE") return upgradeStatusOptions.value;
+  if (activeView.value === "SETTING") return settingStatusOptions.value;
+  return audioRepairStatusOptions.value;
+});
+const audioMissingFrames = computed<number[]>(() => {
+  const value = selectedDetail.value?.missingFrameNumbers ?? selectedDetail.value?.missingFrames;
+  return Array.isArray(value) ? value.map(Number).filter(Number.isFinite) : [];
+});
+const selectedSettingParameters = computed(() => {
+  const detail = selectedDetail.value || {};
+  return deviceSettingParameterFields
+    .filter(key => detail[key] !== null && detail[key] !== undefined && detail[key] !== "")
+    .map(key => ({
+      key,
+      label: getDeviceSettingParameterLabel(key),
+      value: detail[key],
+    }));
+});
+const audioFrameDetailColumns = computed(() => {
+  const fieldOrder = [
+    "id",
+    "transferId",
+    "frameNo",
+    "rawHexBytes",
+    "receivedAt",
+    "createdAt",
+    "rawHex",
+    "contentData",
+  ];
+  const keys = [...new Set(audioFrameDetails.value.flatMap(frame => Object.keys(frame)))];
+  return keys.sort((left, right) => {
+    const leftIndex = fieldOrder.indexOf(left);
+    const rightIndex = fieldOrder.indexOf(right);
+    if (leftIndex === -1 && rightIndex === -1) return left.localeCompare(right);
+    if (leftIndex === -1) return 1;
+    if (rightIndex === -1) return -1;
+    return leftIndex - rightIndex;
+  }).map(key => ({
+    key,
+    label: getAudioFrameFieldLabel(key),
+    code: key !== "rawHexBytes" && /hex|content|payload|raw/i.test(key),
+    width: key !== "rawHexBytes" && /hex|content|payload|raw/i.test(key)
+      ? 480
+      : (/time|at$/i.test(key) ? 230 : 140),
+  }));
+});
+const audioFrameDetailGridTemplate = computed(() => audioFrameDetailColumns.value.map(column => `${column.width}px`).join(" "));
+const audioFrameDetailTableWidth = computed(() => audioFrameDetailColumns.value.reduce((total, column) => total + column.width, 0));
+const activeStatusIndex = computed(() => Math.max(0, activeStatusOptions.value.findIndex(item => item.value === activeFilters.value.status)));
+const selectedFirmware = computed(() => firmwareCandidates.value.find(item => item.id === upgradeDraft.firmwareId) || null);
+const selectedDevices = computed(() => upgradeDraft.devices);
+const filteredDeviceCandidates = computed(() => {
+  const keyword = deviceKeyword.value.trim().toLowerCase();
+  if (!keyword) return deviceCandidates.value;
+  return deviceCandidates.value.filter(item => [item.deviceNumber, item.deviceAlias, item.deviceName].some(value => String(value || "").toLowerCase().includes(keyword)));
+});
+const currentSelectableSelected = computed(() => {
+  const selectable = filteredDeviceCandidates.value.filter(isDirectDevice);
+  return selectable.length > 0 && selectable.every(isDeviceSelected);
+});
+const hasBlockedDevice = computed(() => selectedDevices.value.some(device => !getCheckResult(device.deviceNumber).updatable));
+const canSubmitUpgrade = computed(() => selectedDevices.value.length > 0 && updatableResults.value.length === selectedDevices.value.length && !hasBlockedDevice.value);
+const frameDetailColumns = computed(() => {
+  const fieldOrder = [
+    "id",
+    "frameIndex",
+    "payloadHex",
+    "dataLength",
+    "sendStatus",
+    "sendRound",
+    "sendAttempts",
+    "lastSessionId",
+    "lastSentAt",
+  ];
+  const keys = [...new Set(frames.value.flatMap(frame => Object.keys(frame)))].sort((left, right) => {
+    const leftIndex = fieldOrder.indexOf(left);
+    const rightIndex = fieldOrder.indexOf(right);
+    if (leftIndex === -1 && rightIndex === -1) return left.localeCompare(right);
+    if (leftIndex === -1) return 1;
+    if (rightIndex === -1) return -1;
+    return leftIndex - rightIndex;
   });
+  return keys.map(key => ({
+    key,
+    label: getFrameFieldLabel(key),
+    code: /hex|payload|content|raw/i.test(key),
+    width: getFrameColumnWidth(key),
+  }));
 });
-const devicePageCount = computed(() => Math.max(1, Math.ceil(filteredDevices.value.length / devicePage.size)));
-const pagedDevices = computed(() => {
-  const start = (devicePage.current - 1) * devicePage.size;
-  return filteredDevices.value.slice(start, start + devicePage.size);
+const frameDetailGridTemplate = computed(() => frameDetailColumns.value.map(column => `${column.width}px`).join(" "));
+const frameDetailTableWidth = computed(() => frameDetailColumns.value.reduce((total, column) => total + column.width, 0));
+const eventDetailColumns = computed(() => {
+  const fieldOrder = [
+    "id",
+    "upgradeLogId",
+    "deviceNumber",
+    "direction",
+    "directionName",
+    "eventType",
+    "eventTypeName",
+    "eventLevel",
+    "summary",
+    "frameIndex",
+    "sessionId",
+    "rawHex",
+    "rawHexBytes",
+    "detail",
+    "createdAt",
+    "updatedAt",
+  ];
+  const keys = [...new Set(events.value.flatMap(event => Object.keys(event)))].sort((left, right) => {
+    const leftIndex = fieldOrder.indexOf(left);
+    const rightIndex = fieldOrder.indexOf(right);
+    if (leftIndex === -1 && rightIndex === -1) return left.localeCompare(right);
+    if (leftIndex === -1) return 1;
+    if (rightIndex === -1) return -1;
+    return leftIndex - rightIndex;
+  });
+  return keys.map(key => ({
+    key,
+    label: getEventFieldLabel(key),
+    code: key !== "rawHexBytes" && /hex|payload|content|raw|detail/i.test(key),
+    width: getEventColumnWidth(key),
+  }));
 });
-const isCurrentDevicePageSelected = computed(
-  () => pagedDevices.value.length > 0 && pagedDevices.value.every((device) => draft.deviceIds.includes(device.id)),
-);
-
-const progressVisible = ref(false);
-const progressTaskId = ref("");
-const progressTask = computed(() => tasks.value.find((item) => item.id === progressTaskId.value) || null);
-
-watch(
-  () => [deviceFilters.keyword, deviceFilters.onlineStatus],
-  () => {
-    devicePage.current = 1;
-  },
-);
-
-watch(devicePageCount, (count) => {
-  if (devicePage.current > count) devicePage.current = count;
-});
+const eventDetailGridTemplate = computed(() => eventDetailColumns.value.map(column => `${column.width}px`).join(" "));
+const eventDetailTableWidth = computed(() => eventDetailColumns.value.reduce((total, column) => total + column.width, 0));
 
 onMounted(() => {
-  if (!selectedTaskId.value && tasks.value.length) selectedTaskId.value = tasks.value[0].id;
+  loadCommandPage(true);
 });
 
-onUnmounted(() => clearAllTimers());
+async function switchRecordView(view: RecordView) {
+  if (activeView.value === view) return;
+  activeView.value = view;
+  selectedDetail.value = null;
+  detailTab.value = "OVERVIEW";
+  // 每次进入记录模块都选中当前页第一条，避免保留旧 ID 时右侧详情为空。
+  await loadActivePage(true);
+}
 
-function loadTasks(): MockCommandTask[] {
+async function loadActivePage(selectFirst = false) {
+  if (activeView.value === "COMMAND") await loadCommandPage(selectFirst);
+  else if (activeView.value === "UPGRADE") await loadUpgradePage(selectFirst);
+  else if (activeView.value === "SETTING") await loadSettingPage(selectFirst);
+  else await loadAudioRepairPage(selectFirst);
+}
+
+async function loadCommandPage(selectFirst = false) {
+  commandLoading.value = true;
   try {
-    const stored = uni.getStorageSync(TASK_STORAGE_KEY);
-    if (!Array.isArray(stored)) return [];
-    return (stored as MockCommandTask[]).map((task) => {
-      const devices = task.devices.map((device) => {
-        if (!ACTIVE_DEVICE_STATUSES.includes(device.status)) return device;
-        return {
-          ...device,
-          status: "PAUSED" as DeviceTaskStatus,
-          phaseText: "模拟已暂停",
-          responseMessage: "页面曾被关闭或刷新，点击“继续模拟”恢复流程",
-        };
-      });
-      const nextTask = { ...task, devices };
-      recalculateTask(nextTask, false);
-      return nextTask;
+    const response = await getCommandSendLogPage({
+      pageNum: commandPage.current,
+      pageSize: commandPage.size,
+      deviceNumber: commandFilters.keyword.trim() || undefined,
+      executeStatus: toOptionalNumber(commandFilters.status),
+      startTime: toStartTime(commandFilters.startDate),
+      endTime: toEndTime(commandFilters.endDate),
+      sortOrder: "desc",
     });
+    const pageData = unwrapResponse(response);
+    commandRows.value = getPageRecords(pageData).map(normalizeCommandLog);
+    commandPage.total = getPageTotal(pageData, commandRows.value.length);
+    if (selectFirst || !commandRows.value.some(item => item.id === selectedCommandId.value)) {
+      if (commandRows.value[0]) await selectCommandRow(commandRows.value[0]);
+      else clearSelection("COMMAND");
+    }
   } catch (error) {
-    console.warn("读取模拟指令历史失败", error);
-    return [];
+    showError(error, localeText("指令记录加载失败", "Failed to load command records"));
+  } finally {
+    commandLoading.value = false;
   }
 }
 
-function persistTasks() {
+async function loadUpgradePage(selectFirst = false) {
+  upgradeLoading.value = true;
   try {
-    uni.setStorageSync(TASK_STORAGE_KEY, tasks.value);
+    const response = await getFirmwareUpgradeLogPage({
+      pageNum: upgradePage.current,
+      pageSize: upgradePage.size,
+      deviceNumber: upgradeFilters.keyword || undefined,
+      firmwareVersion: upgradeFilters.firmwareVersion || undefined,
+      executeStatus: toOptionalNumber(upgradeFilters.status),
+      startTime: toStartTime(upgradeFilters.startDate),
+      endTime: toEndTime(upgradeFilters.endDate),
+      sortOrder: "desc",
+    });
+    const pageData = unwrapResponse(response);
+    upgradeRows.value = getPageRecords(pageData).map(normalizeUpgradeLog);
+    upgradePage.total = getPageTotal(pageData, upgradeRows.value.length);
+    if (selectFirst || !upgradeRows.value.some(item => item.id === selectedUpgradeId.value)) {
+      if (upgradeRows.value[0]) await selectUpgradeRow(upgradeRows.value[0]);
+      else clearSelection("UPGRADE");
+    }
   } catch (error) {
-    console.warn("保存模拟指令历史失败", error);
+    showError(error, localeText("升级记录加载失败", "Failed to load upgrade records"));
+  } finally {
+    upgradeLoading.value = false;
   }
 }
 
-function refreshTasks() {
-  clearAllTimers();
-  tasks.value = loadTasks();
-  selectedTaskId.value = tasks.value[0]?.id || "";
-  uni.showToast({ title: "已刷新本地记录", icon: "success" });
+async function loadSettingPage(selectFirst = false) {
+  settingLoading.value = true;
+  try {
+    const response = await getDeviceSettingPage({
+      pageNum: settingPage.current,
+      pageSize: settingPage.size,
+      deviceNumber: settingFilters.keyword.trim() || undefined,
+      commandStatus: settingFilters.status || undefined,
+      startTime: toStartTime(settingFilters.startDate),
+      endTime: toEndTime(settingFilters.endDate),
+      sortOrder: "desc",
+    });
+    const pageData = unwrapResponse(response);
+    settingRows.value = getPageRecords(pageData).map(normalizeDeviceSetting);
+    settingPage.total = getPageTotal(pageData, settingRows.value.length);
+    if (selectFirst || !settingRows.value.some(item => item.id === selectedSettingId.value)) {
+      if (settingRows.value[0]) await selectSettingRow(settingRows.value[0]);
+      else clearSelection("SETTING");
+    }
+  } catch (error) {
+    showError(error, localeText("设备参数设置记录加载失败", "Failed to load device parameter tasks"));
+  } finally {
+    settingLoading.value = false;
+  }
+}
+
+async function loadAudioRepairPage(selectFirst = false) {
+  audioRepairLoading.value = true;
+  try {
+    const response = await getAudioRepairPage({
+      pageNum: audioRepairPage.current,
+      pageSize: Math.min(audioRepairPage.size, 200),
+      deviceNumber: audioRepairFilters.keyword.trim() || undefined,
+      status: audioRepairFilters.status || undefined,
+      startTime: toStartTime(audioRepairFilters.startDate),
+      endTime: toEndTime(audioRepairFilters.endDate),
+      sortOrder: "desc",
+    });
+    const pageData = unwrapResponse(response);
+    audioRepairRows.value = getPageRecords(pageData).map(normalizeAudioRepairTask);
+    audioRepairPage.total = getPageTotal(pageData, audioRepairRows.value.length);
+    if (selectFirst || !audioRepairRows.value.some(item => item.id === selectedAudioRepairId.value)) {
+      if (audioRepairRows.value[0]) await selectAudioRepairRow(audioRepairRows.value[0]);
+      else clearSelection("AUDIO_REPAIR");
+    }
+  } catch (error) {
+    showError(error, localeText("音频补帧记录加载失败", "Failed to load audio repair tasks"));
+  } finally {
+    audioRepairLoading.value = false;
+  }
+}
+
+async function selectRow(row: ApiRecord) {
+  if (activeView.value === "COMMAND") await selectCommandRow(row);
+  else if (activeView.value === "UPGRADE") await selectUpgradeRow(row);
+  else if (activeView.value === "SETTING") await selectSettingRow(row);
+  else await selectAudioRepairRow(row);
+}
+
+async function selectCommandRow(row: ApiRecord) {
+  selectedCommandId.value = row.id;
+  detailLoading.value = true;
+  try {
+    const detail = unwrapResponse(await getCommandSendLogDetail(row.id));
+    // 详情接口缺少部分字段时，用列表行数据补齐右侧展示内容。
+    selectedDetail.value = normalizeCommandLog({ ...row, ...(detail || {}) });
+  } catch (error) {
+    selectedDetail.value = row;
+    showError(error, localeText("指令详情加载失败", "Failed to load command details"));
+  } finally {
+    detailLoading.value = false;
+  }
+}
+
+async function selectUpgradeRow(row: ApiRecord) {
+  selectedUpgradeId.value = row.id;
+  detailTab.value = "OVERVIEW";
+  frames.value = [];
+  selectedFrame.value = null;
+  frameDetailVisible.value = false;
+  events.value = [];
+  selectedEvent.value = null;
+  eventDetailVisible.value = false;
+  await loadSelectedUpgradeDetail(false);
+}
+
+async function selectSettingRow(row: ApiRecord) {
+  selectedSettingId.value = row.id;
+  detailLoading.value = true;
+  try {
+    const detail = unwrapResponse(await getDeviceSettingDetail(row.id));
+    selectedDetail.value = normalizeDeviceSetting({ ...row, ...(detail || {}) });
+  } catch (error) {
+    selectedDetail.value = row;
+    showError(error, localeText("设备参数设置详情加载失败", "Failed to load device parameter task details"));
+  } finally {
+    detailLoading.value = false;
+  }
+}
+
+async function selectAudioRepairRow(row: ApiRecord) {
+  selectedAudioRepairId.value = row.transferId ?? row.id;
+  audioDetailTab.value = "OVERVIEW";
+  audioFrames.value = [];
+  audioCommands.value = [];
+  audioFrameDetails.value = [];
+  audioFrameDetailVisible.value = false;
+  detailLoading.value = true;
+  try {
+    const detail = unwrapResponse(await getAudioRepairDetail(selectedAudioRepairId.value));
+    const normalized = normalizeAudioRepairTask({ ...row, ...(detail || {}) });
+    selectedDetail.value = normalized;
+    const index = audioRepairRows.value.findIndex(item => item.id === normalized.id);
+    if (index >= 0) audioRepairRows.value.splice(index, 1, normalized);
+  } catch (error) {
+    selectedDetail.value = row;
+    showError(error, localeText("音频补帧任务详情加载失败", "Failed to load audio repair task details"));
+  } finally {
+    detailLoading.value = false;
+  }
+}
+
+async function switchAudioDetailTab(tab: AudioDetailTab) {
+  audioDetailTab.value = tab;
+  if (tab === "FRAMES" && !audioFrames.value.length) await loadAudioFrames(false);
+  if (tab === "COMMANDS" && !audioCommands.value.length) await loadAudioCommands(false);
+}
+
+async function loadAudioFrames(showMessage: boolean) {
+  if (selectedAudioRepairId.value === null) return;
+  audioResourceLoading.value = true;
+  try {
+    audioFrames.value = asArray(unwrapResponse(await getAudioRepairFrames(selectedAudioRepairId.value)));
+    if (audioFrameDetailVisible.value) audioFrameDetails.value = [...audioFrames.value];
+    if (showMessage) showToast(localeText("分片记录已刷新", "Frame records refreshed"));
+  } catch (error) {
+    showError(error, localeText("音频分片加载失败", "Failed to load audio frames"));
+  } finally {
+    audioResourceLoading.value = false;
+  }
+}
+
+async function openAudioFrameDetail() {
+  if (selectedAudioRepairId.value === null) return;
+  if (!audioFrames.value.length) await loadAudioFrames(false);
+  audioFrameDetails.value = [...audioFrames.value];
+  if (audioFrameDetails.value.length) audioFrameDetailVisible.value = true;
+}
+
+function closeAudioFrameDetail() {
+  audioFrameDetailVisible.value = false;
+}
+
+async function loadAudioCommands(showMessage: boolean) {
+  if (selectedAudioRepairId.value === null) return;
+  audioResourceLoading.value = true;
+  try {
+    audioCommands.value = asArray(unwrapResponse(await getAudioRepairCommands(selectedAudioRepairId.value))).map(normalizeCommandLog);
+    if (showMessage) showToast(localeText("相关指令已刷新", "Commands refreshed"));
+  } catch (error) {
+    showError(error, localeText("补帧指令加载失败", "Failed to load repair commands"));
+  } finally {
+    audioResourceLoading.value = false;
+  }
+}
+
+async function loadSelectedUpgradeDetail(silent = false) {
+  if (selectedUpgradeId.value === null) return;
+  if (!silent) detailLoading.value = true;
+  try {
+    const detail = normalizeUpgradeLog(unwrapResponse(await getFirmwareUpgradeLogDetail(selectedUpgradeId.value)));
+    selectedDetail.value = detail;
+    const index = upgradeRows.value.findIndex(item => item.id === detail.id);
+    if (index >= 0) upgradeRows.value.splice(index, 1, detail);
+  } catch (error) {
+    if (!silent) showError(error, localeText("升级详情加载失败", "Failed to load upgrade details"));
+  } finally {
+    if (!silent) detailLoading.value = false;
+  }
+}
+
+async function switchDetailTab(tab: DetailTab) {
+  detailTab.value = tab;
+  if (tab === "FRAMES" && !frames.value.length) await loadFrames(false);
+  if (tab === "EVENTS" && !events.value.length) await loadEvents(false);
+}
+
+async function loadFrames(showMessage: boolean) {
+  if (selectedUpgradeId.value === null) return;
+  subResourceLoading.value = true;
+  try {
+    const previousId = selectedFrame.value?.id;
+    const previousFrameIndex = selectedFrame.value?.frameIndex;
+    frames.value = asArray(unwrapResponse(await getFirmwareUpgradeFrames(selectedUpgradeId.value)));
+    selectedFrame.value = frames.value.find(frame =>
+      previousId !== undefined
+        ? frame.id === previousId
+        : previousFrameIndex !== undefined && frame.frameIndex === previousFrameIndex,
+    ) || frames.value[0] || null;
+    if (showMessage) showToast(localeText("帧记录已刷新", "Frame records refreshed"));
+  } catch (error) {
+    showError(error, localeText("帧记录加载失败", "Failed to load frame records"));
+  } finally {
+    subResourceLoading.value = false;
+  }
+}
+
+function openFrameDetail() {
+  if (frames.value.length) frameDetailVisible.value = true;
+}
+
+function closeFrameDetail() {
+  frameDetailVisible.value = false;
+}
+
+async function loadEvents(showMessage: boolean) {
+  if (selectedUpgradeId.value === null) return;
+  subResourceLoading.value = true;
+  try {
+    const previousId = selectedEvent.value?.id;
+    events.value = asArray(unwrapResponse(await getFirmwareUpgradeEvents(selectedUpgradeId.value))).map(normalizeUpgradeEvent);
+    selectedEvent.value = events.value.find(event => previousId !== undefined && event.id === previousId) || events.value[0] || null;
+    if (showMessage) showToast(localeText("事件记录已刷新", "Event records refreshed"));
+  } catch (error) {
+    showError(error, localeText("事件记录加载失败", "Failed to load event records"));
+  } finally {
+    subResourceLoading.value = false;
+  }
+}
+
+function openEventDetail() {
+  if (events.value.length) eventDetailVisible.value = true;
+}
+
+function closeEventDetail() {
+  eventDetailVisible.value = false;
+}
+
+async function confirmCancelUpgrade() {
+  if (!selectedDetail.value || !canCancelUpgrade(selectedDetail.value)) return;
+  const deviceNumber = selectedDetail.value.deviceNumber || "--";
+  const confirmed = await showConfirm(
+    localeText("取消固件升级", "Cancel firmware upgrade"),
+    localeText(`确认取消设备 ${deviceNumber} 的升级任务吗？`, `Cancel the upgrade task for device ${deviceNumber}?`),
+  );
+  if (!confirmed) return;
+  canceling.value = true;
+  try {
+    unwrapResponse(await cancelFirmwareUpgrade({ upgradeLogIds: [selectedDetail.value.id] }));
+    showToast(localeText("取消请求已提交", "Cancellation request submitted"));
+    await loadSelectedUpgradeDetail(false);
+  } catch (error) {
+    showError(error, localeText("取消升级失败", "Failed to cancel upgrade"));
+  } finally {
+    canceling.value = false;
+  }
+}
+
+async function openUpgradeDialog() {
+  upgradeDialogVisible.value = true;
+  upgradeStep.value = 1;
+  upgradeDraft.firmwareId = null;
+  upgradeDraft.devices = [];
+  updatableResults.value = [];
+  deviceKeyword.value = "";
+  candidateLoading.value = true;
+  try {
+    await Promise.all([loadFirmwareCandidates(), loadDeviceCandidates()]);
+  } finally {
+    candidateLoading.value = false;
+  }
+}
+
+function closeUpgradeDialog() {
+  if (submittingUpgrade.value) return;
+  upgradeDialogVisible.value = false;
+}
+
+async function loadFirmwareCandidates() {
+  try {
+    const page = unwrapResponse(await getFirmwarePage({ pageNum: 1, pageSize: 100, sortOrder: "desc" }));
+    firmwareCandidates.value = getPageRecords(page);
+    if (!upgradeDraft.firmwareId && firmwareCandidates.value[0]) upgradeDraft.firmwareId = firmwareCandidates.value[0].id;
+  } catch (error) {
+    firmwareCandidates.value = [];
+    showError(error, localeText("固件列表加载失败", "Failed to load firmware"));
+  }
+}
+
+async function loadDeviceCandidates() {
+  try {
+    const page = unwrapResponse(await getDevicePage({ pageNum: 1, pageSize: 200 }));
+    deviceCandidates.value = getPageRecords(page);
+  } catch (error) {
+    deviceCandidates.value = [];
+    showError(error, localeText("设备列表加载失败", "Failed to load devices"));
+  }
+}
+
+async function nextUpgradeStep() {
+  if (upgradeStep.value === 1) {
+    if (!upgradeDraft.firmwareId) return showToast(localeText("请选择固件", "Select firmware"));
+    upgradeStep.value = 2;
+    return;
+  }
+  if (!selectedDevices.value.length) return showToast(localeText("请选择至少一台设备", "Select at least one device"));
+  upgradeStep.value = 3;
+  await runUpdatableCheck();
+}
+
+async function runUpdatableCheck() {
+  if (!selectedDevices.value.length) return;
+  checkingUpdatable.value = true;
+  try {
+    const result = unwrapResponse(await checkFirmwareUpdatable({
+      deviceNumbers: selectedDevices.value.map(item => item.deviceNumber),
+    }));
+    updatableResults.value = asArray(result);
+  } catch (error) {
+    updatableResults.value = [];
+    showError(error, localeText("设备升级检查失败", "Failed to check device eligibility"));
+  } finally {
+    checkingUpdatable.value = false;
+  }
+}
+
+async function submitUpgrade() {
+  if (!canSubmitUpgrade.value || !selectedFirmware.value) return;
+  submittingUpgrade.value = true;
+  try {
+    const userInfo = uni.getStorageSync("userInfo") || {};
+    const result = unwrapResponse(await startFirmwareUpgrade({
+      firmwareId: selectedFirmware.value.id,
+      deviceNumbers: selectedDevices.value.map(item => item.deviceNumber),
+      createUser: userInfo.username || userInfo.userName || userInfo.realName || undefined,
+    }));
+    const taskCount = Array.isArray(result?.upgradeLogIds) ? result.upgradeLogIds.length : selectedDevices.value.length;
+    upgradeDialogVisible.value = false;
+    activeView.value = "UPGRADE";
+    upgradePage.current = 1;
+    showToast(localeText(`已创建 ${taskCount} 个升级任务`, `${taskCount} upgrade task(s) created`));
+    await loadUpgradePage(true);
+  } catch (error) {
+    showError(error, localeText("发起固件升级失败", "Failed to start firmware upgrade"));
+  } finally {
+    submittingUpgrade.value = false;
+  }
+}
+
+function toggleDevice(device: ApiRecord) {
+  if (!isDirectDevice(device)) return showToast(localeText("该设备不是 TCP 直连下发方式", "This device does not use direct TCP dispatch"));
+  const index = upgradeDraft.devices.findIndex(item => item.id === device.id);
+  if (index >= 0) upgradeDraft.devices.splice(index, 1);
+  else upgradeDraft.devices.push(device);
+  updatableResults.value = [];
+}
+
+function toggleSelectableDevices() {
+  const selectable = filteredDeviceCandidates.value.filter(isDirectDevice);
+  if (currentSelectableSelected.value) {
+    const ids = new Set(selectable.map(item => item.id));
+    upgradeDraft.devices = upgradeDraft.devices.filter(item => !ids.has(item.id));
+  } else {
+    const ids = new Set(upgradeDraft.devices.map(item => item.id));
+    upgradeDraft.devices = [...upgradeDraft.devices, ...selectable.filter(item => !ids.has(item.id))];
+  }
+  updatableResults.value = [];
+}
+
+function isDeviceSelected(device: ApiRecord) {
+  return upgradeDraft.devices.some(item => item.id === device.id);
+}
+
+function isDirectDevice(device: ApiRecord) {
+  return Number(device.commandSendway) === 0;
+}
+
+function isDeviceOnline(device: ApiRecord) {
+  return Number(device.tcpOnlineStatus ?? device.onlineStatus ?? device.isOnline) === 1;
+}
+
+function getCheckResult(deviceNumber: string) {
+  if (checkingUpdatable.value) return { updatable: false, label: localeText("检查中", "Checking") };
+  const result = updatableResults.value.find(item => String(item.deviceNumber) === String(deviceNumber));
+  if (!result) return { updatable: false, label: localeText("尚未检查", "Not checked") };
+  return {
+    updatable: result.updatable === true || Number(result.updatable) === 1,
+    label: result.updatable === true || Number(result.updatable) === 1
+      ? localeText("可以升级", "Upgradable")
+      : (result.reason || result.message || localeText("存在未结束任务", "An unfinished task exists")),
+  };
+}
+
+function handleSearch() {
+  activePage.value.current = 1;
+  loadActivePage(true);
 }
 
 function resetFilters() {
-  filters.keyword = "";
-  filters.executionType = "ALL";
-  filters.status = "ALL";
-  filters.startDate = "";
-  filters.endDate = "";
+  Object.assign(activeFilters.value, { keyword: "", status: "", startDate: "", endDate: "" });
+  if (activeView.value === "UPGRADE") upgradeFilters.firmwareVersion = "";
+  handleSearch();
 }
 
-function clearMockTasks() {
-  uni.showModal({
-    title: "清空模拟记录",
-    content: "确认清空全部历史指令和模拟进度吗？",
-    success(result) {
-      if (!result.confirm) return;
-      clearAllTimers();
-      tasks.value = [];
-      selectedTaskId.value = "";
-      progressVisible.value = false;
-      persistTasks();
-    },
-  });
+function handleStatusChange(event: { detail: { value: string | number } }) {
+  activeFilters.value.status = activeStatusOptions.value[Number(event.detail.value)]?.value || "";
+  handleSearch();
 }
 
-function openDispatch() {
-  dispatchStep.value = 1;
-  draft.commandId = prototypeCommands[0].id;
-  draft.deviceIds = [];
-  draft.scenario = "NORMAL";
-  draft.audioRecordId = prototypeAudioRecords[0].id;
-  firmwareDraft.value = null;
-  deviceFilters.keyword = "";
-  deviceFilters.onlineStatus = "ALL";
-  devicePage.current = 1;
-  dispatchVisible.value = true;
+function handleStartDateChange(event: { detail: { value: string } }) {
+  activeFilters.value.startDate = event.detail.value;
 }
 
-function closeDispatch() {
-  dispatchVisible.value = false;
+function handleEndDateChange(event: { detail: { value: string } }) {
+  activeFilters.value.endDate = event.detail.value;
 }
 
-function goNextStep() {
-  if (dispatchStep.value === 1 && !selectedDraftCommand.value) {
-    showToast("请选择指令");
-    return;
-  }
-  if (dispatchStep.value === 2 && draft.deviceIds.length === 0) {
-    showToast("请至少选择一台设备");
-    return;
-  }
-  dispatchStep.value++;
+function changePage(page: number) {
+  activePage.value.current = page;
+  loadActivePage(true);
 }
 
-function createMockTask() {
-  const command = selectedDraftCommand.value;
-  if (!command) return;
-  if (!draft.deviceIds.length) {
-    showToast("请至少选择一台设备");
-    return;
-  }
-  if (command.executionType === "FIRMWARE_UPGRADE" && !firmwareDraft.value) {
-    showToast("请选择固件 TXT 文件");
-    return;
-  }
-  if (command.executionType === "AUDIO_REPAIR" && (!selectedAudioRecord.value || selectedAudioRecord.value.missingFrames.length === 0)) {
-    showToast("所选音频已收齐，请选择存在缺帧的记录");
-    return;
-  }
-
-  const now = formatDate(new Date());
-  const id = createId("task");
-  const selectedDevices = prototypeDevices.filter((device) => draft.deviceIds.includes(device.id));
-  const audio = selectedAudioRecord.value;
-  const totalFrames = command.executionType === "FIRMWARE_UPGRADE" ? firmwareDraft.value?.totalFrames || 0 : command.executionType === "AUDIO_REPAIR" ? audio?.totalFrames || 0 : 1;
-  const completedFrames = command.executionType === "AUDIO_REPAIR" ? audio?.receivedFrames || 0 : 0;
-  const missingFrames = command.executionType === "AUDIO_REPAIR" ? [...(audio?.missingFrames || [])] : [];
-
-  const task: MockCommandTask = {
-    id,
-    taskNo: createTaskNo(),
-    commandId: command.id,
-    commandName: command.name,
-    commandCode: command.commandCode,
-    executionType: command.executionType,
-    scenario: draft.scenario,
-    params:
-      command.executionType === "PARAM_SETTING"
-        ? {
-            sampleInterval: Number(parameterForm.sampleInterval),
-            uploadInterval: Number(parameterForm.uploadInterval),
-            serverHost: parameterForm.serverHost,
-            serverPort: Number(parameterForm.serverPort),
-          }
-        : {},
-    firmware: command.executionType === "FIRMWARE_UPGRADE" ? { ...firmwareDraft.value! } : undefined,
-    audio:
-      command.executionType === "AUDIO_REPAIR" && audio
-        ? {
-            recordId: audio.id,
-            totalFrames: audio.totalFrames,
-            initialReceivedFrames: audio.receivedFrames,
-            initialMissingFrames: [...audio.missingFrames],
-          }
-        : undefined,
-    devices: selectedDevices.map((device) => ({
-      id: `${id}-${device.id}`,
-      deviceId: device.id,
-      deviceNumber: device.deviceNumber,
-      deviceType: device.deviceType,
-      onlineStatus: device.onlineStatus,
-      status: device.onlineStatus ? "WAITING_DELAY" : "WAITING_ONLINE",
-      phaseText: device.onlineStatus ? "等待 1 秒后下发" : "等待设备上线",
-      progress: command.executionType === "AUDIO_REPAIR" ? Math.round((completedFrames / totalFrames) * 100) : 0,
-      round: device.onlineStatus ? 1 : 0,
-      maxRounds: command.executionType === "AUDIO_REPAIR" ? 4 : null,
-      totalFrames,
-      completedFrames,
-      missingFrames: [...missingFrames],
-      responseMessage: device.onlineStatus ? "检测到模拟设备在线" : "尚未检测到设备连接",
-      updatedAt: now,
-      timeline: [
-        {
-          id: createId("event"),
-          time: now,
-          title: "创建模拟设备任务",
-          message: device.onlineStatus ? "设备当前为模拟在线状态" : "设备当前为模拟离线状态",
-          tone: "info",
-        },
-      ],
-    })),
-    status: "WAITING",
-    progress: 0,
-    successCount: 0,
-    failedCount: 0,
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  recalculateTask(task, false);
-  tasks.value.unshift(task);
-  selectedTaskId.value = task.id;
-  persistTasks();
-  closeDispatch();
-  openProgress(task);
-
-  task.devices.filter((device) => device.onlineStatus === 1).forEach((device) => beginDeviceCycle(task, device, false));
+function changePageSize(size: number) {
+  activePage.value.size = size;
+  activePage.value.current = 1;
+  loadActivePage(true);
 }
 
-function beginDeviceCycle(task: MockCommandTask, device: MockDeviceTask, reconnect: boolean) {
-  clearDeviceTimers(device.id);
-  device.onlineStatus = 1;
-  device.round = reconnect ? Math.max(1, device.round + 1) : Math.max(1, device.round);
-  updateDevice(task, device, {
-    status: "WAITING_DELAY",
-    phaseText: "等待 1 秒后下发",
-    responseMessage: reconnect ? `检测到第 ${device.round} 次模拟连接` : "检测到模拟设备在线，准备下发",
-    progress: Math.max(device.progress, 5),
-  }, "设备连接", reconnect ? `开始第 ${device.round} 轮模拟流程` : "模拟设备已连接，等待下发窗口");
-
-  queueDeviceTimer(device.id, () => {
-    if (task.executionType === "PARAM_SETTING") runParameterSimulation(task, device);
-    if (task.executionType === "FIRMWARE_UPGRADE") runFirmwareSimulation(task, device, reconnect);
-    if (task.executionType === "AUDIO_REPAIR") runAudioSimulation(task, device);
-  }, 1000);
+async function handleDeviceSettingSubmitted() {
+  activeView.value = "SETTING";
+  settingPage.current = 1;
+  await loadSettingPage(true);
 }
 
-function runParameterSimulation(task: MockCommandTask, device: MockDeviceTask) {
-  updateDevice(task, device, { status: "SENDING", phaseText: "正在下发参数", progress: 55, responseMessage: "模拟写入参数指令" }, "开始下发", "已进入 10 秒模拟下发窗口");
-  queueDeviceTimer(device.id, () => {
-    updateDevice(task, device, { status: "WAITING_RESPONSE", phaseText: "等待模拟返回", progress: 85, responseMessage: "指令已下发，等待设备返回" });
-    queueDeviceTimer(device.id, () => {
-      if (task.scenario === "FAILURE") {
-        finishDevice(task, device, "FAILED", "模拟返回：参数校验失败", "设备拒绝参数设置");
-        return;
-      }
-      if (task.scenario === "NO_RESPONSE") {
-        finishDevice(task, device, "SUCCESS", "已下发（暂未验证设备执行结果）", "当前协议不校验参数设置回执");
-        return;
-      }
-      finishDevice(task, device, "SUCCESS", "模拟返回：参数设置完成", "设备返回参数设置成功");
-    }, 1000);
-  }, 700);
+function clearSelection(view: RecordView) {
+  if (view === "COMMAND") selectedCommandId.value = null;
+  else if (view === "UPGRADE") selectedUpgradeId.value = null;
+  else if (view === "SETTING") selectedSettingId.value = null;
+  else selectedAudioRepairId.value = null;
+  selectedDetail.value = null;
 }
 
-function runFirmwareSimulation(task: MockCommandTask, device: MockDeviceTask, reconnect: boolean) {
-  const total = Math.max(1, device.totalFrames);
-  const frames = reconnect && device.missingFrames.length ? [...device.missingFrames] : Array.from({ length: total }, (_, index) => index + 1);
-  const alreadyCompleted = reconnect ? total - device.missingFrames.length : 0;
-  updateDevice(task, device, { status: "SENDING", phaseText: "正在依次下发固件帧", responseMessage: `第 ${device.round} 轮计划发送 ${frames.length} 帧` }, "开始发送固件", `按 1 秒间隔模拟发送 ${frames.length} 个数据帧`);
-
-  const sendNext = (index: number) => {
-    if (index >= frames.length) {
-      updateDevice(task, device, { status: "WAITING_RESPONSE", phaseText: "等待缺帧反馈", progress: 94, responseMessage: "本轮发送完成，等待设备反馈" });
-      queueDeviceTimer(device.id, () => completeFirmwareRound(task, device, frames), 1000);
-      return;
-    }
-    const completed = Math.min(total, alreadyCompleted + index + 1);
-    updateDevice(task, device, {
-      completedFrames: completed,
-      progress: Math.max(6, Math.round((completed / total) * 90)),
-      responseMessage: `正在发送第 ${frames[index]} 帧，本轮 ${index + 1}/${frames.length}`,
-    });
-    queueDeviceTimer(device.id, () => sendNext(index + 1), 1000);
-  };
-
-  sendNext(0);
-}
-
-function completeFirmwareRound(task: MockCommandTask, device: MockDeviceTask, frames: number[]) {
-  if (task.scenario === "FAILURE") {
-    finishDevice(task, device, "FAILED", "模拟返回：固件校验失败", "设备返回升级失败");
-    return;
-  }
-
-  if (task.scenario === "NORMAL" || (task.scenario === "PARTIAL_MISSING" && device.round >= 2)) {
-    device.missingFrames = [];
-    device.completedFrames = device.totalFrames;
-    finishDevice(task, device, "SUCCESS", "模拟返回：全部固件帧已接收，升级成功", "设备确认固件升级成功");
-    return;
-  }
-
-  let missing: number[];
-  if (task.scenario === "NO_RESPONSE") {
-    missing = device.missingFrames.length ? [...device.missingFrames] : frames.slice(-Math.min(5, frames.length));
-  } else {
-    missing = frames.filter((frame) => frame % 7 === 0 || frame === frames[frames.length - 1]).slice(0, Math.max(1, Math.ceil(frames.length * 0.15)));
-  }
-  device.missingFrames = missing;
-  device.completedFrames = Math.max(0, device.totalFrames - missing.length);
-  updateDevice(task, device, {
-    status: "WAITING_RECONNECT",
-    phaseText: "等待设备下次连接",
-    progress: Math.round((device.completedFrames / device.totalFrames) * 90),
-    responseMessage:
-      task.scenario === "NO_RESPONSE"
-        ? `未收到完整反馈，保留 ${missing.length} 帧待重试`
-        : `模拟返回：缺失 ${missing.length} 帧（${formatMissingFrames(missing)}）`,
-  }, "等待断点续传", `下次连接只补发缺失的 ${missing.length} 帧`, "warning");
-}
-
-function runAudioSimulation(task: MockCommandTask, device: MockDeviceTask) {
-  updateDevice(task, device, {
-    status: "SENDING",
-    phaseText: "正在下发音频补帧指令",
-    responseMessage: `第 ${device.round}/4 轮，缺失 ${device.missingFrames.length} 帧`,
-  }, "下发补帧指令", `本轮请求补传 ${device.missingFrames.length} 帧`);
-
-  queueDeviceTimer(device.id, () => {
-    if (task.scenario === "FAILURE") {
-      finishDevice(task, device, "FAILED", "模拟返回：设备拒绝音频补帧指令", "音频补帧失败");
-      return;
-    }
-
-    const before = [...device.missingFrames];
-    const receiveCount = task.scenario === "NO_RESPONSE" ? 0 : task.scenario === "NORMAL" ? before.length : Math.max(1, Math.ceil(before.length * 0.55));
-    device.missingFrames = before.slice(receiveCount);
-    device.completedFrames = Math.max(0, device.totalFrames - device.missingFrames.length);
-    device.progress = Math.round((device.completedFrames / device.totalFrames) * 100);
-
-    if (device.missingFrames.length === 0) {
-      finishDevice(task, device, "SUCCESS", `模拟返回：音频 ${device.totalFrames}/${device.totalFrames} 帧已收齐`, "音频补帧完成");
-      return;
-    }
-
-    if (device.round >= 4) {
-      finishDevice(task, device, "ABANDONED", `第 4 轮后仍缺失 ${device.missingFrames.length} 帧，已放弃`, "达到最大补帧轮次", "danger");
-      return;
-    }
-
-    updateDevice(task, device, {
-      status: "WAITING_RECONNECT",
-      phaseText: "等待下一次连接补帧",
-      responseMessage:
-        receiveCount > 0
-          ? `模拟收到 ${receiveCount} 帧，当前 ${device.completedFrames}/${device.totalFrames}，仍缺 ${device.missingFrames.length} 帧`
-          : `本轮未收到音频帧，仍缺 ${device.missingFrames.length} 帧`,
-    }, "本轮补帧结束", `等待第 ${device.round + 1}/4 轮模拟连接`, "warning");
-  }, 1000);
-}
-
-function simulateDeviceConnection(task: MockCommandTask, device: MockDeviceTask) {
-  if (!canSimulateConnection(device.status)) return;
-  const reconnect = device.round > 0 || device.status !== "WAITING_ONLINE";
-  beginDeviceCycle(task, device, reconnect);
-}
-
-function simulateAllPending(task: MockCommandTask) {
-  task.devices.filter((device) => canSimulateConnection(device.status)).forEach((device) => simulateDeviceConnection(task, device));
-}
-
-function updateDevice(
-  task: MockCommandTask,
-  device: MockDeviceTask,
-  patch: Partial<MockDeviceTask>,
-  eventTitle?: string,
-  eventMessage?: string,
-  tone: "info" | "success" | "warning" | "danger" = "info",
-) {
-  Object.assign(device, patch, { updatedAt: formatDate(new Date()) });
-  if (eventTitle) {
-    device.timeline.unshift({ id: createId("event"), time: device.updatedAt, title: eventTitle, message: eventMessage || "", tone });
-    device.timeline = device.timeline.slice(0, 30);
-  }
-  recalculateTask(task);
-}
-
-function finishDevice(
-  task: MockCommandTask,
-  device: MockDeviceTask,
-  status: "SUCCESS" | "FAILED" | "ABANDONED",
-  responseMessage: string,
-  eventMessage: string,
-  tone: "success" | "danger" = status === "SUCCESS" ? "success" : "danger",
-) {
-  updateDevice(
-    task,
-    device,
-    {
-      status,
-      phaseText: status === "SUCCESS" ? "执行完成" : status === "FAILED" ? "执行失败" : "已放弃",
-      progress: status === "SUCCESS" ? 100 : device.progress,
-      responseMessage,
-    },
-    status === "SUCCESS" ? "模拟任务完成" : status === "FAILED" ? "模拟任务失败" : "停止补帧",
-    eventMessage,
-    tone,
-  );
-}
-
-function recalculateTask(task: MockCommandTask, persist = true) {
-  const total = Math.max(1, task.devices.length);
-  task.successCount = task.devices.filter((device) => device.status === "SUCCESS").length;
-  task.failedCount = task.devices.filter((device) => ["FAILED", "ABANDONED"].includes(device.status)).length;
-  task.progress = Math.round(task.devices.reduce((sum, device) => sum + device.progress, 0) / total);
-  const terminalCount = task.successCount + task.failedCount;
-  const hasRunning = task.devices.some((device) => ["WAITING_DELAY", "SENDING", "WAITING_RESPONSE"].includes(device.status));
-  const hasPaused = task.devices.some((device) => device.status === "PAUSED");
-  const hasAbandoned = task.devices.some((device) => device.status === "ABANDONED");
-
-  if (task.successCount === task.devices.length && task.devices.length > 0) task.status = "SUCCESS";
-  else if (terminalCount === task.devices.length && task.devices.length > 0) {
-    if (hasAbandoned && task.successCount === 0) task.status = "ABANDONED";
-    else task.status = task.successCount > 0 ? "PARTIAL" : "FAILED";
-  } else if (hasRunning) task.status = "RUNNING";
-  else if (hasPaused) task.status = "PAUSED";
-  else if (task.successCount > 0 || task.failedCount > 0) task.status = "PARTIAL";
-  else task.status = "WAITING";
-
-  task.updatedAt = formatDate(new Date());
-  if (persist) persistTasks();
-}
-
-function queueDeviceTimer(deviceId: string, callback: () => void, delay: number) {
-  const timer = setTimeout(callback, delay);
-  const list = timers.get(deviceId) || [];
-  list.push(timer);
-  timers.set(deviceId, list);
-}
-
-function clearDeviceTimers(deviceId: string) {
-  (timers.get(deviceId) || []).forEach((timer) => clearTimeout(timer));
-  timers.delete(deviceId);
-}
-
-function clearAllTimers() {
-  timers.forEach((list) => list.forEach((timer) => clearTimeout(timer)));
-  timers.clear();
-}
-
-function chooseFirmwareFile() {
-  if (typeof document === "undefined") {
-    showToast("当前运行环境暂不支持本地文件选择");
-    return;
-  }
-  const input = document.createElement("input");
-  input.type = "file";
-  input.accept = ".txt,text/plain";
-  input.onchange = async () => {
-    const file = input.files?.[0];
-    if (!file) return;
-    if (!file.name.toLowerCase().endsWith(".txt")) {
-      showToast("请选择 TXT 文件");
-      return;
-    }
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    if (bytes.length === 0) {
-      showToast("文件内容不能为空");
-      return;
-    }
-    const frameLengths: number[] = [];
-    for (let offset = 0; offset < bytes.length; offset += 500) {
-      frameLengths.push(bytes.slice(offset, offset + 500).length);
-    }
-    firmwareDraft.value = {
-      fileName: file.name,
-      fileSize: bytes.length,
-      frameSize: 500,
-      totalFrames: frameLengths.length,
-      frameLengths,
-    };
-  };
-  input.click();
-}
-
-function toggleDevice(id: number) {
-  draft.deviceIds = draft.deviceIds.includes(id) ? draft.deviceIds.filter((item) => item !== id) : [...draft.deviceIds, id];
-}
-
-function toggleCurrentDevicePage() {
-  const pageIds = pagedDevices.value.map((device) => device.id);
-  if (isCurrentDevicePageSelected.value) draft.deviceIds = draft.deviceIds.filter((id) => !pageIds.includes(id));
-  else draft.deviceIds = Array.from(new Set([...draft.deviceIds, ...pageIds]));
-}
-
-function selectTask(task: MockCommandTask) {
-  selectedTaskId.value = task.id;
-}
-
-function openProgress(task: MockCommandTask) {
-  progressTaskId.value = task.id;
-  progressVisible.value = true;
-}
-
-function closeProgress() {
-  progressVisible.value = false;
-}
-
-function hasActionableDevices(task: MockCommandTask) {
-  return task.devices.some((device) => canSimulateConnection(device.status));
-}
-
-function canSimulateConnection(status: DeviceTaskStatus) {
-  return ["WAITING_ONLINE", "WAITING_RECONNECT", "PAUSED"].includes(status);
-}
-
-function isDeviceLoading(status: DeviceTaskStatus) {
-  return ["WAITING_ONLINE", "WAITING_DELAY", "SENDING", "WAITING_RESPONSE", "WAITING_RECONNECT", "PAUSED"].includes(status);
-}
-
-function getDeviceProgressText(task: MockCommandTask, device: MockDeviceTask) {
-  if (task.executionType === "PARAM_SETTING") return `${device.progress}%`;
-  return `${device.completedFrames}/${device.totalFrames}`;
-}
-
-function formatRound(device: MockDeviceTask) {
-  if (!device.maxRounds) return device.round ? `第 ${device.round} 轮` : "未开始";
-  return device.round ? `${device.round}/${device.maxRounds}` : `0/${device.maxRounds}`;
-}
-
-function getExecutionTypeLabel(type: CommandExecutionType) {
+function normalizeCommandLog(source: ApiRecord = {}) {
   return {
-    PARAM_SETTING: localeText("参数设置", "Parameter setup"),
-    FIRMWARE_UPGRADE: localeText("固件升级", "Firmware upgrade"),
-    AUDIO_REPAIR: localeText("音频补帧", "Audio repair"),
-  }[type];
+    ...source,
+    id: source.id ?? source.commandSendLogId,
+    deviceNumber: source.deviceNumber ?? source.deviceNo,
+    commandName: source.commandName ?? source.commandDictName ?? source.commandTypeName,
+    commandCode: source.commandCode ?? source.command ?? source.commandType,
+    executeStatus: source.executeStatus ?? source.sendStatus ?? source.status,
+    sendTime: source.sendTime ?? source.sentAt ?? source.createdAt ?? source.createTime,
+    expiresAt: source.expiresAt,
+    finishTime: source.finishTime ?? source.updatedAt ?? source.updateTime,
+  };
 }
 
-function getTaskStatusLabel(status: CommandTaskStatus) {
+function normalizeUpgradeLog(source: ApiRecord = {}) {
+  const received = Number(source.receivedFrameCount || 0);
+  const total = Number(source.frameCount || 0);
   return {
-    WAITING: localeText("等待执行", "Waiting"),
-    RUNNING: localeText("执行中", "Running"),
-    PARTIAL: localeText("部分完成", "Partial"),
-    SUCCESS: localeText("已完成", "Completed"),
+    ...source,
+    id: source.id ?? source.upgradeLogId,
+    finishPercent: clampProgress(source.finishPercent),
+    upgradeStageText: getStageText(source.upgradeStage, source.repairRound),
+    frameSummary: `${received}/${total}`,
+    startTime: source.startTime ?? source.createdAt,
+  };
+}
+
+function normalizeUpgradeEvent(source: ApiRecord = {}) {
+  return {
+    ...source,
+    directionName: source.directionName || getDirectionText(source.direction),
+    eventTypeName: source.eventTypeName || getEventTypeText(source.eventType),
+    eventLevel: String(source.eventLevel || "INFO").toUpperCase(),
+  };
+}
+
+function normalizeDeviceSetting(source: ApiRecord = {}) {
+  const commandStatus = source.commandStatus ?? source.status;
+  return {
+    ...source,
+    id: source.id ?? source.settingId,
+    deviceNumber: source.deviceNumber ?? source.deviceNo,
+    batchId: source.batchId ?? source.clientRequestId,
+    commandStatus,
+    commandSendLogId: source.commandSendLogId ?? source.commandId,
+    commandExecuteStatus: source.commandExecuteStatus ?? source.executeStatus,
+    commandSentAt: source.commandSentAt ?? source.sentAt ?? source.sendTime,
+    commandExpiresAt: source.commandExpiresAt ?? source.expiresAt,
+    commandFeedback: source.commandFeedback ?? source.feedback ?? source.result ?? source.message,
+  };
+}
+
+function normalizeAudioRepairTask(source: ApiRecord = {}) {
+  const totalFrames = Number(source.totalFrames ?? source.totalFrameCount ?? source.frameCount ?? 0) || 0;
+  const receivedFrames = Number(source.receivedFrames ?? source.receivedFrameCount ?? source.receivedCount ?? 0) || 0;
+  const missingNumbers = Array.isArray(source.missingFrameNumbers)
+    ? source.missingFrameNumbers
+    : (Array.isArray(source.missingFrames) ? source.missingFrames : []);
+  const missingFrameCount = Number(
+    source.missingFrameCount
+    ?? source.missingCount
+    ?? (missingNumbers.length > 0 ? missingNumbers.length : Math.max(totalFrames - receivedFrames, 0)),
+  ) || 0;
+  const calculatedProgress = totalFrames > 0 ? (receivedFrames / totalFrames) * 100 : 0;
+  return {
+    ...source,
+    id: source.transferId ?? source.id,
+    transferId: source.transferId ?? source.id,
+    deviceNumber: source.deviceNumber ?? source.deviceNo,
+    status: source.status ?? source.transferStatus,
+    totalFrames,
+    receivedFrames,
+    missingFrameCount,
+    repairProgress: clampProgress(source.progress ?? source.finishPercent ?? calculatedProgress),
+    frameSummary: `${receivedFrames}/${totalFrames}`,
+    createdAt: source.createdAt ?? source.createTime ?? source.startTime,
+    updatedAt: source.updatedAt ?? source.updateTime ?? source.lastReceivedAt,
+  };
+}
+
+function unwrapResponse(response: any) {
+  if (response && typeof response === "object" && "code" in response) {
+    const code = Number(response.code);
+    if (code !== 0 && code !== 200) throw response;
+    return response.data;
+  }
+  return response;
+}
+
+function getPageRecords(pageData: any): ApiRecord[] {
+  if (Array.isArray(pageData)) return pageData;
+  return asArray(pageData?.records ?? pageData?.list ?? pageData?.content);
+}
+
+function getPageTotal(pageData: any, fallback: number) {
+  return Number(pageData?.total ?? pageData?.totalElements ?? fallback) || 0;
+}
+
+function asArray(value: any): ApiRecord[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function toOptionalNumber(value: string) {
+  return value === "" ? undefined : Number(value);
+}
+
+function toStartTime(date: string) {
+  return date ? `${date} 00:00:00` : undefined;
+}
+
+function toEndTime(date: string) {
+  return date ? `${date} 23:59:59` : undefined;
+}
+
+function getStatusText(status: unknown) {
+  const labels: Record<number, string> = {
+    0: localeText("待发送", "Pending"),
+    1: localeText("升级中", "Upgrading"),
+    2: localeText("取消中", "Cancelling"),
+    3: localeText("升级失败", "Upgrade failed"),
+    4: localeText("升级完成", "Completed"),
+    5: localeText("已取消", "Cancelled"),
+    6: localeText("未知故障", "Unknown status"),
+  };
+  return labels[Number(status)] || localeText("未知状态", "Unknown status");
+}
+
+function getStatusClass(status: unknown) {
+  return getStatusToneClass(upgradeStatusMap[Number(status)]?.tone);
+}
+
+function getDeviceSettingParameterLabel(key: string) {
+  const labels: Record<string, string> = {
+    onceMeasureLength: localeText("单次测量时长", "Measurement duration"),
+    signalLevel: localeText("信号等级", "Signal level"),
+    benchmarkValue: localeText("基准值", "Benchmark value"),
+    noiseBenchmarkValue: localeText("噪声基准值", "Noise benchmark"),
+    samplingCount: localeText("采样次数", "Sampling count"),
+    samplingWeekday: localeText("采样星期", "Sampling weekday"),
+    samplingTime: localeText("采样时间", "Sampling time"),
+    syncSamplingTime: localeText("同步采样时间", "Synchronized sampling time"),
+    syncSamplingNumber: localeText("同步采样编号", "Synchronized sampling number"),
+    samplingPeriodTime: localeText("采样时间段", "Sampling period"),
+    audioRule: localeText("音频上报规则", "Audio reporting rule"),
+    reportInterval: localeText("上报间隔（分钟）", "Report interval (minutes)"),
+    dayMeasureDataGroup: localeText("日测量数据组", "Daily measurement group"),
+    leakThreshold: localeText("漏损阈值", "Leak threshold"),
+    nb4gTrigger: localeText("NB/4G 触发", "NB/4G trigger"),
+    nb4gTransferSet: localeText("NB/4G 传输设置", "NB/4G transfer setting"),
+    nb4gOpenTimeSet: localeText("NB/4G 开启时段", "NB/4G active period"),
+    loraOpenDay: localeText("LoRa 开启日", "LoRa active day"),
+    loraSignalFrequency: localeText("LoRa 信号频率", "LoRa signal frequency"),
+    loraPower: localeText("LoRa 功率", "LoRa power"),
+    loraOpenDate: localeText("LoRa 开启时段", "LoRa active period"),
+    workMode: localeText("工作模式", "Work mode"),
+    measureGainMode: localeText("测量增益模式", "Measurement gain mode"),
+    gainValue: localeText("增益值", "Gain value"),
+    filterMethod: localeText("滤波方式", "Filter method"),
+    filterLowFrequency: localeText("滤波低频", "Filter low frequency"),
+    filterHighFrequency: localeText("滤波高频", "Filter high frequency"),
+    thresholdRate: localeText("阈值比例", "Threshold rate"),
+    rtcUploadInterval: localeText("RTC 上传间隔", "RTC upload interval"),
+    pressureSettings: localeText("压力设置", "Pressure setting"),
+    signalChannel: localeText("信号通道", "Signal channel"),
+    inspectDelay: localeText("巡检延时", "Inspection delay"),
+    inspectionControl: localeText("巡检控制", "Inspection control"),
+    enabledControl: localeText("启用控制", "Enabled control"),
+  };
+  return labels[key] || key.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+}
+
+function getSettingStatusText(status: unknown) {
+  const value = String(status || "").toUpperCase();
+  const labels: Record<string, string> = {
+    QUEUED: localeText("等待设备连接", "Waiting for device"),
+    CLAIMED: localeText("正在下发", "Dispatching"),
+    // TCP_SENT: localeText("已写入连接，等待设备后续上报确认", "Written to TCP; awaiting later device report"),
+    FAILED: localeText("下发失败", "Dispatch failed"),
+    EXPIRED: localeText("等待下发已过期", "Dispatch expired"),
+    CANCELED: localeText("已取消", "Cancelled"),
+    NOT_QUEUED: localeText("指令创建异常", "Command creation failed"),
+    DEVICE_DELIVERED: localeText("设备已送达（预留）", "Delivered (reserved)"),
+    SUCCESS: localeText("成功（预留）", "Success (reserved)"),
+  };
+  return labels[value] || displayValue(status, localeText("未知状态", "Unknown status"));
+}
+
+function getSettingStatusClass(status: unknown) {
+  const value = String(status || "").toUpperCase();
+  if (["FAILED", "EXPIRED", "NOT_QUEUED"].includes(value)) return "status-tag--danger";
+  if (["DEVICE_DELIVERED", "SUCCESS"].includes(value)) return "status-tag--success";
+  if (value === "TCP_SENT") return "status-tag--primary";
+  if (value === "CLAIMED") return "status-tag--warning";
+  return "status-tag--default";
+}
+
+function getActiveEmptyText() {
+  if (activeView.value === "COMMAND") return localeText("暂无指令下发记录", "No command records");
+  if (activeView.value === "UPGRADE") return localeText("暂无固件升级记录", "No upgrade records");
+  if (activeView.value === "SETTING") return localeText("暂无设备参数设置记录", "No device parameter tasks");
+  return localeText("暂无音频补帧记录", "No audio repair tasks");
+}
+
+function getAudioRepairStatusText(status: unknown) {
+  const labels: Record<string, string> = {
+    COLLECTING: localeText("分片收集中", "Collecting"),
+    REPAIR_PENDING: localeText("等待补帧", "Repair pending"),
+    WAITING_UPLOAD: localeText("等待设备上传", "Waiting for upload"),
+    COMPLETE: localeText("已完成", "Completed"),
     FAILED: localeText("失败", "Failed"),
-    ABANDONED: localeText("已放弃", "Abandoned"),
-    PAUSED: localeText("已暂停", "Paused"),
-  }[status];
-}
-
-function getTaskStatusClass(status: CommandTaskStatus) {
-  return `status-pill--${status.toLowerCase()}`;
-}
-
-function getDeviceStatusClass(status: DeviceTaskStatus) {
-  if (status === "SUCCESS") return "device-status-dot--success";
-  if (["FAILED", "ABANDONED"].includes(status)) return "device-status-dot--danger";
-  if (["WAITING_RECONNECT", "PAUSED", "WAITING_ONLINE"].includes(status)) return "device-status-dot--warning";
-  return "device-status-dot--running";
-}
-
-function getScenarioLabel(value: MockScenario) {
-  const labels: Record<MockScenario, [string, string]> = {
-    NORMAL: ["正常完成", "Completed"],
-    PARTIAL_MISSING: ["部分帧缺失", "Missing frames"],
-    NO_RESPONSE: ["设备无响应", "No response"],
-    FAILURE: ["最终失败", "Failed"],
   };
-  const label = labels[value];
-  return label ? localeText(label[0], label[1]) : localeText("未配置", "Not set");
+  return labels[String(status || "").toUpperCase()] || displayValue(status, localeText("未知状态", "Unknown status"));
 }
 
-function getParamLabel(key: string) {
-  return {
-    sampleInterval: localeText("采样间隔", "Sample interval"),
-    uploadInterval: localeText("上报间隔", "Upload interval"),
-    serverHost: localeText("服务器地址", "Server"),
-    serverPort: localeText("服务器端口", "Port"),
-  }[key] || key;
+function getAudioRepairStatusClass(status: unknown) {
+  const value = String(status || "").toUpperCase();
+  if (value === "COMPLETE") return "status-tag--success";
+  if (value === "FAILED") return "status-tag--danger";
+  if (value === "REPAIR_PENDING") return "status-tag--warning";
+  if (value === "COLLECTING") return "status-tag--primary";
+  return "status-tag--default";
 }
 
-function formatMissingFrames(frames: number[]) {
-  if (!frames.length) return "无";
-  const sorted = [...frames].sort((a, b) => a - b);
-  const ranges: string[] = [];
-  let start = sorted[0];
-  let end = sorted[0];
-  for (let index = 1; index <= sorted.length; index++) {
-    const current = sorted[index];
-    if (current === end + 1) {
-      end = current;
-      continue;
-    }
-    ranges.push(start === end ? String(start) : `${start}-${end}`);
-    start = current;
-    end = current;
+function getAudioCommandTypeText(type: unknown) {
+  return ({
+    AUDIO_REPAIR: localeText("音频补帧指令", "Audio repair"),
+    AUDIO_COMPLETE: localeText("音频收齐确认", "Audio complete"),
+  } as Record<string, string>)[String(type)] || displayValue(type);
+}
+
+function getAudioFrameFieldLabel(key: string) {
+  const labels: Record<string, string> = {
+    id: localeText("记录 ID", "Record ID"),
+    frameId: localeText("分片 ID", "Frame ID"),
+    transferId: localeText("任务 ID", "Task ID"),
+    frameNo: localeText("分片序号", "Frame number"),
+    frameIndex: localeText("分片序号", "Frame index"),
+    rawHexBytes: localeText("原始报文字节数", "Raw Hex bytes"),
+    dataLength: localeText("数据长度（字节）", "Data length (bytes)"),
+    receivedAt: localeText("接收时间", "Received at"),
+    createdAt: localeText("创建时间", "Created at"),
+    rawHex: localeText("原始报文", "Raw Hex"),
+    contentData: localeText("业务数据", "Content data"),
+  };
+  return labels[key] || key.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+}
+
+function formatAudioFrameFieldValue(key: string, value: unknown) {
+  if (/time|at$/i.test(key)) return formatDateTime(value);
+  return stringifyContent(value);
+}
+
+function getCommandStatusText(status: unknown) {
+  const labels: Record<number, string> = {
+    0: localeText("待传输", "Pending transfer"),
+    1: localeText("待发送", "Pending send"),
+    2: localeText("已发送", "Sent"),
+    3: localeText("已送达", "Delivered"),
+    4: localeText("失败", "Failed"),
+    5: localeText("已取消", "Cancelled"),
+    6: localeText("已成功", "Succeeded"),
+  };
+  return labels[Number(status)] || localeText("未知状态", "Unknown status");
+}
+
+function getCommandStatusClass(status: unknown) {
+  return getStatusToneClass(commandStatusMap[Number(status)]?.tone);
+}
+
+function getStatusToneClass(tone = "muted") {
+  const toneMap: Record<string, string> = {
+    waiting: "default",
+    running: "primary",
+    warning: "warning",
+    danger: "danger",
+    success: "success",
+    muted: "default",
+  };
+  return `status-tag--${toneMap[tone] || "default"}`;
+}
+
+function getStageText(stage: unknown, round?: unknown) {
+  const labels: Record<string, string> = {
+    PREPARING: localeText("正在准备任务", "Preparing task"),
+    WAITING_CONNECTION: localeText("等待设备连接", "Waiting for device connection"),
+    SENDING_INITIAL: localeText("正在发送固件", "Sending firmware"),
+    WAITING_DEVICE_REPORT: localeText("等待设备收帧报告", "Waiting for device frame report"),
+    WAITING_RECONNECT: localeText("存在丢帧，等待设备重连", "Frames lost; waiting for device reconnection"),
+    SENDING_REPAIR: localeText("正在补发缺失帧", "Resending missing frames"),
+    DEVICE_UPGRADING: localeText("设备正在升级", "Device is upgrading"),
+    CANCEL_PENDING: localeText("等待发送取消指令", "Waiting to send cancellation"),
+    CANCEL_SENT: localeText("取消指令已发送", "Cancellation sent"),
+    TERMINAL: localeText("任务已结束", "Task finished"),
+  };
+  const text = labels[String(stage)] || displayValue(stage, localeText("等待任务状态", "Waiting for task status"));
+  if (String(stage) !== "SENDING_REPAIR" || Number(round) <= 0) return text;
+  return localeText(`${text}（第 ${round} 轮）`, `${text} (round ${round})`);
+}
+
+function getTransportText(channel: unknown) {
+  return ({ DIRECT_TCP: localeText("TCP 直连", "Direct TCP"), AEP_TCP: "AEP TCP", AEP_NB: "AEP NB" } as Record<string, string>)[String(channel)] || displayValue(channel);
+}
+
+function getFrameStatusText(status: unknown) {
+  return ({
+    0: localeText("待发送", "Pending"),
+    1: localeText("发送中", "Sending"),
+    2: localeText("已发送", "Sent"),
+    3: localeText("失败", "Failed"),
+  } as Record<number, string>)[Number(status)] || localeText("未知", "Unknown");
+}
+
+function getFrameFieldLabel(key: string) {
+  const labels: Record<string, string> = {
+    id: localeText("记录 ID", "Record ID"),
+    frameIndex: localeText("帧序号", "Frame index"),
+    payloadHex: localeText("帧十六进制内容", "Payload Hex"),
+    dataLength: localeText("数据长度（字节）", "Data length (bytes)"),
+    sendStatus: localeText("发送状态", "Send status"),
+    sendRound: localeText("发送轮次", "Send round"),
+    sendAttempts: localeText("尝试次数", "Send attempts"),
+    lastSessionId: localeText("最近会话 ID", "Last session ID"),
+    lastSentAt: localeText("最近发送时间", "Last sent at"),
+    upgradeLogId: localeText("升级任务 ID", "Upgrade task ID"),
+    createdAt: localeText("创建时间", "Created at"),
+    updatedAt: localeText("更新时间", "Updated at"),
+  };
+  return labels[key] || key.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+}
+
+function getFrameColumnWidth(key: string) {
+  if (/hex|payload|content|data/i.test(key) && key !== "dataLength") return 420;
+  if (/time|at$/i.test(key)) return 180;
+  if (key === "sendStatus") return 140;
+  if (/id$/i.test(key)) return 120;
+  return 150;
+}
+
+function formatFrameFieldValue(key: string, value: unknown) {
+  if (key === "sendStatus") {
+    return `${displayValue(value)} (${getFrameStatusText(value)})`;
   }
-  const text = ranges.join("、");
-  return text.length > 90 ? `${text.slice(0, 90)}…` : text;
+  if (/time|at$/i.test(key)) return formatDateTime(value);
+  return stringifyContent(value);
 }
 
-function getFrameLengthPreview(lengths: number[]) {
-  if (lengths.length <= 8) return lengths.map((length, index) => `#${index + 1} ${length}B`).join("、");
-  return `${lengths.slice(0, 6).map((length, index) => `#${index + 1} ${length}B`).join("、")} … 最后一帧 ${lengths[lengths.length - 1]}B`;
+function getEventFieldLabel(key: string) {
+  const labels: Record<string, string> = {
+    id: localeText("事件记录 ID", "Event record ID"),
+    upgradeLogId: localeText("固件升级任务 ID", "Upgrade task ID"),
+    deviceNumber: localeText("设备编号", "Device number"),
+    direction: localeText("事件方向编码", "Direction code"),
+    directionName: localeText("事件方向中文名", "Direction name"),
+    eventType: localeText("事件类型编码", "Event type code"),
+    eventTypeName: localeText("事件类型中文名", "Event type name"),
+    eventLevel: localeText("事件级别", "Event level"),
+    summary: localeText("事件摘要", "Summary"),
+    frameIndex: localeText("相关固件帧序号", "Frame index"),
+    sessionId: localeText("TCP 会话 ID", "TCP session ID"),
+    rawHex: localeText("原始十六进制报文", "Raw Hex"),
+    rawHexBytes: localeText("原始报文字节数", "Raw Hex bytes"),
+    detail: localeText("事件详细信息", "Event detail"),
+    createdAt: localeText("创建时间", "Created at"),
+    updatedAt: localeText("更新时间", "Updated at"),
+  };
+  return labels[key] || key.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
 }
 
-function formatBytes(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  return `${(bytes / 1024).toFixed(2)} KB`;
+function getEventColumnWidth(key: string) {
+  if (key !== "rawHexBytes" && /hex|payload|content|raw/i.test(key)) return 420;
+  if (key === "summary") return 320;
+  if (/detail|message|reason/i.test(key)) return 300;
+  if (/time|at$/i.test(key)) return 180;
+  if (key === "sessionId") return 220;
+  if (["eventType", "eventTypeName"].includes(key)) return 190;
+  if (["direction", "directionName"].includes(key)) return 150;
+  if (/id$/i.test(key)) return 130;
+  return 150;
 }
 
-function createTaskNo() {
-  const date = new Date();
-  const stamp = `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
-  return `CMD-${stamp}-${String(Math.floor(Math.random() * 900) + 100)}`;
+function formatEventFieldValue(key: string, value: unknown) {
+  if (/time|at$/i.test(key)) return formatDateTime(value);
+  return stringifyContent(value);
 }
 
-function createId(prefix: string) {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+function getEventTypeText(type: unknown) {
+  const labels: Record<string, string> = {
+    TASK_CREATED: localeText("升级任务创建", "Upgrade task created"),
+    DATA_FRAME: localeText("固件数据帧下发成功", "Firmware frame sent"),
+    LOSS_REPORT: localeText("设备丢帧上报", "Frame loss reported"),
+    RECEIVE_COMPLETE: localeText("设备确认固件帧收齐", "All frames received"),
+    UPGRADE_SUCCESS: localeText("设备升级成功", "Upgrade succeeded"),
+    UPGRADE_FAILED: localeText("设备升级失败", "Upgrade failed"),
+    CANCEL_COMMAND: localeText("取消升级指令下发", "Cancellation sent"),
+    CANCEL_RECEIVED: localeText("设备确认收到取消指令", "Cancellation received"),
+    CANCEL_SUCCESS: localeText("取消升级成功", "Cancellation succeeded"),
+    CONNECTION_CLOSED: localeText("TCP 连接断开", "TCP connection closed"),
+    SEND_FAILED: localeText("发送或等待响应失败", "Send failed or timed out"),
+  };
+  return labels[String(type)] || displayValue(type, localeText("未知事件", "Unknown event"));
 }
 
-function formatDate(date: Date) {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+function getDirectionText(direction: unknown) {
+  if (direction === undefined || direction === null || direction === "") return localeText("未知", "Unknown");
+  return ({
+    DOWN: localeText("服务端下行", "Server downlink"),
+    UP: localeText("设备上行", "Device uplink"),
+    SYSTEM: localeText("系统事件", "System event"),
+  } as Record<string, string>)[String(direction)] || displayValue(direction);
 }
 
-function pad(value: number) {
-  return String(value).padStart(2, "0");
+function getEventLevelClass(level: unknown) {
+  const value = String(level || "INFO").toUpperCase();
+  if (value === "ERROR") return "event-level--error";
+  if (value === "WARN") return "event-level--warn";
+  return "event-level--info";
+}
+
+function getCommandSendwayText(value: unknown) {
+  return ({
+    0: localeText("4G/TCP 直连", "4G/Direct TCP"),
+    1: "NB",
+    2: localeText("光纤", "Fiber"),
+    3: localeText("串口", "Serial"),
+    4: localeText("网口", "Ethernet"),
+  } as Record<number, string>)[Number(value)] || displayValue(value);
+}
+
+function canCancelUpgrade(task: ApiRecord) {
+  return [0, 1].includes(Number(task.executeStatus));
+}
+
+function clampProgress(value: unknown) {
+  const number = Number(value || 0);
+  return Math.max(0, Math.min(100, Number.isFinite(number) ? Math.round(number) : 0));
+}
+
+function previewHex(value: unknown) {
+  const text = String(value || "");
+  return text.length > 48 ? `${text.slice(0, 24)}...${text.slice(-24)}` : displayValue(text);
+}
+
+function stringifyContent(value: unknown) {
+  if (value === undefined || value === null || value === "") return "--";
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
+/** 将后端 ISO 时间统一显示为 YYYY-MM-DD HH:mm:ss，并去掉微秒部分。 */
+function formatDateTime(value: unknown) {
+  if (value === undefined || value === null || value === "") return "--";
+
+  if (typeof value === "number") {
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) {
+      const pad = (part: number) => String(part).padStart(2, "0");
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+    }
+  }
+
+  const text = String(value).trim();
+  const matched = text.match(/^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2}:\d{2})/);
+  return matched ? `${matched[1]} ${matched[2]}` : text;
+}
+
+function displayValue(value: unknown, fallback = "--") {
+  return value === undefined || value === null || value === "" ? fallback : String(value);
 }
 
 function showToast(title: string) {
-  uni.showToast({ title, icon: "none" });
+  uni.showToast({ title, icon: "none", duration: 2200 });
 }
 
-function handleTypeFilterChange(event: PickerChangeEvent) {
-  filters.executionType = typeFilterOptions[Number(event.detail.value)]?.value || "ALL";
+function showError(error: any, fallback: string) {
+  showToast(error?.msg || error?.message || fallback);
 }
 
-function handleStatusFilterChange(event: PickerChangeEvent) {
-  filters.status = taskStatusFilterOptions[Number(event.detail.value)]?.value || "ALL";
-}
-
-function handleStartDateChange(event: PickerChangeEvent) {
-  filters.startDate = String(event.detail.value || "");
-}
-
-function handleEndDateChange(event: PickerChangeEvent) {
-  filters.endDate = String(event.detail.value || "");
-}
-
-function handleDeviceStatusChange(event: PickerChangeEvent) {
-  deviceFilters.onlineStatus = deviceStatusOptions[Number(event.detail.value)]?.value || "ALL";
-}
-
-function handleScenarioChange(event: PickerChangeEvent) {
-  draft.scenario = scenarioOptions[Number(event.detail.value)]?.value || "NORMAL";
-}
-
-function handleAudioRecordChange(event: PickerChangeEvent) {
-  draft.audioRecordId = audioRecordOptions[Number(event.detail.value)]?.value || prototypeAudioRecords[0].id;
+function showConfirm(title: string, content: string): Promise<boolean> {
+  return new Promise(resolve => {
+    uni.showModal({
+      title,
+      content,
+      cancelText: localeText("取消", "Cancel"),
+      confirmText: localeText("确定", "Confirm"),
+      success: result => resolve(Boolean(result.confirm)),
+      fail: () => resolve(false),
+    });
+  });
 }
 </script>
 
-<style lang="scss" scoped>
-.command-manage {
+<style scoped lang="scss">
+.task-center {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -1293,71 +2186,77 @@ function handleAudioRecordChange(event: PickerChangeEvent) {
   padding: 12px;
   gap: 12px;
   overflow: hidden;
-  color: #24384d;
-  background: #eef4f8;
+  color: #233d55;
+  background: #f3f7fa;
   box-sizing: border-box;
 }
 
-.command-toolbar,
-.summary-card,
-.table-panel,
+button {
+  margin: 0;
+  font-size: 13px;
+  border-radius: 5px;
+}
+
+button::after {
+  border: 0;
+}
+
+.toolbar,
+.list-panel,
 .detail-panel {
   background: #fff;
   border: 1px solid #d8e5ef;
-  border-radius: 6px;
-  box-shadow: 0 12px 26px rgba(35, 72, 104, 0.09);
+  border-radius: 7px;
+  box-shadow: 0 12px 26px rgba(35, 72, 104, 0.08);
 }
 
-.command-toolbar {
+.toolbar {
   flex: none;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 14px;
   padding: 12px 14px;
+  gap: 14px;
+  box-sizing: border-box;
 }
 
 .toolbar__filters,
-.toolbar__actions,
-.panel-head__meta-group,
-.modal-actions__right,
-.progress-head-actions {
+.toolbar__actions {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
 .toolbar__filters {
-  align-items: flex-end;
+  flex: 1;
+  min-width: 0;
   flex-wrap: wrap;
   gap: 12px;
-  min-width: 0;
 }
 
-.toolbar__actions { flex: none; }
-
-.filter-field,
-.form-field {
+.filter-field {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  flex-direction: row;
+  min-width: 180px;
+  gap: 10px;
 }
 
-.filter-field { width: 154px; }
-.filter-field--keyword { width: 280px; }
-.filter-field--date { width: 132px; }
+.filter-field--keyword {
+  width: 360px;
+}
 
-.filter-label,
-.form-label {
+.filter-label {
+  flex: none;
   color: #587086;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 800;
 }
 
 .filter-input,
-.filter-select,
-.form-input,
-.form-select {
+.filter-select {
+  flex: 1;
+  width: 100%;
   height: 34px;
   min-width: 0;
   padding: 0 10px;
@@ -1370,94 +2269,73 @@ function handleAudioRecordChange(event: PickerChangeEvent) {
   box-sizing: border-box;
 }
 
-.filter-input,
-.form-input { width: 100%; }
+.filter-input--short {
+  width: 132px;
+}
 
-.filter-select,
-.form-select {
+.filter-select {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-width: 132px;
 }
 
 .select-arrow {
-  width: 7px;
-  height: 7px;
-  border-right: 1px solid #7d91a5;
-  border-bottom: 1px solid #7d91a5;
-  transform: rotate(45deg) translateY(-2px);
+  width: 0;
+  height: 0;
+  margin-left: 10px;
+  border-top: 5px solid #8192a2;
+  border-right: 4px solid transparent;
+  border-left: 4px solid transparent;
 }
 
-.input-placeholder { color: #9aaaba; }
-
-.toolbar-button,
-.mini-button,
-.page-button,
-.table-action-button,
-.text-button,
-.modal-close {
-  margin: 0;
-  padding: 0;
-  font-size: 13px;
-  font-weight: 800;
+.action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  height: 36px;
+  padding: 0 18px;
+  color: #31516d;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 36px;
+  background: #fff;
+  border: 1px solid #c9d9e7;
   border-radius: 4px;
-  box-sizing: border-box;
 }
 
-.toolbar-button {
-  height: 34px;
-  padding: 0 14px;
-  color: #31506d;
-  line-height: 34px;
-  background: #f6fbff;
-  border: 1px solid #cbdced;
+.action-button:hover {
+  color: #0d82ee;
+  background: #edf7ff;
+  border-color: #a9d7ff;
 }
 
-.toolbar-button--primary,
-.mini-button--primary {
+.action-button--primary {
   color: #fff;
   background: #0d82ee;
-  border-color: #0d82ee !important;
+  border-color: #0d82ee;
 }
 
-.button-hover { opacity: 0.86; }
+.action-button--primary:hover {
+  color: #fff;
+  background: #0674d8;
+  border-color: #0674d8;
+}
 
-.summary-grid {
-  flex: none;
+.action-button[disabled] {
+  opacity: 0.55;
+}
+
+.content-layout {
+  flex: 1;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr) 330px;
+  min-height: 0;
   gap: 12px;
 }
 
-.summary-card { padding: 12px 14px; }
-
-.summary-card__head,
-.summary-card__body {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.summary-card__label { color: #5f7286; font-size: 13px; font-weight: 800; }
-.summary-card__mark { width: 9px; height: 9px; border-radius: 50%; background: #0d82ee; }
-.summary-card__body { justify-content: flex-start; margin-top: 8px; }
-.summary-card__value { color: #203e59; font-size: 26px; font-weight: 900; line-height: 1; }
-.summary-card__unit { align-self: flex-end; color: #6f8397; font-size: 12px; font-weight: 800; }
-.summary-card--orange .summary-card__mark { background: #e68a00; }
-.summary-card--cyan .summary-card__mark { background: #13a8bb; }
-.summary-card--red .summary-card__mark { background: #dc5252; }
-
-.command-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(390px, 24vw, 460px);
-  gap: 14px;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.table-panel,
+.list-panel,
 .detail-panel {
   display: flex;
   flex-direction: column;
@@ -1466,265 +2344,1399 @@ function handleAudioRecordChange(event: PickerChangeEvent) {
   overflow: hidden;
 }
 
+.list-panel> :deep(.data-table-container) {
+  flex: 1;
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
 .panel-head,
 .detail-head,
 .modal-head {
   flex: none;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  min-height: 58px;
+  padding: 14px;
   gap: 12px;
-  padding: 12px 16px;
-  border-bottom: 1px solid #edf3f8;
-}
-
-.panel-head__title-group,
-.detail-head__title-group { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.panel-head__title,
-.detail-head__title { color: #24445f; font-size: 16px; font-weight: 800; }
-.panel-head__subtitle,
-.detail-head__label { color: #72869a; font-size: 11px; font-weight: 700; }
-.panel-head__meta { padding: 4px 10px; color: #6a7f94; font-size: 12px; font-weight: 800; background: #f7fafc; border: 1px solid #e3ebf2; border-radius: 999px; }
-.text-button { height: 28px; padding: 0 8px; line-height: 28px; background: transparent; border: 0; }
-.text-button--danger { color: #bf4a4a; }
-
-.table-scroll,
-.detail-scroll { flex: 1; height: auto; min-height: 0; }
-
-.history-table { min-width: 1030px; background: #fff; }
-.history-row {
-  display: grid;
-  grid-template-columns: 54px minmax(170px, 1.35fr) minmax(150px, 1.2fr) 100px 76px 132px 100px 156px;
-  min-width: 1030px;
-  min-height: 44px;
-  border-bottom: 1px solid #edf1f5;
-  cursor: pointer;
-}
-.history-row:not(.history-row--header):nth-child(odd) { background: #fbfdff; }
-.history-row:not(.history-row--header):hover { background: #f1f8ff; }
-.history-row--active { background: #e7f3ff !important; box-shadow: inset 3px 0 #0d82ee; }
-.history-row--header { position: sticky; top: 0; z-index: 2; min-height: 44px; background: #f6f9fc; cursor: default; box-shadow: 0 1px 0 #dbe7f0; }
-.history-cell,
-.progress-cell,
-.device-select-cell {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 0;
-  padding: 0 10px;
-  overflow: hidden;
-  color: #24384d;
-  font-size: 13px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  border-right: 1px solid #edf1f5;
+  border-bottom: 1px solid #e6edf3;
   box-sizing: border-box;
 }
-.history-row--header .history-cell,
-.progress-row--header .progress-cell,
-.device-select-row--header .device-select-cell { color: #415a73; font-size: 12px; font-weight: 800; }
-.history-cell--task,
-.history-cell--command { justify-content: flex-start; }
-.history-cell--task { color: #506b83; font-family: Consolas, monospace; }
-.history-cell--command { color: #0f4c81; font-weight: 800; }
 
-.compact-progress { display: flex; align-items: center; gap: 7px; width: 100%; color: #587086; font-size: 11px; }
-.compact-progress__track { flex: 1; height: 6px; overflow: hidden; background: #e7eef4; border-radius: 999px; }
-.compact-progress__value { height: 100%; background: linear-gradient(90deg, #2495ff, #0d82ee); border-radius: inherit; }
+.panel-head {
+  align-items: center;
+}
 
-.table-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 220px; gap: 8px; }
-.table-state__title { color: #5f7488; font-size: 15px; font-weight: 800; }
-.table-state__hint { color: #91a0ae; font-size: 12px; }
+.panel-head>view,
+.detail-head>view:first-child,
+.modal-head>view:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
 
-.status-pill {
+.panel-head__title,
+.detail-head__title,
+.modal-head__title {
+  color: #23435e;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.panel-head__subtitle,
+.detail-head__eyebrow,
+.modal-head__eyebrow {
+  color: #8192a2;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.panel-head__meta {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 62px;
+  min-height: 32px;
+  margin: 0;
+  padding: 0 14px;
+  color: #647b91;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 32px;
+  background: #f7fafc;
+  border: 1px solid #dce7ef;
+  border-radius: 999px;
+}
+
+.record-switch {
+  display: flex !important;
+  align-items: center;
+  flex-direction: row !important;
+  gap: 8px !important;
+}
+
+.record-switch__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  padding: 0 14px;
+  color: #587086;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 32px;
+  background: #f7fafc;
+  border: 1px solid #d6e2ed;
+  border-radius: 4px;
+}
+
+.record-switch__button:hover {
+  color: #0d82ee;
+  background: #edf7ff;
+  border-color: #a9d7ff;
+}
+
+.record-switch__button--active {
+  color: #fff;
+  background: #0d82ee;
+  border-color: #0d82ee;
+}
+
+.record-switch__button--active:hover {
+  color: #fff;
+  background: #0674d8;
+  border-color: #0674d8;
+}
+
+.detail-state {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 9px;
+  color: #75899c;
+  font-size: 13px;
+}
+
+.detail-state__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  color: #4f90c4;
+  font-size: 23px;
+  background: #edf6fd;
+  border-radius: 50%;
+}
+
+.detail-head {
+  align-items: flex-start;
+}
+
+.detail-head__id {
+  color: #8798a8;
+  font-size: 10px;
+  font-family: Consolas, monospace;
+}
+
+.detail-head__actions {
+  display: flex !important;
+  align-items: flex-end;
+  gap: 7px !important;
+}
+
+.detail-tabs {
+  flex: none;
+  display: flex;
+  height: 42px;
+  padding: 0 12px;
+  gap: 4px;
+  background: #fafcfe;
+  border-bottom: 1px solid #e6edf3;
+}
+
+.detail-tab {
+  position: relative;
+  padding: 0 12px;
+  color: #718397;
+  line-height: 42px;
+  background: transparent;
+  border: 0;
+}
+
+.detail-tab--active {
+  color: #0875cc;
+  font-weight: 800;
+}
+
+.detail-tab--active::after {
+  position: absolute;
+  right: 8px;
+  bottom: 0;
+  left: 8px;
+  height: 2px;
+  content: "";
+  background: #0d82ee;
+}
+
+.detail-scroll {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+  padding: 13px;
+  box-sizing: border-box;
+}
+
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 54px;
   height: 24px;
   padding: 0 9px;
   font-size: 12px;
   font-weight: 800;
   line-height: 24px;
+  white-space: nowrap;
+  word-break: keep-all;
   border: 1px solid transparent;
   border-radius: 999px;
   box-sizing: border-box;
 }
-.status-pill--success { color: #177245; background: #eaf8ef; border-color: #bfe8ce; }
-.status-pill--running { color: #086abf; background: #e8f4ff; border-color: #b9ddfb; }
-.status-pill--waiting,
-.status-pill--paused { color: #8a6400; background: #fff7df; border-color: #f0d999; }
-.status-pill--partial { color: #a66000; background: #fff2df; border-color: #f1c98e; }
-.status-pill--failed,
-.status-pill--abandoned { color: #b33e3e; background: #fff0f0; border-color: #f0bcbc; }
 
-.detail-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: #7c8da1; font-size: 14px; }
-.detail-empty__icon { display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; color: #7ba6ca; font-size: 24px; background: #edf6fd; border-radius: 50%; }
-.detail-head { align-items: flex-start; padding: 14px; }
-.detail-head__task-no { color: #8596a7; font-size: 11px; font-family: Consolas, monospace; }
-.detail-scroll { padding: 14px; box-sizing: border-box; }
-.detail-stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
-.detail-stat { display: flex; flex-direction: column; gap: 3px; padding: 10px; background: #f6faff; border: 1px solid #dceaf5; border-radius: 5px; }
-.detail-stat__value { color: #256da8; font-size: 20px; font-weight: 900; }
-.detail-stat__label { color: #74879a; font-size: 11px; font-weight: 700; }
-.detail-stat--success .detail-stat__value { color: #178354; }
-.detail-stat--danger .detail-stat__value { color: #c64b4b; }
-.detail-section { padding-top: 14px; border-top: 1px solid #edf3f8; }
-.detail-section + .detail-section { margin-top: 14px; }
-.detail-section__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 9px; }
-.detail-section__title { display: block; margin-bottom: 9px; color: #24445f; font-size: 14px; font-weight: 900; }
-.detail-section__head .detail-section__title { margin-bottom: 0; }
-.detail-section__meta { color: #0d82ee; font-size: 13px; font-weight: 900; }
-.mini-button { height: 28px; padding: 0 10px; color: #31506d; line-height: 28px; background: #f6fbff; border: 1px solid #cbdced; }
-.info-list { border: 1px solid #e2ebf3; border-radius: 5px; overflow: hidden; }
-.info-row { display: flex; justify-content: space-between; gap: 12px; padding: 8px 10px; font-size: 12px; background: #fbfdff; border-bottom: 1px solid #edf3f8; }
-.info-row:last-child { border-bottom: 0; }
-.info-row text:first-child { color: #718498; font-weight: 700; }
-.info-row text:last-child { color: #294963; font-weight: 800; text-align: right; }
-.parameter-chips { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; }
-.parameter-chip { display: flex; flex-direction: column; gap: 4px; padding: 8px; background: #f7fafc; border: 1px solid #e2ebf3; border-radius: 4px; }
-.parameter-chip text:first-child { color: #778a9d; font-size: 10px; }
-.parameter-chip text:last-child { color: #294963; font-size: 12px; font-weight: 800; }
+.status-tag--primary {
+  color: #0d82ee;
+  background: #f3f9ff;
+  border-color: #d7eaff;
+}
 
-.file-card { display: flex; align-items: center; gap: 10px; padding: 10px; background: #f7fbff; border: 1px solid #dbeaf5; border-radius: 5px; }
-.file-card__icon { flex: none; display: flex; align-items: center; justify-content: center; width: 42px; height: 46px; color: #fff; font-size: 11px; font-weight: 900; background: linear-gradient(145deg, #1c92f2, #0b6fca); border-radius: 5px; }
-.file-card__content { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; }
-.file-card__name { color: #24445f; font-size: 13px; font-weight: 900; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.file-card__meta,
-.file-card__frames { color: #71869a; font-size: 11px; line-height: 1.5; }
-.audio-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
-.audio-summary > view { display: flex; flex-direction: column; gap: 3px; padding: 8px; background: #f7fafc; border: 1px solid #e2ebf3; border-radius: 4px; }
-.audio-summary text:first-child { color: #788b9d; font-size: 10px; }
-.audio-summary text:last-child { color: #24445f; font-size: 13px; font-weight: 900; }
-.device-result-list { display: flex; flex-direction: column; gap: 7px; }
-.device-result-item { padding: 9px; background: #fbfdff; border: 1px solid #e2ebf3; border-radius: 5px; }
-.device-result-item__top { display: flex; justify-content: space-between; gap: 10px; }
-.device-result-item__top > view { display: flex; flex-direction: column; gap: 2px; }
-.device-result-item__number { color: #24445f; font-size: 12px; font-weight: 900; }
-.device-result-item__phase { color: #7a8d9f; font-size: 10px; }
-.device-status-dot { width: 8px; height: 8px; margin-top: 3px; border-radius: 50%; }
-.device-status-dot--success { background: #23a36d; }
-.device-status-dot--danger { background: #d55454; }
-.device-status-dot--warning { background: #dfa11c; }
-.device-status-dot--running { background: #1689ed; box-shadow: 0 0 0 4px rgba(22, 137, 237, 0.12); }
-.device-result-item__progress { display: flex; align-items: center; gap: 7px; margin-top: 7px; color: #718498; font-size: 10px; }
-.device-result-item__track { flex: 1; height: 5px; overflow: hidden; background: #e6edf3; border-radius: 999px; }
-.device-result-item__track view { height: 100%; background: #1689ed; border-radius: inherit; }
-.device-result-item__message { display: block; margin-top: 6px; color: #597186; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.status-tag--success {
+  color: #177245;
+  background: #eaf8ef;
+  border-color: #bfe8ce;
+}
 
-.modal-mask { position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(19, 38, 56, 0.52); box-sizing: border-box; }
-.modal { display: flex; flex-direction: column; width: min(1080px, 94vw); max-height: 90vh; overflow: hidden; background: #fff; border: 1px solid #cbdce9; border-radius: 8px; box-shadow: 0 26px 70px rgba(10, 35, 57, 0.3); }
-.modal--dispatch { height: min(760px, 88vh); }
-.modal--progress { width: min(1280px, 96vw); height: min(720px, 88vh); }
-.modal-head { min-height: 62px; padding: 11px 18px; background: #fbfdff; }
-.modal-head > view:first-child { display: flex; flex-direction: column; gap: 3px; }
-.modal-head__eyebrow { color: #6e88a0; font-size: 10px; font-weight: 800; letter-spacing: 0.5px; }
-.modal-head__title { color: #203f5b; font-size: 18px; font-weight: 900; }
-.modal-close { width: 32px; height: 32px; color: #6d8295; font-size: 24px; line-height: 29px; background: transparent; border: 0; }
-.step-bar { flex: none; display: grid; grid-template-columns: repeat(3, 1fr); padding: 13px 22px; background: #f5f9fc; border-bottom: 1px solid #e2ebf3; }
-.step-item { position: relative; display: flex; align-items: center; justify-content: center; gap: 7px; color: #8797a6; font-size: 12px; font-weight: 800; }
-.step-item:not(:last-child)::after { position: absolute; top: 13px; left: calc(50% + 54px); right: calc(-50% + 54px); height: 1px; content: ""; background: #ccdae5; }
-.step-item__number { display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; color: #6f8295; background: #fff; border: 1px solid #c8d7e3; border-radius: 50%; box-sizing: border-box; }
-.step-item--active { color: #0d75cf; }
-.step-item--active .step-item__number { color: #fff; background: #0d82ee; border-color: #0d82ee; }
-.step-item--done { color: #249166; }
-.step-item--done .step-item__number { color: #fff; background: #25a373; border-color: #25a373; }
-.modal-body { flex: 1; height: auto; min-height: 0; padding: 18px 22px; background: #f8fbfd; box-sizing: border-box; }
-.wizard-section { max-width: 960px; margin: 0 auto; }
-.wizard-intro { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
-.wizard-intro--inline { flex-direction: row; align-items: center; justify-content: space-between; gap: 14px; }
-.wizard-intro__title { color: #24445f; font-size: 17px; font-weight: 900; }
-.wizard-intro__text { color: #72869a; font-size: 12px; line-height: 1.6; }
-.selected-count { flex: none; padding: 6px 11px; color: #086fc8; font-size: 12px; font-weight: 900; background: #eaf5ff; border: 1px solid #c6e3fb; border-radius: 999px; }
-.command-choice-list { display: flex; flex-direction: column; gap: 10px; }
-.command-choice { display: flex; gap: 12px; padding: 14px; background: #fff; border: 1px solid #d9e5ee; border-radius: 6px; cursor: pointer; transition: 0.16s ease; }
-.command-choice:hover { border-color: #9bcaf0; box-shadow: 0 8px 20px rgba(36, 91, 134, 0.08); }
-.command-choice--active { background: #eff8ff; border-color: #61abe7; box-shadow: inset 0 0 0 1px #b6dcf8; }
-.command-choice__radio { flex: none; display: flex; align-items: center; justify-content: center; width: 18px; height: 18px; margin-top: 2px; border: 2px solid #b2c3d1; border-radius: 50%; box-sizing: border-box; }
-.command-choice--active .command-choice__radio { border-color: #0d82ee; }
-.command-choice--active .command-choice__radio text { width: 8px; height: 8px; background: #0d82ee; border-radius: 50%; }
-.command-choice__main { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
-.command-choice__head { display: flex; justify-content: space-between; gap: 12px; }
-.command-choice__name { color: #24445f; font-size: 14px; font-weight: 900; }
-.command-choice__code { color: #0d72c7; font-size: 12px; font-family: Consolas, monospace; font-weight: 900; }
-.command-choice__type { color: #4c85af; font-size: 11px; font-weight: 800; }
-.command-choice__desc { color: #687e92; font-size: 12px; line-height: 1.55; }
-.command-choice__frame { margin-top: 3px; padding: 6px 8px; color: #5b7186; font-size: 10px; font-family: Consolas, monospace; background: rgba(235, 242, 247, 0.72); border-radius: 3px; }
-.device-toolbar { display: flex; align-items: center; gap: 9px; margin-bottom: 10px; }
-.device-toolbar .filter-input { flex: 1; }
-.device-status-select { width: 168px; }
-.device-select-table { overflow: hidden; background: #fff; border: 1px solid #d9e5ee; border-radius: 5px; }
-.device-select-row { display: grid; grid-template-columns: 46px 130px 140px 100px 90px minmax(180px, 1fr); min-height: 42px; border-bottom: 1px solid #edf1f5; cursor: pointer; }
-.device-select-row:last-child { border-bottom: 0; }
-.device-select-row:not(.device-select-row--header):hover { background: #f3f9fe; }
-.device-select-row--active { background: #eaf5ff; }
-.device-select-row--header { background: #f4f8fb; cursor: default; }
-.device-select-cell--number { justify-content: flex-start; color: #0f568e; font-weight: 800; }
-.device-select-cell--address { justify-content: flex-start; }
-.mock-checkbox { display: flex; align-items: center; justify-content: center; width: 17px; height: 17px; color: #fff; font-size: 12px; font-weight: 900; background: #fff; border: 1px solid #adbfce; border-radius: 3px; box-sizing: border-box; }
-.device-select-row--active .mock-checkbox { background: #0d82ee; border-color: #0d82ee; }
-.online-pill { display: inline-flex; align-items: center; justify-content: center; min-width: 48px; height: 22px; font-size: 11px; font-weight: 800; border-radius: 999px; }
-.online-pill--online { color: #14754b; background: #e9f8ef; border: 1px solid #bee7ce; }
-.online-pill--offline { color: #6b7d8e; background: #f1f4f7; border: 1px solid #d6e0e8; }
-.pagination-bar { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 12px; color: #6f8294; font-size: 12px; }
-.page-button { height: 28px; padding: 0 11px; color: #31506d; line-height: 28px; background: #fff; border: 1px solid #cbdced; }
-.page-button[disabled] { color: #a8b5c0; background: #f1f4f7; }
-.selected-command-badge { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; padding: 7px 10px; background: #ecf7ff; border: 1px solid #c7e4fa; border-radius: 5px; }
-.selected-command-badge text:first-child { color: #0873cc; font-size: 11px; font-family: Consolas, monospace; font-weight: 900; }
-.selected-command-badge text:last-child { color: #456b8b; font-size: 11px; font-weight: 800; }
-.config-card { padding: 14px; background: #fff; border: 1px solid #d9e5ee; border-radius: 6px; }
-.config-card + .config-card { margin-top: 10px; }
-.config-card__title { display: block; margin-bottom: 9px; color: #24445f; font-size: 13px; font-weight: 900; }
-.form-hint { display: block; margin-top: 6px; color: #8596a5; font-size: 10px; }
-.form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-.flow-note { display: flex; align-items: flex-start; gap: 10px; margin-top: 12px; padding: 8px 10px; background: #f4f9fd; border-left: 3px solid #55a5e7; }
-.flow-note text:first-child { flex: none; color: #2b76b4; font-size: 11px; font-weight: 900; }
-.flow-note text:last-child { color: #667e93; font-size: 11px; line-height: 1.5; }
-.file-uploader { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 112px; gap: 4px; color: #70869a; background: #f8fbfe; border: 1px dashed #9dc4e2; border-radius: 5px; cursor: pointer; }
-.file-uploader__icon { color: #0d82ee; font-size: 26px; line-height: 1; }
-.file-uploader__title { color: #316487; font-size: 13px; font-weight: 900; }
-.file-uploader__hint { font-size: 10px; }
-.file-card--selected { padding: 12px; }
-.audio-summary--wide { grid-template-columns: 90px 90px 90px minmax(0, 1fr); margin-top: 10px; }
-.audio-summary--wide > view:last-child text:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.confirm-card { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
-.confirm-card > view { display: flex; flex-direction: column; gap: 3px; padding: 9px 10px; background: #edf7ff; border: 1px solid #d2e9fa; border-radius: 5px; }
-.confirm-card text:first-child { color: #71899d; font-size: 10px; }
-.confirm-card text:last-child { color: #225578; font-size: 12px; font-weight: 900; }
-.modal-actions { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 18px; background: #fff; border-top: 1px solid #e2ebf3; }
+.status-tag--warning {
+  color: #b54708;
+  background: #fff8eb;
+  border-color: #fedf89;
+}
 
-.progress-summary-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; padding: 10px 18px; background: #edf5fb; border-bottom: 1px solid #dce8f1; }
-.progress-summary-bar > view { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.progress-summary-bar text:first-child { color: #74899d; font-size: 10px; }
-.progress-summary-bar text:last-child { color: #244a68; font-size: 13px; font-weight: 900; }
-.progress-table-scroll { flex: 1; height: auto; min-height: 0; background: #fff; }
-.progress-table { min-width: 1160px; }
-.progress-row { display: grid; grid-template-columns: 125px 78px 155px 76px 170px minmax(230px, 1fr) 154px 100px; min-width: 1160px; min-height: 48px; border-bottom: 1px solid #edf1f5; }
-.progress-row--header { position: sticky; top: 0; z-index: 2; min-height: 42px; background: #f5f8fb; }
-.progress-cell--number { justify-content: flex-start; color: #0e568f; font-weight: 800; }
-.progress-cell--phase { justify-content: flex-start; gap: 7px; }
-.progress-cell--message { justify-content: flex-start; color: #60778b; }
-.loading-spinner { flex: none; width: 12px; height: 12px; border: 2px solid #bcdcf6; border-top-color: #0d82ee; border-radius: 50%; animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.table-progress { display: flex; align-items: center; gap: 7px; width: 100%; color: #60778b; font-size: 10px; }
-.table-progress > view { flex: 1; height: 6px; overflow: hidden; background: #e6edf3; border-radius: 999px; }
-.table-progress > view > text { display: block; height: 100%; background: linear-gradient(90deg, #26a2f5, #0d7bdc); border-radius: inherit; }
-.table-action-button { height: 26px; padding: 0 8px; color: #0873ca; line-height: 26px; background: #ecf7ff; border: 1px solid #bfe0f8; }
-.action-placeholder { color: #a3b0bb; }
-.prototype-tip { color: #7c8f9f; font-size: 11px; }
+.status-tag--danger {
+  color: #b42318;
+  background: #fff1ee;
+  border-color: #ffd3cb;
+}
+
+.status-tag--default {
+  color: #5f7186;
+  background: #f3f6f9;
+  border-color: #dbe4ec;
+}
+
+.progress-cell {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 7px;
+  font-size: 11px;
+}
+
+.progress-track,
+.progress-overview__track {
+  flex: 1;
+  height: 7px;
+  overflow: hidden;
+  background: #e4edf4;
+  border-radius: 999px;
+}
+
+.progress-track view,
+.progress-overview__track view {
+  height: 100%;
+  background: linear-gradient(90deg, #27a4ef, #087bd7);
+  border-radius: inherit;
+}
+
+.section-title {
+  display: block;
+  color: #294b66;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.info-section+.info-section {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #edf2f6;
+}
+
+.info-list {
+  margin-top: 8px;
+  overflow: hidden;
+  border: 1px solid #e2eaf1;
+  border-radius: 5px;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 34px;
+  padding: 7px 9px;
+  gap: 12px;
+  font-size: 11px;
+  background: #fbfdff;
+  border-bottom: 1px solid #edf2f6;
+  box-sizing: border-box;
+}
+
+.info-row:last-child {
+  border-bottom: 0;
+}
+
+.info-row text:first-child {
+  flex: none;
+  color: #75899c;
+}
+
+.info-row text:last-child {
+  min-width: 0;
+  color: #294b66;
+  font-weight: 800;
+  text-align: right;
+}
+
+.ellipsis-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.code-card {
+  display: flex;
+  flex-direction: column;
+  margin-top: 8px;
+  padding: 9px;
+  gap: 6px;
+  color: #425c72;
+  font-size: 10px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-all;
+  background: #f5f8fa;
+  border: 1px solid #e1e9ef;
+  border-radius: 5px;
+}
+
+.code-card__label {
+  color: #75899c;
+  font-weight: 800;
+}
+
+.error-card,
+.warning-card {
+  margin-top: 10px;
+  padding: 9px 10px;
+  color: #b34040;
+  font-size: 11px;
+  line-height: 1.5;
+  background: #fff1f1;
+  border: 1px solid #f0c3c3;
+  border-radius: 5px;
+}
+
+.progress-overview {
+  padding: 12px;
+  background: #f5faff;
+  border: 1px solid #d8eaf7;
+  border-radius: 6px;
+}
+
+.progress-overview__head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  color: #2b5777;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.progress-overview__track {
+  width: 100%;
+}
+
+.stage-text {
+  display: block;
+  margin-top: 7px;
+  color: #628097;
+  font-size: 10px;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 10px 0 14px;
+  gap: 8px;
+}
+
+.stat-grid>view {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding: 9px;
+  gap: 3px;
+  background: #f7fafc;
+  border: 1px solid #e2eaf1;
+  border-radius: 5px;
+}
+
+.stat-grid text:first-child {
+  color: #2177b7;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.stat-grid text:last-child {
+  color: #7b8d9e;
+  font-size: 10px;
+}
+
+.mini-button {
+  height: 29px;
+  padding: 0 10px;
+  color: #31506d;
+  font-size: 11px;
+  line-height: 29px;
+  background: #f6fbff;
+  border: 1px solid #cbdced;
+}
+
+.mini-button--danger {
+  color: #b13f3f;
+  background: #fff5f5;
+  border-color: #edc4c4;
+}
+
+.subsection-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.subsection-head>view {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.subsection-hint {
+  color: #8798a8;
+  font-size: 9px;
+}
+
+.subsection-head>.subsection-actions {
+  align-items: center;
+  flex-direction: row;
+  gap: 7px;
+}
+
+.resource-state {
+  padding: 40px 12px;
+  color: #7a8d9f;
+  font-size: 12px;
+  text-align: center;
+}
+
+.compact-table-scroll {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.compact-table {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #e1e9ef;
+  border-radius: 5px;
+  box-sizing: border-box;
+}
+
+.compact-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(86px, 1fr));
+  min-height: 44px;
+  border-bottom: 1px solid #edf2f6;
+  cursor: pointer;
+}
+
+.compact-row--audio {
+  grid-template-columns: 80px 100px 100px;
+  cursor: default;
+}
+
+.compact-table--audio {
+  width: 280px;
+  max-width: 100%;
+}
+
+.compact-row:last-child {
+  border-bottom: 0;
+}
+
+.compact-row>text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 7px;
+  overflow: hidden;
+  color: #425d73;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-right: 1px solid #edf2f6;
+  box-sizing: border-box;
+}
+
+.compact-row--header {
+  background: #f5f8fb;
+  cursor: default;
+}
+
+.compact-row--header text {
+  color: #516b81;
+  font-weight: 900;
+}
+
+.compact-row--active {
+  background: #e8f4fe;
+  box-shadow: inset 3px 0 0 #0d82ee;
+}
+
+.compact-row:not(.compact-row--header):hover {
+  background: #f3f9fe;
+}
+
+.timeline {
+  padding-left: 8px;
+}
+
+.timeline-item {
+  position: relative;
+  padding: 0 0 14px 22px;
+  border-left: 1px solid #d9e4ec;
+}
+
+.timeline-item__dot {
+  position: absolute;
+  top: 3px;
+  left: -5px;
+  width: 9px;
+  height: 9px;
+  background: #8195a7;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #8195a7;
+}
+
+.timeline-item--down .timeline-item__dot {
+  background: #1989e5;
+  box-shadow: 0 0 0 1px #1989e5;
+}
+
+.timeline-item--up .timeline-item__dot {
+  background: #22a36c;
+  box-shadow: 0 0 0 1px #22a36c;
+}
+
+.timeline-item__content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.timeline-item__content>view {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.timeline-item__title {
+  flex: 1;
+  min-width: 0;
+  color: #294b66;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.event-level {
+  flex: none;
+  height: 20px;
+  padding: 0 7px;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 20px;
+  border-radius: 999px;
+}
+
+.event-level--info {
+  color: #0875cc;
+  background: #eaf5ff;
+}
+
+.event-level--warn {
+  color: #a35b0b;
+  background: #fff5e5;
+}
+
+.event-level--error {
+  color: #b42318;
+  background: #fff1ee;
+}
+
+.timeline-item__time,
+.timeline-item__meta {
+  color: #8496a6;
+  font-size: 9px;
+}
+
+.timeline-item__summary {
+  color: #294b66;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.timeline-item__detail {
+  color: #5d7488;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.timeline-item__hex {
+  overflow: hidden;
+  color: #51728d;
+  font-size: 9px;
+  font-family: Consolas, monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.missing-frame-list {
+  display: flex;
+  flex-wrap: wrap;
+  max-height: 150px;
+  margin-top: 8px;
+  padding: 9px;
+  gap: 6px;
+  overflow-y: auto;
+  background: #f8fbfd;
+  border: 1px solid #e1e9ef;
+  border-radius: 5px;
+}
+
+.missing-frame-list>text {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 26px;
+  padding: 0 7px;
+  color: #a35b0b;
+  font-family: Consolas, monospace;
+  font-size: 11px;
+  font-weight: 800;
+  background: #fff5e5;
+  border: 1px solid #f2d29a;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.empty-inline {
+  margin-top: 8px;
+  padding: 18px 10px;
+  color: #7f91a1;
+  font-size: 11px;
+  text-align: center;
+  background: #f8fbfd;
+  border: 1px solid #e4ebf1;
+  border-radius: 5px;
+}
+
+.audio-command-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.audio-command-card {
+  padding: 10px;
+  background: #fbfdff;
+  border: 1px solid #e0e9f0;
+  border-radius: 5px;
+}
+
+.audio-command-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.audio-command-card__head>view {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.audio-command-card__head>view text:first-child {
+  color: #294b66;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.audio-command-card__head>view text:last-child,
+.audio-command-card__time {
+  color: #8496a6;
+  font-size: 9px;
+}
+
+.audio-command-card__time {
+  margin-top: 5px;
+}
+
+.audio-command-card__content {
+  display: flex;
+  flex-direction: column;
+  max-height: 88px;
+  margin-top: 7px;
+  padding: 7px;
+  gap: 4px;
+  overflow: auto;
+  color: #526d83;
+  font-family: Consolas, monospace;
+  font-size: 9px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+  background: #f3f7fa;
+  border-radius: 4px;
+}
+
+.audio-command-card__label {
+  color: #71879a;
+  font-family: sans-serif;
+  font-weight: 800;
+}
+
+.modal-mask {
+  position: fixed;
+  z-index: 3000;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(20, 39, 56, 0.55);
+  box-sizing: border-box;
+}
+
+.upgrade-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(1180px, 95vw);
+  height: min(800px, 90vh);
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #c9d9e6;
+  border-radius: 8px;
+  box-shadow: 0 26px 70px rgba(13, 39, 59, 0.3);
+}
+
+.modal-head {
+  background: #fbfdff;
+}
+
+.upgrade-modal .modal-head__eyebrow {
+  font-size: 13px;
+}
+
+.upgrade-modal .modal-head__title {
+  font-size: 21px;
+}
+
+.modal-close {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  color: #718497;
+  font-size: 28px;
+  line-height: 35px;
+  background: transparent;
+  border: 0;
+}
+
+.frame-detail-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(1380px, 96vw);
+  height: min(820px, 90vh);
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #c9d9e6;
+  border-radius: 8px;
+  box-shadow: 0 26px 70px rgba(13, 39, 59, 0.3);
+}
+
+.audio-frame-detail-modal {
+  width: min(1120px, 90vw);
+}
+
+.frame-detail-modal .modal-head {
+  align-items: center;
+}
+
+.frame-detail-modal .modal-head__eyebrow {
+  font-size: 12px;
+}
+
+.frame-detail-modal .modal-head__title {
+  font-size: 20px;
+}
+
+.frame-detail-body {
+  flex: 1;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 16px 18px;
+  overflow: auto;
+  scrollbar-color: #8fa4b8 #e8eef4;
+  scrollbar-gutter: stable;
+  background: #f7fafc;
+  box-sizing: border-box;
+}
+
+.frame-detail-body::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.frame-detail-body::-webkit-scrollbar-track {
+  background: #e8eef4;
+}
+
+.frame-detail-body::-webkit-scrollbar-thumb {
+  background: #8fa4b8;
+  border: 2px solid #e8eef4;
+  border-radius: 999px;
+}
+
+.frame-full-table {
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #dce6ed;
+  border-radius: 5px;
+  box-sizing: border-box;
+}
+
+.frame-full-row {
+  display: grid;
+  min-height: 48px;
+  border-bottom: 1px solid #e8eef4;
+  cursor: pointer;
+}
+
+.frame-full-row:last-child {
+  border-bottom: 0;
+}
+
+.frame-full-row>text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 9px 10px;
+  overflow: hidden;
+  color: #3f5c73;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+  word-break: break-all;
+  border-right: 1px solid #e8eef4;
+  box-sizing: border-box;
+}
+
+.frame-full-row>text:last-child {
+  border-right: 0;
+}
+
+.frame-full-row--header {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  min-height: 52px;
+  color: #4e687e;
+  font-weight: 900;
+  background: #f3f7fa;
+  cursor: default;
+}
+
+.frame-full-row--active {
+  background: #e8f4fe;
+  box-shadow: inset 3px 0 0 #0d82ee;
+}
+
+.frame-full-row:not(.frame-full-row--header):hover {
+  background: #f2f8fd;
+}
+
+.frame-full-cell--code {
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  font-family: Consolas, monospace;
+  text-align: left !important;
+  white-space: pre-wrap;
+}
+
+.frame-full-cell--ellipsis {
+  display: block !important;
+  align-self: center;
+  overflow: hidden !important;
+  text-overflow: ellipsis;
+  white-space: nowrap !important;
+}
+
+.frame-detail-modal .modal-actions {
+  justify-content: flex-end;
+  min-height: 62px;
+}
+
+.frame-detail-modal .action-button {
+  min-width: 86px;
+}
+
+.step-bar {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 16px 24px;
+  background: #f5f9fc;
+  border-bottom: 1px solid #e2eaf1;
+}
+
+.step-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  color: #8495a5;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.step-item__number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  font-size: 14px;
+  background: #fff;
+  border: 1px solid #c5d5e2;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.step-item--active {
+  color: #0874cb;
+}
+
+.step-item--active .step-item__number {
+  color: #fff;
+  background: #0d82ee;
+  border-color: #0d82ee;
+}
+
+.step-item--done {
+  color: #208a5f;
+}
+
+.step-item--done .step-item__number {
+  color: #fff;
+  background: #27a471;
+  border-color: #27a471;
+}
+
+.modal-body {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+  padding: 22px 26px;
+  background: #f7fafc;
+  box-sizing: border-box;
+}
+
+.wizard-section {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.wizard-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.wizard-head>view:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.wizard-title {
+  color: #294b66;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.wizard-hint {
+  color: #7d90a2;
+  font-size: 14px;
+}
+
+.selected-count {
+  padding: 6px 12px;
+  color: #0875cc;
+  font-size: 14px;
+  font-weight: 900;
+  background: #e8f4fe;
+  border: 1px solid #c6e2f8;
+  border-radius: 999px;
+}
+
+.choice-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.choice-card {
+  display: flex;
+  padding: 15px;
+  gap: 12px;
+  background: #fff;
+  border: 1px solid #d9e4ec;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.choice-card--active {
+  background: #eff8ff;
+  border-color: #58a7e5;
+  box-shadow: inset 0 0 0 1px #bce0f8;
+}
+
+.choice-radio {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  border: 2px solid #b3c3d0;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.choice-card--active .choice-radio {
+  border-color: #0d82ee;
+}
+
+.choice-card--active .choice-radio text {
+  width: 9px;
+  height: 9px;
+  background: #0d82ee;
+  border-radius: 50%;
+}
+
+.choice-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  gap: 7px;
+}
+
+.choice-content>view {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.choice-title {
+  color: #294b66;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.version-pill {
+  padding: 4px 9px;
+  color: #13755c;
+  font-size: 13px;
+  font-weight: 900;
+  background: #eaf8f2;
+  border-radius: 999px;
+}
+
+.choice-description,
+.choice-meta {
+  overflow: hidden;
+  color: #718698;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.device-filter {
+  display: flex;
+  margin-bottom: 12px;
+  gap: 10px;
+}
+
+.device-filter .filter-input {
+  flex: 1;
+  height: 40px;
+  font-size: 14px;
+  line-height: 40px;
+}
+
+.device-filter .mini-button {
+  height: 40px;
+  padding: 0 15px;
+  font-size: 14px;
+  line-height: 40px;
+}
+
+.device-table {
+  width: 100%;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #d9e4ec;
+  border-radius: 5px;
+  box-sizing: border-box;
+}
+
+.device-row {
+  display: grid;
+  grid-template-columns: 56px minmax(150px, 1.05fr) minmax(170px, 1.45fr) 150px 120px 130px;
+  width: 100%;
+  min-height: 50px;
+  border-bottom: 1px solid #edf2f6;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.device-row:last-child {
+  border-bottom: 0;
+}
+
+.device-row>text,
+.device-check-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 8px 10px;
+  overflow: hidden;
+  color: #405c73;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-right: 1px solid #edf2f6;
+  box-sizing: border-box;
+}
+
+.device-row--header {
+  min-height: 52px;
+  color: #4c657a;
+  font-weight: 900;
+  background: #f4f8fb;
+  cursor: default;
+}
+
+.device-row--header>text {
+  font-size: 14px;
+}
+
+.device-row--selected {
+  background: #eaf5ff;
+}
+
+.device-row--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  color: #fff;
+  font-size: 14px;
+  line-height: 20px;
+  background: #fff;
+  border: 1px solid #aebfcd;
+  border-radius: 3px;
+  box-sizing: border-box;
+}
+
+.device-row--selected .checkbox {
+  background: #0d82ee;
+  border-color: #0d82ee;
+}
+
+.online-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 54px;
+  height: 24px;
+  padding: 0 9px;
+  font-size: 12px;
+  font-weight: 800;
+  border-radius: 999px;
+  box-sizing: border-box;
+}
+
+.online-pill--online {
+  color: #16744b;
+  background: #e9f8ef;
+  border: 1px solid #bee7ce;
+}
+
+.online-pill--offline {
+  color: #6d7e8e;
+  background: #f0f3f6;
+  border: 1px solid #d5dfe7;
+}
+
+.confirm-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin-bottom: 14px;
+  gap: 10px;
+}
+
+.confirm-summary>view {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  gap: 5px;
+  background: #eef7ff;
+  border: 1px solid #d2e8f8;
+  border-radius: 5px;
+}
+
+.confirm-summary text:first-child {
+  color: #778c9e;
+  font-size: 13px;
+}
+
+.confirm-summary text:last-child {
+  color: #285773;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.check-list {
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #dce6ed;
+  border-radius: 5px;
+}
+
+.check-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 60px;
+  padding: 10px 14px;
+  gap: 12px;
+  border-bottom: 1px solid #edf2f6;
+  box-sizing: border-box;
+}
+
+.check-item:last-child {
+  border-bottom: 0;
+}
+
+.check-item>view {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #7a8d9f;
+  font-size: 13px;
+}
+
+.check-item__number {
+  color: #2a526f;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.check-result {
+  max-width: 260px;
+  padding: 5px 10px;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: right;
+  border-radius: 999px;
+}
+
+.check-result--success {
+  color: #177245;
+  background: #eaf8ef;
+}
+
+.check-result--danger {
+  color: #b33e3e;
+  background: #fff0f0;
+}
+
+.upgrade-modal .resource-state,
+.upgrade-modal .warning-card {
+  font-size: 14px;
+}
+
+.modal-actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 72px;
+  padding: 14px 18px;
+  background: #fff;
+  border-top: 1px solid #e2eaf1;
+  box-sizing: border-box;
+}
+
+.modal-actions>view {
+  display: flex;
+  gap: 10px;
+}
+
+.upgrade-modal .modal-actions .action-button {
+  min-width: 88px;
+  height: 42px;
+  font-size: 16px;
+  line-height: 42px;
+}
 
 @media (max-width: 1280px) {
-  .filter-field--date { display: none; }
-  .command-layout { grid-template-columns: minmax(0, 1fr) 390px; }
+  .filter-field--date {
+    display: none;
+  }
+
+  .content-layout {
+    grid-template-columns: minmax(0, 1fr) 330px;
+  }
 }
 
 @media (max-width: 980px) {
-  .command-toolbar { align-items: stretch; flex-direction: column; }
-  .toolbar__actions { justify-content: flex-end; }
-  .command-layout { grid-template-columns: 1fr; overflow: auto; }
-  .detail-panel { min-height: 540px; }
-  .summary-grid { grid-template-columns: repeat(2, 1fr); }
-  .modal-mask { padding: 10px; }
-  .audio-summary--wide { grid-template-columns: repeat(2, 1fr); }
+  .task-center {
+    height: auto;
+    min-height: calc(100vh - 88px);
+    overflow: visible;
+  }
+
+  .toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .toolbar__filters {
+    flex-wrap: wrap;
+  }
+
+  .toolbar__actions {
+    justify-content: flex-end;
+  }
+
+  .content-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .list-panel {
+    min-height: 560px;
+  }
+
+  .detail-panel {
+    min-height: 540px;
+  }
+
+  .choice-list {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

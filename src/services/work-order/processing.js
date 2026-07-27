@@ -11,6 +11,7 @@ const manualAnalysisWorkOrderApi = createCrudService("/api/manual-analysis/work-
 export const getWorksheetProcessPage = worksheetApi.getPage;
 export const getWorksheetProcessDetail = worksheetApi.getDetail;
 export const updateWorksheetProcess = worksheetApi.update;
+export const deleteWorksheet = worksheetApi.delete;
 
 export function assignWorksheet(id, data) {
   return updateWorksheetProcess(id, data);
@@ -52,6 +53,7 @@ export default {
   getWorksheetProcessPage,
   getWorksheetProcessDetail,
   updateWorksheetProcess,
+  deleteWorksheet,
   assignWorksheet,
   urgeWorksheet,
   closeWorksheet,

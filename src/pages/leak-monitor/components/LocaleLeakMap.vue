@@ -49,6 +49,7 @@
       @download-audio="workspace.downloadLatestAudio"
       @submit-manual="workspace.submitManualAnalysis"
       @select-device="handleSelectDevice"
+      @focus-device="mapRef?.focusDevice?.($event)"
     />
   </view>
 </template>

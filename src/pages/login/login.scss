@@ -132,6 +132,9 @@
   height: auto;
   pointer-events: none;
 }
+.login-logo--foreign {
+  width: clamp(330px, 27vw, 450px);
+}
 
 .login-brand__line {
   width: 42px;
@@ -606,6 +609,7 @@
   .login-page { padding-right: 5vw; }
   .login-form { width: 400px; }
   .login-logo { width: 320px; }
+  .login-logo--foreign { width: 350px; }
 }
 
 @media (max-width: 900px) {
@@ -620,6 +624,7 @@
   .login-brand { top: 24px; left: 28px; }
   .language-switch { top: 22px; right: 24px; }
   .login-logo { width: 270px; filter: drop-shadow(0 2px 4px rgba(255, 255, 255, 0.5)); }
+  .login-logo--foreign { width: 294px; }
   .login-brand__line,
   .login-brand__eyebrow,
   .login-brand__description { display: none; }
@@ -649,6 +654,7 @@
   .language-switch { top: 72px; right: 16px; }
   .language-switch__button { min-width: 42px; padding: 0 9px; }
   .login-logo { width: 230px; }
+  .login-logo--foreign { width: 250px; }
   .login-form { width: calc(100vw - 28px); margin-top: 0; padding: 24px 20px 20px; }
   .login-header { padding: 10px 0 28px; }
   .login-title { font-size: 36px; }

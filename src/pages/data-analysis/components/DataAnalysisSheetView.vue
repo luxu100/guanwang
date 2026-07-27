@@ -79,40 +79,22 @@
               :class="{ 'data-row--active': selectedId === item.id, 'data-row--leakage': props.mode === 'leakage' }"
               @click="selectRow(item)"
             >
-              <template v-if="props.mode === 'audio'">
-                <text class="data-cell data-cell--index">{{ index + 1 }}</text>
-                <text class="data-cell data-cell--device">{{ (item as AudioDataItem).deviceId }}</text>
-                <text class="data-cell data-cell--time">{{ ((item as AudioDataItem).audioTime || '').replace('T', ' ') }}</text>
-                <text class="data-cell data-cell--dept">{{ (item as AudioDataItem).deptName }}</text>
-                <text class="data-cell data-cell--spectrum">
-                  <text class="data-link" @click.stop="openSpectrumDialog(item as AudioDataItem)"><text class="spectrum-icon"></text>{{ t('ui.analysis') }}</text>
+              <template v-for="column in tableColumns" :key="column.key">
+                <text v-if="column.renderType === 'index'" class="data-cell" :class="column.className">{{ index + 1 }}</text>
+                <text v-else-if="column.renderType === 'status-pill'" class="data-cell" :class="column.className">
+                  <text class="status-pill" :class="getStatusPillClass(column.statusClassKey!, getItemValue(item, column.key))">{{ getStatusPillText(column.statusClassKey!, getItemValue(item, column.key)) }}</text>
                 </text>
-                <text class="data-cell data-cell--download">
-                  <text class="data-link" @click.stop="onDownload(item as AudioDataItem)"><text class="download-icon"></text>{{ t('ui.audio') }}</text>
+                <text v-else-if="column.renderType === 'spectrum-btn'" class="data-cell" :class="column.className">
+                  <text class="data-link" @click.stop="openSpectrumDialog(item)"><text class="spectrum-icon"></text>{{ t('ui.analysis') }}</text>
                 </text>
-                <text class="data-cell data-cell--status">
-                  <text class="status-pill" :class="getInstallStatusClass((item as AudioDataItem).status)">{{ translateStatus((item as AudioDataItem).status) }}</text>
+                <text v-else-if="column.renderType === 'download-btn'" class="data-cell" :class="column.className">
+                  <text class="data-link" @click.stop="onDownload(item)"><text class="download-icon"></text>{{ t('ui.audio') }}</text>
                 </text>
-                <text class="data-cell data-cell--location">
-                  <text class="data-link" @click.stop="onLocation(item as AudioDataItem)">{{ formatCoordinate((item as AudioDataItem).location) }}</text>
+                <text v-else-if="column.renderType === 'coordinate-btn'" class="data-cell" :class="column.className">
+                  <text class="data-link" @click.stop="onLocationClick(item)">{{ formatCoordinate(getItemValue(item, column.key)) }}</text>
                 </text>
-              </template>
-              <template v-else-if="props.mode === 'leakage'">
-                <text class="data-cell data-cell--index">{{ index + 1 }}</text>
-                <text class="data-cell data-cell--device">{{ (item as LeakItem).deviceId }}</text>
-                <text class="data-cell data-cell--time">{{ ((item as LeakItem).detectedTime || '').replace(/\.\d+/, '').replace('T', ' ') }}</text>
-                <text class="data-cell data-cell--dept">{{ (item as LeakItem).deptName }}</text>
-                <text class="data-cell data-cell--status">
-                  <text class="status-pill" :class="getLeakageStatusClass(item as LeakItem)">{{ translateLeakageStatus((item as LeakItem).leakageStatus) }}</text>
-                </text>
-                <text class="data-cell data-cell--install">
-                  <text class="status-pill" :class="getInstallStatusClass((item as LeakItem).installStatus)">{{ translateStatus((item as LeakItem).installStatus) }}</text>
-                </text>
-                <text class="data-cell data-cell--bluewhale">{{ (item as LeakItem).blueWhaleAnalysis }}</text>
-                <text class="data-cell data-cell--manualanalysis">{{ (item as LeakItem).manualAnalysis }}</text>
-                <text class="data-cell data-cell--location">
-                  <text class="data-link" @click.stop="onLocationLeak(item as LeakItem)">{{ formatCoordinate((item as LeakItem).location) }}</text>
-                </text>
+                <text v-else-if="column.renderType === 'time'" class="data-cell" :class="column.className">{{ formatTimeValue(getItemValue(item, column.key)) }}</text>
+                <text v-else class="data-cell" :class="column.className">{{ column.formatter ? column.formatter(getItemValue(item, column.key), item as Record<string, any>) : (getItemValue(item, column.key) || '--') }}</text>
               </template>
             </view>
           </view>
@@ -185,7 +167,7 @@
                     <text class="detail-summary__meta-value">{{ (selectedItem as AudioDataItem).installer }}</text>
                   </view>
                   <view class="detail-summary__meta-item">
-                    <text class="detail-summary__meta-label">所属片区</text>
+                    <text class="detail-summary__meta-label">所属分区</text>
                     <text class="detail-summary__meta-value">{{ (selectedItem as AudioDataItem).deptName }}</text>
                   </view>
                 </view>
@@ -255,65 +237,9 @@
 
             <view v-else-if="activeAudioTab === 'audio-info'" class="detail-base-panel leak-tab-body">
               <view class="detail-grid detail-grid--content">
-                <view class="detail-item detail-item--note">
-                  <text class="detail-item__label">采样率</text>
-                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).samplingRate }}</text>
-                </view>
-                <view class="detail-item detail-item--note">
-                  <text class="detail-item__label">单次测量时长</text>
-                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).onceMeasureLength }}</text>
-                </view>
-                <view class="detail-item detail-item--note">
-                  <text class="detail-item__label">滤波器低频点</text>
-                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).filterLowFrequency }}</text>
-                </view>
-                <view class="detail-item detail-item--note">
-                  <text class="detail-item__label">滤波器高频点</text>
-                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).filterHighFrequency }}</text>
-                </view>
-                <view class="detail-item detail-item--note">
-                  <text class="detail-item__label">滤波方式</text>
-                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).filterMethod }}</text>
-                </view>
-                <view class="detail-item detail-item--note">
-                  <text class="detail-item__label">增益原始值</text>
-                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).gain }}</text>
-                </view>
-                <view class="detail-item detail-item--note">
-                  <text class="detail-item__label">信号挡位</text>
-                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).signalLevel }}</text>
-                </view>
-                <view class="detail-item detail-item--note">
-                  <text class="detail-item__label">基准值</text>
-                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).benchmarkValue }}</text>
-                </view>
-                <view class="detail-item detail-item--note">
-                  <text class="detail-item__label">噪声基准值</text>
-                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).noiseBenchmarkValue }}</text>
-                </view>
-                <view class="detail-item detail-item--note">
-                  <text class="detail-item__label">信号采集通道</text>
-                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).signalChannel }}</text>
-                </view>
-                <view class="detail-item detail-item--note">
-                  <text class="detail-item__label">同步采样时间</text>
-                  <text class="detail-item__value">{{ ((selectedItem as AudioDataItem).syncSamplingTime || '').replace('T', ' ') }}</text>
-                </view>
-                <view class="detail-item detail-item--note">
-                  <text class="detail-item__label">同步采样次数</text>
-                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).syncSamplingNumber }}</text>
-                </view>
-                <view class="detail-item detail-item--note">
-                  <text class="detail-item__label">音频上报规则</text>
-                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).audioRule }}</text>
-                </view>
-                <view class="detail-item detail-item--note">
-                  <text class="detail-item__label">每天测量组数</text>
-                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).samplingCount }}</text>
-                </view>
-                <view class="detail-item detail-item--note">
-                  <text class="detail-item__label">泄漏门限</text>
-                  <text class="detail-item__value">{{ (selectedItem as AudioDataItem).leakThreshold }}</text>
+                <view v-for="field in audioInfoDetailFields" :key="field.key" class="detail-item detail-item--note">
+                  <text class="detail-item__label">{{ field.label }}</text>
+                  <text class="detail-item__value">{{ getItemValue(selectedItem as DataItem, field.key) || '--' }}</text>
                 </view>
               </view>
             </view>
@@ -351,7 +277,7 @@
                       <text class="detail-summary__meta-value">{{ (selectedItem as LeakItem).installer }}</text>
                     </view>
                     <view class="detail-summary__meta-item">
-                      <text class="detail-summary__meta-label">所属片区</text>
+                      <text class="detail-summary__meta-label">所属分区</text>
                       <text class="detail-summary__meta-value">{{ (selectedItem as LeakItem).deptName }}</text>
                     </view>
                   </view>
@@ -418,37 +344,9 @@
                     <text class="detail-item__label">泄露状态</text>
                     <text class="detail-item__value">{{ translateLeakageStatus((selectedItem as LeakItem).leakageStatus) }}</text>
                   </view>
-                  <view class="detail-item detail-item--note">
-                    <text class="detail-item__label">增益</text>
-                    <text class="detail-item__value">{{ (selectedItem as LeakItem).gain }}</text>
-                  </view>
-                  <view class="detail-item detail-item--note">
-                    <text class="detail-item__label">泄露特征值</text>
-                    <text class="detail-item__value">{{ (selectedItem as LeakItem).eigenvalue }}</text>
-                  </view>
-                  <view class="detail-item detail-item--note">
-                    <text class="detail-item__label">泄露强度</text>
-                    <text class="detail-item__value">{{ (selectedItem as LeakItem).leakIntensity }}</text>
-                  </view>
-                  <view class="detail-item detail-item--note">
-                    <text class="detail-item__label">泄露门限</text>
-                    <text class="detail-item__value">{{ (selectedItem as LeakItem).leakThreshold }}</text>
-                  </view>
-                  <view class="detail-item detail-item--note">
-                    <text class="detail-item__label">泄露带宽</text>
-                    <text class="detail-item__value">{{ (selectedItem as LeakItem).leakBandwidth }}</text>
-                  </view>
-                  <view class="detail-item detail-item--note">
-                    <text class="detail-item__label">泄露能量</text>
-                    <text class="detail-item__value">{{ (selectedItem as LeakItem).leakEnergy }}</text>
-                  </view>
-                  <view class="detail-item detail-item--note">
-                    <text class="detail-item__label">泄露频率</text>
-                    <text class="detail-item__value">{{ (selectedItem as LeakItem).leakFrequency }}</text>
-                  </view>
-                  <view class="detail-item detail-item--note">
-                    <text class="detail-item__label">状态标志位</text>
-                    <text class="detail-item__value">{{ (selectedItem as LeakItem).statusRemark }}</text>
+                  <view v-for="field in leakageAnalysisDetailFields" :key="field.key" class="detail-item detail-item--note">
+                    <text class="detail-item__label">{{ field.label }}</text>
+                    <text class="detail-item__value">{{ getItemValue(selectedItem as DataItem, field.key) || '--' }}</text>
                   </view>
                 </view>
               </view>
@@ -475,6 +373,14 @@
                     <text class="detail-item__label">算法类型</text>
                     <text class="detail-item__value">{{ (selectedItem as LeakItem).algorithmType }}</text>
                   </view>
+                  <view class="detail-item detail-item--note">
+                    <text class="detail-item__label">泄露带宽</text>
+                    <text class="detail-item__value">{{ (selectedItem as LeakItem).leakBandwidth || '--' }}</text>
+                  </view>
+                  <view class="detail-item detail-item--note">
+                    <text class="detail-item__label">泄露能量</text>
+                    <text class="detail-item__value">{{ (selectedItem as LeakItem).leakEnergy || '--' }}</text>
+                  </view>
                 </view>
               </view>
             </view>
@@ -497,6 +403,7 @@ import SpectrumDialog from "@/pages/data-analysis/components/SpectrumDialog.vue"
 import { getAudioDataPage, getDataQueryAudioPage, getDataQueryAudioDetail, getAudioWav } from "@/services/data-analysis/audio";
 import { getLeakageDataPage, getDataQueryLeakagePage, getDataQueryLeakageDetail } from "@/services/data-analysis/leakage";
 import { getDeptList } from "@/services/partition/partition";
+import { dataAnalysisColumnsMap, type TableColumn, audioInfoDetailFields, leakageAnalysisDetailFields } from "./dataAnalysisColumns";
 import { getLocale } from "@/i18n";
 import "@/i18n/moduleLocales";
 import daZhCN from "@/pages/data-analysis/localized/locales/zh-CN.json";
@@ -610,13 +517,6 @@ interface LeakItem {
 }
 
 type DataItem = AudioDataItem | LeakItem;
-
-interface TableColumn {
-  key: string;
-  label: string;
-  className?: string;
-  sortable?: boolean;
-}
 
 interface ApiResponseLike {
   code?: number;
@@ -769,32 +669,7 @@ const selectedItem = computed<DataItem | null>(() => {
 
 
 const tableColumns = computed<TableColumn[]>(() => {
-  if (props.mode === "audio") {
-    return [
-      { key: "index", label: "序号", className: "data-header-cell--index" },
-      { key: "deviceNumber", label: "设备编号", className: "data-header-cell--device", sortable: true },
-      { key: "audioTime", label: "时间", className: "data-header-cell--time", sortable: true },
-      { key: "deptName", label: "所属分区", className: "data-header-cell--dept" },
-      { key: "spectrum", label: "频谱", className: "data-header-cell--spectrum" },
-      { key: "download", label: "下载", className: "data-header-cell--download" },
-      { key: "status", label: "拆/装", className: "data-header-cell--status", sortable: true },
-      { key: "location", label: "位置坐标", className: "data-header-cell--location" },
-    ];
-  }
-  if (props.mode === "leakage") {
-    return [
-      { key: "index", label: "序号", className: "data-header-cell--index" },
-      { key: "deviceNumber", label: "设备编号", className: "data-header-cell--device", sortable: true },
-      { key: "detectedTime", label: "时间", className: "data-header-cell--time", sortable: true },
-      { key: "deptName", label: "所属分区", className: "data-header-cell--dept" },
-      { key: "leakageStatus", label: "状态", className: "data-header-cell--status", sortable: true },
-      { key: "installStatus", label: "拆/装", className: "data-header-cell--install", sortable: true },
-      { key: "blueWhaleAnalysis", label: "蓝鲸分析", className: "data-header-cell--bluewhale", sortable: true },
-      { key: "manualAnalysis", label: "人工分析", className: "data-header-cell--manualanalysis", sortable: true },
-      { key: "location", label: "坐标位置", className: "data-header-cell--location" },
-    ];
-  }
-  return [];
+  return dataAnalysisColumnsMap[props.mode] ?? [];
 });
 
 const totalPages = computed(() => {
@@ -917,7 +792,7 @@ async function fetchAudioData() {
 			benchmarkValue: record.benchmarkValue ?? "--",
 			noiseBenchmarkValue: record.noiseBenchmarkValue ?? "--",
 			signalChannel: record.signalChannel ?? "--",
-			syncSamplingTime: record.syncSamplingTime ?? "--",
+			syncSamplingTime: formatSyncSamplingTime(record.syncSamplingTime),
 			syncSamplingNumber: record.syncSamplingNumber ?? "--",
 			audioRule: record.audioRule ?? "--",
 			samplingCount: record.samplingCount ?? "--",
@@ -1063,8 +938,8 @@ function parsePageResponse(response: ApiResponseLike) {
   };
 }
 
-function openSpectrumDialog(item: AudioDataItem) {
-  spectrumItem.value = item;
+function openSpectrumDialog(item: DataItem) {
+  spectrumItem.value = item as AudioDataItem;
   spectrumVisible.value = true;
 }
 
@@ -1076,13 +951,14 @@ function onSpectrumCardClick(item: AudioDataItem) {
   openSpectrumDialog(item);
 }
 
-async function onDownload(item: AudioDataItem) {
-  if (!item.audioId) {
+async function onDownload(item: DataItem) {
+  const audioItem = item as AudioDataItem;
+  if (!audioItem.audioId) {
     uni.showToast({ title: "暂无音频文件", icon: "none" });
     return;
   }
   try {
-    const res = await getAudioWav(item.audioId, true);
+    const res = await getAudioWav(audioItem.audioId, true);
     if (res.statusCode === 200) {
       uni.showToast({ title: "下载成功", icon: "success" });
     } else {
@@ -1101,6 +977,23 @@ function formatCoordinate(location: string) {
   const lat = Number(parts[1]);
   if (!Number.isFinite(lng) || !Number.isFinite(lat)) return location;
   return `${lng.toFixed(4)},${lat.toFixed(4)}`;
+}
+
+function formatSyncSamplingTime(value: any): string {
+  if (!value || value === "--") return "--";
+  let arr: number[];
+  if (Array.isArray(value)) {
+    arr = value;
+  } else if (typeof value === "string" && value.startsWith("[") && value.endsWith("]")) {
+    try { arr = JSON.parse(value); } catch { return value; }
+  } else {
+    return value;
+  }
+  if (!Array.isArray(arr) || arr.length < 2) return "--";
+  const h = Number(arr[0]);
+  const m = Number(arr[1]);
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return "--";
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00`;
 }
 
 function getStatusKey(status: string): string {
@@ -1133,24 +1026,6 @@ function translateLeakageStatus(status: string) {
 function translateWeather(weather: string) {
   if (weather === "--") return "--";
   return t(`weather.${getWeatherKey(weather)}`);
-}
-
-function onLocation(item: AudioDataItem) {
-  if (!item.location || item.location === "--") {
-    uni.showToast({ title: "暂无坐标数据", icon: "none" });
-    return;
-  }
-  mapLocation.value = item.location;
-  mapVisible.value = true;
-}
-
-function onLocationLeak(item: LeakItem) {
-  if (!item.location || item.location === "--") {
-    uni.showToast({ title: "暂无坐标数据", icon: "none" });
-    return;
-  }
-  mapLocation.value = item.location;
-  mapVisible.value = true;
 }
 
 function getLeakageStatusClass(item: LeakItem) {
@@ -1198,6 +1073,37 @@ function onDeptChange(e: { detail: { value: number } }) {
 
 function selectRow(item: DataItem) {
   selectedId.value = item.id;
+}
+
+function getItemValue(item: DataItem, key: string): any {
+  return (item as Record<string, any>)[key];
+}
+
+function formatTimeValue(value: string): string {
+  if (!value) return '--';
+  return value.replace(/\.\d+/, '').replace('T', ' ');
+}
+
+function getStatusPillClass(statusKey: string, value: string): string {
+  if (statusKey === 'install') return getInstallStatusClass(value);
+  if (statusKey === 'leakage') return getLeakageStatusClass({ leakageStatus: value } as LeakItem);
+  return 'status-pill--unknown';
+}
+
+function getStatusPillText(statusKey: string, value: string): string {
+  if (statusKey === 'install') return translateStatus(value);
+  if (statusKey === 'leakage') return translateLeakageStatus(value);
+  return value || '--';
+}
+
+function onLocationClick(item: DataItem): void {
+  const location = (item as Record<string, any>).location;
+  if (!location || location === '--') {
+    uni.showToast({ title: '暂无坐标数据', icon: 'none' });
+    return;
+  }
+  mapLocation.value = location;
+  mapVisible.value = true;
 }
 
 function getCellValue(item: DataItem, key: string): string {
@@ -1326,8 +1232,8 @@ function logColumnWidths() {
     const [row, cells] = results as [UniApp.NodeInfo, UniApp.NodeInfo[]];
     if (!row || !cells || cells.length === 0) return;
 
-    const colCount = props.mode === "leakage" ? 8 : 7;
-    const perRow = colCount + 1;
+    const colCount = tableColumns.value.length - 1;
+    const perRow = tableColumns.value.length;
     const rowCount = Math.floor(cells.length / perRow);
     if (rowCount === 0) return;
 
@@ -1850,6 +1756,7 @@ watch([filteredData, loading, () => getLocale()], ([_data, isLoading]) => {
   color: #0d82ee;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .download-icon { position: relative; display: inline-block; width: 12px; height: 14px; margin-right: 4px; vertical-align: middle; background: linear-gradient(to right, transparent 5px, currentColor 5px, currentColor 7px, transparent 7px) no-repeat top center / 100% 8px; }

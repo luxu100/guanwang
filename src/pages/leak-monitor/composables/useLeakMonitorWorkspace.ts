@@ -111,6 +111,7 @@ export function useLeakMonitorWorkspace(localized?: Readonly<Ref<boolean>>) {
   });
   const page = reactive<PageState>({ current: 1, size: 10, total: 0 });
   const devices = ref<LeakMonitorDevice[]>([]);
+  const sidebarDevices = ref<LeakMonitorDevice[]>([]);
   const mapDevices = ref<LeakMonitorDevice[]>([]);
   const mapRegions = ref<MapRegion[]>([]);
   const sidebarData = ref<Record<string, unknown>>({});
@@ -141,17 +142,31 @@ export function useLeakMonitorWorkspace(localized?: Readonly<Ref<boolean>>) {
         device.lat <= 90 &&
         device.lng >= -180 &&
         device.lng <= 180)
-      .map((device) => ({
-        id: device.id,
-        deviceNumber: device.deviceNumber,
-        title: device.model || device.deviceNumber,
-        status: device.status,
-        leakProperty: device.leakProperty,
-        regionId: device.regionId,
-        coordinateSystem: device.coordinateSystem,
-        lat: device.lat as number,
-        lng: device.lng as number,
-      })),
+      .map((device) => {
+        const monitorDevice = sidebarDevices.value.find((item) =>
+          item.deviceNumber === device.deviceNumber) ??
+          devices.value.find((item) => item.deviceNumber === device.deviceNumber);
+        return {
+          id: device.id,
+          deviceNumber: device.deviceNumber,
+          title: device.model || device.deviceNumber,
+          status: monitorDevice?.status ?? device.status,
+          manualStatus: monitorDevice?.manualStatus ?? device.manualStatus,
+          algorithmStatus: monitorDevice?.algorithmStatus ?? device.algorithmStatus,
+          leakProperty: monitorDevice?.leakProperty ?? device.leakProperty,
+          onlineStatus: monitorDevice?.onlineStatus ?? device.onlineStatus,
+          installAddress: String(
+            monitorDevice?.raw.installAddress ??
+            device.raw.installAddress ??
+            "",
+          ),
+          model: monitorDevice?.model ?? device.model,
+          regionId: device.regionId,
+          coordinateSystem: device.coordinateSystem,
+          lat: device.lat as number,
+          lng: device.lng as number,
+        };
+      }),
   );
 
   async function refreshSidebar() {
@@ -161,6 +176,7 @@ export function useLeakMonitorWorkspace(localized?: Readonly<Ref<boolean>>) {
       const result = await fetchLeakMonitorSidebar();
       if (requestId !== sidebarRequestId) return;
       sidebarData.value = result.data;
+      sidebarDevices.value = result.devices;
       onlineRate.value = result.onlineRate;
       communicationRate.value = result.communicationRate;
     } catch (error) {

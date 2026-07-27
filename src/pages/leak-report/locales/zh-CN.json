@@ -142,7 +142,8 @@
       "tubeMaterialRequired": "请选择管道材质",
       "tubeBoreRequired": "请输入管道口径",
       "tubeDepthRequired": "请输入管道埋深",
-      "deviceNumberRequired": "请输入设备编号"
+      "deviceNumberRequired": "请输入设备编号",
+      "deptIdRequired": "请选择所属分区"
     },
     "leakAnalysis": {
       "title": "算法分析结果",
@@ -260,7 +261,8 @@
         "deviceNumber": "请输入或搜索设备编号",
         "leakDistance": "请输入距离",
         "noiseSample": "请输入噪音样本",
-        "featureValue": "请输入特征值"
+        "featureValue": "请输入特征值",
+        "deptId": "请选择所属分区"
       },
       "exportHeaders": {
         "detectTime": "检出时间",
@@ -475,7 +477,8 @@
         "tubeBuriedDepth": "管道埋深",
         "audioFile": "音频文件",
         "sceneVideo": "现场视频",
-        "updatedAt": "更新时间"
+        "updatedAt": "更新时间",
+        "deptId": "所属分区"
       }
     },
     "pagination": {

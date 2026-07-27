@@ -31,7 +31,7 @@
             <view><text class="spectrum-metric__value">{{ Math.round(peakAmplitude) }}</text><text class="spectrum-metric__unit">dB</text></view>
           </view>
           <view class="spectrum-metric">
-            <text class="spectrum-metric__label">频谱质心</text>
+            <text class="spectrum-metric__label">{{ t("dataAnalysis.item050") }}</text>
             <view><text class="spectrum-metric__value">{{ formatMetric(spectralCentroid) }}</text><text class="spectrum-metric__unit">Hz</text></view>
           </view>
           <view class="spectrum-metric">
@@ -51,7 +51,7 @@
           <view v-if="loading" class="spectrum-dialog__loading">
             <text class="loading-radar"><text></text></text>
             <text class="loading-title">正在解析音频信号</text>
-            <text class="loading-hint">生成频域特征与关键指标...</text>
+            <text class="loading-hint">{{ t("dataAnalysis.item074") }}</text>
           </view>
           <view v-else-if="errorMsg" class="spectrum-dialog__loading spectrum-dialog__loading--error">
             <text class="error-symbol">!</text>
@@ -120,6 +120,22 @@ import { nextTick, onUnmounted, ref, watch } from "vue";
 import * as echarts from "echarts";
 import { getAudioWav } from "@/services/data-analysis/audio";
 // #endif
+import { getLocale } from "@/i18n";
+import daZhCN from "@/pages/data-analysis/localized/locales/zh-CN.json";
+import daEnUS from "@/pages/data-analysis/localized/locales/en-US.json";
+
+const daMessages: Record<string, unknown> = {
+  "zh-CN": daZhCN as Record<string, unknown>,
+  "en-US": daEnUS as Record<string, unknown>,
+};
+
+function t(key: string, params?: Record<string, unknown>): string {
+  const localeMap = daMessages[getLocale()] as Record<string, unknown>;
+  const fallbackMap = daMessages["zh-CN"] as Record<string, unknown>;
+  const message = localeMap?.[key] ?? fallbackMap?.[key] ?? key;
+  if (!params) return String(message);
+  return String(message).replace(/\{(\w+)\}/g, (_, k) => params[k] != null ? String(params[k]) : `{${k}}`);
+}
 
 interface AudioDataItem {
   id: number;
@@ -386,7 +402,9 @@ function renderChart(freqData: Uint8Array, sampleRate: number) {
         formatter: (params: any) => {
           const point = Array.isArray(params) ? params[0] : params;
           if (!point?.value) return "";
-          return `频率 ${Number(point.value[0]).toFixed(1)}Hz 幅度 ${Number(point.value[1]).toFixed(0)}dB`;
+          const freq = Number(point.value[0]).toFixed(1);
+          const amp = Number(point.value[1]).toFixed(0);
+          return t("dataAnalysis.item044", { freq, amp });
         },
       },
       grid: { left: 62, right: 28, top: 34, bottom: 48, containLabel: false },
@@ -395,7 +413,7 @@ function renderChart(freqData: Uint8Array, sampleRate: number) {
         min: 0,
         max: maxFreq,
         interval: 250,
-        name: "频率 / Hz",
+        name: t("dataAnalysis.item043"),
         nameLocation: "middle",
         nameGap: 30,
         nameTextStyle: { color: "#4a7d96", fontSize: 9, letterSpacing: 1.5 },
@@ -416,7 +434,7 @@ function renderChart(freqData: Uint8Array, sampleRate: number) {
         min: 0,
         max: 255,
         interval: 50,
-        name: "幅度 / dB",
+        name: t("dataAnalysis.item026"),
         nameGap: 42,
         nameLocation: "middle",
         nameTextStyle: { color: "#4a7d96", fontSize: 9, letterSpacing: 1.2 },
@@ -457,7 +475,7 @@ function renderChart(freqData: Uint8Array, sampleRate: number) {
             symbol: ["none", "none"],
             label: {
               show: true,
-              formatter: "频谱质心",
+              formatter: t("dataAnalysis.item050"),
               position: "insideEndTop",
               color: "#69bddf",
               fontSize: 9,

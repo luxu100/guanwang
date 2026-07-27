@@ -234,7 +234,7 @@
     {
       "path": "pages/command/commandConfiguration",
       "style": {
-        "navigationBarTitleText": "指令配置",
+        "navigationBarTitleText": "固件管理",
         "navigationStyle": "custom"
       }
     },

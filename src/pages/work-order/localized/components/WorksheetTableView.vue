@@ -1,5 +1,5 @@
 <template>
-  <view class="worksheet-view">
+  <view class="worksheet-view" :class="{ 'worksheet-view--en': locale === 'en-US' }">
     <view v-if="mode === 'statistics'" class="stats-grid">
       <view v-for="item in statisticsCards" :key="item.label" class="stat-card" :class="`stat-card--${item.tone}`">
         <view class="stat-card__head">
@@ -82,58 +82,34 @@
         </view>
 
         <view class="filter-group">
-          <text class="filter-label">工单类型</text>
-          <picker :range="worksheetTypeOptions" range-key="label" :value="currentTypeIndex" @change="handleTypeChange">
-            <view class="filter-select">
-              <text>{{ currentTypeLabel }}</text>
-              <text class="filter-select__arrow"></text>
-            </view>
-          </picker>
-        </view>
-
-        <view class="filter-group">
           <text class="filter-label">工单状态</text>
-          <picker :range="worksheetStatusOptions" range-key="label" :value="currentStatusIndex" @change="handleStatusChange">
-            <view class="filter-select">
-              <text>{{ currentStatusLabel }}</text>
-              <text class="filter-select__arrow"></text>
-            </view>
-          </picker>
+          <WorkOrderSelect v-model="filters.worksheetStatus" class="filter-select" :options="worksheetStatusOptions" :placeholder="currentStatusLabel" />
         </view>
 
         <view class="filter-group">
-          <text class="filter-label">紧急程度</text>
-          <picker :range="urgencyFilterOptions" range-key="label" :value="currentUrgencyIndex" @change="handleUrgencyChange">
-            <view class="filter-select">
-              <text>{{ currentUrgencyLabel }}</text>
-              <text class="filter-select__arrow"></text>
-            </view>
-          </picker>
+          <text class="filter-label">工单类型</text>
+          <WorkOrderSelect v-model="filters.worksheetType" class="filter-select" :options="worksheetTypeOptions" :placeholder="currentTypeLabel" />
         </view>
 
         <view class="filter-group">
           <text class="filter-label">发起人</text>
-          <input v-model="filters.riseAccount" class="filter-input filter-input--name" placeholder="请输入发起人" placeholder-class="input-placeholder" />
+          <input v-model="filters.riseAccount" class="filter-input filter-input--name" placeholder="请输入发起人账号" placeholder-class="input-placeholder" />
         </view>
 
         <view class="filter-group">
           <text class="filter-label">执行人</text>
-          <input v-model="filters.executeAccount" class="filter-input filter-input--name" placeholder="请输入执行人" placeholder-class="input-placeholder" />
+          <input v-model="filters.executeAccount" class="filter-input filter-input--name" placeholder="请输入执行人账号" placeholder-class="input-placeholder" />
         </view>
 
-        <view class="filter-group">
-          <text class="filter-label">关联设备</text>
-          <input v-model="filters.deviceReference" class="filter-input filter-input--device" placeholder="设备编号" placeholder-class="input-placeholder" />
-        </view>
       </view>
 
       <view class="toolbar-row toolbar-row--bottom">
         <view class="filter-group filter-group--date">
-          <text class="filter-label">发起时间</text>
+          <text class="filter-label">创建时间</text>
           <view class="date-range">
-            <WorkOrderDatetimePicker v-model="filters.startTime" class="filter-datetime" title="选择开始时间" placeholder="请选择开始时间" />
+            <WorkOrderDatetimePicker v-model="filters.startTime" class="filter-datetime" :title="filterDateText.startTitle" :placeholder="filterDateText.startPlaceholder" />
             <text class="filter-separator">至</text>
-            <WorkOrderDatetimePicker v-model="filters.endTime" class="filter-datetime" title="选择结束时间" placeholder="请选择结束时间" />
+            <WorkOrderDatetimePicker v-model="filters.endTime" class="filter-datetime" :title="filterDateText.endTitle" :placeholder="filterDateText.endPlaceholder" />
           </view>
         </view>
 
@@ -149,7 +125,25 @@
             hover-class="toolbar-button--hover"
             @click="emit('create')"
           >
-            {{ localeText("新增工单", "Add") }}
+            新增工单
+          </button>
+          <button
+            v-if="mode === 'processing'"
+            class="toolbar-button toolbar-button--primary toolbar-button--process"
+            :disabled="!selectedWorksheet || submittingProcess"
+            hover-class="toolbar-button--hover"
+            @click="openProcessDialog"
+          >
+            工单处理
+          </button>
+          <button
+            v-if="mode === 'processing'"
+            class="toolbar-button toolbar-button--danger"
+            :disabled="!selectedWorksheet || submittingProcess"
+            hover-class="toolbar-button--hover"
+            @click="deleteSelectedWorksheet"
+          >
+            删除工单
           </button>
         </view>
       </view>
@@ -159,7 +153,7 @@
       <view class="worksheet-table-panel">
         <view class="table-head">
           <text>{{ pageTitle }}</text>
-          <text class="table-head__meta">{{ localizedTotal(total) }}</text>
+          <text class="table-head__meta">{{ locale === "en-US" ? `${total} records` : `共 ${total} 条` }}</text>
         </view>
 
         <scroll-view class="table-scroll" scroll-x scroll-y>
@@ -190,25 +184,25 @@
             >
               <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
               <text class="data-cell data-cell--number">{{ getWorksheetNumber(item) }}</text>
-              <text class="data-cell data-cell--type">{{ getWorksheetTypeLabel(item) }}</text>
+              <text class="data-cell data-cell--type" data-i18n-ui>{{ getWorksheetTypeLabel(item) }}</text>
               <text class="data-cell data-cell--status">
-                <text class="status-pill" :class="getStatusClass(item)">{{ getWorksheetStatusLabel(item) }}</text>
+                <text class="status-pill" data-i18n-ui :class="getStatusClass(item)">{{ getWorksheetStatusLabel(item) }}</text>
               </text>
               <text class="data-cell data-cell--account">{{ getRiseAccount(item) }}</text>
               <text class="data-cell data-cell--account">{{ getExecuteAccount(item) }}</text>
               <text class="data-cell data-cell--device">{{ getDeviceReference(item) }}</text>
-              <text class="data-cell data-cell--level">
-                <text class="urgency-pill" :class="getUrgencyClass(item)">{{ getUrgencyLabel(item) }}</text>
-              </text>
+              <text class="data-cell data-cell--level"><text class="urgency-pill" data-i18n-ui :class="getUrgencyClass(item)">{{ getUrgencyLabel(item) }}</text></text>
             </view>
           </view>
         </scroll-view>
 
-        <view class="pagination-bar">
-          <button class="page-button" hover-class="page-button--hover" :disabled="pagination.pageNum <= 1" @click="changePage(-1)">{{ localeText("上一页", "Previous") }}</button>
-          <text class="page-info">{{ localizedPageInfo(pagination.pageNum, totalPages) }}</text>
-          <button class="page-button" hover-class="page-button--hover" :disabled="pagination.pageNum >= totalPages" @click="changePage(1)">{{ localeText("下一页", "Next") }}</button>
-        </view>
+        <XPaginationBar
+          :current="pagination.pageNum"
+          :size="pagination.pageSize"
+          :total="total"
+          @change-page="handlePageChange"
+          @change-size="handlePageSizeChange"
+        />
       </view>
 
       <view class="worksheet-detail-panel">
@@ -229,12 +223,13 @@
           <view v-if="activeTab === 'base'" class="detail-base-panel">
             <view class="detail-summary">
               <view class="detail-summary__main">
-                <text class="detail-summary__label">工单编号</text>
-                <text class="detail-summary__number">{{ baseSummary.number }}</text>
-              </view>
-              <view class="detail-summary__badges">
-                <text class="detail-summary__badge status-pill" :class="baseSummary.statusClass">{{ baseSummary.status }}</text>
-                <text class="detail-summary__badge urgency-pill" :class="baseSummary.urgencyClass">{{ baseSummary.urgency }}</text>
+                <view class="detail-summary__identity">
+                  <text class="detail-summary__label">工单编号</text>
+                  <text class="detail-summary__number">{{ baseSummary.number }}</text>
+                </view>
+                <view class="detail-summary__badges">
+                  <text class="detail-summary__badge status-pill" :class="baseSummary.statusClass">{{ baseSummary.status }}</text>
+                </view>
               </view>
               <view class="detail-summary__meta">
                 <view v-for="item in baseSummaryMeta" :key="item.label" class="detail-summary__meta-item">
@@ -305,87 +300,64 @@
             </view>
           </view>
 
-          <view v-if="mode === 'processing' && activeTab === 'processing'" class="process-box process-box--standalone">
-            <text class="process-box__title">工单处理</text>
-            <view class="form-field">
-              <text class="form-label">处理状态</text>
-              <picker :range="processStatusOptions" range-key="label" :value="processStatusIndex" :disabled="isSelectedWorksheetCanceled" @change="handleProcessStatusChange">
-                <view class="form-select process-select" :class="{ 'process-select--disabled': isSelectedWorksheetCanceled }">
-                  <text>{{ processStatusLabel }}</text>
-                  <text class="process-select__arrow"></text>
-                </view>
-              </picker>
-            </view>
-            <view class="process-form-grid">
-              <view class="form-field">
-                <text class="form-label">紧急程度</text>
-                <picker :range="urgencyOptions" range-key="label" :value="processUrgencyIndex" :disabled="isSelectedWorksheetCanceled" @change="handleProcessUrgencyChange">
-                  <view class="form-select process-select" :class="{ 'process-select--disabled': isSelectedWorksheetCanceled }">
-                    <text>{{ processUrgencyLabel }}</text>
-                    <text class="process-select__arrow"></text>
-                  </view>
-                </picker>
-              </view>
-              <view class="form-field">
-                <text class="form-label">执行人</text>
-                <input v-model="processForm.executeAccount" class="form-input" :disabled="isSelectedWorksheetCanceled" placeholder="请输入执行人" placeholder-class="input-placeholder" />
-              </view>
-            </view>
-            <view class="form-field">
-              <text class="form-label">关联设备</text>
-              <input v-model="processForm.deviceReference" class="form-input" :disabled="isSelectedWorksheetCanceled" placeholder="设备编号列表，多个用逗号分隔" placeholder-class="input-placeholder" />
-            </view>
-            <view class="process-form-grid">
-              <view class="form-field">
-                <text class="form-label">截止时间</text>
-                <input v-model="processForm.deadlineTime" class="form-input" :disabled="isSelectedWorksheetCanceled" type="datetime-local" />
-              </view>
-              <view class="form-field">
-                <text class="form-label">完成时间</text>
-                <input v-model="processForm.finishTime" class="form-input" :disabled="isSelectedWorksheetCanceled || processForm.worksheetStatus !== 2" type="datetime-local" />
-              </view>
-            </view>
-            <view class="form-field">
-              <text class="form-label">处理反馈</text>
-              <textarea v-model="processForm.worksheetFeedback" class="form-textarea" :disabled="isSelectedWorksheetCanceled" placeholder="请输入处理反馈" placeholder-class="input-placeholder" />
-            </view>
-            <view class="process-more-toggle" @click="processMoreExpanded = !processMoreExpanded">
-              <text>更多处理信息</text>
-              <text class="process-more-toggle__hint">{{ processMoreExpanded ? "收起" : "展开" }}</text>
-              <text class="process-more-toggle__arrow" :class="{ 'process-more-toggle__arrow--open': processMoreExpanded }"></text>
-            </view>
-            <view v-if="processMoreExpanded" class="process-more-panel">
-              <view class="form-field">
-                <text class="form-label">工单说明</text>
-                <textarea v-model="processForm.worksheetInstruction" class="form-textarea" :disabled="isSelectedWorksheetCanceled" placeholder="请输入工单说明" placeholder-class="input-placeholder" />
-              </view>
-              <view class="form-field">
-                <text class="form-label">工单地址</text>
-                <input v-model="processForm.address" class="form-input" :disabled="isSelectedWorksheetCanceled" placeholder="请输入工单地址" placeholder-class="input-placeholder" />
-              </view>
-              <view class="process-form-grid">
-                <view class="form-field">
-                  <text class="form-label">工单坐标</text>
-                  <input v-model="processForm.coordinate" class="form-input" :disabled="isSelectedWorksheetCanceled" placeholder="经度,纬度" placeholder-class="input-placeholder" />
-                </view>
-                <view class="form-field">
-                  <text class="form-label">照片ID</text>
-                  <input v-model="processForm.pictureIds" class="form-input" :disabled="isSelectedWorksheetCanceled" placeholder="文件 ID 列表" placeholder-class="input-placeholder" />
-                </view>
-              </view>
-              <view class="form-field">
-                <text class="form-label">备注</text>
-                <textarea v-model="processForm.remark" class="form-textarea form-textarea--compact" :disabled="isSelectedWorksheetCanceled" placeholder="请输入备注" placeholder-class="input-placeholder" />
-              </view>
-            </view>
-            <view class="process-actions">
-              <button class="toolbar-button toolbar-button--primary process-action process-action--save" :disabled="submittingProcess || isSelectedWorksheetCanceled" hover-class="toolbar-button--hover" @click="submitProcess">
-                {{ submittingProcess ? "保存中..." : "保存处理" }}
-              </button>
-              <button class="toolbar-button process-action process-action--finish" :disabled="submittingProcess || isSelectedWorksheetCanceled" hover-class="toolbar-button--hover" @click="markFinished">标记完成</button>
-              <button class="toolbar-button toolbar-button--danger process-action process-action--cancel" :disabled="submittingProcess || isSelectedWorksheetCanceled" hover-class="toolbar-button--hover" @click="cancelWorksheet">取消工单</button>
+        </view>
+      </view>
+    </view>
+
+    <view v-if="processDialogVisible" class="process-dialog-mask" @click="closeProcessDialog">
+      <view class="process-dialog" @click.stop>
+        <view class="process-dialog__head">
+          <view class="process-dialog__heading">
+            <view class="process-dialog__icon">工</view>
+            <view>
+              <text class="process-dialog__title">工单处理</text>
+              <text class="process-dialog__subtitle">更新工单状态、执行安排和处理结果 · {{ getWorksheetNumber(selectedWorksheet || {}) }}</text>
             </view>
           </view>
+          <button class="process-dialog__close" aria-label="关闭" @click="closeProcessDialog">×</button>
+        </view>
+        <scroll-view class="process-dialog__body" scroll-y>
+          <view class="process-dialog__layout">
+            <view class="process-dialog__main">
+              <view class="process-card">
+                <view class="process-card__head"><text class="process-card__title">处理状态</text><text class="process-card__desc">状态与完成时间</text></view>
+                <view class="process-form-grid process-form-grid--dialog">
+                  <view class="form-field">
+                    <text class="form-label">工单状态</text>
+                    <WorkOrderSelect v-model="processForm.worksheetStatus" class="form-select" :options="processStatusOptions" :placeholder="processStatusLabel" @change="handleProcessStatusChange" />
+                  </view>
+                  <view class="form-field">
+                    <text class="form-label">紧急程度</text>
+                    <WorkOrderSelect v-model="processForm.urgencyLevel" class="form-select" :options="urgencyOptions" :placeholder="processUrgencyLabel" />
+                  </view>
+                  <view class="form-field"><text class="form-label">截止时间</text><WorkOrderDatetimePicker v-model="processForm.deadlineTime" :placeholder="processDateText.deadlinePlaceholder" :title="processDateText.deadlineTitle" /></view>
+                  <view class="form-field"><text class="form-label">完成时间</text><WorkOrderDatetimePicker v-model="processForm.finishTime" :placeholder="processDateText.finishPlaceholder" :title="processDateText.finishTitle" :disabled="processForm.worksheetStatus !== 2" /></view>
+                </view>
+              </view>
+              <view class="process-card">
+                <view class="process-card__head"><text class="process-card__title">执行安排</text><text class="process-card__desc">人员与关联设备</text></view>
+                <view class="process-form-grid process-form-grid--dialog">
+                  <view class="form-field"><text class="form-label">工单执行人</text><input v-model="processForm.executeAccount" class="form-input" placeholder="请输入工单执行人" /></view>
+                  <view class="form-field"><text class="form-label">关联设备</text><input v-model="processForm.deviceReference" class="form-input" placeholder="请输入关联设备" /></view>
+                  <view class="form-field form-field--wide"><text class="form-label">工单反馈</text><textarea v-model="processForm.worksheetFeedback" class="form-textarea" placeholder="请输入工单反馈" /></view>
+                  <view class="form-field form-field--wide"><text class="form-label">工单说明</text><textarea v-model="processForm.worksheetInstruction" class="form-textarea" placeholder="请输入工单说明" /></view>
+                </view>
+              </view>
+            </view>
+            <view class="process-card process-card--side">
+              <view class="process-card__head"><text class="process-card__title">现场信息</text><text class="process-card__desc">位置、照片与备注</text></view>
+              <view class="process-dialog__side-fields">
+                <view class="form-field"><text class="form-label">工单地址</text><input v-model="processForm.address" class="form-input" placeholder="请输入工单地址" /></view>
+                <view class="form-field"><text class="form-label">工单坐标</text><input v-model="processForm.coordinate" class="form-input" placeholder="请输入工单坐标" /></view>
+                <view class="form-field"><text class="form-label">工单照片ID</text><input v-model="processForm.pictureIds" class="form-input" placeholder="请输入工单照片ID" /></view>
+                <view class="form-field"><text class="form-label">备注</text><textarea v-model="processForm.remark" class="form-textarea" placeholder="请输入备注" /></view>
+              </view>
+            </view>
+          </view>
+        </scroll-view>
+        <view class="process-dialog__actions">
+          <button class="toolbar-button" :disabled="submittingProcess" @click="closeProcessDialog">取消</button>
+          <button class="toolbar-button toolbar-button--primary" :disabled="submittingProcess || isSelectedWorksheetCanceled" @click="submitProcess">{{ submittingProcess ? "保存中..." : "保存处理" }}</button>
         </view>
       </view>
     </view>
@@ -394,18 +366,22 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
+import { useI18n } from "@/i18n";
 import { getWorksheetCreatePage } from "@/services/work-order/create";
-import { closeWorksheet, getWorksheetProcessDetail, getWorksheetProcessPage, updateWorksheetProcess } from "@/services/work-order/processing";
+import {
+  deleteWorksheet,
+  getWorksheetProcessDetail,
+  getWorksheetProcessPage,
+  updateWorksheetProcess,
+} from "@/services/work-order/processing";
 import { getWorksheetStatisticsPage } from "@/services/work-order/statistics";
-import WorkOrderDatetimePicker from "@/pages/work-order/localized/components/WorkOrderDatetimePicker.vue";
-import { useLocaleText, useLocalizedPageInfo, useLocalizedTotal } from "@/i18n/localeText";
-
-const localeText = useLocaleText();
-const localizedPageInfo = useLocalizedPageInfo();
-const localizedTotal = useLocalizedTotal();
+import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
+import WorkOrderSelect from "@/pages/work-order/components/WorkOrderSelect.vue";
+import { confirmDangerAction } from "@/utils/confirmAction";
+import XPaginationBar from "@/pages/device/components/x/table/XPaginationBar.vue";
 
 type WorkOrderMode = "create" | "processing" | "statistics";
-type DetailTab = "base" | "content" | "time" | "processing";
+type DetailTab = "base" | "content" | "time";
 type WorksheetRecord = Record<string, unknown>;
 type OptionValue = number | "";
 type SortOrder = "asc" | "desc";
@@ -417,12 +393,7 @@ type SortField =
   | "riseAccount"
   | "executeAccount"
   | "deviceReference"
-  | "urgencyLevel"
-  | "riseTime"
-  | "deadlineTime"
-  | "finishTime"
-  | "address"
-  | "remark";
+  | "urgencyLevel";
 type SelectOption<T extends OptionValue = OptionValue> = {
   label: string;
   value: T;
@@ -450,6 +421,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (event: "create"): void;
 }>();
+const { locale } = useI18n();
 
 const pageTitleMap: Record<WorkOrderMode, string> = {
   create: "工单创建记录",
@@ -457,31 +429,26 @@ const pageTitleMap: Record<WorkOrderMode, string> = {
   statistics: "工单查询与统计",
 };
 
-const worksheetTypeOptions: SelectOption[] = [
-  { label: "不限", value: "" },
-  { label: "巡检", value: 0 },
-  { label: "检漏", value: 1 },
-  { label: "拆装", value: 2 },
-  { label: "维护", value: 3 },
-];
+const worksheetTypeOptions = computed<SelectOption[]>(() => [
+  { label: locale.value === "en-US" ? "Unlimited" : "不限", value: "" },
+  { label: locale.value === "en-US" ? "Inspection" : "巡检", value: 0 },
+  { label: locale.value === "en-US" ? "Leak Inspection" : "检漏", value: 1 },
+  { label: locale.value === "en-US" ? "Installation / Removal" : "拆装", value: 2 },
+  { label: locale.value === "en-US" ? "Maintenance" : "维护", value: 3 },
+]);
 
-const worksheetStatusOptions: SelectOption[] = [
-  { label: "不限", value: "" },
-  { label: "待处理", value: 0 },
-  { label: "处理中", value: 1 },
-  { label: "已完成", value: 2 },
-  { label: "已取消", value: 3 },
-];
+const worksheetStatusOptions = computed<SelectOption[]>(() => [
+  { label: locale.value === "en-US" ? "Unlimited" : "不限", value: "" },
+  { label: locale.value === "en-US" ? "Pending" : "待处理", value: 0 },
+  { label: locale.value === "en-US" ? "In Progress" : "处理中", value: 1 },
+  { label: locale.value === "en-US" ? "Completed" : "已完成", value: 2 },
+  { label: locale.value === "en-US" ? "Canceled" : "已取消", value: 3 },
+]);
 
-const urgencyOptions: Array<SelectOption<number>> = [
-  { label: "一般", value: 0 },
-  { label: "紧急", value: 1 },
-];
-const urgencyFilterOptions: SelectOption[] = [
-  { label: "不限", value: "" },
-  ...urgencyOptions,
-];
-
+const urgencyOptions = computed<Array<SelectOption<number>>>(() => [
+  { label: locale.value === "en-US" ? "Normal" : "一般", value: 0 },
+  { label: locale.value === "en-US" ? "Urgent" : "紧急", value: 1 },
+]);
 const baseDetailTabs: Array<{ label: string; value: DetailTab }> = [
   { label: "工单详情", value: "base" },
   { label: "反馈说明", value: "content" },
@@ -494,13 +461,13 @@ const tableColumns: TableColumn[] = [
   { key: "worksheetStatus", label: "工单状态", className: "data-cell--status", sortable: true },
   { key: "riseAccount", label: "发起人", className: "data-cell--account", sortable: true },
   { key: "executeAccount", label: "执行人", className: "data-cell--account", sortable: true },
-  { key: "deviceReference", label: "设备引用", className: "data-cell--device", sortable: true },
+  { key: "deviceReference", label: "关联设备", className: "data-cell--device", sortable: true },
   { key: "urgencyLevel", label: "紧急程度", className: "data-cell--level", sortable: true },
 ];
 
-const worksheetTypeOptionsWithoutAll = worksheetTypeOptions.filter((item) => item.value !== "") as Array<{ label: string; value: number }>;
-const worksheetStatusOptionsWithoutAll = worksheetStatusOptions.filter((item) => item.value !== "") as Array<{ label: string; value: number }>;
-const processStatusOptions = worksheetStatusOptionsWithoutAll.filter((item) => item.value !== 3);
+const worksheetTypeOptionsWithoutAll = computed(() => worksheetTypeOptions.value.filter((item) => item.value !== "") as Array<{ label: string; value: number }>);
+const worksheetStatusOptionsWithoutAll = computed(() => worksheetStatusOptions.value.filter((item) => item.value !== "") as Array<{ label: string; value: number }>);
+const processStatusOptions = computed(() => worksheetStatusOptionsWithoutAll.value.filter((item) => item.value !== 3));
 
 const filters = reactive({
   startTime: "",
@@ -508,10 +475,8 @@ const filters = reactive({
   worksheetNumber: "",
   worksheetType: "" as number | "",
   worksheetStatus: "" as number | "",
-  urgencyLevel: "" as number | "",
   riseAccount: "",
   executeAccount: "",
-  deviceReference: "",
 });
 
 const pagination = reactive({
@@ -519,7 +484,7 @@ const pagination = reactive({
   pageSize: 10,
 });
 
-const processForm = reactive({
+const processForm = reactive<any>({
   worksheetStatus: 1,
   urgencyLevel: 0,
   executeAccount: "",
@@ -532,9 +497,41 @@ const processForm = reactive({
   coordinate: "",
   pictureIds: "",
   remark: "",
+  handleMethod: "",
+  processFlow: "",
+  handler: "",
+  isLeakPoint: "",
+  detectDifficulty: "",
+  initialLevel: "",
+  leakPointSize: "",
+  tubeBore: "",
+  tubeMaterial: "",
+  leakRoadSurface: "",
+  coordinatePosition: "",
+  leakPointPosition: "",
+  sceneImages: "",
+  reportTime: "",
+  leakVolume: "",
+  tubeAge: "",
+  leakPart: "",
+  tubeBuriedDepth: "",
+  leakReason: "",
+  leakPointType: "",
+  canHandleOnsite: "",
+  autoGenerateSuspected: "",
 });
+const processTextFields = [
+  { key: "executeAccount", label: "工单执行人" },
+  { key: "deviceReference", label: "关联设备" },
+  { key: "deadlineTime", label: "截止时间" },
+  { key: "finishTime", label: "完成时间" },
+  { key: "address", label: "工单地址" },
+  { key: "coordinate", label: "工单坐标" },
+  { key: "pictureIds", label: "工单照片ID" },
+  { key: "remark", label: "备注" },
+];
 const sortState = reactive({
-  field: "riseTime" as SortField,
+  field: "worksheetNumber" as SortField,
   order: "desc" as SortOrder,
 });
 
@@ -544,35 +541,41 @@ const selectedKey = ref("");
 const total = ref(0);
 const loading = ref(false);
 const submittingProcess = ref(false);
+const processDialogVisible = ref(false);
 const activeTab = ref<DetailTab>("base");
 const processMoreExpanded = ref(false);
 
 const pageTitle = computed(() => pageTitleMap[props.mode]);
-const currentTypeLabel = computed(() => getOptionLabel(worksheetTypeOptions, filters.worksheetType, "不限"));
-const currentStatusLabel = computed(() => getOptionLabel(worksheetStatusOptions, filters.worksheetStatus, "不限"));
-const currentUrgencyLabel = computed(() => getOptionLabel(urgencyFilterOptions, filters.urgencyLevel, "不限"));
-const processStatusLabel = computed(() => getOptionLabel(worksheetStatusOptionsWithoutAll, processForm.worksheetStatus, "处理中"));
-const currentTypeIndex = computed(() => getOptionIndex(worksheetTypeOptions, filters.worksheetType));
-const currentStatusIndex = computed(() => getOptionIndex(worksheetStatusOptions, filters.worksheetStatus));
-const currentUrgencyIndex = computed(() => getOptionIndex(urgencyFilterOptions, filters.urgencyLevel));
-const processStatusIndex = computed(() => getOptionIndex(processStatusOptions, processForm.worksheetStatus));
-const processUrgencyLabel = computed(() => getOptionLabel(urgencyOptions, processForm.urgencyLevel, "一般"));
-const processUrgencyIndex = computed(() => getOptionIndex(urgencyOptions, processForm.urgencyLevel));
+const currentTypeLabel = computed(() => getOptionLabel(worksheetTypeOptions.value, filters.worksheetType, locale.value === "en-US" ? "Unlimited" : "不限"));
+const currentStatusLabel = computed(() => getOptionLabel(worksheetStatusOptions.value, filters.worksheetStatus, locale.value === "en-US" ? "Unlimited" : "不限"));
+const processStatusLabel = computed(() => getOptionLabel(worksheetStatusOptionsWithoutAll.value, processForm.worksheetStatus, locale.value === "en-US" ? "In Progress" : "处理中"));
+const processUrgencyLabel = computed(() => getOptionLabel(urgencyOptions.value, processForm.urgencyLevel, locale.value === "en-US" ? "Normal" : "一般"));
+const filterDateText = computed(() => {
+  const isEnglish = locale.value === "en-US";
+  return {
+    startTitle: isEnglish ? "Select Start Time" : "选择开始时间",
+    startPlaceholder: isEnglish ? "Select Start Time" : "请选择开始时间",
+    endTitle: isEnglish ? "Select End Time" : "选择结束时间",
+    endPlaceholder: isEnglish ? "Select End Time" : "请选择结束时间",
+  };
+});
+const processDateText = computed(() => {
+  const isEnglish = locale.value === "en-US";
+  return {
+    deadlineTitle: isEnglish ? "Select Deadline" : "选择截止时间",
+    deadlinePlaceholder: isEnglish ? "Select Deadline" : "请选择截止时间",
+    finishTitle: isEnglish ? "Select Completion Time" : "选择完成时间",
+    finishPlaceholder: isEnglish ? "Select Completion Time" : "请选择完成时间",
+  };
+});
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pagination.pageSize)));
-const selectedWorksheetStatus = computed(() => Number(getStableValue(selectedWorksheet.value || {}, ["worksheetStatus"])));
+const selectedWorksheetStatus = computed(() => Number(getStableValue(selectedWorksheet.value || {}, ["status", "worksheetStatus"])));
 const isSelectedWorksheetCanceled = computed(() => selectedWorksheetStatus.value === 3);
 const detailTabs = computed(() => {
   if (props.mode === "statistics") {
     return [
       ...baseDetailTabs,
       { label: "时间信息", value: "time" as DetailTab },
-    ];
-  }
-
-  if (props.mode === "processing") {
-    return [
-      ...baseDetailTabs,
-      { label: "工单处理", value: "processing" as DetailTab },
     ];
   }
 
@@ -589,7 +592,7 @@ const baseDetailFields = computed(() => {
     { label: "紧急程度", value: getUrgencyLabel(item) },
     { label: "发起人", value: getRiseAccount(item) },
     { label: "执行人", value: getExecuteAccount(item) },
-    { label: "设备引用", value: getDeviceReference(item) },
+    { label: "关联设备", value: getDeviceReference(item) },
     { label: "关联渗漏ID", value: getTextValue(item, ["leakageId"], "-") },
   ];
 });
@@ -643,8 +646,8 @@ const timeDetailFields = computed(() => {
 const timeMomentFields = computed(() => timeDetailFields.value.filter((item) => item.label !== "地址" && item.label !== "坐标"));
 const locationDetailFields = computed(() => timeDetailFields.value.filter((item) => item.label === "地址" || item.label === "坐标"));
 
-const statusBreakdown = computed(() => countByOptions(worksheets.value, worksheetStatusOptionsWithoutAll, "worksheetStatus", getStatusTone));
-const typeBreakdown = computed(() => countByOptions(worksheets.value, worksheetTypeOptionsWithoutAll, "worksheetType", () => "type"));
+const statusBreakdown = computed(() => countByOptions(worksheets.value, worksheetStatusOptionsWithoutAll.value, "worksheetStatus", getStatusTone));
+const typeBreakdown = computed(() => countByOptions(worksheets.value, worksheetTypeOptionsWithoutAll.value, "worksheetType", () => "type"));
 const statisticsCards = computed(() => {
   const visibleCount = worksheets.value.length;
   const doneCount = worksheets.value.filter((item) => Number(getStableValue(item, ["worksheetStatus"])) === 2).length;
@@ -677,20 +680,7 @@ watch(() => props.mode, () => {
   activeTab.value = "base";
 });
 
-function handleTypeChange(event: { detail: { value: number } }) {
-  filters.worksheetType = worksheetTypeOptions[event.detail.value]?.value ?? "";
-}
-
-function handleStatusChange(event: { detail: { value: number } }) {
-  filters.worksheetStatus = worksheetStatusOptions[event.detail.value]?.value ?? "";
-}
-
-function handleUrgencyChange(event: { detail: { value: number } }) {
-  filters.urgencyLevel = urgencyFilterOptions[event.detail.value]?.value ?? "";
-}
-
-function handleProcessStatusChange(event: { detail: { value: number } }) {
-  processForm.worksheetStatus = processStatusOptions[event.detail.value]?.value ?? 1;
+function handleProcessStatusChange() {
   if (processForm.worksheetStatus === 2 && !processForm.finishTime) {
     fillFinishTimeNow();
     return;
@@ -701,8 +691,19 @@ function handleProcessStatusChange(event: { detail: { value: number } }) {
   }
 }
 
-function handleProcessUrgencyChange(event: { detail: { value: number } }) {
-  processForm.urgencyLevel = urgencyOptions[event.detail.value]?.value ?? 0;
+function openProcessDialog() {
+  if (!selectedWorksheet.value) {
+    uni.showToast({ title: "请先选择工单", icon: "none" });
+    return;
+  }
+  fillProcessForm(selectedWorksheet.value);
+  processDialogVisible.value = true;
+}
+
+function closeProcessDialog() {
+  if (!submittingProcess.value) {
+    processDialogVisible.value = false;
+  }
 }
 
 function toggleSort(field: SortField) {
@@ -742,19 +743,13 @@ function buildQueryParams() {
     pageSize: pagination.pageSize,
     startTime: normalizeDateForApi(filters.startTime, false),
     endTime: normalizeDateForApi(filters.endTime, true),
-    riseTimeStart: normalizeDateForApi(filters.startTime, false),
-    riseTimeEnd: normalizeDateForApi(filters.endTime, true),
-    riseStartTime: normalizeDateForApi(filters.startTime, false),
-    riseEndTime: normalizeDateForApi(filters.endTime, true),
     sortOrder: "desc",
     sortField: "createdAt",
     worksheetNumber: filters.worksheetNumber.trim() || undefined,
     worksheetType: filters.worksheetType === "" ? undefined : filters.worksheetType,
     worksheetStatus: filters.worksheetStatus === "" ? undefined : filters.worksheetStatus,
-    urgencyLevel: filters.urgencyLevel === "" ? undefined : filters.urgencyLevel,
     riseAccount: filters.riseAccount.trim() || undefined,
     executeAccount: filters.executeAccount.trim() || undefined,
-    deviceReference: filters.deviceReference.trim() || undefined,
   };
 }
 
@@ -770,9 +765,8 @@ async function fetchWorksheets() {
     const response = await getPageApi()(buildQueryParams()) as ApiResponseLike;
     assertSuccessResponse(response);
     const parsed = parsePageResponse(response);
-    const filteredRecords = applyLocalFilters(parsed.records);
-    worksheets.value = sortWorksheets(filteredRecords);
-    total.value = hasActiveFilters() && filteredRecords.length !== parsed.records.length ? filteredRecords.length : parsed.total;
+    worksheets.value = sortWorksheets(parsed.records);
+    total.value = parsed.total;
     selectFirstRow();
   } catch (error) {
     worksheets.value = [];
@@ -831,48 +825,12 @@ function sortWorksheets(records: WorksheetRecord[]) {
 }
 
 function getSortValue(item: WorksheetRecord, field: SortField) {
-  if (field === "worksheetNumber") {
-    return getWorksheetNumber(item);
-  }
-
   if (field === "worksheetType" || field === "worksheetStatus" || field === "urgencyLevel") {
-    const numericValue = Number(getStableValue(item, [field]));
-    return Number.isNaN(numericValue) ? undefined : numericValue;
+    const value = Number(getStableValue(item, [field]));
+    return Number.isNaN(value) ? undefined : value;
   }
 
-  if (field === "riseAccount") {
-    return getRiseAccount(item);
-  }
-
-  if (field === "executeAccount") {
-    return getExecuteAccount(item);
-  }
-
-  if (field === "deviceReference") {
-    return getDeviceReference(item);
-  }
-
-  if (field === "riseTime") {
-    return getDatetimeTimestamp(getRiseTime(item));
-  }
-
-  if (field === "deadlineTime") {
-    return getDatetimeTimestamp(getDeadlineTime(item));
-  }
-
-  if (field === "finishTime") {
-    return getDatetimeTimestamp(getFinishTime(item));
-  }
-
-  if (field === "address") {
-    return getAddress(item);
-  }
-
-  if (field === "remark") {
-    return getRemark(item);
-  }
-
-  return "";
+  return getTextValue(item, [field], "");
 }
 
 function compareSortValues(left: string | number | undefined, right: string | number | undefined, order: SortOrder) {
@@ -900,7 +858,7 @@ function compareSortValues(left: string | number | undefined, right: string | nu
 }
 
 function isTimeSortField(field: SortField) {
-  return field === "riseTime" || field === "deadlineTime" || field === "finishTime";
+  return false;
 }
 
 function syncSelectedKeyAfterSort() {
@@ -973,12 +931,19 @@ async function selectWorksheet(item: WorksheetRecord, index: number) {
         ...response.data,
       };
     }
+
   } catch {
     // 详情失败时保留列表数据，避免影响主表格展示。
   }
 }
 
 function fillProcessForm(item: WorksheetRecord | null) {
+  for (const field of processTextFields) {
+    processForm[field.key] = item ? getTextValue(item, [field.key], "") : "";
+  }
+  processForm.sceneImages = item ? getTextValue(item, ["sceneImages"], "") : "";
+  processForm.remark = item ? getTextValue(item, ["remark"], "") : "";
+
   if (!item) {
     processForm.worksheetStatus = 1;
     processForm.urgencyLevel = 0;
@@ -1031,6 +996,7 @@ async function submitProcess() {
     const response = await updateWorksheetProcess(id, buildProcessPayload()) as ApiResponseLike;
     assertSuccessResponse(response);
     uni.showToast({ title: "处理已保存", icon: "success" });
+    processDialogVisible.value = false;
     await fetchWorksheets();
   } catch (error) {
     uni.showToast({
@@ -1043,29 +1009,49 @@ async function submitProcess() {
 }
 
 function buildProcessPayload() {
-  const payload = removeEmptyFields({
-    worksheetStatus: processForm.worksheetStatus,
-    urgencyLevel: processForm.urgencyLevel,
-    executeAccount: processForm.executeAccount.trim(),
-    deviceReference: processForm.deviceReference.trim(),
-    deadlineTime: normalizeDatetimeForApi(processForm.deadlineTime),
-    finishTime: processForm.worksheetStatus === 2 ? normalizeDatetimeForApi(processForm.finishTime) : undefined,
-    worksheetFeedback: processForm.worksheetFeedback.trim(),
-    worksheetInstruction: processForm.worksheetInstruction.trim(),
-    address: processForm.address.trim(),
-    coordinate: processForm.coordinate.trim(),
-    pictureIds: processForm.pictureIds.trim(),
-    remark: processForm.remark.trim(),
+  return removeEmptyFields({
+    worksheetStatus: Number(processForm.worksheetStatus),
+    urgencyLevel: Number(processForm.urgencyLevel),
+    executeAccount: String(processForm.executeAccount ?? "").trim(),
+    deviceReference: String(processForm.deviceReference ?? "").trim(),
+    deadlineTime: normalizeDatetimeForApi(String(processForm.deadlineTime ?? "")),
+    finishTime: normalizeDatetimeForApi(String(processForm.finishTime ?? "")),
+    worksheetFeedback: String(processForm.worksheetFeedback ?? "").trim(),
+    worksheetInstruction: String(processForm.worksheetInstruction ?? "").trim(),
+    address: String(processForm.address ?? "").trim(),
+    coordinate: String(processForm.coordinate ?? "").trim(),
+    pictureIds: String(processForm.pictureIds ?? "").trim(),
+    remark: String(processForm.remark ?? "").trim(),
   });
+}
 
-  if (processForm.worksheetStatus !== 2) {
-    return {
-      ...payload,
-      finishTime: null,
-    };
+async function deleteSelectedWorksheet() {
+  const id = selectedWorksheet.value ? getRowId(selectedWorksheet.value) : "";
+  if (!id) {
+    uni.showToast({ title: "请先选择工单", icon: "none" });
+    return;
   }
 
-  return payload;
+  const confirmed = await confirmDangerAction({
+    title: "删除工单",
+    content: `确认删除工单“${getWorkOrderNo(selectedWorksheet.value || {})}”吗？删除后不可恢复。`,
+  });
+  if (!confirmed) {
+    return;
+  }
+
+  submittingProcess.value = true;
+  try {
+    const response = await deleteWorksheet(id) as ApiResponseLike;
+    assertSuccessResponse(response);
+    uni.showToast({ title: "工单已删除", icon: "success" });
+    selectedWorksheet.value = null;
+    await fetchWorksheets();
+  } catch (error) {
+    uni.showToast({ title: (error as { msg?: string })?.msg || "删除工单失败", icon: "none" });
+  } finally {
+    submittingProcess.value = false;
+  }
 }
 
 function markFinished() {
@@ -1100,7 +1086,7 @@ async function cancelWorksheet() {
   submittingProcess.value = true;
 
   try {
-    const response = await closeWorksheet(id, buildCancelPayload()) as ApiResponseLike;
+    const response = await updateWorksheetProcess(id, { ...buildCancelPayload(), worksheetStatus: 3 }) as ApiResponseLike;
     assertSuccessResponse(response);
     uni.showToast({ title: "工单已取消", icon: "success" });
     await fetchWorksheets();
@@ -1145,10 +1131,8 @@ function clearFilters() {
   filters.worksheetNumber = "";
   filters.worksheetType = "";
   filters.worksheetStatus = "";
-  filters.urgencyLevel = "";
   filters.riseAccount = "";
   filters.executeAccount = "";
-  filters.deviceReference = "";
 }
 
 function resetFiltersAndFetch() {
@@ -1157,13 +1141,22 @@ function resetFiltersAndFetch() {
   return fetchWorksheets();
 }
 
-function changePage(step: number) {
-  const nextPage = pagination.pageNum + step;
-  if (nextPage < 1 || nextPage > totalPages.value) {
+function handlePageChange(page: number) {
+  if (page < 1 || page > totalPages.value || page === pagination.pageNum) {
     return;
   }
 
-  pagination.pageNum = nextPage;
+  pagination.pageNum = page;
+  void fetchWorksheets();
+}
+
+function handlePageSizeChange(pageSize: number) {
+  if (!pageSize || pageSize === pagination.pageSize) {
+    return;
+  }
+
+  pagination.pageSize = pageSize;
+  pagination.pageNum = 1;
   void fetchWorksheets();
 }
 
@@ -1189,113 +1182,28 @@ function getRowKey(item: WorksheetRecord, index: number) {
   return String(getRowId(item) || getWorksheetNumber(item) || index);
 }
 
-function hasActiveFilters() {
-  return Boolean(
-    filters.startTime ||
-    filters.endTime ||
-    filters.worksheetNumber.trim() ||
-    filters.worksheetType !== "" ||
-    filters.worksheetStatus !== "" ||
-    filters.urgencyLevel !== "" ||
-    filters.riseAccount.trim() ||
-    filters.executeAccount.trim() ||
-    filters.deviceReference.trim(),
-  );
-}
-
-function applyLocalFilters(records: WorksheetRecord[]) {
-  if (!hasActiveFilters()) {
-    return records;
-  }
-
-  return records.filter((item) => {
-    if (!includesText(getWorksheetNumber(item), filters.worksheetNumber)) {
-      return false;
-    }
-
-    if (!matchesOptionValue(getStableValue(item, ["worksheetType"]), filters.worksheetType)) {
-      return false;
-    }
-
-    if (!matchesOptionValue(getStableValue(item, ["worksheetStatus"]), filters.worksheetStatus)) {
-      return false;
-    }
-
-    if (!matchesOptionValue(getStableValue(item, ["urgencyLevel"]), filters.urgencyLevel)) {
-      return false;
-    }
-
-    if (!includesText(getRiseAccount(item), filters.riseAccount)) {
-      return false;
-    }
-
-    if (!includesText(getExecuteAccount(item), filters.executeAccount)) {
-      return false;
-    }
-
-    if (!includesText(getDeviceReference(item), filters.deviceReference)) {
-      return false;
-    }
-
-    return isRiseTimeInRange(item);
-  });
-}
-
-function includesText(value: string, keyword: string) {
-  const normalizedKeyword = keyword.trim().toLowerCase();
-  if (!normalizedKeyword) {
-    return true;
-  }
-
-  return value.toLowerCase().includes(normalizedKeyword);
-}
-
-function matchesOptionValue(value: unknown, filterValue: number | "") {
-  if (filterValue === "") {
-    return true;
-  }
-
-  return Number(value) === filterValue;
-}
-
-function isRiseTimeInRange(item: WorksheetRecord) {
-  const riseTimestamp = getDatetimeTimestamp(getRiseTime(item));
-  const startTimestamp = getDatetimeTimestamp(filters.startTime);
-  const endTimestamp = getDatetimeTimestamp(filters.endTime);
-
-  if (startTimestamp !== undefined && (riseTimestamp === undefined || riseTimestamp < startTimestamp)) {
-    return false;
-  }
-
-  if (endTimestamp !== undefined && (riseTimestamp === undefined || riseTimestamp > endTimestamp)) {
-    return false;
-  }
-
-  return true;
-}
-
 function getWorksheetNumber(item: WorksheetRecord) {
-  return getTextValue(item, ["worksheetNumber"], "-");
+  return getWorkOrderNo(item);
+}
+
+function getWorkOrderNo(item: WorksheetRecord) {
+  return getTextValue(item, ["workOrderNo", "worksheetNumber"], "-");
+}
+
+function getExpectedTime(item: WorksheetRecord) {
+  return formatDateTime(getTextValue(item, ["viewedAt"], "-"));
 }
 
 function getWorksheetTypeLabel(item: WorksheetRecord) {
-  const type = Number(getStableValue(item, ["worksheetType"]));
-  return {
-    0: localeText("巡检", "Inspection"),
-    1: localeText("检漏", "Leak check"),
-    2: localeText("拆装", "Install/remove"),
-    3: localeText("维护", "Maintenance"),
-  }[type] || localeText("未知类型", "Unknown");
+  return getOptionLabel(worksheetTypeOptions.value, getStableValue(item, ["worksheetType"]), locale.value === "en-US" ? "Unknown Type" : "未知类型");
 }
 
 function getWorksheetStatusLabel(item: WorksheetRecord) {
-  const status = Number(getStableValue(item, ["worksheetStatus"]));
-  return {
-    0: localeText("待处理", "Pending"),
-    1: localeText("处理中", "Processing"),
-    2: localeText("已完成", "Completed"),
-    3: localeText("已取消", "Canceled"),
-  }[status] || localeText("未知状态", "Unknown");
+  const raw = getStableValue(item, ["worksheetStatus", "workOrderStatus", "status"]);
+  if (typeof raw === "string" && raw.trim() && Number.isNaN(Number(raw))) {
+    return raw;
+  }
+  return getOptionLabel(worksheetStatusOptions.value, raw, locale.value === "en-US" ? "Unknown Status" : "未知状态");
 }
 
 function getRiseAccount(item: WorksheetRecord) {
@@ -1311,9 +1219,7 @@ function getDeviceReference(item: WorksheetRecord) {
 }
 
 function getUrgencyLabel(item: WorksheetRecord) {
-  return Number(getStableValue(item, ["urgencyLevel"])) === 1
-    ? localeText("紧急", "Urgent")
-    : localeText("一般", "Normal");
+  return getOptionLabel(urgencyOptions.value, getStableValue(item, ["urgencyLevel"]), locale.value === "en-US" ? "Normal" : "一般");
 }
 
 function getRiseTime(item: WorksheetRecord) {
@@ -1364,7 +1270,7 @@ function getCoordinate(item: WorksheetRecord, fallback = "-") {
 }
 
 function getStatusClass(item: WorksheetRecord) {
-  const status = Number(getStableValue(item, ["worksheetStatus"]));
+  const status = Number(getStableValue(item, ["status", "worksheetStatus"]));
 
   if (status === 2) {
     return "status-pill--done";
@@ -1401,11 +1307,6 @@ function getDetailValueClass(label: string) {
 function getOptionLabel(options: SelectOption[], value: unknown, fallback: string) {
   const normalized = typeof value === "string" && value.trim() !== "" ? Number(value) : value;
   return options.find((item) => item.value === normalized)?.label || fallback;
-}
-
-function getOptionIndex(options: SelectOption[], value: unknown) {
-  const normalized = typeof value === "string" && value.trim() !== "" ? Number(value) : value;
-  return Math.max(0, options.findIndex((item) => item.value === normalized));
 }
 
 function getPercent(count: number, totalCount: number) {
@@ -1639,9 +1540,13 @@ defineExpose({
 .filter-input,
 .filter-select {
   box-sizing: border-box;
+  min-width: 0;
   width: 100%;
   color: #172033;
   font-size: 14px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   background: #f9fcff;
   border: 1px solid #cbdced;
   border-radius: 4px;
@@ -1971,7 +1876,7 @@ defineExpose({
   flex-basis: 140px;
 }
 
-.toolbar-row--filters .filter-group:nth-child(7) {
+.toolbar-row--filters .filter-group--device {
   flex-basis: 210px;
 }
 
@@ -1985,6 +1890,8 @@ defineExpose({
 
 .filter-input {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .filter-input--name {
@@ -2005,11 +1912,15 @@ defineExpose({
   align-items: center;
   gap: 8px;
   flex-wrap: nowrap;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .filter-datetime {
-  flex: 0 0 200px;
-  width: 200px;
+  flex: 1 1 190px;
+  width: 190px;
+  min-width: 0;
+  max-width: 210px;
 }
 
 .filter-datetime :deep(.datetime-picker__control) {
@@ -2030,14 +1941,47 @@ defineExpose({
   height: 15px;
 }
 
+.filter-datetime :deep(.admin-datetime-picker) {
+  height: 30px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.filter-datetime :deep(.admin-datetime-picker__segment) {
+  height: 28px;
+  padding: 0 8px;
+  font-size: 12px;
+  line-height: 28px;
+}
+
+.filter-datetime :deep(.admin-datetime-picker__clear) {
+  height: 28px;
+}
+
 .filter-select {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
+  min-width: 0;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.filter-select :deep(.work-order-select__control),
+.form-select :deep(.work-order-select__control) {
+  height: 100%;
+}
+
+.filter-select__value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .filter-select__arrow {
+  flex: none;
   width: 8px;
   height: 8px;
   border: solid #74879c;
@@ -2293,17 +2237,17 @@ defineExpose({
 }
 
 .data-table {
-  width: 100%;
-  min-width: 900px;
+  width: 1360px;
+  min-width: 1360px;
   background: #ffffff;
 }
 
 .data-row {
   display: grid;
-  grid-template-columns: 54px minmax(150px, 1.5fr) minmax(92px, 0.82fr) minmax(92px, 0.82fr) minmax(84px, 0.78fr) minmax(84px, 0.78fr) minmax(118px, 1fr) minmax(88px, 0.78fr);
+  grid-template-columns: 64px 230px 170px 170px 170px 170px 240px 146px;
   min-height: 42px;
-  width: 100%;
-  min-width: 900px;
+  width: 1360px;
+  min-width: 1360px;
   border-bottom: 1px solid #edf1f5;
   cursor: pointer;
   transition:
@@ -2367,6 +2311,107 @@ defineExpose({
   text-overflow: ellipsis;
   white-space: nowrap;
   border-right: 1px solid #edf1f5;
+}
+
+.data-cell > text:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.worksheet-view--en .toolbar-row--filters .filter-group {
+  flex-basis: 164px;
+}
+
+.worksheet-view--en .toolbar-row--filters .filter-group:first-child,
+.worksheet-view--en .toolbar-row--filters .filter-group--device {
+  flex-basis: 230px;
+}
+
+.worksheet-view--en .filter-label {
+  white-space: normal;
+}
+
+.worksheet-view--en .toolbar-button {
+  min-width: max-content;
+}
+
+.worksheet-view--en .status-pill,
+.worksheet-view--en .urgency-pill {
+  min-width: 86px;
+  padding-inline: 12px;
+}
+
+.worksheet-view--en .detail-tabs {
+  min-height: 54px;
+  height: auto;
+}
+
+.worksheet-view--en .detail-tab {
+  min-height: 38px;
+  padding: 0 8px;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.worksheet-view--en .detail-body {
+  padding: 14px;
+}
+
+.worksheet-view--en .detail-summary {
+  padding: 14px 14px 13px;
+}
+
+.worksheet-view--en .detail-summary__meta {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.worksheet-view--en .detail-summary__meta-item {
+  padding: 8px 9px;
+}
+
+.worksheet-view--en .detail-summary__meta-value {
+  overflow: visible;
+  text-overflow: initial;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.worksheet-view--en .detail-item--base {
+  grid-template-columns: 136px minmax(0, 1fr);
+  min-height: 50px;
+  gap: 12px;
+}
+
+.worksheet-view--en .detail-item--base .detail-item__label,
+.worksheet-view--en .time-row__label,
+.worksheet-view--en .location-row__label {
+  line-height: 1.25;
+  white-space: normal;
+}
+
+.worksheet-view--en .detail-item--base .detail-item__value {
+  text-align: left;
+  word-break: break-word;
+}
+
+.worksheet-view--en .detail-grid--content .detail-item {
+  grid-template-columns: 136px minmax(0, 1fr);
+}
+
+.worksheet-view--en .detail-grid--content .detail-item__value {
+  word-break: break-word;
+}
+
+.worksheet-view--en .time-row__content {
+  grid-template-columns: 122px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.worksheet-view--en .location-row {
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 12px;
 }
 
 .data-row--header .data-cell {
@@ -2599,10 +2644,10 @@ defineExpose({
 .detail-summary {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   align-items: stretch;
   min-width: 0;
-  padding: 14px 16px;
+  padding: 14px 16px 13px;
   background: #ffffff;
   border: 1px solid #dce9f4;
   border-left: 4px solid #0d82ee;
@@ -2611,6 +2656,14 @@ defineExpose({
 }
 
 .detail-summary__main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.detail-summary__identity {
   min-width: 0;
 }
 
@@ -2623,7 +2676,7 @@ defineExpose({
 
 .detail-summary__number {
   display: block;
-  margin-top: 7px;
+  margin-top: 6px;
   color: #0f4c81;
   font-family: "DIN Alternate", "Arial", sans-serif;
   font-size: 17px;
@@ -2639,24 +2692,31 @@ defineExpose({
   justify-content: flex-start;
   flex-wrap: wrap;
   gap: 7px;
+  margin-top: -2px;
 }
 
 .detail-summary__badge {
   min-width: 64px;
   height: 26px;
+  padding: 0 14px;
   line-height: 26px;
 }
 
 .detail-summary__meta {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 8px 10px;
   padding-top: 10px;
   border-top: 1px solid #edf3f8;
 }
 
 .detail-summary__meta-item {
+  box-sizing: border-box;
   min-width: 0;
+  padding: 8px 10px;
+  background: #f8fbfe;
+  border: 1px solid #edf3f8;
+  border-radius: 6px;
 }
 
 .detail-summary__meta-label {
@@ -2668,7 +2728,7 @@ defineExpose({
 
 .detail-summary__meta-value {
   display: block;
-  margin-top: 4px;
+  margin-top: 5px;
   overflow: hidden;
   color: #172033;
   font-size: 13px;
@@ -2712,8 +2772,8 @@ defineExpose({
   display: grid;
   grid-template-columns: 92px minmax(0, 1fr);
   align-items: center;
-  min-height: 48px;
-  padding: 8px 14px;
+  min-height: 44px;
+  padding: 7px 14px;
   background: #ffffff;
   border: 0;
   border-bottom: 1px solid #edf3f8;
@@ -2942,6 +3002,245 @@ defineExpose({
   font-weight: 700;
   line-height: 1.5;
   word-break: break-all;
+}
+
+.process-dialog-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  background: rgba(15, 35, 55, 0.4);
+}
+
+.process-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(1120px, calc(100vw - 44px));
+  height: min(730px, calc(100vh - 28px));
+  max-height: calc(100vh - 28px);
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #d8e6f2;
+  border-radius: 14px;
+  box-shadow: 0 24px 64px rgba(15, 35, 55, 0.24);
+}
+
+.process-dialog__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: none;
+  padding: 20px 26px;
+  background: linear-gradient(135deg, #f4faff 0%, #ffffff 58%, #eef7ff 100%);
+  border-bottom: 1px solid #edf3f8;
+}
+
+.process-dialog__heading {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 14px;
+}
+
+.process-dialog__heading > view:last-child {
+  min-width: 0;
+}
+
+.process-dialog__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  color: #ffffff;
+  font-size: 19px;
+  font-weight: 900;
+  background: linear-gradient(145deg, #0d82ee, #0867c2);
+  border-radius: 12px;
+  box-shadow: 0 8px 18px rgba(13, 130, 238, 0.24);
+}
+
+.process-dialog__title,
+.process-dialog__subtitle {
+  display: block;
+}
+
+.process-dialog__title {
+  color: #183755;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.process-dialog__subtitle {
+  margin-top: 4px;
+  max-width: min(760px, calc(100vw - 190px));
+  overflow: hidden;
+  color: #5f7188;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.process-dialog__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  margin: 0;
+  color: #64748b;
+  font-size: 22px;
+  line-height: 30px;
+  background: #f6fbff;
+  border: 1px solid #d9e7f3;
+  border-radius: 6px;
+}
+
+.process-dialog__close::after {
+  border: 0;
+}
+
+.process-dialog__body {
+  box-sizing: border-box;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  padding: 18px 24px 16px;
+  background: #ffffff;
+}
+
+.process-dialog__body :deep(.uni-scroll-view-content) {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
+.process-dialog__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(300px, 0.9fr);
+  gap: 24px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
+.process-dialog__main {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.process-card {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  padding: 18px;
+  background: #ffffff;
+  border: 1px solid #e2ebf3;
+  border-radius: 10px;
+  box-shadow: 0 5px 16px rgba(26, 66, 105, 0.05);
+}
+
+.process-card--side {
+  min-height: 100%;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbfe 100%);
+}
+
+.process-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  min-width: 0;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid #eef4fa;
+}
+
+.process-card__title {
+  position: relative;
+  flex: none;
+  padding-left: 10px;
+  color: #183755;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.process-card__title::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 3px;
+  height: 16px;
+  content: "";
+  background: #0d82ee;
+  border-radius: 999px;
+  transform: translateY(-50%);
+}
+
+.process-card__desc {
+  min-width: 0;
+  overflow: hidden;
+  color: #8798aa;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.process-form-grid--dialog {
+  gap: 12px 18px;
+}
+
+.process-form-grid--dialog .form-field {
+  min-width: 0;
+}
+
+.process-form-grid--dialog .form-field--wide {
+  grid-column: span 2;
+}
+
+.process-form-grid--dialog .form-textarea {
+  height: 72px;
+}
+
+.process-dialog__side-fields {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.process-dialog__side-fields .form-textarea {
+  height: 112px;
+}
+
+.process-dialog__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  flex: none;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px 24px;
+  background: #f8fbfe;
+  border-top: 1px solid #edf3f8;
+}
+
+.process-dialog__actions .toolbar-button {
+  min-width: 104px;
+  height: 38px;
 }
 
 .process-box {
@@ -3230,11 +3529,8 @@ defineExpose({
 
   .data-table,
   .data-row {
-    min-width: 760px;
-  }
-
-  .data-row {
-    grid-template-columns: 46px minmax(130px, 1.3fr) minmax(82px, 0.78fr) minmax(82px, 0.78fr) minmax(74px, 0.72fr) minmax(74px, 0.72fr) minmax(96px, 0.92fr) minmax(74px, 0.72fr);
+    width: 1240px;
+    min-width: 1240px;
   }
 }
 
@@ -3594,7 +3890,8 @@ defineExpose({
 @media (max-width: 520px) {
   .data-table,
   .data-row {
-    min-width: 700px;
+    width: 1240px;
+    min-width: 1240px;
   }
 
   .detail-grid--base {
@@ -3623,5 +3920,30 @@ defineExpose({
     grid-template-columns: 1fr;
     gap: 5px;
   }
+}
+
+@media (max-width: 980px) {
+  .process-dialog__layout,
+  .process-form-grid--dialog {
+    grid-template-columns: 1fr;
+  }
+
+  .process-form-grid--dialog .form-field--wide {
+    grid-column: span 1;
+  }
+}
+
+.worksheet-view--en .process-dialog {
+  width: min(1180px, calc(100vw - 44px));
+}
+
+.worksheet-view--en .process-card__head {
+  align-items: flex-start;
+}
+
+.worksheet-view--en .process-card__desc {
+  max-width: 58%;
+  line-height: 1.3;
+  text-align: right;
 }
 </style>

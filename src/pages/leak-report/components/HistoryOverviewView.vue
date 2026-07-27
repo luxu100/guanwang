@@ -312,8 +312,8 @@
     </LeakTableView>
 
     <!-- ========== 视频播放浮层 ========== -->
-    <view v-if="videoDialogVisible" class="video-dialog-mask" @click="closeVideoDialog">
-      <view class="video-dialog" @click.stop>
+    <view v-if="videoDialogVisible" class="video-dialog-mask" @click="onVideoMaskClick">
+      <view class="video-dialog">
         <view class="video-dialog__head">
           <text class="video-dialog__title">{{ t("historyOverview.videoPlay") }}</text>
           <button class="icon-button" hover-class="icon-button--hover" :aria-label="t('common.close')" @click="closeVideoDialog"><text class="close-icon"></text></button>
@@ -355,8 +355,8 @@
     </view>
 
     <!-- ========== 音频播放浮层 ========== -->
-    <view v-if="audioDialogVisible" class="audio-dialog-mask" @click="closeAudioDialog">
-      <view class="audio-dialog" @click.stop>
+    <view v-if="audioDialogVisible" class="audio-dialog-mask" @click="onAudioMaskClick">
+      <view class="audio-dialog">
         <view class="audio-dialog__head">
           <text class="audio-dialog__title">{{ currentAudioTitle || t("historyOverview.audioPlay") }}</text>
           <button class="icon-button" hover-class="icon-button--hover" :aria-label="t('common.close')" @click="closeAudioDialog"><text class="close-icon"></text></button>
@@ -618,6 +618,7 @@ const selectedRecordKey = ref("");
 const total = ref(0);
 const loading = ref(false);
 let fetchRequestId = 0;
+let detailRequestId = 0;
 const activeDataTab = ref<DataTab>("leakage");
 const exportMenuVisible = ref(false);
 type HistoryDetailTab = "basic" | "detail";
@@ -1564,8 +1565,8 @@ const summaryLabel = computed(() => {
 
 const summaryValue = computed(() => {
   const r = selectedRecord.value || {};
-  if (activeDataTab.value === "leakage") return String(getFieldValue(r, "leakPointPosition") || "-");
-  return String(getFieldValue(r, "deviceNumber") || "-");
+  if (activeDataTab.value === "leakage") return displayValue(getFieldValue(r, "leakPointPosition"));
+  return displayValue(getFieldValue(r, "deviceNumber"));
 });
 
 const summaryMetaFields = computed<DetailField[]>(() => {
@@ -1573,25 +1574,25 @@ const summaryMetaFields = computed<DetailField[]>(() => {
   if (activeDataTab.value === "leakage") {
     return [
       { label: t("detail.fields.leakStatus"), value: getLeakageStatusDisplay(r) },
-      { label: t("detail.fields.leakPointType"), value: String(getFieldValue(r, "leakPointType") || "-") },
-      { label: t("detail.fields.inspector"), value: String(getFieldValue(r, "inspector") || "-") },
-      { label: t("detail.fields.detectType"), value: String(getFieldValue(r, "detectType") || "-") },
-      { label: t("detail.fields.detectDifficulty"), value: String(getFieldValue(r, "detectDifficulty") || "-") },
-      { label: t("detail.fields.locator"), value: String(getFieldValue(r, "locator") || "-") },
+      { label: t("detail.fields.leakPointType"), value: displayValue(getFieldValue(r, "leakPointType")) },
+      { label: t("detail.fields.inspector"), value: displayValue(getFieldValue(r, "inspector")) },
+      { label: t("detail.fields.detectType"), value: displayValue(getFieldValue(r, "detectType")) },
+      { label: t("detail.fields.detectDifficulty"), value: displayValue(getFieldValue(r, "detectDifficulty")) },
+      { label: t("detail.fields.locator"), value: displayValue(getFieldValue(r, "locator")) },
     ];
   }
   if (activeDataTab.value === "deviceUpload") {
     return [
       { label: t("table.leakFlag"), value: getLeakStatusLabel(r) },
-      { label: t("detail.fields.firmwareVersion"), value: String(getFieldValue(r, "firmwareVersion") || "-") },
-      { label: t("detail.fields.hardwareVersion"), value: String(getFieldValue(r, "hardwareVersion") || "-") },
+      { label: t("detail.fields.firmwareVersion"), value: displayValue(getFieldValue(r, "firmwareVersion")) },
+      { label: t("detail.fields.hardwareVersion"), value: displayValue(getFieldValue(r, "hardwareVersion")) },
       { label: t("detail.fields.workMode"), value: String(getFieldValue(r, "workMode") ?? "-") },
     ];
   }
   if (activeDataTab.value === "algorithm") {
     return [
       { label: t("table.executeStatus"), value: getAlgorithmStatusLabel(r) },
-      { label: t("detail.fields.errorMessage"), value: String(getFieldValue(r, "errorMessage") || "-") },
+      { label: t("detail.fields.errorMessage"), value: displayValue(getFieldValue(r, "errorMessage")) },
     ];
   }
   return [];
@@ -1626,7 +1627,7 @@ const locationFields = computed<DetailField[]>(() => {
   if (activeDataTab.value === "leakage") {
     return [
       { label: t("detail.fields.coordinatePosition"), value: formatCoordinate(getFieldValue(r, "coordinatePosition")) },
-      { label: t("detail.fields.leakArea"), value: String(getFieldValue(r, "leakArea") || "-") },
+      { label: t("detail.fields.leakArea"), value: displayValue(getFieldValue(r, "leakArea")) },
     ];
   }
   if (activeDataTab.value === "deviceUpload") {
@@ -1643,28 +1644,28 @@ const cardFields = computed<DetailField[]>(() => {
     return [
       { label: t("detail.fields.id"), value: String(getFieldValue(r, "id") ?? "-") },
       { label: t("detail.fields.suspectedLeakId"), value: String(getFieldValue(r, "suspectedLeakId") ?? "-") },
-      { label: t("detail.fields.leakPointPart"), value: String(getFieldValue(r, "leakPart") || "-") },
+      { label: t("detail.fields.leakPointPart"), value: displayValue(getFieldValue(r, "leakPart")) },
       { label: t("detail.fields.leakDistance"), value: String(getFieldValue(r, "leakDistance") ?? "-") },
       { label: t("detail.fields.leakVolume"), value: String(getFieldValue(r, "leakVolume") ?? "-") },
-      { label: t("detail.fields.leakReason"), value: String(getFieldValue(r, "leakReason") || "-") },
+      { label: t("detail.fields.leakReason"), value: displayValue(getFieldValue(r, "leakReason")) },
       { label: t("detail.fields.leakEsa"), value: String(getFieldValue(r, "featureValue") ?? "-") },
-      { label: t("detail.fields.cost"), value: String(getFieldValue(r, "cost") || "-") },
+      { label: t("detail.fields.cost"), value: displayValue(getFieldValue(r, "cost")) },
       { label: t("detail.fields.manualReviewCount"), value: String(getFieldValue(r, "manualReviewCount") ?? "-") },
-      { label: t("detail.fields.repairMethod"), value: String(getFieldValue(r, "repairMethod") || "-") },
-      { label: t("detail.fields.tubeMaterial"), value: String(getFieldValue(r, "tubeMaterial") || "-") },
+      { label: t("detail.fields.repairMethod"), value: displayValue(getFieldValue(r, "repairMethod")) },
+      { label: t("detail.fields.tubeMaterial"), value: displayValue(getFieldValue(r, "tubeMaterial")) },
       { label: t("detail.fields.tubeBore"), value: String(getFieldValue(r, "tubeBore") ?? "-") },
       { label: t("detail.fields.tubeBuriedDepth"), value: String(getFieldValue(r, "tubeBuriedDepth") ?? "-") },
       { label: t("detail.fields.tubeAge"), value: String(getFieldValue(r, "tubeAge") ?? "-") },
-      { label: t("detail.fields.deviceNumber"), value: String(getFieldValue(r, "deviceNumber") || "-") },
+      { label: t("detail.fields.deviceNumber"), value: displayValue(getFieldValue(r, "deviceNumber")) },
       { label: t("detail.fields.workOrderId"), value: String(getFieldValue(r, "workOrderId") ?? "-") },
-      { label: t("detail.fields.noiseSample"), value: String(getFieldValue(r, "noiseSample") || "-") },
-      { label: t("detail.fields.description"), value: String(getFieldValue(r, "description") || "-") },
+      { label: t("detail.fields.noiseSample"), value: displayValue(getFieldValue(r, "noiseSample")) },
+      { label: t("detail.fields.description"), value: displayValue(getFieldValue(r, "description")) },
     ];
   }
   if (activeDataTab.value === "deviceUpload") {
     return [
-      { label: t("detail.fields.id"), value: String(getFieldValue(r, "id") || "-") },
-      { label: t("detail.fields.deviceId"), value: String(getFieldValue(r, "deviceId") || "-") },
+      { label: t("detail.fields.id"), value: displayValue(getFieldValue(r, "id")) },
+      { label: t("detail.fields.deviceId"), value: displayValue(getFieldValue(r, "deviceId")) },
       { label: t("detail.fields.batteryVoltage"), value: String(getFieldValue(r, "batteryVoltage") ?? "-") },
       { label: t("detail.fields.deviceTemperature"), value: String(getFieldValue(r, "deviceTemperature") ?? "-") },
       { label: t("detail.fields.signalIntensity"), value: String(getFieldValue(r, "signalIntensity") ?? "-") },
@@ -1680,10 +1681,10 @@ const cardFields = computed<DetailField[]>(() => {
       { label: t("detail.fields.deviceId"), value: String(getFieldValue(r, "deviceId") ?? "-") },
       { label: t("detail.fields.audioId"), value: String(getFieldValue(r, "audioId") ?? "-") },
       { label: t("detail.fields.algorithmName"), value: translateAlgorithmName(getFieldValue(r, "algorithmName")) },
-      { label: t("detail.fields.outputValue"), value: String(getFieldValue(r, "outputValue") || "-") },
+      { label: t("detail.fields.outputValue"), value: displayValue(getFieldValue(r, "outputValue")) },
       { label: t("detail.fields.duration"), value: String(getFieldValue(r, "costMs") ?? "-") },
-      { label: t("detail.fields.matlabInstance"), value: String(getFieldValue(r, "matlabInstance") || "-") },
-      { label: t("detail.fields.errorMessage"), value: String(getFieldValue(r, "errorMessage") || "-") },
+      { label: t("detail.fields.matlabInstance"), value: displayValue(getFieldValue(r, "matlabInstance")) },
+      { label: t("detail.fields.errorMessage"), value: displayValue(getFieldValue(r, "errorMessage")) },
     ];
   }
   return [];
@@ -1702,6 +1703,8 @@ onUnmounted(() => {
   // #ifdef H5
   document.removeEventListener("click", handleDocumentClick);
   document.removeEventListener("touchmove", handleDocumentTouchMove);
+  closeAudioDialog();
+  closeVideoDialog();
   // #endif
 });
 
@@ -1733,7 +1736,7 @@ function switchDataTab(tab: DataTab) {
 function toggleSort(field: string) {
   if (sortField.value === field) {
     if (sortOrder.value === "asc") { sortOrder.value = "desc"; }
-    else if (sortOrder.value === "desc") { sortField.value = ""; sortOrder.value = ""; return; }
+    else if (sortOrder.value === "desc") { sortField.value = ""; sortOrder.value = ""; }
   } else {
     sortField.value = field;
     sortOrder.value = "asc";
@@ -1815,6 +1818,13 @@ function searchHistory() {
   fetchHistoryData();
 }
 
+function escapeCsvCell(value: unknown): string {
+  if (value === undefined || value === null) return "";
+  const text = String(value).replace(/"/g, '""');
+  return /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+}
+
+// 已知技术债：导出全部使用 pageSize:99999 一次性拉取，后端限制最大 pageSize 或数据量超过 10 万时导出会静默不全。后续应改为循环分页拉取。
 async function handleExport(scope: "current" | "all") {
   exportMenuVisible.value = false;
   let exportRecords = records.value;
@@ -1842,16 +1852,15 @@ async function handleExport(scope: "current" | "all") {
   const headers = exportColumns.map((c) => t(c.exportLabelKey || c.labelKey));
   const rows = exportRecords.map((r, idx) =>
     exportColumns.map((c) => {
-      if (c.renderType === "index") return String(idx + 1);
-      if (c.renderType === "dateTime") return formatDateTime(getFieldValue(r, c.key));
+      if (c.renderType === "index") return escapeCsvCell(String(idx + 1));
+      if (c.renderType === "dateTime") return escapeCsvCell(formatDateTime(getFieldValue(r, c.key)));
       if (c.renderType === "statusTag") {
-        if (c.statusVariant === "leakage") return getLeakageStatusDisplay(r);
-        if (c.statusVariant === "deviceUpload") return getLeakStatusLabel(r);
-        if (c.statusVariant === "algorithm") return getAlgorithmStatusLabel(r);
+        if (c.statusVariant === "leakage") return escapeCsvCell(getLeakageStatusDisplay(r));
+        if (c.statusVariant === "deviceUpload") return escapeCsvCell(getLeakStatusLabel(r));
+        if (c.statusVariant === "algorithm") return escapeCsvCell(getAlgorithmStatusLabel(r));
       }
-      if (c.renderType === "algorithmName") return translateAlgorithmName(getFieldValue(r, c.key));
-      const v = getFieldValue(r, c.key);
-      return v === undefined || v === null ? "" : String(v).replace(/"/g, '""');
+      if (c.renderType === "algorithmName") return escapeCsvCell(translateAlgorithmName(getFieldValue(r, c.key)));
+      return escapeCsvCell(getFieldValue(r, c.key));
     })
   );
   const csv = [headers.join(","), ...rows.map((row) => row.map((c) => `"${c}"`).join(","))].join("\n");
@@ -2026,6 +2035,11 @@ function closeVideoDialog() {
   videoLoading.value = false;
 }
 
+/** 只有点击 mask 本身才关闭对话框，点击内部内容（含进度条）不关闭 */
+function onVideoMaskClick(e: MouseEvent) {
+  if (e.target === e.currentTarget) closeVideoDialog();
+}
+
 function onAudioLoadedMeta() {
   if (!audioDialogElement) return;
   if (isFinite(audioDialogElement.duration) && audioDialogElement.duration > 0) {
@@ -2086,6 +2100,11 @@ function closeAudioDialog() {
   audioLoading.value = false;
 }
 
+/** 只有点击 mask 本身才关闭对话框，点击内部内容（含进度条）不关闭 */
+function onAudioMaskClick(e: MouseEvent) {
+  if (e.target === e.currentTarget) closeAudioDialog();
+}
+
 function resetFilters() {
   filters.startTime = "";
   filters.endTime = "";
@@ -2117,6 +2136,7 @@ function handlePageSizeChange(size: number) {
 }
 
 function selectFirstRow() {
+  detailRequestId++; // 使之前未完成的详情请求失效
   if (records.value.length === 0) {
     selectedRecord.value = null;
     selectedRecordKey.value = "";
@@ -2131,11 +2151,13 @@ function selectRecord(item: HistoryRecord, index: number) {
   selectedRecord.value = item;
   selectedRecordKey.value = getRowKey(item, index);
 
+  const reqId = ++detailRequestId;
   const id = getRowId(item);
   if (!id) return;
 
   getApiFunction().detail(id)
     .then((response: unknown) => {
+      if (reqId !== detailRequestId) return; // 竞态保护：丢弃过期请求
       assertSuccessResponse(response as ApiResponseLike);
       const detailData = (response as ApiResponseLike)?.data;
       if (isObject(detailData)) {
@@ -2159,6 +2181,12 @@ function getRowKey(item: HistoryRecord, index: number) {
 
 function getFieldValue(item: HistoryRecord, key: string): unknown {
   return Object.prototype.hasOwnProperty.call(item, key) ? item[key] : undefined;
+}
+
+/** 显示值：只把 null/undefined/空字符串显示为 '-'，保留合法的 0/false */
+function displayValue(value: unknown): string {
+  if (value === null || value === undefined || value === '') return '-';
+  return String(value);
 }
 
 // 格式化经纬度字符串，保留 4 位小数（支持 "经度,纬度" 或 "经度 纬度" 格式）
@@ -2291,6 +2319,8 @@ function removeEmptyFields(data: Record<string, unknown>) {
 }
 
 // 本地过滤兜底：仅对后端不支持的字段生效（当前仅 leakage tab 的 leakStatus 和 inspector）
+// 已知限制：本地过滤只能过滤当前页数据，跨页数据不可见。total 会改为当前页过滤后的数量。
+// 彻底解决需后端 LeakPointRecordPageDTO 增加 leakStatus 和 inspector 字段支持。
 function applyLocalFilters(list: HistoryRecord[]): HistoryRecord[] {
   if (activeDataTab.value !== "leakage") return list;
   const inspectorKey = filters.inspector.trim().toLowerCase();

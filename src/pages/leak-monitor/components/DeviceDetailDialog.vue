@@ -27,11 +27,8 @@
         </button>
       </view>
 
-      <scroll-view class="detail-body" scroll-y>
-        <view v-if="loading" class="dialog-state">{{ t("detailLoading") }}</view>
-
-        <template v-else>
-          <view v-if="activeTab === 'noise'" class="tab-content">
+      <scroll-view class="detail-body" :scroll-y="!correlationDialogVisible">
+        <view v-if="activeTab === 'noise'" class="tab-content">
             <view class="analysis-toolbar">
               <text class="analysis-toolbar__label">{{ t("audioTime") }}</text>
               <picker mode="date" :value="noiseRange.start" :end="noiseRange.end" @change="noiseRange.start = String($event.detail.value)">
@@ -52,7 +49,11 @@
             </view>
 
             <view class="audio-trend-row">
-              <view class="audio-player">
+              <view class="audio-player loading-container">
+                <view v-if="detail.analysisLoading" class="panel-loading panel-loading--audio">
+                  <image class="audio-loading-icon" src="/static/icons/audioloading.svg" mode="aspectFit" />
+                  <text>{{ t("loadingAudio") }}</text>
+                </view>
                 <!-- #ifdef H5 -->
                 <component :is="'audio'" v-if="detail.audioUrl" class="audio-player__control" :src="detail.audioUrl" controls preload="metadata"></component>
                 <!-- #endif -->
@@ -63,7 +64,11 @@
                   {{ t("audioMeta", { rate: audioAnalysis.sampleRate, duration: audioAnalysis.duration }) }}
                 </text>
               </view>
-              <view class="trend-chips">
+              <view class="trend-chips loading-container">
+                <view v-if="detail.analysisLoading" class="panel-loading">
+                  <image class="minor-loading-icon" src="/static/icons/loadin_minior.svg" mode="aspectFit" />
+                  <text>{{ t("loadingPanel") }}</text>
+                </view>
                 <view
                   v-for="item in recentTrend"
                   :key="item.date"
@@ -77,7 +82,12 @@
               </view>
             </view>
 
-            <view v-if="detail.analysisLoading" class="inline-state">{{ t("analyzingAudio") }}</view>
+            <view v-if="detail.analysisLoading" class="chart-grid">
+              <view v-for="index in 3" :key="index" class="chart-loading-panel" :class="{ 'chart-grid__wide': index === 3 }">
+                <image class="minor-loading-icon" src="/static/icons/loadin_minior.svg" mode="aspectFit" />
+                <text>{{ t("analyzingAudio") }}</text>
+              </view>
+            </view>
             <view v-else-if="audioAnalysis" class="chart-grid">
               <DeviceSpectrumChart
                 :title="language === 'en-US' ? 'Time-domain amplitude' : '时域幅度图'"
@@ -134,6 +144,7 @@
                 :title="t('dailySpectrum')"
                 mode="history3d"
                 :series="dailySeries"
+                :loading="detail.historyLoading"
               />
             </view>
             <view v-if="detail.historyError" class="detail-error">{{ detail.historyError }}</view>
@@ -141,7 +152,11 @@
 
           <view v-else-if="activeTab === 'detail'" class="tab-content">
             <view class="section-title">{{ t("deviceInfo") }}</view>
-            <view class="field-grid">
+            <view class="field-grid loading-container">
+              <view v-if="loading" class="panel-loading">
+                <image class="minor-loading-icon" src="/static/icons/loadin_minior.svg" mode="aspectFit" />
+                <text>{{ t("detailLoading") }}</text>
+              </view>
               <view v-for="item in detailFields" :key="item.label" class="field-item">
                 <text class="field-item__label">{{ item.label }}</text>
                 <text class="field-item__value">{{ item.value }}</text>
@@ -293,6 +308,10 @@
                 <text>{{ t("leakTrend") }}</text>
                 <text>{{ t("operation") }}</text>
               </view>
+              <view v-if="nearbyLoading" class="table-loading">
+                <image class="minor-loading-icon" src="/static/icons/loadin_minior.svg" mode="aspectFit" />
+                <text>{{ t("nearbyLoading") }}</text>
+              </view>
               <view
                 v-for="item in nearbyDevices"
                 :key="item.device.deviceNumber"
@@ -311,29 +330,16 @@
                 </view>
                 <view class="row-actions">
                   <button class="table-button" type="button" @click="focusRelated(item.device)">{{ t("relatedLocation") }}</button>
-                  <button class="table-button" type="button" @click="relatedDeviceNumber = item.device.deviceNumber">{{ t("correlationAnalysis") }}</button>
+                  <button class="table-button" type="button" @click="openCorrelation(item)">{{ t("correlationAnalysis") }}</button>
                 </view>
               </view>
-              <view v-if="!nearbyDevices.length" class="dialog-state dialog-state--compact">{{ t("noNearbyDevices") }}</view>
+              <view v-if="nearbyError" class="detail-error detail-error--inside">{{ nearbyError }}</view>
+              <view v-else-if="!nearbyLoading && !nearbyDevices.length" class="dialog-state dialog-state--compact">{{ t("noNearbyDevices") }}</view>
             </view>
 
-            <view v-if="relatedDevice" class="comparison-panel">
-              <view class="comparison-item">
-                <text class="comparison-item__label">{{ device?.deviceNumber }}</text>
-                <text class="comparison-item__value">{{ translatedStatus }}</text>
-                <text>{{ t("featureValue") }}: {{ device?.leakProperty ?? "-" }}</text>
-              </view>
-              <text class="comparison-divider">↔</text>
-              <view class="comparison-item">
-                <text class="comparison-item__label">{{ relatedDevice.deviceNumber }}</text>
-                <text class="comparison-item__value">{{ statusText(relatedDevice) }}</text>
-                <text>{{ t("featureValue") }}: {{ relatedDevice.leakProperty ?? "-" }}</text>
-              </view>
-              <button class="small-button" type="button" @click="$emit('select-device', relatedDevice)">{{ t("openDevice") }}</button>
-            </view>
           </view>
 
-          <view v-else class="tab-content finder-content">
+        <view v-else class="tab-content finder-content">
             <view class="finder-device-summary">
               <view>
                 <text class="finder-device-summary__number">{{ device.deviceNumber }}</text>
@@ -356,19 +362,25 @@
               />
             </view>
             <view v-else class="dialog-state">{{ t("noCurrentDeviceCoordinate") }}</view>
-          </view>
-        </template>
+        </view>
       </scroll-view>
     </view>
+    <CorrelationAnalysisDialog
+      :visible="correlationDialogVisible"
+      :primary-device="device"
+      :related-device="correlationTargetDevice"
+      :distance-km="correlationTargetDistance"
+      @close="correlationDialogVisible = false"
+    />
   </view>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { useI18n } from "@/i18n";
 import { getMapProvider } from "@/services/map/map";
 import { formatDateTime } from "@/utils/adminData";
-import { convertMapCoordinate } from "../coordinateTransform";
+import { fetchLeakMonitorNearbyAnalysis } from "@/services/leak-monitor/device-query";
 import type {
   DateRangeValue,
   DeviceDetailState,
@@ -376,11 +388,13 @@ import type {
   LeakMonitorDevice,
   ManualAnalysisPayload,
   MapDevicePoint,
+  NearbyAnalysisDevice,
 } from "../types";
 import { useLeakMonitorI18n } from "../i18n";
 import DeviceSpectrumChart from "./DeviceSpectrumChart.vue";
 import GoogleLeakMap from "./GoogleLeakMap.vue";
 import TencentLeakMap from "./TencentLeakMap.vue";
+import CorrelationAnalysisDialog from "./CorrelationAnalysisDialog.vue";
 
 const { language, t } = useLeakMonitorI18n();
 const { locale } = useI18n();
@@ -407,6 +421,7 @@ const emit = defineEmits<{
   (event: "load-manual"): void;
   (event: "submit-manual", payload: ManualAnalysisPayload): void;
   (event: "select-device", device: LeakMonitorDevice): void;
+  (event: "focus-device", deviceNumber: string): void;
 }>();
 
 const tabs = computed(() => [
@@ -428,6 +443,18 @@ const maintenancePage = ref(1);
 const maintenancePageSize = 6;
 const radiusKm = ref(2);
 const relatedDeviceNumber = ref("");
+const nearbyAnalysis = ref<NearbyAnalysisDevice[]>([]);
+const nearbyLoading = ref(false);
+const nearbyError = ref("");
+const correlationDialogVisible = ref(false);
+const correlationTarget = ref<{
+  device: LeakMonitorDevice;
+  distance: number;
+  distanceKm: number;
+  signalprocessingResults: unknown[];
+} | null>(null);
+let nearbyRequestId = 0;
+let nearbyTimer: ReturnType<typeof window.setTimeout> | null = null;
 const manualJudgementIndex = ref(0);
 const feedbackIndex = ref(0);
 const manualForm = ref({ reasonAnalysis: "", resetDate: formatDate(new Date()) });
@@ -453,8 +480,32 @@ watch(() => props.visible, (visible) => {
   maintenancePage.value = 1;
   radiusKm.value = 2;
   relatedDeviceNumber.value = "";
+  nearbyAnalysis.value = [];
+  nearbyError.value = "";
+  correlationDialogVisible.value = false;
+  correlationTarget.value = null;
   resetManualForm();
 });
+watch(
+  () => props.device?.deviceNumber,
+  (deviceNumber, previousDeviceNumber) => {
+    if (!deviceNumber || !previousDeviceNumber || deviceNumber === previousDeviceNumber) return;
+
+    maintenancePage.value = 1;
+    relatedDeviceNumber.value = "";
+    nearbyAnalysis.value = [];
+    nearbyError.value = "";
+    correlationDialogVisible.value = false;
+    correlationTarget.value = null;
+    resetManualForm();
+
+    // The dialog remains mounted when switching map devices, so the active tab
+    // does not receive another click event. Reload data for the currently open tab.
+    if (activeTab.value === "history") loadHistory();
+    if (activeTab.value === "manual") emit("load-manual");
+    if (activeTab.value === "correlation") void loadNearbyDevices();
+  },
+);
 watch(() => props.detail.maintenance.length, () => {
   maintenancePage.value = Math.min(maintenancePage.value, maintenanceTotalPages.value);
 });
@@ -528,35 +579,23 @@ const maintenancePageRecords = computed(() => {
   const start = (maintenancePage.value - 1) * maintenancePageSize;
   return props.detail.maintenance.slice(start, start + maintenancePageSize);
 });
-const nearbyDevices = computed(() => {
-  if (!props.device || typeof props.device.lat !== "number" || typeof props.device.lng !== "number") return [];
-  const center = convertMapCoordinate(
-    { lat: props.device.lat, lng: props.device.lng },
-    props.device.coordinateSystem,
-    "WGS84",
-  );
-  const maximum = Math.max(0.1, Number(radiusKm.value) || 2) * 1000;
-  return props.visibleDevices
-    .filter((item) =>
-      item.deviceNumber !== props.device?.deviceNumber &&
-      typeof item.lat === "number" &&
-      typeof item.lng === "number")
+const nearbyDevices = computed(() =>
+  nearbyAnalysis.value
     .map((item) => {
-      const coordinate = convertMapCoordinate(
-        { lat: item.lat as number, lng: item.lng as number },
-        item.coordinateSystem,
-        "WGS84",
-      );
+      const device = props.visibleDevices.find((candidate) =>
+        candidate.deviceNumber === item.deviceNumber);
+      if (!device) return null;
       return {
-        device: item,
-        distance: haversineDistance(center.lat, center.lng, coordinate.lat, coordinate.lng),
+        device,
+        distance: item.distanceKm * 1000,
+        distanceKm: item.distanceKm,
+        signalprocessingResults: item.signalprocessingResults,
       };
     })
-    .filter((item) => item.distance <= maximum)
-    .sort((left, right) => left.distance - right.distance);
-});
-const relatedDevice = computed(() =>
-  nearbyDevices.value.find((item) => item.device.deviceNumber === relatedDeviceNumber.value)?.device || null);
+    .filter((item): item is NonNullable<typeof item> => Boolean(item))
+    .sort((left, right) => left.distance - right.distance));
+const correlationTargetDevice = computed(() => correlationTarget.value?.device || null);
+const correlationTargetDistance = computed(() => correlationTarget.value?.distanceKm || 0);
 const currentDevicePoint = computed(() => {
   if (!props.device) return [];
   const point = props.mapPoints.find((item) =>
@@ -569,7 +608,12 @@ const currentDevicePoint = computed(() => {
     deviceNumber: props.device.deviceNumber,
     title: props.device.model || props.device.deviceNumber,
     status: props.device.status,
+    manualStatus: props.device.manualStatus,
+    algorithmStatus: props.device.algorithmStatus,
     leakProperty: props.device.leakProperty,
+    onlineStatus: props.device.onlineStatus,
+    installAddress: String(props.device.raw.installAddress ?? ""),
+    model: props.device.model,
     regionId: props.device.regionId,
     coordinateSystem: props.device.coordinateSystem,
     lat: props.device.lat,
@@ -633,15 +677,6 @@ function deviceTrend(device: LeakMonitorDevice) {
 function maintenanceTypeLabel(value: number) {
   return [t("uninstall"), t("install"), t("maintenance"), t("inspection")][value] || t("unknown");
 }
-function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number) {
-  const radians = (value: number) => value * Math.PI / 180;
-  const earthRadius = 6371000;
-  const latDelta = radians(lat2 - lat1);
-  const lngDelta = radians(lng2 - lng1);
-  const value = Math.sin(latDelta / 2) ** 2 +
-    Math.cos(radians(lat1)) * Math.cos(radians(lat2)) * Math.sin(lngDelta / 2) ** 2;
-  return earthRadius * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
-}
 function refreshAnalysis() {
   emit("refresh-analysis", { ...noiseRange.value });
 }
@@ -650,6 +685,32 @@ function loadHistory() {
 }
 function focusRelated(device: LeakMonitorDevice) {
   relatedDeviceNumber.value = device.deviceNumber;
+  emit("focus-device", device.deviceNumber);
+}
+function openCorrelation(item: NonNullable<typeof nearbyDevices.value[number]>) {
+  relatedDeviceNumber.value = item.device.deviceNumber;
+  correlationTarget.value = item;
+  correlationDialogVisible.value = true;
+}
+async function loadNearbyDevices() {
+  if (!props.device) return;
+  const currentRequest = ++nearbyRequestId;
+  nearbyLoading.value = true;
+  nearbyError.value = "";
+  try {
+    const records = await fetchLeakMonitorNearbyAnalysis(
+      props.device.deviceNumber,
+      Math.max(0.1, Number(radiusKm.value) || 2),
+    );
+    if (currentRequest === nearbyRequestId) nearbyAnalysis.value = records;
+  } catch (error: any) {
+    if (currentRequest === nearbyRequestId) {
+      nearbyAnalysis.value = [];
+      nearbyError.value = error?.msg || error?.message || t("nearbyLoadFailed");
+    }
+  } finally {
+    if (currentRequest === nearbyRequestId) nearbyLoading.value = false;
+  }
 }
 function resetManualForm() {
   manualJudgementIndex.value = 0;
@@ -678,7 +739,18 @@ function selectTab(tab: TabKey) {
   if (tab === "manual" && !props.detail.manualLoaded && !props.detail.manualLoading) {
     emit("load-manual");
   }
+  if (tab === "correlation") void loadNearbyDevices();
 }
+
+watch(radiusKm, () => {
+  if (activeTab.value !== "correlation") return;
+  if (nearbyTimer) window.clearTimeout(nearbyTimer);
+  nearbyTimer = window.setTimeout(() => void loadNearbyDevices(), 320);
+});
+onBeforeUnmount(() => {
+  nearbyRequestId += 1;
+  if (nearbyTimer) window.clearTimeout(nearbyTimer);
+});
 </script>
 
 <style scoped lang="scss">
@@ -754,6 +826,11 @@ function selectTab(tab: TabKey) {
 .audio-summary { color: #64748b; font-size: 11px; }
 
 .audio-trend-row { display: grid; grid-template-columns: minmax(220px, .7fr) minmax(420px, 1.3fr); gap: 10px; margin-bottom: 10px; }
+.loading-container { position: relative; overflow: hidden; }
+.panel-loading { position: absolute; inset: 0; z-index: 4; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #52677d; font-size: 11px; background: rgba(255,255,255,.94); }
+.panel-loading--audio { flex-direction: row; }
+.minor-loading-icon { width: 30px; height: 30px; animation: minor-spin 1.05s linear infinite; }
+.audio-loading-icon { width: 34px; height: 34px; animation: audio-breathe .8s ease-in-out infinite alternate; }
 .audio-player { display: flex; align-items: center; gap: 10px; min-height: 62px; padding: 8px 10px; background: #fff; border: 1px solid #e2e8f0; border-radius: 5px; }
 .audio-player__control { width: 100%; height: 36px; }
 .audio-player__meta { color: #64748b; font-size: 11px; white-space: nowrap; }
@@ -767,7 +844,20 @@ function selectTab(tab: TabKey) {
 
 .chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .chart-grid__wide { grid-column: 1 / -1; }
-.history-grid { display: grid; gap: 10px; }
+.chart-loading-panel { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 250px; padding: 16px; color: #64748b; font-size: 12px; text-align: center; background: #fff; border: 1px solid #e1e8f0; border-radius: 5px; }
+.history-grid {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  gap: 10px;
+  overflow: hidden;
+}
+.history-grid :deep(.chart-panel) {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
 .inline-state { padding: 12px; color: #64748b; font-size: 12px; text-align: center; background: #fff; border: 1px dashed #cbd5e1; border-radius: 5px; }
 .dialog-state { display: flex; align-items: center; justify-content: center; min-height: 220px; padding: 40px; color: #64748b; font-size: 14px; text-align: center; }
 .dialog-state--compact { min-height: 100px; padding: 20px; }
@@ -819,15 +909,43 @@ function selectTab(tab: TabKey) {
 .radius-input { width: 90px; }
 .correlation-toolbar__summary { margin-left: auto; color: #1e293b; font-weight: 800; }
 .correlation-table__row { display: grid; grid-template-columns: 170px 120px minmax(260px, 1fr) 210px; align-items: center; min-height: 48px; color: #334155; border-bottom: 1px solid #edf2f7; }
+.table-loading { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 110px; color: #64748b; font-size: 12px; }
 .correlation-table__row.selected { background: #f0f9ff; }
 .correlation-table__row > text { padding: 0 12px; font-size: 12px; }
+.correlation-table__head > text:last-child { text-align: center; }
 .mini-trend { display: grid; grid-template-columns: repeat(7, minmax(28px, 1fr)); gap: 3px; padding: 5px 8px; }
 .mini-trend__value { min-width: 0; height: 26px; color: #047857; font-size: 11px; font-weight: 800; line-height: 26px; text-align: center; background: #d1fae5; }
 .mini-trend__value.trend-chip--warning { color: #b45309; background: #fef3c7; }
 .mini-trend__value.trend-chip--danger { color: #b91c1c; background: #fee2e2; }
 .mini-trend__value.trend-chip--empty { color: #64748b; background: #f1f5f9; }
-.row-actions { display: flex; justify-content: center; gap: 6px; }
-.table-button { height: 28px; margin: 0; padding: 0 9px; color: #075985; font-size: 11px; line-height: 28px; background: #e0f2fe; border: 0; border-radius: 4px; }
+.row-actions {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  gap: 6px;
+  padding: 0 8px;
+}
+.table-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  padding: 0 9px;
+  color: #075985;
+  font-size: 11px;
+  line-height: normal;
+  text-align: center;
+  background: #e0f2fe;
+  border: 0;
+  border-radius: 4px;
+}
+.detail-error--inside { margin: 10px; }
 .comparison-panel { display: flex; align-items: center; gap: 18px; margin-top: 12px; padding: 12px 16px; background: #fff; border: 1px solid #d8e5ef; border-radius: 5px; }
 .comparison-item { display: grid; grid-template-columns: 120px 90px auto; align-items: center; gap: 10px; flex: 1; color: #475569; font-size: 12px; }
 .comparison-item__label { color: #1e293b; font-weight: 900; }
@@ -843,6 +961,13 @@ function selectTab(tab: TabKey) {
 .finder-map { position: relative; min-width: 0; min-height: 0; }
 .finder-map--single { height: min(590px, calc(100vh - 250px)); min-height: 420px; overflow: hidden; background: #fff; border: 1px solid #d8e5ef; border-radius: 5px; }
 .detail-error { margin-top: 10px; padding: 8px 10px; color: #b42318; font-size: 12px; background: #fff1ee; border: 1px solid #ffd3cb; border-radius: 4px; }
+@keyframes minor-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes audio-breathe {
+  from { transform: scaleY(.62); opacity: .55; }
+  to { transform: scaleY(1.1); opacity: 1; }
+}
 
 @media (max-width: 1500px) {
   .detail-mask { right: 638px; left: 10px; }
