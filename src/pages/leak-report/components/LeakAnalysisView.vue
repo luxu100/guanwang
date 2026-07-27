@@ -123,11 +123,21 @@
             <view v-if="selectedRecord" class="time-section">
               <view class="detail-audio-header">
                 <text class="detail-section-title">{{ t('leakAnalysis.relatedAudio') }}</text>
-                <button v-if="audioList.length > 0" class="audio-refresh-btn" hover-class="audio-refresh-btn--hover" @click="loadAudioList">{{ t('leakAnalysis.refreshAudio') }}</button>
+                <button v-if="audioList.length > 0 || audioCandidateType === 'error'" class="audio-refresh-btn" hover-class="audio-refresh-btn--hover" :disabled="audioLoading" @click="loadAudioList">{{ t('leakAnalysis.refreshAudio') }}</button>
               </view>
               <view v-if="audioLoading" class="audio-state">{{ t('leakAnalysis.audioLoading') }}</view>
+              <view v-else-if="audioCandidateType === 'error'" class="audio-state audio-state--error">
+                {{ audioErrorMsg || t('leakAnalysis.audioQueryFailed') }}
+              </view>
+              <view v-else-if="audioCandidateType === 'empty'" class="audio-state">{{ t('leakAnalysis.noRelatedAudio') }}</view>
               <view v-else-if="audioList.length === 0" class="audio-state">{{ t('leakAnalysis.noRelatedAudio') }}</view>
               <view v-else class="audio-list">
+                <view v-if="audioCandidateType === 'device'" class="audio-candidate-tip audio-candidate-tip--device">
+                  <text>{{ t('leakAnalysis.audioCandidateDevice') }}</text>
+                </view>
+                <view v-else-if="audioCandidateType === 'exact'" class="audio-candidate-tip audio-candidate-tip--file">
+                  <text>{{ t('leakAnalysis.audioCandidateFile') }}</text>
+                </view>
                 <view v-for="(audio, ai) in visibleAudioList" :key="ai" class="audio-item">
                   <view class="audio-item__info">
                     <text class="audio-item__time">{{ formatDateTime(getFieldValue(audio, "audioTime")) }}</text>
@@ -321,6 +331,7 @@ const total = ref(0);
 const loading = ref(false);
 let fetchRequestId = 0;
 let detailRequestId = 0;
+let audioRequestId = 0;
 const activeDetailTab = ref<DetailTab>("base");
 const exportMenuVisible = ref(false);
 const audioList = ref<Record<string, unknown>[]>([]);
@@ -338,6 +349,9 @@ const audioProgress = computed(() => {
 
 const AUDIO_COLLAPSED_LIMIT = 3;
 const audioListExpanded = ref(false);
+// 音频候选类型：file=按 audioFileId 精确关联，sampling=按 samplingId 关联，device=同设备候选（回退）
+const audioCandidateType = ref<"exact" | "device" | "error" | "empty" | "">("");
+const audioErrorMsg = ref("");
 const visibleAudioList = computed(() => {
   if (audioListExpanded.value) return audioList.value;
   return audioList.value.slice(0, AUDIO_COLLAPSED_LIMIT);
@@ -387,7 +401,8 @@ onUnmounted(() => {
   // #ifdef H5
   document.removeEventListener("click", handleDocumentClick);
   document.removeEventListener("touchmove", handleDocumentTouchMove);
-  if (audioPlayerInstance) { audioPlayerInstance.pause(); audioPlayerInstance.src = ""; audioPlayerInstance = null; }
+  // 统一清理：使未完成请求失效 + 销毁播放器
+  resetAudioState();
   // #endif
 });
 
@@ -429,6 +444,8 @@ function buildQueryParams() {
 
 async function fetchAnalysisData() {
   const reqId = ++fetchRequestId;
+  // 切页、筛选、排序时立即停止旧音频并使旧请求失效
+  resetAudioState();
   loading.value = true;
   try {
     const response = (await getAlgorithmAnalysisPage(buildQueryParams())) as ApiResponseLike;
@@ -446,6 +463,8 @@ async function fetchAnalysisData() {
     total.value = 0;
     selectedRecord.value = null;
     selectedRecordKey.value = "";
+    // 列表请求失败时清空关联状态
+    audioCandidateType.value = "empty";
     uni.showToast({ title: (error as { msg?: string })?.msg || t("leakAnalysis.loadFailed", "分析数据加载失败"), icon: "none" });
   } finally {
     if (reqId === fetchRequestId) loading.value = false;
@@ -541,7 +560,8 @@ function selectFirstRow() {
   if (records.value.length === 0) {
     selectedRecord.value = null;
     selectedRecordKey.value = "";
-    audioList.value = [];
+    resetAudioState(); // 空列表时清理音频状态
+    audioCandidateType.value = "empty";
     return;
   }
   const first = records.value[0];
@@ -581,17 +601,153 @@ function getAudioWavUrl(audio: Record<string, unknown>, download = false): strin
   return `${base}/api/sampling-audio/${id}/wav${download ? "?download=true" : ""}`;
 }
 
+/**
+ * 统一清理音频状态：递增 audioRequestId 使旧请求失效、暂停销毁旧播放器、清空状态。
+ * 切换选中记录、空列表、切换页码、组件卸载时必须调用。
+ */
+function resetAudioState() {
+  audioRequestId++; // 立即使所有旧关联请求失效
+  // #ifdef H5
+  if (audioPlayerInstance) {
+    audioPlayerInstance.pause();
+    audioPlayerInstance.src = "";
+    audioPlayerInstance = null;
+  }
+  // #endif
+  audioLoading.value = false;
+  playingAudioIndex.value = -1;
+  activeAudioIndex.value = -1;
+  audioDuration.value = 0;
+  audioCurrentTime.value = 0;
+  audioList.value = [];
+  audioCandidateType.value = "";
+  audioErrorMsg.value = "";
+  audioListExpanded.value = false;
+}
+
+/**
+ * 通过 deviceNumber 完整分页查询，严格匹配 audioFileId。
+ * 不依赖 samplingId（后端未可靠写入）。
+ * 找到后返回 { matched, firstPageRecords }；未找到返回 { matched: null, firstPageRecords }。
+ * firstPageRecords 用于未命中时直接作为同设备候选，避免再次请求。
+ *
+ * 注意：algorithmResult.audioFileId 是 sys_file.id，不是 sampling_audio.id，
+ *       不能直接调用 /api/sampling-audio/{audioFileId}，必须通过字段匹配找到 SamplingAudio.id。
+ */
+async function findAudioByFileId(
+  deviceNumber: unknown,
+  audioFileId: unknown,
+  reqId: number,
+): Promise<{ matched: Record<string, unknown> | null; firstPageRecords: Record<string, unknown>[] }> {
+  const empty: Record<string, unknown>[] = [];
+  if (!deviceNumber) return { matched: null, firstPageRecords: empty };
+
+  const pageSize = 100;
+  let pageNum = 1;
+  let firstPageRecords: Record<string, unknown>[] = empty;
+
+  while (true) {
+    const res = await getAudioDataPage({
+      pageNum,
+      pageSize,
+      deviceNumber: String(deviceNumber),
+    }) as unknown as ApiResponseLike;
+    if (reqId !== audioRequestId) return { matched: null, firstPageRecords: empty };
+
+    assertSuccessResponse(res);
+    const page = parsePageResponse(res);
+    const records = (page.records || []) as Record<string, unknown>[];
+
+    if (pageNum === 1) {
+      firstPageRecords = records; // 缓存第 1 页，未命中时作为候选
+    }
+
+    const matched = records.find(
+      (r) => String(getFieldValue(r, "audioFileId")) === String(audioFileId),
+    );
+    if (matched) return { matched, firstPageRecords };
+
+    // 终止条件：已读取数量达到 total、当前页为空
+    if (records.length === 0) return { matched: null, firstPageRecords };
+    if (pageNum * pageSize >= page.total) return { matched: null, firstPageRecords };
+    pageNum++;
+  }
+}
+
 async function loadAudioList() {
-  if (!selectedRecord.value) return;
-  const deviceNumber = getFieldValue(selectedRecord.value, "deviceNumber");
-  if (!deviceNumber) { audioList.value = []; audioListExpanded.value = false; return; }
+  // 统一清理旧请求和旧播放器（递增 audioRequestId 使旧请求失效）
+  resetAudioState();
+
+  // 即使没有选中记录，也要先使旧请求失效（resetAudioState 已处理）
+  if (!selectedRecord.value) {
+    audioCandidateType.value = "empty";
+    return;
+  }
+
+  const reqId = audioRequestId; // resetAudioState 已递增，此处取当前值
   audioLoading.value = true;
+
+  const record = selectedRecord.value;
+  const audioFileId = getFieldValue(record, "audioFileId");
+  const deviceNumber = getFieldValue(record, "deviceNumber");
+
+  const isValidId = (v: unknown) => {
+    if (v === null || v === undefined) return false;
+    const s = String(v).trim();
+    return s !== "" && s !== "0" && s !== "-";
+  };
+
   try {
-    const res = await getAudioDataPage({ pageNum: 1, pageSize: 10, deviceNumber }) as unknown as ApiResponseLike;
-    const p = parsePageResponse(res);
-    audioList.value = (p.records || []) as Record<string, unknown>[];
-  } catch { audioList.value = []; }
-  finally { audioLoading.value = false; audioListExpanded.value = false; }
+    if (isValidId(audioFileId) && deviceNumber) {
+      const { matched, firstPageRecords } = await findAudioByFileId(deviceNumber, audioFileId, reqId);
+      if (reqId !== audioRequestId) return; // 竞态保护
+
+      if (matched) {
+        // 精确关联命中：只显示 1 条
+        audioList.value = [matched];
+        audioCandidateType.value = "exact";
+        return;
+      }
+
+      // 完整扫描后未命中：显示第 1 页作为同设备候选
+      if (firstPageRecords.length > 0) {
+        audioList.value = firstPageRecords;
+        audioCandidateType.value = "device";
+        return;
+      }
+
+      // 设备没有音频记录
+      audioList.value = [];
+      audioCandidateType.value = "empty";
+    } else if (!deviceNumber) {
+      audioList.value = [];
+      audioCandidateType.value = "empty";
+    } else {
+      // audioFileId 无效，但有 deviceNumber：直接查第 1 页作为候选
+      const res = await getAudioDataPage({ pageNum: 1, pageSize: 10, deviceNumber }) as unknown as ApiResponseLike;
+      if (reqId !== audioRequestId) return;
+      assertSuccessResponse(res);
+      const p = parsePageResponse(res);
+      const records = (p.records || []) as Record<string, unknown>[];
+      if (records.length > 0) {
+        audioList.value = records;
+        audioCandidateType.value = "device";
+      } else {
+        audioList.value = [];
+        audioCandidateType.value = "empty";
+      }
+    }
+  } catch {
+    if (reqId !== audioRequestId) return; // 竞态保护
+    // 查询失败：显示错误状态，不伪装成"未找到精确关联"
+    audioList.value = [];
+    audioCandidateType.value = "error";
+    audioErrorMsg.value = t("leakAnalysis.audioQueryFailed");
+  } finally {
+    if (reqId === audioRequestId) {
+      audioLoading.value = false;
+    }
+  }
 }
 
 function toggleAudioPlay(audio: Record<string, unknown>, index: number) {
@@ -602,44 +758,74 @@ function toggleAudioPlay(audio: Record<string, unknown>, index: number) {
       audioPlayerInstance?.pause();
       playingAudioIndex.value = -1;
     } else {
-      audioPlayerInstance?.play();
-      playingAudioIndex.value = index;
+      const player = audioPlayerInstance;
+      if (player) {
+        player.play().then(() => {
+          if (audioPlayerInstance !== player) return; // 回调校验实例
+          playingAudioIndex.value = index;
+        }).catch(() => {
+          if (audioPlayerInstance !== player) return;
+          playingAudioIndex.value = -1;
+          uni.showToast({ title: t("leakAnalysis.audioPlayFailed"), icon: "none" });
+        });
+      }
     }
     return;
   }
-  // 切换到新音频
-  audioPlayerInstance?.pause();
-  audioPlayerInstance = new Audio(getAudioWavUrl(audio));
+  // 切换到新音频：先完整销毁旧实例，避免旧事件污染新状态
+  if (audioPlayerInstance) {
+    audioPlayerInstance.pause();
+    audioPlayerInstance.src = "";
+    audioPlayerInstance = null;
+  }
+  const player = new Audio(getAudioWavUrl(audio));
+  audioPlayerInstance = player;
   audioDuration.value = 0;
   audioCurrentTime.value = 0;
-  audioPlayerInstance.addEventListener("loadedmetadata", () => {
-    if (isFinite(audioPlayerInstance!.duration) && audioPlayerInstance!.duration > 0) {
-      audioDuration.value = audioPlayerInstance!.duration;
+  activeAudioIndex.value = index;
+  // 先不设置 playingAudioIndex，等 play() 成功后再设置
+
+  player.addEventListener("loadedmetadata", () => {
+    if (audioPlayerInstance !== player) return; // 回调校验实例
+    if (isFinite(player.duration) && player.duration > 0) {
+      audioDuration.value = player.duration;
     }
   });
-  audioPlayerInstance.addEventListener("durationchange", () => {
-    if (isFinite(audioPlayerInstance!.duration) && audioPlayerInstance!.duration > 0) {
-      audioDuration.value = audioPlayerInstance!.duration;
+  player.addEventListener("durationchange", () => {
+    if (audioPlayerInstance !== player) return;
+    if (isFinite(player.duration) && player.duration > 0) {
+      audioDuration.value = player.duration;
     }
   });
-  audioPlayerInstance.addEventListener("timeupdate", () => {
-    if (!audioPlayerInstance) return;
+  player.addEventListener("timeupdate", () => {
+    if (audioPlayerInstance !== player) return;
     if (isSeeking) {
       isSeeking = false;
       return;
     }
-    audioCurrentTime.value = audioPlayerInstance.currentTime || 0;
-    if (!audioDuration.value && isFinite(audioPlayerInstance.duration) && audioPlayerInstance.duration > 0) {
-      audioDuration.value = audioPlayerInstance.duration;
+    audioCurrentTime.value = player.currentTime || 0;
+    if (!audioDuration.value && isFinite(player.duration) && player.duration > 0) {
+      audioDuration.value = player.duration;
     }
   });
-  audioPlayerInstance.onended = () => {
+  player.addEventListener("ended", () => {
+    if (audioPlayerInstance !== player) return;
     playingAudioIndex.value = -1;
     audioCurrentTime.value = 0;
-  };
-  audioPlayerInstance.play();
-  activeAudioIndex.value = index;
-  playingAudioIndex.value = index;
+  });
+  player.addEventListener("error", () => {
+    if (audioPlayerInstance !== player) return;
+    playingAudioIndex.value = -1;
+    uni.showToast({ title: t("leakAnalysis.audioLoadFailed"), icon: "none" });
+  });
+  player.play().then(() => {
+    if (audioPlayerInstance !== player) return;
+    playingAudioIndex.value = index;
+  }).catch(() => {
+    if (audioPlayerInstance !== player) return;
+    playingAudioIndex.value = -1;
+    uni.showToast({ title: t("leakAnalysis.audioPlayFailed"), icon: "none" });
+  });
   // #endif
   // #ifndef H5
   uni.showToast({ title: t("leakAnalysis.audioH5Only"), icon: "none" });
@@ -1289,6 +1475,10 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 .audio-refresh-btn--hover { background: #dbeafe; }
 .audio-state { padding: 16px; text-align: center; color: #a0aec0; font-size: 13px; }
 .audio-list { display: flex; flex-direction: column; gap: 8px; }
+.audio-candidate-tip { padding: 6px 10px; font-size: 12px; border-radius: 4px; line-height: 1.4; }
+.audio-candidate-tip--file { color: #15803d; background: #f0fdf4; border: 1px solid #bbf7d0; }
+.audio-candidate-tip--sampling { color: #1e40af; background: #eff6ff; border: 1px solid #bfdbfe; }
+.audio-candidate-tip--device { color: #b45309; background: #fffbeb; border: 1px solid #fde68a; }
 .audio-item { padding: 8px 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; }
 .audio-item__info { display: flex; gap: 12px; margin-bottom: 6px; }
 .audio-item__time { font-size: 12px; font-weight: 700; color: #3b82f6; }
