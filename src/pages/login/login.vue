@@ -22,13 +22,6 @@
 
     <view class="login-brand">
       <image
-        v-if="locale === 'zh-CN'"
-        class="login-logo login-logo--domestic"
-        :src="logoImage"
-        mode="widthFix"
-      />
-      <image
-        v-else
         class="login-logo login-logo--foreign"
         :src="logoForeignImage"
         mode="widthFix"
@@ -224,7 +217,6 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from "vue";
-import logoImage from "@/assets/images/logo.webp";
 import logoForeignImage from "@/assets/images/logo-foreign.webp";
 import { applyUserLocale, useI18n } from "@/i18n";
 import type { LocaleCode } from "@/i18n/types";
