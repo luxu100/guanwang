@@ -973,3 +973,12 @@ export interface DeviceParameterPageVO {
      */
     [key:string]: any;
 }
+
+export interface DeviceDeptVO {
+    /** 部门设备绑定ID */
+    deptDeviceId: number;
+    /** 部门ID */
+    deptId: number;
+    /** 部门名称 */
+    deptName: string;
+}

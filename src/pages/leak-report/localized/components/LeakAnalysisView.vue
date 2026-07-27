@@ -84,12 +84,12 @@
           @click="selectRecord(item, index)"
         >
           <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
-          <text class="data-cell data-cell--device">{{ getFieldValue(item, "deviceNumber") || "-" }}</text>
+          <text class="data-cell data-cell--device">{{ displayValue(getFieldValue(item, "deviceNumber")) }}</text>
           <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "audioTime")) }}</text>
-          <text class="data-cell data-cell--audio-id">{{ getFieldValue(item, "audioFileId") || "-" }}</text>
-          <text class="data-cell data-cell--process-result" :title="getFieldValue(item, 'signalprocessingResult')">{{ getFieldValue(item, "signalprocessingResult") || "-" }}</text>
+          <text class="data-cell data-cell--audio-id">{{ displayValue(getFieldValue(item, "audioFileId")) }}</text>
+          <text class="data-cell data-cell--process-result" :title="getFieldValue(item, 'signalprocessingResult')">{{ displayValue(getFieldValue(item, "signalprocessingResult")) }}</text>
           <text class="data-cell data-cell--status"><text v-if="getFieldValue(item, 'algorithmStatus')" class="status-tag" :class="getAlgorithmStatusTagClass(item)">{{ getAlgorithmStatusLabel(item) }}</text><text v-else>-</text></text>
-          <text class="data-cell data-cell--error" :title="getFieldValue(item, 'algorithmError')">{{ getFieldValue(item, "algorithmError") || "-" }}</text>
+          <text class="data-cell data-cell--error" :title="getFieldValue(item, 'algorithmError')">{{ displayValue(getFieldValue(item, "algorithmError")) }}</text>
         </view>
       </view>
 
@@ -112,7 +112,7 @@
             <view class="detail-summary">
               <view class="detail-summary__main">
                 <text class="detail-summary__label">{{ t('detail.fields.deviceNumber') }}</text>
-                <text class="detail-summary__value">{{ getFieldValue(selectedRecord, 'deviceNumber') || '-' }}</text>
+                <text class="detail-summary__value">{{ displayValue(getFieldValue(selectedRecord, 'deviceNumber')) }}</text>
               </view>
               <view class="detail-summary__meta">
                 <view v-for="item in baseDetailFields" :key="item.label" class="detail-summary__meta-item">
@@ -136,19 +136,38 @@
             <view v-if="selectedRecord" class="time-section">
               <view class="detail-audio-header">
                 <text class="detail-section-title">{{ t('leakAnalysis.relatedAudio') }}</text>
-                <button v-if="audioList.length > 0" class="audio-refresh-btn" hover-class="audio-refresh-btn--hover" @click="loadAudioList">{{ t('leakAnalysis.refreshAudio') }}</button>
+                <button v-if="audioList.length > 0 || audioCandidateType === 'error'" class="audio-refresh-btn" hover-class="audio-refresh-btn--hover" :disabled="audioLoading" @click="loadAudioList">{{ t('leakAnalysis.refreshAudio') }}</button>
               </view>
               <view v-if="audioLoading" class="audio-state">{{ t('leakAnalysis.audioLoading') }}</view>
+              <view v-else-if="audioCandidateType === 'error'" class="audio-state audio-state--error">
+                {{ audioErrorMsg || t('leakAnalysis.audioQueryFailed') }}
+              </view>
+              <view v-else-if="audioCandidateType === 'empty'" class="audio-state">{{ t('leakAnalysis.noRelatedAudio') }}</view>
               <view v-else-if="audioList.length === 0" class="audio-state">{{ t('leakAnalysis.noRelatedAudio') }}</view>
               <view v-else class="audio-list">
+                <view v-if="audioCandidateType === 'device'" class="audio-candidate-tip audio-candidate-tip--device">
+                  <text>{{ t('leakAnalysis.audioCandidateDevice') }}</text>
+                </view>
+                <view v-else-if="audioCandidateType === 'exact'" class="audio-candidate-tip audio-candidate-tip--file">
+                  <text>{{ t('leakAnalysis.audioCandidateFile') }}</text>
+                </view>
                 <view v-for="(audio, ai) in visibleAudioList" :key="ai" class="audio-item">
                   <view class="audio-item__info">
                     <text class="audio-item__time">{{ formatDateTime(getFieldValue(audio, "audioTime")) }}</text>
-                    <text class="audio-item__rate">{{ t('leakAnalysis.samplingRate') }}: {{ getFieldValue(audio, "samplingRate") || "-" }}</text>
+                    <text class="audio-item__rate">{{ t('leakAnalysis.samplingRate') }}: {{ displayValue(getFieldValue(audio, "samplingRate")) }}</text>
                   </view>
                   <view class="audio-item__actions">
                     <button class="audio-play-btn" hover-class="audio-play-btn--hover" @click="toggleAudioPlay(audio, ai)">{{ playingAudioIndex === ai ? t('table.audioPause') : t('table.audioPlay') }}</button>
                     <a :href="getAudioWavUrl(audio, true)" class="audio-download-link">{{ t('table.audioDownload') }}</a>
+                  </view>
+                  <!-- 当前选中音频（播放或暂停）时显示可拖动进度条 -->
+                  <view v-if="activeAudioIndex === ai" class="audio-item__progress">
+                    <text class="audio-item__time-text">{{ formatAudioTime(audioCurrentTime) }}</text>
+                    <view class="audio-item__seek-bar">
+                      <view class="audio-item__seek-filled" :style="{ width: audioProgress + '%' }"></view>
+                      <view class="audio-item__seek-thumb" :style="{ left: audioProgress + '%' }"></view>
+                    </view>
+                    <text class="audio-item__time-text">{{ formatAudioTime(audioDuration) }}</text>
                   </view>
                 </view>
                 <view v-if="audioList.length > AUDIO_COLLAPSED_LIMIT" class="audio-toggle" @click="audioListExpanded = !audioListExpanded">
@@ -172,7 +191,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, onMounted } from "vue";
+import { computed, reactive, ref, onMounted, onUnmounted } from "vue";
 import {
   getAlgorithmAnalysisPage,
   getAlgorithmAnalysisDetail,
@@ -258,10 +277,25 @@ const exportMenuVisible = ref(false);
 const audioList = ref<Record<string, unknown>[]>([]);
 const audioLoading = ref(false);
 const playingAudioIndex = ref(-1);
+const activeAudioIndex = ref(-1);
 let audioPlayerInstance: HTMLAudioElement | null = null;
+const audioDuration = ref(0);
+const audioCurrentTime = ref(0);
+
+const audioProgress = computed(() => {
+  if (!audioDuration.value) return 0;
+  return Math.min(100, (audioCurrentTime.value / audioDuration.value) * 100);
+});
+
+let detailRequestId = 0;
+let fetchRequestId = 0;
+let audioRequestId = 0;
 
 const AUDIO_COLLAPSED_LIMIT = 3;
 const audioListExpanded = ref(false);
+// 音频候选类型：exact=按 audioFileId 精确关联，device=同设备候选（完整扫描未命中），error=查询失败，empty=暂无关联音频
+const audioCandidateType = ref<"exact" | "device" | "error" | "empty" | "">("");
+const audioErrorMsg = ref("");
 const visibleAudioList = computed(() => {
   if (audioListExpanded.value) return audioList.value;
   return audioList.value.slice(0, AUDIO_COLLAPSED_LIMIT);
@@ -278,12 +312,12 @@ const baseDetailFields = computed(() => {
   return [
     { label: t("leakAnalysis.id"), value: String(getFieldValue(r, "id") ?? "-") },
     { label: t("leakAnalysis.deviceId"), value: String(getFieldValue(r, "deviceId") ?? "-") },
-    { label: t("detail.fields.deviceNumber"), value: String(getFieldValue(r, "deviceNumber") || "-") },
+    { label: t("detail.fields.deviceNumber"), value: displayValue(getFieldValue(r, "deviceNumber")) },
     { label: t("leakAnalysis.samplingId"), value: String(getFieldValue(r, "samplingId") ?? "-") },
     { label: t("detail.fields.audioFileId"), value: String(getFieldValue(r, "audioFileId") ?? "-") },
     { label: t("detail.fields.algorithmStatus"), value: getAlgorithmStatusLabel(r) },
-    { label: t("detail.fields.signalprocessingResult"), value: String(getFieldValue(r, "signalprocessingResult") || "-") },
-    { label: t("detail.fields.algorithmError"), value: String(getFieldValue(r, "algorithmError") || "-") },
+    { label: t("detail.fields.signalprocessingResult"), value: displayValue(getFieldValue(r, "signalprocessingResult")) },
+    { label: t("detail.fields.algorithmError"), value: displayValue(getFieldValue(r, "algorithmError")) },
   ];
 });
 
@@ -301,6 +335,19 @@ const locationDetailFields = computed<Array<{ label: string; value: string }>>((
 
 onMounted(() => {
   fetchAnalysisData();
+  // #ifdef H5
+  document.addEventListener("click", handleDocumentClick);
+  document.addEventListener("touchmove", handleDocumentTouchMove, { passive: false });
+  // #endif
+});
+
+onUnmounted(() => {
+  // #ifdef H5
+  document.removeEventListener("click", handleDocumentClick);
+  document.removeEventListener("touchmove", handleDocumentTouchMove);
+  // #endif
+  // 统一清理：使未完成请求失效 + 销毁播放器
+  resetAudioState();
 });
 
 function handleAlgorithmStatusChange(event: { detail: { value: number } }) {
@@ -311,7 +358,7 @@ function handleAlgorithmStatusChange(event: { detail: { value: number } }) {
 function toggleSort(field: string) {
   if (sortField.value === field) {
     if (sortOrder.value === "asc") { sortOrder.value = "desc"; }
-    else if (sortOrder.value === "desc") { sortField.value = ""; sortOrder.value = ""; return; }
+    else if (sortOrder.value === "desc") { sortField.value = ""; sortOrder.value = ""; }
   } else {
     sortField.value = field;
     sortOrder.value = "asc";
@@ -340,9 +387,13 @@ function buildQueryParams() {
 }
 
 async function fetchAnalysisData() {
+  const reqId = ++fetchRequestId;
+  // 切页、筛选、排序时立即停止旧音频并使旧请求失效
+  resetAudioState();
   loading.value = true;
   try {
     const response = (await getAlgorithmAnalysisPage(buildQueryParams())) as ApiResponseLike;
+    if (reqId !== fetchRequestId) return;
     assertSuccessResponse(response);
     const parsed = parsePageResponse(response);
     if (parsed.pageNum && parsed.pageNum !== pagination.pageNum) pagination.pageNum = parsed.pageNum;
@@ -351,13 +402,16 @@ async function fetchAnalysisData() {
     total.value = parsed.total;
     selectFirstRow();
   } catch (error) {
+    if (reqId !== fetchRequestId) return;
     records.value = [];
     total.value = 0;
     selectedRecord.value = null;
     selectedRecordKey.value = "";
+    // 列表请求失败时清空关联状态
+    audioCandidateType.value = "empty";
     uni.showToast({ title: (error as { msg?: string })?.msg || t("leakAnalysis.loadFailed", "分析数据加载失败"), icon: "none" });
   } finally {
-    loading.value = false;
+    if (reqId === fetchRequestId) loading.value = false;
   }
 }
 
@@ -366,6 +420,13 @@ function searchAnalysis() {
   fetchAnalysisData();
 }
 
+function escapeCsvCell(value: unknown): string {
+  if (value === undefined || value === null) return "";
+  const text = String(value).replace(/"/g, '""');
+  return /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+}
+
+// 已知技术债：导出全部使用 pageSize:99999 一次性拉取，后端限制最大 pageSize 或数据量超过 10 万时导出会静默不全。后续应改为循环分页拉取。
 async function handleExport(scope: "current" | "all") {
   exportMenuVisible.value = false;
   let exportRecords = records.value;
@@ -398,9 +459,8 @@ async function handleExport(scope: "current" | "all") {
   const rows = exportRecords.map((r, idx) => {
     const keys = ["deviceNumber", "audioTime", "audioFileId", "signalprocessingResult", "algorithmStatus", "algorithmError"];
     return [String(idx + 1), ...keys.map((k) => {
-      if (k === "audioTime") return formatDateTime(getFieldValue(r, k));
-      const v = getFieldValue(r, k);
-      return v === undefined || v === null ? "" : String(v).replace(/"/g, '""');
+      if (k === "audioTime") return escapeCsvCell(formatDateTime(getFieldValue(r, k)));
+      return escapeCsvCell(getFieldValue(r, k));
     })];
   });
   const csv = [headers.join(","), ...rows.map((row) => row.map((c) => `"${c}"`).join(","))].join("\n");
@@ -446,10 +506,12 @@ function handlePageSizeChange(size: number) {
 }
 
 function selectFirstRow() {
+  detailRequestId++; // 使之前未完成的详情请求失效
   if (records.value.length === 0) {
     selectedRecord.value = null;
     selectedRecordKey.value = "";
-    audioList.value = [];
+    resetAudioState(); // 空列表时清理音频状态
+    audioCandidateType.value = "empty";
     return;
   }
   const first = records.value[0];
@@ -465,11 +527,13 @@ function selectRecord(item: AnalysisRecord, index: number) {
   activeDetailTab.value = "base";
   loadAudioList();
 
+  const reqId = ++detailRequestId;
   const id = getRowId(item);
   if (!id) return;
 
   getAlgorithmAnalysisDetail(id)
     .then((response: unknown) => {
+      if (reqId !== detailRequestId) return; // 竞态保护：丢弃过期请求
       assertSuccessResponse(response as ApiResponseLike);
       const detailData = (response as ApiResponseLike)?.data;
       if (isObject(detailData)) {
@@ -487,35 +551,288 @@ function getAudioWavUrl(audio: Record<string, unknown>, download = false): strin
   return `${base}/api/sampling-audio/${id}/wav${download ? "?download=true" : ""}`;
 }
 
+/**
+ * 统一清理音频状态：递增 audioRequestId 使旧请求失效、暂停销毁旧播放器、清空状态。
+ * 切换选中记录、空列表、切换页码、组件卸载时必须调用。
+ */
+function resetAudioState() {
+  audioRequestId++; // 立即使所有旧关联请求失效
+  // #ifdef H5
+  if (audioPlayerInstance) {
+    audioPlayerInstance.pause();
+    audioPlayerInstance.src = "";
+    audioPlayerInstance = null;
+  }
+  // #endif
+  audioLoading.value = false;
+  playingAudioIndex.value = -1;
+  activeAudioIndex.value = -1;
+  audioDuration.value = 0;
+  audioCurrentTime.value = 0;
+  audioList.value = [];
+  audioCandidateType.value = "";
+  audioErrorMsg.value = "";
+  audioListExpanded.value = false;
+}
+
+/**
+ * 通过 deviceNumber 完整分页查询，严格匹配 audioFileId。
+ * 不依赖 samplingId（后端未可靠写入）。
+ * 找到后返回 { matched, firstPageRecords }；未找到返回 { matched: null, firstPageRecords }。
+ * firstPageRecords 用于未命中时直接作为同设备候选，避免再次请求。
+ *
+ * 注意：algorithmResult.audioFileId 是 sys_file.id，不是 sampling_audio.id，
+ *       不能直接调用 /api/sampling-audio/{audioFileId}，必须通过字段匹配找到 SamplingAudio.id。
+ */
+async function findAudioByFileId(
+  deviceNumber: unknown,
+  audioFileId: unknown,
+  reqId: number,
+): Promise<{ matched: Record<string, unknown> | null; firstPageRecords: Record<string, unknown>[] }> {
+  const empty: Record<string, unknown>[] = [];
+  if (!deviceNumber) return { matched: null, firstPageRecords: empty };
+
+  const pageSize = 100;
+  let pageNum = 1;
+  let firstPageRecords: Record<string, unknown>[] = empty;
+
+  while (true) {
+    const res = await getAudioDataPage({
+      pageNum,
+      pageSize,
+      deviceNumber: String(deviceNumber),
+    }) as unknown as ApiResponseLike;
+    if (reqId !== audioRequestId) return { matched: null, firstPageRecords: empty };
+
+    assertSuccessResponse(res);
+    const page = parsePageResponse(res);
+    const records = (page.records || []) as Record<string, unknown>[];
+
+    if (pageNum === 1) {
+      firstPageRecords = records; // 缓存第 1 页，未命中时作为候选
+    }
+
+    const matched = records.find(
+      (r) => String(getFieldValue(r, "audioFileId")) === String(audioFileId),
+    );
+    if (matched) return { matched, firstPageRecords };
+
+    // 终止条件：已读取数量达到 total、当前页为空
+    if (records.length === 0) return { matched: null, firstPageRecords };
+    if (pageNum * pageSize >= page.total) return { matched: null, firstPageRecords };
+    pageNum++;
+  }
+}
+
 async function loadAudioList() {
-  if (!selectedRecord.value) return;
-  const deviceNumber = getFieldValue(selectedRecord.value, "deviceNumber");
-  if (!deviceNumber) { audioList.value = []; audioListExpanded.value = false; return; }
+  // 统一清理旧请求和旧播放器（递增 audioRequestId 使旧请求失效）
+  resetAudioState();
+
+  // 即使没有选中记录，也要先使旧请求失效（resetAudioState 已处理）
+  if (!selectedRecord.value) {
+    audioCandidateType.value = "empty";
+    return;
+  }
+
+  const reqId = audioRequestId; // resetAudioState 已递增，此处取当前值
   audioLoading.value = true;
+
+  const record = selectedRecord.value;
+  const audioFileId = getFieldValue(record, "audioFileId");
+  const deviceNumber = getFieldValue(record, "deviceNumber");
+
+  const isValidId = (v: unknown) => {
+    if (v === null || v === undefined) return false;
+    const s = String(v).trim();
+    return s !== "" && s !== "0" && s !== "-";
+  };
+
   try {
-    const res = await getAudioDataPage({ pageNum: 1, pageSize: 10, deviceNumber }) as unknown as ApiResponseLike;
-    const p = parsePageResponse(res);
-    audioList.value = (p.records || []) as Record<string, unknown>[];
-  } catch { audioList.value = []; }
-  finally { audioLoading.value = false; audioListExpanded.value = false; }
+    if (isValidId(audioFileId) && deviceNumber) {
+      const { matched, firstPageRecords } = await findAudioByFileId(deviceNumber, audioFileId, reqId);
+      if (reqId !== audioRequestId) return; // 竞态保护
+
+      if (matched) {
+        // 精确关联命中：只显示 1 条
+        audioList.value = [matched];
+        audioCandidateType.value = "exact";
+        return;
+      }
+
+      // 完整扫描后未命中：显示第 1 页作为同设备候选
+      if (firstPageRecords.length > 0) {
+        audioList.value = firstPageRecords;
+        audioCandidateType.value = "device";
+        return;
+      }
+
+      // 设备没有音频记录
+      audioList.value = [];
+      audioCandidateType.value = "empty";
+    } else if (!deviceNumber) {
+      audioList.value = [];
+      audioCandidateType.value = "empty";
+    } else {
+      // audioFileId 无效，但有 deviceNumber：直接查第 1 页作为候选
+      const res = await getAudioDataPage({ pageNum: 1, pageSize: 10, deviceNumber }) as unknown as ApiResponseLike;
+      if (reqId !== audioRequestId) return;
+      assertSuccessResponse(res);
+      const p = parsePageResponse(res);
+      const records = (p.records || []) as Record<string, unknown>[];
+      if (records.length > 0) {
+        audioList.value = records;
+        audioCandidateType.value = "device";
+      } else {
+        audioList.value = [];
+        audioCandidateType.value = "empty";
+      }
+    }
+  } catch {
+    if (reqId !== audioRequestId) return; // 竞态保护
+    // 查询失败：显示错误状态，不伪装成"未找到精确关联"
+    audioList.value = [];
+    audioCandidateType.value = "error";
+    audioErrorMsg.value = t("leakAnalysis.audioQueryFailed");
+  } finally {
+    if (reqId === audioRequestId) {
+      audioLoading.value = false;
+    }
+  }
 }
 
 function toggleAudioPlay(audio: Record<string, unknown>, index: number) {
   // #ifdef H5
-  if (playingAudioIndex.value === index) {
-    audioPlayerInstance?.pause();
-    playingAudioIndex.value = -1;
+  // 同一个音频：切换播放/暂停（暂停时进度条保持显示）
+  if (activeAudioIndex.value === index) {
+    if (playingAudioIndex.value === index) {
+      audioPlayerInstance?.pause();
+      playingAudioIndex.value = -1;
+    } else {
+      const player = audioPlayerInstance;
+      if (player) {
+        player.play().then(() => {
+          if (audioPlayerInstance !== player) return; // 回调校验实例
+          playingAudioIndex.value = index;
+        }).catch(() => {
+          if (audioPlayerInstance !== player) return;
+          playingAudioIndex.value = -1;
+          uni.showToast({ title: t("leakAnalysis.audioPlayFailed"), icon: "none" });
+        });
+      }
+    }
     return;
   }
-  audioPlayerInstance?.pause();
-  audioPlayerInstance = new Audio(getAudioWavUrl(audio));
-  audioPlayerInstance.onended = () => { playingAudioIndex.value = -1; };
-  audioPlayerInstance.play();
-  playingAudioIndex.value = index;
+  // 切换到新音频：先完整销毁旧实例，避免旧事件污染新状态
+  if (audioPlayerInstance) {
+    audioPlayerInstance.pause();
+    audioPlayerInstance.src = "";
+    audioPlayerInstance = null;
+  }
+  const player = new Audio(getAudioWavUrl(audio));
+  audioPlayerInstance = player;
+  audioDuration.value = 0;
+  audioCurrentTime.value = 0;
+  activeAudioIndex.value = index;
+  // 先不设置 playingAudioIndex，等 play() 成功后再设置
+
+  player.addEventListener("loadedmetadata", () => {
+    if (audioPlayerInstance !== player) return; // 回调校验实例
+    if (isFinite(player.duration) && player.duration > 0) {
+      audioDuration.value = player.duration;
+    }
+  });
+  player.addEventListener("durationchange", () => {
+    if (audioPlayerInstance !== player) return;
+    if (isFinite(player.duration) && player.duration > 0) {
+      audioDuration.value = player.duration;
+    }
+  });
+  player.addEventListener("timeupdate", () => {
+    if (audioPlayerInstance !== player) return;
+    if (isSeeking) {
+      isSeeking = false;
+      return;
+    }
+    audioCurrentTime.value = player.currentTime || 0;
+    if (!audioDuration.value && isFinite(player.duration) && player.duration > 0) {
+      audioDuration.value = player.duration;
+    }
+  });
+  player.addEventListener("ended", () => {
+    if (audioPlayerInstance !== player) return;
+    playingAudioIndex.value = -1;
+    audioCurrentTime.value = 0;
+  });
+  player.addEventListener("error", () => {
+    if (audioPlayerInstance !== player) return;
+    playingAudioIndex.value = -1;
+    uni.showToast({ title: t("leakAnalysis.audioLoadFailed"), icon: "none" });
+  });
+  player.play().then(() => {
+    if (audioPlayerInstance !== player) return;
+    playingAudioIndex.value = index;
+  }).catch(() => {
+    if (audioPlayerInstance !== player) return;
+    playingAudioIndex.value = -1;
+    uni.showToast({ title: t("leakAnalysis.audioPlayFailed"), icon: "none" });
+  });
   // #endif
   // #ifndef H5
   uni.showToast({ title: t("leakAnalysis.audioH5Only"), icon: "none" });
   // #endif
+}
+
+// ===== 进度条拖动：使用 document 原生事件委托，绕过 uni-app 事件系统 =====
+let isSeeking = false;
+
+function doSeekAudio(clientX: number, bar: HTMLElement) {
+  if (!audioPlayerInstance) return;
+  // 优先用实例的 duration（更准确），兜底 audioDuration.value
+  let duration = 0;
+  if (isFinite(audioPlayerInstance.duration) && audioPlayerInstance.duration > 0) {
+    duration = audioPlayerInstance.duration;
+  } else if (isFinite(audioDuration.value) && audioDuration.value > 0) {
+    duration = audioDuration.value;
+  }
+  if (!duration || !isFinite(duration)) return;
+  const rect = bar.getBoundingClientRect();
+  if (!rect.width) return;
+  const x = clientX - rect.left;
+  const percent = Math.max(0, Math.min(100, (x / rect.width) * 100));
+  const time = (percent / 100) * duration;
+  if (!isFinite(time) || time < 0) return;
+  isSeeking = true;
+  try { audioPlayerInstance.currentTime = time; } catch (_) { /* ignore */ }
+  audioCurrentTime.value = time;
+  audioDuration.value = duration;
+}
+
+function handleDocumentClick(e: MouseEvent) {
+  const target = e.target as HTMLElement;
+  if (!target) return;
+  const seekBar = target.closest(".audio-item__seek-bar") as HTMLElement | null;
+  if (seekBar) doSeekAudio(e.clientX, seekBar);
+}
+
+function handleDocumentTouchMove(e: TouchEvent) {
+  const target = e.target as HTMLElement;
+  if (!target) return;
+  const seekBar = target.closest(".audio-item__seek-bar") as HTMLElement | null;
+  if (seekBar && e.touches.length > 0) {
+    doSeekAudio(e.touches[0].clientX, seekBar);
+    e.preventDefault();
+  }
+}
+
+function formatAudioTime(seconds: number): string {
+  if (!seconds || !isFinite(seconds)) return "00:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  if (m >= 60) {
+    const h = Math.floor(m / 60);
+    return `${String(h).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
 // --- helpers ---
@@ -532,6 +849,12 @@ function getRowKey(item: AnalysisRecord, index: number) {
 function getFieldValue(item: AnalysisRecord | null, key: string): unknown {
   if (!item) return undefined;
   return Object.prototype.hasOwnProperty.call(item, key) ? item[key] : undefined;
+}
+
+/** 显示值：只把 null/undefined/空字符串显示为 '-'，保留合法的 0/false */
+function displayValue(value: unknown): string {
+  if (value === null || value === undefined || value === '') return '-';
+  return String(value);
 }
 
 function getAlgorithmStatusLabel(item: AnalysisRecord) {
@@ -1336,6 +1659,10 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 .audio-refresh-btn--hover { background: #dbeafe; }
 .audio-state { padding: 16px; text-align: center; color: #a0aec0; font-size: 13px; }
 .audio-list { display: flex; flex-direction: column; gap: 8px; }
+.audio-candidate-tip { padding: 6px 10px; font-size: 12px; border-radius: 4px; line-height: 1.4; }
+.audio-candidate-tip--file { color: #15803d; background: #f0fdf4; border: 1px solid #bbf7d0; }
+.audio-candidate-tip--sampling { color: #1e40af; background: #eff6ff; border: 1px solid #bfdbfe; }
+.audio-candidate-tip--device { color: #b45309; background: #fffbeb; border: 1px solid #fde68a; }
 .audio-item { padding: 8px 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; }
 .audio-item__info { display: flex; gap: 12px; margin-bottom: 6px; }
 .audio-item__time { font-size: 12px; font-weight: 700; color: #3b82f6; }
@@ -1343,6 +1670,11 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 .audio-item__actions { display: flex; align-items: center; gap: 8px; }
 .audio-play-btn { min-width: 48px; height: 28px; padding: 0 10px; font-size: 12px; color: #3b82f6; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px; } .audio-play-btn--hover { background: #dbeafe; }
 .audio-download-link { font-size: 12px; color: #3b82f6; text-decoration: underline; }
+.audio-item__progress { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #edf1f5; }
+.audio-item__time-text { color: #64748b; font-size: 11px; font-weight: 700; font-family: monospace; min-width: 38px; text-align: center; flex-shrink: 0; }
+.audio-item__seek-bar { position: relative; flex: 1; height: 6px; background: #e2e8f0; border-radius: 3px; cursor: pointer; }
+.audio-item__seek-filled { position: absolute; top: 0; left: 0; height: 100%; background: linear-gradient(90deg, #3b82f6, #2563eb); border-radius: 3px; }
+.audio-item__seek-thumb { position: absolute; top: 50%; width: 12px; height: 12px; background: #fff; border: 2px solid #3b82f6; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
 .audio-toggle { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 6px; padding: 6px 10px; cursor: pointer; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 4px; transition: background 0.16s ease, border-color 0.16s ease; }
 .audio-toggle:hover { background: #eff6ff; border-color: #93c5fd; }
 .audio-toggle__text { font-size: 12px; font-weight: 700; color: #3b82f6; }

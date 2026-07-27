@@ -51,6 +51,10 @@ export function getDeptDeviceList(deptId, params) {
   return getRequest(`/api/dept/${deptId}/devices`, params);
 }
 
+export function getDeptDeviceDeptIds(deviceId) {
+  return getRequest(`/api/dept-device/dept-ids/${deviceId}`);
+}
+
 export function getDeptTree(params) {
   return getRequest("/api/dept/tree", params);
 }
@@ -109,6 +113,7 @@ export default {
   getPartitionTree,
   getDeptDevicePage,
   getDeptDeviceList,
+  getDeptDeviceDeptIds,
   getDeptTree,
   getRegionPage,
   getRegionList,

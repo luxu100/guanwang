@@ -97,12 +97,12 @@
           <!-- 内置 renderType: dateTime -->
           <template v-else-if="col.renderType === 'dateTime'">{{ formatDateTime(fieldFn(item, col.key)) }}</template>
           <!-- 内置 renderType: title -->
-          <template v-else-if="col.renderType === 'title'">{{ fieldFn(item, col.key) || '-' }}</template>
+          <template v-else-if="col.renderType === 'title'">{{ displayValue(fieldFn(item, col.key)) }}</template>
           <!-- 内置 renderType: text -->
-          <template v-else-if="col.renderType === 'text'">{{ fieldFn(item, col.key) || '-' }}</template>
+          <template v-else-if="col.renderType === 'text'">{{ displayValue(fieldFn(item, col.key)) }}</template>
           <!-- 自定义 renderType: 通过 slot 处理 -->
           <slot v-else :name="`cell-${col.renderType}`" :row="item" :col="col" :index="index">
-            {{ fieldFn(item, col.key) || '-' }}
+            {{ displayValue(fieldFn(item, col.key)) }}
           </slot>
         </view>
       </view>
@@ -236,6 +236,12 @@ function fieldFn(row: Record<string, unknown> | null, key: string): unknown {
 function formatDateTime(value: unknown): string {
   if (props.formatDateTime) return props.formatDateTime(value);
   if (!value) return '-';
+  return String(value);
+}
+
+/** 显示值：只把 null/undefined/空字符串显示为 '-'，保留合法的 0/false */
+function displayValue(value: unknown): string {
+  if (value === null || value === undefined || value === '') return '-';
   return String(value);
 }
 

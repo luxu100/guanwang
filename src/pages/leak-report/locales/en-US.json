@@ -142,7 +142,8 @@
       "tubeMaterialRequired": "Please select tube material",
       "tubeBoreRequired": "Please enter tube bore",
       "tubeDepthRequired": "Please enter tube depth",
-      "deviceNumberRequired": "Please enter device number"
+      "deviceNumberRequired": "Please enter device number",
+      "deptIdRequired": "Please select department"
     },
     "leakAnalysis": {
       "title": "Algorithm Analysis Result",
@@ -156,6 +157,11 @@
       "noRelatedAudio": "No related audio",
       "audioLoading": "Loading...",
       "audioH5Only": "Audio playback is only supported on H5",
+      "audioCandidateFile": "Audio precisely matched by algorithm result",
+      "audioCandidateDevice": "No precise match found. Showing candidate audio from the same device (for reference only)",
+      "audioQueryFailed": "Failed to query associated audio, please retry",
+      "audioLoadFailed": "Audio loading failed",
+      "audioPlayFailed": "Audio playback failed, please retry",
       "refreshAudio": "Refresh",
       "expandAll": "Expand All ({count})",
       "collapse": "Collapse",
@@ -260,7 +266,8 @@
         "deviceNumber": "Please enter or search device number",
         "leakDistance": "Please enter distance",
         "noiseSample": "Please enter noise sample",
-        "featureValue": "Please enter feature value"
+        "featureValue": "Please enter feature value",
+        "deptId": "Please select department"
       },
       "exportHeaders": {
         "detectTime": "Detection Time",
@@ -475,7 +482,8 @@
         "tubeBuriedDepth": "Tube Buried Depth",
         "audioFile": "Audio File",
         "sceneVideo": "Scene Video",
-        "updatedAt": "Updated At"
+        "updatedAt": "Updated At",
+        "deptId": "Department"
       }
     },
     "pagination": {

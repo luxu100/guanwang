@@ -503,6 +503,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from "vue";
+import { useLocaleText } from "@/i18n/localeText";
 import WorkOrderDatetimePicker from "@/pages/work-order/localized/components/WorkOrderDatetimePicker.vue";
 import LocaleCoordinateMap from "@/components/map/LocaleCoordinateMap.vue";
 import { createSuspect, updateSuspect } from "@/services/leak-report/suspected-leak";
@@ -569,6 +570,7 @@ const emit = defineEmits<{
 }>();
 
 const submitting = ref(false);
+const localeText = useLocaleText();
 
 // 验证横幅
 const validationBannerMessage = ref("");
@@ -626,7 +628,11 @@ function selectInitialLevel(value: string) {
 
 // ========== 漏点大小下拉 ==========
 const leakPointSizeSelectOpen = ref(false);
-const leakPointSizeOptions = ["大", "中", "小"];
+const leakPointSizeOptions = computed(() => [
+  localeText("大", "Large"),
+  localeText("中", "Middle"),
+  localeText("小", "Small"),
+]);
 
 function selectLeakPointSize(value: string) {
   form.leakPointSize = value;
