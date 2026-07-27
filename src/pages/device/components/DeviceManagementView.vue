@@ -106,10 +106,12 @@
       @cancel="dialogVisible = false"
   />
 
-  <XTreeSelectDialog
+  <XTreeMultiSelectDialog
       v-model:visible="treeVisible"
-      v-model="deptId"
+      v-model="deptIds"
       :tree-data="deptTree"
+      :bound-ids="boundDeptIds"
+      :remove-ids="removeIds"
       :title="t('page.bindDeptTitle')"
       :subtitle="t('page.bindDeptSubtitle')"
       @confirm="onDeptConfirm"
@@ -118,10 +120,10 @@
   <ValveTableDialog
       v-model:visible="valveDialogVisible"
       v-model="valveId"
-      :dept-id="currentDeptId"
-      :dept-name="currentDeptName"
+      :dept-list="deviceDeptList"
       :title="t('page.bindValveTitle')"
       :subtitle="t('page.bindValveSubtitle')"
+      :dept-label="t('page.deptLabel')"
       @confirm="handleValveConfirm"
   />
 
@@ -133,12 +135,12 @@ import type {
   DeptDevice,
   DeptTreeVO,
   Device,
-  DeviceCreateForm,
+  DeviceCreateForm, DeviceDeptVO,
   ValveBindDeviceDTO
 } from "@/services/device/types";
 import {
   createDeptDeviceT,
-  createDeviceT,
+  createDeviceT, deleteDeptDeviceT,
   deleteDeviceT, getDeptByIdT, getDeptTreeT, getDeviceDetailT,
   getDevicePageT,
   getDeviceProductListT,
@@ -155,9 +157,14 @@ import type {FormSection} from "@/pages/device/components/x/types";
 import type {PartitionNode} from "@/pages/device/components/x/tree/XTreeNode.vue";
 
 import {createScopedT} from "@/i18n";
-import {bindValveDevices, getDeptIdByDeviceId} from "@/services/device/dept-device.typed";
+import {
+  bindValveDevices,
+  getDeptIdByDeviceId,
+  getDeptInfoByDeviceIdT
+} from "@/services/device/dept-device.typed";
 import ValveTableDialog from "@/pages/device/valve/components/ValveTableDialog.vue";
 import DeviceProtocolPanel from "@/pages/device/protocol/components/DeviceProtocolPanel.vue";
+import XTreeMultiSelectDialog from "@/pages/device/components/x/dialog/XTreeMultiSelectDialog.vue";
 const t = createScopedT("devicePage");
 
 /**
@@ -860,32 +867,9 @@ function handleShowDetail() {
  */
 const valveDialogVisible = ref(false);
 const valveId = ref<number|null>(null);
-const currentDeptId = ref<number|null>(null);
-const currentDeptName = ref<string|null>(null);
+const deviceDeptList = ref<DeviceDeptVO[]>([]);
 async function handleBindValve() {
-  if (!currentDevice.value) {
-    uni.showToast({
-      title: t("message.pleaseSelectDevice"),
-      icon: "none"
-    });
-    return;
-  }
-
-  // 1. 获取当前设备所在分区
-  const res = await getDeptIdByDeviceId(currentDevice.value.id);
-
-  const deptId = res.data;
-
-  if (!deptId) {
-    uni.showToast({ title: t("message.noPartitionAssigned"), icon: "none" });
-    return;
-  }
-
-  // 2. 将分区 ID 存入响应式变量，并打开弹窗
-  // 弹窗内部的 watch 监听到 deptId 变化且 visible 为 true 时，会自动请求数据
-  const deptRes = await getDeptByIdT(deptId)
-  currentDeptId.value = deptId;
-  currentDeptName.value = deptRes.data?.deptName || null;
+  await loadDeviceDept();
   valveDialogVisible.value = true;
 }
 
@@ -917,51 +901,92 @@ async function handleValveConfirm(valve: any) {
  * 部门树形控件
  */
 const treeVisible = ref(false);
-const deptId = ref<number | null>(null);
-const deptName = ref("");
+const deptIds = ref<number[]>([]);
+const boundDeptIds = ref<number[]>([]);
 const deptTree = ref<PartitionNode[]>([]);
+const removeIds = ref<number[]>([]);
 
-function handleBindDept(){
-  fetchDeptTree();
-  treeVisible.value = true;
+async function handleBindDept(){
+  await loadDeviceDept();
+  boundDeptIds.value=deviceDeptList.value.map(
+      item=>item.deptId
+  );
+  deptIds.value=[...boundDeptIds.value];
+  await fetchDeptTree();
+  treeVisible.value=true;
 }
 
-async function onDeptConfirm(node: PartitionNode | null) {
-  if (!node) return;
+async function onDeptConfirm(data:{
+  addIds:number[];
+  removeIds:number[];
+}) {
+
+  if(!currentDevice.value){
+    uni.showToast({
+      title:t('message.pleaseSelectDevice'),
+      icon:"none"
+    });
+    return;
+  }
+
+  const {addIds,removeIds}=data;
+
+  try{
+    // 新增绑定
+    for(const deptId of addIds){
+      const deptDevice:DeptDevice={
+        deviceId:currentDevice.value.id,
+        deptId,
+        createdAt:new Date().toISOString(),
+        updatedAt:new Date().toISOString()
+      };
+      const res=await createDeptDeviceT(deptDevice);
+      if(res.code!==200){
+        throw new Error(res.msg);
+      }
+    }
+
+    // 删除绑定
+    for(const deptId of removeIds){
+      const binding=deviceDeptList.value.find(
+          item=>item.deptId===deptId
+      );
+      if(!binding){
+        continue;
+      }
+      const res=await deleteDeptDeviceT(
+          binding.deptDeviceId
+      );
+      if(res.code!==200){
+        throw new Error(res.msg);
+      }
+    }
+    uni.showToast({
+      title:t('message.operationSuccess'),
+      icon:"success"
+    });
+    await loadDeviceDept();
+  }catch(e){
+    console.error(e);
+    uni.showToast({
+      title:t('message.operationFailed'),
+      icon:"none"
+    });
+  }
+}
+
+async function loadDeviceDept(){
   if (!currentDevice.value) {
     uni.showToast({
-      title: t('message.pleaseSelectDevice'),
+      title: t("message.pleaseSelectDevice"),
       icon: "none"
     });
     return;
   }
-  const deptDevice: DeptDevice = {
-    deviceId: currentDevice.value.id,
-    deptId: node.id,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  try {
-    const res = await createDeptDeviceT(deptDevice);
-    if (res.code === 200) {
-      uni.showToast({
-        title: res.msg || t('message.bindSuccess'),
-        icon: "success"
-      });
-    } else {
-      uni.showToast({
-        title: res.msg || t('message.bindFailed'),
-        icon: "none"
-      });
-    }
-  } catch (e) {
-    console.error(e);
-    uni.showToast({
-      title: t('message.requestError'),
-      icon:"none"
-    });
-  }
-  deptName.value = node.name;
+  const res=await getDeptInfoByDeviceIdT(
+      currentDevice.value.id
+  );
+  deviceDeptList.value=res.data ?? [];
 }
 
 function convertDeptTree(

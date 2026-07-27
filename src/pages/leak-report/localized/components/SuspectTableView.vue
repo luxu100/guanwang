@@ -216,9 +216,25 @@
             </view>
 
             <view class="detail-grid detail-grid--base">
-              <view v-for="item in baseDetailFields" :key="item.label" class="detail-item detail-item--base">
-                <text class="detail-item__label">{{ item.label }}</text>
-                <text class="detail-item__value">{{ item.value }}</text>
+              <view v-for="(field, fi) in baseDetailFields" :key="fi" class="detail-item detail-item--base">
+                <text class="detail-item__label">{{ field.label }}</text>
+                <view v-if="field.label === '坐标位置' && field.value !== '-'" class="detail-item__value detail-item__value--link" @click="openDetailMap">{{ field.value }}</view>
+                <text v-else class="detail-item__value">{{ field.value }}</text>
+              </view>
+            </view>
+            <view v-if="detailMapVisible" class="detail-map-mask" @click="closeDetailMap">
+              <view class="detail-map-panel" @click.stop>
+                <view class="detail-map-panel__body">
+                  <!-- #ifdef H5 -->
+                  <LocaleCoordinateMap
+                    :lng="detailMapCoord.lng"
+                    :lat="detailMapCoord.lat"
+                  />
+                  <!-- #endif -->
+                  <!-- #ifndef H5 -->
+                  <view class="detail-map-panel__fallback">地图仅支持 H5 端展示</view>
+                  <!-- #endif -->
+                </view>
               </view>
             </view>
 
@@ -783,7 +799,12 @@ const leakageStatusSelectOpen = ref(false);
 const leakageStatusOptions = ["正常", "疑似", "渗漏", "未抄", "新装"];
 
 const workOrderCategorySelectOpen = ref(false);
-const workOrderCategoryOptions = ["维修工单", "巡检工单", "检测工单", "保养工单", "其他"];
+const workOrderCategoryOptions = computed(() => [
+  localeText("巡检", "Patrol"),
+  localeText("检漏", "Leak Detection"),
+  localeText("拆装", "Installation"),
+  localeText("维护", "Maintenance"),
+]);
 
 const flowTypeSelectOpen = ref(false);
 const flowTypeOptions = ["派单", "转办", "抢单", "指定"];
@@ -834,6 +855,26 @@ const audioProgress = computed(() => {
   if (audioDuration.value <= 0) return 0;
   return (audioCurrentTime.value / audioDuration.value) * 100;
 });
+
+// ========== 详情地图弹窗 ==========
+const detailMapVisible = ref(false);
+const detailMapCoord = ref({ lng: 0, lat: 0 });
+
+function openDetailMap() {
+  const raw = selectedSuspect.value?.coordinatePosition;
+  if (!raw) return;
+  const clean = String(raw).replace(/[（(][^）)]*[）)]/g, "").trim();
+  const parts = clean.split(",").map(s => s.trim());
+  if (parts.length === 2) {
+    const lng = parseFloat(parts[0]);
+    const lat = parseFloat(parts[1]);
+    if (!isNaN(lng) && !isNaN(lat)) {
+      detailMapCoord.value = { lng, lat };
+      detailMapVisible.value = true;
+    }
+  }
+}
+function closeDetailMap() { detailMapVisible.value = false; }
 
 // ========== 对话框状态 ==========
 const processing = ref(false);
@@ -998,7 +1039,11 @@ const initialLevelOptions: SelectOption[] = [
 ];
 
 const leakPointSizeSelectOpen = ref(false);
-const leakPointSizeOptions = ["大", "中", "小"];
+const leakPointSizeOptions = computed(() => [
+  localeText("大", "Large"),
+  localeText("中", "Middle"),
+  localeText("小", "Small"),
+]);
 
 const leakRoadSurfaceSelectOpen = ref(false);
 const leakRoadSurfaceOptions = ["柏油", "水泥", "绿化", "石板", "泥地", "塘渣", "墙面", "其它"];
@@ -1053,12 +1098,26 @@ const baseSummaryMeta = computed(() => {
 // 疑点详情字段（列表已显示的字段不再重复展示）
 const baseDetailFields = computed(() => {
   const item = selectedSuspect.value || {};
+  const rawCoord = item?.coordinatePosition;
+  let formattedCoord = "";
+  if (rawCoord) {
+    const raw = String(rawCoord);
+    const clean = raw.replace(/[（(][^）)]*[）)]/g, "").trim();
+    const parts = clean.split(",").map(s => s.trim());
+    if (parts.length === 2) {
+      const lng = parseFloat(parts[0]);
+      const lat = parseFloat(parts[1]);
+      if (!isNaN(lng) && !isNaN(lat)) {
+        formattedCoord = `${lng.toFixed(4)},${lat.toFixed(4)}`;
+      }
+    }
+  }
   return [
     { label: "漏点类型", value: getTextValue(item, ["leakPointType"], "-") },
     { label: "初判级别", value: getInitialLevelLabel(getStableValue(item, ["initialLevel"])) },
     { label: "漏点大小", value: getTextValue(item, ["leakPointSize"], "-") },
     { label: "漏点路面", value: getTextValue(item, ["leakRoadSurface"], "-") },
-    { label: "坐标位置", value: getTextValue(item, ["coordinatePosition"], "-") },
+    { label: "坐标位置", value: formattedCoord || "-", type: formattedCoord ? "coordinate" : "" },
     { label: "漏点位置", value: getTextValue(item, ["leakPointPosition"], "-") },
     { label: "备注信息", value: getTextValue(item, ["remark"], "-") },
   ];
@@ -3048,6 +3107,53 @@ defineExpose({
   font-weight: 700;
   line-height: 1.35;
   word-break: break-all;
+}
+.detail-item__value--link {
+  color: #3b82f6;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: rgba(59,130,246,0.3);
+  text-underline-offset: 2px;
+  transition: color 0.2s;
+}
+.detail-item__value--link:hover {
+  color: #2563eb;
+  text-decoration-color: #2563eb;
+}
+
+/* ========== 详情地图弹窗 ========== */
+.detail-map-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.detail-map-panel {
+  width: 880px;
+  max-width: 92vw;
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  position: relative;
+  color: #1e293b;
+}
+.detail-map-panel__body {
+  height: 600px;
+  width: 100%;
+  position: relative;
+}
+.detail-map-panel__fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #94a3b8;
+  font-size: 14px;
+  background: #f8fafc;
 }
 
 /* ========== 时间信息面板 ========== */

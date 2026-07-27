@@ -1,5 +1,5 @@
 import {createCrudServiceTyped, getRequestT, postRequestT} from "@/services/shared/crud.typed";
-import type {DeptDevice, DeptTreeVO, Device, ValveBindDeviceDTO} from "@/services/device/types";
+import type {DeptDevice, DeptTreeVO, Device, DeviceDeptVO, ValveBindDeviceDTO} from "@/services/device/types";
 
 const deptDeviceApi = createCrudServiceTyped<DeptDevice>("/api/dept-device");
 
@@ -13,6 +13,10 @@ export const batchDeleteDeptDeviceT = deptDeviceApi.batchDelete;
 
 export function getDeptIdByDeviceId(deviceId: number) {
     return getRequestT<number>(`/api/dept-device/dept-id/${deviceId}`);
+}
+
+export function getDeptInfoByDeviceIdT(deviceId: number) {
+    return getRequestT<DeviceDeptVO[]>(`/api/dept-device/dept-info/${deviceId}`);
 }
 
 /**

@@ -7,6 +7,9 @@
       "cancel": "Cancel",
       "confirm": "Confirm",
       "close": "Close",
+      "bound": "Bound",
+      "newBind": "New Binding",
+      "removeBind": "Remove Binding",
       "table": {
         "index": "No.",
         "loading": "Loading...",
@@ -123,7 +126,8 @@
       "bindDeptTitle": "Bind Partition",
       "bindDeptSubtitle": "Please select the partition to bind",
       "bindValveTitle": "Bind Valve",
-      "bindValveSubtitle": "Please select the valve to bind."
+      "bindValveSubtitle": "Please select the valve to bind.",
+      "deptLabel": "Partition"
     },
     "fields": {
       "deviceNumber": "Device No.",
@@ -155,6 +159,7 @@
       "confirmDeleteTitle": "Confirm",
       "confirmDeleteContent": "Are you sure you want to delete device {deviceNumber}?",
       "operationFailed": "Operation failed",
+      "operationSuccess": "Operation succeeded",
       "alreadyBoundToThisDept": "Already bound to this partition",
       "bindSuccess": "Bound successfully",
       "bindFailed": "Binding failed",
