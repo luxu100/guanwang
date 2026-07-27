@@ -58,6 +58,13 @@
         >
           {{ localeText("发起固件升级", "Start firmware upgrade") }}
         </button>
+        <button
+          v-if="activeView === 'SETTING'"
+          class="action-button action-button--primary"
+          @click="deviceSettingDialogVisible = true"
+        >
+          {{ localeText("设置设备参数", "Set device parameters") }}
+        </button>
       </view>
     </view>
 
@@ -86,7 +93,7 @@
           :page-current="activePage.current"
           :page-size="activePage.size"
           :loading-text="localeText('正在加载…', 'Loading…')"
-          :empty-text="activeView === 'COMMAND' ? localeText('暂无指令下发记录', 'No command records') : localeText('暂无固件升级记录', 'No upgrade records')"
+          :empty-text="getActiveEmptyText()"
           @row-click="selectRow"
         >
           <template #cell-executeStatus="{ row }">
@@ -95,6 +102,12 @@
               :class="activeView === 'COMMAND' ? getCommandStatusClass(row.executeStatus) : getStatusClass(row.executeStatus)"
             >
               {{ activeView === "COMMAND" ? getCommandStatusText(row.executeStatus) : getStatusText(row.executeStatus) }}
+            </text>
+          </template>
+
+          <template #cell-commandStatus="{ row }">
+            <text class="status-tag" :class="getSettingStatusClass(row.commandStatus)">
+              {{ getSettingStatusText(row.commandStatus) }}
             </text>
           </template>
 
@@ -156,7 +169,7 @@
           </scroll-view>
         </template>
 
-        <template v-else>
+        <template v-else-if="activeView === 'UPGRADE'">
           <view class="detail-head">
             <view>
               <text class="detail-head__eyebrow">{{ localeText("固件升级任务", "Firmware upgrade task") }}</text>
@@ -267,6 +280,44 @@
                 </view>
               </view>
             </template>
+          </scroll-view>
+        </template>
+
+        <template v-else>
+          <view class="detail-head">
+            <view>
+              <text class="detail-head__eyebrow">{{ localeText("设备参数设置详情", "Device parameter task") }}</text>
+              <text class="detail-head__title">{{ displayValue(selectedDetail.deviceNumber) }}</text>
+              <text class="detail-head__id">{{ localeText("记录 ID", "Record ID") }}: {{ displayValue(selectedDetail.id) }}</text>
+            </view>
+            <text class="status-tag" :class="getSettingStatusClass(selectedDetail.commandStatus)">
+              {{ getSettingStatusText(selectedDetail.commandStatus) }}
+            </text>
+          </view>
+          <scroll-view class="detail-scroll" scroll-y>
+            <view class="info-section">
+              <text class="section-title">{{ localeText("任务信息", "Task information") }}</text>
+              <view class="info-list">
+                <view class="info-row"><text>{{ localeText("设备编号", "Device number") }}</text><text>{{ displayValue(selectedDetail.deviceNumber) }}</text></view>
+                <view class="info-row"><text>{{ localeText("批次 ID", "Batch ID") }}</text><text class="ellipsis-text" :title="selectedDetail.batchId">{{ displayValue(selectedDetail.batchId) }}</text></view>
+                <view class="info-row"><text>{{ localeText("指令 ID", "Command ID") }}</text><text>{{ displayValue(selectedDetail.commandId) }}</text></view>
+                <view class="info-row"><text>{{ localeText("TCP 状态", "TCP status") }}</text><text>{{ selectedDetail.tcpOnline ? localeText("在线", "Online") : localeText("离线", "Offline") }}</text></view>
+                <view class="info-row"><text>{{ localeText("创建时间", "Created at") }}</text><text>{{ formatDateTime(selectedDetail.createdAt || selectedDetail.createTime) }}</text></view>
+                <view class="info-row"><text>{{ localeText("发送时间", "Sent at") }}</text><text>{{ formatDateTime(selectedDetail.sentAt) }}</text></view>
+                <view class="info-row"><text>{{ localeText("过期时间", "Expires at") }}</text><text>{{ formatDateTime(selectedDetail.expiresAt) }}</text></view>
+              </view>
+            </view>
+            <view class="info-section">
+              <text class="section-title">{{ localeText("设置参数", "Parameters") }}</text>
+              <view class="code-card"><text>{{ stringifyContent(selectedDetail.parameters || selectedDetail.parameterValues || selectedDetail.requestParameters || selectedDetail.settingContent) }}</text></view>
+            </view>
+            <view class="info-section">
+              <text class="section-title">{{ localeText("任务反馈", "Task feedback") }}</text>
+              <view class="code-card"><text>{{ stringifyContent(selectedDetail.feedback || selectedDetail.result || selectedDetail.message) }}</text></view>
+              <view v-if="String(selectedDetail.commandStatus || '').toUpperCase() === 'TCP_SENT'" class="warning-card">
+                {{ localeText("已写入设备连接，但当前没有可匹配的设备回执，不能视为参数已经生效。", "Written to the device connection, but no matching acknowledgement is available; parameters are not confirmed effective.") }}
+              </view>
+            </view>
           </scroll-view>
         </template>
       </view>
@@ -424,6 +475,12 @@
         </view>
       </view>
     </view>
+
+    <DeviceSettingDialog
+      v-if="deviceSettingDialogVisible"
+      @close="deviceSettingDialogVisible = false"
+      @submitted="handleDeviceSettingSubmitted"
+    />
   </view>
 </template>
 
@@ -432,6 +489,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { useLocaleText, useLocalizedCount, useLocalizedTotal } from "@/i18n/localeText";
 import CommandDataTable from "@/pages/command/components/t/CommandDataTable.vue";
 import CommandPaginationBar from "@/pages/command/components/t/CommandPaginationBar.vue";
+import DeviceSettingDialog from "@/pages/command/localized/components/DeviceSettingDialog.vue";
 import type { CommandTableColumn } from "@/pages/command/components/t/types";
 import { getCommandSendLogDetail, getCommandSendLogPage } from "@/services/commandSend/manage";
 import { getDevicePage } from "@/services/device/info";
@@ -444,8 +502,9 @@ import {
   startFirmwareUpgrade,
 } from "@/services/firmware/upgrade";
 import { getFirmwareUpgradeLogDetail, getFirmwareUpgradeLogPage } from "@/services/firmware/upgrade-log";
+import { getDeviceSettingDetail, getDeviceSettingPage } from "@/services/deviceSetting/manage";
 
-type RecordView = "COMMAND" | "UPGRADE";
+type RecordView = "COMMAND" | "UPGRADE" | "SETTING";
 type DetailTab = "OVERVIEW" | "FRAMES" | "EVENTS";
 type ApiRecord = Record<string, any>;
 
@@ -469,6 +528,7 @@ const localizedCount = useLocalizedCount();
 const recordTabs = computed<Array<{ label: string; value: RecordView }>>(() => [
   { label: localeText("指令下发记录", "Command records"), value: "COMMAND" },
   { label: localeText("固件升级记录", "Firmware upgrades"), value: "UPGRADE" },
+  { label: localeText("设备参数设置记录", "Device parameter tasks"), value: "SETTING" },
 ]);
 const detailTabs = computed<Array<{ label: string; value: DetailTab }>>(() => [
   { label: localeText("任务概览", "Overview"), value: "OVERVIEW" },
@@ -508,6 +568,11 @@ const upgradeStatusOptions = computed(() => [
   { label: localeText("全部状态", "All statuses"), value: "" },
   ...Object.keys(upgradeStatusMap).map(value => ({ label: getStatusText(value), value })),
 ]);
+const settingStatusValues = ["QUEUED", "CLAIMED", "TCP_SENT", "FAILED", "EXPIRED", "CANCELED", "NOT_QUEUED", "DEVICE_DELIVERED", "SUCCESS"];
+const settingStatusOptions = computed(() => [
+  { label: localeText("全部状态", "All statuses"), value: "" },
+  ...settingStatusValues.map(value => ({ label: getSettingStatusText(value), value })),
+]);
 
 const commandColumns = computed<CommandTableColumn[]>(() => [
   { key: "id", label: localeText("记录 ID", "Record ID"), width: 90 },
@@ -529,18 +594,32 @@ const upgradeColumns = computed<CommandTableColumn[]>(() => [
   { key: "repairRound", label: localeText("补帧轮次", "Repair round"), width: 100 },
   { key: "startTime", label: localeText("开始时间", "Started at"), width: 170, formatter: value => formatDateTime(value) },
 ]);
+const settingColumns = computed<CommandTableColumn[]>(() => [
+  { key: "id", label: localeText("任务 ID", "Task ID"), width: 95 },
+  { key: "deviceNumber", label: localeText("设备编号", "Device number"), width: 150 },
+  { key: "batchId", label: localeText("批次 ID", "Batch ID"), width: 210 },
+  { key: "commandStatus", label: localeText("任务状态", "Task status"), width: Number(localeText("220", "290")) },
+  { key: "tcpOnlineText", label: localeText("TCP 状态", "TCP status"), width: 110 },
+  { key: "sentAt", label: localeText("发送时间", "Sent at"), width: 170, formatter: value => formatDateTime(value) },
+  { key: "expiresAt", label: localeText("过期时间", "Expires at"), width: 170, formatter: value => formatDateTime(value) },
+]);
 
 const activeView = ref<RecordView>("COMMAND");
 const commandFilters = reactive<FilterState>({ keyword: "", status: "", startDate: "", endDate: "" });
 const upgradeFilters = reactive<FilterState & { firmwareVersion: string }>({ keyword: "", firmwareVersion: "", status: "", startDate: "", endDate: "" });
+const settingFilters = reactive<FilterState>({ keyword: "", status: "", startDate: "", endDate: "" });
 const commandPage = reactive<PageState>({ current: 1, size: 10, total: 0 });
 const upgradePage = reactive<PageState>({ current: 1, size: 10, total: 0 });
+const settingPage = reactive<PageState>({ current: 1, size: 10, total: 0 });
 const commandRows = ref<ApiRecord[]>([]);
 const upgradeRows = ref<ApiRecord[]>([]);
+const settingRows = ref<ApiRecord[]>([]);
 const commandLoading = ref(false);
 const upgradeLoading = ref(false);
+const settingLoading = ref(false);
 const selectedCommandId = ref<string | number | null>(null);
 const selectedUpgradeId = ref<string | number | null>(null);
+const selectedSettingId = ref<string | number | null>(null);
 const selectedDetail = ref<ApiRecord | null>(null);
 const detailLoading = ref(false);
 const detailTab = ref<DetailTab>("OVERVIEW");
@@ -550,6 +629,7 @@ const frameDetailVisible = ref(false);
 const events = ref<ApiRecord[]>([]);
 const subResourceLoading = ref(false);
 const canceling = ref(false);
+const deviceSettingDialogVisible = ref(false);
 
 const upgradeDialogVisible = ref(false);
 const upgradeStep = ref(1);
@@ -562,13 +642,41 @@ const deviceKeyword = ref("");
 const upgradeDraft = reactive<{ firmwareId: string | number | null; devices: ApiRecord[] }>({ firmwareId: null, devices: [] });
 const updatableResults = ref<ApiRecord[]>([]);
 
-const activeFilters = computed(() => activeView.value === "COMMAND" ? commandFilters : upgradeFilters);
-const activePage = computed(() => activeView.value === "COMMAND" ? commandPage : upgradePage);
-const activeRows = computed(() => activeView.value === "COMMAND" ? commandRows.value : upgradeRows.value);
-const activeLoading = computed(() => activeView.value === "COMMAND" ? commandLoading.value : upgradeLoading.value);
-const activeColumns = computed(() => activeView.value === "COMMAND" ? commandColumns.value : upgradeColumns.value);
-const selectedId = computed(() => activeView.value === "COMMAND" ? selectedCommandId.value : selectedUpgradeId.value);
-const activeStatusOptions = computed(() => activeView.value === "COMMAND" ? commandStatusOptions.value : upgradeStatusOptions.value);
+const activeFilters = computed(() => {
+  if (activeView.value === "COMMAND") return commandFilters;
+  if (activeView.value === "UPGRADE") return upgradeFilters;
+  return settingFilters;
+});
+const activePage = computed(() => {
+  if (activeView.value === "COMMAND") return commandPage;
+  if (activeView.value === "UPGRADE") return upgradePage;
+  return settingPage;
+});
+const activeRows = computed(() => {
+  if (activeView.value === "COMMAND") return commandRows.value;
+  if (activeView.value === "UPGRADE") return upgradeRows.value;
+  return settingRows.value;
+});
+const activeLoading = computed(() => {
+  if (activeView.value === "COMMAND") return commandLoading.value;
+  if (activeView.value === "UPGRADE") return upgradeLoading.value;
+  return settingLoading.value;
+});
+const activeColumns = computed(() => {
+  if (activeView.value === "COMMAND") return commandColumns.value;
+  if (activeView.value === "UPGRADE") return upgradeColumns.value;
+  return settingColumns.value;
+});
+const selectedId = computed(() => {
+  if (activeView.value === "COMMAND") return selectedCommandId.value;
+  if (activeView.value === "UPGRADE") return selectedUpgradeId.value;
+  return selectedSettingId.value;
+});
+const activeStatusOptions = computed(() => {
+  if (activeView.value === "COMMAND") return commandStatusOptions.value;
+  if (activeView.value === "UPGRADE") return upgradeStatusOptions.value;
+  return settingStatusOptions.value;
+});
 const activeStatusIndex = computed(() => Math.max(0, activeStatusOptions.value.findIndex(item => item.value === activeFilters.value.status)));
 const selectedFirmware = computed(() => firmwareCandidates.value.find(item => item.id === upgradeDraft.firmwareId) || null);
 const selectedDevices = computed(() => upgradeDraft.devices);
@@ -628,7 +736,8 @@ async function switchRecordView(view: RecordView) {
 
 async function loadActivePage(selectFirst = false) {
   if (activeView.value === "COMMAND") await loadCommandPage(selectFirst);
-  else await loadUpgradePage(selectFirst);
+  else if (activeView.value === "UPGRADE") await loadUpgradePage(selectFirst);
+  else await loadSettingPage(selectFirst);
 }
 
 async function loadCommandPage(selectFirst = false) {
@@ -684,9 +793,36 @@ async function loadUpgradePage(selectFirst = false) {
   }
 }
 
+async function loadSettingPage(selectFirst = false) {
+  settingLoading.value = true;
+  try {
+    const response = await getDeviceSettingPage({
+      pageNum: settingPage.current,
+      pageSize: settingPage.size,
+      deviceNumber: settingFilters.keyword.trim() || undefined,
+      commandStatus: settingFilters.status || undefined,
+      startTime: toStartTime(settingFilters.startDate),
+      endTime: toEndTime(settingFilters.endDate),
+      sortOrder: "desc",
+    });
+    const pageData = unwrapResponse(response);
+    settingRows.value = getPageRecords(pageData).map(normalizeDeviceSetting);
+    settingPage.total = getPageTotal(pageData, settingRows.value.length);
+    if (selectFirst || !settingRows.value.some(item => item.id === selectedSettingId.value)) {
+      if (settingRows.value[0]) await selectSettingRow(settingRows.value[0]);
+      else clearSelection("SETTING");
+    }
+  } catch (error) {
+    showError(error, localeText("设备参数设置记录加载失败", "Failed to load device parameter tasks"));
+  } finally {
+    settingLoading.value = false;
+  }
+}
+
 async function selectRow(row: ApiRecord) {
   if (activeView.value === "COMMAND") await selectCommandRow(row);
-  else await selectUpgradeRow(row);
+  else if (activeView.value === "UPGRADE") await selectUpgradeRow(row);
+  else await selectSettingRow(row);
 }
 
 async function selectCommandRow(row: ApiRecord) {
@@ -712,6 +848,20 @@ async function selectUpgradeRow(row: ApiRecord) {
   frameDetailVisible.value = false;
   events.value = [];
   await loadSelectedUpgradeDetail(false);
+}
+
+async function selectSettingRow(row: ApiRecord) {
+  selectedSettingId.value = row.id;
+  detailLoading.value = true;
+  try {
+    const detail = unwrapResponse(await getDeviceSettingDetail(row.id));
+    selectedDetail.value = normalizeDeviceSetting({ ...row, ...(detail || {}) });
+  } catch (error) {
+    selectedDetail.value = row;
+    showError(error, localeText("设备参数设置详情加载失败", "Failed to load device parameter task details"));
+  } finally {
+    detailLoading.value = false;
+  }
 }
 
 async function loadSelectedUpgradeDetail(silent = false) {
@@ -966,9 +1116,16 @@ function changePageSize(size: number) {
   loadActivePage(true);
 }
 
+async function handleDeviceSettingSubmitted() {
+  activeView.value = "SETTING";
+  settingPage.current = 1;
+  await loadSettingPage(true);
+}
+
 function clearSelection(view: RecordView) {
   if (view === "COMMAND") selectedCommandId.value = null;
-  else selectedUpgradeId.value = null;
+  else if (view === "UPGRADE") selectedUpgradeId.value = null;
+  else selectedSettingId.value = null;
   selectedDetail.value = null;
 }
 
@@ -996,6 +1153,24 @@ function normalizeUpgradeLog(source: ApiRecord = {}) {
     upgradeStageText: getStageText(source.upgradeStage, source.repairRound),
     frameSummary: `${received}/${total}`,
     startTime: source.startTime ?? source.createdAt,
+  };
+}
+
+function normalizeDeviceSetting(source: ApiRecord = {}) {
+  const commandStatus = source.commandStatus ?? source.status;
+  const tcpOnline = source.tcpOnline === true || Number(source.tcpOnline) === 1;
+  return {
+    ...source,
+    id: source.id ?? source.settingId,
+    deviceNumber: source.deviceNumber ?? source.deviceNo,
+    batchId: source.batchId ?? source.clientRequestId,
+    commandStatus,
+    tcpOnline,
+    tcpOnlineText: tcpOnline
+      ? localeText("在线", "Online")
+      : localeText("离线", "Offline"),
+    sentAt: source.sentAt ?? source.sendTime,
+    expiresAt: source.expiresAt,
   };
 }
 
@@ -1048,6 +1223,37 @@ function getStatusText(status: unknown) {
 
 function getStatusClass(status: unknown) {
   return getStatusToneClass(upgradeStatusMap[Number(status)]?.tone);
+}
+
+function getSettingStatusText(status: unknown) {
+  const value = String(status || "").toUpperCase();
+  const labels: Record<string, string> = {
+    QUEUED: localeText("等待设备连接", "Waiting for device"),
+    CLAIMED: localeText("正在下发", "Dispatching"),
+    TCP_SENT: localeText("已写入连接，等待设备后续上报确认", "Written to TCP; awaiting later device report"),
+    FAILED: localeText("下发失败", "Dispatch failed"),
+    EXPIRED: localeText("等待下发已过期", "Dispatch expired"),
+    CANCELED: localeText("已取消", "Cancelled"),
+    NOT_QUEUED: localeText("指令创建异常", "Command creation failed"),
+    DEVICE_DELIVERED: localeText("设备已送达（预留）", "Delivered (reserved)"),
+    SUCCESS: localeText("成功（预留）", "Success (reserved)"),
+  };
+  return labels[value] || displayValue(status, localeText("未知状态", "Unknown status"));
+}
+
+function getSettingStatusClass(status: unknown) {
+  const value = String(status || "").toUpperCase();
+  if (["FAILED", "EXPIRED", "NOT_QUEUED"].includes(value)) return "status-tag--danger";
+  if (["DEVICE_DELIVERED", "SUCCESS"].includes(value)) return "status-tag--success";
+  if (value === "TCP_SENT") return "status-tag--primary";
+  if (value === "CLAIMED") return "status-tag--warning";
+  return "status-tag--default";
+}
+
+function getActiveEmptyText() {
+  if (activeView.value === "COMMAND") return localeText("暂无指令下发记录", "No command records");
+  if (activeView.value === "UPGRADE") return localeText("暂无固件升级记录", "No upgrade records");
+  return localeText("暂无设备参数设置记录", "No device parameter tasks");
 }
 
 function getCommandStatusText(status: unknown) {
