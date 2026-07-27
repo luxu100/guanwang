@@ -159,6 +159,7 @@
       "confirmDeleteTitle": "提示",
       "confirmDeleteContent": "确定要删除设备 {deviceNumber} 吗？",
       "operationFailed": "操作失败",
+      "operationSuccess": "操作成功",
       "alreadyBoundToThisDept": "已绑定此分区",
       "bindSuccess": "绑定成功",
       "bindFailed": "绑定失败",

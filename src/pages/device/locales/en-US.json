@@ -159,6 +159,7 @@
       "confirmDeleteTitle": "Confirm",
       "confirmDeleteContent": "Are you sure you want to delete device {deviceNumber}?",
       "operationFailed": "Operation failed",
+      "operationSuccess": "Operation succeeded",
       "alreadyBoundToThisDept": "Already bound to this partition",
       "bindSuccess": "Bound successfully",
       "bindFailed": "Binding failed",
