@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
+<template>
   <view class="leak-management-view">
     <!-- 筛选栏 -->
     <view class="toolbar">
@@ -81,7 +81,7 @@
           </view>
           <text class="data-cell data-cell--index">{{ t('table.index') }}</text>
           <text class="data-cell data-cell--time data-cell--sortable" @click.stop="toggleSort('detectTime')">{{ t('table.detectTime') }}<text class="sort-arrow sort-arrow--active" v-if="sortField === 'detectTime'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
-          <text class="data-cell data-cell--level data-cell--sortable" @click.stop="toggleSort('leakStatus')">{{ t('table.leakStatus') }}<text class="sort-arrow sort-arrow--active" v-if="sortField === 'leakStatus'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
+          <text class="data-cell data-cell--level">{{ t('table.leakStatus') }}</text>
           <text class="data-cell data-cell--type">{{ t('table.leakPointType') }}</text>
           <text class="data-cell data-cell--leakpart">{{ t('table.leakPointPart') }}</text>
           <text class="data-cell data-cell--address">{{ t('table.leakPointPosition') }}</text>
@@ -101,15 +101,15 @@
           <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
           <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "detectTime")) }}</text>
           <text class="data-cell data-cell--level"><text class="level-pill" :class="getLeakStatusClass(item)">{{ getLeakStatusDisplay(item) }}</text></text>
-          <text class="data-cell data-cell--type">{{ getFieldValue(item, "leakPointType") || "-" }}</text>
-          <text class="data-cell data-cell--leakpart">{{ getFieldValue(item, "leakPart") || "-" }}</text>
-          <text class="data-cell data-cell--address">{{ getFieldValue(item, "leakPointPosition") || "-" }}</text>
-          <text class="data-cell data-cell--account">{{ getFieldValue(item, "inspector") || "-" }}</text>
-          <text class="data-cell data-cell--locator">{{ getFieldValue(item, "locator") || "-" }}</text>
+          <text class="data-cell data-cell--type">{{ displayValue(getFieldValue(item, "leakPointType")) }}</text>
+          <text class="data-cell data-cell--leakpart">{{ displayValue(getFieldValue(item, "leakPart")) }}</text>
+          <text class="data-cell data-cell--address">{{ displayValue(getFieldValue(item, "leakPointPosition")) }}</text>
+          <text class="data-cell data-cell--account">{{ displayValue(getFieldValue(item, "inspector")) }}</text>
+          <text class="data-cell data-cell--locator">{{ displayValue(getFieldValue(item, "locator")) }}</text>
           <text class="data-cell data-cell--audio" @click.stop="toggleAudioPlay(item, index)"><text v-if="getFieldValue(item, 'audioFile')" class="play-icon" :class="playingAudioIndex === index ? 'icon-pause' : 'icon-play'"></text><text v-else>-</text></text>
           <text class="data-cell data-cell--video" @click.stop="toggleVideoPlay(item)"><text v-if="getFieldValue(item, 'sceneVideo')" class="play-icon icon-play video-icon"></text><text v-else>-</text></text>
           <text class="data-cell data-cell--wsid" @click.stop="handleWorkOrderJump(item)"><text v-if="getFieldValue(item, 'worksheetNumber')" class="link-text" :title="getWorkOrderDisplay(item)">{{ getWorkOrderDisplay(item) }}</text><text v-else-if="getFieldValue(item, 'workOrderId')" class="work-order-missing">{{ t('leakManagement.workOrderMissing') }}</text><text v-else>-</text></text>
-          <text class="data-cell data-cell--devices">{{ getFieldValue(item, "deviceNumber") || "-" }}</text>
+          <text class="data-cell data-cell--devices">{{ displayValue(getFieldValue(item, "deviceNumber")) }}</text>
         </view>
       </view>
 
@@ -120,13 +120,13 @@
           </view>
           <view v-if="activeDetailTab === 'base'" class="detail-section">
             <view class="detail-summary">
-              <view class="detail-summary__main"><text class="detail-summary__label">{{ t('detail.fields.leakPointPosition') }}</text><text class="detail-summary__value">{{ getFieldValue(selectedRecord, "leakPointPosition") || "-" }}</text></view>
+              <view class="detail-summary__main"><text class="detail-summary__label">{{ t('detail.fields.leakPointPosition') }}</text><text class="detail-summary__value">{{ displayValue(getFieldValue(selectedRecord, "leakPointPosition")) }}</text></view>
               <view class="detail-summary__badges"><text class="detail-summary__badge" :class="getLeakStatusBadgeClass(selectedRecord)">{{ getLeakStatusDisplay(selectedRecord) }}</text></view>
               <view class="detail-summary__meta">
-                <view class="detail-summary__meta-item"><text class="detail-summary__meta-label">{{ t('detail.fields.leakPointType') }}</text><text class="detail-summary__meta-value">{{ getFieldValue(selectedRecord, "leakPointType") || "-" }}</text></view>
-                <view class="detail-summary__meta-item"><text class="detail-summary__meta-label">{{ t('detail.fields.detectType') }}</text><text class="detail-summary__meta-value">{{ getFieldValue(selectedRecord, "detectType") || "-" }}</text></view>
-                <view class="detail-summary__meta-item"><text class="detail-summary__meta-label">{{ t('detail.fields.detectDifficulty') }}</text><text class="detail-summary__meta-value">{{ getFieldValue(selectedRecord, "detectDifficulty") || "-" }}</text></view>
-                <view class="detail-summary__meta-item"><text class="detail-summary__meta-label">{{ t('detail.fields.inspector') }}</text><text class="detail-summary__meta-value">{{ getFieldValue(selectedRecord, "inspector") || "-" }}</text></view>
+                <view class="detail-summary__meta-item"><text class="detail-summary__meta-label">{{ t('detail.fields.leakPointType') }}</text><text class="detail-summary__meta-value">{{ displayValue(getFieldValue(selectedRecord, "leakPointType")) }}</text></view>
+                <view class="detail-summary__meta-item"><text class="detail-summary__meta-label">{{ t('detail.fields.detectType') }}</text><text class="detail-summary__meta-value">{{ displayValue(getFieldValue(selectedRecord, "detectType")) }}</text></view>
+                <view class="detail-summary__meta-item"><text class="detail-summary__meta-label">{{ t('detail.fields.detectDifficulty') }}</text><text class="detail-summary__meta-value">{{ displayValue(getFieldValue(selectedRecord, "detectDifficulty")) }}</text></view>
+                <view class="detail-summary__meta-item"><text class="detail-summary__meta-label">{{ t('detail.fields.inspector') }}</text><text class="detail-summary__meta-value">{{ displayValue(getFieldValue(selectedRecord, "inspector")) }}</text></view>
               </view>
             </view>
             <view class="time-section">
@@ -144,8 +144,8 @@
             <view class="time-section time-section--location">
               <text class="detail-section-title">{{ t('leakManagement.locationInfo') }}</text>
               <view class="location-row"><text class="location-row__label">{{ t('detail.fields.coordinatePosition') }}</text><text class="location-row__value">{{ formatCoordinate(getFieldValue(selectedRecord, "coordinatePosition")) }}</text></view>
-              <view class="location-row"><text class="location-row__label">{{ t('detail.fields.leakArea') }}</text><text class="location-row__value">{{ getFieldValue(selectedRecord, "leakArea") || "-" }}</text></view>
-              <view class="location-row"><text class="location-row__label">{{ t('detail.fields.leakPointPosition') }}</text><text class="location-row__value">{{ getFieldValue(selectedRecord, "leakPointPosition") || "-" }}</text></view>
+              <view class="location-row"><text class="location-row__label">{{ t('detail.fields.leakArea') }}</text><text class="location-row__value">{{ displayValue(getFieldValue(selectedRecord, "leakArea")) }}</text></view>
+              <view class="location-row"><text class="location-row__label">{{ t('detail.fields.leakPointPosition') }}</text><text class="location-row__value">{{ displayValue(getFieldValue(selectedRecord, "leakPointPosition")) }}</text></view>
             </view>
           </view>
           <view v-if="activeDetailTab === 'detail'" class="detail-section">
@@ -204,8 +204,8 @@
     </LeakTableView>
 
     <!-- ========== 视频播放浮层 ========== -->
-    <view v-if="videoDialogVisible" class="video-dialog-mask" @click="closeVideoDialog">
-      <view class="video-dialog" @click.stop>
+    <view v-if="videoDialogVisible" class="video-dialog-mask" @click="onVideoMaskClick">
+      <view class="video-dialog">
         <view class="video-dialog__head">
           <text class="video-dialog__title">{{ t('leakManagement.videoPlay') }}</text>
           <button class="icon-button" hover-class="icon-button--hover" :aria-label="t('common.close')" @click="closeVideoDialog"><text class="close-icon"></text></button>
@@ -213,12 +213,16 @@
         <view class="video-dialog__body">
           <video
             v-if="currentVideoUrl"
+            id="leak-video-player-localized"
+            ref="videoPlayerRef"
             :src="currentVideoUrl"
             class="video-player"
             controls
             playsinline
             webkit-playsinline
             @loadedmetadata="onVideoLoadedMeta"
+            @durationchange="onVideoDurationChange"
+            @canplay="onVideoCanPlay"
             @timeupdate="onVideoTimeUpdate"
             @waiting="onVideoWaiting"
             @playing="onVideoPlaying"
@@ -235,15 +239,16 @@
             <text class="video-info-label">{{ t('leakManagement.progress') }}</text>
             <text class="video-info-value">{{ formatVideoTime(videoCurrentTime) }} / {{ formatVideoTime(videoDuration) }}</text>
           </view>
-          <view class="video-progress-bar">
-            <view class="video-progress-filled" :style="{ width: videoProgress + '%' }"></view>
+          <view id="leak-video-seek-bar-localized" class="video-seek-bar" @click.stop="seekVideo" @pointerdown.stop.prevent="startVideoSeek">
+            <view class="video-seek-filled" :style="{ width: videoProgress + '%' }"></view>
+            <view class="video-seek-thumb" :style="{ left: videoProgress + '%' }"></view>
           </view>
         </view>
       </view>
     </view>
 
     <!-- ========== 音频播放浮层 ========== -->
-    <view v-if="audioDialogVisible" class="audio-dialog-mask" @click="closeAudioDialog">
+    <view v-if="audioDialogVisible" class="audio-dialog-mask" @click="onAudioMaskClick">
       <view class="audio-dialog" @click.stop>
         <view class="audio-dialog__head">
           <text class="audio-dialog__title">{{ currentAudioTitle || t('leakManagement.audioPlay') }}</text>
@@ -263,17 +268,9 @@
               <view v-if="audioLoading" class="audio-player__loading">{{ t('leakManagement.buffering') }}</view>
               <view class="audio-player__progress">
                 <text class="audio-time">{{ formatVideoTime(audioCurrentTime) }}</text>
-                <view class="audio-seek-bar">
+                <view class="audio-seek-bar" @click.stop="seekAudio" @pointerdown.stop.prevent="startAudioSeek">
                   <view class="audio-seek-filled" :style="{ width: audioProgress + '%' }"></view>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    :value="audioProgress"
-                    class="audio-seek-input"
-                    @input="seekAudio"
-                  />
+                  <view class="audio-seek-thumb" :style="{ left: audioProgress + '%' }"></view>
                 </view>
                 <text class="audio-time">{{ formatVideoTime(audioDuration) }}</text>
               </view>
@@ -293,7 +290,7 @@
           <view><text class="dialog-title">{{ isEditing ? t('leakManagement.editLeakPoint') : t('leakManagement.addLeakPoint') }}</text><text class="dialog-subtitle">{{ t('leakManagement.dialogSubtitle') }}</text></view>
           <button class="icon-button" hover-class="icon-button--hover" :aria-label="t('common.close')" @click="closeDialog"><text class="close-icon"></text></button>
         </view>
-        <view class="dialog-body" @click="formLeakStatusDropdownVisible = false">
+        <view class="dialog-body" @click="formLeakStatusDropdownVisible = false; formDeptDropdownVisible = false">
           <view class="form-layout">
             <!-- 左栏 -->
             <view class="form-main">
@@ -335,6 +332,22 @@
                   <view class="form-field">
                     <text class="form-label">{{ t('detail.fields.leakArea') }}</text>
                     <input v-model="form.leakArea" class="form-input" :placeholder="t('leakManagement.placeholders.leakArea')" placeholder-class="input-placeholder" />
+                  </view>
+                  <view class="form-field">
+                    <text class="form-label" :class="{ 'form-label--required': !isAdminUser() }">{{ t('detail.fields.deptId') }}</text>
+                    <view class="form-select form-select--clickable" @click.stop="formDeptDropdownVisible = !formDeptDropdownVisible">
+                      <text :class="{ 'select-placeholder': !form.deptId }">{{ form.deptId ? currentFormDeptLabel : t('leakManagement.placeholders.deptId') }}</text>
+                      <text class="filter-select__arrow"></text>
+                    </view>
+                    <view v-if="formDeptDropdownVisible" class="form-select-dropdown" @click.stop>
+                      <view
+                        v-for="opt in deptList"
+                        :key="opt.id"
+                        class="form-select-dropdown__item"
+                        :class="{ 'form-select-dropdown__item--active': String(opt.id) === form.deptId }"
+                        @click="handleFormDeptSelect(opt.id)"
+                      >{{ opt.deptName }}</view>
+                    </view>
                   </view>
                   <view class="form-field">
                     <text class="form-label">{{ t('detail.fields.leakStatus') }}</text>
@@ -530,7 +543,7 @@
 <script setup lang="ts">
 import LocaleCoordinateMap from "@/components/map/LocaleCoordinateMap.vue";
 import { MAP_CONFIG } from "@/services/map/map";
-import { computed, reactive, ref, onMounted } from "vue";
+import { computed, reactive, ref, onMounted, onUnmounted } from "vue";
 import type { DetailTab } from "@/types/LeakPoint";
 import {
   getLeakPointPage,
@@ -539,11 +552,12 @@ import {
   updateLeakPoint,
   deleteLeakPoint,
 } from "@/services/leak-report/leak-management";
-import { getWorksheetProcessDetail } from "@/services/work-order/processing";
+import { getManualAnalysisProcessDetail } from "@/services/work-order/processing";
 import WorkOrderDatetimePicker from "@/pages/work-order/localized/components/WorkOrderDatetimePicker.vue";
 import LeakTableView from "@/pages/leak-report/localized/components/LeakTableView.vue";
 import { uploadFile } from "@/services/leak-report/file-upload";
 import { getVisibleDeviceList } from "@/services/device/info";
+import { getDeptList } from "@/services/partition/partition";
 import { createScopedT, useI18n } from "@/i18n";
 import {
   LEAK_STATUS,
@@ -601,7 +615,7 @@ interface VideoItem {
   name: string;
 }
 
-const MAX_VIDEO_SIZE = 500 * 1024 * 1024;
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024;
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return bytes + "B";
@@ -637,6 +651,12 @@ function handleLeakStatusChange(e: { detail: { value: number } }) {
 }
 const currentFormLeakStatusLabel = computed(() => formLeakStatusOptions.value.find((o) => o.value === form.leakStatus)?.label || t("common.all"));
 const formLeakStatusDropdownVisible = ref(false);
+const formDeptDropdownVisible = ref(false);
+const currentFormDeptLabel = computed(() => deptList.value.find((d) => String(d.id) === form.deptId)?.deptName || "");
+function handleFormDeptSelect(id: number) {
+  form.deptId = id ? String(id) : "";
+  formDeptDropdownVisible.value = false;
+}
 function handleFormLeakStatusSelect(value: string) {
   form.leakStatus = value;
   formLeakStatusDropdownVisible.value = false;
@@ -648,6 +668,8 @@ const selectedRecordKey = ref("");
 const selectedIds = ref(new Set<string>());
 const total = ref(0);
 const loading = ref(false);
+let detailRequestId = 0;
+let fetchRequestId = 0;
 const exportMenuVisible = ref(false);
 
 const dialogVisible = ref(false);
@@ -702,6 +724,7 @@ const form = reactive({
   audioFile: "",
   repairMethod: "",
   description: "",
+  deptId: "",
 });
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pagination.pageSize)));
@@ -790,6 +813,29 @@ function getRowId(item: RecordItem): string { const v = gv(item, "id"); return t
 function getRowKey(item: RecordItem, i: number): string { return getRowId(item) || String(i); }
 
 const deviceNumberList = ref<string[]>([]);
+
+// 所属分区：后端按当前用户可见范围返回，非管理员必须选择
+const deptList = ref<Array<{ id: number; deptName: string }>>([]);
+function isAdminUser(): boolean {
+  try {
+    const roles = uni.getStorageSync("roles") as unknown;
+    if (!Array.isArray(roles)) return false;
+    return roles.some((r: unknown) => {
+      if (typeof r === "string") return r.toUpperCase() === "ADMIN";
+      if (r && typeof r === "object") {
+        const code = (r as Record<string, unknown>).roleCode ?? (r as Record<string, unknown>).code ?? (r as Record<string, unknown>).roleName;
+        return typeof code === "string" && code.toUpperCase() === "ADMIN";
+      }
+      return false;
+    });
+  } catch { return false; }
+}
+async function fetchDeptList() {
+  try {
+    const res = (await getDeptList()) as { data?: Array<{ id: number; deptName: string }> };
+    deptList.value = Array.isArray(res?.data) ? res.data.map((d) => ({ id: d.id, deptName: d.deptName })) : [];
+  } catch { deptList.value = []; }
+}
 const showDeviceSuggestions = ref(false);
 const filteredDeviceNumbers = computed(() => {
   const kw = form.deviceNumber.trim().toLowerCase();
@@ -816,12 +862,21 @@ function hideDeviceSuggestions() {
   setTimeout(() => { showDeviceSuggestions.value = false; }, 200);
 }
 
-onMounted(() => { fetchLeakPoints(); fetchDeviceNumbers(); });
+onMounted(() => {
+  fetchLeakPoints();
+  fetchDeviceNumbers();
+  fetchDeptList();
+});
+
+onUnmounted(() => {
+  closeAudioDialog();
+  closeVideoDialog();
+});
 
 function toggleSort(field: string) {
   if (sortField.value === field) {
     if (sortOrder.value === "asc") { sortOrder.value = "desc"; }
-    else if (sortOrder.value === "desc") { sortField.value = ""; sortOrder.value = ""; return; }
+    else if (sortOrder.value === "desc") { sortField.value = ""; sortOrder.value = ""; }
   } else {
     sortField.value = field;
     sortOrder.value = "asc";
@@ -843,13 +898,16 @@ function buildQuery(): Record<string, unknown> {
     leakArea: filters.leakArea.trim() || undefined,
     inspector: filters.inspector.trim() || undefined,
     locator: filters.locator.trim() || undefined,
+    leakStatus: filters.leakStatus.trim() || undefined,
   });
 }
 
 async function fetchLeakPoints() {
+  const reqId = ++fetchRequestId;
   loading.value = true;
   try {
     const res = (await getLeakPointPage(buildQuery())) as Res;
+    if (reqId !== fetchRequestId) return;
     ok(res);
     const p = parsePage(res);
     if (p.pageNum && p.pageNum !== pagination.pageNum) pagination.pageNum = p.pageNum;
@@ -861,9 +919,10 @@ async function fetchLeakPoints() {
     selectFirstRow();
     fillWorkOrderNumbers();
   } catch (e: unknown) {
+    if (reqId !== fetchRequestId) return;
     records.value = []; total.value = 0; selectedRecord.value = null; selectedRecordKey.value = "";
     uni.showToast({ title: (e as { msg?: string }).msg || t("leakManagement.loadFailed"), icon: "none" });
-  } finally { loading.value = false; }
+  } finally { if (reqId === fetchRequestId) loading.value = false; }
 }
 
 async function fillWorkOrderNumbers() {
@@ -875,10 +934,10 @@ async function fillWorkOrderNumbers() {
   await Promise.all(needFetch.map(async (item) => {
     const wid = getFieldValue(item, "workOrderId");
     try {
-      const res = (await getWorksheetProcessDetail(wid)) as Res;
+      const res = (await getManualAnalysisProcessDetail(wid)) as Res;
       const d = res?.data;
       if (isObj(d)) {
-        item.worksheetNumber = String(gv(d as RecordItem, "worksheetNumber") || "");
+        item.worksheetNumber = String(gv(d as RecordItem, "workOrderNo") || "");
       } else {
         item.worksheetNumber = "";
       }
@@ -896,6 +955,7 @@ function jumpToPage(p: number) { if (p < 1 || p > totalPages.value) return; pagi
 function handlePageSizeChange(size: number) { pagination.pageSize = size; pagination.pageNum = 1; fetchLeakPoints(); }
 
 function selectFirstRow() {
+  detailRequestId++; // 使之前未完成的详情请求失效
   if (!records.value.length) { selectedRecord.value = null; selectedRecordKey.value = ""; return; }
   selectedRecord.value = records.value[0];
   selectedRecordKey.value = getRowKey(records.value[0], 0);
@@ -904,9 +964,11 @@ function selectFirstRow() {
 
 function selectRecord(item: RecordItem, i: number) {
   selectedRecord.value = item; selectedRecordKey.value = getRowKey(item, i); activeDetailTab.value = "base";
+  const reqId = ++detailRequestId;
   const id = getRowId(item);
   if (!id) return;
   getLeakPointDetail(id).then((res: unknown) => {
+    if (reqId !== detailRequestId) return; // 竞态保护：丢弃过期请求
     ok(res as Res);
     const d = (res as Res)?.data;
     if (isObj(d)) {
@@ -928,7 +990,7 @@ function openEditDialog() {
   if (!selectedRecord.value) { uni.showToast({ title: t("leakManagement.selectLeakPointFirst"), icon: "none" }); return; }
   isEditing.value = true; resetForm(); fillForm(selectedRecord.value); dialogVisible.value = true;
 }
-function closeDialog() { dialogVisible.value = false; formLeakStatusDropdownVisible.value = false; resetForm(); }
+function closeDialog() { dialogVisible.value = false; formLeakStatusDropdownVisible.value = false; formDeptDropdownVisible.value = false; resetForm(); }
 
 function revokeBlobUrl(url: string) { if (url.startsWith("blob:")) URL.revokeObjectURL(url); }
 
@@ -940,7 +1002,7 @@ function resetForm() {
   form.locator = ""; form.cost = ""; form.leakArea = ""; form.repairTime = "";
   form.sceneImages = ""; form.sceneVideo = ""; form.manualReviewCount = ""; form.deviceNumber = "";
   form.noiseTime = ""; form.leakStatus = ""; form.featureValue = ""; form.audioFile = "";
-  form.repairMethod = ""; form.description = "";
+  form.repairMethod = ""; form.description = ""; form.deptId = "";
   photoList.value.forEach((p) => revokeBlobUrl(p.url));
   videoList.value.forEach((v) => revokeBlobUrl(v.url));
   audioList.value.forEach((a) => revokeBlobUrl(a.url));
@@ -978,6 +1040,7 @@ function fillForm(item: RecordItem) {
   form.audioFile = String(gv(item, "audioFile") ?? "");
   form.repairMethod = String(gv(item, "repairMethod") ?? "");
   form.description = String(gv(item, "description") ?? "");
+  form.deptId = String(gv(item, "deptId") ?? "");
   const picPaths = String(gv(item, "sceneImages") ?? "").split(",").map((s: string) => s.trim()).filter(Boolean);
   form.sceneImages = picPaths.join(","); photoIdListText.value = form.sceneImages;
   photoList.value = picPaths.map((p: string) => ({ url: getPreviewUrl(p), id: p }));
@@ -1001,6 +1064,7 @@ function validateForm(): boolean {
   if (!form.tubeBore.trim()) { validationErrors.tubeBore = t("validation.tubeBoreRequired"); valid = false; }
   if (!form.tubeBuriedDepth.trim()) { validationErrors.tubeBuriedDepth = t("validation.tubeDepthRequired"); valid = false; }
   if (!form.deviceNumber.trim()) { validationErrors.deviceNumber = t("validation.deviceNumberRequired"); valid = false; }
+  if (!isAdminUser() && !form.deptId) { uni.showToast({ title: t("validation.deptIdRequired"), icon: "none" }); valid = false; }
   return valid;
 }
 
@@ -1072,6 +1136,14 @@ function handleUploadPhoto() {
 }
 
 function removePhoto(idx: number) { photoList.value.splice(idx, 1); form.sceneImages = photoList.value.map((p) => p.id).join(","); photoIdListText.value = form.sceneImages; }
+
+function escapeCsvCell(value: unknown): string {
+  if (value === undefined || value === null) return "";
+  const text = String(value).replace(/"/g, '""');
+  return /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+}
+
+// 已知技术债：导出全部使用 pageSize:99999 一次性拉取，后端限制最大 pageSize 或数据量超过 10 万时导出会静默不全。后续应改为循环分页拉取。
 async function handleExport(scope: "current" | "all") {
   exportMenuVisible.value = false;
   let exportRecords = records.value;
@@ -1105,11 +1177,9 @@ async function handleExport(scope: "current" | "all") {
   const keys = ["detectTime", "leakStatus", "leakPointType", "leakPart", "leakPointPosition", "inspector", "locator", "audioFile", "sceneVideo", "worksheetNumber", "deviceNumber"];
   const rows = exportRecords.map((r) =>
     keys.map((k) => {
-      if (k === "detectTime") return fmtDt(gv(r, k));
-      if (k === "leakStatus") return getLeakStatusDisplay(r);
-      const v = gv(r, k);
-      if (v === undefined || v === null) return "";
-      return String(v).replace(/"/g, '""');
+      if (k === "detectTime") return escapeCsvCell(fmtDt(gv(r, k)));
+      if (k === "leakStatus") return escapeCsvCell(getLeakStatusDisplay(r));
+      return escapeCsvCell(gv(r, k));
     })
   );
   const csv = [headers.join(","), ...rows.map((row) => row.map((c) => `"${c}"`).join(","))].join("\n");
@@ -1283,8 +1353,8 @@ const mapPickedCoord = ref("");
 // }
 
 const mapPickerCenter = ref({
-  lng: 121.4737,
-  lat: 31.2304,
+  lng: 120.1551,
+  lat: 30.2741,
 });
 
 function openMapPicker() {
@@ -1302,8 +1372,8 @@ function openMapPicker() {
 
     fail: () => {
       mapPickerCenter.value = {
-        lng: 121.4737,
-        lat: 31.2304,
+        lng: 120.1551,
+        lat: 30.2741,
       };
 
       mapPickerVisible.value = true;
@@ -1362,6 +1432,7 @@ function buildPayload() {
     audioFile: form.audioFile.trim(),
     repairMethod: form.repairMethod.trim(),
     description: form.description.trim(),
+    deptId: form.deptId ? Number(form.deptId) : undefined,
   });
 }
 
@@ -1380,16 +1451,54 @@ async function submitForm() {
 async function handleDelete() {
   if (!selectedRecord.value) { uni.showToast({ title: t("leakManagement.selectLeakPointFirst"), icon: "none" }); return; }
   const id = getRowId(selectedRecord.value); if (!id) return;
-  try { ok((await deleteLeakPoint(id)) as Res); uni.showToast({ title: t("common.deleteSuccess"), icon: "success" }); selectedRecord.value = null; fetchLeakPoints(); }
-  catch (e: unknown) { uni.showToast({ title: (e as { msg?: string }).msg || t("common.deleteFailed"), icon: "none" }); }
+  uni.showModal({
+    title: t("common.confirm"),
+    content: t("common.confirmDelete"),
+    success: (res) => {
+      if (!res.confirm) return;
+      deleteLeakPoint(id)
+        .then((res2: unknown) => {
+          ok(res2 as Res);
+          uni.showToast({ title: t("common.deleteSuccess"), icon: "success" });
+          selectedRecord.value = null;
+          fetchLeakPoints();
+        })
+        .catch((e: unknown) => { uni.showToast({ title: (e as { msg?: string }).msg || t("common.deleteFailed"), icon: "none" }); });
+    }
+  });
 }
 
 async function handleBatchDelete() {
   if (!selectedIds.value.size) return;
   const ids = Array.from(selectedIds.value).map((k) => { const i = records.value.findIndex((r, idx) => getRowKey(r, idx) === k); return i >= 0 ? getRowId(records.value[i]) : ""; }).filter(Boolean);
   if (!ids.length) return;
-  try { await Promise.all(ids.map((id) => deleteLeakPoint(id))); uni.showToast({ title: t("leakManagement.batchDeleteSuccess", { count: ids.length }), icon: "success" }); selectedIds.value = new Set(); fetchLeakPoints(); }
-  catch (e: unknown) { uni.showToast({ title: (e as { msg?: string }).msg || t("leakManagement.batchDeleteFailed"), icon: "none" }); }
+  const count = ids.length;
+  uni.showModal({
+    title: t("common.confirm"),
+    content: t("common.confirmBatchDelete", { count }),
+    success: (res) => {
+      if (!res.confirm) return;
+      Promise.allSettled(ids.map((id) => deleteLeakPoint(id)))
+        .then((results) => {
+          const successCount = results.filter((result) => {
+            if (result.status !== "fulfilled") return false;
+            try { ok(result.value as Res); return true; }
+            catch { return false; }
+          }).length;
+          const failedCount = ids.length - successCount;
+          if (successCount > 0) {
+            selectedIds.value = new Set();
+            fetchLeakPoints();
+          }
+          uni.showToast({
+            title: failedCount > 0
+              ? t("leakManagement.batchDeleteFailed")
+              : t("leakManagement.batchDeleteSuccess", { count: successCount }),
+            icon: failedCount > 0 ? "none" : "success",
+          });
+        });
+    }
+  });
 }
 
 function handleWorkOrderJump(item: RecordItem) {
@@ -1407,6 +1516,12 @@ function getWorkOrderDisplay(item: RecordItem): string {
 }
 
 function getFieldValue(item: RecordItem | null, key: string): string { if (!item) return ""; const v = gv(item, key); if (v === undefined || v === null) return ""; return String(v); }
+
+/** 显示值：只把 null/undefined/空字符串显示为 '-'，保留合法的 0/false */
+function displayValue(value: unknown): string {
+  if (value === null || value === undefined || value === '') return '-';
+  return String(value);
+}
 function formatDateTime(v: unknown): string { return fmtDt(v); }
 
 // 格式化经纬度字符串，保留 4 位小数（支持 "经度,纬度" 或 "经度 纬度" 格式）
@@ -1463,12 +1578,47 @@ function toggleAudioPlayState() {
   else { audioDialogElement.pause(); }
 }
 
-function seekAudio(e: Event) {
-  if (!audioDialogElement || !audioDuration.value) return;
-  const target = e.target as HTMLInputElement;
-  const time = (Number(target.value) / 100) * audioDuration.value;
-  audioDialogElement.currentTime = time;
+type SeekTarget = "audio" | "video";
+let activeSeekTarget: SeekTarget | null = null;
+let activeSeekBar: HTMLElement | null = null;
+
+function getSeekBar(target: SeekTarget) {
+  return document.querySelector(target === "audio" ? ".audio-dialog .audio-seek-bar" : ".video-dialog .video-seek-bar") as HTMLElement | null;
+}
+
+function getSeekClientX(e: MouseEvent | PointerEvent) {
+  const ev = e as MouseEvent & { detail?: { x?: number; clientX?: number }; touches?: TouchList; changedTouches?: TouchList };
+  if (typeof ev.clientX === "number" && Number.isFinite(ev.clientX)) return ev.clientX;
+  if (typeof ev.detail?.clientX === "number" && Number.isFinite(ev.detail.clientX)) return ev.detail.clientX;
+  if (typeof ev.detail?.x === "number" && Number.isFinite(ev.detail.x)) return ev.detail.x;
+  const touch = ev.touches?.[0] || ev.changedTouches?.[0];
+  if (typeof touch?.clientX === "number" && Number.isFinite(touch.clientX)) return touch.clientX;
+  return NaN;
+}
+
+function getSeekPercentFromBar(e: MouseEvent | PointerEvent, target: SeekTarget) {
+  const bar = getSeekBar(target);
+  const rect = bar?.getBoundingClientRect();
+  const clientX = getSeekClientX(e);
+  const percent = rect?.width ? Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100)) : NaN;
+  return Number.isFinite(percent) ? percent : NaN;
+}
+
+function getVideoElement() {
+  return (document.getElementById("leak-video-player-localized") || document.querySelector(".video-player")) as HTMLVideoElement | null;
+}
+
+function applyAudioSeek(percent: number) {
+  if (!Number.isFinite(percent)) return;
+  if (!audioDialogElement) return;
+  const duration = isFinite(audioDialogElement.duration) && audioDialogElement.duration > 0
+    ? audioDialogElement.duration
+    : audioDuration.value;
+  if (!duration || !isFinite(duration)) return;
+  const time = (percent / 100) * duration;
+  try { audioDialogElement.currentTime = time; } catch (_) { /* ignore */ }
   audioCurrentTime.value = time;
+  audioDuration.value = duration;
 }
 
 function openAudioDialog(url: string, title: string) {
@@ -1507,6 +1657,11 @@ function closeAudioDialog() {
   playingAudioIndex.value = -1;
 }
 
+/** 只有点击 mask 本身才关闭对话框，点击内部内容（含进度条）不关闭 */
+function onAudioMaskClick(e: MouseEvent) {
+  if (e.target === e.currentTarget) closeAudioDialog();
+}
+
 function toggleAudioPlay(item: RecordItem, index: number) {
   const aid = getFieldValue(item, "audioFile");
   if (!aid) return;
@@ -1527,6 +1682,7 @@ const currentVideoUrl = ref("");
 const videoDuration = ref(0);
 const videoCurrentTime = ref(0);
 const videoLoading = ref(false);
+const videoPlayerRef = ref<HTMLVideoElement | null>(null);
 
 function formatVideoTime(seconds: number): string {
   if (!seconds || !isFinite(seconds)) return "00:00";
@@ -1544,15 +1700,47 @@ const videoProgress = computed(() => {
   return Math.min(100, (videoCurrentTime.value / videoDuration.value) * 100);
 });
 
+// 兼容 uni-app video 组件事件（e.detail = { currentTime, duration }）和原生 video 事件（e.target）
+function readVideoDuration(e: Event): number {
+  const detail = (e as { detail?: { duration?: unknown } }).detail;
+  if (detail && typeof detail.duration === "number" && isFinite(detail.duration) && detail.duration > 0) {
+    return detail.duration;
+  }
+  const v = (e.target as HTMLVideoElement) || videoPlayerRef.value;
+  if (v && isFinite(v.duration) && v.duration > 0) return v.duration;
+  return 0;
+}
+
+function readVideoCurrentTime(e: Event): number {
+  const detail = (e as { detail?: { currentTime?: unknown } }).detail;
+  if (detail && typeof detail.currentTime === "number") return detail.currentTime;
+  const v = (e.target as HTMLVideoElement) || videoPlayerRef.value;
+  return v ? v.currentTime || 0 : 0;
+}
+
 function onVideoLoadedMeta(e: Event) {
-  const v = e.target as HTMLVideoElement;
-  videoDuration.value = v.duration || 0;
+  const d = readVideoDuration(e);
+  if (d > 0) videoDuration.value = d;
+  videoLoading.value = false;
+}
+
+function onVideoDurationChange(e: Event) {
+  const d = readVideoDuration(e);
+  if (d > 0) videoDuration.value = d;
+}
+
+function onVideoCanPlay(e: Event) {
+  const d = readVideoDuration(e);
+  if (d > 0) videoDuration.value = d;
   videoLoading.value = false;
 }
 
 function onVideoTimeUpdate(e: Event) {
-  const v = e.target as HTMLVideoElement;
-  videoCurrentTime.value = v.currentTime || 0;
+  videoCurrentTime.value = readVideoCurrentTime(e);
+  if (!videoDuration.value) {
+    const d = readVideoDuration(e);
+    if (d > 0) videoDuration.value = d;
+  }
 }
 
 function onVideoWaiting() { videoLoading.value = true; }
@@ -1574,6 +1762,56 @@ function closeVideoDialog() {
   videoDuration.value = 0;
   videoCurrentTime.value = 0;
   videoLoading.value = false;
+}
+
+/** 只有点击 mask 本身才关闭对话框，点击内部内容（含进度条）不关闭 */
+function onVideoMaskClick(e: MouseEvent) {
+  if (e.target === e.currentTarget) closeVideoDialog();
+}
+
+function applyVideoSeek(percent: number) {
+  const videoEl = getVideoElement();
+  const duration = videoEl && isFinite((videoEl as HTMLVideoElement).duration) && (videoEl as HTMLVideoElement).duration > 0
+    ? (videoEl as HTMLVideoElement).duration
+    : videoDuration.value;
+  if (!duration || !isFinite(duration)) return;
+  const time = (percent / 100) * duration;
+  try { uni.createVideoContext("leak-video-player-localized").seek(time); } catch (_) { /* ignore */ }
+  videoCurrentTime.value = time;
+  videoDuration.value = duration;
+}
+
+function seekAudio(e: MouseEvent | PointerEvent) { applyAudioSeek(getSeekPercentFromBar(e, "audio")); }
+function seekVideo(e: MouseEvent | PointerEvent) { applyVideoSeek(getSeekPercentFromBar(e, "video")); }
+
+function startAudioSeek(e: PointerEvent) { startSeekDrag("audio", e); }
+function startVideoSeek(e: PointerEvent) { startSeekDrag("video", e); }
+
+function startSeekDrag(target: SeekTarget, e: PointerEvent) {
+  activeSeekTarget = target;
+  activeSeekBar = getSeekBar(target);
+  if (target === "audio") seekAudio(e);
+  else seekVideo(e);
+  document.addEventListener("pointermove", handleSeekMove);
+  document.addEventListener("pointerup", stopSeekDrag);
+  document.addEventListener("pointercancel", stopSeekDrag);
+}
+
+function handleSeekMove(e: PointerEvent) {
+  if (!activeSeekTarget || !activeSeekBar) return;
+  const rect = activeSeekBar.getBoundingClientRect();
+  if (!rect.width) return;
+  const percent = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+  if (activeSeekTarget === "audio") applyAudioSeek(percent);
+  else applyVideoSeek(percent);
+}
+
+function stopSeekDrag() {
+  document.removeEventListener("pointermove", handleSeekMove);
+  document.removeEventListener("pointerup", stopSeekDrag);
+  document.removeEventListener("pointercancel", stopSeekDrag);
+  activeSeekTarget = null;
+  activeSeekBar = null;
 }
 
 // 将 leakStatus code 翻译为当前语言的展示文本
@@ -1754,8 +1992,9 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .video-info-row { display: flex; align-items: center; gap: 6px; }
 .video-info-label { color: #64748b; font-size: 12px; font-weight: 700; }
 .video-info-value { color: #0f172a; font-size: 13px; font-weight: 700; font-family: monospace; }
-.video-progress-bar { flex: 1; min-width: 120px; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
-.video-progress-filled { height: 100%; background: linear-gradient(90deg, #3b82f6, #2563eb); border-radius: 3px; transition: width 0.2s ease; }
+.video-seek-bar { position: relative; flex: 1; min-width: 120px; height: 6px; background: #e2e8f0; border-radius: 3px; cursor: pointer; }
+.video-seek-filled { position: absolute; top: 0; left: 0; height: 100%; background: linear-gradient(90deg, #3b82f6, #2563eb); border-radius: 3px; pointer-events: none; }
+.video-seek-thumb { position: absolute; top: 50%; width: 12px; height: 12px; background: #fff; border: 2px solid #3b82f6; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 1px 4px rgba(0,0,0,0.2); pointer-events: none; }
 
 .audio-dialog-mask { position: fixed; inset: 0; z-index: 2200; display: flex; align-items: center; justify-content: center; background: rgba(15, 35, 55, 0.55); }
 .audio-dialog { width: min(520px, 92vw); background: #fff; border-radius: 10px; box-shadow: 0 12px 36px rgba(15, 35, 55, 0.25); overflow: hidden; }
@@ -1774,9 +2013,9 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .audio-player__loading { color: #f59e0b; font-size: 12px; font-weight: 600; }
 .audio-player__progress { display: flex; align-items: center; gap: 8px; }
 .audio-time { color: #64748b; font-size: 12px; font-weight: 700; font-family: monospace; min-width: 40px; text-align: center; flex-shrink: 0; }
-.audio-seek-bar { position: relative; flex: 1; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+.audio-seek-bar { position: relative; flex: 1; height: 6px; background: #e2e8f0; border-radius: 3px; cursor: pointer; }
 .audio-seek-filled { position: absolute; top: 0; left: 0; height: 100%; background: linear-gradient(90deg, #3b82f6, #2563eb); border-radius: 3px; pointer-events: none; }
-.audio-seek-input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.audio-seek-thumb { position: absolute; top: 50%; width: 12px; height: 12px; background: #fff; border: 2px solid #3b82f6; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 1px 4px rgba(0,0,0,0.2); pointer-events: none; }
 .audio-play-btn { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; margin: 0; background: #3b82f6; border: 0; border-radius: 50%; cursor: pointer; flex-shrink: 0; &--hover { background: #2563eb; } }
 .play-icon-large { display: inline-flex; align-items: center; justify-content: center; }
 .icon-play-large { width: 0; height: 0; border-style: solid; border-width: 8px 0 8px 14px; border-color: transparent transparent transparent #fff; margin-left: 3px; }

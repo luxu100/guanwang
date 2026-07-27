@@ -795,7 +795,7 @@ const leakageStatusSelectOpen = ref(false);
 const leakageStatusOptions = ["正常", "疑似", "渗漏", "未抄", "新装"];
 
 const workOrderCategorySelectOpen = ref(false);
-const workOrderCategoryOptions = ["维修工单", "巡检工单", "检测工单", "保养工单", "其他"];
+const workOrderCategoryOptions = ["巡检", "检漏", "拆装", "维护"];
 
 const flowTypeSelectOpen = ref(false);
 const flowTypeOptions = ["派单", "转办", "抢单", "指定"];
