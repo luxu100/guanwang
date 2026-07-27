@@ -88,6 +88,12 @@
             </text>
           </template>
 
+          <template #cell-commandExecuteStatus="{ row }">
+            <text class="status-tag" :class="getCommandStatusClass(row.commandExecuteStatus)">
+              {{ getCommandStatusText(row.commandExecuteStatus) }}
+            </text>
+          </template>
+
           <template #cell-status="{ row }">
             <text class="status-tag" :class="getAudioRepairStatusClass(row.status)">
               {{ getAudioRepairStatusText(row.status) }}
@@ -314,12 +320,12 @@
           <view class="detail-head">
             <view>
               <text class="detail-head__eyebrow">{{ localeText("设备参数设置详情", "Device parameter task") }}</text>
-              <text class="detail-head__title">{{ displayValue(selectedDetail.deviceNumber) }}</text>
+              <!-- <text class="detail-head__title">{{ displayValue(selectedDetail.deviceNumber) }}</text> -->
               <text class="detail-head__id">{{ localeText("记录 ID", "Record ID") }}: {{ displayValue(selectedDetail.id)
                 }}</text>
             </view>
-            <text class="status-tag" :class="getSettingStatusClass(selectedDetail.commandStatus)">
-              {{ getSettingStatusText(selectedDetail.commandStatus) }}
+            <text class="status-tag">
+              {{ displayValue(selectedDetail.deviceNumber) }}
             </text>
           </view>
           <scroll-view class="detail-scroll" scroll-y>
@@ -331,27 +337,40 @@
                 <view class="info-row"><text>{{ localeText("批次 ID", "Batch ID") }}</text><text class="ellipsis-text"
                     :title="selectedDetail.batchId">{{ displayValue(selectedDetail.batchId) }}</text></view>
                 <view class="info-row"><text>{{ localeText("指令 ID", "Command ID") }}</text><text>{{
-                  displayValue(selectedDetail.commandId) }}</text></view>
-                <view class="info-row"><text>{{ localeText("TCP 状态", "TCP status") }}</text><text>{{
-                  selectedDetail.tcpOnline ? localeText("在线", "Online") : localeText("离线", "Offline") }}</text></view>
+                  displayValue(selectedDetail.commandSendLogId) }}</text></view>
+                <view class="info-row"><text>{{ localeText("指令执行状态", "Command status") }}</text><text>{{
+                  getCommandStatusText(selectedDetail.commandExecuteStatus) }}</text></view>
+                <view class="info-row"><text>{{ localeText("记录来源", "Record source") }}</text><text>{{
+                  displayValue(selectedDetail.recordSource) }}</text></view>
+                <view class="info-row"><text>{{ localeText("操作账号", "Command account") }}</text><text>{{
+                  displayValue(selectedDetail.commandAccount) }}</text></view>
+                <view class="info-row"><text>{{ localeText("下单时间", "Ordered at") }}</text><text>{{
+                  formatDateTime(selectedDetail.orderTime) }}</text></view>
                 <view class="info-row"><text>{{ localeText("创建时间", "Created at") }}</text><text>{{
-                  formatDateTime(selectedDetail.createdAt || selectedDetail.createTime) }}</text></view>
+                  formatDateTime(selectedDetail.createdAt) }}</text></view>
                 <view class="info-row"><text>{{ localeText("发送时间", "Sent at") }}</text><text>{{
-                  formatDateTime(selectedDetail.sentAt) }}</text></view>
+                  formatDateTime(selectedDetail.commandSentAt) }}</text></view>
                 <view class="info-row"><text>{{ localeText("过期时间", "Expires at") }}</text><text>{{
-                  formatDateTime(selectedDetail.expiresAt) }}</text></view>
+                  formatDateTime(selectedDetail.commandExpiresAt) }}</text></view>
               </view>
             </view>
             <view class="info-section">
               <text class="section-title">{{ localeText("设置参数", "Parameters") }}</text>
-              <view class="code-card"><text>{{ stringifyContent(selectedDetail.parameters ||
-                selectedDetail.parameterValues || selectedDetail.requestParameters || selectedDetail.settingContent)
-                  }}</text></view>
+              <view v-if="selectedSettingParameters.length" class="info-list">
+                <view v-for="parameter in selectedSettingParameters" :key="parameter.key" class="info-row">
+                  <text>{{ parameter.label }}</text>
+                  <text :title="stringifyContent(parameter.value)">{{ stringifyContent(parameter.value) }}</text>
+                </view>
+              </view>
+              <view v-else class="empty-inline">{{ localeText("本条记录没有非空设置参数", "No configured parameters") }}</view>
+            </view>
+            <view class="info-section">
+              <text class="section-title">{{ localeText("原始指令内容", "Raw command") }}</text>
+              <view class="code-card"><text>{{ stringifyContent(selectedDetail.detailHex) }}</text></view>
             </view>
             <view class="info-section">
               <text class="section-title">{{ localeText("任务反馈", "Task feedback") }}</text>
-              <view class="code-card"><text>{{ stringifyContent(selectedDetail.feedback || selectedDetail.result ||
-                  selectedDetail.message) }}</text></view>
+              <view class="code-card"><text>{{ stringifyContent(selectedDetail.commandFeedback) }}</text></view>
               <view v-if="String(selectedDetail.commandStatus || '').toUpperCase() === 'TCP_SENT'" class="warning-card">
                 {{ localeText("已写入设备连接，但当前没有可匹配的设备回执，不能视为参数已经生效。", "Written to the device connection, but no matching acknowledgement is available; parameters are not confirmed effective.") }}
               </view>
@@ -840,6 +859,42 @@ const upgradeStatusOptions = computed(() => [
   ...Object.keys(upgradeStatusMap).map(value => ({ label: getStatusText(value), value })),
 ]);
 const settingStatusValues = ["QUEUED", "CLAIMED", "TCP_SENT", "FAILED", "EXPIRED", "CANCELED", "NOT_QUEUED", "DEVICE_DELIVERED", "SUCCESS"];
+const deviceSettingParameterFields = [
+  "onceMeasureLength",
+  "signalLevel",
+  "benchmarkValue",
+  "noiseBenchmarkValue",
+  "samplingCount",
+  "samplingWeekday",
+  "samplingTime",
+  "syncSamplingTime",
+  "syncSamplingNumber",
+  "samplingPeriodTime",
+  "audioRule",
+  "reportInterval",
+  "dayMeasureDataGroup",
+  "leakThreshold",
+  "nb4gTrigger",
+  "nb4gTransferSet",
+  "nb4gOpenTimeSet",
+  "loraOpenDay",
+  "loraSignalFrequency",
+  "loraPower",
+  "loraOpenDate",
+  "workMode",
+  "measureGainMode",
+  "gainValue",
+  "filterMethod",
+  "filterLowFrequency",
+  "filterHighFrequency",
+  "thresholdRate",
+  "rtcUploadInterval",
+  "pressureSettings",
+  "signalChannel",
+  "inspectDelay",
+  "inspectionControl",
+  "enabledControl",
+] as const;
 const settingStatusOptions = computed(() => [
   { label: localeText("全部状态", "All statuses"), value: "" },
   ...settingStatusValues.map(value => ({ label: getSettingStatusText(value), value })),
@@ -879,10 +934,11 @@ const settingColumns = computed<CommandTableColumn[]>(() => [
   { key: "id", label: localeText("任务 ID", "Task ID"), width: 95 },
   { key: "deviceNumber", label: localeText("设备编号", "Device number"), width: 150 },
   { key: "batchId", label: localeText("批次 ID", "Batch ID"), width: 210 },
-  { key: "commandStatus", label: localeText("任务状态", "Task status"), width: Number(localeText("220", "290")) },
-  { key: "tcpOnlineText", label: localeText("TCP 状态", "TCP status"), width: 110 },
-  { key: "sentAt", label: localeText("发送时间", "Sent at"), width: 170, formatter: value => formatDateTime(value) },
-  { key: "expiresAt", label: localeText("过期时间", "Expires at"), width: 170, formatter: value => formatDateTime(value) },
+  // { key: "commandStatus", label: localeText("任务状态", "Task status"), width: Number(localeText("180", "230")) },
+  { key: "commandExecuteStatus", label: localeText("指令执行状态", "Command status"), width: Number(localeText("150", "210")) },
+  { key: "commandSentAt", label: localeText("发送时间", "Sent at"), width: 170, formatter: value => formatDateTime(value) },
+  { key: "commandExpiresAt", label: localeText("过期时间", "Expires at"), width: 170, formatter: value => formatDateTime(value) },
+  { key: "createdAt", label: localeText("创建时间", "Created at"), width: 170, formatter: value => formatDateTime(value) },
 ]);
 const audioRepairColumns = computed<CommandTableColumn[]>(() => [
   { key: "id", label: localeText("任务 ID", "Task ID"), width: 100 },
@@ -990,6 +1046,16 @@ const activeStatusOptions = computed(() => {
 const audioMissingFrames = computed<number[]>(() => {
   const value = selectedDetail.value?.missingFrameNumbers ?? selectedDetail.value?.missingFrames;
   return Array.isArray(value) ? value.map(Number).filter(Number.isFinite) : [];
+});
+const selectedSettingParameters = computed(() => {
+  const detail = selectedDetail.value || {};
+  return deviceSettingParameterFields
+    .filter(key => detail[key] !== null && detail[key] !== undefined && detail[key] !== "")
+    .map(key => ({
+      key,
+      label: getDeviceSettingParameterLabel(key),
+      value: detail[key],
+    }));
 });
 const audioFrameDetailColumns = computed(() => {
   const fieldOrder = [
@@ -1654,19 +1720,17 @@ function normalizeUpgradeEvent(source: ApiRecord = {}) {
 
 function normalizeDeviceSetting(source: ApiRecord = {}) {
   const commandStatus = source.commandStatus ?? source.status;
-  const tcpOnline = source.tcpOnline === true || Number(source.tcpOnline) === 1;
   return {
     ...source,
     id: source.id ?? source.settingId,
     deviceNumber: source.deviceNumber ?? source.deviceNo,
     batchId: source.batchId ?? source.clientRequestId,
     commandStatus,
-    tcpOnline,
-    tcpOnlineText: tcpOnline
-      ? localeText("在线", "Online")
-      : localeText("离线", "Offline"),
-    sentAt: source.sentAt ?? source.sendTime,
-    expiresAt: source.expiresAt,
+    commandSendLogId: source.commandSendLogId ?? source.commandId,
+    commandExecuteStatus: source.commandExecuteStatus ?? source.executeStatus,
+    commandSentAt: source.commandSentAt ?? source.sentAt ?? source.sendTime,
+    commandExpiresAt: source.commandExpiresAt ?? source.expiresAt,
+    commandFeedback: source.commandFeedback ?? source.feedback ?? source.result ?? source.message,
   };
 }
 
@@ -1749,12 +1813,52 @@ function getStatusClass(status: unknown) {
   return getStatusToneClass(upgradeStatusMap[Number(status)]?.tone);
 }
 
+function getDeviceSettingParameterLabel(key: string) {
+  const labels: Record<string, string> = {
+    onceMeasureLength: localeText("单次测量时长", "Measurement duration"),
+    signalLevel: localeText("信号等级", "Signal level"),
+    benchmarkValue: localeText("基准值", "Benchmark value"),
+    noiseBenchmarkValue: localeText("噪声基准值", "Noise benchmark"),
+    samplingCount: localeText("采样次数", "Sampling count"),
+    samplingWeekday: localeText("采样星期", "Sampling weekday"),
+    samplingTime: localeText("采样时间", "Sampling time"),
+    syncSamplingTime: localeText("同步采样时间", "Synchronized sampling time"),
+    syncSamplingNumber: localeText("同步采样编号", "Synchronized sampling number"),
+    samplingPeriodTime: localeText("采样时间段", "Sampling period"),
+    audioRule: localeText("音频上报规则", "Audio reporting rule"),
+    reportInterval: localeText("上报间隔（分钟）", "Report interval (minutes)"),
+    dayMeasureDataGroup: localeText("日测量数据组", "Daily measurement group"),
+    leakThreshold: localeText("漏损阈值", "Leak threshold"),
+    nb4gTrigger: localeText("NB/4G 触发", "NB/4G trigger"),
+    nb4gTransferSet: localeText("NB/4G 传输设置", "NB/4G transfer setting"),
+    nb4gOpenTimeSet: localeText("NB/4G 开启时段", "NB/4G active period"),
+    loraOpenDay: localeText("LoRa 开启日", "LoRa active day"),
+    loraSignalFrequency: localeText("LoRa 信号频率", "LoRa signal frequency"),
+    loraPower: localeText("LoRa 功率", "LoRa power"),
+    loraOpenDate: localeText("LoRa 开启时段", "LoRa active period"),
+    workMode: localeText("工作模式", "Work mode"),
+    measureGainMode: localeText("测量增益模式", "Measurement gain mode"),
+    gainValue: localeText("增益值", "Gain value"),
+    filterMethod: localeText("滤波方式", "Filter method"),
+    filterLowFrequency: localeText("滤波低频", "Filter low frequency"),
+    filterHighFrequency: localeText("滤波高频", "Filter high frequency"),
+    thresholdRate: localeText("阈值比例", "Threshold rate"),
+    rtcUploadInterval: localeText("RTC 上传间隔", "RTC upload interval"),
+    pressureSettings: localeText("压力设置", "Pressure setting"),
+    signalChannel: localeText("信号通道", "Signal channel"),
+    inspectDelay: localeText("巡检延时", "Inspection delay"),
+    inspectionControl: localeText("巡检控制", "Inspection control"),
+    enabledControl: localeText("启用控制", "Enabled control"),
+  };
+  return labels[key] || key.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+}
+
 function getSettingStatusText(status: unknown) {
   const value = String(status || "").toUpperCase();
   const labels: Record<string, string> = {
     QUEUED: localeText("等待设备连接", "Waiting for device"),
     CLAIMED: localeText("正在下发", "Dispatching"),
-    TCP_SENT: localeText("已写入连接，等待设备后续上报确认", "Written to TCP; awaiting later device report"),
+    // TCP_SENT: localeText("已写入连接，等待设备后续上报确认", "Written to TCP; awaiting later device report"),
     FAILED: localeText("下发失败", "Dispatch failed"),
     EXPIRED: localeText("等待下发已过期", "Dispatch expired"),
     CANCELED: localeText("已取消", "Cancelled"),
