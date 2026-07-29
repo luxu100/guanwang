@@ -1,5 +1,5 @@
 <template>
-  <view class="sheet-view">
+  <view class="sheet-view" :class="{ 'sheet-view--en': isEnglishLocale }">
     <view class="sheet-toolbar">
       <view class="toolbar-row toolbar-row--filters">
         <view class="filter-group">
@@ -82,7 +82,8 @@
               <template v-for="column in tableColumns" :key="column.key">
                 <text v-if="column.renderType === 'index'" class="data-cell" :class="column.className">{{ index + 1 }}</text>
                 <text v-else-if="column.renderType === 'status-pill'" class="data-cell" :class="column.className">
-                  <text class="status-pill" :class="getStatusPillClass(column.statusClassKey!, getItemValue(item, column.key))">{{ getStatusPillText(column.statusClassKey!, getItemValue(item, column.key)) }}</text>
+                  <template v-if="!hasStatusValue(getItemValue(item, column.key))">--</template>
+                  <text v-else class="status-pill" :class="getStatusPillClass(column.statusClassKey!, getItemValue(item, column.key))">{{ getStatusPillText(column.statusClassKey!, getItemValue(item, column.key)) }}</text>
                 </text>
                 <text v-else-if="column.renderType === 'spectrum-btn'" class="data-cell" :class="column.className">
                   <text class="data-link" @click.stop="openSpectrumDialog(item)"><text class="spectrum-icon"></text>{{ t('ui.analysis') }}</text>
@@ -417,6 +418,8 @@ function getByPath(source: unknown, key: string): unknown {
     return undefined;
   }, source);
 }
+
+const isEnglishLocale = computed(() => getLocale() !== 'zh-CN');
 
 const daMessages: Record<string, unknown> = {
   "zh-CN": (daZhCN as Record<string, unknown>).dataAnalysis,
@@ -1077,6 +1080,10 @@ function selectRow(item: DataItem) {
 
 function getItemValue(item: DataItem, key: string): any {
   return (item as Record<string, any>)[key];
+}
+
+function hasStatusValue(value: any): boolean {
+  return value != null && value !== '' && value !== '--';
 }
 
 function formatTimeValue(value: string): string {
@@ -2581,4 +2588,8 @@ watch([filteredData, loading, () => getLocale()], ([_data, isLoading]) => {
   font-size: 11px;
   font-weight: 800;
 }
+
+.sheet-view--en .location-row { grid-template-columns: 74px minmax(0, 1fr); }
+.sheet-view--en .detail-item--base { grid-template-columns: 112px minmax(0, 1fr); }
+.sheet-view--en .detail-grid--content .detail-item { grid-template-columns: 130px minmax(0, 1fr); }
 </style>
