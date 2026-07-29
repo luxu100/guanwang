@@ -164,3 +164,24 @@ export function normalizeLeakStatusCode(raw: unknown, tab: "leakage" | "deviceUp
 
   return s;
 }
+
+/**
+ * 漏点记录专用状态归一化（leak_point_record.leakStatus）。
+ *
+ * 与 normalizeLeakStatusCode 的区别：
+ * - 已修复等价值（已修复/repaired/REPAIRED）统一返回"已修复"；
+ * - DBA SQL C 回填前，NULL 和其他非已修复值（包括"处理中"等历史脏值）都返回"未修复"；
+ * - 不返回"未知"，避免筛选语义、状态标签、KPI 和图表口径不一致。
+ *
+ * 设备上报状态仍使用原有数字状态归一化，不能混用本函数。
+ */
+// TODO: 待 DBA SQL C 回填后移除历史脏状态兼容
+export function normalizeLeakPointRecordStatus(raw: unknown): string {
+  if (raw == null || raw === "") return LEAK_STATUS.UNREPAIRED;
+  const s = String(raw);
+  if (s === LEAK_STATUS.REPAIRED || s.toLowerCase() === "repaired") {
+    return LEAK_STATUS.REPAIRED;
+  }
+  // NULL 和其他非已修复值（包括"未修复"、"unrepaired"、"处理中"等脏值）统一归为"未修复"
+  return LEAK_STATUS.UNREPAIRED;
+}

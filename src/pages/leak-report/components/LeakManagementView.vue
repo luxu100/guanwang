@@ -363,12 +363,15 @@
                     </view>
                     <view v-if="formDeptDropdownVisible" class="form-select-dropdown" @click.stop>
                       <view
-                        v-for="opt in deptList"
+                        v-for="opt in formDeptOptions"
                         :key="opt.id"
                         class="form-select-dropdown__item"
                         :class="{ 'form-select-dropdown__item--active': String(opt.id) === form.deptId }"
                         @click="handleFormDeptSelect(opt.id)"
                       >{{ opt.deptName }}</view>
+                      <view v-if="formDeptOptions.length === 0" class="form-select-dropdown__item form-select-dropdown__item--empty">
+                        {{ t('leakManagement.noAvailableDept') }}
+                      </view>
                     </view>
                   </view>
                   <view class="form-field">
@@ -406,7 +409,7 @@
                   </view>
                   <view class="form-field">
                     <text class="form-label">{{ t('detail.fields.manualReviewCount') }}</text>
-                    <input v-model="form.manualReviewCount" class="form-input" type="number" :placeholder="t('leakManagement.placeholders.manualReviewCount')" placeholder-class="input-placeholder" />
+                    <input v-model="form.manualReviewCount" class="form-input form-input--readonly" type="number" readonly :placeholder="t('leakManagement.placeholders.manualReviewCount')" placeholder-class="input-placeholder" />
                   </view>
                   <view class="form-field">
                     <text class="form-label">{{ t('detail.fields.repairMethod') }}</text>
@@ -520,15 +523,16 @@
                       placeholder-class="input-placeholder"
                       @focus="showDeviceSuggestions = true"
                       @blur="hideDeviceSuggestions"
+                      @input="onDeviceNumberInput"
                     />
                     <text v-if="validationErrors.deviceNumber" class="form-error">{{ validationErrors.deviceNumber }}</text>
                     <view v-if="showDeviceSuggestions && filteredDeviceNumbers.length > 0" class="device-suggestions">
                       <view
-                        v-for="num in filteredDeviceNumbers"
-                        :key="num"
+                        v-for="d in filteredDeviceNumbers"
+                        :key="d.deviceId"
                         class="device-suggestion-item"
-                        @mousedown.prevent="selectDeviceNumber(num)"
-                      >{{ num }}</view>
+                        @mousedown.prevent="selectDeviceNumber(d.deviceNumber, d.deviceId)"
+                      >{{ d.deviceNumber }}</view>
                     </view>
                   </view>
                   <view class="form-field"><text class="form-label">{{ t('detail.fields.leakDistance') }}</text><input v-model="form.leakDistance" class="form-input" :placeholder="t('leakManagement.placeholders.leakDistance')" placeholder-class="input-placeholder" /></view>
@@ -580,13 +584,15 @@ import LeakTableView from "@/pages/leak-report/components/LeakTableView.vue";
 import LeakDataTable from "@/pages/leak-report/components/LeakDataTable.vue";
 import { uploadFile } from "@/services/leak-report/file-upload";
 import { getVisibleDeviceList } from "@/services/device/info";
-import { getDeptList } from "@/services/partition/partition";
+import { getDeptList, getDeptDeviceDeptIds } from "@/services/partition/partition";
 import { createScopedT, useI18n } from "@/i18n";
+import { fetchAllPages } from "@/utils/fetch-all-pages";
+import { resolvePublicFileUrl } from "@/utils/public-file-url";
 import {
   LEAK_STATUS,
   isRepairedStatus,
   isUnrepairedStatus,
-  normalizeLeakStatusCode,
+  normalizeLeakPointRecordStatus,
 } from "@/pages/leak-report/constants/status";
 import type { ColumnDef } from "@/pages/leak-report/constants/columnTypes";
 
@@ -731,11 +737,6 @@ const tableGridTemplateColumns = computed<string>(() => {
 
 const tableMinWidth = computed<string>(() => (locale.value === "en-US" ? "1380px" : "1200px"));
 
-function getBaseUrl(): string {
-  const env = (import.meta as unknown as { env: { VITE_API_BASE_URL?: string; VITE_DEV_PROXY_TARGET?: string } }).env;
-  return env?.VITE_API_BASE_URL || env?.VITE_DEV_PROXY_TARGET || "";
-}
-
 type RecordItem = Record<string, unknown>;
 
 interface Res {
@@ -795,6 +796,13 @@ const currentFormLeakStatusLabel = computed(() => formLeakStatusOptions.value.fi
 const formLeakStatusDropdownVisible = ref(false);
 const formDeptDropdownVisible = ref(false);
 const currentFormDeptLabel = computed(() => deptList.value.find((d) => String(d.id) === form.deptId)?.deptName || "");
+// 分区下拉选项：选中设备后只显示候选分区（设备绑定 ∩ 可见分区）；未选设备时显示全部可见分区
+const formDeptOptions = computed(() => {
+  if (!deviceSelectedFromSuggestion.value || candidateDeptIds.value.length === 0) {
+    return deptList.value;
+  }
+  return deptList.value.filter((d) => candidateDeptIds.value.includes(d.id));
+});
 function handleFormDeptSelect(id: number) {
   form.deptId = id ? String(id) : "";
   formDeptDropdownVisible.value = false;
@@ -923,11 +931,18 @@ const detailPhotoIds = computed<string[]>(() => {
   return String(raw).split(",").map((s) => s.trim()).filter(Boolean);
 });
 
+/**
+ * 安全附件 URL：替换原 getPreviewUrl() 自行拼接 base URL 的实现。
+ * 不可用路径返回空串，调用方需先判空再使用；遇不可用路径会提示用户。
+ */
 function getPreviewUrl(filePath: string): string {
   if (!filePath) return "";
-  if (filePath.startsWith("http://") || filePath.startsWith("https://")) return filePath;
-  if (filePath.startsWith("/")) return `${getBaseUrl()}${filePath}`;
-  return `${getBaseUrl()}/${filePath}`;
+  const result = resolvePublicFileUrl(filePath);
+  if (!result.ok) {
+    uni.showToast({ title: t("leakManagement.attachmentPathUnavailable"), icon: "none" });
+    return "";
+  }
+  return result.url;
 }
 
 function previewDetailPhoto(index: number) {
@@ -954,10 +969,23 @@ function gv(item: RecordItem, k: string) { return Object.hasOwn(item, k) ? item[
 function getRowId(item: RecordItem): string { const v = gv(item, "id"); return typeof v === "string" || typeof v === "number" ? String(v) : ""; }
 function getRowKey(item: RecordItem, i: number): string { return getRowId(item) || String(i); }
 
-const deviceNumberList = ref<string[]>([]);
+const deviceNumberList = ref<Array<{ deviceNumber: string; deviceId: string | number }>>([]);
 
 // 所属分区：后端按当前用户可见范围返回，非管理员必须选择
 const deptList = ref<Array<{ id: number; deptName: string }>>([]);
+// 候选分区加载状态：idle(未加载)/loading(加载中)/ready(加载完成)/error(加载失败)
+// 不能继续只用空数组同时表示"未加载、请求失败、确实没有候选"
+type CandidateDeptState = "idle" | "loading" | "ready" | "error";
+const candidateDeptState = ref<CandidateDeptState>("idle");
+// 当前选中设备绑定的候选分区 ID（与可见分区求交集后的结果）
+// 仅在用户从建议列表选中设备时填充；手输设备编号不触发联动
+const candidateDeptIds = ref<number[]>([]);
+// 标记设备编号是否来自建议列表选中（手输时为 false，提交前需提示重新选择设备）
+const deviceSelectedFromSuggestion = ref(false);
+// 编辑场景：保存规范化初始 deviceNumber/deptId 快照
+// buildUpdatePayload 据此省略未变化的字段，避免触发后端重新校验历史设备-分区组合
+const initialDeviceNumber = ref("");
+const initialDeptId = ref("");
 function isAdminUser(): boolean {
   try {
     const roles = uni.getStorageSync("roles") as unknown;
@@ -982,7 +1010,7 @@ const showDeviceSuggestions = ref(false);
 const filteredDeviceNumbers = computed(() => {
   const kw = form.deviceNumber.trim().toLowerCase();
   if (!kw) return deviceNumberList.value.slice(0, 20);
-  return deviceNumberList.value.filter((d) => d.toLowerCase().includes(kw)).slice(0, 20);
+  return deviceNumberList.value.filter((d) => d.deviceNumber.toLowerCase().includes(kw)).slice(0, 20);
 });
 
 async function fetchDeviceNumbers() {
@@ -990,14 +1018,83 @@ async function fetchDeviceNumbers() {
     const res = await getVisibleDeviceList() as unknown as Res;
     const data = res?.data as RecordItem[] | RecordItem | undefined;
     const list = Array.isArray(data) ? data : Array.isArray((data as RecordItem)?.records) ? (data as RecordItem).records as RecordItem[] : [];
-    deviceNumberList.value = list.map((d) => String(gv(d, "deviceNumber") || "")).filter(Boolean);
+    deviceNumberList.value = list.map((d) => ({
+      deviceNumber: String(gv(d, "deviceNumber") || ""),
+      deviceId: gv(d, "id") as string | number,
+    })).filter((d) => d.deviceNumber);
   } catch { deviceNumberList.value = []; }
 }
 
-function selectDeviceNumber(num: string) {
+/**
+ * 选中设备后联动查询候选分区：
+ * 1. 调用 getDeptDeviceDeptIds(deviceId) 查询该设备绑定的分区 ID
+ * 2. 与 deptList（可见分区）求交集
+ * 3. 交集为1：自动填入 deptId
+ * 4. 交集为多个：不清空 deptId，分区下拉只显示候选（用户必须从中选）
+ * 5. 交集为空：清空 deptId，阻止提交并提示"设备未绑定可用分区"
+ * 6. 编辑场景：若原 deptId 仍在候选中则保留，否则清空
+ */
+async function fetchCandidateDeptIds(deviceId: string | number) {
+  candidateDeptState.value = "loading";
+  try {
+    const res = await getDeptDeviceDeptIds(deviceId) as { data?: number[] };
+    const boundDeptIds = Array.isArray(res?.data) ? res.data : [];
+    const visibleDeptIds = deptList.value.map((d) => d.id);
+    // 求交集：设备绑定分区 ∩ 用户可见分区
+    candidateDeptIds.value = boundDeptIds.filter((id) => visibleDeptIds.includes(id));
+    candidateDeptState.value = "ready";
+  } catch {
+    candidateDeptIds.value = [];
+    candidateDeptState.value = "error";
+  }
+
+  // 根据候选数量决定 deptId 行为（仅在用户主动修改设备时执行）
+  if (candidateDeptState.value === "ready") {
+    if (candidateDeptIds.value.length === 1) {
+      // 只有一个候选：自动填入（管理员也自动带出）
+      form.deptId = String(candidateDeptIds.value[0]);
+    } else if (candidateDeptIds.value.length === 0) {
+      // 无候选：清空 deptId，阻止提交
+      form.deptId = "";
+    } else {
+      // 多个候选：若原 deptId 仍在候选中则保留，否则清空
+      const currentDeptId = form.deptId ? Number(form.deptId) : null;
+      if (currentDeptId === null || !candidateDeptIds.value.includes(currentDeptId)) {
+        form.deptId = "";
+      }
+    }
+  }
+}
+
+function selectDeviceNumber(num: string, deviceId?: string | number) {
   form.deviceNumber = num;
   showDeviceSuggestions.value = false;
   validationErrors.deviceNumber = "";
+  deviceSelectedFromSuggestion.value = true;
+  // 选中设备后联动查询候选分区
+  if (deviceId !== undefined && deviceId !== null && deviceId !== "") {
+    fetchCandidateDeptIds(deviceId);
+  } else {
+    // 兜底：从 deviceNumberList 中按编号查找 deviceId
+    const found = deviceNumberList.value.find((d) => d.deviceNumber === num);
+    if (found) {
+      fetchCandidateDeptIds(found.deviceId);
+    } else {
+      // 未找到设备 ID，不猜分区
+      candidateDeptIds.value = [];
+    }
+  }
+}
+
+/**
+ * 手输设备编号时重置选中状态：
+ * 用户手输且没有选中已知建议项时，不猜分区，提交前提示重新选择设备。
+ * 候选分区也清空，分区下拉恢复显示全部可见分区。
+ */
+function onDeviceNumberInput() {
+  deviceSelectedFromSuggestion.value = false;
+  candidateDeptIds.value = [];
+  candidateDeptState.value = "idle";
 }
 
 function hideDeviceSuggestions() {
@@ -1057,9 +1154,9 @@ async function fetchLeakPoints() {
     const p = parsePage(res);
     if (p.pageNum && p.pageNum !== pagination.pageNum) pagination.pageNum = p.pageNum;
     if (p.pageSize && p.pageSize !== pagination.pageSize) pagination.pageSize = p.pageSize;
-    const filteredRecords = applyLocalFilters(p.records);
-    records.value = applyLocalSort(filteredRecords);
-    total.value = filteredRecords.length !== p.records.length ? filteredRecords.length : p.total;
+    // 直接使用后端返回的 records/total，跨页筛选与排序由后端负责
+    records.value = p.records;
+    total.value = p.total;
     selectedIds.value = new Set();
     selectFirstRow();
     fillWorkOrderNumbers();
@@ -1133,7 +1230,28 @@ function toggleSelectAll() { selectedIds.value = isAllSelected.value ? new Set()
 function openCreateDialog() { isEditing.value = false; resetForm(); dialogVisible.value = true; }
 function openEditDialog() {
   if (!selectedRecord.value) { uni.showToast({ title: t("leakManagement.selectLeakPointFirst"), icon: "none" }); return; }
-  isEditing.value = true; resetForm(); fillForm(selectedRecord.value); dialogVisible.value = true;
+  isEditing.value = true; resetForm(); fillForm(selectedRecord.value);
+  // 编辑场景：保存规范化初始 deviceNumber/deptId 快照
+  // buildUpdatePayload 据此省略未变化的字段，避免触发后端重新校验历史设备-分区组合
+  initialDeviceNumber.value = form.deviceNumber.trim();
+  initialDeptId.value = form.deptId;
+  // 按原设备编号在已加载的可见设备建议中做 trim、忽略大小写的唯一匹配
+  // 命中时异步加载候选供后续修改使用；未匹配或命中多个时不猜 deviceId
+  if (initialDeviceNumber.value) {
+    const matched = deviceNumberList.value.filter(
+      (d) => d.deviceNumber.trim().toLowerCase() === initialDeviceNumber.value.toLowerCase()
+    );
+    if (matched.length === 1) {
+      deviceSelectedFromSuggestion.value = true;
+      // 异步加载候选，不阻塞编辑弹窗打开
+      fetchCandidateDeptIds(matched[0].deviceId);
+    } else {
+      // 未匹配或命中多个：不猜 deviceId，用户不改设备/分区可正常编辑其他字段
+      deviceSelectedFromSuggestion.value = false;
+      candidateDeptState.value = "idle";
+    }
+  }
+  dialogVisible.value = true;
 }
 function closeDialog() { dialogVisible.value = false; formLeakStatusDropdownVisible.value = false; formDeptDropdownVisible.value = false; resetForm(); }
 
@@ -1152,6 +1270,12 @@ function resetForm() {
   videoList.value.forEach((v) => revokeBlobUrl(v.url));
   audioList.value.forEach((a) => revokeBlobUrl(a.url));
   photoList.value = []; photoIdListText.value = ""; videoList.value = []; audioList.value = []; clearValidationErrors();
+  // 重置设备-分区联动状态
+  deviceSelectedFromSuggestion.value = false;
+  candidateDeptIds.value = [];
+  candidateDeptState.value = "idle";
+  initialDeviceNumber.value = "";
+  initialDeptId.value = "";
 }
 
 function fillForm(item: RecordItem) {
@@ -1209,7 +1333,34 @@ function validateForm(): boolean {
   if (!form.tubeBore.trim()) { validationErrors.tubeBore = t("validation.tubeBoreRequired"); valid = false; }
   if (!form.tubeBuriedDepth.trim()) { validationErrors.tubeBuriedDepth = t("validation.tubeDepthRequired"); valid = false; }
   if (!form.deviceNumber.trim()) { validationErrors.deviceNumber = t("validation.deviceNumberRequired"); valid = false; }
-  if (!isAdminUser() && !form.deptId) { uni.showToast({ title: t("validation.deptIdRequired"), icon: "none" }); valid = false; }
+  // 设备-分区候选联动校验（改动.md C1 第3-5条）
+  const deviceChanged = isEditing.value
+    ? form.deviceNumber.trim() !== initialDeviceNumber.value
+    : false;
+  const deptChanged = isEditing.value
+    ? form.deptId !== initialDeptId.value
+    : false;
+  if (form.deviceNumber.trim() && !deviceSelectedFromSuggestion.value && (deviceChanged || !isEditing.value)) {
+    // 新增场景或用户修改了设备编号但未选中建议项：不猜分区，提示重新选择设备
+    uni.showToast({ title: t("leakManagement.pleaseSelectDeviceFromList"), icon: "none" });
+    valid = false;
+  } else if ((deviceChanged || deptChanged) && candidateDeptState.value === "loading") {
+    // 候选正在加载中：禁用提交
+    uni.showToast({ title: t("leakManagement.deptLoading"), icon: "none" });
+    valid = false;
+  } else if ((deviceChanged || deptChanged) && candidateDeptState.value === "error") {
+    // 候选加载失败：提示重试
+    uni.showToast({ title: t("leakManagement.deptLoadFailed"), icon: "none" });
+    valid = false;
+  } else if ((deviceChanged || deptChanged) && candidateDeptState.value === "ready" && candidateDeptIds.value.length === 0) {
+    // 用户修改了设备/分区且候选为空：阻止提交
+    uni.showToast({ title: t("leakManagement.deviceNoAvailableDept"), icon: "none" });
+    valid = false;
+  } else if (!isAdminUser() && !form.deptId) {
+    // 普通用户必须选择分区
+    uni.showToast({ title: t("validation.deptIdRequired"), icon: "none" });
+    valid = false;
+  }
   return valid;
 }
 
@@ -1284,21 +1435,17 @@ function removePhoto(idx: number) { photoList.value.splice(idx, 1); form.sceneIm
 
 function escapeCsvCell(value: unknown): string {
   if (value === undefined || value === null) return "";
-  const text = String(value).replace(/"/g, '""');
-  return /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+  const rawText = String(value).replace(/"/g, '""');
+  // 按改动.md C6：用 trimStart() 检查前导空白后的首字符，防止前导空格绕过公式注入防护
+  return /^[=+\-@\t\r]/.test(rawText.trimStart()) ? `'${rawText}` : rawText;
 }
 
-// 已知技术债：导出全部使用 pageSize:99999 一次性拉取，后端限制最大 pageSize 或数据量超过 10 万时导出会静默不全。后续应改为循环分页拉取。
 async function handleExport(scope: "current" | "all") {
   exportMenuVisible.value = false;
   let exportRecords = records.value;
   if (scope === "all") {
     try {
-      const params = { ...buildQuery(), pageNum: 1, pageSize: 99999 };
-      const response = (await getLeakPointPage(params)) as Res;
-      ok(response);
-      const p = parsePage(response);
-      exportRecords = p.records;
+      exportRecords = await fetchAllPages<RecordItem>(getLeakPointPage, buildQuery());
     } catch {
       uni.showToast({ title: t("leakManagement.loadFailed"), icon: "none" });
       return;
@@ -1534,7 +1681,11 @@ function closeMapPicker() {
   
 }
 
-function buildPayload() {
+/**
+ * Create payload：必填字段校验后发送，可空字段未填则不发送（不传 null）。
+ * 不发送 manualReviewCount（后端系统字段，由后端初始化为 0）。
+ */
+function buildCreatePayload(): Record<string, unknown> {
   return rmEmpty({
     detectType: form.detectType.trim(),
     detectTime: normDt(form.detectTime),
@@ -1557,24 +1708,89 @@ function buildPayload() {
     leakArea: form.leakArea.trim(),
     repairTime: normDt(form.repairTime) || undefined,
     sceneImages: form.sceneImages.trim() || undefined,
-    sceneVideo: form.sceneVideo.trim(),
-    manualReviewCount: form.manualReviewCount.trim() ? Number(form.manualReviewCount) : undefined,
+    sceneVideo: form.sceneVideo.trim() || undefined,
     deviceNumber: form.deviceNumber.trim(),
     noiseTime: normDt(form.noiseTime) || undefined,
     leakStatus: form.leakStatus,
     featureValue: form.featureValue.trim(),
     audioFile: form.audioFile.trim(),
     repairMethod: form.repairMethod.trim(),
-    description: form.description.trim(),
+    description: form.description.trim() || undefined,
     deptId: form.deptId ? Number(form.deptId) : undefined,
   });
 }
 
+/**
+ * Update payload：JSON Patch 语义。
+ * - 必填字段始终发送（即使为空也 trim 后发送，由后端校验拒绝空值）；
+ * - 可空字段当前值为空时显式发送 null（清空数据库原值）；
+ * - 不发送 manualReviewCount（后端系统字段，公开 Update 不修改）；
+ * - 缺失字段（不在 payload 中）后端不修改。
+ */
+function buildUpdatePayload(): Record<string, unknown> {
+  // 改动.md C1 第3条：省略未变化的 deviceNumber/deptId
+  // 避免触发后端重新校验历史设备-分区组合，保持"普通字段编辑不触发 Validator"的后端合同
+  const deviceChanged = form.deviceNumber.trim() !== initialDeviceNumber.value;
+  const deptChanged = form.deptId !== initialDeptId.value;
+
+  const payload: Record<string, unknown> = {
+    // 必填字段：始终发送
+    detectTime: normDt(form.detectTime),
+    leakPointType: form.leakPointType.trim(),
+    leakPointPosition: form.leakPointPosition.trim(),
+    leakPart: form.leakPart.trim(),
+    inspector: form.inspector.trim(),
+    tubeMaterial: form.tubeMaterial.trim(),
+    tubeBore: form.tubeBore.trim(),
+    tubeBuriedDepth: form.tubeBuriedDepth.trim(),
+    // deviceNumber/deptId：仅在实际变化时发送，未变化时省略以避免触发后端 Validator
+    // 可选文本字段：空值显式发 null 清空
+    detectType: form.detectType.trim() || null,
+    detectDifficulty: form.detectDifficulty.trim() || null,
+    coordinatePosition: form.coordinatePosition.trim() || null,
+    leakVolume: form.leakVolume.trim() || null,
+    tubeAge: form.tubeAge.trim() || null,
+    leakReason: form.leakReason.trim() || null,
+    leakDistance: form.leakDistance.trim() || null,
+    noiseSample: form.noiseSample.trim() || null,
+    locator: form.locator.trim() || null,
+    leakArea: form.leakArea.trim() || null,
+    featureValue: form.featureValue.trim() || null,
+    audioFile: form.audioFile.trim() || null,
+    repairMethod: form.repairMethod.trim() || null,
+    description: form.description.trim() || null,
+    leakStatus: form.leakStatus || null,
+    // 数值/日期字段：空值显式发 null 清空
+    cost: form.cost.trim() === "" ? null : form.cost.trim(),
+    repairTime: normDt(form.repairTime) || null,
+    sceneImages: form.sceneImages.trim() || null,
+    sceneVideo: form.sceneVideo.trim() || null,
+    noiseTime: normDt(form.noiseTime) || null,
+  };
+  // 仅在实际变化时发送 deviceNumber/deptId
+  if (deviceChanged) payload.deviceNumber = form.deviceNumber.trim();
+  if (deptChanged) payload.deptId = form.deptId ? Number(form.deptId) : null;
+  return payload;
+}
+
 async function submitForm() {
   if (!validateForm()) { const fe = validationErrors.detectTime || validationErrors.leakPointType || validationErrors.leakPointPosition || validationErrors.leakPart || validationErrors.inspector || validationErrors.tubeMaterial || validationErrors.tubeBore || validationErrors.tubeBuriedDepth || validationErrors.deviceNumber; if (fe) uni.showToast({ title: fe, icon: "none" }); return; }
+  // 方案B：管理员不选分区时二次确认，明确提示"普通用户将不可见"
+  // 覆盖所有 deptId 为空的场景：没选设备、候选0个、候选多个未选
+  if (isAdminUser() && !form.deptId) {
+    const confirmed = await new Promise<boolean>((resolve) => {
+      uni.showModal({
+        title: t("common.confirm"),
+        content: t("leakManagement.adminNoDeptConfirm"),
+        success: (res) => resolve(res.confirm),
+        fail: () => resolve(false),
+      });
+    });
+    if (!confirmed) return;
+  }
   submitting.value = true;
   try {
-    const payload = buildPayload(); let res: Res;
+    const payload = isEditing.value ? buildUpdatePayload() : buildCreatePayload(); let res: Res;
     if (isEditing.value) { res = (await updateLeakPoint(getRowId(selectedRecord.value!), payload)) as Res; }
     else { res = (await createLeakPoint(payload)) as Res; }
     ok(res); uni.showToast({ title: isEditing.value ? t("leakManagement.editSuccess") : t("leakManagement.addSuccess"), icon: "success" }); closeDialog(); fetchLeakPoints();
@@ -1956,24 +2172,26 @@ function translateLeakStatusCode(code: string): string {
 }
 
 // 获取 leakStatus 的展示文本（normalize + translate）
+// 使用 normalizeLeakPointRecordStatus 统一历史脏状态口径
 function getLeakStatusDisplay(item: RecordItem | null): string {
   const raw = getFieldValue(item, "leakStatus");
-  if (raw === null || raw === undefined || raw === "") return "-";
-  const code = normalizeLeakStatusCode(raw, "leakage");
+  // 按改动.md C1 第9条：不提前返回 "-"，统一调用 normalizeLeakPointRecordStatus
+  // NULL/空字符串在 SQL C 回填前按"未修复"显示，与筛选、KPI 和 CSV 口径一致
+  const code = normalizeLeakPointRecordStatus(raw);
   return translateLeakStatusCode(code);
 }
 
 function getLeakStatusClass(item: RecordItem | null): string {
-  const s = getFieldValue(item, "leakStatus");
-  if (isUnrepairedStatus(s)) return "level-pill--heavy";
-  if (isRepairedStatus(s)) return "level-pill--light";
+  const code = normalizeLeakPointRecordStatus(getFieldValue(item, "leakStatus"));
+  if (code === LEAK_STATUS.UNREPAIRED) return "level-pill--heavy";
+  if (code === LEAK_STATUS.REPAIRED) return "level-pill--light";
   return "";
 }
 
 function getLeakStatusBadgeClass(item: RecordItem | null): string {
-  const s = getFieldValue(item, "leakStatus");
-  if (isUnrepairedStatus(s)) return "detail-summary__badge--heavy";
-  if (isRepairedStatus(s)) return "detail-summary__badge--light";
+  const code = normalizeLeakPointRecordStatus(getFieldValue(item, "leakStatus"));
+  if (code === LEAK_STATUS.UNREPAIRED) return "detail-summary__badge--heavy";
+  if (code === LEAK_STATUS.REPAIRED) return "detail-summary__badge--light";
   return "";
 }
 
@@ -2004,50 +2222,7 @@ function arr(v: unknown, ks: string[]): unknown[] { if (!isObj(v)) return []; fo
 function num(v: unknown, ks: string[]): number | undefined { if (!isObj(v)) return undefined; for (const k of ks) { const a = (v as RecordItem)[k]; if (typeof a === "number") return a; if (typeof a === "string" && a.trim() && !isNaN(Number(a))) return Number(a); } return undefined; }
 function isObj(v: unknown): v is RecordItem { return Boolean(v && typeof v === "object" && !Array.isArray(v)); }
 function rmEmpty(obj: RecordItem): RecordItem { return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== "" && v !== undefined && v !== null)); }
-function applyLocalFilters(list: RecordItem[]): RecordItem[] {
-  // 后端不支持 inspector/locator/leakStatus 筛选，全部走本地过滤
-  // 已知限制：本地过滤只能过滤当前页数据，跨页数据不可见
-  const inspectorKey = filters.inspector.trim().toLowerCase();
-  const locatorKey = filters.locator.trim().toLowerCase();
-  const statusKey = filters.leakStatus.trim();
-  if (!inspectorKey && !locatorKey && !statusKey) return list;
-  return list.filter((item) => {
-    if (inspectorKey && !String(getFieldValue(item, "inspector") || "").toLowerCase().includes(inspectorKey)) return false;
-    if (locatorKey && !String(getFieldValue(item, "locator") || "").toLowerCase().includes(locatorKey)) return false;
-    if (statusKey && !matchLeakStatus(getFieldValue(item, "leakStatus"), statusKey)) return false;
-    return true;
-  });
-}
-
-/**
- * 状态匹配：兼容 "已修复" 中文 code 和 "repaired" 英文 code
- * 用于本地过滤，避免国际化后状态匹配失败
- */
-function matchLeakStatus(actual: string, expected: string): boolean {
-  if (actual === expected) return true;
-  if (expected === LEAK_STATUS.REPAIRED && isRepairedStatus(actual)) return true;
-  if (expected === LEAK_STATUS.UNREPAIRED && isUnrepairedStatus(actual)) return true;
-  return false;
-}
-
-function applyLocalSort(list: RecordItem[]): RecordItem[] {
-  if (!sortField.value || !sortOrder.value) return list;
-  const field = sortField.value;
-  const order = sortOrder.value;
-  return [...list].sort((a, b) => {
-    let va = gv(a, field);
-    let vb = gv(b, field);
-    if (field === "detectTime" || field === "createdAt") {
-      va = String(va ?? "");
-      vb = String(vb ?? "");
-    }
-    if (va === undefined || va === null) return 1;
-    if (vb === undefined || vb === null) return -1;
-    if (va < vb) return order === "asc" ? -1 : 1;
-    if (va > vb) return order === "asc" ? 1 : -1;
-    return 0;
-  });
-}
+function rmUndefined(obj: RecordItem): RecordItem { return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)); }
 
 function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || c === 0 || c === 200) return; throw { code: c, msg: res?.msg || t("common.requestFailed") }; }
 </script>
@@ -2227,6 +2402,7 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .photo-add-icon { font-size: 26px; font-weight: 300; color: #94a3b8; line-height: 1; }
 .photo-add-label { font-size: 11px; color: #94a3b8; }
 .form-input--hidden-id { margin-top: 10px; height: 32px; font-size: 12px; color: #94a3b8; background: #f9fafb; }
+.form-input--readonly { color: #475569; background: #f1f5f9; cursor: default; }
 
 .dialog-actions { display: flex; flex: none; justify-content: flex-end; gap: 12px; padding: 12px 22px; padding-bottom: calc(12px + env(safe-area-inset-bottom)); background: #fff; border-top: 1px solid #edf3f8; box-shadow: 0 -4px 16px rgba(24,55,85,0.06); }
 .dialog-btn { display: flex; align-items: center; justify-content: center; min-width: 80px; height: 38px; padding: 0 22px; font-size: 14px; font-weight: 700; border-radius: 6px; cursor: pointer; transition: opacity 0.16s ease; &--cancel { color: #34495e; background: #f1f5f9; border: 1px solid #d5e2ee; } &--primary { color: #fff; background: #3b82f6; border: 1px solid #3b82f6; } &--hover { opacity: 0.85; } &:disabled { opacity: 0.45; cursor: not-allowed; } }

@@ -7,7 +7,7 @@ import { createCrudService } from "@/services/shared/crud";
 
 const leakageRecordApi = createCrudService("/api/leak-point");
 const deviceStatusUploadApi = createCrudService("/api/device-status-upload");
-const algorithmResultApi = createCrudService("/api/algorithm-invoke-log");
+const algorithmInvokeLogApi = createCrudService("/api/algorithm-invoke-log");
 const samplingRecordApi = createCrudService("/api/sampling-record");
 const samplingDetailApi = createCrudService("/api/sampling-detail");
 const samplingDailyApi = createCrudService("/api/device-daily-data");
@@ -20,9 +20,9 @@ export const getLeakageHistoryDetail = leakageRecordApi.getDetail;
 export const getDeviceStatusUploadPage = deviceStatusUploadApi.getPage;
 export const getDeviceStatusUploadDetail = deviceStatusUploadApi.getDetail;
 
-// 算法分析结果
-export const getAlgorithmResultHistoryPage = algorithmResultApi.getPage;
-export const getAlgorithmResultHistoryDetail = algorithmResultApi.getDetail;
+// 算法调用日志
+export const getAlgorithmInvokeLogHistoryPage = algorithmInvokeLogApi.getPage;
+export const getAlgorithmInvokeLogHistoryDetail = algorithmInvokeLogApi.getDetail;
 
 // 采样记录
 export const getSamplingRecordHistoryPage = samplingRecordApi.getPage;
@@ -41,8 +41,8 @@ export default {
   getLeakageHistoryDetail,
   getDeviceStatusUploadPage,
   getDeviceStatusUploadDetail,
-  getAlgorithmResultHistoryPage,
-  getAlgorithmResultHistoryDetail,
+  getAlgorithmInvokeLogHistoryPage,
+  getAlgorithmInvokeLogHistoryDetail,
   getSamplingRecordHistoryPage,
   getSamplingRecordHistoryDetail,
   getSamplingDetailHistoryPage,
