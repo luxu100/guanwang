@@ -13,13 +13,6 @@
     <view class="top-bar">
       <view class="brand">
         <image
-          v-if="isChineseLocale"
-          class="brand__logo brand__logo--domestic"
-          :src="logoImage"
-          mode="widthFix"
-        />
-        <image
-          v-else
           class="brand__logo brand__logo--foreign"
           :src="logoForeignImage"
           mode="widthFix"
@@ -209,7 +202,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import type { Component } from "vue";
-import logoImage from "@/assets/images/logo-nav.webp";
 import logoForeignImage from "@/assets/images/logo-foreign-nav.webp";
 import AdminPlaceholderView from "@/components/admin/AdminPlaceholderView.vue";
 import AppShellModuleHost from "@/components/app-shell/AppShellModuleHost.vue";
@@ -247,7 +239,6 @@ const DEFAULT_PAGE_PATH = LEAK_MONITOR_PATH;
 const menuT = createScopedT("appShellMenu");
 const shellT = createScopedT("appShell");
 const { locale } = useI18n();
-const isChineseLocale = computed(() => locale.value === "zh-CN");
 const {
   CommandConfigurationView,
   CommandManageView,
