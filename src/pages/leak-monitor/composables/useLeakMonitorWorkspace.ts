@@ -103,9 +103,11 @@ export function useLeakMonitorWorkspace(localized?: Readonly<Ref<boolean>>) {
   const detail = ref<DeviceDetailState>(emptyDetail());
   const filters = reactive<LeakMonitorFilters>({
     deviceNumber: "",
-    deviceType: "",
+    manualAnalysis: "",
+    algorithmAnalysisStatus: "",
     onlineStatus: "",
     leakStatus: "",
+    deptId: "",
     todayNew: "",
     latestInstalled: "",
   });
@@ -131,8 +133,13 @@ export function useLeakMonitorWorkspace(localized?: Readonly<Ref<boolean>>) {
     { key: "unknown", label: t("unknown"), value: readCount(sidebarData.value, "unknownCount"), tone: "muted" },
   ]);
 
-  const mapPoints = computed<MapDevicePoint[]>(() =>
-    mapDevices.value
+  const mapPoints = computed<MapDevicePoint[]>(() => {
+    const filteredDeviceNumbers = new Set(
+      sidebarDevices.value.map((device) => device.deviceNumber),
+    );
+
+    return mapDevices.value
+      .filter((device) => filteredDeviceNumbers.has(device.deviceNumber))
       .filter((device) =>
         typeof device.lat === "number" &&
         typeof device.lng === "number" &&
@@ -166,21 +173,24 @@ export function useLeakMonitorWorkspace(localized?: Readonly<Ref<boolean>>) {
           lat: device.lat as number,
           lng: device.lng as number,
         };
-      }),
-  );
+      });
+  });
 
   async function refreshSidebar() {
     const requestId = ++sidebarRequestId;
     sidebarLoading.value = true;
     try {
-      const result = await fetchLeakMonitorSidebar();
+      const result = await fetchLeakMonitorSidebar(filters);
       if (requestId !== sidebarRequestId) return;
       sidebarData.value = result.data;
       sidebarDevices.value = result.devices;
       onlineRate.value = result.onlineRate;
       communicationRate.value = result.communicationRate;
     } catch (error) {
-      if (requestId === sidebarRequestId) console.error(error);
+      if (requestId === sidebarRequestId) {
+        sidebarDevices.value = [];
+        console.error(error);
+      }
     } finally {
       if (requestId === sidebarRequestId) sidebarLoading.value = false;
     }
@@ -422,9 +432,11 @@ export function useLeakMonitorWorkspace(localized?: Readonly<Ref<boolean>>) {
   function resetFilters() {
     Object.assign(filters, {
       deviceNumber: "",
-      deviceType: "",
+      manualAnalysis: "",
+      algorithmAnalysisStatus: "",
       onlineStatus: "",
       leakStatus: "",
+      deptId: "",
       todayNew: "",
       latestInstalled: "",
     } satisfies LeakMonitorFilters);

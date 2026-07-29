@@ -202,7 +202,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import type { Component } from "vue";
-import logoForeignImage from "@/assets/images/logo-foreign-nav.webp";
+import logoForeignImage from "@/assets/images/logo-foreign-white.webp";
 import AdminPlaceholderView from "@/components/admin/AdminPlaceholderView.vue";
 import AppShellModuleHost from "@/components/app-shell/AppShellModuleHost.vue";
 import LanguageSelect from "@/components/common/LanguageSelect.vue";

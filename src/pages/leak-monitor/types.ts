@@ -8,9 +8,11 @@ export interface MapCoordinate {
 
 export interface LeakMonitorFilters {
   deviceNumber: string;
-  deviceType: string;
+  manualAnalysis: "" | "正常" | "疑似" | "渗漏" | "未知";
+  algorithmAnalysisStatus: "" | "0" | "1" | "2" | "3";
   onlineStatus: "" | "0" | "1";
   leakStatus: "" | "0" | "1" | "2" | "3";
+  deptId: string;
   todayNew: "" | "true" | "false";
   latestInstalled: "" | "true" | "false";
 }
