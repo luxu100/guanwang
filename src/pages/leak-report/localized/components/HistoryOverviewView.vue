@@ -469,12 +469,14 @@ import {
   getLeakageHistoryDetail,
   getDeviceStatusUploadPage,
   getDeviceStatusUploadDetail,
-  getAlgorithmResultHistoryPage,
-  getAlgorithmResultHistoryDetail,
+  getAlgorithmInvokeLogHistoryPage,
+  getAlgorithmInvokeLogHistoryDetail,
 } from "@/services/leak-report/history-overview";
 import WorkOrderDatetimePicker from "@/pages/work-order/localized/components/WorkOrderDatetimePicker.vue";
 import LeakTableView from "@/pages/leak-report/localized/components/LeakTableView.vue";
 import { createScopedT, useI18n } from "@/i18n";
+import { fetchAllPages } from "@/utils/fetch-all-pages";
+import { resolvePublicFileUrl } from "@/utils/public-file-url";
 import {
   LEAK_STATUS,
   ALGORITHM_STATUS,
@@ -489,6 +491,7 @@ import {
   isAlgorithmTimeout,
   isAlgorithmSkipped,
   normalizeLeakStatusCode,
+  normalizeLeakPointRecordStatus,
 } from "@/pages/leak-report/constants/status";
 
 const t = createScopedT("leakReport");
@@ -534,7 +537,7 @@ const leakStatusOptions = computed<Array<{ label: string; value: number | "" }>>
   { label: t("status.unknown"), value: 3 },
 ]);
 
-// 渗漏记录 tab 专属：漏点记录的 leakStatus 是字符串（已修复/未修复），后端不支持该字段筛选，需本地过滤
+// 渗漏记录 tab 专属：漏点记录的 leakStatus 是字符串（已修复/未修复）
 const leakageStatusOptions = computed<Array<{ label: string; value: number | string | "" }>>(() => [
   { label: t("status.statusUnlimited"), value: "" },
   { label: t("status.repaired"), value: LEAK_STATUS.REPAIRED },
@@ -625,6 +628,8 @@ const total = ref(0);
 const loading = ref(false);
 let detailRequestId = 0;
 let fetchRequestId = 0;
+// 全量数据请求序号：用于使旧 Tab/旧筛选的全量请求失效
+let allRecordsRequestId = 0;
 const activeDataTab = ref<DataTab>("leakage");
 const exportMenuVisible = ref(false);
 type HistoryDetailTab = "basic" | "detail";
@@ -674,8 +679,9 @@ const currentKpis = computed<KpiItem[]>(() => {
   const tone = (ok: boolean): KpiTone => (ok ? "success" : "warning");
 
   if (activeDataTab.value === "leakage") {
-    const repaired = list.filter((r) => isRepairedStatus(normalizeLeakStatusCode(getFieldValue(r, "leakStatus"), "leakage"))).length;
-    const unrepaired = list.filter((r) => isUnrepairedStatus(normalizeLeakStatusCode(getFieldValue(r, "leakStatus"), "leakage"))).length;
+    // 使用 normalizeLeakPointRecordStatus 统一历史脏状态口径
+    const repaired = list.filter((r) => normalizeLeakPointRecordStatus(getFieldValue(r, "leakStatus")) === LEAK_STATUS.REPAIRED).length;
+    const unrepaired = list.filter((r) => normalizeLeakPointRecordStatus(getFieldValue(r, "leakStatus")) === LEAK_STATUS.UNREPAIRED).length;
     const rate = page > 0 ? Math.round((repaired / page) * 100) : 0;
     return [
       { label: t("historyOverview.kpi.totalRecords"), value: String(totalNum) },
@@ -775,7 +781,7 @@ const trendGrainOptions = computed<Array<{ label: string; value: TrendGrainSize 
 ]);
 // 图表实际使用的数据源
 const chartRecords = computed<HistoryRecord[]>(() =>
-  chartDataScope.value === "all" ? applyLocalFilters(allRecords.value) : records.value,
+  chartDataScope.value === "all" ? allRecords.value : records.value,
 );
 
 // 解析记录的时间字段，返回 YYYY-MM-DD
@@ -1479,47 +1485,25 @@ function switchChartMode(mode: string) {
   nextTick(renderChart);
 }
 
-// 拉取全量数据：分页并发拉取（每页 200 条，最多 5 个并发）
+// 拉取全量数据：固定查询快照 + requestId 防止旧 Tab/旧筛选的全量结果写回新状态
 async function ensureAllRecords() {
   if (allRecords.value.length > 0 || chartAllLoading.value) return;
+  const reqId = ++allRecordsRequestId;
   chartAllLoading.value = true;
   try {
     const api = getApiFunction();
-    const pageSize = 200;
-    // 先请求第一页，获取 total
-    const firstParams = { ...buildQueryParams(), pageNum: 1, pageSize };
-    const firstResponse = (await api.page(firstParams)) as ApiResponseLike;
-    assertSuccessResponse(firstResponse);
-    const firstParsed = parsePageResponse(firstResponse);
-    const totalCount = firstParsed.total;
-    const totalPages = Math.ceil(totalCount / pageSize);
-
-    if (totalPages <= 1) {
-      allRecords.value = firstParsed.records;
-    } else {
-      // 并发请求剩余页（每批最多 5 个并发）
-      const restPages: number[] = [];
-      for (let p = 2; p <= totalPages; p++) restPages.push(p);
-      const allData: HistoryRecord[] = [...firstParsed.records];
-      for (let i = 0; i < restPages.length; i += 5) {
-        const batch = restPages.slice(i, i + 5);
-        const results = await Promise.all(
-          batch.map((p) =>
-            (api.page({ ...buildQueryParams(), pageNum: p, pageSize })) as PromiseLike<ApiResponseLike>,
-          ),
-        );
-        for (const res of results) {
-          assertSuccessResponse(res);
-          allData.push(...parsePageResponse(res).records);
-        }
-      }
-      allRecords.value = allData;
-    }
+    // 在开始时固定查询参数快照，避免循环中读取可变的当前筛选
+    const snapshotParams = buildQueryParams();
+    const result = await fetchAllPages<HistoryRecord>(api.page, snapshotParams, { pageSize: 200, concurrency: 5 });
+    // 切换 Tab 或筛选变化后，旧请求结果不再写回
+    if (reqId !== allRecordsRequestId) return;
+    allRecords.value = result;
   } catch {
+    if (reqId !== allRecordsRequestId) return;
     allRecords.value = [];
     uni.showToast({ title: t("historyOverview.fetchAllFailed"), icon: "none" });
   } finally {
-    chartAllLoading.value = false;
+    if (reqId === allRecordsRequestId) chartAllLoading.value = false;
   }
 }
 
@@ -1732,10 +1716,29 @@ function handleAlgorithmStatusChange(event: { detail: { value: number } }) {
 }
 
 function switchDataTab(tab: DataTab) {
+  // 切换 Tab 时重置该 Tab 的默认排序、清空业务筛选/选择/全量缓存、使旧请求失效
+  // 必须清空 leakStatus：漏点 Tab 是字符串（已修复/未修复），设备上报 Tab 是 Integer，类型不兼容会导致反序列化失败
+  // 公共 startTime/endTime 三个 Tab 都用且类型一致，保留
   activeDataTab.value = tab;
+  // 重置为该 Tab 的默认排序字段
+  const defaultSort = tab === "leakage" ? "detectTime" : tab === "algorithm" ? "createdAt" : tab === "deviceUpload" ? "uploadTime" : "createdAt";
+  sortField.value = defaultSort;
+  sortOrder.value = "desc";
   pagination.pageNum = 1;
+  // 清空业务筛选（leakStatus/deviceNumber/inspector/algorithmStatus/algorithmName）
+  filters.leakStatus = "";
+  filters.deviceNumber = "";
+  filters.inspector = "";
+  filters.algorithmStatus = "";
+  filters.algorithmName = "";
   selectedRecord.value = null;
   selectedRecordKey.value = "";
+  // 清空全量缓存并使旧全量请求失效
+  allRecords.value = [];
+  allRecordsRequestId++;
+  // 使旧的列表/详情请求失效
+  fetchRequestId++;
+  detailRequestId++;
   fetchHistoryData();
 }
 
@@ -1764,7 +1767,9 @@ function buildQueryParams() {
 
   // 按 tab 传递对应的业务筛选参数
   if (activeDataTab.value === "leakage") {
-    // 后端 LeakPointRecordPageDTO 不支持 leakStatus 和 inspector，这两个走本地过滤
+    // 后端 LeakPointRecordPageDTO 已支持 inspector/locator/leakStatus，跨页筛选交给后端
+    if (filters.leakStatus !== "") (baseParams as Record<string, unknown>).leakStatus = filters.leakStatus;
+    if (filters.inspector.trim()) (baseParams as Record<string, unknown>).inspector = filters.inspector.trim();
   } else if (activeDataTab.value === "deviceUpload") {
     if (filters.leakStatus !== "") (baseParams as Record<string, unknown>).leakStatus = filters.leakStatus;
     if (filters.deviceNumber.trim()) (baseParams as Record<string, unknown>).deviceNumber = filters.deviceNumber.trim();
@@ -1781,7 +1786,7 @@ function getApiFunction() {
   const apiMap: Record<DataTab, { page: typeof getLeakageHistoryPage; detail: typeof getLeakageHistoryDetail }> = {
     leakage: { page: getLeakageHistoryPage, detail: getLeakageHistoryDetail },
     deviceUpload: { page: getDeviceStatusUploadPage, detail: getDeviceStatusUploadDetail },
-    algorithm: { page: getAlgorithmResultHistoryPage, detail: getAlgorithmResultHistoryDetail },
+    algorithm: { page: getAlgorithmInvokeLogHistoryPage, detail: getAlgorithmInvokeLogHistoryDetail },
   };
   return apiMap[activeDataTab.value];
 }
@@ -1797,11 +1802,12 @@ async function fetchHistoryData() {
     const parsed = parsePageResponse(response);
     if (parsed.pageNum && parsed.pageNum !== pagination.pageNum) pagination.pageNum = parsed.pageNum;
     if (parsed.pageSize && parsed.pageSize !== pagination.pageSize) pagination.pageSize = parsed.pageSize;
-    const filteredRecords = applyLocalFilters(parsed.records);
-    records.value = applyLocalSort(filteredRecords);
-    total.value = filteredRecords.length !== parsed.records.length ? filteredRecords.length : parsed.total;
+    // 直接使用后端返回的 records/total，跨页筛选和排序由后端负责
+    records.value = parsed.records;
+    total.value = parsed.total;
     // 筛选/分页条件变化时清空全量数据缓存，强制重新拉取
     allRecords.value = [];
+    allRecordsRequestId++;
     // 如果当前是「全部」模式，清空后需要重新拉取全量数据
     if (chartDataScope.value === "all") {
       ensureAllRecords().then(() => nextTick(renderChart));
@@ -1826,22 +1832,18 @@ function searchHistory() {
 
 function escapeCsvCell(value: unknown): string {
   if (value === undefined || value === null) return "";
-  const text = String(value).replace(/"/g, '""');
-  return /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+  const rawText = String(value).replace(/"/g, '""');
+  // 按改动.md C6：用 trimStart() 检查前导空白后的首字符，防止前导空格绕过公式注入防护
+  return /^[=+\-@\t\r]/.test(rawText.trimStart()) ? `'${rawText}` : rawText;
 }
 
-// 已知技术债：导出全部使用 pageSize:99999 一次性拉取，后端限制最大 pageSize 或数据量超过 10 万时导出会静默不全。后续应改为循环分页拉取。
 async function handleExport(scope: "current" | "all") {
   exportMenuVisible.value = false;
   let exportRecords = records.value;
   if (scope === "all") {
     try {
       const api = getApiFunction();
-      const params = { ...buildQueryParams(), pageNum: 1, pageSize: 99999 };
-      const response = (await api.page(params)) as ApiResponseLike;
-      assertSuccessResponse(response);
-      const parsed = parsePageResponse(response);
-      exportRecords = applyLocalFilters(parsed.records);
+      exportRecords = await fetchAllPages<HistoryRecord>(api.page, buildQueryParams());
     } catch {
       uni.showToast({ title: t("historyOverview.fetchAllFailed"), icon: "none" });
       return;
@@ -1926,15 +1928,19 @@ async function handleExport(scope: "current" | "all") {
   // #endif
 }
 
-function getBaseUrl(): string {
-  return (import.meta as unknown as { env: { VITE_API_BASE_URL?: string } }).env?.VITE_API_BASE_URL || "";
-}
-
+/**
+ * 安全附件 URL：替换原 getPreviewUrl() 自行拼接 base URL 的实现。
+ * 使用 resolvePublicFileUrl 只允许 /files/ 前缀和同源/API origin 的完整 HTTP(S) URL，
+ * 拒绝控制字符、反斜杠、路径穿越和未批准 origin，防止服务器目录泄露或 SSRF。
+ */
 function getPreviewUrl(filePath: string): string {
   if (!filePath) return "";
-  if (filePath.startsWith("http://") || filePath.startsWith("https://")) return filePath;
-  if (filePath.startsWith("/")) return `${getBaseUrl()}${filePath}`;
-  return `${getBaseUrl()}/${filePath}`;
+  const result = resolvePublicFileUrl(filePath);
+  if (!result.ok) {
+    uni.showToast({ title: t("leakManagement.attachmentPathUnavailable"), icon: "none" });
+    return "";
+  }
+  return result.url;
 }
 
 function formatMediaTime(seconds: number): string {
@@ -2260,17 +2266,19 @@ function getLeakStatusLabel(item: HistoryRecord) {
 }
 
 // leakage tab 的 leakStatus 是字符串（已修复/未修复），需要翻译为当前语言展示
+// 使用 normalizeLeakPointRecordStatus 统一历史脏状态口径
 function getLeakageStatusDisplay(item: HistoryRecord): string {
   const raw = getFieldValue(item, "leakStatus");
-  if (raw === null || raw === undefined || raw === "") return "-";
-  const code = normalizeLeakStatusCode(raw, "leakage");
+  // 按改动.md C3 第1条：不提前返回 "-"，直接复用 normalizeLeakPointRecordStatus
+  // NULL/空字符串在 SQL C 回填前按"未修复"显示，与 KPI、tag class、筛选和 CSV 口径一致
+  const code = normalizeLeakPointRecordStatus(raw);
   return translateLeakStatusCode(code);
 }
 
 function getLeakageStatusTagClass(item: HistoryRecord) {
-  const raw = getFieldValue(item, "leakStatus");
-  if (isRepairedStatus(raw)) return "status-tag--normal";
-  if (isUnrepairedStatus(raw)) return "status-tag--leak";
+  const code = normalizeLeakPointRecordStatus(getFieldValue(item, "leakStatus"));
+  if (code === LEAK_STATUS.REPAIRED) return "status-tag--normal";
+  if (code === LEAK_STATUS.UNREPAIRED) return "status-tag--leak";
   return "status-tag--unknown";
 }
 
@@ -2364,45 +2372,6 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 function removeEmptyFields(data: Record<string, unknown>) {
   return Object.fromEntries(Object.entries(data).filter(([, v]) => v !== "" && v !== undefined && v !== null));
-}
-
-// 本地过滤兜底：仅对后端不支持的字段生效（当前仅 leakage tab 的 leakStatus 和 inspector）
-function applyLocalFilters(list: HistoryRecord[]): HistoryRecord[] {
-  if (activeDataTab.value !== "leakage") return list;
-  const inspectorKey = filters.inspector.trim().toLowerCase();
-  const statusKey = filters.leakStatus !== "" ? String(filters.leakStatus) : "";
-  if (!inspectorKey && !statusKey) return list;
-  return list.filter((item) => {
-    if (inspectorKey) {
-      const inspector = String(getFieldValue(item, "inspector") || "").toLowerCase();
-      if (!inspector.includes(inspectorKey)) return false;
-    }
-    if (statusKey) {
-      const normalized = normalizeLeakStatus(getFieldValue(item, "leakStatus"), "leakage");
-      if (normalized !== statusKey) return false;
-    }
-    return true;
-  });
-}
-
-function applyLocalSort(list: HistoryRecord[]): HistoryRecord[] {
-  if (!sortField.value || !sortOrder.value) return list;
-  const field = sortField.value;
-  const order = sortOrder.value;
-  return [...list].sort((a, b) => {
-    let va: unknown = a[field];
-    let vb: unknown = b[field];
-    if (field === "leakStatus") {
-      va = Number(va); vb = Number(vb);
-    } else {
-      va = String(va ?? ""); vb = String(vb ?? "");
-    }
-    if (va === undefined || va === null) return 1;
-    if (vb === undefined || vb === null) return -1;
-    if (va < vb) return order === "asc" ? -1 : 1;
-    if (va > vb) return order === "asc" ? 1 : -1;
-    return 0;
-  });
 }
 
 function assertSuccessResponse(response: ApiResponseLike | undefined) {
