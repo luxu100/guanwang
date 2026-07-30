@@ -41,7 +41,7 @@ function getUploadAuthHeader() {
 
 function getLogoUploadUrl() {
   const env = import.meta.env;
-  const baseUrl = String(env.VITE_DEV_PROXY_TARGET || env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+  const baseUrl = String(env.VITE_API_BASE_URL || "").replace(/\/$/, "");
   return `${baseUrl}/api/sys-file/upload/image`;
 }
 

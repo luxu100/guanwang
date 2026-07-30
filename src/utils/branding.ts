@@ -6,7 +6,6 @@ function getEnv() {
   return (import.meta as unknown as {
     env?: {
       VITE_API_BASE_URL?: string;
-      VITE_DEV_PROXY_TARGET?: string;
     };
   }).env || {};
 }
@@ -35,11 +34,7 @@ export function getCurrentUserLogoId(): string {
 
 export function getLogoFileServer(): string {
   const env = getEnv();
-  return trimTrailingSlash(
-    env.VITE_DEV_PROXY_TARGET
-      || env.VITE_API_BASE_URL
-      || "",
-  );
+  return trimTrailingSlash(env.VITE_API_BASE_URL || "");
 }
 
 export function resolveLogoUrl(filePath: string): string {
