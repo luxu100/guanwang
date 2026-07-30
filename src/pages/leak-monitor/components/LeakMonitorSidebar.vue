@@ -34,19 +34,33 @@
           <input v-model.trim="localFilters.deviceNumber" class="text-field" :placeholder="t('deviceNumberPlaceholder')" confirm-type="search" />
         </label>
         <label class="filter-field">
-          <text>{{ t("deviceType") }}</text>
-          <input v-model.trim="localFilters.deviceType" class="text-field" :placeholder="t('deviceTypePlaceholder')" confirm-type="search" />
+          <text>{{ t("manualAnalysis") }}</text>
+          <picker :range="manualAnalysisOptions" range-key="label" :value="manualIndex" @change="selectManualStatus">
+            <view class="select-field">{{ manualAnalysisOptions[manualIndex]?.label || t("all") }}</view>
+          </picker>
         </label>
         <label class="filter-field">
-          <text>{{ t("onlineStatus") }}</text>
-          <picker :range="onlineOptions" range-key="label" :value="onlineIndex" @change="selectOnlineStatus">
-            <view class="select-field">{{ onlineOptions[onlineIndex]?.label || t("all") }}</view>
+          <text>{{ t("algorithmAnalysis") }}</text>
+          <picker :range="analysisOptions" range-key="label" :value="algorithmIndex" @change="selectAlgorithmStatus">
+            <view class="select-field">{{ analysisOptions[algorithmIndex]?.label || t("all") }}</view>
+          </picker>
+        </label>
+        <label class="filter-field">
+          <text>{{ t("leakStatusLabel") }}</text>
+          <picker :range="leakOptions" range-key="label" :value="leakIndex" @change="selectLeakStatus">
+            <view class="select-field">{{ leakOptions[leakIndex]?.label || t("all") }}</view>
           </picker>
         </label>
         <label class="filter-field">
           <text>{{ t("deviceStatus") }}</text>
-          <picker :range="leakOptions" range-key="label" :value="leakIndex" @change="selectLeakStatus">
-            <view class="select-field">{{ leakOptions[leakIndex]?.label || t("all") }}</view>
+          <picker :range="deviceStatusOptions" range-key="label" :value="deviceStatusIndex" @change="selectDeviceStatus">
+            <view class="select-field">{{ deviceStatusOptions[deviceStatusIndex]?.label || t("all") }}</view>
+          </picker>
+        </label>
+        <label class="filter-field">
+          <text>{{ t("regionFilter") }}</text>
+          <picker :range="regionOptions" range-key="label" :value="regionIndex" @change="selectRegion">
+            <view class="select-field">{{ regionOptions[regionIndex]?.label || t("all") }}</view>
           </picker>
         </label>
         <label class="filter-field">
@@ -64,7 +78,10 @@
       </view>
 
       <view class="toolbar-row">
-        <text class="toolbar-row__hint">{{ t("rowHint") }}</text>
+        <view class="analysis-rules">
+          <text><text class="analysis-rules__label">{{ t("leakStatusLabel") }}</text>{{ t("leakStatusRule") }}</text>
+          <text><text class="analysis-rules__label">{{ t("algorithmAnalysis") }}</text>{{ t("algorithmStatusRule") }}</text>
+        </view>
         <view class="toolbar-row__spacer"></view>
         <button class="action-button action-button--ghost" type="button" @click="$emit('reset')">{{ t("reset") }}</button>
         <button class="action-button" type="button" :disabled="loading" @click="$emit('search')">
@@ -78,6 +95,7 @@
           <text class="device-table__cell">{{ t("deviceStatus") }}</text>
           <text class="device-table__cell">{{ t("manualAnalysis") }}</text>
           <text class="device-table__cell">{{ t("algorithmAnalysis") }}</text>
+          <text class="device-table__cell">{{ t("leakStatusLabel") }}</text>
         </view>
         <view class="device-table__body">
           <view
@@ -89,13 +107,22 @@
           >
             <text class="device-table__cell device-table__cell--number">{{ device.deviceNumber }}</text>
             <view class="device-table__cell">
-              <text class="status-pill" :class="'status-pill--' + device.status">{{ statusText(device.status) }}</text>
+              <text class="status-pill" :class="'status-pill--' + deviceStatusTone(device)">
+                {{ deviceStatusText(device) }}
+              </text>
             </view>
             <view class="device-table__cell">
-              <text class="status-text" :class="'status-text--' + device.manualStatus">{{ statusText(device.manualStatus) }}</text>
+              <text class="status-text" :class="'status-text--' + analysisStatusTone(device, 'manualAnalysis', device.manualStatus)">
+                {{ analysisStatusText(device, "manualAnalysis", device.manualStatus) }}
+              </text>
             </view>
             <view class="device-table__cell">
-              <text class="status-text" :class="'status-text--' + device.algorithmStatus">{{ statusText(device.algorithmStatus) }}</text>
+              <text class="status-text" :class="'status-text--' + analysisStatusTone(device, 'algorithmAnalysisStatus', device.algorithmStatus)">
+                {{ analysisStatusText(device, "algorithmAnalysisStatus", device.algorithmStatus) }}
+              </text>
+            </view>
+            <view class="device-table__cell" :title="featureStatusTitle(device)">
+              <text class="status-text" :class="'status-text--' + device.status">{{ leakStatusText(device) }}</text>
             </view>
           </view>
           <view v-if="!devices.length && !loading" class="empty-state">{{ t("noDeviceData") }}</view>
@@ -124,12 +151,13 @@ import type {
   LeakMonitorDevice,
   LeakMonitorFilters,
   LeakMonitorMetric,
+  MapRegion,
   PageState,
 } from "../types";
 import { useLeakMonitorI18n } from "../i18n";
 
 const { t } = useLeakMonitorI18n();
-// Required UI fields: 设备编号、设备类型、在线状态、设备状态、当日新增、最新安装、人工分析、蓝鲸分析.
+// Filters and table statuses use the same backend status codes.
 
 const props = defineProps<{
   collapsed: boolean;
@@ -137,6 +165,7 @@ const props = defineProps<{
   metrics: LeakMonitorMetric[];
   filters: LeakMonitorFilters;
   devices: LeakMonitorDevice[];
+  regions: MapRegion[];
   page: PageState;
   selectedDeviceNumber?: string;
   errorMessage?: string;
@@ -151,13 +180,27 @@ const emit = defineEmits<{
   (event: "update:filters", filters: LeakMonitorFilters): void;
 }>();
 
-const onlineOptions = computed(() => [
+const deviceStatusOptions = computed(() => [
   { label: t("all"), value: "" },
   { label: t("offline"), value: "0" },
-  { label: t("online"), value: "1" },
+  { label: t("normal"), value: "1" },
+] as const);
+const analysisOptions = computed(() => [
+  // Backend status contract: 正常=1, 疑似=2, 渗漏=0, 未知=3.
+  { label: t("all"), value: "" },
+  { label: t("normal"), value: "1" },
+  { label: t("suspect"), value: "2" },
+  { label: t("leak"), value: "0" },
+  { label: t("unknown"), value: "3" },
+] as const);
+const manualAnalysisOptions = computed(() => [
+  { label: t("all"), value: "" },
+  { label: t("normal"), value: "正常" },
+  { label: t("suspect"), value: "疑似" },
+  { label: t("leak"), value: "渗漏" },
+  { label: t("unknown"), value: "未知" },
 ] as const);
 const leakOptions = computed(() => [
-  // Backend status contract: 正常=1, 疑似=2, 渗漏=0, 未知=3.
   { label: t("all"), value: "" },
   { label: t("normal"), value: "1" },
   { label: t("suspect"), value: "2" },
@@ -174,22 +217,41 @@ const booleanOptions = computed(() => [
   { label: t("yes"), value: "true" },
   { label: t("no"), value: "false" },
 ] as const);
+const regionOptions = computed(() => [
+  { label: t("all"), value: "" },
+  ...props.regions.map((region) => ({
+    label: region.name,
+    value: String(region.id),
+  })),
+]);
 const localFilters = reactive<LeakMonitorFilters>({ ...props.filters });
 
 watch(() => props.filters, (filters) => Object.assign(localFilters, filters), { deep: true });
 watch(localFilters, (filters) => emit("update:filters", { ...filters }), { deep: true });
 
 const totalPages = computed(() => Math.max(1, Math.ceil(props.page.total / props.page.size)));
-const onlineIndex = computed(() => Math.max(0, onlineOptions.value.findIndex((item) => item.value === localFilters.onlineStatus)));
+const manualIndex = computed(() => Math.max(0, manualAnalysisOptions.value.findIndex((item) => item.value === localFilters.manualAnalysis)));
+const algorithmIndex = computed(() => Math.max(0, analysisOptions.value.findIndex((item) => item.value === localFilters.algorithmAnalysisStatus)));
 const leakIndex = computed(() => Math.max(0, leakOptions.value.findIndex((item) => item.value === localFilters.leakStatus)));
+const deviceStatusIndex = computed(() => Math.max(0, deviceStatusOptions.value.findIndex((item) => item.value === localFilters.onlineStatus)));
+const regionIndex = computed(() => Math.max(0, regionOptions.value.findIndex((item) => item.value === localFilters.deptId)));
 const todayIndex = computed(() => Math.max(0, booleanOptions.value.findIndex((item) => item.value === localFilters.todayNew)));
 const latestIndex = computed(() => Math.max(0, booleanOptions.value.findIndex((item) => item.value === localFilters.latestInstalled)));
 
-function selectOnlineStatus(event: { detail: { value: number } }) {
-  localFilters.onlineStatus = onlineOptions.value[Number(event.detail.value)]?.value || "";
+function selectManualStatus(event: { detail: { value: number } }) {
+  localFilters.manualAnalysis = manualAnalysisOptions.value[Number(event.detail.value)]?.value || "";
+}
+function selectAlgorithmStatus(event: { detail: { value: number } }) {
+  localFilters.algorithmAnalysisStatus = analysisOptions.value[Number(event.detail.value)]?.value || "";
 }
 function selectLeakStatus(event: { detail: { value: number } }) {
   localFilters.leakStatus = leakOptions.value[Number(event.detail.value)]?.value || "";
+}
+function selectDeviceStatus(event: { detail: { value: number } }) {
+  localFilters.onlineStatus = deviceStatusOptions.value[Number(event.detail.value)]?.value || "";
+}
+function selectRegion(event: { detail: { value: number } }) {
+  localFilters.deptId = regionOptions.value[Number(event.detail.value)]?.value || "";
 }
 function selectTodayNew(event: { detail: { value: number } }) {
   localFilters.todayNew = booleanOptions.value[Number(event.detail.value)]?.value || "";
@@ -208,6 +270,44 @@ function formatMetric(metric: LeakMonitorMetric) {
 function statusText(status: LeakDeviceStatus) {
   const key = status === "suspect" ? "suspect" : status;
   return t(key);
+}
+function deviceStatusText(device: LeakMonitorDevice) {
+  if (isDeviceStatusNull(device)) return "null";
+  if (device.onlineStatus === 1) return t("normal");
+  if (device.onlineStatus === 0) return t("offline");
+  return t("unknown");
+}
+function deviceStatusTone(device: LeakMonitorDevice): LeakDeviceStatus | "null" {
+  if (isDeviceStatusNull(device)) return "null";
+  return device.onlineStatus === 1 ? "normal" : "unknown";
+}
+function isDeviceStatusNull(device: LeakMonitorDevice) {
+  if (Object.prototype.hasOwnProperty.call(device.raw, "deviceStatus")) {
+    return device.raw.deviceStatus === null;
+  }
+  return device.raw.onlineStatus === null;
+}
+function analysisStatusText(
+  device: LeakMonitorDevice,
+  field: "manualAnalysis" | "algorithmAnalysisStatus",
+  status: LeakDeviceStatus,
+) {
+  return device.raw[field] === null ? "null" : statusText(status);
+}
+function analysisStatusTone(
+  device: LeakMonitorDevice,
+  field: "manualAnalysis" | "algorithmAnalysisStatus",
+  status: LeakDeviceStatus,
+): LeakDeviceStatus | "null" {
+  return device.raw[field] === null ? "null" : status;
+}
+function featureStatusTitle(device: LeakMonitorDevice) {
+  return device.leakProperty === null
+    ? t("leakStatusLabel")
+    : `${t("featureValue")}: ${device.leakProperty}`;
+}
+function leakStatusText(device: LeakMonitorDevice) {
+  return device.raw.leakStatus === null ? "null" : statusText(device.status);
 }
 </script>
 
@@ -309,8 +409,10 @@ function statusText(status: LeakDeviceStatus) {
   border: 1px solid #ccd8e4;
   border-radius: 4px;
 }
-.toolbar-row { flex: none; display: flex; align-items: center; gap: 8px; padding: 9px 12px; }
-.toolbar-row__hint { color: #7b8ca0; font-size: 12px; }
+.toolbar-row { flex: none; display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 6px 12px; }
+.analysis-rules { display: flex; flex-direction: column; gap: 2px; min-width: 0; color: #718096; font-size: 10px; line-height: 1.35; }
+.analysis-rules > text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.analysis-rules__label { margin-right: 5px; color: #31506d; font-weight: 800; }
 .toolbar-row__spacer { flex: 1; }
 .action-button { min-width: 62px; height: 30px; padding: 0 12px; color: #fff; font-size: 13px; font-weight: 700; line-height: 30px; background: #0ea5e9; border: 0; }
 .action-button--ghost { color: #31506d; background: #eef5fb; }
@@ -329,7 +431,7 @@ function statusText(status: LeakDeviceStatus) {
 .device-table__head,
 .device-table__row {
   display: grid;
-  grid-template-columns: minmax(120px, 1.35fr) repeat(3, minmax(82px, 1fr));
+  grid-template-columns: minmax(108px, 1.28fr) repeat(4, minmax(72px, 1fr));
 }
 .device-table__head {
   min-height: 38px;
@@ -340,7 +442,7 @@ function statusText(status: LeakDeviceStatus) {
   background: #f4f7fa;
   border-bottom: 1px solid #d8e5ef;
 }
-.device-table__body { position: relative; flex: 1; min-height: 0; overflow: auto; background: #fff; }
+.device-table__body { position: relative; flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; background: #fff; }
 .device-table__row {
   min-height: 41px;
   color: #2f4054;
@@ -351,18 +453,20 @@ function statusText(status: LeakDeviceStatus) {
 }
 .device-table__row:hover,
 .device-table__row.active { background: #eef7ff; }
-.device-table__cell { min-width: 0; padding: 0 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.device-table__cell { min-width: 0; padding: 0 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .device-table__cell--number { color: #075985; font-weight: 800; }
 .status-pill { display: inline-flex; align-items: center; justify-content: center; min-width: 46px; height: 23px; padding: 0 7px; border-radius: 12px; font-size: 12px; font-weight: 900; line-height: 23px; }
 .status-pill--normal { color: #047857; background: #dff8ea; }
 .status-pill--suspect { color: #b45309; background: #fff1cc; }
 .status-pill--leak { color: #b91c1c; background: #ffe2e2; }
 .status-pill--unknown { color: #64748b; background: #eef2f7; }
+.status-pill--null { color: #64748b; font-family: monospace; background: #fff; border: 1px dashed #94a3b8; }
 .status-text { font-size: 12px; font-weight: 800; }
 .status-text--normal { color: #047857; }
 .status-text--suspect { color: #b45309; }
 .status-text--leak { color: #b91c1c; }
 .status-text--unknown { color: #64748b; }
+.status-text--null { color: #94a3b8; font-family: monospace; font-style: italic; }
 .empty-state { height: 120px; color: #7c8da1; font-size: 13px; line-height: 120px; text-align: center; }
 .loading-state { position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 13px; background: rgba(255,255,255,.88); }
 

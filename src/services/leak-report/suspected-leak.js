@@ -38,9 +38,9 @@ export function confirmSuspectAsLeakPoint(id, leakPointPayload) {
 }
 
 // ========== 排除疑点 ==========
-export function excludeSuspect(id, excludePayload) {
-  return postRequest(`/api/suspected-leak/${id}/exclude`, excludePayload);
-}
+// 后端不存在 /api/suspected-leak/{id}/exclude 路由，本函数已移除。
+// 状态 4 按后端合同显示"已取消"，不再作为自创"已排除"语义。
+// 如需恢复，必须先在后端建立独立路由、字段、权限和审计合同。
 
 export default {
   getSuspectPage,
@@ -54,5 +54,4 @@ export default {
   dispatchSuspect,
   confirmLeakPoint,
   confirmSuspectAsLeakPoint,
-  excludeSuspect,
 };

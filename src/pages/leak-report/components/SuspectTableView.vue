@@ -95,14 +95,6 @@
             确认疑点
           </button>
           <button
-            class="toolbar-button toolbar-button--danger"
-            :disabled="!selectedSuspect || processing || getProcessStatus(selectedSuspect) === 4 || getIsLeakPoint(selectedSuspect) === 1"
-            hover-class="toolbar-button--hover"
-            @click="openExcludeDialog"
-          >
-            排除疑点
-          </button>
-          <button
             class="toolbar-button"
             :disabled="!selectedSuspect || processing || getProcessStatus(selectedSuspect) !== 0"
             hover-class="toolbar-button--hover"
@@ -662,46 +654,13 @@
         </view>
       </view>
     </view>
-
-    <!-- ========== 排除疑点对话框 ========== -->
-    <view v-if="excludeDialogVisible" class="dialog-mask" @click.self="closeExcludeDialog">
-      <view class="dialog-panel" @click.stop>
-        <view class="dialog-header">
-          <view>
-            <text class="dialog-title">排除疑点</text>
-            <text class="dialog-subtitle">确认排除后将标记该疑点为已排除，并记录排除原因</text>
-          </view>
-          <button class="dialog-close" hover-class="dialog-close--hover" aria-label="关闭" @click="closeExcludeDialog">×</button>
-        </view>
-        <view class="dialog-body">
-          <view class="form-field">
-            <text class="form-label">疑点编号</text>
-            <view class="form-readonly">{{ excludeSuspectId || "-" }}</view>
-          </view>
-          <view class="form-field">
-            <text class="form-label form-label--required">排除原因</text>
-            <textarea v-model="excludeForm.reason" class="form-textarea" placeholder="请输入排除原因" placeholder-class="input-placeholder" />
-          </view>
-          <view class="form-field">
-            <text class="form-label">操作人</text>
-            <input v-model="excludeForm.operator" class="form-input" placeholder="请输入操作人" placeholder-class="input-placeholder" />
-          </view>
-        </view>
-        <view class="dialog-footer">
-          <button class="dialog-button" hover-class="dialog-button--hover" @click="closeExcludeDialog">取消</button>
-          <button class="dialog-button dialog-button--danger" :disabled="processing" hover-class="dialog-button--hover" @click="submitExclude">
-            {{ processing ? "处理中..." : "确认排除" }}
-          </button>
-        </view>
-      </view>
-    </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { getSuspectPage, getSuspectDetail, deleteSuspect } from "@/services/leak-report/suspected-leak";
-import { dispatchSuspect, confirmLeakPoint, excludeSuspect } from "@/services/leak-report/suspected-leak";
+import { dispatchSuspect, confirmLeakPoint } from "@/services/leak-report/suspected-leak";
 import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
 import { getRegionList } from "@/services/leak-report/region";
 import { getDeviceVisibleList } from "@/services/leak-report/device";
@@ -771,7 +730,7 @@ const processStatusLabelMap: Record<number, string> = {
   1: "已派单",
   2: "处理中",
   3: "已完成",
-  4: "已排除",
+  4: "已取消",
 };
 
 const isLeakPointLabelMap: Record<number, string> = {
@@ -1699,53 +1658,9 @@ async function submitConfirmLeak() {
 }
 
 // ========== 排除疑点 ==========
-const excludeDialogVisible = ref(false);
-const excludeSuspectId = ref<string | number | null>(null);
-const excludeForm = reactive({
-  reason: "",
-  operator: "",
-});
+// 后端不存在 /api/suspected-leak/{id}/exclude 路由，相关对话框、表单和请求已移除。
+// 状态 4 按后端合同显示"已取消"，不再作为自创"已排除"语义。
 
-function openExcludeDialog() {
-  const suspect = selectedSuspect.value;
-  if (!suspect) return;
-  excludeSuspectId.value = getId(suspect);
-  excludeForm.reason = "";
-  excludeForm.operator = "";
-  excludeDialogVisible.value = true;
-}
-
-function closeExcludeDialog() {
-  excludeDialogVisible.value = false;
-}
-
-async function submitExclude() {
-  const id = excludeSuspectId.value;
-  if (id === null || id === undefined) return;
-  if (!excludeForm.reason.trim()) {
-    uni.showToast({ title: "请输入排除原因", icon: "none" });
-    return;
-  }
-
-  processing.value = true;
-  try {
-    const payload: Record<string, unknown> = { reason: excludeForm.reason.trim() };
-    if (excludeForm.operator.trim()) payload.operator = excludeForm.operator.trim();
-
-    const response = (await excludeSuspect(String(id), payload)) as ApiResponseLike;
-    assertSuccessResponse(response);
-    uni.showToast({ title: "疑点已排除", icon: "success", duration: 2000 });
-    excludeDialogVisible.value = false;
-    await fetchSuspects();
-  } catch (error) {
-    uni.showToast({
-      title: (error as { msg?: string })?.msg || "排除失败",
-      icon: "none",
-    });
-  } finally {
-    processing.value = false;
-  }
-}
 
 // ========== 查看工单 ==========
 function viewWorkOrder() {

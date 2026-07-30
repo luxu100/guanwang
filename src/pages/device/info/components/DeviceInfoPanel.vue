@@ -18,23 +18,46 @@
       </view>
 
       <view v-else>
-          <view
-              v-if="activeTab !== 'relation'"
-              class="detail-panel__summary"
-          >
-            <view class="detail-panel__summary-main">
-              <text class="detail-panel__summary-label">{{ ti('title') }}</text>
-              <text class="detail-panel__summary-number">{{ deviceData.deviceNumber || '--' }}</text>
-            </view>
+        <view
+            v-if="activeTab !== 'relation'"
+            class="detail-panel__summary"
+        >
+          <view class="detail-panel__summary-main">
+            <text class="detail-panel__summary-label">
+              {{ ti('fields.device.deviceNumber') }}
+            </text>
 
-            <view class="detail-panel__summary-badges">
-              <text class="detail-panel__summary-badge detail-panel__tag detail-panel__tag--status" :class="statusClass">
+            <text class="detail-panel__summary-number">
+              {{ deviceData.deviceNumber || '--' }}
+            </text>
+          </view>
+
+
+          <view class="detail-summary__meta">
+
+            <view class="detail-summary__meta-item">
+              <text class="detail-summary__meta-label">
+                {{ ti('fields.device.onlineStatus') }}
+              </text>
+
+              <text class="detail-summary__meta-value">
                 {{ getDeviceStatusLabel }}
               </text>
-              <text class="detail-panel__summary-badge detail-panel__tag detail-panel__tag--level">
-                {{ getDeviceTypeLabel }}
+            </view>
+
+
+            <view class="detail-summary__meta-item">
+              <text class="detail-summary__meta-label">
+                {{ ti('fields.device.leakStatus') }}
+              </text>
+
+              <text class="detail-summary__meta-value">
+                {{ getLeakStatusLabel }}
               </text>
             </view>
+
+          </view>
+
         </view>
 
         <view class="detail-panel__timeline">
@@ -79,9 +102,11 @@ import {
 } from '@/services/device/info.typed';
 import { createScopedT } from '@/i18n';
 import { formatDate } from '@/utils/time';
+import {leakStatusOptions} from "@/pages/device/components/common";
 
 const ti=createScopedT('devicePage.info');
 const ts=createScopedT('devicePage.status');
+const t=createScopedT('devicePage');
 
 const props = withDefaults(
     defineProps<{
@@ -499,6 +524,14 @@ const statusClass=computed(()=>{
 
 
 const getDeviceTypeLabel=computed(()=>props.deviceData.deviceType||'--');
+const getLeakStatusLabel = computed(() => {
+  const option = leakStatusOptions.find(
+      item => item.value === props.deviceData.leakStatus
+  );
+  console.log(option);
+
+  return option ? t(option.labelKey!) : '--';
+});
 
 
 watch(()=>props.deviceData.id,async id=>{
@@ -523,4 +556,55 @@ async function loadRelationData(device: Partial<Device>) {
 
 <style scoped lang="scss">
 @import "@/pages/device/components/x/dialog/styles/detail-panel.css";
+.worksheet-view--en .detail-summary__meta {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.worksheet-view--en .detail-summary__meta-item {
+  padding: 8px 9px;
+}
+
+.worksheet-view--en .detail-summary__meta-value {
+  overflow: visible;
+  text-overflow: initial;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.detail-summary__meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 10px;
+  padding-top: 10px;
+  border-top: 1px solid #edf3f8;
+}
+
+.detail-summary__meta-item {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 8px 10px;
+  background: #f8fbfe;
+  border: 1px solid #edf3f8;
+  border-radius: 6px;
+}
+
+.detail-summary__meta-label {
+  display: block;
+  color: #71869b;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.detail-summary__meta-value {
+  display: block;
+  margin-top: 5px;
+  overflow: hidden;
+  color: #172033;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 </style>

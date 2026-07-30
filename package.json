@@ -50,6 +50,7 @@
     "@dcloudio/uni-mp-weixin": "3.0.0-4080420251103001",
     "@dcloudio/uni-mp-xhs": "3.0.0-4080420251103001",
     "@googlemaps/js-api-loader": "^2.1.1",
+    "cropperjs": "^2.1.0",
     "echarts": "^6.1.0",
     "echarts-gl": "^2.1.0",
     "vue": "^3.4.21"
