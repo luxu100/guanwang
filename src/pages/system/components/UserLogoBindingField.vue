@@ -86,7 +86,7 @@
           </view>
 
           <view
-            v-if="hasBoundLogo && !sourceImage && displayLogoUrl"
+            v-if="hasBoundLogo && !sourceFile && displayLogoUrl"
             class="logo-editor__current"
           >
             <text class="logo-editor__current-title">{{ text.currentPreview }}</text>
@@ -101,13 +101,15 @@
             </view>
           </view>
 
-          <view v-if="sourceImage" class="logo-editor">
+          <view v-if="sourceFile" class="logo-editor">
             <div ref="cropperHostRef" class="logo-editor__cropper">
               <img
                 ref="cropSourceImageRef"
                 :src="sourceObjectUrl"
                 class="logo-editor__source-image"
                 alt=""
+                @load="handleCropSourceLoad"
+                @error="handleCropSourceError"
               />
             </div>
 
@@ -163,7 +165,7 @@
             </button>
             <button
               class="logo-dialog__button logo-dialog__button--primary"
-              :disabled="!sourceImage || uploading || deleting"
+              :disabled="!cropperReady || uploading || deleting"
               @click="uploadCroppedLogo"
             >
               {{ uploading ? text.uploading : text.confirm }}
@@ -238,9 +240,9 @@ const dialogVisible = ref(false);
 const cropperHostRef = ref<HTMLElement | null>(null);
 const cropSourceImageRef = ref<HTMLImageElement | null>(null);
 const sourceFile = ref<File | null>(null);
-const sourceImage = ref<HTMLImageElement | null>(null);
 const sourceObjectUrl = ref("");
 const cropPreviewUrl = ref("");
+const cropperReady = ref(false);
 const uploading = ref(false);
 const uploadProgress = ref(0);
 const errorMessage = ref("");
@@ -392,20 +394,25 @@ function revokeSourceUrl() {
 function destroyCropper() {
   cropperInstance?.destroy();
   cropperInstance = null;
+  cropperReady.value = false;
 }
 
 function resetEditor() {
   destroyCropper();
   revokeSourceUrl();
   sourceFile.value = null;
-  sourceImage.value = null;
   cropPreviewUrl.value = "";
   uploadProgress.value = 0;
   errorMessage.value = "";
 }
 
 function handleSelectedFile(file: File) {
-  if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+  const normalizedType = file.type.toLowerCase();
+  const normalizedName = file.name.toLowerCase();
+  const hasSupportedType = ["image/png", "image/jpeg", "image/webp"].includes(normalizedType);
+  const hasSupportedExtension = [".png", ".jpg", ".jpeg", ".webp"].some((extension) =>
+    normalizedName.endsWith(extension));
+  if (!hasSupportedType && !hasSupportedExtension) {
     errorMessage.value = text.value.invalidType;
     return;
   }
@@ -420,18 +427,16 @@ function handleSelectedFile(file: File) {
   sourceFile.value = file;
   sourceObjectUrl.value = URL.createObjectURL(file);
   errorMessage.value = "";
+}
 
-  const image = new Image();
-  image.onload = async () => {
-    sourceImage.value = image;
-    await nextTick();
-    await initializeCropper();
-  };
-  image.onerror = () => {
-    sourceImage.value = null;
-    errorMessage.value = text.value.readFailed;
-  };
-  image.src = sourceObjectUrl.value;
+async function handleCropSourceLoad() {
+  await nextTick();
+  await initializeCropper();
+}
+
+function handleCropSourceError() {
+  destroyCropper();
+  errorMessage.value = text.value.readFailed;
 }
 
 async function getCroppedCanvas() {
@@ -467,6 +472,7 @@ async function renderCropPreview() {
 async function initializeCropper() {
   const host = cropperHostRef.value;
   const source = cropSourceImageRef.value;
+  cropperReady.value = false;
   if (!host || !source) {
     errorMessage.value = text.value.cropFailed;
     return;
@@ -501,6 +507,7 @@ async function initializeCropper() {
     });
 
     await renderCropPreview();
+    cropperReady.value = true;
   } catch {
     destroyCropper();
     errorMessage.value = text.value.cropFailed;
@@ -534,7 +541,7 @@ async function canvasToFile(): Promise<File> {
 }
 
 async function uploadCroppedLogo() {
-  if (!sourceImage.value || uploading.value) {
+  if (!cropperReady.value || uploading.value || deleting.value) {
     return;
   }
 

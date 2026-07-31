@@ -72,6 +72,25 @@ export interface CorrelationAudioOption extends AudioRecord {
   intensity: number | null;
 }
 
+export interface LeakLocationAnalyzePayload {
+  audioId1: number;
+  audioId2: number;
+  distanceAB: number;
+  pipeMaterial: "STEEL" | "DUCTILE_IRON" | "CAST_IRON" | "HDPE" | "PVC_U";
+  diameterMm: number;
+  wallThicknessMm: number;
+  soilType: "CLAY" | "SAND" | "GRAVEL";
+  buriedDepthM: number;
+}
+
+export interface LeakLocationResult {
+  leakDistanceA: number;
+  amplitudeA: number;
+  amplitudeB: number;
+  totalAlpha: number;
+  positionFlag: string;
+}
+
 export interface MapRegion {
   id: string | number;
   name: string;

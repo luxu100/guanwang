@@ -16,6 +16,8 @@ import type {
   ManualAnalysisRecord,
   MaintenanceRecord,
   CorrelationAudioOption,
+  LeakLocationAnalyzePayload,
+  LeakLocationResult,
 } from "@/pages/leak-monitor/types";
 import { normalizeCoordinateSystem } from "@/pages/leak-monitor/coordinateTransform";
 
@@ -286,6 +288,10 @@ export function getLeakMonitorNearbyAnalysis(deviceNumber: string, radiusKm: num
   );
 }
 
+export function analyzeLeakLocation(data: LeakLocationAnalyzePayload) {
+  return postRequest("/api/leak-locate/analyze", data);
+}
+
 export function getLeakMonitorMaintenancePage(deviceNumber: string) {
   return postRequest("/api/maintenance-record/page", {
     pageNum: 1,
@@ -465,6 +471,54 @@ export async function fetchLeakMonitorNearbyAnalysis(
       } satisfies NearbyAnalysisDevice;
     })
     .filter((item): item is NearbyAnalysisDevice => Boolean(item));
+}
+
+export async function fetchLeakLocationAnalysis(
+  payload: LeakLocationAnalyzePayload,
+): Promise<LeakLocationResult> {
+  const response = await analyzeLeakLocation(payload);
+  if (response && typeof response === "object") {
+    const envelope = response as ApiEnvelope<unknown>;
+    if (
+      envelope.code !== undefined &&
+      ![0, 200].includes(Number(envelope.code))
+    ) {
+      throw {
+        code: envelope.code,
+        msg: envelope.msg || "漏点定位分析失败",
+        data: envelope.data,
+      };
+    }
+  }
+
+  const data = unwrapData<unknown>(response);
+  const row = data && typeof data === "object"
+    ? data as Record<string, unknown>
+    : {};
+  const leakDistanceA = toNumber(row.leakDistanceA);
+  const amplitudeA = toNumber(row.amplitudeA);
+  const amplitudeB = toNumber(row.amplitudeB);
+  const totalAlpha = toNumber(row.totalAlpha);
+  if (
+    leakDistanceA === undefined ||
+    amplitudeA === undefined ||
+    amplitudeB === undefined ||
+    totalAlpha === undefined
+  ) {
+    throw {
+      code: -1,
+      msg: "漏点定位接口返回数据不完整",
+      data: response,
+    };
+  }
+
+  return {
+    leakDistanceA,
+    amplitudeA,
+    amplitudeB,
+    totalAlpha,
+    positionFlag: toText(row.positionFlag, "UNKNOWN"),
+  };
 }
 
 export async function fetchLeakMonitorTrend(
