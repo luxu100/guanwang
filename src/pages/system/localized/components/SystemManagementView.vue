@@ -629,7 +629,7 @@ import UserLogoBindingField from "@/pages/system/components/UserLogoBindingField
 const localeText = useLocaleText();
 const localizedCount = useLocalizedCount();
 const localizedTotal = useLocalizedTotal();
-import { assignUserDepts, getUserDepts,getUserList, assignUserRoles, deleteUser, getUserPage, register, updateUser, type RegisterParams } from "@/services/system/user";
+import { assignUserDepts, getUserDepts,getUserList, assignUserRoles, deleteUser, getUserPage, register, updateAdminUserLogo, updateUser, type RegisterParams } from "@/services/system/user";
 import { applyUserLocale } from "@/i18n";
 import { updateCurrentUserLogoId } from "@/utils/branding";
 import { getRolePermissions,assignRolePermissions, createRole, deleteRole, getPermissionList, getPermissionTree, getRoleDetail, getRoleList, getRolePage, updateRole } from "@/services/system/auth";
@@ -1939,8 +1939,8 @@ async function saveUser() {
       }),
     };
     const logoId = Number(userForm.logoId);
-    if (userLogoChanged.value) {
-      payload.logoId = userForm.logoId && Number.isFinite(logoId) ? logoId : null;
+    if (userLogoChanged.value && userForm.logoId && !Number.isFinite(logoId)) {
+      throw new Error("Logo ID 无效，请重新上传");
     }
     const response =
       isCreating.value || !userForm.id
@@ -1952,7 +1952,6 @@ async function saveUser() {
             email: userForm.email.trim() || undefined,
             status: userForm.status,
             region: userForm.region,
-            logoId: userForm.logoId && Number.isFinite(logoId) ? logoId : undefined,
           } satisfies RegisterParams)
         : await updateUser(userForm.id, payload);
     assertSuccessResponse(response as ApiResponseLike);
@@ -1965,6 +1964,18 @@ async function saveUser() {
       savedIcon = "none";
     }
     const savedUserId = roleAssignment?.userId || userForm.id;
+    if (userLogoChanged.value) {
+      if (savedUserId) {
+        const logoResponse = await updateAdminUserLogo(
+          savedUserId,
+          userForm.logoId ? logoId : 0,
+        );
+        assertSuccessResponse(logoResponse as ApiResponseLike);
+      } else {
+        savedMessage = "用户已保存，后端未返回用户ID，Logo 暂未绑定";
+        savedIcon = "none";
+      }
+    }
     if (savedUserId) {
       await assignUserDepts(
         savedUserId, 

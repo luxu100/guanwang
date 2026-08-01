@@ -116,6 +116,7 @@ export function getUserPage(data: UserPageParams): Promise<ApiResponse<PageResul
 export function getUserList(): Promise<ApiResponse<UserInfo[]>>;
 export function getUserDetail(id: number | string): Promise<ApiResponse<UserInfo>>;
 export function updateUser(id: number | string, data: UpdateUserParams): Promise<ApiResponse<boolean>>;
+export function updateAdminUserLogo(id: number | string, logoId: number): Promise<ApiResponse<void>>;
 export function deleteUser(id: number | string, isForce?: boolean): Promise<ApiResponse<void>>;
 export function batchDeleteUser(data: Array<number | string>, isForce?: boolean): Promise<ApiResponse<void>>;
 export function assignUserRoles(id: number | string, data: Array<number | string>): Promise<ApiResponse<void>>;
@@ -135,6 +136,7 @@ declare const userService: {
   getUserList: typeof getUserList;
   getUserDetail: typeof getUserDetail;
   updateUser: typeof updateUser;
+  updateAdminUserLogo: typeof updateAdminUserLogo;
   deleteUser: typeof deleteUser;
   batchDeleteUser: typeof batchDeleteUser;
   assignUserRoles: typeof assignUserRoles;

@@ -126,6 +126,14 @@ export function updateUser(id, data) {
   });
 }
 
+export function updateAdminUserLogo(id, logoId) {
+  return request({
+    url: `/api/admin/user/${id}/logo`,
+    method: "put",
+    data: Number(logoId),
+  });
+}
+
 export function deleteUser(id, isForce = true) {
   return request({
     url: appendForceDeleteParam(`/api/user/${id}`, isForce),
@@ -196,6 +204,7 @@ export default {
   getUserList,
   getUserDetail,
   updateUser,
+  updateAdminUserLogo,
   deleteUser,
   batchDeleteUser,
   assignUserRoles,

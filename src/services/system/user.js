@@ -12,6 +12,7 @@ export {
   getUserList,
   getUserPage,
   register,
+  updateAdminUserLogo,
   updateUser,
   updateUserPassword,
   getUserDepts,

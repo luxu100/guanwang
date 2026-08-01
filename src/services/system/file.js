@@ -4,7 +4,7 @@
  * Endpoints are from jiekou/文件管理.txt:
  * /api/sys-file CRUD plus image/audio/video upload endpoints.
  */
-import request, { TOKEN_KEY, TOKEN_PREFIX_KEY } from "@/utils/request";
+import request, { normalizeUrl, TOKEN_KEY, TOKEN_PREFIX_KEY } from "@/utils/request";
 import { createCrudService } from "@/services/shared/crud";
 
 const sysFileApi = createCrudService("/api/sys-file");
@@ -40,11 +40,7 @@ function getUploadAuthHeader() {
 }
 
 function getLogoUploadUrl() {
-  const env = import.meta.env;
-  const baseUrl = typeof env.VITE_DEV_PROXY_TARGET === "string"
-    ? env.VITE_DEV_PROXY_TARGET.replace(/\/$/, "")
-    : "";
-  return `${baseUrl}/api/sys-file/upload/image`;
+  return normalizeUrl("/api/sys-file/upload/image");
 }
 
 export function uploadLogoImage(file, onProgress) {

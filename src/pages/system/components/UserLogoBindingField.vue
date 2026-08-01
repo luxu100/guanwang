@@ -364,6 +364,22 @@ async function clearLogo(closeAfterDelete = false) {
 
   deleting.value = true;
   try {
+    if (mode.value === "system") {
+      emit("update:modelValue", "");
+      currentLogoPath.value = "";
+      uni.showToast({
+        title: locale.value === "zh-CN"
+          ? "Logo 绑定已移除，请保存用户信息"
+          : "Logo unbound. Save the user to apply",
+        icon: "none",
+      });
+      if (closeAfterDelete) {
+        dialogVisible.value = false;
+        resetEditor();
+      }
+      return;
+    }
+
     await deleteSysFile(props.modelValue, true);
     if (mode.value === "current-user") {
       updateCurrentUserLogoId("");
@@ -585,7 +601,14 @@ async function uploadCroppedLogo() {
       currentLogoPath.value = uploadedPath;
       emit("update:modelValue", uploadedId);
     }
-    uni.showToast({ title: locale.value === "zh-CN" ? "Logo 上传成功" : "Logo uploaded", icon: "success" });
+    uni.showToast({
+      title: mode.value === "system"
+        ? (locale.value === "zh-CN"
+          ? "Logo 已上传，请保存用户信息"
+          : "Logo uploaded. Save the user to apply")
+        : (locale.value === "zh-CN" ? "Logo 上传成功" : "Logo uploaded"),
+      icon: mode.value === "system" ? "none" : "success",
+    });
     uploading.value = false;
     dialogVisible.value = false;
     resetEditor();
