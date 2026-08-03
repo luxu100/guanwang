@@ -528,7 +528,6 @@ const getLeakStatusLabel = computed(() => {
   const option = leakStatusOptions.find(
       item => item.value === props.deviceData.leakStatus
   );
-  console.log(option);
 
   return option ? t(option.labelKey!) : '--';
 });
