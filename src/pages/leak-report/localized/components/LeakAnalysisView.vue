@@ -195,12 +195,13 @@ import { computed, reactive, ref, onMounted, onUnmounted } from "vue";
 import {
   getAlgorithmAnalysisPage,
   getAlgorithmAnalysisDetail,
+  getAssociatedAudioPage,
 } from "@/services/leak-report/leak-analysis";
-import { getAudioDataPage } from "@/services/data-analysis/audio";
 import WorkOrderDatetimePicker from "@/pages/work-order/localized/components/WorkOrderDatetimePicker.vue";
 import LeakTableView from "@/pages/leak-report/localized/components/LeakTableView.vue";
 import { createScopedT, useI18n } from "@/i18n";
 import { ALGORITHM_STATUS } from "@/pages/leak-report/constants/status";
+import { fetchAllPages } from "@/utils/fetch-all-pages";
 
 const t = createScopedT("leakReport");
 const { locale } = useI18n();
@@ -398,7 +399,8 @@ async function fetchAnalysisData() {
     const parsed = parsePageResponse(response);
     if (parsed.pageNum && parsed.pageNum !== pagination.pageNum) pagination.pageNum = parsed.pageNum;
     if (parsed.pageSize && parsed.pageSize !== pagination.pageSize) pagination.pageSize = parsed.pageSize;
-    records.value = applyLocalSort(parsed.records);
+    // 直接使用后端返回的 records/total，排序由后端负责
+    records.value = parsed.records;
     total.value = parsed.total;
     selectFirstRow();
   } catch (error) {
@@ -422,21 +424,17 @@ function searchAnalysis() {
 
 function escapeCsvCell(value: unknown): string {
   if (value === undefined || value === null) return "";
-  const text = String(value).replace(/"/g, '""');
-  return /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+  const rawText = String(value).replace(/"/g, '""');
+  // 按改动.md C6：用 trimStart() 检查前导空白后的首字符，防止前导空格绕过公式注入防护
+  return /^[=+\-@\t\r]/.test(rawText.trimStart()) ? `'${rawText}` : rawText;
 }
 
-// 已知技术债：导出全部使用 pageSize:99999 一次性拉取，后端限制最大 pageSize 或数据量超过 10 万时导出会静默不全。后续应改为循环分页拉取。
 async function handleExport(scope: "current" | "all") {
   exportMenuVisible.value = false;
   let exportRecords = records.value;
   if (scope === "all") {
     try {
-      const params = { ...buildQueryParams(), pageNum: 1, pageSize: 99999 };
-      const response = (await getAlgorithmAnalysisPage(params)) as ApiResponseLike;
-      assertSuccessResponse(response);
-      const parsed = parsePageResponse(response);
-      exportRecords = parsed.records;
+      exportRecords = await fetchAllPages<AnalysisRecord>(getAlgorithmAnalysisPage, buildQueryParams());
     } catch {
       uni.showToast({ title: t("leakAnalysis.fetchAllFailed", "获取全部数据失败"), icon: "none" });
       return;
@@ -577,7 +575,6 @@ function resetAudioState() {
 
 /**
  * 通过 deviceNumber 完整分页查询，严格匹配 audioFileId。
- * 不依赖 samplingId（后端未可靠写入）。
  * 找到后返回 { matched, firstPageRecords }；未找到返回 { matched: null, firstPageRecords }。
  * firstPageRecords 用于未命中时直接作为同设备候选，避免再次请求。
  *
@@ -597,7 +594,7 @@ async function findAudioByFileId(
   let firstPageRecords: Record<string, unknown>[] = empty;
 
   while (true) {
-    const res = await getAudioDataPage({
+    const res = await getAssociatedAudioPage({
       pageNum,
       pageSize,
       deviceNumber: String(deviceNumber),
@@ -674,7 +671,7 @@ async function loadAudioList() {
       audioCandidateType.value = "empty";
     } else {
       // audioFileId 无效，但有 deviceNumber：直接查第 1 页作为候选
-      const res = await getAudioDataPage({ pageNum: 1, pageSize: 10, deviceNumber }) as unknown as ApiResponseLike;
+      const res = await getAssociatedAudioPage({ pageNum: 1, pageSize: 10, deviceNumber }) as unknown as ApiResponseLike;
       if (reqId !== audioRequestId) return;
       assertSuccessResponse(res);
       const p = parsePageResponse(res);
@@ -944,22 +941,6 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 function removeEmptyFields(data: Record<string, unknown>) {
   return Object.fromEntries(Object.entries(data).filter(([, v]) => v !== "" && v !== undefined && v !== null));
-}
-
-function applyLocalSort(list: AnalysisRecord[]): AnalysisRecord[] {
-  if (!sortField.value || !sortOrder.value) return list;
-  const field = sortField.value;
-  const order = sortOrder.value;
-  return [...list].sort((a, b) => {
-    let va: unknown = a[field];
-    let vb: unknown = b[field];
-    va = String(va ?? ""); vb = String(vb ?? "");
-    if (va === undefined || va === null) return 1;
-    if (vb === undefined || vb === null) return -1;
-    if (va < vb) return order === "asc" ? -1 : 1;
-    if (va > vb) return order === "asc" ? 1 : -1;
-    return 0;
-  });
 }
 
 function assertSuccessResponse(response: ApiResponseLike | undefined) {

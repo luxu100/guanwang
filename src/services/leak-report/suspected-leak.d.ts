@@ -126,7 +126,8 @@ export function getCurrentUserSuspectList(params?: Record<string, unknown>): Pro
 export function dispatchSuspect(id: number | string, data: DispatchPayload): Promise<ApiResponse>;
 export function confirmLeakPoint(id: number | string, data: Record<string, unknown>): Promise<ApiResponse>;
 export function confirmSuspectAsLeakPoint(id: number | string, data: Record<string, unknown>): Promise<ApiResponse>;
-export function excludeSuspect(id: number | string, data: Record<string, unknown>): Promise<ApiResponse>;
+// excludeSuspect 已移除：后端不存在 /api/suspected-leak/{id}/exclude 路由。
+// 状态 4 按后端合同显示"已取消"，不再作为自创"已排除"语义。
 
 declare const service: {
   getSuspectPage: typeof getSuspectPage;
@@ -140,7 +141,6 @@ declare const service: {
   dispatchSuspect: typeof dispatchSuspect;
   confirmLeakPoint: typeof confirmLeakPoint;
   confirmSuspectAsLeakPoint: typeof confirmSuspectAsLeakPoint;
-  excludeSuspect: typeof excludeSuspect;
 };
 
 export default service;

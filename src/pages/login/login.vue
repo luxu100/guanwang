@@ -23,7 +23,7 @@
     <view class="login-brand">
       <image
         class="login-logo login-logo--foreign"
-        :src="logoForeignImage"
+        :src="loginLogoImage"
         mode="widthFix"
       />
       <view class="login-brand__line"></view>
@@ -216,8 +216,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from "vue";
-import logoForeignImage from "@/assets/images/logo-foreign.webp";
+import { computed, onMounted, reactive, ref } from "vue";
+import loginLogoImage from "@/assets/images/logo.webp";
 import { applyUserLocale, useI18n } from "@/i18n";
 import type { LocaleCode } from "@/i18n/types";
 import { login } from "@/services/user/user";
@@ -276,7 +276,6 @@ const passwordVisible = ref(false);
 const rememberLogin = ref(false);
 const loginSuccessVisible = ref(false);
 const notice = ref<{ type: NoticeType; text: string } | null>(null);
-
 const loginForm = reactive<LoginForm>({
   username: "",
   password: "",
@@ -462,6 +461,11 @@ function validateRegisterForm() {
 function saveLoginData(data?: LoginResult) {
   const token = data?.token || "";
   const tokenPrefix = data?.tokenPrefix || "";
+  const loginLogoId = data?.logoId;
+  const userInfo = {
+    ...(data?.userInfo || {}),
+    ...(loginLogoId !== undefined && loginLogoId !== null ? { logoId: loginLogoId } : {}),
+  };
 
   if (token) {
     uni.setStorageSync(TOKEN_KEY, token);
@@ -471,10 +475,10 @@ function saveLoginData(data?: LoginResult) {
     uni.setStorageSync(TOKEN_PREFIX_KEY, tokenPrefix);
   }
 
-  uni.setStorageSync("userInfo", data?.userInfo || {});
+  uni.setStorageSync("userInfo", userInfo);
   uni.setStorageSync("permissions", data?.permissions || []);
   uni.setStorageSync("roles", data?.roles || []);
-  applyUserLocale(data?.userInfo || {});
+  applyUserLocale(userInfo);
 }
 
 /**

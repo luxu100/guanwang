@@ -3,7 +3,7 @@
  *
  * 页面层应优先调用这里导出的语义化函数，避免在 .vue 文件中直接拼接接口地址。
  */
-import request from "@/utils/request";
+import request, { normalizeUrl, TOKEN_KEY, TOKEN_PREFIX_KEY } from "@/utils/request";
 
 function appendForceDeleteParam(url, isForce = true) {
   const separator = url.includes("?") ? "&" : "?";
@@ -15,6 +15,68 @@ export function login(data) {
     url: "/api/user/login",
     method: "post",
     data,
+  });
+}
+
+function getUploadAuthHeader() {
+  const token = uni.getStorageSync(TOKEN_KEY);
+  const tokenPrefix = uni.getStorageSync(TOKEN_PREFIX_KEY);
+  if (!token) {
+    return {};
+  }
+
+  const normalizedPrefix = typeof tokenPrefix === "string" ? tokenPrefix.trim() : "";
+  return {
+    Authorization: normalizedPrefix ? `${normalizedPrefix} ${token}` : token,
+  };
+}
+
+function getUserLogoUploadUrl() {
+  return normalizeUrl("/api/user/logo");
+}
+
+export function uploadUserLogo(file, onProgress) {
+  return new Promise((resolve, reject) => {
+    const formData = new FormData();
+    formData.append("file", file, file.name || `user-logo-${Date.now()}.webp`);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", getUserLogoUploadUrl());
+    xhr.timeout = 60000;
+
+    Object.entries(getUploadAuthHeader()).forEach(([key, value]) => {
+      xhr.setRequestHeader(key, value);
+    });
+
+    xhr.upload.addEventListener("progress", (event) => {
+      if (event.lengthComputable && onProgress) {
+        onProgress(Math.round((event.loaded / event.total) * 100));
+      }
+    });
+
+    xhr.addEventListener("load", () => {
+      let response;
+      try {
+        response = JSON.parse(xhr.responseText);
+      } catch {
+        response = { code: xhr.status, msg: "Logo 上传响应格式异常", data: xhr.responseText };
+      }
+
+      if (xhr.status >= 200 && xhr.status < 300 && (response.code === 0 || response.code === 200)) {
+        resolve(response);
+        return;
+      }
+
+      reject({
+        code: response.code || xhr.status,
+        msg: response.msg || "Logo 上传失败",
+        data: response.data,
+      });
+    });
+
+    xhr.addEventListener("error", () => reject({ code: -1, msg: "Logo 上传网络异常" }));
+    xhr.addEventListener("timeout", () => reject({ code: -1, msg: "Logo 上传超时" }));
+    xhr.send(formData);
   });
 }
 
@@ -61,6 +123,14 @@ export function updateUser(id, data) {
     url: `/api/user/${id}`,
     method: "put",
     data,
+  });
+}
+
+export function updateAdminUserLogo(id, logoId) {
+  return request({
+    url: `/api/admin/user/${id}/logo`,
+    method: "put",
+    data: Number(logoId),
   });
 }
 
@@ -127,12 +197,14 @@ export function removeUserDept(id, deptId) {
 
 export default {
   login,
+  uploadUserLogo,
   register,
   createUser,
   getUserPage,
   getUserList,
   getUserDetail,
   updateUser,
+  updateAdminUserLogo,
   deleteUser,
   batchDeleteUser,
   assignUserRoles,

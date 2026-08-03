@@ -16,6 +16,8 @@ import type {
   ManualAnalysisRecord,
   MaintenanceRecord,
   CorrelationAudioOption,
+  LeakLocationAnalyzePayload,
+  LeakLocationResult,
 } from "@/pages/leak-monitor/types";
 import { normalizeCoordinateSystem } from "@/pages/leak-monitor/coordinateTransform";
 
@@ -57,7 +59,20 @@ function normalizeAnalysisStatus(value: unknown): { status: LeakDeviceStatus } {
   if (code === 1) return { status: "normal" };
   if (code === 2) return { status: "suspect" };
   if (code === 0) return { status: "leak" };
+
+  const text = toText(value).trim().toLowerCase();
+  if (["正常", "normal"].includes(text)) return { status: "normal" };
+  if (["疑似", "疑似渗漏", "suspect", "suspected"].includes(text)) return { status: "suspect" };
+  if (["渗漏", "泄漏", "漏水", "leak", "leakage"].includes(text)) return { status: "leak" };
   return { status: "unknown" };
+}
+
+function normalizeFeatureStatus(value: unknown): LeakDeviceStatus {
+  const featureValue = toNumber(value);
+  if (featureValue === undefined || featureValue < 0) return "unknown";
+  if (featureValue <= 10) return "normal";
+  if (featureValue < 20) return "suspect";
+  return "leak";
 }
 
 function parseCoordinate(value: unknown): Partial<MapCoordinate> {
@@ -95,8 +110,12 @@ export function normalizeLeakDevice(
 ): LeakMonitorDevice {
   const record = row && typeof row === "object" ? row as Record<string, unknown> : {};
   const deviceNumber = toText(record.deviceNumber, "--");
-  const status = normalizeAnalysisStatus(record.leakStatus);
-  const manualStatus = normalizeAnalysisStatus(record.manualAnalysisStatus);
+  const leakProperty = toNumber(record.leakProperty);
+  const returnedStatus = normalizeAnalysisStatus(record.leakStatus).status;
+  const status = record.leakStatus === undefined
+    ? normalizeFeatureStatus(leakProperty)
+    : returnedStatus;
+  const manualStatus = normalizeAnalysisStatus(record.manualAnalysis);
   const algorithmStatus = normalizeAnalysisStatus(record.algorithmAnalysisStatus);
   const coordinate = parseCoordinate(
     record.coordinate ?? (
@@ -108,14 +127,12 @@ export function normalizeLeakDevice(
         : undefined
     ),
   );
-  const leakProperty = toNumber(record.leakProperty);
-
   return {
     id: (record.deviceId ?? record.id ?? deviceNumber) as string | number,
     deviceNumber,
     model: toText(record.model || record.deviceType, "--"),
-    status: status.status,
-    statusText: status.status,
+    status,
+    statusText: status,
     manualStatus: manualStatus.status,
     manualStatusText: manualStatus.status,
     algorithmStatus: algorithmStatus.status,
@@ -164,26 +181,29 @@ export function buildLeakMonitorQuery(
     pageNum: page.current,
     pageSize: page.size,
     deviceNumber: filters.deviceNumber || undefined,
-    deviceType: filters.deviceType || undefined,
+    manualAnalysis: filters.manualAnalysis || undefined,
+    algorithmAnalysisStatus: filters.algorithmAnalysisStatus === ""
+      ? undefined
+      : Number(filters.algorithmAnalysisStatus),
     onlineStatus: filters.onlineStatus === "" ? undefined : Number(filters.onlineStatus),
     leakStatus: filters.leakStatus === "" ? undefined : Number(filters.leakStatus),
+    deptId: filters.deptId === "" ? undefined : Number(filters.deptId),
     todayNew: optionalBoolean(filters.todayNew),
     latestInstalled: optionalBoolean(filters.latestInstalled),
   };
 }
 
 export function isDomesticLeakMonitorUser(userInfo = uni.getStorageSync("userInfo")) {
-  // The active interface language controls the live map provider. User region
-  // only supplies the initial locale before a manual language choice exists.
-  const locale = getLocale();
-  if (locale === "zh-CN") return true;
-  if (locale === "en-US") return false;
-
   const region = String(userInfo?.region ?? "").trim().toLowerCase();
   if (["国外", "overseas", "foreign", "international", "global", "en", "us"].includes(region)) {
     return false;
   }
   if (["国内", "china", "cn", "domestic"].includes(region)) return true;
+
+  // Region is the backend contract for choosing the domestic or overseas
+  // online-rate endpoint. Locale is only a fallback for legacy accounts.
+  const locale = getLocale();
+  if (locale === "en-US") return false;
   return true;
 }
 
@@ -268,6 +288,10 @@ export function getLeakMonitorNearbyAnalysis(deviceNumber: string, radiusKm: num
   );
 }
 
+export function analyzeLeakLocation(data: LeakLocationAnalyzePayload) {
+  return postRequest("/api/leak-locate/analyze", data);
+}
+
 export function getLeakMonitorMaintenancePage(deviceNumber: string) {
   return postRequest("/api/maintenance-record/page", {
     pageNum: 1,
@@ -278,12 +302,13 @@ export function getLeakMonitorMaintenancePage(deviceNumber: string) {
   });
 }
 
-export async function fetchLeakMonitorSidebar() {
+export async function fetchLeakMonitorSidebar(filters: LeakMonitorFilters) {
   const domestic = isDomesticLeakMonitorUser();
+  const query = buildLeakMonitorQuery(filters, { current: 1, size: 10000 });
   const [sidebarResponse, communicationResponse, onlineResponse] = await Promise.all([
-    getDeviceQuerySidebar({}),
-    getDeviceQueryCommunicationSuccessRate({}),
-    domestic ? getDeviceQueryTodayOnlineRate({}) : getDeviceQueryTcpTodayOnlineRate({}),
+    getDeviceQuerySidebar(query),
+    getDeviceQueryCommunicationSuccessRate(query),
+    domestic ? getDeviceQueryTodayOnlineRate(query) : getDeviceQueryTcpTodayOnlineRate(query),
   ]);
   const sidebar = normalizeSidebar(sidebarResponse, domestic);
 
@@ -446,6 +471,54 @@ export async function fetchLeakMonitorNearbyAnalysis(
       } satisfies NearbyAnalysisDevice;
     })
     .filter((item): item is NearbyAnalysisDevice => Boolean(item));
+}
+
+export async function fetchLeakLocationAnalysis(
+  payload: LeakLocationAnalyzePayload,
+): Promise<LeakLocationResult> {
+  const response = await analyzeLeakLocation(payload);
+  if (response && typeof response === "object") {
+    const envelope = response as ApiEnvelope<unknown>;
+    if (
+      envelope.code !== undefined &&
+      ![0, 200].includes(Number(envelope.code))
+    ) {
+      throw {
+        code: envelope.code,
+        msg: envelope.msg || "漏点定位分析失败",
+        data: envelope.data,
+      };
+    }
+  }
+
+  const data = unwrapData<unknown>(response);
+  const row = data && typeof data === "object"
+    ? data as Record<string, unknown>
+    : {};
+  const leakDistanceA = toNumber(row.leakDistanceA);
+  const amplitudeA = toNumber(row.amplitudeA);
+  const amplitudeB = toNumber(row.amplitudeB);
+  const totalAlpha = toNumber(row.totalAlpha);
+  if (
+    leakDistanceA === undefined ||
+    amplitudeA === undefined ||
+    amplitudeB === undefined ||
+    totalAlpha === undefined
+  ) {
+    throw {
+      code: -1,
+      msg: "漏点定位接口返回数据不完整",
+      data: response,
+    };
+  }
+
+  return {
+    leakDistanceA,
+    amplitudeA,
+    amplitudeB,
+    totalAlpha,
+    positionFlag: toText(row.positionFlag, "UNKNOWN"),
+  };
 }
 
 export async function fetchLeakMonitorTrend(

@@ -13,8 +13,9 @@
     <view class="top-bar">
       <view class="brand">
         <image
+          v-if="navigationLogoImage"
           class="brand__logo brand__logo--foreign"
-          :src="logoForeignImage"
+          :src="navigationLogoImage"
           mode="widthFix"
         />
       </view>
@@ -44,6 +45,12 @@
       </view> -->
 
       <view class="top-actions">
+        <UserLogoBindingField
+          v-model="navigationLogoId"
+          mode="current-user"
+          compact
+          class="top-actions__logo-binding"
+        />
         <view class="warning-entry" aria-label="预警信息" @click="goPage('/pages/alarm/processing/processing')">
           <view class="warning-entry__icon-wrap">
             <text class="warning-entry__icon"></text>
@@ -202,10 +209,11 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import type { Component } from "vue";
-import logoForeignImage from "@/assets/images/logo-foreign-nav.webp";
 import AdminPlaceholderView from "@/components/admin/AdminPlaceholderView.vue";
 import AppShellModuleHost from "@/components/app-shell/AppShellModuleHost.vue";
 import LanguageSelect from "@/components/common/LanguageSelect.vue";
+import UserLogoBindingField from "@/pages/system/components/UserLogoBindingField.vue";
+import { getSysFileDetail } from "@/services/system/file";
 
 // import appShellModules from "@/components/app-shell/appShellModules.local";
 import appShellModules from "@/components/app-shell/appShellModules.localized";
@@ -216,6 +224,12 @@ import { filterMenuItemsByAccess, flattenMenuPaths, getMenuAccessSummary } from 
 import { TOKEN_KEY } from "@/utils/request";
 import LocaleLeakMap from "@/pages/leak-monitor/components/LocaleLeakMap.vue";
 import { applyUserLocale, createScopedT, useI18n } from "@/i18n";
+import {
+  BRAND_LOGO_UPDATED_EVENT,
+  getCurrentUserLogoId,
+  resolveLogoUrl,
+  updateCurrentUserLogoId,
+} from "@/utils/branding";
 interface MenuItem {
   labelKey: string;
   path: string;
@@ -465,6 +479,30 @@ const userName = computed(() => {
   const userInfo = uni.getStorageSync("userInfo");
   return userInfo?.realName || userInfo?.username || "admin";
 });
+const navigationLogoId = ref(getCurrentUserLogoId());
+const navigationLogoPath = ref("");
+const navigationLogoImage = computed(() => resolveLogoUrl(navigationLogoPath.value));
+
+async function refreshNavigationLogo() {
+  const logoId = getCurrentUserLogoId();
+  navigationLogoId.value = logoId;
+  if (!logoId) {
+    navigationLogoPath.value = "";
+    return;
+  }
+
+  try {
+    const response = await getSysFileDetail(logoId);
+    const filePath = String(response?.data?.filePath || "").trim();
+    navigationLogoPath.value = filePath;
+    if (!filePath) {
+      navigationLogoId.value = updateCurrentUserLogoId("");
+    }
+  } catch {
+    navigationLogoPath.value = "";
+    navigationLogoId.value = updateCurrentUserLogoId("");
+  }
+}
 
 const warningCountText = computed(() => (warningCount.value > 99 ? "99+" : String(warningCount.value)));
 
@@ -1031,6 +1069,7 @@ onMounted(() => {
   }
 
   applyUserLocale();
+  void refreshNavigationLogo();
   if (firstAccessibleMenuPath.value && isDefaultAliasPath(getBrowserPath() || routePath.value)) {
     replaceBrowserPath(firstAccessibleMenuPath.value);
   }
@@ -1045,6 +1084,7 @@ onMounted(() => {
   document.addEventListener("fullscreenchange", syncFullscreenState);
   document.addEventListener("webkitfullscreenchange", syncFullscreenState);
   window.addEventListener("keydown", handleFullscreenKeydown);
+  window.addEventListener(BRAND_LOGO_UPDATED_EVENT, refreshNavigationLogo);
   syncFullscreenState();
 });
 
@@ -1054,6 +1094,7 @@ onUnmounted(() => {
   document.removeEventListener("fullscreenchange", syncFullscreenState);
   document.removeEventListener("webkitfullscreenchange", syncFullscreenState);
   window.removeEventListener("keydown", handleFullscreenKeydown);
+  window.removeEventListener(BRAND_LOGO_UPDATED_EVENT, refreshNavigationLogo);
 });
 // #endif
 
@@ -1061,6 +1102,7 @@ onUnmounted(() => {
 onMounted(() => {
   if (ensureAuthenticatedRoute()) {
     applyUserLocale();
+    void refreshNavigationLogo();
   }
 });
 // #endif
@@ -1139,6 +1181,10 @@ onMounted(() => {
   height: 52px;
   min-width: 0;
   overflow: hidden;
+}
+
+.top-actions__logo-binding {
+  flex: none;
 }
 
 .brand__logo {

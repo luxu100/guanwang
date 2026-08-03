@@ -8,9 +8,11 @@ export interface MapCoordinate {
 
 export interface LeakMonitorFilters {
   deviceNumber: string;
-  deviceType: string;
+  manualAnalysis: "" | "正常" | "疑似" | "渗漏" | "未知";
+  algorithmAnalysisStatus: "" | "0" | "1" | "2" | "3";
   onlineStatus: "" | "0" | "1";
   leakStatus: "" | "0" | "1" | "2" | "3";
+  deptId: string;
   todayNew: "" | "true" | "false";
   latestInstalled: "" | "true" | "false";
 }
@@ -68,6 +70,25 @@ export interface NearbyAnalysisDevice {
 export interface CorrelationAudioOption extends AudioRecord {
   audioTime: string;
   intensity: number | null;
+}
+
+export interface LeakLocationAnalyzePayload {
+  audioId1: number;
+  audioId2: number;
+  distanceAB: number;
+  pipeMaterial: "STEEL" | "DUCTILE_IRON" | "CAST_IRON" | "HDPE" | "PVC_U";
+  diameterMm: number;
+  wallThicknessMm: number;
+  soilType: "CLAY" | "SAND" | "GRAVEL";
+  buriedDepthM: number;
+}
+
+export interface LeakLocationResult {
+  leakDistanceA: number;
+  amplitudeA: number;
+  amplitudeB: number;
+  totalAlpha: number;
+  positionFlag: string;
 }
 
 export interface MapRegion {

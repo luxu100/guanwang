@@ -283,6 +283,11 @@
                 </view>
                 <text v-if="isSuperAdminSelected" class="binding-lock-tip">超级管理员自动绑定全部分区，不可手动修改</text>
               </view>
+              <UserLogoBindingField
+                v-model="userForm.logoId"
+                @update:modelValue="handleUserLogoModelChange"
+                class="form-field form-field--wide"
+              />
               </view>
               <view class="form-actions">
                 <button class="toolbar-button" hover-class="toolbar-button--hover" @click="cancelEdit">取消</button>
@@ -292,6 +297,15 @@
               </view>
             </view>
           </transition>
+          <button
+            v-if="!isUserDetailOpen && selectedUser"
+            class="user-detail-expand"
+            hover-class="user-detail-expand--hover"
+            :aria-label="localeText('展开用户详细信息配置', 'Expand user details')"
+            @click="expandUserDetail"
+          >
+            <text class="user-detail-expand__icon"></text>
+          </button>
         </view>
 
         <view v-else-if="mode === 'auth'" class="content-layout content-layout--auth">
@@ -610,12 +624,14 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useLocaleText, useLocalizedCount, useLocalizedTotal } from "@/i18n/localeText";
+import UserLogoBindingField from "@/pages/system/components/UserLogoBindingField.vue";
 
 const localeText = useLocaleText();
 const localizedCount = useLocalizedCount();
 const localizedTotal = useLocalizedTotal();
-import { assignUserDepts, getUserDepts,getUserList, assignUserRoles, deleteUser, getUserPage, register, updateUser, type RegisterParams } from "@/services/system/user";
+import { assignUserDepts, getUserDepts,getUserList, assignUserRoles, deleteUser, getUserPage, register, updateAdminUserLogo, updateUser, type RegisterParams } from "@/services/system/user";
 import { applyUserLocale } from "@/i18n";
+import { updateCurrentUserLogoId } from "@/utils/branding";
 import { getRolePermissions,assignRolePermissions, createRole, deleteRole, getPermissionList, getPermissionTree, getRoleDetail, getRoleList, getRolePage, updateRole } from "@/services/system/auth";
 import { createMenu, deleteMenu, getMenuPage, getMenuTree, updateMenu } from "@/services/system/menu";
 import { createDictItem, createDictType, deleteDictItem, deleteDictType, getDictItemPage, getDictTypePage, updateDictItem, updateDictType } from "@/services/system/dict";
@@ -867,7 +883,9 @@ const userForm = reactive({
   password: "",
   status: 1,
   region: "国内",
+  logoId: "",
 });
+const userLogoChanged = ref(false);
 const roleForm = reactive({
   id: "",
   roleName: "",
@@ -1586,6 +1604,7 @@ async function loadDictItems() {
 
 function selectUser(item: RecordLike | null, openDetail = true) {
   selectedUser.value = item;
+  userLogoChanged.value = false;
   isCreating.value = false;
   if (openDetail && item) {
     isUserDetailOpen.value = true;
@@ -1600,6 +1619,7 @@ function selectUser(item: RecordLike | null, openDetail = true) {
     password: "",
     status: Number(getValue(item || {}, ["status"]) ?? 1),
     region: item ? getText(item, ["region"], "国内") : "国内",
+    logoId: item ? String(getValue(item, ["logoId"]) ?? "") : "",
   });
   if (item) {
     selectedRoleIds.value = getUserRoleIdsFromPageRecord(item);
@@ -1881,6 +1901,10 @@ function collapseUserDetail() {
   showUserPartitionDialog.value = false;
 }
 
+function expandUserDetail() {
+  isUserDetailOpen.value = true;
+}
+
 async function saveUser() {
   if (!userForm.username.trim() || !userForm.realName.trim() || (isCreating.value && !userForm.password.trim())) {
     uni.showToast({ title: "请填写账号、姓名和初始密码", icon: "none" });
@@ -1902,16 +1926,22 @@ async function saveUser() {
     syncSuperAdminPartitions();
     let savedMessage = "用户信息已保存";
     let savedIcon: "success" | "none" = "success";
-    const payload = removeEmptyFields({
-      username: userForm.username.trim(),
-      realName: userForm.realName.trim(),
-      phone: userForm.phone.trim(),
-      email: userForm.email.trim(),
-      password: userForm.password.trim(),
-      status: userForm.status,
-      region: userForm.region,
-      deptIds: selectedUserPartitionIds.value,
-    });
+    const payload: RecordLike = {
+      ...removeEmptyFields({
+        username: userForm.username.trim(),
+        realName: userForm.realName.trim(),
+        phone: userForm.phone.trim(),
+        email: userForm.email.trim(),
+        password: userForm.password.trim(),
+        status: userForm.status,
+        region: userForm.region,
+        deptIds: selectedUserPartitionIds.value,
+      }),
+    };
+    const logoId = Number(userForm.logoId);
+    if (userLogoChanged.value && userForm.logoId && !Number.isFinite(logoId)) {
+      throw new Error("Logo ID 无效，请重新上传");
+    }
     const response =
       isCreating.value || !userForm.id
         ? await register({
@@ -1934,6 +1964,18 @@ async function saveUser() {
       savedIcon = "none";
     }
     const savedUserId = roleAssignment?.userId || userForm.id;
+    if (userLogoChanged.value) {
+      if (savedUserId) {
+        const logoResponse = await updateAdminUserLogo(
+          savedUserId,
+          userForm.logoId ? logoId : 0,
+        );
+        assertSuccessResponse(logoResponse as ApiResponseLike);
+      } else {
+        savedMessage = "用户已保存，后端未返回用户ID，Logo 暂未绑定";
+        savedIcon = "none";
+      }
+    }
     if (savedUserId) {
       await assignUserDepts(
         savedUserId, 
@@ -1945,7 +1987,7 @@ async function saveUser() {
     }
     uni.showToast({ title: savedMessage, icon: savedIcon });
     syncCachedUserRegion(savedUserId);
-    await loadUsers();
+    await refreshCurrent();
     collapseUserDetail();
   } catch (error) {
     toastError(error, "用户保存失败");
@@ -1960,12 +2002,19 @@ function syncCachedUserRegion(savedUserId: string | number) {
     return;
   }
 
-  const nextUserInfo = {
+  const nextUserInfo: RecordLike = {
     ...cachedUserInfo,
     region: userForm.region,
+    logoId: userForm.logoId ? Number(userForm.logoId) : null,
   };
   uni.setStorageSync("userInfo", nextUserInfo);
+  updateCurrentUserLogoId(nextUserInfo.logoId);
   applyUserLocale(nextUserInfo);
+}
+
+function handleUserLogoModelChange(value: string) {
+  userForm.logoId = value;
+  userLogoChanged.value = true;
 }
 
 async function saveRole() {
@@ -3851,7 +3900,7 @@ function isValidId(value: unknown): value is string | number {
   left: 10px;
   z-index: 4;
   box-sizing: border-box;
-  height: clamp(260px, 44%, 360px);
+  height: clamp(309px, 52.73%, 473px);
   min-height: 0;
   overflow: hidden;
   background: #ffffff;
@@ -3902,6 +3951,45 @@ function isValidId(value: unknown): value is string | number {
   transform: translateY(-2px) rotate(45deg);
 }
 
+.user-detail-expand {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  color: #4e6d88;
+  background: #ffffff;
+  border: 1px solid #bfd5e7;
+  border-radius: 5px 5px 0 0;
+  box-shadow: 0 -3px 10px rgba(36, 70, 101, 0.08);
+  transform: translateX(-50%);
+}
+
+.user-detail-expand::after {
+  border: 0;
+}
+
+.user-detail-expand--hover {
+  color: #0d82ee;
+  background: #edf7ff;
+  border-color: #8bc8f5;
+}
+
+.user-detail-expand__icon {
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(2px) rotate(225deg);
+}
+
 .user-detail-drawer-enter-active,
 .user-detail-drawer-leave-active {
   transition: opacity 180ms ease, transform 180ms ease;
@@ -3935,12 +4023,11 @@ function isValidId(value: unknown): value is string | number {
   flex: none;
 }
 
-.check-grid--roles {
-  min-height: 44px;
-}
-
 .user-config-row .check-grid {
-  max-height: 112px;
+  box-sizing: border-box;
+  height: 40px;
+  min-height: 40px;
+  max-height: 40px;
   overflow-x: hidden;
   overflow-y: auto;
 }

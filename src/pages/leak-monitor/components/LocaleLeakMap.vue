@@ -23,6 +23,7 @@
       :loading="loading || sidebarLoading"
       :metrics="metrics"
       :devices="devices"
+      :regions="mapRegions"
       :page="workspace.page"
       :selected-device-number="selectedDevice?.deviceNumber"
       :error-message="errorMessage"
