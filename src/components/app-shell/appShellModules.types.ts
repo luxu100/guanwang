@@ -2,6 +2,8 @@ import type { Component } from "vue";
 import type { LocalizedModuleKey } from "@/i18n/moduleLocales";
 
 export interface AppShellModuleViews {
+  AlarmProcessingView: Component;
+  AlarmStrategyView: Component;
   CommandConfigurationView: Component;
   CommandManageView: Component;
   DataAnalysisSheetView: Component;
@@ -31,6 +33,7 @@ export function getAppShellModuleKey(path: string): LocalizedModuleKey | undefin
   if (path.startsWith("/pages/command/")) return "command";
   if (path.startsWith("/pages/data-analysis/")) return "dataAnalysis";
   if (path.startsWith("/pages/work-order/")) return "workOrder";
+  if (path.startsWith("/pages/alarm/")) return "alarm";
   if (path.startsWith("/pages/leak-report/")) return "leakReport";
   if (path.startsWith("/pages/system/")) return "system";
   if (path.startsWith("/pages/data-receive/")) return "dataReceive";

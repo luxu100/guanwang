@@ -12,6 +12,8 @@ import dataReceiveZhCN from "@/pages/data-receive/localized/locales/zh-CN.json";
 import dataReceiveEnUS from "@/pages/data-receive/localized/locales/en-US.json";
 import leakReportZhCN from "@/pages/leak-report/localized/locales/zh-CN.json";
 import leakReportEnUS from "@/pages/leak-report/localized/locales/en-US.json";
+import alarmZhCN from "@/pages/alarm/localized/locales/zh-CN.json";
+import alarmEnUS from "@/pages/alarm/localized/locales/en-US.json";
 import type { LocaleCode } from "@/i18n/types";
 
 export type LocalizedModuleKey =
@@ -21,7 +23,8 @@ export type LocalizedModuleKey =
   | "workOrder"
   | "system"
   | "dataReceive"
-  | "leakReport";
+  | "leakReport"
+  | "alarm";
 
 type LocaleDictionary = Record<string, string>;
 
@@ -38,6 +41,7 @@ export const moduleLocaleMessages: Record<LocalizedModuleKey, ModuleLocaleMessag
   system: { "zh-CN": systemZhCN, "en-US": systemEnUS },
   dataReceive: { "zh-CN": dataReceiveZhCN, "en-US": dataReceiveEnUS },
   leakReport: { "zh-CN": leakReportZhCN, "en-US": leakReportEnUS },
+  alarm: { "zh-CN": alarmZhCN, "en-US": alarmEnUS },
 };
 
 let activeLocalizedModule: LocalizedModuleKey | undefined;

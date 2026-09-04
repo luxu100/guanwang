@@ -1,3 +1,5 @@
+import AlarmProcessingView from "@/pages/alarm/localized/components/AlarmProcessingView.vue";
+import AlarmStrategyView from "@/pages/alarm/localized/components/AlarmStrategyView.vue";
 import CommandConfigurationView from "@/pages/command/localized/components/CommandConfigurationView.vue";
 import CommandManageView from "@/pages/command/localized/components/CommandManageView.vue";
 import DataAnalysisSheetView from "@/pages/data-analysis/localized/components/DataAnalysisSheetView.vue";
@@ -20,6 +22,8 @@ import type { AppShellModules } from "./appShellModules.types";
 const appShellModules = {
   localized: true,
   views: {
+    AlarmProcessingView,
+    AlarmStrategyView,
     CommandConfigurationView,
     CommandManageView,
     DataAnalysisSheetView,

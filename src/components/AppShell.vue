@@ -214,6 +214,7 @@ import AppShellModuleHost from "@/components/app-shell/AppShellModuleHost.vue";
 import LanguageSelect from "@/components/common/LanguageSelect.vue";
 import UserLogoBindingField from "@/pages/system/components/UserLogoBindingField.vue";
 import { getSysFileDetail } from "@/services/system/file";
+import { getUnreadAlarmCount } from "@/services/alarm/processing";
 
 // import appShellModules from "@/components/app-shell/appShellModules.local";
 import appShellModules from "@/components/app-shell/appShellModules.localized";
@@ -254,6 +255,8 @@ const menuT = createScopedT("appShellMenu");
 const shellT = createScopedT("appShell");
 const { locale } = useI18n();
 const {
+  AlarmProcessingView,
+  AlarmStrategyView,
   CommandConfigurationView,
   CommandManageView,
   DataAnalysisSheetView,
@@ -430,9 +433,8 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/work-order/create/create": { component: WorkOrderCreateView },
   "/pages/work-order/processing/processing": { component: WorksheetTableView, props: { mode: "processing" } },
   "/pages/work-order/statistics/statistics": { component: WorksheetTableView, props: { mode: "statistics" } },
-  "/pages/alarm/strategy/strategy": createPlaceholderContent("/pages/alarm/strategy/strategy"),
-  "/pages/alarm/processing/processing": createPlaceholderContent("/pages/alarm/processing/processing"),
-  "/pages/alarm/analysis/analysis": createPlaceholderContent("/pages/alarm/analysis/analysis"),
+  "/pages/alarm/strategy/strategy": { component: AlarmStrategyView },
+  "/pages/alarm/processing/processing": { component: AlarmProcessingView },
   "/pages/report/device-resume/device-resume": createPlaceholderContent("/pages/report/device-resume/device-resume"),
   "/pages/report/device-ledger/device-ledger": createPlaceholderContent("/pages/report/device-ledger/device-ledger"),
   "/pages/report/battery-health/battery-health": createPlaceholderContent("/pages/report/battery-health/battery-health"),
@@ -457,7 +459,7 @@ const isAuthReady = ref(false);
 const isMenuCollapsed = ref(getInitialMenuCollapsed());
 const expandedMenuPaths = ref<string[]>([]);
 const collapsedSubmenuPath = ref("");
-const warningCount = ref(4);
+const warningCount = ref(0);
 
 const routePath = computed(() => {
   const pages = getCurrentPages();
@@ -1081,6 +1083,38 @@ function syncPathFromBrowser() {
 }
 
 // #ifdef H5
+// 顶栏铃铛：未处理报警数量轮询（30~60s，页面隐藏时暂停）
+const WARNING_POLL_INTERVAL = 45 * 1000;
+let warningPollTimer: ReturnType<typeof setInterval> | null = null;
+
+async function refreshWarningCount() {
+  try {
+    const res = (await getUnreadAlarmCount()) as { code?: number; msg?: string; data?: number };
+    if (res.code !== undefined && res.code !== 200) {
+      throw new Error(res.msg);
+    }
+    warningCount.value = Number(res.data) || 0;
+  } catch {
+    // 接口失败时保持当前值，不回退
+  }
+}
+
+function startWarningPolling() {
+  if (warningPollTimer) return;
+  warningPollTimer = setInterval(() => {
+    if (!document.hidden) {
+      refreshWarningCount();
+    }
+  }, WARNING_POLL_INTERVAL);
+}
+
+function stopWarningPolling() {
+  if (warningPollTimer) {
+    clearInterval(warningPollTimer);
+    warningPollTimer = null;
+  }
+}
+
 onMounted(() => {
   if (!ensureAuthenticatedRoute()) {
     return;
@@ -1104,6 +1138,8 @@ onMounted(() => {
   window.addEventListener("keydown", handleFullscreenKeydown);
   window.addEventListener(BRAND_LOGO_UPDATED_EVENT, refreshNavigationLogo);
   syncFullscreenState();
+  void refreshWarningCount();
+  startWarningPolling();
 });
 
 onUnmounted(() => {
@@ -1113,6 +1149,7 @@ onUnmounted(() => {
   document.removeEventListener("webkitfullscreenchange", syncFullscreenState);
   window.removeEventListener("keydown", handleFullscreenKeydown);
   window.removeEventListener(BRAND_LOGO_UPDATED_EVENT, refreshNavigationLogo);
+  stopWarningPolling();
 });
 // #endif
 
