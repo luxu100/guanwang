@@ -74,7 +74,9 @@ function withForcedDeleteParam(url, method) {
   const [urlWithoutHash, hash = ""] = String(url).split("#");
   const [path, query = ""] = urlWithoutHash.split("?");
   const params = new URLSearchParams(query);
-  params.set("is_force", "true");
+  if (!params.has("is_force")) {
+    params.set("is_force", "true");
+  }
 
   const nextQuery = params.toString();
   return `${path}${nextQuery ? `?${nextQuery}` : ""}${hash ? `#${hash}` : ""}`;

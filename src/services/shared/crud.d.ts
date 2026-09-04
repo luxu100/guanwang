@@ -6,7 +6,7 @@ export function putRequest(url: string, data?: any): Promise<any>;
 
 export function patchRequest(url: string, data?: any): Promise<any>;
 
-export function deleteRequest(url: string, data?: any, isForce?: boolean): Promise<any>;
+export function deleteRequest(url: string, data?: any, isForce?: boolean, timeout?: number): Promise<any>;
 
 export function createCrudService(baseUrl: string): {
     getDetail(id: string | number): Promise<any>;

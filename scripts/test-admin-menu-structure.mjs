@@ -64,3 +64,29 @@ test("default permission resources include protocol management under data receiv
   assert.match(dataReceivePermissionSource, /permissionCode: "page:data-receive:parse"/);
   assert.match(dataReceivePermissionSource, /permissionCode: "page:data-receive:record"/);
 });
+
+test("default menu sync uses backend permission types and removes retired report pages", () => {
+  assert.match(systemSource, /const rawPermissionType = Number\(getValue\(item, \["permissionType"\]\) \?\? 1\)/);
+  assert.match(systemSource, /rawPermissionType === 0 \? 1 : rawPermissionType/);
+  assert.match(systemSource, /\{ label: "接口", value: 3 \}/);
+  assert.match(systemSource, /"page:report:generate"/);
+  assert.match(systemSource, /"page:report:operation"/);
+  assert.match(systemSource, /"page:report:command"/);
+  assert.match(systemSource, /"\/pages\/report\/generate\/generate"/);
+  assert.match(systemSource, /"\/pages\/report\/operation\/operation"/);
+  assert.match(systemSource, /"\/pages\/report\/command\/command"/);
+});
+
+test("default menu sync avoids the slow large-page request when tree or list data is available", () => {
+  assert.match(systemSource, /getMenuList/);
+  assert.match(systemSource, /const treeRecords = toTreeRows\(parseListResponse\(treeResponse\)\);\s*if \(treeRecords\.length\) \{\s*return treeRecords;/);
+  assert.match(systemSource, /const listRecords = toTreeRows\(parseListResponse\(listResponse\)\);\s*if \(listRecords\.length\) \{\s*return listRecords;/);
+  assert.match(systemSource, /getMenuPage\(\{ pageNum: 1, pageSize: 100 \}\)/);
+  assert.doesNotMatch(systemSource, /getMenuPage\(\{ pageNum: 1, pageSize: 500 \}\)/);
+});
+
+test("stale default menus use force deletion and preserve explicit delete modes", () => {
+  assert.match(systemSource, /batchDeleteMenu\(Array\.from\(idsToDelete\), true\)/);
+  assert.match(readFileSync(new URL("../src/services/system/menu.d.ts", import.meta.url), "utf8"), /batchDeleteMenu\(data: Array<number \| string>, isForce\?: boolean\)/);
+  assert.match(readFileSync(new URL("../src/utils/request.js", import.meta.url), "utf8"), /if \(!params\.has\("is_force"\)\)/);
+});

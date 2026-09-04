@@ -46,11 +46,12 @@ export function patchRequest(url, data) {
   });
 }
 
-export function deleteRequest(url, data, isForce = true) {
+export function deleteRequest(url, data, isForce = true, timeout = 15000) {
   return request({
     url: appendForceDeleteParam(url, isForce),
     method: "delete",
     data,
+    timeout,
   });
 }
 

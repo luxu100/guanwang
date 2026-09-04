@@ -92,16 +92,51 @@
       }
     },
     {
-      "path": "pages/report/generate/generate",
+      "path": "pages/report/device-resume/device-resume",
       "style": {
-        "navigationBarTitleText": "报表生成",
+        "navigationBarTitleText": "设备履历",
         "navigationStyle": "custom"
       }
     },
     {
-      "path": "pages/report/operation/operation",
+      "path": "pages/report/device-ledger/device-ledger",
       "style": {
-        "navigationBarTitleText": "报表操作",
+        "navigationBarTitleText": "设备台账",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/report/battery-health/battery-health",
+      "style": {
+        "navigationBarTitleText": "电池健康度",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/report/operation-analysis/operation-analysis",
+      "style": {
+        "navigationBarTitleText": "运行分析报告",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/leak-burst/burst-identification/burst-identification",
+      "style": {
+        "navigationBarTitleText": "爆管识别",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/leak-burst/measurement-analysis/measurement-analysis",
+      "style": {
+        "navigationBarTitleText": "测点分析",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/leak-burst/loss-report/loss-report",
+      "style": {
+        "navigationBarTitleText": "漏损报表",
         "navigationStyle": "custom"
       }
     },

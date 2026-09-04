@@ -349,6 +349,29 @@ const menuItems: MenuItem[] = [
     ],
   },
   {
+    labelKey: "report",
+    path: "/pages/report/device-resume/device-resume",
+    icon: "report",
+    keywords: ["运维", "报表"],
+    children: [
+      { labelKey: "reportDeviceResume", path: "/pages/report/device-resume/device-resume", icon: "report", keywords: ["设备", "履历"] },
+      { labelKey: "reportDeviceLedger", path: "/pages/report/device-ledger/device-ledger", icon: "report", keywords: ["设备", "台账"] },
+      { labelKey: "reportBatteryHealth", path: "/pages/report/battery-health/battery-health", icon: "report", keywords: ["电池", "健康"] },
+      { labelKey: "reportOperationAnalysis", path: "/pages/report/operation-analysis/operation-analysis", icon: "report", keywords: ["运行", "分析"] },
+    ],
+  },
+  {
+    labelKey: "leakBurst",
+    path: "/pages/leak-burst/burst-identification/burst-identification",
+    icon: "report",
+    keywords: ["渗漏", "爆管"],
+    children: [
+      { labelKey: "burstIdentification", path: "/pages/leak-burst/burst-identification/burst-identification", icon: "report", keywords: ["爆管", "识别"] },
+      { labelKey: "measurementAnalysis", path: "/pages/leak-burst/measurement-analysis/measurement-analysis", icon: "report", keywords: ["测点", "分析"] },
+      { labelKey: "lossReport", path: "/pages/leak-burst/loss-report/loss-report", icon: "report", keywords: ["漏损", "报表"] },
+    ],
+  },
+  {
     labelKey: "alarm",
     path: "/pages/alarm/strategy/strategy",
     icon: "alarm",
@@ -356,16 +379,6 @@ const menuItems: MenuItem[] = [
     children: [
       { labelKey: "alarmStrategy", path: "/pages/alarm/strategy/strategy", icon: "alarm", keywords: ["策略"] },
       { labelKey: "alarmProcessing", path: "/pages/alarm/processing/processing", icon: "alarm", keywords: ["处理"] },
-    ],
-  },
-  {
-    labelKey: "report",
-    path: "/pages/report/generate/generate",
-    icon: "report",
-    keywords: ["报表"],
-    children: [
-      { labelKey: "reportGenerate", path: "/pages/report/generate/generate", icon: "report", keywords: ["生成"] },
-      { labelKey: "reportOperation", path: "/pages/report/operation/operation", icon: "report", keywords: ["操作"] },
     ],
   },
   {
@@ -420,8 +433,13 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/alarm/strategy/strategy": createPlaceholderContent("/pages/alarm/strategy/strategy"),
   "/pages/alarm/processing/processing": createPlaceholderContent("/pages/alarm/processing/processing"),
   "/pages/alarm/analysis/analysis": createPlaceholderContent("/pages/alarm/analysis/analysis"),
-  "/pages/report/generate/generate": createPlaceholderContent("/pages/report/generate/generate"),
-  "/pages/report/operation/operation": createPlaceholderContent("/pages/report/operation/operation"),
+  "/pages/report/device-resume/device-resume": createPlaceholderContent("/pages/report/device-resume/device-resume"),
+  "/pages/report/device-ledger/device-ledger": createPlaceholderContent("/pages/report/device-ledger/device-ledger"),
+  "/pages/report/battery-health/battery-health": createPlaceholderContent("/pages/report/battery-health/battery-health"),
+  "/pages/report/operation-analysis/operation-analysis": createPlaceholderContent("/pages/report/operation-analysis/operation-analysis"),
+  "/pages/leak-burst/burst-identification/burst-identification": createPlaceholderContent("/pages/leak-burst/burst-identification/burst-identification"),
+  "/pages/leak-burst/measurement-analysis/measurement-analysis": createPlaceholderContent("/pages/leak-burst/measurement-analysis/measurement-analysis"),
+  "/pages/leak-burst/loss-report/loss-report": createPlaceholderContent("/pages/leak-burst/loss-report/loss-report"),
   "/pages/report/command/command": createPlaceholderContent("/pages/report/command/command"),
   "/pages/system/user/user": { component: SystemManagementView, props: { mode: "user" } },
   "/pages/system/auth/auth": { component: SystemManagementView, props: { mode: "auth" } },

@@ -2,7 +2,7 @@
 
 城市管网渗漏预警平台前端工程，基于 `uni-app`、`Vue 3`、`TypeScript` 和 `Vite 5` 构建。项目当前以 H5 后台管理端为主，同时保留微信、支付宝、百度、QQ、头条、小红书等多端小程序构建脚本，方便后续按终端形态扩展。
 
-系统围绕城市管网渗漏业务展开，覆盖渗漏监测、分区管理、设备管理、数据分析、疑漏点上报、统计分析、工单管理、实时报警、统计报表、系统设置、数据接收和解析等模块。登录后统一进入后台应用外壳，默认展示“渗漏监测”页面。
+系统围绕城市管网渗漏业务展开，覆盖渗漏监测、分区管理、设备管理、数据分析、疑漏点上报、统计分析、工单管理、运维报表、渗漏爆管、实时报警、系统设置、数据接收和解析等模块。登录后统一进入后台应用外壳，默认展示“渗漏监测”页面。
 
 ## 目录
 
@@ -200,7 +200,8 @@ VITE_DEV_PROXY_TARGET=http://127.0.0.1:28082 npm run dev:h5
 | `statistics` | 统计分析 | 设备、渗漏、工单、报警等统计 |
 | `work-order` | 工单管理 | 工单创建、处理、查询与统计 |
 | `alarm` | 实时报警 | 报警策略、处理、分析 |
-| `report` | 统计报表 | 报表生成、操作、指令管理 |
+| `report` | 运维报表 | 设备履历、设备台账、电池健康度、运行分析报告 |
+| `leak-burst` | 渗漏爆管 | 爆管识别、测点分析、漏损报表 |
 | `system` | 系统设置 | 用户、权限、菜单、字典 |
 | `data-receive` | 数据接收和解析 | 协议管理、解析规则、数据记录 |
 
@@ -218,7 +219,8 @@ VITE_DEV_PROXY_TARGET=http://127.0.0.1:28082 npm run dev:h5
 | `statistics` | 统计分析 | 平台级汇总统计 |
 | `work-order` | 工单管理 | 工单创建、处理、统计、导出 |
 | `alarm` | 实时报警 | 报警策略、报警记录、确认、忽略、转工单 |
-| `report` | 统计报表 | 报表模板、任务、报表、指令、固件 |
+| `report` | 运维报表 | 设备履历、设备台账、电池健康度、运行分析报告 |
+| `leak-burst` | 渗漏爆管 | 爆管识别、测点分析、漏损报表 |
 | `system` | 系统设置 | 用户、角色、权限、菜单、字典 |
 | `data-receive` | 数据接收和解析 | 协议、字段、解析记录、采样记录 |
 
@@ -291,13 +293,22 @@ VITE_DEV_PROXY_TARGET=http://127.0.0.1:28082 npm run dev:h5
 | 报警处理 | `/pages/alarm/processing/processing` | `src/pages/alarm/processing/processing.vue` | 报警记录、确认、忽略、转工单 |
 | 报警分析 | `/pages/alarm/analysis/analysis` | `src/pages/alarm/analysis/analysis.vue` | 报警统计、趋势、导出 |
 
-### 统计报表
+### 运维报表
 
 | 页面 | 路由 | 文件 | 说明 |
 | --- | --- | --- | --- |
-| 报表生成 | `/pages/report/generate/generate` | `src/pages/report/generate/generate.vue` | 报表模板、生成任务、生成动作 |
-| 报表操作 | `/pages/report/operation/operation` | `src/pages/report/operation/operation.vue` | 报表查询、删除、导出、打印 |
-| 指令管理 | `/pages/report/command/command` | `src/pages/report/command/command.vue` | 指令字典、参数、下发记录、固件、升级 |
+| 设备履历 | `/pages/report/device-resume/device-resume` | `src/pages/report/device-resume/device-resume.vue` | 页面占位 |
+| 设备台账 | `/pages/report/device-ledger/device-ledger` | `src/pages/report/device-ledger/device-ledger.vue` | 页面占位 |
+| 电池健康度 | `/pages/report/battery-health/battery-health` | `src/pages/report/battery-health/battery-health.vue` | 页面占位 |
+| 运行分析报告 | `/pages/report/operation-analysis/operation-analysis` | `src/pages/report/operation-analysis/operation-analysis.vue` | 页面占位 |
+
+### 渗漏爆管
+
+| 页面 | 路由 | 文件 | 说明 |
+| --- | --- | --- | --- |
+| 爆管识别 | `/pages/leak-burst/burst-identification/burst-identification` | `src/pages/leak-burst/burst-identification/burst-identification.vue` | 页面占位 |
+| 测点分析 | `/pages/leak-burst/measurement-analysis/measurement-analysis` | `src/pages/leak-burst/measurement-analysis/measurement-analysis.vue` | 页面占位 |
+| 漏损报表 | `/pages/leak-burst/loss-report/loss-report` | `src/pages/leak-burst/loss-report/loss-report.vue` | 页面占位 |
 
 ### 系统设置
 

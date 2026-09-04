@@ -628,7 +628,7 @@ import { assignUserDepts, getUserDepts,getUserList, assignUserRoles, deleteUser,
 import { applyUserLocale } from "@/i18n";
 import { updateCurrentUserLogoId } from "@/utils/branding";
 import { getRolePermissions,assignRolePermissions, createRole, deleteRole, getPermissionList, getPermissionTree, getRoleDetail, getRoleList, getRolePage, updateRole } from "@/services/system/auth";
-import { createMenu, deleteMenu, getMenuPage, getMenuTree, updateMenu } from "@/services/system/menu";
+import { batchDeleteMenu, createMenu, deleteMenu, getMenuList, getMenuPage, getMenuTree, updateMenu } from "@/services/system/menu";
 import { createDictItem, createDictType, deleteDictItem, deleteDictType, getDictItemPage, getDictTypePage, updateDictItem, updateDictType } from "@/services/system/dict";
 import { getRegionList } from "@/services/partition/partition";
 import {
@@ -667,9 +667,15 @@ const STALE_DEFAULT_MENU_CODES = new Set([
   "page:device:status",
   "page:work-order:statistics",
   "page:alarm:analysis",
+  "page:report:generate",
+  "page:report:operation",
+  "page:report:command",
 ]);
 const STALE_DEFAULT_MENU_PATHS = new Set([
   "/pages/alarm/analysis/analysis",
+  "/pages/report/generate/generate",
+  "/pages/report/operation/operation",
+  "/pages/report/command/command",
 ]);
 
 function isStaleDefaultMenu(item: RecordLike) {
@@ -787,14 +793,29 @@ const defaultMenuTree: RecordLike[] = [
   },
   {
     id: `${LOCAL_MENU_ID_PREFIX}report`,
-    permissionName: "统计报表",
+    permissionName: "运维报表",
     permissionCode: "module:report",
-    path: "/pages/report/generate/generate",
+    path: "/pages/report/device-resume/device-resume",
     permissionType: 0,
     status: 1,
     children: [
-      { id: `${LOCAL_MENU_ID_PREFIX}report-generate`, permissionName: "报表生成", permissionCode: "page:report:generate", path: "/pages/report/generate/generate", parentId: `${LOCAL_MENU_ID_PREFIX}report`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}report-operation`, permissionName: "报表操作", permissionCode: "page:report:operation", path: "/pages/report/operation/operation", parentId: `${LOCAL_MENU_ID_PREFIX}report`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}report-device-resume`, permissionName: "设备履历", permissionCode: "page:report:device-resume", path: "/pages/report/device-resume/device-resume", parentId: `${LOCAL_MENU_ID_PREFIX}report`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}report-device-ledger`, permissionName: "设备台账", permissionCode: "page:report:device-ledger", path: "/pages/report/device-ledger/device-ledger", parentId: `${LOCAL_MENU_ID_PREFIX}report`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}report-battery-health`, permissionName: "电池健康度", permissionCode: "page:report:battery-health", path: "/pages/report/battery-health/battery-health", parentId: `${LOCAL_MENU_ID_PREFIX}report`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}report-operation-analysis`, permissionName: "运行分析报告", permissionCode: "page:report:operation-analysis", path: "/pages/report/operation-analysis/operation-analysis", parentId: `${LOCAL_MENU_ID_PREFIX}report`, permissionType: 1, status: 1 },
+    ],
+  },
+  {
+    id: `${LOCAL_MENU_ID_PREFIX}leak-burst`,
+    permissionName: "渗漏爆管",
+    permissionCode: "module:leak-burst",
+    path: "/pages/leak-burst/burst-identification/burst-identification",
+    permissionType: 0,
+    status: 1,
+    children: [
+      { id: `${LOCAL_MENU_ID_PREFIX}leak-burst-identification`, permissionName: "爆管识别", permissionCode: "page:leak-burst:identification", path: "/pages/leak-burst/burst-identification/burst-identification", parentId: `${LOCAL_MENU_ID_PREFIX}leak-burst`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}leak-burst-measurement-analysis`, permissionName: "测点分析", permissionCode: "page:leak-burst:measurement-analysis", path: "/pages/leak-burst/measurement-analysis/measurement-analysis", parentId: `${LOCAL_MENU_ID_PREFIX}leak-burst`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}leak-burst-loss-report`, permissionName: "漏损报表", permissionCode: "page:leak-burst:loss-report", path: "/pages/leak-burst/loss-report/loss-report", parentId: `${LOCAL_MENU_ID_PREFIX}leak-burst`, permissionType: 1, status: 1 },
     ],
   },
   {
@@ -830,9 +851,9 @@ const userRegionOptions: Array<SelectOption<string>> = [
   { label: "国外", value: "国外" },
 ];
 const permissionTypeOptions: Array<SelectOption<number>> = [
-  { label: "目录", value: 0 },
   { label: "菜单", value: 1 },
   { label: "按钮", value: 2 },
+  { label: "接口", value: 3 },
 ];
 const alarmOptions = [
   { label: "开启实时报警接收", value: "enabled" },
@@ -1081,7 +1102,7 @@ const metricCards = computed(() => {
     return [
       { label: "菜单资源", value: String(total.value || menus.value.length) },
       { label: "启用资源", value: String(menus.value.filter((item) => Number(getValue(item, ["status"]) ?? 1) === 1).length) },
-      { label: "目录节点", value: String(menus.value.filter((item) => Number(getValue(item, ["permissionType"])) === 0).length) },
+      { label: "接口权限", value: String(menus.value.filter((item) => Number(getValue(item, ["permissionType"])) === 3).length) },
       { label: "按钮权限", value: String(menus.value.filter((item) => Number(getValue(item, ["permissionType"])) === 2).length) },
     ];
   }
@@ -2186,13 +2207,11 @@ async function ensureDefaultMenuNode(
     assertSuccessResponse(response as ApiResponseLike);
     backendId = getCreatedMenuId(response as ApiResponseLike);
 
-    if (!backendId && permissionCode) {
-      await refreshBackendMenuCodeMap(backendMenuMap);
-      backendId = getId(backendMenuMap.get(permissionCode));
-    }
-
     if (backendId && permissionCode) {
       backendMenuMap.set(permissionCode, { ...payload, id: backendId });
+    }
+    if (!backendId) {
+      throw { msg: `菜单创建成功但未获取到菜单ID：${permissionCode || payload.permissionName}` };
     }
     result && (result.created += 1);
   }
@@ -2204,7 +2223,7 @@ async function ensureDefaultMenuNode(
     }
   }
 
-  return Number(backendId) || 0;
+  return backendId || 0;
 }
 
 async function pruneStaleDefaultMenus(
@@ -2214,6 +2233,7 @@ async function pruneStaleDefaultMenus(
 ) {
   const defaultCodes = new Set(toTreeRows(defaultMenuTree).map((item) => getText(item, ["permissionCode"], "")).filter(Boolean));
   const grouped = new Map<string, RecordLike[]>();
+  const idsToDelete = new Set<string | number>();
 
   backendRecords.forEach((item) => {
     const code = getText(item, ["permissionCode"], "");
@@ -2231,7 +2251,7 @@ async function pruneStaleDefaultMenus(
   for (const [code, records] of grouped) {
     if (isStaleDefaultMenu({ permissionCode: code }) || code.startsWith("__stale_path__")) {
       for (const item of records) {
-        await deleteDefaultMenuRecord(item, result);
+        collectDeleteId(item, idsToDelete);
       }
       backendMenuMap.delete(code);
       continue;
@@ -2248,19 +2268,22 @@ async function pruneStaleDefaultMenus(
     });
 
     for (const item of duplicates) {
-      await deleteDefaultMenuRecord(item, result);
+      collectDeleteId(item, idsToDelete);
     }
+  }
+
+  if (idsToDelete.size) {
+    const response = await batchDeleteMenu(Array.from(idsToDelete), true);
+    assertSuccessResponse(response as ApiResponseLike);
+    result.deleted += idsToDelete.size;
   }
 }
 
-async function deleteDefaultMenuRecord(item: RecordLike, result: { deleted: number }) {
+function collectDeleteId(item: RecordLike, ids: Set<string | number>) {
   const id = getId(item);
-  if (!isValidId(id) || isLocalMenuId(id)) {
-    return;
+  if (isValidId(id) && !isLocalMenuId(id)) {
+    ids.add(id);
   }
-  const response = await deleteMenu(id);
-  assertSuccessResponse(response as ApiResponseLike);
-  result.deleted += 1;
 }
 
 function shouldUpdateDefaultMenu(existed: RecordLike | undefined, payload: RecordLike) {
@@ -2279,22 +2302,47 @@ function shouldUpdateDefaultMenu(existed: RecordLike | undefined, payload: Recor
 }
 
 function buildDefaultMenuPayload(item: RecordLike, parentId: string | number) {
+  const rawPermissionType = Number(getValue(item, ["permissionType"]) ?? 1);
+
   return removeEmptyFields({
     permissionName: getText(item, ["permissionName", "menuName", "name"], ""),
     permissionCode: getText(item, ["permissionCode"], ""),
     path: getText(item, ["path"], ""),
     parentId: Number(parentId) || 0,
-    permissionType: Number(getValue(item, ["permissionType"]) ?? 1),
+    // The backend contract has no directory type: 1=menu, 2=button, 3=interface.
+    permissionType: rawPermissionType === 0 ? 1 : rawPermissionType,
     status: Number(getValue(item, ["status"]) ?? 1),
   });
 }
 
 function getCreatedMenuId(response: ApiResponseLike) {
-  const data = response.data;
-  if (isObject(data)) {
-    return getId(data);
+  const candidates = [
+    response?.data,
+    (response as RecordLike)?.id,
+    isObject(response?.data) ? response.data.data : undefined,
+  ];
+
+  for (const candidate of candidates) {
+    const id = getResponseId(candidate);
+    if (id) {
+      return id;
+    }
   }
-  return getId(response as RecordLike);
+
+  return "";
+}
+
+function getResponseId(value: unknown): string | number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim()) {
+    return value.trim();
+  }
+  if (isObject(value)) {
+    return getId(value);
+  }
+  return "";
 }
 
 async function loadBackendMenuCodeMap() {
@@ -2313,31 +2361,32 @@ function createBackendMenuCodeMap(records: RecordLike[]) {
   return map;
 }
 
-async function refreshBackendMenuCodeMap(map: Map<string, RecordLike>) {
-  map.clear();
-  const nextMap = await loadBackendMenuCodeMap();
-  nextMap.forEach((value, key) => map.set(key, value));
-}
-
 async function loadBackendMenuRecords() {
-  let treeRecords: RecordLike[] = [];
   try {
     const treeResponse = await getMenuTree({}) as ApiResponseLike;
     assertSuccessResponse(treeResponse);
-    treeRecords = toTreeRows(parseListResponse(treeResponse));
+    const treeRecords = toTreeRows(parseListResponse(treeResponse));
+    if (treeRecords.length) {
+      return treeRecords;
+    }
   } catch {
-    // tree接口不可用时降级使用分页接口。
+    // tree接口不可用时继续尝试普通列表接口。
   }
 
-  const pageResponse = await getMenuPage({ pageNum: 1, pageSize: 500 }) as ApiResponseLike;
+  try {
+    const listResponse = await getMenuList() as ApiResponseLike;
+    assertSuccessResponse(listResponse);
+    const listRecords = toTreeRows(parseListResponse(listResponse));
+    if (listRecords.length) {
+      return listRecords;
+    }
+  } catch {
+    // list接口不可用时再降级使用分页接口。
+  }
+
+  const pageResponse = await getMenuPage({ pageNum: 1, pageSize: 100 }) as ApiResponseLike;
   assertSuccessResponse(pageResponse);
-  const pageRecords = parsePageResponse(pageResponse).records;
-  const merged = new Map<string, RecordLike>();
-  [...treeRecords, ...pageRecords].forEach((item, index) => {
-    const id = getId(item);
-    merged.set(isValidId(id) ? String(id) : `row:${index}`, item);
-  });
-  return Array.from(merged.values());
+  return parsePageResponse(pageResponse).records;
 }
 
 async function assertStaleDefaultMenusRemoved() {

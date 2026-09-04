@@ -1,0 +1,236 @@
+- generic [active] [ref=f3e1]:
+  - generic [ref=f3e7]:
+    - generic [ref=f3e13]:
+      - generic "Replace logo" [ref=f3e16] [cursor=pointer]
+      - generic "预警信息" [ref=f3e20] [cursor=pointer]: "4"
+      - generic [ref=f3e24] [cursor=pointer]: English
+      - generic [ref=f3e29]: foreigner
+      - generic [ref=f3e31] [cursor=pointer]: Logout
+    - generic [ref=f3e32]:
+      - generic [ref=f3e33]:
+        - generic [ref=f3e34]:
+          - generic [ref=f3e35]: Menu
+          - generic "Collapse menu" [ref=f3e36] [cursor=pointer]
+        - generic [ref=f3e38]:
+          - generic "Favorites" [ref=f3e42] [cursor=pointer]
+          - generic "Leak Monitor" [ref=f3e46] [cursor=pointer]
+          - generic "Partitions" [ref=f3e50] [cursor=pointer]
+          - generic "Devices" [ref=f3e54] [cursor=pointer]
+          - generic "Commands" [ref=f3e58] [cursor=pointer]
+          - generic "Statistics" [ref=f3e62] [cursor=pointer]
+          - generic "Data Analysis" [ref=f3e66] [cursor=pointer]
+          - generic "Leak Reports" [ref=f3e70] [cursor=pointer]
+          - generic "Work Orders" [ref=f3e74] [cursor=pointer]
+          - generic "Operations Reports" [ref=f3e78] [cursor=pointer]
+          - generic "Leak and Pipe Burst" [ref=f3e82] [cursor=pointer]
+          - generic "Alarms" [ref=f3e86] [cursor=pointer]
+          - generic [ref=f3e87]:
+            - generic "System" [ref=f3e90] [cursor=pointer]
+            - generic [ref=f3e91]:
+              - generic "Users" [ref=f3e94] [cursor=pointer]
+              - generic "Permissions" [ref=f3e97] [cursor=pointer]
+              - generic "Menus" [ref=f3e100] [cursor=pointer]
+              - generic "Dictionary" [ref=f3e103] [cursor=pointer]
+              - generic "Search Templates" [ref=f3e106] [cursor=pointer]
+          - generic "Data Intake" [ref=f3e110] [cursor=pointer]
+      - generic [ref=f3e111]:
+        - generic [ref=f3e112]:
+          - generic "向左滚动页签" [ref=f3e113] [cursor=pointer]
+          - generic "向右滚动页签" [ref=f3e115] [cursor=pointer]
+          - generic [ref=f3e117]:
+            - generic "Leak Monitor" [ref=f3e120] [cursor=pointer]
+            - generic "Menus" [ref=f3e125] [cursor=pointer]
+          - generic "进入全屏" [ref=f3e128] [cursor=pointer]
+        - generic [ref=f3e137]:
+          - generic [ref=f3e138]:
+            - generic [ref=f3e139]:
+              - generic [ref=f3e140]: Menu Resources
+              - generic "Refresh" [ref=f3e141] [cursor=pointer]
+            - generic [ref=f3e150]:
+              - generic [ref=f3e151] [cursor=pointer]: Partitions
+              - generic [ref=f3e155] [cursor=pointer]:
+                - generic "展开子菜单" [ref=f3e156]
+                - generic [ref=f3e158]: System
+              - generic [ref=f3e160] [cursor=pointer]:
+                - generic "展开子菜单" [ref=f3e161]
+                - generic [ref=f3e163]: Leak Reports
+              - generic [ref=f3e165] [cursor=pointer]:
+                - generic "展开子菜单" [ref=f3e166]
+                - generic [ref=f3e168]: Statistics
+              - generic [ref=f3e169] [cursor=pointer]: Favorites
+              - generic [ref=f3e172] [cursor=pointer]: Leak Monitor
+              - generic [ref=f3e176] [cursor=pointer]:
+                - generic "展开子菜单" [ref=f3e177]
+                - generic [ref=f3e179]: Devices
+              - generic [ref=f3e181] [cursor=pointer]:
+                - generic "展开子菜单" [ref=f3e182]
+                - generic [ref=f3e184]: Commands
+              - generic [ref=f3e186] [cursor=pointer]:
+                - generic "展开子菜单" [ref=f3e187]
+                - generic [ref=f3e189]: Data Analysis
+              - generic [ref=f3e191] [cursor=pointer]:
+                - generic "展开子菜单" [ref=f3e192]
+                - generic [ref=f3e194]: Work Orders
+              - generic [ref=f3e196] [cursor=pointer]:
+                - generic "展开子菜单" [ref=f3e197]
+                - generic [ref=f3e199]: Alarms
+              - generic [ref=f3e201] [cursor=pointer]:
+                - generic "展开子菜单" [ref=f3e202]
+                - generic [ref=f3e204]: Operations Reports
+              - generic [ref=f3e206] [cursor=pointer]:
+                - generic "展开子菜单" [ref=f3e207]
+                - generic [ref=f3e209]: Leak and Pipe Burst
+              - generic [ref=f3e211] [cursor=pointer]:
+                - generic "展开子菜单" [ref=f3e212]
+                - generic [ref=f3e214]: Data Intake
+          - generic [ref=f3e215]:
+            - generic [ref=f3e216]:
+              - generic [ref=f3e218]:
+                - generic [ref=f3e219]: Keywords
+                - generic [ref=f3e221]:
+                  - generic: Menu name, encoding, or path
+                  - textbox [ref=f3e222]
+              - generic [ref=f3e223]:
+                - generic [ref=f3e224] [cursor=pointer]: Search
+                - generic [ref=f3e225] [cursor=pointer]: Reset
+                - generic [ref=f3e226] [cursor=pointer]: Add
+                - generic [ref=f3e227] [cursor=pointer]: Delete
+            - generic [ref=f3e228]:
+              - generic [ref=f3e229]:
+                - generic [ref=f3e230]:
+                  - generic [ref=f3e231]: List of menu resources
+                  - generic [ref=f3e232]:
+                    - generic [ref=f3e233]: "Total: 48"
+                    - generic [ref=f3e234]: 批量删除
+                - generic [ref=f3e239]:
+                  - generic [ref=f3e240]:
+                    - generic [ref=f3e243] [cursor=pointer]
+                    - generic [ref=f3e244]: Menu Name
+                    - generic [ref=f3e245]: Permission encoding
+                    - generic [ref=f3e246]: Page path
+                    - generic [ref=f3e247]: Status
+                  - generic [ref=f3e248] [cursor=pointer]:
+                    - generic [ref=f3e252]: Partitions
+                    - generic [ref=f3e255]: page:partition
+                    - generic [ref=f3e256]: /pages/partition/partition
+                    - generic [ref=f3e257]: Enabled
+                  - generic [ref=f3e261] [cursor=pointer]:
+                    - generic [ref=f3e266]:
+                      - generic "展开子菜单" [ref=f3e267]
+                      - generic [ref=f3e269]: System
+                    - generic [ref=f3e270]: module:system
+                    - generic [ref=f3e271]: /pages/system/user/user
+                    - generic [ref=f3e272]: Enabled
+                  - generic [ref=f3e276] [cursor=pointer]:
+                    - generic [ref=f3e281]:
+                      - generic "展开子菜单" [ref=f3e282]
+                      - generic [ref=f3e284]: Leak Reports
+                    - generic [ref=f3e285]: module:leak-report
+                    - generic [ref=f3e286]: /pages/leak-report/suspect-management/suspect-management
+                    - generic [ref=f3e287]: Enabled
+                  - generic [ref=f3e291] [cursor=pointer]:
+                    - generic [ref=f3e296]:
+                      - generic "展开子菜单" [ref=f3e297]
+                      - generic [ref=f3e299]: Statistics
+                    - generic [ref=f3e300]: page:statistics
+                    - generic [ref=f3e301]: /pages/statistics/statistics
+                    - generic [ref=f3e302]: Enabled
+                  - generic [ref=f3e306] [cursor=pointer]:
+                    - generic [ref=f3e310]: Favorites
+                    - generic [ref=f3e313]: page:favorite
+                    - generic [ref=f3e314]: /pages/index/index
+                    - generic [ref=f3e315]: Enabled
+                  - generic [ref=f3e319] [cursor=pointer]:
+                    - generic [ref=f3e323]: Leak Monitor
+                    - generic [ref=f3e326]: page:leak-monitor
+                    - generic [ref=f3e327]: /pages/leak-monitor/leak-monitor
+                    - generic [ref=f3e328]: Enabled
+                  - generic [ref=f3e332] [cursor=pointer]:
+                    - generic [ref=f3e337]:
+                      - generic "展开子菜单" [ref=f3e338]
+                      - generic [ref=f3e340]: Devices
+                    - generic [ref=f3e341]: module:device
+                    - generic [ref=f3e342]: /pages/device/info/info
+                    - generic [ref=f3e343]: Enabled
+                  - generic [ref=f3e347] [cursor=pointer]:
+                    - generic [ref=f3e352]:
+                      - generic "展开子菜单" [ref=f3e353]
+                      - generic [ref=f3e355]: Commands
+                    - generic [ref=f3e356]: module:command
+                    - generic [ref=f3e357]: /pages/command/commandManage
+                    - generic [ref=f3e358]: Enabled
+                  - generic [ref=f3e362] [cursor=pointer]:
+                    - generic [ref=f3e367]:
+                      - generic "展开子菜单" [ref=f3e368]
+                      - generic [ref=f3e370]: Data Analysis
+                    - generic [ref=f3e371]: module:data-analysis
+                    - generic [ref=f3e372]: /pages/data-analysis/overview/overview
+                    - generic [ref=f3e373]: Enabled
+                  - generic [ref=f3e377] [cursor=pointer]:
+                    - generic [ref=f3e382]:
+                      - generic "展开子菜单" [ref=f3e383]
+                      - generic [ref=f3e385]: Work Orders
+                    - generic [ref=f3e386]: module:work-order
+                    - generic [ref=f3e387]: /pages/work-order/create/create
+                    - generic [ref=f3e388]: Enabled
+                  - generic [ref=f3e392] [cursor=pointer]:
+                    - generic [ref=f3e397]:
+                      - generic "展开子菜单" [ref=f3e398]
+                      - generic [ref=f3e400]: Alarms
+                    - generic [ref=f3e401]: module:alarm
+                    - generic [ref=f3e402]: /pages/alarm/strategy/strategy
+                    - generic [ref=f3e403]: Enabled
+                  - generic [ref=f3e407] [cursor=pointer]:
+                    - generic [ref=f3e412]:
+                      - generic "展开子菜单" [ref=f3e413]
+                      - generic [ref=f3e415]: Operations Reports
+                    - generic [ref=f3e416]: module:report
+                    - generic [ref=f3e417]: /pages/report/device-resume/device-resume
+                    - generic [ref=f3e418]: Enabled
+                  - generic [ref=f3e422] [cursor=pointer]:
+                    - generic [ref=f3e427]:
+                      - generic "展开子菜单" [ref=f3e428]
+                      - generic [ref=f3e430]: Leak and Pipe Burst
+                    - generic [ref=f3e431]: module:leak-burst
+                    - generic [ref=f3e432]: /pages/leak-burst/burst-identification/burst-identification
+                    - generic [ref=f3e433]: Enabled
+                  - generic [ref=f3e437] [cursor=pointer]:
+                    - generic [ref=f3e442]:
+                      - generic "展开子菜单" [ref=f3e443]
+                      - generic [ref=f3e445]: Data Intake
+                    - generic [ref=f3e446]: module:data-receive
+                    - generic [ref=f3e447]: /pages/data-receive/access/access
+                    - generic [ref=f3e448]: Enabled
+              - generic [ref=f3e452]:
+                - generic [ref=f3e453]:
+                  - generic [ref=f3e454]: Menu Configuration
+                  - generic [ref=f3e455]: Maintain page entries, permission codes, and parent relationships
+                - generic [ref=f3e456]:
+                  - generic [ref=f3e457]:
+                    - generic [ref=f3e458]: Menu Name*
+                    - textbox [ref=f3e461]: Partitions
+                  - generic [ref=f3e462]:
+                    - generic [ref=f3e463]: Permission encoding*
+                    - textbox [ref=f3e466]: page:partition
+                  - generic [ref=f3e467]:
+                    - generic [ref=f3e468]: Page path
+                    - textbox [ref=f3e471]: /pages/partition/partition
+                  - generic [ref=f3e472]:
+                    - generic [ref=f3e473]: the parent menu
+                    - generic [ref=f3e474] [cursor=pointer]: roots
+                  - generic [ref=f3e477]:
+                    - generic [ref=f3e478]: Resource Type
+                    - generic [ref=f3e479] [cursor=pointer]: Menu+
+                  - generic [ref=f3e482]:
+                    - generic [ref=f3e483]: Status
+                    - generic [ref=f3e484] [cursor=pointer]: Enabled
+                - generic [ref=f3e487]:
+                  - generic [ref=f3e488] [cursor=pointer]: Cancel
+                  - generic [ref=f3e489] [cursor=pointer]: Synchronize default menus
+                  - generic [ref=f3e490] [cursor=pointer]: SAVE RECIPE
+  - generic [ref=f3e493]:
+    - strong [ref=f3e495]: Synchronize default menus
+    - generic [ref=f3e496]: Sync will add and update the front-end default menu and clean up the removed default menu. Are you sure you want to continue?
+    - generic [ref=f3e497]:
+      - generic [ref=f3e498] [cursor=pointer]: Cancel
+      - generic [ref=f3e499] [cursor=pointer]: Sinc
