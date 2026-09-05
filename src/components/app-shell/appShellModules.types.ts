@@ -1,5 +1,8 @@
 import type { Component } from "vue";
 import type { LocalizedModuleKey } from "@/i18n/moduleLocales";
+import BurstIdentification from "@/pages/leak-burst/burst-identification/burst-identification.vue";
+import MeasurementAnalysis from "@/pages/leak-burst/measurement-analysis/measurement-analysis.vue";
+import LossReport from "@/pages/leak-burst/loss-report/loss-report.vue";
 
 export interface AppShellModuleViews {
   AlarmProcessingView: Component;
@@ -21,6 +24,9 @@ export interface AppShellModuleViews {
   ValveView: Component;
   WorkOrderCreateView: Component;
   WorksheetTableView: Component;
+  BurstIdentificationView: Component;
+  MeasurementAnalysisView: Component;
+  LossReportView: Component;
 }
 
 export interface AppShellModules {

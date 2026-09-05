@@ -17,6 +17,9 @@ import SearchTemplateView from "@/pages/system/search/components/SearchTemplateV
 import SystemManagementView from "@/pages/system/components/SystemManagementView.vue";
 import WorkOrderCreateView from "@/pages/work-order/components/WorkOrderCreateView.vue";
 import WorksheetTableView from "@/pages/work-order/components/WorksheetTableView.vue";
+import BurstIdentificationView from "@/pages/leak-burst/components/BurstIdentificationView.vue";
+import MeasurementAnalysisView from "@/pages/leak-burst/components/MeasurementAnalysisView.vue";
+import LossReportView from "@/pages/leak-burst/components/LossReportView.vue";
 import type { AppShellModules } from "./appShellModules.types";
 
 const appShellModules = {
@@ -41,6 +44,9 @@ const appShellModules = {
     ValveView,
     WorkOrderCreateView,
     WorksheetTableView,
+    BurstIdentificationView,
+    MeasurementAnalysisView,
+    LossReportView,
   },
 } satisfies AppShellModules;
 
