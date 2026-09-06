@@ -1,10 +1,12 @@
 <template>
   <view class="page-container">
+    <view class="module-heading"><view><text class="module-heading__title">漏损报表</text><text class="module-heading__description">汇总漏损变化、异常事件与处理结果，支持按统计范围导出报表。</text></view><text v-if="USE_MOCK" class="demo-badge">演示数据</text></view>
 
     <!-- 顶部筛选栏（含导出按钮） -->
     <XConfigToolbar
         v-model="searchForm"
         :fields="toolbarFields"
+        :loading="loading"
         :show-add="false"
         :show-delete="false"
         :show-edit="false"
@@ -13,18 +15,22 @@
         @refresh="fetchAll"
     >
       <template #actions-left>
-        <button class="toolbar-button" @click="handleExport">导出报表</button>
+        <button class="toolbar-button" :disabled="loading || !trendData" @click="handleExport">{{ USE_MOCK ? "导出报表 CSV" : "导出报表" }}</button>
       </template>
     </XConfigToolbar>
 
+    <view v-if="error" class="module-error" @click="fetchAll">{{ error }} · 点击重试</view>
+    <view v-if="loading" class="module-note">正在汇总统计数据…</view>
     <scroll-view class="report-scroll" scroll-y>
+      <view class="module-note">{{ USE_MOCK ? '演示统计覆盖最近 90 天。' : '' }}趋势按测点状态次数统计；不同类型异常可能重叠，不宜直接相加。处理完成率 = 已完成工单 / 工单总数。</view>
+      <view v-if="!loading && trendData && !trendData.series.length" class="module-note">所选时间和分区暂无监测记录，请调整筛选条件。</view>
 
       <!-- ================= 漏损趋势 ================= -->
       <view class="report-panel">
         <view class="table-head">
           <text>漏损趋势</text>
           <text class="table-head__meta">
-            {{ searchForm.startTime }} ~ {{ searchForm.endTime }} · {{ granularityLabel }}
+            {{ appliedForm.startTime }} ~ {{ appliedForm.endTime }} · {{ granularityLabel }}
           </text>
         </view>
         <view ref="trendChartEl" class="report-chart"/>
@@ -231,7 +237,7 @@
             :columns="leakPointColumns"
             :data="leakPointList"
             :show-index="false"
-            id-key="deviceId"
+            id-key="recordKey"
             empty-text="暂无漏点记录"
         />
       </view>
@@ -241,6 +247,8 @@
 </template>
 
 <script setup lang="ts">
+import { USE_MOCK } from "@/services/leak-burst";
+import { chartElement, validateRange, deptOptions } from "./view-utils";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import * as echarts from "echarts";
 import XConfigToolbar from "@/pages/device/components/x/toolbar/XConfigToolbar.vue";
@@ -290,24 +298,29 @@ const searchForm = ref<Record<string, any>>({
   deptId: "",
 });
 
+const appliedForm = ref({...searchForm.value});
+const loading = ref(false);
+const error = ref("");
+let reportRequest = 0;
+
 const toolbarFields: Field[] = [
   { key: "startTime", label: "开始时间", type: "date" },
   { key: "endTime", label: "结束时间", type: "date" },
-  { key: "deptId", label: "分区ID", type: "input" },
+  { key: "deptId", label: "分区", type: "select", options:deptOptions },
 ];
 
 const granularityLabel = computed(() =>
-  deriveGranularity(searchForm.value.startTime, searchForm.value.endTime) === "MONTH"
+  deriveGranularity(appliedForm.value.startTime, appliedForm.value.endTime) === "MONTH"
     ? "按月统计"
     : "按天统计"
 );
 
-function buildQuery() {
+function buildQuery(form = appliedForm.value) {
   return {
-    startTime: searchForm.value.startTime,
-    endTime: searchForm.value.endTime,
-    granularity: deriveGranularity(searchForm.value.startTime, searchForm.value.endTime),
-    deptId: searchForm.value.deptId === "" ? null : Number(searchForm.value.deptId),
+    startTime: form.startTime,
+    endTime: form.endTime,
+    granularity: deriveGranularity(form.startTime, form.endTime),
+    deptId: form.deptId === "" ? null : Number(form.deptId),
   };
 }
 
@@ -325,30 +338,19 @@ const trendChartEl = ref<HTMLElement | null>(null);
 let trendChart: echarts.ECharts | null = null;
 let trendObserver: ResizeObserver | null = null;
 
-async function fetchTrend() {
-  try {
-    const res = await getLeakReportTrendT(buildQuery());
-    trendData.value = res.data ?? null;
-    await nextTick();
-    renderTrendChart();
-  } catch {
-    trendData.value = null;
-  }
-}
-
 function renderTrendChart() {
   if (!trendChartEl.value || !trendData.value) return;
 
   if (!trendChart || trendChart.isDisposed()) {
-    trendChart = echarts.init(trendChartEl.value);
+    trendChart = echarts.init(chartElement(trendChartEl.value)!);
     trendObserver = new ResizeObserver(() => trendChart?.resize());
-    trendObserver.observe(trendChartEl.value);
+    trendObserver.observe(chartElement(trendChartEl.value)!);
   }
 
   const series = trendData.value.series ?? [];
   trendChart.setOption({
     tooltip: { trigger: "axis" },
-    legend: { data: ["漏损次数", "疑似次数", "正常次数"], top: 6 },
+    legend: { data: ["漏损次数", "疑似次数", "正常次数"], selected: {"正常次数":false}, top: 6 },
     grid: { left: 44, right: 20, top: 40, bottom: 30 },
     xAxis: { type: "category", data: series.map((p) => p.period) },
     yAxis: { type: "value", minInterval: 1 },
@@ -399,26 +401,13 @@ function leakStatusLabel(status: number) {
   }
 }
 
-async function fetchAnomaly() {
-  try {
-    const res = await getLeakReportAnomalyT(buildQuery());
-    anomaly.value = res.data ?? null;
-    suspectedList.value = res.data?.suspectedList ?? [];
-    await nextTick();
-    renderPieChart();
-  } catch {
-    anomaly.value = null;
-    suspectedList.value = [];
-  }
-}
-
 function renderPieChart() {
   if (!pieChartEl.value || !anomaly.value) return;
 
   if (!pieChart || pieChart.isDisposed()) {
-    pieChart = echarts.init(pieChartEl.value);
+    pieChart = echarts.init(chartElement(pieChartEl.value)!);
     pieObserver = new ResizeObserver(() => pieChart?.resize());
-    pieObserver.observe(pieChartEl.value);
+    pieObserver.observe(chartElement(pieChartEl.value)!);
   }
 
   const dist = anomaly.value.statusDistribution ?? [];
@@ -464,23 +453,12 @@ const suspectedColumns: XDataColumn[] = [
 
 /* ================= 处理效果统计 ================= */
 const effect = ref<HandlingEffectData | null>(null);
-const leakPointList = ref<LeakPointItem[]>([]);
+const leakPointList = ref<(LeakPointItem & {recordKey:string})[]>([]);
 
 const finishRatePercent = computed(() => {
   const v = effect.value?.finishRate;
   return v == null ? 0 : Math.min(100, Math.max(0, Number(v)));
 });
-
-async function fetchEffect() {
-  try {
-    const res = await getLeakHandlingEffectT(buildQuery());
-    effect.value = res.data ?? null;
-    leakPointList.value = res.data?.leakPointList ?? [];
-  } catch {
-    effect.value = null;
-    leakPointList.value = [];
-  }
-}
 
 const leakPointColumns: XDataColumn[] = [
   { key: "deviceNumber", label: "设备编号", width: 110 },
@@ -493,25 +471,69 @@ const leakPointColumns: XDataColumn[] = [
 ];
 
 /* ================= 查询/导出 ================= */
-function fetchAll() {
-  fetchTrend();
-  fetchAnomaly();
-  fetchEffect();
+async function fetchAll() {
+  if (!validateRange(searchForm.value)) return;
+  const request = ++reportRequest;
+  const form = {...searchForm.value};
+  const query = buildQuery(form);
+  loading.value = true; error.value = "";
+  try {
+    const [t, a, e] = await Promise.all([getLeakReportTrendT(query),getLeakReportAnomalyT(query),getLeakHandlingEffectT(query)]);
+    if (request !== reportRequest) return;
+    appliedForm.value = form;
+    trendData.value = t.data ?? null; anomaly.value = a.data ?? null; effect.value = e.data ?? null;
+    suspectedList.value = a.data?.suspectedList ?? [];
+    leakPointList.value = (e.data?.leakPointList ?? []).map((r,i)=>({...r,recordKey:`${r.deviceId}_${r.detectTime}_${i}`}));
+    await nextTick(); renderTrendChart(); renderPieChart();
+  } catch {
+    if (request !== reportRequest) return;
+    error.value = "报表加载失败，请重试";
+    disposeCharts(); trendData.value = null; anomaly.value = null; effect.value = null;
+    suspectedList.value = []; leakPointList.value = [];
+  } finally { if (request === reportRequest) loading.value = false; }
 }
 
 function handleSearch() {
   fetchAll();
 }
 
-function handleReset() {
+async function handleReset() {
+  await nextTick();
   searchForm.value = { ...defaultRange(), deptId: "" };
   fetchAll();
 }
 
 function handleExport() {
-  const url = getLeakReportExportUrl(buildQuery());
-  // 后端返回 Excel 文件流，浏览器直接触发下载
-  window.open(url, "_blank");
+  if (loading.value || !trendData.value) return;
+  // #ifdef H5
+  if (!USE_MOCK) { window.open(getLeakReportExportUrl(buildQuery()), "_blank"); return; }
+  const rows: unknown[][] = [
+    ["漏损报表（演示数据）"], ["开始时间",appliedForm.value.startTime,"结束时间",appliedForm.value.endTime],
+    ["分区",deptOptions.find(d=>d.value===appliedForm.value.deptId)?.label || "全部分区"],
+    [],["漏损趋势"],["周期","漏损次数","疑似次数","正常次数"],
+    ...trendData.value.series.map(r=>[r.period,r.leakCount,r.suspectedCount,r.normalCount]),
+    [],["异常情况"],["压力异常","流量异常","噪声异常","疑似爆管","疑似漏损上报","确认漏点"],
+    [anomaly.value?.pressureAbnormalCount,anomaly.value?.flowAbnormalCount,anomaly.value?.noiseAbnormalCount,anomaly.value?.burstSuspectedCount,anomaly.value?.suspectedLeakCount,anomaly.value?.leakPointCount],
+    [],["处理效果"],["工单总数","待处理","处理中","已完成","完成率%","平均处理小时","平均修复小时"],
+    [effect.value?.totalWorkOrders,effect.value?.pendingCount,effect.value?.handlingCount,effect.value?.finishedCount,effect.value?.finishRate,effect.value?.avgHandleDurationHours,effect.value?.avgRepairDurationHours],
+    [],["疑似漏损事件"],["设备编号","上报时间","位置","处理状态"],
+    ...suspectedList.value.map(r=>[r.deviceNumber,r.reportTime,r.leakPointPosition,["待处理","处理中","已完成"][r.processStatus ?? -1]]),
+    [],["漏点明细"],["设备编号","检出时间","修复时间","漏量","类型","修复方式","状态"],
+    ...leakPointList.value.map(r=>[r.deviceNumber,r.detectTime,r.repairTime,r.leakVolume,r.leakPointType,r.repairMethod,r.leakStatus]),
+  ];
+  const cell = (value: unknown) => {
+    let text = String(value ?? "");
+    if (/^[=+@-]/.test(text)) text = "'" + text;
+    return '"' + text.replace(/"/g, '""') + '"';
+  };
+  const blob = new Blob(["\uFEFF" + rows.map(r=>r.map(cell).join(',')).join('\r\n')],{type:"text/csv;charset=utf-8;"});
+  const url=URL.createObjectURL(blob),link=document.createElement('a');
+  link.href=url;link.download=`漏损报表_${appliedForm.value.startTime.slice(0,10)}_${appliedForm.value.endTime.slice(0,10)}.csv`;
+  document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  // #endif
+  // #ifndef H5
+  uni.showToast({title:"请在浏览器端导出报表",icon:"none"});
+  // #endif
 }
 
 function disposeCharts() {
@@ -526,7 +548,7 @@ function disposeCharts() {
 }
 
 onMounted(fetchAll);
-onBeforeUnmount(disposeCharts);
+onBeforeUnmount(() => { ++reportRequest; disposeCharts(); });
 </script>
 
 <style scoped lang="scss">
@@ -619,4 +641,9 @@ onBeforeUnmount(disposeCharts);
 .toolbar-button::after {
   border: 0;
 }
+@import "./module.scss";
+.report-scroll :deep(.uni-scroll-view-content) > view {margin-bottom:14px;}
+.report-panel > :deep(.data-table-container) {height:320px;flex:none;border:0;box-shadow:none;}
+.toolbar-button[disabled] {opacity:.5;}
+
 </style>

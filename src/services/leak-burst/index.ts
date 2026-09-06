@@ -36,7 +36,7 @@ import type {
  * true  -> 使用 ./mock.ts
  * false -> 使用真实后端接口
  */
-const USE_MOCK = true;
+export const USE_MOCK = true;
 
 /* ================= 爆管识别 ================= */
 

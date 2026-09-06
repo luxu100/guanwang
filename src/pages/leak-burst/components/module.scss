@@ -1,0 +1,8 @@
+.module-heading { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:18px 2px 14px; flex:none; }
+.module-heading__title { display:block; font-size:21px; font-weight:800; color:#173c58; }
+.module-heading__description { display:block; font-size:12px; color:#678094; margin-top:6px; line-height:1.7; }
+.demo-badge { flex:none; font-size:12px; color:#167d89; background:#e1f3f2; border:1px solid #b5dedc; padding:6px 12px; border-radius:20px; }
+.module-note { flex:none; margin:10px 0; padding:10px 14px; background:#e8f2fa; border-left:3px solid #3a8ec2; color:#45647c; font-size:12px; line-height:1.8; }
+.module-error { flex:none; padding:12px; margin:10px 0; color:#b42318; background:#fff0ec; border-radius:6px; cursor:pointer; }
+.page-container { box-sizing:border-box; }
+@media(max-width:1000px) { .module-heading {align-items:flex-start;} .module-heading__title {font-size:18px;} .summary-row,.stat-grid--six,.stat-grid--four {grid-template-columns:repeat(2,minmax(0,1fr)) !important;} .anomaly-row {grid-template-columns:1fr !important;} }

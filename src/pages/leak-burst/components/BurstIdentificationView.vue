@@ -1,9 +1,11 @@
 <template>
   <view class="page-container">
+    <view class="module-heading"><view><text class="module-heading__title">爆管识别</text><text class="module-heading__description">查看高频压力识别窗口，通过 μ ± 3σ 正常区间追踪疑似爆管。</text></view><text v-if="USE_MOCK" class="demo-badge">演示数据</text></view>
     <!-- 顶部筛选栏 -->
     <XConfigToolbar
         v-model="searchForm"
         :fields="toolbarFields"
+        :loading="loading"
         :show-add="false"
         :show-delete="false"
         :show-edit="false"
@@ -12,6 +14,8 @@
         @refresh="fetchAll"
     />
 
+    <view v-if="error" class="module-error" @click="fetchAll">{{ error }} · 点击重试</view>
+    <view class="module-note">识别概览统计各测点最新窗口；下方列表按筛选条件展示历史窗口。红点表示压力越过正常区间，疑似爆管结论由识别结果提供。</view>
     <!-- 概览卡片 -->
     <view class="summary-row">
       <view class="stat-card stat-card--primary">
@@ -170,6 +174,7 @@
           </view>
 
           <!-- 曲线图 -->
+          <view class="module-note">压力单位：MPa · 完整窗口 {{ analyzeData.totalCount }} 个样本 · 可拖动底部滑块放大异常时段</view>
           <view ref="chartEl" class="burst-chart" />
         </template>
       </view>
@@ -178,13 +183,14 @@
 </template>
 
 <script setup lang="ts">
+import { USE_MOCK } from "@/services/leak-burst";
+import { chartElement, validateRange, deptOptions } from "./view-utils";
 import {
   computed,
   nextTick,
   onBeforeUnmount,
   onMounted,
   ref,
-  watch,
 } from "vue";
 import * as echarts from "echarts";
 
@@ -226,6 +232,7 @@ const searchForm = ref<Record<string, any>>({
 });
 
 const toolbarFields: Field[] = [
+  {key:"deptId",label:"分区",type:"select",options:deptOptions},
   {
     key: "deviceNumber",
     label: "设备编号",
@@ -246,6 +253,7 @@ const toolbarFields: Field[] = [
     label: "疑似爆管",
     type: "select",
     options: [
+      { label: "全部状态", value: "" },
       {
         label: "仅看疑似爆管",
         value: true,
@@ -269,6 +277,9 @@ const resultList = ref<
 >([]);
 
 const loading = ref(false);
+const error = ref("");
+let listRequest = 0;
+let detailRequest = 0;
 
 const pagination = ref<Pagination>({
   current: 1,
@@ -287,10 +298,11 @@ function buildKey(row: BurstPipeResult) {
 }
 
 function fmt(v: number | null | undefined) {
-  return v == null ? "-" : Number(v).toFixed(2);
+  return v == null ? "-" : Number(v).toFixed(3);
 }
 
 const columns: XDataColumn[] = [
+  {key:"samplingRate",label:"采样率 Hz",width:95},
   {
     key: "deviceNumber",
     label: "设备编号",
@@ -315,7 +327,7 @@ const columns: XDataColumn[] = [
   },
   {
     key: "mean",
-    label: "均值 μ",
+    label: "均值 μ (MPa)",
     width: 90,
     align: "right",
     formatter: (v) => fmt(v),
@@ -372,15 +384,27 @@ const columns: XDataColumn[] = [
  * ========================= */
 
 async function fetchResults() {
+  if (!validateRange(searchForm.value, false)) return;
+  const request = ++listRequest;
+  ++detailRequest;
+  disposeChart();
+  analyzeData.value = null;
+  resultList.value = [];
+  analyzeLoading.value = false;
+  error.value = "";
   loading.value = true;
 
   try {
     const res = await getBurstPipeResultsT({
       ...searchForm.value,
+      deviceNumber: searchForm.value.deviceNumber.trim(),
+      deptId: searchForm.value.deptId === "" ? null : Number(searchForm.value.deptId),
+      burstSuspected: typeof searchForm.value.burstSuspected === "boolean" ? searchForm.value.burstSuspected : null,
       pageNum: pagination.value.current,
       pageSize: pagination.value.size,
     });
 
+    if (request !== listRequest) return;
     const page = res.data;
 
     resultList.value = (page?.records ?? []).map((row) => ({
@@ -401,13 +425,15 @@ async function fetchResults() {
       disposeChart();
     }
   } catch {
+    if (request !== listRequest) return;
+    error.value = "识别结果加载失败";
     resultList.value = [];
     pagination.value.total = 0;
     selectedKey.value = null;
     analyzeData.value = null;
     disposeChart();
   } finally {
-    loading.value = false;
+    if (request === listRequest) loading.value = false;
   }
 }
 
@@ -446,6 +472,9 @@ async function handleRowClick(
       resultKey: string;
     },
 ) {
+  const request = ++detailRequest;
+  error.value = "";
+  disposeChart();
   selectedKey.value = row.resultKey;
 
   analyzeLoading.value = true;
@@ -457,16 +486,20 @@ async function handleRowClick(
       endTime: row.endTime,
     });
 
+    if (request !== detailRequest) return;
     analyzeData.value = res.data ?? null;
+    analyzeLoading.value = false;
 
     await nextTick();
 
-    renderChart();
+    if (request === detailRequest) renderChart();
   } catch {
+    if (request !== detailRequest) return;
+    error.value = "压力曲线加载失败，请重新选择识别窗口";
     analyzeData.value = null;
     disposeChart();
   } finally {
-    analyzeLoading.value = false;
+    if (request === detailRequest) analyzeLoading.value = false;
   }
 }
 
@@ -480,13 +513,13 @@ function renderChart() {
   }
 
   if (!chart || chart.isDisposed()) {
-    chart = echarts.init(chartEl.value);
+    chart = echarts.init(chartElement(chartEl.value)!);
 
     resizeObserver = new ResizeObserver(() => {
-      chart?.resize();
+      renderChart();
     });
 
-    resizeObserver.observe(chartEl.value);
+    resizeObserver.observe(chartElement(chartEl.value)!);
   }
 
   const data = analyzeData.value;
@@ -626,11 +659,6 @@ function disposeChart() {
   chart = null;
 }
 
-watch(analyzeData, async () => {
-  await nextTick();
-  renderChart();
-});
-
 /* =========================
  * 右侧面板拖拽 / 折叠
  * ========================= */
@@ -653,7 +681,7 @@ const layoutStyle = computed(() => {
   }
 
   return {
-    gridTemplateColumns: `minmax(0, 1fr) 24px ${detailWidth.value}px`,
+    gridTemplateColumns: `minmax(0, 1fr) 24px minmax(0, ${detailWidth.value}px)`,
   };
 });
 
@@ -688,10 +716,11 @@ function stopResize() {
   document.removeEventListener("mouseup", stopResize);
 
   if (!isDragging) {
+    disposeChart();
     isDetailCollapsed.value = !isDetailCollapsed.value;
 
     nextTick(() => {
-      chart?.resize();
+      renderChart();
     });
   }
 }
@@ -706,7 +735,8 @@ function handleSearch() {
   fetchResults();
 }
 
-function handleReset() {
+async function handleReset() {
+  await nextTick();
   searchForm.value = {
     deviceNumber: "",
     deptId: "",
@@ -748,6 +778,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  ++listRequest; ++detailRequest;
   document.removeEventListener("mousemove", resize);
   document.removeEventListener("mouseup", stopResize);
 
@@ -881,5 +912,13 @@ onBeforeUnmount(() => {
   height: 320px;
   min-height: 260px;
   flex: 1;
+}
+@import "./module.scss";
+@media(max-width:1100px) {
+ .page-container {overflow-y:auto;}
+ .content-layout {display:flex !important; flex-direction:column; overflow:visible; flex:none; gap:12px;}
+ .content-layout > .data-table-container {height:360px;flex:none;}
+ .split-handle {height:24px;flex:none;cursor:pointer;}
+ .detail-panel {min-height:440px;flex:none;}
 }
 </style>
