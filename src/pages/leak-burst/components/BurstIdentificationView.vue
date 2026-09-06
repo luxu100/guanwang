@@ -553,6 +553,7 @@ function renderChart() {
           data: points.map((p) => p.time),
           axisLabel: {
             rotate: 30,
+            formatter: (value: string) => value.replace(/(\d{2}:\d{2}:\d{2})\.\d+/, "$1"),
           },
         },
 
@@ -570,6 +571,8 @@ function renderChart() {
             type: "slider",
             height: 18,
             bottom: 8,
+            labelFormatter: (_value: number, valueStr: string) =>
+                valueStr.replace(/(\d{2}:\d{2}:\d{2})\.\d+/, "$1"),
           },
         ],
 
