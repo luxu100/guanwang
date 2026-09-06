@@ -709,7 +709,7 @@ function resize(e: MouseEvent) {
 
   detailWidth.value = Math.max(
       360,
-      Math.min(1000, startWidth + diff),
+      Math.min(1300, startWidth + diff),
   );
 }
 
