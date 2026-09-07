@@ -18,61 +18,13 @@
     <view class="module-note">识别概览统计各测点最新窗口；下方列表按筛选条件展示历史窗口。红点表示压力越过正常区间，疑似爆管结论由识别结果提供。</view>
     <!-- 概览卡片 -->
     <view class="summary-row">
-      <view class="stat-card stat-card--primary">
-        <view class="stat-card__head">
-          <view class="stat-card__title">
-            <text class="stat-card__marker" />
-            <text class="stat-card__label">参与识别测点数</text>
-          </view>
-        </view>
-        <view class="stat-card__body">
-          <text class="stat-card__value">
-            {{ summary?.monitoredCount ?? "-" }}
-          </text>
-        </view>
-      </view>
+      <LeakStatCard label="参与识别测点数" :value="summary?.monitoredCount ?? '-'" tone="primary" />
 
-      <view class="stat-card stat-card--danger">
-        <view class="stat-card__head">
-          <view class="stat-card__title">
-            <text class="stat-card__marker" />
-            <text class="stat-card__label">疑似爆管测点数</text>
-          </view>
-        </view>
-        <view class="stat-card__body">
-          <text class="stat-card__value">
-            {{ summary?.suspectedCount ?? "-" }}
-          </text>
-        </view>
-      </view>
+      <LeakStatCard label="疑似爆管测点数" :value="summary?.suspectedCount ?? '-'" tone="danger" />
 
-      <view class="stat-card stat-card--warning">
-        <view class="stat-card__head">
-          <view class="stat-card__title">
-            <text class="stat-card__marker" />
-            <text class="stat-card__label">异常点总数</text>
-          </view>
-        </view>
-        <view class="stat-card__body">
-          <text class="stat-card__value">
-            {{ summary?.abnormalPointTotal ?? "-" }}
-          </text>
-        </view>
-      </view>
+      <LeakStatCard label="异常点总数" :value="summary?.abnormalPointTotal ?? '-'" tone="warning" />
 
-      <view class="stat-card stat-card--success">
-        <view class="stat-card__head">
-          <view class="stat-card__title">
-            <text class="stat-card__marker" />
-            <text class="stat-card__label">最近识别时间</text>
-          </view>
-        </view>
-        <view class="stat-card__body">
-          <text class="stat-card__value stat-card__value--time">
-            {{ summary?.lastCheckTime ? formatDate(summary.lastCheckTime) : "-" }}
-          </text>
-        </view>
-      </view>
+      <LeakStatCard label="最近识别时间" :value="summary?.lastCheckTime ? formatDate(summary.lastCheckTime) : '-'" tone="success" compact />
     </view>
 
     <!-- 主体 -->
@@ -183,6 +135,7 @@
 </template>
 
 <script setup lang="ts">
+import LeakStatCard from "./LeakStatCard.vue";
 import { USE_MOCK } from "@/services/leak-burst";
 import { chartElement, validateRange, deptOptions } from "./view-utils";
 import {
@@ -808,9 +761,6 @@ onBeforeUnmount(() => {
   flex: none;
 }
 
-.stat-card__value--time {
-  font-size: 15px;
-}
 
 /* =========================
  * 主体布局

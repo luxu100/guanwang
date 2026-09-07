@@ -39,71 +39,17 @@
       <!-- ================= 异常情况统计 ================= -->
       <view class="report-section-title">异常情况统计</view>
       <view class="stat-grid stat-grid--six">
-        <view class="stat-card stat-card--warning">
-          <view class="stat-card__head">
-            <view class="stat-card__title">
-              <text class="stat-card__marker"/><text class="stat-card__label">压力异常次数</text>
-            </view>
-          </view>
-          <view class="stat-card__body">
-            <text class="stat-card__value">{{ anomaly?.pressureAbnormalCount ?? '-' }}</text>
-          </view>
-        </view>
+        <LeakStatCard label="压力异常次数" :value="anomaly?.pressureAbnormalCount ?? '-'" tone="warning" />
 
-        <view class="stat-card stat-card--info">
-          <view class="stat-card__head">
-            <view class="stat-card__title">
-              <text class="stat-card__marker"/><text class="stat-card__label">流量异常次数</text>
-            </view>
-          </view>
-          <view class="stat-card__body">
-            <text class="stat-card__value">{{ anomaly?.flowAbnormalCount ?? '-' }}</text>
-          </view>
-        </view>
+        <LeakStatCard label="流量异常次数" :value="anomaly?.flowAbnormalCount ?? '-'" tone="info" />
 
-        <view class="stat-card stat-card--primary">
-          <view class="stat-card__head">
-            <view class="stat-card__title">
-              <text class="stat-card__marker"/><text class="stat-card__label">噪声异常次数</text>
-            </view>
-          </view>
-          <view class="stat-card__body">
-            <text class="stat-card__value">{{ anomaly?.noiseAbnormalCount ?? '-' }}</text>
-          </view>
-        </view>
+        <LeakStatCard label="噪声异常次数" :value="anomaly?.noiseAbnormalCount ?? '-'" tone="primary" />
 
-        <view class="stat-card stat-card--danger">
-          <view class="stat-card__head">
-            <view class="stat-card__title">
-              <text class="stat-card__marker"/><text class="stat-card__label">疑似爆管次数</text>
-            </view>
-          </view>
-          <view class="stat-card__body">
-            <text class="stat-card__value">{{ anomaly?.burstSuspectedCount ?? '-' }}</text>
-          </view>
-        </view>
+        <LeakStatCard label="疑似爆管次数" :value="anomaly?.burstSuspectedCount ?? '-'" tone="danger" />
 
-        <view class="stat-card stat-card--warning">
-          <view class="stat-card__head">
-            <view class="stat-card__title">
-              <text class="stat-card__marker"/><text class="stat-card__label">疑似漏损上报数</text>
-            </view>
-          </view>
-          <view class="stat-card__body">
-            <text class="stat-card__value">{{ anomaly?.suspectedLeakCount ?? '-' }}</text>
-          </view>
-        </view>
+        <LeakStatCard label="疑似漏损上报数" :value="anomaly?.suspectedLeakCount ?? '-'" tone="warning" />
 
-        <view class="stat-card stat-card--danger">
-          <view class="stat-card__head">
-            <view class="stat-card__title">
-              <text class="stat-card__marker"/><text class="stat-card__label">确认漏点数</text>
-            </view>
-          </view>
-          <view class="stat-card__body">
-            <text class="stat-card__value">{{ anomaly?.leakPointCount ?? '-' }}</text>
-          </view>
-        </view>
+        <LeakStatCard label="确认漏点数" :value="anomaly?.leakPointCount ?? '-'" tone="danger" />
       </view>
 
       <view class="anomaly-row">
@@ -132,99 +78,21 @@
       <!-- ================= 处理效果统计 ================= -->
       <view class="report-section-title">处理效果统计</view>
       <view class="stat-grid stat-grid--four">
-        <view class="stat-card stat-card--primary">
-          <view class="stat-card__head">
-            <view class="stat-card__title">
-              <text class="stat-card__marker"/><text class="stat-card__label">工单总数</text>
-            </view>
-          </view>
-          <view class="stat-card__body">
-            <text class="stat-card__value">{{ effect?.totalWorkOrders ?? '-' }}</text>
-          </view>
-        </view>
+        <LeakStatCard label="工单总数" :value="effect?.totalWorkOrders ?? '-'" tone="primary" />
 
-        <view class="stat-card stat-card--warning">
-          <view class="stat-card__head">
-            <view class="stat-card__title">
-              <text class="stat-card__marker"/><text class="stat-card__label">待处理</text>
-            </view>
-          </view>
-          <view class="stat-card__body">
-            <text class="stat-card__value">{{ effect?.pendingCount ?? '-' }}</text>
-          </view>
-        </view>
+        <LeakStatCard label="待处理" :value="effect?.pendingCount ?? '-'" tone="warning" />
 
-        <view class="stat-card stat-card--info">
-          <view class="stat-card__head">
-            <view class="stat-card__title">
-              <text class="stat-card__marker"/><text class="stat-card__label">处理中</text>
-            </view>
-          </view>
-          <view class="stat-card__body">
-            <text class="stat-card__value">{{ effect?.handlingCount ?? '-' }}</text>
-          </view>
-        </view>
+        <LeakStatCard label="处理中" :value="effect?.handlingCount ?? '-'" tone="info" />
 
-        <view class="stat-card stat-card--success">
-          <view class="stat-card__head">
-            <view class="stat-card__title">
-              <text class="stat-card__marker"/><text class="stat-card__label">已完成</text>
-            </view>
-          </view>
-          <view class="stat-card__body">
-            <text class="stat-card__value">{{ effect?.finishedCount ?? '-' }}</text>
-          </view>
-          <view class="stat-card__progress">
-            <view class="stat-card__progress-bar" :style="{ width: finishRatePercent + '%' }"/>
-          </view>
-        </view>
+        <LeakStatCard label="已完成" :value="effect?.finishedCount ?? '-'" tone="success" :progress="finishRatePercent" />
 
-        <view class="stat-card stat-card--success">
-          <view class="stat-card__head">
-            <view class="stat-card__title">
-              <text class="stat-card__marker"/><text class="stat-card__label">完成率</text>
-            </view>
-          </view>
-          <view class="stat-card__body">
-            <text class="stat-card__value">{{ fmtRate(effect?.finishRate) }}</text>
-            <text class="stat-card__unit">%</text>
-          </view>
-        </view>
+        <LeakStatCard label="完成率" :value="fmtRate(effect?.finishRate)" tone="success" unit="%" />
 
-        <view class="stat-card stat-card--danger">
-          <view class="stat-card__head">
-            <view class="stat-card__title">
-              <text class="stat-card__marker"/><text class="stat-card__label">确认漏点数</text>
-            </view>
-          </view>
-          <view class="stat-card__body">
-            <text class="stat-card__value">{{ effect?.confirmedLeakPoints ?? '-' }}</text>
-          </view>
-        </view>
+        <LeakStatCard label="确认漏点数" :value="effect?.confirmedLeakPoints ?? '-'" tone="danger" />
 
-        <view class="stat-card stat-card--info">
-          <view class="stat-card__head">
-            <view class="stat-card__title">
-              <text class="stat-card__marker"/><text class="stat-card__label">平均处理时长</text>
-            </view>
-          </view>
-          <view class="stat-card__body">
-            <text class="stat-card__value">{{ fmtNum(effect?.avgHandleDurationHours) }}</text>
-            <text class="stat-card__unit">小时</text>
-          </view>
-        </view>
+        <LeakStatCard label="平均处理时长" :value="fmtNum(effect?.avgHandleDurationHours)" tone="info" unit="小时" />
 
-        <view class="stat-card stat-card--warning">
-          <view class="stat-card__head">
-            <view class="stat-card__title">
-              <text class="stat-card__marker"/><text class="stat-card__label">平均修复时长</text>
-            </view>
-          </view>
-          <view class="stat-card__body">
-            <text class="stat-card__value">{{ fmtNum(effect?.avgRepairDurationHours) }}</text>
-            <text class="stat-card__unit">小时</text>
-          </view>
-        </view>
+        <LeakStatCard label="平均修复时长" :value="fmtNum(effect?.avgRepairDurationHours)" tone="warning" unit="小时" />
       </view>
 
       <!-- 漏点明细 -->
@@ -247,6 +115,7 @@
 </template>
 
 <script setup lang="ts">
+import LeakStatCard from "./LeakStatCard.vue";
 import { USE_MOCK } from "@/services/leak-burst";
 import { chartElement, validateRange, deptOptions } from "./view-utils";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";

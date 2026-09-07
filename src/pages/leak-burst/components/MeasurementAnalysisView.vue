@@ -96,50 +96,23 @@
                 </view>
                 <!-- 本期 / 同比 / 环比 三张卡片 -->
                 <view class="compare-cards">
-                  <view class="stat-card stat-card--primary">
-                    <view class="stat-card__head">
-                      <view class="stat-card__title">
-                        <text class="stat-card__marker"/>
-                        <text class="stat-card__label">本期值（{{ periodLabel }}）</text>
-                      </view>
-                    </view>
-                    <view class="stat-card__body">
-                      <text class="stat-card__value">{{ fmtNum(overview?.currentValue) }}</text>
-                      <text class="stat-card__unit">{{ overview?.unit || '' }}</text>
-                    </view>
-                  </view>
+                  <LeakStatCard :label="`本期值（${periodLabel}）`" :value="fmtNum(overview?.currentValue)" tone="primary" :unit="overview?.unit || ''" />
 
-                  <view class="stat-card stat-card--info">
-                    <view class="stat-card__head">
-                      <view class="stat-card__title">
-                        <text class="stat-card__marker"/>
-                        <text class="stat-card__label">去年同期（同比）</text>
+                  <LeakStatCard label="去年同期（同比）" :value="fmtNum(overview?.yoyValue)" tone="info" :unit="overview?.unit || ''">
+                    <template #footer>
+                      <view class="compare-rate">
+                        <text :class="rateClass(overview?.yoyRate)">同比 {{ fmtRate(overview?.yoyValue === 0 ? undefined : overview?.yoyRate) }}</text>
                       </view>
-                    </view>
-                    <view class="stat-card__body">
-                      <text class="stat-card__value">{{ fmtNum(overview?.yoyValue) }}</text>
-                      <text class="stat-card__unit">{{ overview?.unit || '' }}</text>
-                    </view>
-                    <view class="compare-rate">
-                      <text :class="rateClass(overview?.yoyRate)">同比 {{ fmtRate(overview?.yoyValue === 0 ? undefined : overview?.yoyRate) }}</text>
-                    </view>
-                  </view>
+                    </template>
+                  </LeakStatCard>
 
-                  <view class="stat-card stat-card--success">
-                    <view class="stat-card__head">
-                      <view class="stat-card__title">
-                        <text class="stat-card__marker"/>
-                        <text class="stat-card__label">上一周期（环比）</text>
+                  <LeakStatCard label="上一周期（环比）" :value="fmtNum(overview?.momValue)" tone="success" :unit="overview?.unit || ''">
+                    <template #footer>
+                      <view class="compare-rate">
+                        <text :class="rateClass(overview?.momRate)">环比 {{ fmtRate(overview?.momValue === 0 ? undefined : overview?.momRate) }}</text>
                       </view>
-                    </view>
-                    <view class="stat-card__body">
-                      <text class="stat-card__value">{{ fmtNum(overview?.momValue) }}</text>
-                      <text class="stat-card__unit">{{ overview?.unit || '' }}</text>
-                    </view>
-                    <view class="compare-rate">
-                      <text :class="rateClass(overview?.momRate)">环比 {{ fmtRate(overview?.momValue === 0 ? undefined : overview?.momRate) }}</text>
-                    </view>
-                  </view>
+                    </template>
+                  </LeakStatCard>
                 </view>
 
                 <view class="module-note">概览为所选范围最后一个{{ deriveGranularity(appliedForm.startTime, appliedForm.endTime) === 'MONTH' ? '月' : '日' }}周期（{{ periodLabel }}）的平均值；趋势覆盖完整查询范围。同比对比去年同期，环比对比上一相邻周期。增长率不代表异常判定，对比基数为零或缺失时显示“—”。</view>
@@ -167,6 +140,7 @@
 </template>
 
 <script setup lang="ts">
+import LeakStatCard from "./LeakStatCard.vue";
 import { USE_MOCK } from "@/services/leak-burst";
 import { chartElement, validateRange, deptOptions } from "./view-utils";
 import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
