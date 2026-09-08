@@ -1,15 +1,10 @@
 <template>
   <AppShell>
-    <view class="content-page"></view>
+    <DeviceLedgerView />
   </AppShell>
 </template>
 
 <script setup lang="ts">
 import AppShell from "@/components/AppShell.vue";
+import DeviceLedgerView from "@/pages/report/components/DeviceLedgerView.vue";
 </script>
-
-<style scoped lang="scss">
-.content-page {
-  min-height: var(--shell-content-min-height);
-}
-</style>

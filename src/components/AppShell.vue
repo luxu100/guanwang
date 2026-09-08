@@ -216,8 +216,8 @@ import UserLogoBindingField from "@/pages/system/components/UserLogoBindingField
 import { getSysFileDetail } from "@/services/system/file";
 import { getUnreadAlarmCount } from "@/services/alarm/processing";
 
-// import appShellModules from "@/components/app-shell/appShellModules.local";
-import appShellModules from "@/components/app-shell/appShellModules.localized";
+import appShellModules from "@/components/app-shell/appShellModules.local";
+// import appShellModules from "@/components/app-shell/appShellModules.localized";
 
 import { MENU_COLLAPSED_KEY, OPENED_TABS_KEY } from "@/utils/appShellStorage";
 import { clearAuthStorage, createProtectedRouteDecision, LOGIN_PATH } from "@/utils/authGuard";
@@ -263,6 +263,10 @@ const {
   DataReceiveView,
   DeviceManagementView,
   DeviceParameterView,
+  DeviceResumeView,
+  DeviceLedgerView,
+  BatteryHealthView,
+  OperationAnalysisView,
   HistoryOverviewView,
   LeakAnalysisView,
   LeakManagementView,
@@ -435,10 +439,10 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/work-order/statistics/statistics": { component: WorksheetTableView, props: { mode: "statistics" } },
   "/pages/alarm/strategy/strategy": { component: AlarmStrategyView },
   "/pages/alarm/processing/processing": { component: AlarmProcessingView },
-  "/pages/report/device-resume/device-resume": createPlaceholderContent("/pages/report/device-resume/device-resume"),
-  "/pages/report/device-ledger/device-ledger": createPlaceholderContent("/pages/report/device-ledger/device-ledger"),
-  "/pages/report/battery-health/battery-health": createPlaceholderContent("/pages/report/battery-health/battery-health"),
-  "/pages/report/operation-analysis/operation-analysis": createPlaceholderContent("/pages/report/operation-analysis/operation-analysis"),
+  "/pages/report/device-resume/device-resume": { component: DeviceResumeView },
+  "/pages/report/device-ledger/device-ledger": { component: DeviceLedgerView },
+  "/pages/report/battery-health/battery-health": { component: BatteryHealthView },
+  "/pages/report/operation-analysis/operation-analysis": { component: OperationAnalysisView },
   "/pages/leak-burst/burst-identification/burst-identification": createPlaceholderContent("/pages/leak-burst/burst-identification/burst-identification"),
   "/pages/leak-burst/measurement-analysis/measurement-analysis": createPlaceholderContent("/pages/leak-burst/measurement-analysis/measurement-analysis"),
   "/pages/leak-burst/loss-report/loss-report": createPlaceholderContent("/pages/leak-burst/loss-report/loss-report"),

@@ -6,6 +6,10 @@ import DataAnalysisSheetView from "@/pages/data-analysis/components/DataAnalysis
 import DataReceiveView from "@/pages/data-receive/components/DataReceiveView.vue";
 import DeviceManagementView from "@/pages/device/components/DeviceManagementView.vue";
 import DeviceParameterView from "@/pages/device/parameter/components/DeviceParameterView.vue";
+import DeviceResumeView from "@/pages/report/components/DeviceResumeView.vue";
+import DeviceLedgerView from "@/pages/report/components/DeviceLedgerView.vue";
+import BatteryHealthView from "@/pages/report/components/BatteryHealthView.vue";
+import OperationAnalysisView from "@/pages/report/components/OperationAnalysisView.vue";
 import ValveView from "@/pages/device/valve/components/ValveView.vue";
 import HistoryOverviewView from "@/pages/leak-report/components/HistoryOverviewView.vue";
 import LeakAnalysisView from "@/pages/leak-report/components/LeakAnalysisView.vue";
@@ -30,6 +34,10 @@ const appShellModules = {
     DataReceiveView,
     DeviceManagementView,
     DeviceParameterView,
+	DeviceResumeView,
+	DeviceLedgerView,
+	BatteryHealthView,
+	OperationAnalysisView,
     HistoryOverviewView,
     LeakAnalysisView,
     LeakManagementView,
