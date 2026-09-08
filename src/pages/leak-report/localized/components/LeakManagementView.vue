@@ -74,44 +74,66 @@
       @jump-page="jumpToPage"
       @page-size-change="handlePageSizeChange"
     >
-      <view class="data-table" :style="{ minWidth: tableMinWidth }">
-        <view class="data-row data-row--header" :style="{ gridTemplateColumns: tableGridTemplateColumns, minWidth: tableMinWidth }">
-          <view class="data-cell data-cell--checkbox">
-            <view v-if="allSelectable" class="checkbox" :class="{ 'checkbox--checked': isAllSelected }" @click.stop="toggleSelectAll"><text v-if="isAllSelected" class="checkbox__mark"></text></view>
+      <LeakDataTable
+        :columns="columnDefs"
+        :data="records"
+        :loading="loading"
+        :grid-template-columns="tableGridTemplateColumns"
+        :min-width="tableMinWidth"
+        :selected-key="selectedRecordKey"
+        :sort-field="sortField"
+        :sort-order="sortOrder"
+        :empty-text="t('leakManagement.noLeakData')"
+        :loading-text="t('common.loading')"
+        :page-num="pagination.pageNum"
+        :page-size="pagination.pageSize"
+        :get-row-key="getRowKey"
+        :get-field-value="getFieldValue"
+        :format-date-time="formatDateTime"
+        :label-fn="t"
+        body-row-class="data-row--body"
+        @sort="toggleSort"
+        @row-click="selectRecord"
+      >
+        <!-- 列头 checkbox -->
+        <template #header-checkbox>
+          <view v-if="allSelectable" class="checkbox" :class="{ 'checkbox--checked': isAllSelected }" @click.stop="toggleSelectAll">
+            <text v-if="isAllSelected" class="checkbox__mark"></text>
           </view>
-          <text class="data-cell data-cell--index">{{ t('table.index') }}</text>
-          <text class="data-cell data-cell--time data-cell--sortable" @click.stop="toggleSort('detectTime')">{{ t('table.detectTime') }}<text class="sort-arrow sort-arrow--active" v-if="sortField === 'detectTime'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
-          <text class="data-cell data-cell--level">{{ t('table.leakStatus') }}</text>
-          <text class="data-cell data-cell--type">{{ t('table.leakPointType') }}</text>
-          <text class="data-cell data-cell--leakpart">{{ t('table.leakPointPart') }}</text>
-          <text class="data-cell data-cell--address">{{ t('table.leakPointPosition') }}</text>
-          <text class="data-cell data-cell--account">{{ t('table.inspector') }}</text>
-          <text class="data-cell data-cell--locator">{{ t('table.locator') }}</text>
-          <text class="data-cell data-cell--audio">{{ t('table.audio') }}</text>
-          <text class="data-cell data-cell--video">{{ t('table.video') }}</text>
-          <text class="data-cell data-cell--wsid">{{ t('table.workOrderId') }}</text>
-          <text class="data-cell data-cell--devices">{{ t('table.deviceId') }}</text>
-        </view>
-        <view v-if="loading" class="table-state table-state--loading"><view class="state-spinner"></view><text class="state-text">{{ t('common.loading') }}</text></view>
-        <view v-else-if="records.length === 0" class="table-state table-state--empty"><view class="state-icon-empty"></view><text class="state-text">{{ t('leakManagement.noLeakData') }}</text></view>
-        <view v-for="(item, index) in records" v-else :key="getRowKey(item, index)" class="data-row data-row--body" :class="{ 'data-row--active': selectedRecordKey === getRowKey(item, index) }" :style="{ gridTemplateColumns: tableGridTemplateColumns, minWidth: tableMinWidth }" @click="selectRecord(item, index)">
-          <view class="data-cell data-cell--checkbox" @click.stop="toggleSelectItem(item)">
-            <view v-if="allSelectable" class="checkbox" :class="{ 'checkbox--checked': isItemSelected(item) }"><text v-if="isItemSelected(item)" class="checkbox__mark"></text></view>
+        </template>
+        <!-- 数据行 checkbox -->
+        <template #cell-checkbox="{ row }">
+          <view v-if="allSelectable" class="checkbox" :class="{ 'checkbox--checked': isItemSelected(row) }" @click.stop="toggleSelectItem(row)">
+            <text v-if="isItemSelected(row)" class="checkbox__mark"></text>
           </view>
-          <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
-          <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "detectTime")) }}</text>
-          <text class="data-cell data-cell--level"><text class="level-pill" :class="getLeakStatusClass(item)">{{ getLeakStatusDisplay(item) }}</text></text>
-          <text class="data-cell data-cell--type">{{ displayValue(getFieldValue(item, "leakPointType")) }}</text>
-          <text class="data-cell data-cell--leakpart">{{ displayValue(getFieldValue(item, "leakPart")) }}</text>
-          <text class="data-cell data-cell--address">{{ displayValue(getFieldValue(item, "leakPointPosition")) }}</text>
-          <text class="data-cell data-cell--account">{{ displayValue(getFieldValue(item, "inspector")) }}</text>
-          <text class="data-cell data-cell--locator">{{ displayValue(getFieldValue(item, "locator")) }}</text>
-          <text class="data-cell data-cell--audio" @click.stop="toggleAudioPlay(item, index)"><text v-if="getFieldValue(item, 'audioFile')" class="play-icon" :class="playingAudioIndex === index ? 'icon-pause' : 'icon-play'"></text><text v-else>-</text></text>
-          <text class="data-cell data-cell--video" @click.stop="toggleVideoPlay(item)"><text v-if="getFieldValue(item, 'sceneVideo')" class="play-icon icon-play video-icon"></text><text v-else>-</text></text>
-          <text class="data-cell data-cell--wsid" @click.stop="handleWorkOrderJump(item)"><text v-if="getFieldValue(item, 'worksheetNumber')" class="link-text" :title="getWorkOrderDisplay(item)">{{ getWorkOrderDisplay(item) }}</text><text v-else-if="getFieldValue(item, 'workOrderId')" class="work-order-missing">{{ t('leakManagement.workOrderMissing') }}</text><text v-else>-</text></text>
-          <text class="data-cell data-cell--devices">{{ displayValue(getFieldValue(item, "deviceNumber")) }}</text>
-        </view>
-      </view>
+        </template>
+        <!-- 漏点等级标签 -->
+        <template #cell-levelPill="{ row }">
+          <text class="level-pill" :class="getLeakStatusClass(row)">{{ getLeakStatusDisplay(row) }}</text>
+        </template>
+        <!-- 音频播放按钮 -->
+        <template #cell-audio="{ row, index }">
+          <text @click.stop="toggleAudioPlay(row, index)">
+            <text v-if="getFieldValue(row, 'audioFile')" class="play-icon" :class="playingAudioIndex === index ? 'icon-pause' : 'icon-play'"></text>
+            <text v-else>-</text>
+          </text>
+        </template>
+        <!-- 视频播放按钮 -->
+        <template #cell-video="{ row }">
+          <text @click.stop="toggleVideoPlay(row)">
+            <text v-if="getFieldValue(row, 'sceneVideo')" class="play-icon icon-play video-icon"></text>
+            <text v-else>-</text>
+          </text>
+        </template>
+        <!-- 工单链接 -->
+        <template #cell-link="{ row }">
+          <text @click.stop="handleWorkOrderJump(row)">
+            <text v-if="getFieldValue(row, 'worksheetNumber')" class="link-text" :title="getWorkOrderDisplay(row)">{{ getWorkOrderDisplay(row) }}</text>
+            <text v-else-if="getFieldValue(row, 'workOrderId')" class="work-order-missing">{{ t('leakManagement.workOrderMissing') }}</text>
+            <text v-else>-</text>
+          </text>
+        </template>
+      </LeakDataTable>
 
       <template #detail>
         <view class="detail-body">
@@ -563,6 +585,8 @@ import { uploadFile } from "@/services/leak-report/file-upload";
 import { getVisibleDeviceList } from "@/services/device/info";
 import { getDeptList, getDeptDeviceDeptIds } from "@/services/partition/partition";
 import { createScopedT, useI18n } from "@/i18n";
+import LeakDataTable from "@/pages/leak-report/components/LeakDataTable.vue";
+import type { ColumnDef } from "@/pages/leak-report/constants/columnTypes";
 import { fetchAllPages } from "@/utils/fetch-all-pages";
 import { resolvePublicFileUrl } from "@/utils/public-file-url";
 import {
@@ -576,21 +600,136 @@ const t = createScopedT("leakReport");
 const { locale } = useI18n();
 
 /**
- * 表格列宽动态配置（13 列）
+ * 表格列定义（与标准版 LeakManagementView 保持同步；labelKey 由 label-fn(t) 翻译）
  *
+ * 表格列宽动态配置：从 columnDefs 配置派生，根据当前 locale 返回对应列宽。
  * 英文表头普遍比中文长（如 "Leak Point Position" 19字符 vs "漏点位置" 4字符），
  * 共用一套列宽会导致英文表头截断。根据 locale 返回不同配置：
  * - zh-CN：以中文表头长度为基准，min-width 1200px
  * - en-US：以英文表头长度为基准，min-width 1380px（关键列加宽）
- *
- * 每列 minmax 的最小值基于英文表头字符数 × 6.5px + 24px padding 计算，确保完整展示。
- * 13 列依次为：复选框/序号/检出时间/渗漏状态/漏点类型/泄漏部位/漏点位置/巡检人员/定漏人员/音频/视频/关联工单/关联设备
  */
+const columnDefs = computed<ColumnDef[]>(() => [
+  {
+    key: "_select",
+    labelKey: "",
+    renderType: "checkbox",
+    widthZh: "40px",
+    widthEn: "40px",
+    cellClass: "data-cell--checkbox",
+    exportable: false,
+  },
+  {
+    key: "_index",
+    labelKey: "table.index",
+    renderType: "index",
+    widthZh: "52px",
+    widthEn: "52px",
+    cellClass: "data-cell--index",
+    exportable: false,
+  },
+  {
+    key: "detectTime",
+    labelKey: "table.detectTime",
+    renderType: "dateTime",
+    widthZh: "minmax(140px, 1.4fr)",
+    widthEn: "minmax(150px, 1.5fr)",
+    cellClass: "data-cell--time data-cell--sortable",
+    sortable: true,
+    sortOrder: 0,
+  },
+  {
+    key: "leakStatus",
+    labelKey: "table.leakStatus",
+    renderType: "levelPill",
+    statusVariant: "leakage",
+    widthZh: "minmax(86px, 0.85fr)",
+    widthEn: "minmax(100px, 1fr)",
+    cellClass: "data-cell--level",
+  },
+  {
+    key: "leakPointType",
+    labelKey: "table.leakPointType",
+    renderType: "text",
+    widthZh: "minmax(96px, 0.95fr)",
+    widthEn: "minmax(120px, 1.1fr)",
+    cellClass: "data-cell--type",
+  },
+  {
+    key: "leakPart",
+    labelKey: "table.leakPointPart",
+    renderType: "text",
+    widthZh: "minmax(100px, 1fr)",
+    widthEn: "minmax(120px, 1.1fr)",
+    cellClass: "data-cell--leakpart",
+  },
+  {
+    key: "leakPointPosition",
+    labelKey: "table.leakPointPosition",
+    renderType: "title",
+    widthZh: "minmax(140px, 1.6fr)",
+    widthEn: "minmax(170px, 1.7fr)",
+    cellClass: "data-cell--address",
+  },
+  {
+    key: "inspector",
+    labelKey: "table.inspector",
+    renderType: "text",
+    widthZh: "minmax(86px, 0.85fr)",
+    widthEn: "minmax(105px, 1fr)",
+    cellClass: "data-cell--account",
+  },
+  {
+    key: "locator",
+    labelKey: "table.locator",
+    renderType: "text",
+    widthZh: "minmax(86px, 0.85fr)",
+    widthEn: "minmax(105px, 1fr)",
+    cellClass: "data-cell--locator",
+  },
+  {
+    key: "audioFile",
+    labelKey: "table.audio",
+    exportLabelKey: "leakManagement.exportHeaders.audioFile",
+    renderType: "audio",
+    widthZh: "72px",
+    widthEn: "72px",
+    cellClass: "data-cell--audio",
+    exportable: true,
+  },
+  {
+    key: "sceneVideo",
+    labelKey: "table.video",
+    exportLabelKey: "leakManagement.exportHeaders.sceneVideo",
+    renderType: "video",
+    widthZh: "72px",
+    widthEn: "72px",
+    cellClass: "data-cell--video",
+    exportable: true,
+  },
+  {
+    key: "worksheetNumber",
+    labelKey: "table.workOrderId",
+    exportLabelKey: "leakManagement.exportHeaders.worksheetNumber",
+    renderType: "link",
+    linkHandler: "workOrder",
+    widthZh: "minmax(110px, 0.85fr)",
+    widthEn: "minmax(130px, 1fr)",
+    cellClass: "data-cell--wsid",
+  },
+  {
+    key: "deviceNumber",
+    labelKey: "table.deviceId",
+    exportLabelKey: "leakManagement.exportHeaders.deviceNumber",
+    renderType: "text",
+    widthZh: "minmax(100px, 0.85fr)",
+    widthEn: "minmax(130px, 1fr)",
+    cellClass: "data-cell--devices",
+  },
+]);
+
 const tableGridTemplateColumns = computed<string>(() => {
-  if (locale.value === "en-US") {
-    return "40px 52px minmax(150px, 1.5fr) minmax(100px, 1fr) minmax(120px, 1.1fr) minmax(120px, 1.1fr) minmax(170px, 1.7fr) minmax(105px, 1fr) minmax(105px, 1fr) 72px 72px minmax(130px, 1fr) minmax(130px, 1fr)";
-  }
-  return "40px 52px minmax(140px, 1.4fr) minmax(86px, 0.85fr) minmax(96px, 0.95fr) minmax(100px, 1fr) minmax(140px, 1.6fr) minmax(86px, 0.85fr) minmax(86px, 0.85fr) 72px 72px minmax(110px, 0.85fr) minmax(100px, 0.85fr)";
+  const isEn = locale.value === "en-US";
+  return columnDefs.value.map((c) => (isEn ? c.widthEn : c.widthZh)).join(" ");
 });
 
 const tableMinWidth = computed<string>(() => (locale.value === "en-US" ? "1380px" : "1200px"));
@@ -1308,25 +1447,14 @@ async function handleExport(scope: "current" | "all") {
   }
   if (!exportRecords.length) { uni.showToast({ title: t("common.noDataToExport"), icon: "none" }); return; }
   // #ifdef H5
-  const headers = [
-    t("leakManagement.exportHeaders.detectTime"),
-    t("leakManagement.exportHeaders.leakStatus"),
-    t("leakManagement.exportHeaders.leakPointType"),
-    t("leakManagement.exportHeaders.leakPart"),
-    t("leakManagement.exportHeaders.leakPointPosition"),
-    t("leakManagement.exportHeaders.inspector"),
-    t("leakManagement.exportHeaders.locator"),
-    t("leakManagement.exportHeaders.audioFile"),
-    t("leakManagement.exportHeaders.sceneVideo"),
-    t("leakManagement.exportHeaders.worksheetNumber"),
-    t("leakManagement.exportHeaders.deviceNumber"),
-  ];
-  const keys = ["detectTime", "leakStatus", "leakPointType", "leakPart", "leakPointPosition", "inspector", "locator", "audioFile", "sceneVideo", "worksheetNumber", "deviceNumber"];
+  // 导出列从 columnDefs 派生：自动跳过 _select/_index 等非数据列，新增字段自动纳入导出（与标准版一致）。
+  const exportColumns = columnDefs.value.filter((c) => c.exportable !== false);
+  const headers = exportColumns.map((c) => t(c.exportLabelKey || c.labelKey));
   const rows = exportRecords.map((r) =>
-    keys.map((k) => {
-      if (k === "detectTime") return escapeCsvCell(fmtDt(gv(r, k)));
-      if (k === "leakStatus") return escapeCsvCell(getLeakStatusDisplay(r));
-      return escapeCsvCell(gv(r, k));
+    exportColumns.map((c) => {
+      if (c.renderType === "dateTime") return escapeCsvCell(fmtDt(gv(r, c.key)));
+      if (c.renderType === "levelPill") return escapeCsvCell(getLeakStatusDisplay(r));
+      return escapeCsvCell(gv(r, c.key));
     })
   );
   const csv = [headers.join(","), ...rows.map((row) => row.map((c) => `"${c}"`).join(","))].join("\n");
@@ -2132,31 +2260,11 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .table-scroll::-webkit-scrollbar-track, .detail-section::-webkit-scrollbar-track { background: #edf3f8; border-radius: 999px; }
 .table-scroll::-webkit-scrollbar-thumb, .detail-section::-webkit-scrollbar-thumb { background: linear-gradient(90deg, #9fb4c8, #6f8ba8); border: 2px solid #edf3f8; border-radius: 999px; }
 .table-scroll::-webkit-scrollbar-thumb:hover, .detail-section::-webkit-scrollbar-thumb:hover { background: linear-gradient(90deg, #7f9ab4, #4d6f91); }
-.data-table { display: flex; flex-direction: column; width: 100%; min-width: 1200px; background: #ffffff; }
-.data-row { display: grid; grid-template-columns: 40px 52px minmax(140px, 1.4fr) minmax(86px, 0.85fr) minmax(96px, 0.95fr) minmax(100px, 1fr) minmax(140px, 1.6fr) minmax(86px, 0.85fr) minmax(86px, 0.85fr) 72px 72px minmax(110px, 0.85fr) minmax(100px, 0.85fr); min-height: 42px; width: 100%; min-width: 1200px; border-bottom: 1px solid #edf1f5; cursor: pointer; transition: background 0.18s ease, box-shadow 0.18s ease; &--header { position: sticky; top: 0; z-index: 1; min-height: 44px; color: #20384f; font-weight: 800; background: #f6f9fc; cursor: default; box-shadow: 0 1px 0 #dbe7f0; } &--active { position: relative; background: #e7f3ff !important; box-shadow: inset 0 0 0 1px #b9dcff; } }
-.data-row:not(.data-row--header):nth-child(odd) { background: #fff; }
-.data-row:not(.data-row--header):nth-child(even) { background: #fbfdff; }
-.data-row:not(.data-row--header):hover { background: #f1f8ff; box-shadow: inset 0 0 0 1px #d7ebfb; }
-.data-row--active::before { position: absolute; top: 7px; bottom: 7px; left: 0; width: 3px; content: ""; background: #0d82ee; border-radius: 0 999px 999px 0; }
-.data-cell { display: flex; align-items: center; justify-content: center; min-width: 0; padding: 0 12px; overflow: hidden; color: #24384d; font-size: 13px; line-height: 1.35; text-align: center; white-space: nowrap; text-overflow: ellipsis; border-right: 1px solid #edf1f5; }
-.data-row--header .data-cell { color: #415a73; font-size: 12px; letter-spacing: 0; }
-.data-cell:last-child { border-right: 0; }
-.data-cell--sortable { cursor: pointer; user-select: none; }
-.data-cell--sortable:hover { color: #3b82f6; }
-.data-cell--checkbox { justify-content: center; }
-.data-cell--index { justify-content: center; color: #64748b; }
-.data-cell--time { color: #0f4c81; }
-.data-cell--address { justify-content: center; text-align: center; }
-.data-cell--leakpart { justify-content: center; text-align: center; color: #475569; }
-.data-cell--type { justify-content: center; text-align: center; color: #475569; }
-.data-cell--locator { justify-content: center; text-align: center; color: #475569; }
 
-.data-cell--audio { justify-content: center; }
 .play-icon { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
 .icon-play { width: 0; height: 0; border-style: solid; border-width: 6px 0 6px 10px; border-color: transparent transparent transparent #3b82f6; }
 .video-icon { border-color: transparent transparent transparent #16a34a; }
 .icon-pause { width: 10px; height: 12px; position: relative; &::before, &::after { content: ""; position: absolute; top: 0; width: 3px; height: 100%; background: #3b82f6; border-radius: 1px; } &::before { left: 0; } &::after { right: 0; } }
-.data-cell--video { justify-content: center; }
 .video-dialog-mask { position: fixed; inset: 0; z-index: 2200; display: flex; align-items: center; justify-content: center; background: rgba(15, 35, 55, 0.55); }
 .video-dialog { width: min(900px, 92vw); background: #fff; border-radius: 10px; box-shadow: 0 12px 36px rgba(15, 35, 55, 0.25); overflow: hidden; }
 .video-dialog__head { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid #edf1f5; }
@@ -2198,16 +2306,9 @@ function ok(res: Res | undefined) { const c = res?.code; if (c === undefined || 
 .icon-play-large { width: 0; height: 0; border-style: solid; border-width: 8px 0 8px 14px; border-color: transparent transparent transparent #fff; margin-left: 3px; }
 .icon-pause-large { width: 14px; height: 16px; position: relative; &::before, &::after { content: ""; position: absolute; top: 0; width: 4px; height: 100%; background: #fff; border-radius: 1px; } &::before { left: 0; } &::after { right: 0; } }
 /* 排序箭头 */
-.sort-arrow { flex: none; font-size: 10px; line-height: 1; margin-left: 2px; color: #bcc7d6; transition: color 0.18s ease; &--active { color: #3b82f6; } &--idle { opacity: 0.4; } }
-.data-cell--sortable:hover .sort-arrow:not(.sort-arrow--active) { color: #7f8fa3; }
 .checkbox { display: flex; align-items: center; justify-content: center; width: 18px; height: 18px; border: 2px solid #cdd7e4; border-radius: 4px; cursor: pointer; &--checked { background: #3b82f6; border-color: #3b82f6; } }
 .checkbox__mark { display: block; width: 6px; height: 10px; border-right: 2px solid #fff; border-bottom: 2px solid #fff; transform: rotate(45deg) translate(-1px, -1px); }
 .level-pill { display: inline-block; padding: 2px 10px; font-size: 12px; font-weight: 700; border-radius: 10px; &--light { color: #22c55e; background: #f0fdf4; border: 1px solid #bbf7d0; } &--medium { color: #f59e0b; background: #fffbeb; border: 1px solid #fde68a; } &--heavy { color: #ef4444; background: #fef2f2; border: 1px solid #fecaca; } &--suspect { color: #8c8c8c; background: #fafafa; border: 1px solid #d9d9d9; } }
-.table-state { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 48px 32px; color: #a0aec0; font-size: 14px; text-align: center; }
-.state-spinner { width: 28px; height: 28px; border: 3px solid #e2e8f0; border-top-color: #3b82f6; border-radius: 50%; animation: state-spin 0.7s linear infinite; }
-@keyframes state-spin { to { transform: rotate(360deg); } }
-.state-icon-empty { width: 40px; height: 40px; border: 2px dashed #cbd5e1; border-radius: 50%; position: relative; }
-.state-icon-empty::after { content: ""; position: absolute; top: 50%; left: 50%; width: 14px; height: 2px; background: #cbd5e1; transform: translate(-50%, -50%); }
 .pagination-bar { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-top: 1px solid #edf3f8; }
 .page-button { display: flex; align-items: center; justify-content: center; min-width: 64px; height: 34px; margin: 0; padding: 0 14px; color: #183755; font-size: 13px; font-weight: 700; background: #fff; border: 1px solid #d5e2ee; border-radius: 6px; cursor: pointer; &--hover { background: #eff6ff; } &:disabled { opacity: 0.4; cursor: not-allowed; } }
 .page-info { color: #64748b; font-size: 13px; font-weight: 600; }

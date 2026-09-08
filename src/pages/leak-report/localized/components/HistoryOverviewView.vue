@@ -185,110 +185,42 @@
       @jump-page="jumpToPage"
       @page-size-change="handlePageSizeChange"
     >
-      <view class="data-table" :style="{ gridTemplateColumns: tableGridTemplateColumns, minWidth: tableMinWidth }">
-        <!-- 渗漏记录列头 -->
-        <view v-if="activeDataTab === 'leakage'" class="data-row data-row--header data-row--leakage">
-          <text class="data-cell data-cell--index">{{ t("table.index") }}</text>
-          <text class="data-cell data-cell--time data-cell--sortable" @click.stop="toggleSort('detectTime')">{{ t("table.detectTime") }}<text class="sort-arrow sort-arrow--active" v-if="sortField === 'detectTime'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
-          <text class="data-cell data-cell--level data-cell--sortable" @click.stop="toggleSort('leakStatus')">{{ t("table.leakStatus") }}<text class="sort-arrow sort-arrow--active" v-if="sortField === 'leakStatus'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</text><text class="sort-arrow" v-else></text></text>
-          <text class="data-cell data-cell--type">{{ t("table.leakPointType") }}</text>
-          <text class="data-cell data-cell--address">{{ t("table.leakPointPosition") }}</text>
-          <text class="data-cell data-cell--account">{{ t("table.inspector") }}</text>
-          <text class="data-cell data-cell--material">{{ t("table.tubeMaterial") }}</text>
-          <text class="data-cell data-cell--remark">{{ t("table.description") }}</text>
-        </view>
+      <LeakDataTable
+        :columns="activeColumnDefs"
+        :data="records"
+        :loading="loading"
+        :grid-template-columns="tableGridTemplateColumns"
+        :min-width="tableMinWidth"
+        :selected-key="selectedRecordKey"
+        :sort-field="sortField"
+        :sort-order="sortOrder"
+        :empty-text="t('historyOverview.noHistoryData')"
+        :loading-text="t('common.loading')"
+        :page-num="pagination.pageNum"
+        :page-size="pagination.pageSize"
+        :get-row-key="getRowKey"
+        :get-field-value="getFieldValue"
+        :format-date-time="formatDateTime"
+        :label-fn="t"
+        :header-row-class="`data-row--${activeDataTab}`"
+        :body-row-class="`data-row--${activeDataTab}`"
+        @sort="toggleSort"
+        @row-click="selectRecord"
+      >
+        <!-- 状态标签（3种变体） -->
+        <template #cell-statusTag="{ row, col }">
+          <text v-if="col.statusVariant === 'leakage'" class="status-tag" :class="getLeakageStatusTagClass(row)">{{ getLeakageStatusDisplay(row) }}</text>
+          <text v-else-if="col.statusVariant === 'deviceUpload'" class="status-tag" :class="getLeakStatusTagClass(row)">{{ getLeakStatusLabel(row) }}</text>
+          <text v-else-if="col.statusVariant === 'algorithm' && getFieldValue(row, col.key)" class="status-tag" :class="getAlgorithmStatusTagClass(row)">{{ getAlgorithmStatusLabel(row) }}</text>
+          <text v-else>-</text>
+        </template>
+        <!-- 算法名称翻译 -->
+        <template #cell-algorithmName="{ row, col }">
+          {{ translateAlgorithmName(getFieldValue(row, col.key)) }}
+        </template>
+      </LeakDataTable>
 
-        <!-- 设备上报列头 -->
-        <view v-else-if="activeDataTab === 'deviceUpload'" class="data-row data-row--header data-row--deviceUpload">
-          <text class="data-cell data-cell--index">{{ t("table.index") }}</text>
-          <text class="data-cell data-cell--time">{{ t("table.uploadTime") }}</text>
-          <text class="data-cell data-cell--device">{{ t("table.deviceNumber") }}</text>
-          <text class="data-cell data-cell--status">{{ t("table.leakFlag") }}</text>
-          <text class="data-cell data-cell--esa">{{ t("table.leakEsa") }}</text>
-          <text class="data-cell data-cell--intensity">{{ t("table.leakIntensity") }}</text>
-          <text class="data-cell data-cell--frequency">{{ t("table.leakFrequency") }}</text>
-          <text class="data-cell data-cell--firmware">{{ t("table.firmwareVersion") }}</text>
-        </view>
-
-        <!-- 算法分析列头 -->
-        <view v-else-if="activeDataTab === 'algorithm'" class="data-row data-row--header data-row--algorithm">
-          <text class="data-cell data-cell--index">{{ t("table.index") }}</text>
-          <text class="data-cell data-cell--time">{{ t("table.createdAt") }}</text>
-          <text class="data-cell data-cell--device">{{ t("table.deviceNumber") }}</text>
-          <text class="data-cell data-cell--signal">{{ t("table.algorithmName") }}</text>
-          <text class="data-cell data-cell--status">{{ t("table.executeStatus") }}</text>
-          <text class="data-cell data-cell--signal">{{ t("table.outputValue") }}</text>
-          <text class="data-cell data-cell--esa">{{ t("table.duration") }}</text>
-        </view>
-
-        <view v-if="loading" class="table-state table-state--loading"><view class="state-spinner"></view><text class="state-text">{{ t("common.loading") }}</text></view>
-        <view v-else-if="records.length === 0" class="table-state table-state--empty"><view class="state-icon-empty"></view><text class="state-text">{{ t("historyOverview.noHistoryData") }}</text></view>
-
-        <!-- 渗漏记录行 -->
-        <view v-else-if="activeDataTab === 'leakage'">
-          <view
-            v-for="(item, index) in records"
-            :key="getRowKey(item, index)"
-            class="data-row data-row--leakage"
-            :class="{ 'data-row--active': selectedRecordKey === getRowKey(item, index) }"
-            @click="selectRecord(item, index)"
-          >
-            <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
-            <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "detectTime")) }}</text>
-            <text class="data-cell data-cell--level"><text class="status-tag" :class="getLeakageStatusTagClass(item)">{{ getLeakageStatusDisplay(item) }}</text></text>
-            <text class="data-cell data-cell--type">{{ displayValue(getFieldValue(item, "leakPointType")) }}</text>
-            <text class="data-cell data-cell--address">{{ displayValue(getFieldValue(item, "leakPointPosition")) }}</text>
-            <text class="data-cell data-cell--account">{{ displayValue(getFieldValue(item, "inspector")) }}</text>
-            <text class="data-cell data-cell--material">{{ displayValue(getFieldValue(item, "tubeMaterial")) }}</text>
-            <text class="data-cell data-cell--remark">{{ displayValue(getFieldValue(item, "description")) }}</text>
-          </view>
-        </view>
-
-        <!-- 设备上报行 -->
-        <view v-else-if="activeDataTab === 'deviceUpload'">
-          <view
-            v-for="(item, index) in records"
-            :key="getRowKey(item, index)"
-            class="data-row data-row--deviceUpload"
-            :class="{ 'data-row--active': selectedRecordKey === getRowKey(item, index) }"
-            @click="selectRecord(item, index)"
-          >
-            <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
-            <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "uploadTime")) }}</text>
-            <text class="data-cell data-cell--device">{{ displayValue(getFieldValue(item, "deviceNumber")) }}</text>
-            <text class="data-cell data-cell--status">
-              <text class="status-tag" :class="getLeakStatusTagClass(item)">{{ getLeakStatusLabel(item) }}</text>
-            </text>
-            <text class="data-cell data-cell--esa">{{ getFieldValue(item, "leakEsa") ?? "-" }}</text>
-            <text class="data-cell data-cell--intensity">{{ getFieldValue(item, "leakIntensity") ?? "-" }}</text>
-            <text class="data-cell data-cell--frequency">{{ getFieldValue(item, "leakFrequency") ?? "-" }}</text>
-            <text class="data-cell data-cell--firmware">{{ displayValue(getFieldValue(item, "firmwareVersion")) }}</text>
-          </view>
-        </view>
-
-        <!-- 算法分析行 -->
-        <view v-else-if="activeDataTab === 'algorithm'">
-          <view
-            v-for="(item, index) in records"
-            :key="getRowKey(item, index)"
-            class="data-row data-row--algorithm"
-            :class="{ 'data-row--active': selectedRecordKey === getRowKey(item, index) }"
-            @click="selectRecord(item, index)"
-          >
-            <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
-            <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "createdAt")) }}</text>
-            <text class="data-cell data-cell--device">{{ displayValue(getFieldValue(item, "deviceNumber")) }}</text>
-            <text class="data-cell data-cell--signal">{{ translateAlgorithmName(getFieldValue(item, "algorithmName")) }}</text>
-            <text class="data-cell data-cell--status">
-              <text v-if="getFieldValue(item, 'status')" class="status-tag" :class="getAlgorithmStatusTagClass(item)">{{ getAlgorithmStatusLabel(item) }}</text>
-              <text v-else>-</text>
-            </text>
-            <text class="data-cell data-cell--signal" :title="String(getFieldValue(item, 'outputValue') || '')">{{ displayValue(getFieldValue(item, "outputValue")) }}</text>
-            <text class="data-cell data-cell--esa">{{ getFieldValue(item, "costMs") ?? "-" }}</text>
-          </view>
-        </view>
-      </view>
-
+      <!-- 右侧详情 -->
       <!-- 右侧详情 -->
       <template #detail>
         <view class="detail-body">
@@ -475,6 +407,8 @@ import {
 import WorkOrderDatetimePicker from "@/pages/work-order/localized/components/WorkOrderDatetimePicker.vue";
 import LeakTableView from "@/pages/leak-report/localized/components/LeakTableView.vue";
 import { createScopedT, useI18n } from "@/i18n";
+import LeakDataTable from "@/pages/leak-report/components/LeakDataTable.vue";
+import type { ColumnDef } from "@/pages/leak-report/constants/columnTypes";
 import { fetchAllPages } from "@/utils/fetch-all-pages";
 import { resolvePublicFileUrl } from "@/utils/public-file-url";
 import {
@@ -576,24 +510,87 @@ const tabLabelMap = computed<Record<DataTab, string>>(() => ({
  * - deviceUpload（8 列）：序号/上报时间/设备编号/渗漏标志位/特征值/强度/频率/固件版本
  * - algorithm（7 列）：序号/创建时间/设备编号/算法名称/执行状态/输出值/耗时(ms)
  */
+/* ==================== 表格列定义（与标准版 HistoryOverviewView 保持同步） ==================== */
+
+const leakageColumnDefs: ColumnDef[] = [
+  { key: "_index", labelKey: "table.index", renderType: "index", widthZh: "58px", widthEn: "58px", cellClass: "data-cell--index", exportable: false },
+  {
+    key: "detectTime",
+    labelKey: "table.detectTime",
+    renderType: "dateTime",
+    widthZh: "minmax(140px, 1.5fr)",
+    widthEn: "minmax(160px, 1.6fr)",
+    cellClass: "data-cell--time data-cell--sortable",
+    sortable: true,
+  },
+  {
+    key: "leakStatus",
+    labelKey: "table.leakStatus",
+    renderType: "statusTag",
+    statusVariant: "leakage",
+    widthZh: "minmax(86px, 0.85fr)",
+    widthEn: "minmax(100px, 1fr)",
+    cellClass: "data-cell--level data-cell--sortable",
+    sortable: true,
+  },
+  { key: "leakPointType", labelKey: "table.leakPointType", renderType: "text", widthZh: "minmax(96px, 0.95fr)", widthEn: "minmax(120px, 1.1fr)", cellClass: "data-cell--type" },
+  { key: "leakPointPosition", labelKey: "table.leakPointPosition", renderType: "title", widthZh: "minmax(140px, 1.6fr)", widthEn: "minmax(170px, 1.7fr)", cellClass: "data-cell--address" },
+  { key: "inspector", labelKey: "table.inspector", renderType: "text", widthZh: "minmax(86px, 0.85fr)", widthEn: "minmax(105px, 1fr)", cellClass: "data-cell--account" },
+  { key: "tubeMaterial", labelKey: "table.tubeMaterial", renderType: "text", widthZh: "minmax(96px, 0.95fr)", widthEn: "minmax(110px, 1fr)", cellClass: "data-cell--material" },
+  { key: "description", labelKey: "table.description", renderType: "title", widthZh: "minmax(120px, 1fr)", widthEn: "minmax(140px, 1.2fr)", cellClass: "data-cell--remark" },
+];
+
+const deviceUploadColumnDefs: ColumnDef[] = [
+  { key: "_index", labelKey: "table.index", renderType: "index", widthZh: "58px", widthEn: "58px", cellClass: "data-cell--index", exportable: false },
+  { key: "uploadTime", labelKey: "table.uploadTime", renderType: "dateTime", widthZh: "minmax(140px, 1.5fr)", widthEn: "minmax(160px, 1.6fr)", cellClass: "data-cell--time" },
+  { key: "deviceNumber", labelKey: "table.deviceNumber", renderType: "text", widthZh: "minmax(120px, 1fr)", widthEn: "minmax(140px, 1.2fr)", cellClass: "data-cell--device" },
+  {
+    key: "leakStatus",
+    labelKey: "table.leakFlag",
+    renderType: "statusTag",
+    statusVariant: "deviceUpload",
+    widthZh: "minmax(100px, 1fr)",
+    widthEn: "minmax(110px, 1fr)",
+    cellClass: "data-cell--status",
+  },
+  { key: "leakEsa", labelKey: "table.leakEsa", renderType: "text", widthZh: "minmax(86px, 0.85fr)", widthEn: "minmax(110px, 1fr)", cellClass: "data-cell--esa" },
+  { key: "leakIntensity", labelKey: "table.leakIntensity", renderType: "text", widthZh: "minmax(72px, 0.7fr)", widthEn: "minmax(90px, 0.85fr)", cellClass: "data-cell--intensity" },
+  { key: "leakFrequency", labelKey: "table.leakFrequency", renderType: "text", widthZh: "minmax(72px, 0.7fr)", widthEn: "minmax(90px, 0.85fr)", cellClass: "data-cell--frequency" },
+  { key: "firmwareVersion", labelKey: "table.firmwareVersion", renderType: "text", widthZh: "minmax(100px, 1fr)", widthEn: "minmax(130px, 1.1fr)", cellClass: "data-cell--firmware" },
+];
+
+const algorithmColumnDefs: ColumnDef[] = [
+  { key: "_index", labelKey: "table.index", renderType: "index", widthZh: "58px", widthEn: "58px", cellClass: "data-cell--index", exportable: false },
+  { key: "createdAt", labelKey: "table.createdAt", renderType: "dateTime", widthZh: "minmax(140px, 1.5fr)", widthEn: "minmax(160px, 1.6fr)", cellClass: "data-cell--time" },
+  { key: "deviceNumber", labelKey: "table.deviceNumber", renderType: "text", widthZh: "minmax(120px, 1fr)", widthEn: "minmax(140px, 1.2fr)", cellClass: "data-cell--device" },
+  { key: "algorithmName", labelKey: "table.algorithmName", renderType: "algorithmName", widthZh: "minmax(120px, 1.2fr)", widthEn: "minmax(140px, 1.3fr)", cellClass: "data-cell--signal" },
+  {
+    key: "status",
+    labelKey: "table.executeStatus",
+    renderType: "statusTag",
+    statusVariant: "algorithm",
+    widthZh: "minmax(100px, 1fr)",
+    widthEn: "minmax(120px, 1.1fr)",
+    cellClass: "data-cell--status",
+  },
+  { key: "outputValue", labelKey: "table.outputValue", renderType: "title", widthZh: "minmax(100px, 1fr)", widthEn: "minmax(110px, 1fr)", cellClass: "data-cell--signal" },
+  { key: "costMs", labelKey: "table.duration", renderType: "text", widthZh: "minmax(86px, 0.85fr)", widthEn: "minmax(110px, 1fr)", cellClass: "data-cell--esa" },
+];
+
+const columnDefsMap: Record<DataTab, ColumnDef[]> = {
+  leakage: leakageColumnDefs,
+  deviceUpload: deviceUploadColumnDefs,
+  algorithm: algorithmColumnDefs,
+};
+
+const activeColumnDefs = computed<ColumnDef[]>(() => columnDefsMap[activeDataTab.value]);
+
+/**
+ * 表格列宽动态配置：从 activeColumnDefs 配置派生，根据当前 locale 返回对应列宽。
+ */
 const tableGridTemplateColumns = computed<string>(() => {
   const isEn = locale.value === "en-US";
-  if (activeDataTab.value === "leakage") {
-    // 8 列
-    return isEn
-      ? "58px minmax(160px, 1.6fr) minmax(100px, 1fr) minmax(120px, 1.1fr) minmax(170px, 1.7fr) minmax(105px, 1fr) minmax(110px, 1fr) minmax(140px, 1.2fr)"
-      : "58px minmax(140px, 1.5fr) minmax(86px, 0.85fr) minmax(96px, 0.95fr) minmax(140px, 1.6fr) minmax(86px, 0.85fr) minmax(96px, 0.95fr) minmax(120px, 1fr)";
-  }
-  if (activeDataTab.value === "deviceUpload") {
-    // 8 列
-    return isEn
-      ? "58px minmax(160px, 1.6fr) minmax(140px, 1.2fr) minmax(110px, 1fr) minmax(110px, 1fr) minmax(90px, 0.85fr) minmax(90px, 0.85fr) minmax(130px, 1.1fr)"
-      : "58px minmax(140px, 1.5fr) minmax(120px, 1fr) minmax(100px, 1fr) minmax(86px, 0.85fr) minmax(72px, 0.7fr) minmax(72px, 0.7fr) minmax(100px, 1fr)";
-  }
-  // algorithm 7 列
-  return isEn
-    ? "58px minmax(160px, 1.6fr) minmax(140px, 1.2fr) minmax(140px, 1.3fr) minmax(120px, 1.1fr) minmax(110px, 1fr) minmax(110px, 1fr)"
-    : "58px minmax(140px, 1.5fr) minmax(120px, 1fr) minmax(120px, 1.2fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(86px, 0.85fr)";
+  return activeColumnDefs.value.map((c) => (isEn ? c.widthEn : c.widthZh)).join(" ");
 });
 
 const tableMinWidth = computed<string>(() => {
@@ -1855,64 +1852,22 @@ async function handleExport(scope: "current" | "all") {
   }
   // #ifdef H5
   const tab = activeDataTab.value;
-  let headers: string[] = [];
-  let keys: string[] = [];
-  if (tab === "leakage") {
-    headers = [
-      t("table.index"),
-      t("table.detectTime"),
-      t("table.leakStatus"),
-      t("table.leakPointType"),
-      t("table.leakPointPosition"),
-      t("table.inspector"),
-      t("table.tubeMaterial"),
-      t("table.description"),
-    ];
-    keys = ["detectTime", "leakStatus", "leakPointType", "leakPointPosition", "inspector", "tubeMaterial", "description"];
-  } else if (tab === "deviceUpload") {
-    headers = [
-      t("table.index"),
-      t("table.uploadTime"),
-      t("table.deviceNumber"),
-      t("table.leakFlag"),
-      t("table.leakEsa"),
-      t("table.leakIntensity"),
-      t("table.leakFrequency"),
-    ];
-    keys = ["uploadTime", "deviceNumber", "leakStatus", "leakEsa", "leakIntensity", "leakFrequency"];
-  } else if (tab === "algorithm") {
-    headers = [
-      t("table.index"),
-      t("table.createdAt"),
-      t("table.deviceNumber"),
-      t("table.algorithmName"),
-      t("table.executeStatus"),
-      t("table.outputValue"),
-      t("table.duration"),
-    ];
-    keys = ["createdAt", "deviceNumber", "algorithmName", "status", "outputValue", "costMs"];
-  }
-  const rows = exportRecords.map((r, idx) => {
-    const row = [String(idx + 1)];
-    keys.forEach((k) => {
-      if (k === "leakStatus") {
-        if (tab === "leakage") {
-          row.push(escapeCsvCell(getLeakageStatusDisplay(r)));
-        } else {
-          row.push(escapeCsvCell(getLeakStatusLabel(r)));
-        }
-      } else if (k === "status") {
-        row.push(escapeCsvCell(getAlgorithmStatusLabel(r)));
-      } else if (k === "algorithmName") {
-        row.push(escapeCsvCell(translateAlgorithmName(getFieldValue(r, k))));
-      } else if (k === "audioTime" || k === "detectTime" || k === "uploadTime" || k === "createdAt" || k === "samplingTime") {
-        row.push(escapeCsvCell(formatDateTime(getFieldValue(r, k))));
-      } else {
-        row.push(escapeCsvCell(getFieldValue(r, k)));
+  // 导出列从 activeColumnDefs 派生：列头、字段顺序与表格保持一致，新增字段自动纳入导出（与标准版一致）。
+  const exportColumns = activeColumnDefs.value.filter((c) => c.exportable !== false);
+  const headers = exportColumns.map((c) => t(c.exportLabelKey || c.labelKey));
+  const rows = exportRecords.map((r, idx) =>
+    exportColumns.map((c) => {
+      if (c.renderType === "index") return escapeCsvCell(String(idx + 1));
+      if (c.renderType === "dateTime") return escapeCsvCell(formatDateTime(getFieldValue(r, c.key)));
+      if (c.renderType === "statusTag") {
+        if (c.statusVariant === "leakage") return escapeCsvCell(getLeakageStatusDisplay(r));
+        if (c.statusVariant === "deviceUpload") return escapeCsvCell(getLeakStatusLabel(r));
+        if (c.statusVariant === "algorithm") return escapeCsvCell(getAlgorithmStatusLabel(r));
       }
-    });
-    return row;
-  });
+      if (c.renderType === "algorithmName") return escapeCsvCell(translateAlgorithmName(getFieldValue(r, c.key)));
+      return escapeCsvCell(getFieldValue(r, c.key));
+    })
+  );
   const csv = [headers.join(","), ...rows.map((row) => row.map((c) => `"${c}"`).join(","))].join("\n");
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
@@ -2909,99 +2864,6 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   text-align: center;
 }
 
-.data-table {
-  display: flex;
-  flex-direction: column;
-  background: #ffffff;
-}
-
-.data-row {
-  display: grid;
-  grid-template-columns: 58px minmax(160px, 3.4fr) minmax(96px, 1.8fr) minmax(160px, 3.6fr) minmax(96px, 3fr) minmax(96px, 2.2fr) minmax(120px, 4.2fr);
-  min-height: 42px;
-  border-bottom: 1px solid #edf1f5;
-  cursor: pointer;
-  transition: background 0.18s ease, box-shadow 0.18s ease;
-}
-.data-row--leakage {
-  grid-template-columns: 58px minmax(160px, 3fr) minmax(96px, 1.6fr) minmax(110px, 2fr) minmax(160px, 3fr) minmax(96px, 2fr) minmax(96px, 1.8fr) minmax(120px, 3fr);
-}
-.data-row--deviceUpload {
-  grid-template-columns: 58px minmax(160px, 2.6fr) minmax(110px, 1.8fr) minmax(96px, 1.2fr) minmax(72px, 0.9fr) minmax(72px, 0.9fr) minmax(72px, 0.9fr) minmax(110px, 1.6fr);
-}
-.data-row--algorithm {
-  grid-template-columns: 58px minmax(160px, 2.6fr) minmax(110px, 1.8fr) minmax(130px, 2fr) minmax(96px, 1.2fr) minmax(150px, 2.4fr) minmax(80px, 1fr);
-}
-.data-row:not(.data-row--header):nth-child(odd) { background: #fff; }
-.data-row:not(.data-row--header):nth-child(even) { background: #fbfdff; }
-.data-row:not(.data-row--header):hover { background: #f1f8ff; box-shadow: inset 0 0 0 1px #d7ebfb; }
-
-.data-row--header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  min-height: 44px;
-  color: #20384f;
-  font-weight: 800;
-  background: #f6f9fc;
-  cursor: default;
-  box-shadow: 0 1px 0 #dbe7f0;
-}
-
-.data-row--active {
-  position: relative;
-  background: #e7f3ff !important;
-  box-shadow: inset 0 0 0 1px #b9dcff;
-}
-
-.data-row--active::before {
-  position: absolute;
-  top: 7px;
-  bottom: 7px;
-  left: 0;
-  width: 3px;
-  content: "";
-  background: #0d82ee;
-  border-radius: 0 999px 999px 0;
-}
-
-.data-cell {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 0;
-  padding: 0 12px;
-  overflow: hidden;
-  color: #24384d;
-  font-size: 13px;
-  line-height: 1.35;
-  text-align: center;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  border-right: 1px solid #edf1f5;
-}
-
-.data-row--header .data-cell {
-  color: #415a73;
-  font-size: 12px;
-  letter-spacing: 0;
-}
-
-.data-cell:last-child { border-right: 0; }
-
-.data-cell--index { justify-content: center; color: #64748b; }
-.data-cell--time { color: #0f4c81; font-family: "DIN Alternate", "Arial", sans-serif; font-weight: 800; }
-.data-cell--address { justify-content: center; text-align: center; }
-.data-cell--remark { justify-content: center; text-align: center; }
-.data-cell--device { color: #0f4c81; font-family: "DIN Alternate", "Arial", sans-serif; font-weight: 800; }
-.data-cell--error { color: #475569; text-align: center; justify-content: center; }
-
-.data-cell--sortable { cursor: pointer; user-select: none; }
-.data-cell--sortable:hover { color: #3b82f6; }
-
-.sort-arrow { flex: none; font-size: 10px; line-height: 1; margin-left: 2px; color: #bcc7d6; transition: color 0.18s ease; &--active { color: #3b82f6; } }
-.data-cell--sortable:hover .sort-arrow:not(.sort-arrow--active) { color: #7f8fa3; }
-
 .status-tag {
   display: inline-block;
   padding: 2px 10px;
@@ -3020,49 +2882,6 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 .status-tag--success { color: #16a34a; background: #f0fdf4; border: 1px solid #bbf7d0; }
 .status-tag--failed { color: #dc2626; background: #fef2f2; border: 1px solid #fecaca; }
 .status-tag--skipped { color: #6b7280; background: #f9fafb; border: 1px solid #e5e7eb; }
-
-.table-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 48px 32px;
-  color: #a0aec0;
-  font-size: 14px;
-  text-align: center;
-}
-
-.state-spinner {
-  width: 28px;
-  height: 28px;
-  border: 3px solid #e2e8f0;
-  border-top-color: #3b82f6;
-  border-radius: 50%;
-  animation: state-spin 0.7s linear infinite;
-}
-
-@keyframes state-spin {
-  to { transform: rotate(360deg); }
-}
-
-.state-icon-empty {
-  width: 40px;
-  height: 40px;
-  border: 2px dashed #cbd5e1;
-  border-radius: 50%;
-  position: relative;
-}
-
-.state-icon-empty::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 14px;
-  height: 2px;
-  background: #cbd5e1;
-  transform: translate(-50%, -50%);
-}
 
 .detail-panel {
   display: flex;
