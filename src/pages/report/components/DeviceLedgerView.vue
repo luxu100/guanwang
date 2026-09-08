@@ -166,6 +166,7 @@ const detailSections = [
   { tab: 'communication', title: '通信信息', fields: [['wifiName', 'WIFI名称'], ['wifiMac', 'WIFI地址'], ['serverIp', '服务器IP'], ['serverPort', '服务器端口'], ['tcpSessionId', 'TCP会话ID'], ['tcpLastSeenAt', '最后通信时间'], ['aepProtocol', 'AEP协议']] },
   { tab: 'relation', title: '产品信息', fields: [['productName', '产品名称'], ['productCode', '产品编码'], ['protocolVersion', '协议版本'], ['aepProtocol', 'AEP协议']] },
   { tab: 'relation', title: '管网信息', fields: [['tubeName', '管网名称'], ['tubeMaterial', '管材'], ['tubeBore', '管径'], ['tubeNumber', '管道编号'], ['tubeAdministrator', '负责人']] },
+  { tab: 'relation', title: '阀门信息', fields: [['valveNumber', '阀门编号'], ['valveName', '阀门名称']] },
   { tab: 'relation', title: '分区信息', fields: [['deptName', '所属分区'], ['deptAdministrator', '负责人'], ['description', '描述']] },
 ];
 const sectionColumns = computed(() => {
