@@ -76,10 +76,10 @@
 					  <text class="table-cell col-index " > {{ (deptPagination.current - 1) * deptPagination.size + index + 1 }} </text>
 					  <text class="table-cell col-dept-name " :title="item.deptName"> {{ item.deptName }} </text>
 					  <text class="table-cell col-region-type " :title="getDeptTypeLabel(item.regionType, '-')"> {{ getDeptTypeLabel(item.regionType, "-") }} </text>
-					  <text class="table-cell col-region-color " > 
+					  <view class="table-cell col-region-color " > 
 						<view v-if="item.regionColor !== null && item.regionColor !== '' " class="color-preview" :style="{ backgroundColor: item.regionColor }"></view>
 						<text v-else>-</text>
-					  </text>
+					  </view>
 					  <text class="table-cell col-min-level "> {{ item.gisMinLevel || '-' }} </text>
 					  <text class="table-cell col-max-level "> {{ item.gisMaxLevel || '-' }} </text>
 					  <text class="table-cell col-dept-id "> {{ item.id || '-' }} </text>
@@ -131,7 +131,7 @@
 					<!-- 数据 -->
 					<view v-for="(item,index) in deptDeviceList" v-else :key="item.id" class="table-row device-table-row" >				
 					  <view class="table-cell col-index "> {{ (deptDevicePagination.current - 1) * deptDevicePagination.size + index + 1 }} </view>			
-					  <view class="table-cell col-dept-name "> {{ getDeptName() }} </view>
+					  <text class="table-cell col-dept-name " :title="getDeviceDeptNames(item)"> {{ getDeviceDeptNames(item) }} </text>
 					  <view class="table-cell col-device-number "> {{ item.deviceNumber }} </view>
 					  <view class="table-cell col-device-alias "> {{ item.deviceAlias || '-' }} </view>
 					  <view class="table-cell col-state "> 
@@ -291,7 +291,26 @@
 				 
 				  <view class="form-field">
 				    <text class="form-label">所属组织</text>
-				    <input v-model="deptForm.organizationId" class="form-input" placeholder="请输入所属组织" />
+					<view class="input-icon">
+						 <input
+						   :value="organizationInputLabel"
+						   class="form-input form-input-icon"
+						   disabled
+						   placeholder="请选择所属组织"
+						   placeholder-class="input-placeholder"
+						 />
+						 <button
+						   v-if="organizationInputLabel"
+						   class="field-clear"
+						   hover-class="field-clear--hover"
+						   @click.stop="clearOrganizationSelection"
+						 >
+							<view class="clear-icon"></view>
+						 </button>
+						 <button class="icon-button input-icon-button" @click="openOrganizationDialog" >
+							<text>...</text>
+						 </button>
+					</view>
 				  </view>
 				 
 			   </view>
@@ -304,6 +323,52 @@
 			 </view>
 			</view>
 		</view> 
+
+		<view v-if="organizationDialogVisible" class="dialog-mask" @click="closeOrganizationDialog">
+			<view class="dialog-panel organization-tree-panel" @click.stop>
+			    <view class="dialog-head">
+			      <view>
+			        <text class="dialog-title">所属组织</text>
+			      </view>
+			      <button class="icon-button" hover-class="icon-button--hover" aria-label="关闭" @click="closeOrganizationDialog">
+			        <text class="close-icon"></text>
+			      </button>
+			    </view>
+
+			    <view class="dialog-body organization-tree-body">
+				  <view v-if="organizationTreeLoading" class="organization-tree-state">加载中...</view>
+				  <view v-else-if="organizationTreeRows.length === 0" class="organization-tree-state">暂无分区数据</view>
+				  <view v-else class="organization-tree-list">
+				    <view
+				      v-for="row in organizationTreeRows"
+				      :key="row.node.id"
+				      class="organization-tree-row"
+				      :class="{ 'organization-tree-row--active': selectedOrganizationId === row.node.id }"
+				      @click="selectOrganizationNode(row.node)"
+				    >
+				      <view class="organization-tree-row__inner" :style="{ paddingLeft: `${row.level * 18}px` }">
+				        <button
+				          v-if="row.hasChildren"
+				          class="organization-tree-toggle"
+				          hover-class="organization-tree-toggle--hover"
+				          @click.stop="toggleOrganizationNode(row.node.id)"
+				        >
+				          {{ row.expanded ? "-" : "+" }}
+				        </button>
+				        <view v-else class="organization-tree-toggle organization-tree-toggle--empty"></view>
+				        <text class="organization-tree-label" :title="row.node.name">{{ row.node.name }}</text>
+				      </view>
+				    </view>
+				  </view>
+			    </view>
+
+			    <view class="dialog-actions">
+			      <button class="secondary-button" hover-class="secondary-button--hover" @click="clearOrganizationSelection">清除</button>
+			      <button class="secondary-button" hover-class="secondary-button--hover" @click="closeOrganizationDialog">取消</button>
+			      <button class="primary-button" :disabled="selectedOrganizationId === null" hover-class="primary-button--hover" @click="confirmOrganizationSelection">确定</button>
+			    </view>
+			</view>
+		</view>
 
 		<view v-if="deviceDialogVisible" class="dialog-mask" @click="closeDeviceDialog">
 			<view class="dialog-panel" @click.stop>
@@ -372,7 +437,7 @@
 							  <text class="detail-value"> {{ deviceDetail?.installAddress ?? "-" }} </text>
 							</view>
 							
-							<view class="detail-item">
+							<view class="detail-item detail-item--wide">
 							  <text class="detail-label">地理位置</text>
 							  <text class="detail-value"> {{ formatDeviceLocation(deviceDetail) }} </text>
 							</view>
@@ -714,6 +779,7 @@ import {
 	getDeptList, 
 	getDeptDetail,
 	getDeptPage,
+	getPartitionTree,
 	createDept,
 	updateDept,
 	deleteDept,
@@ -813,14 +879,34 @@ const deptTableList =  computed<DeptTableItem[]>(() =>
   }))
 );
 
-const loadDeptList = async (page: number) => {
+type LoadDeptListOptions = {
+  resetCurrent?: boolean;
+  keepCurrent?: boolean;
+};
+
+function getDeptPageParams(page: number) {
+  const params: any = {
+    pageNum: page,
+    pageSize: deptPagination.size,
+  };
+
+  const deptName = filters.deptName.trim();
+  if (deptName) {
+    params.deptName = deptName;
+  }
+  if (filters.regionType !== "" && filters.regionType !== null && filters.regionType !== undefined) {
+    params.regionType = filters.regionType;
+  }
+
+  return params;
+}
+
+const loadDeptList = async (page: number, options: LoadDeptListOptions = {}) => {
   deptLoading.value = true;
+  const previousCurrentDeptId = currentDeptId.value;
   
   try {
-	const params: any = {
-		pageNum: page,
-		pageSize: deptPagination.size,
-	};
+	const params = getDeptPageParams(page);
     const res = await getDeptPage(params) as ApiResponseLike;
 	assertSuccessResponse(res);
 	
@@ -830,19 +916,25 @@ const loadDeptList = async (page: number) => {
 	};
 	
     deptList.value = pageData.records || [];
-	console.log("分区列表", deptList.value);
+	// console.log("分区列表", deptList.value);
 	deptPagination.current = page;
 	deptPagination.total = pageData.total || 0;
 	jumpDeptPage.value = null;
 	
-	if(currentDeptId.value == null && deptList.value.length){
+	if (options.keepCurrent) {
+		currentDeptId.value = previousCurrentDeptId;
+	} else if (options.resetCurrent) {
+		currentDeptId.value = deptList.value.length ? deptList.value[0].id : undefined;
+	} else if(currentDeptId.value == null && deptList.value.length){
 		currentDeptId.value = deptList.value[0].id;
 	}
+	return true;
   } catch (error) {
 	uni.showToast({
 		title: (error as {msg?: string })?.msg || "加载分区列表失败", 
 		icon: "none",
 	});
+	return false;
   } finally {
 	deptLoading.value = false;
   }
@@ -858,6 +950,7 @@ const loadDeptDeviceList = async (page = 1) => {
 
     if (currentDeptId.value === undefined) {
 		deptDeviceList.value = [];
+		deviceDeptNamesMap.value = {};
 		deptDevicePagination.total = 0;
 		deptDevicePagination.current = page;
 		jumpDevicePage.value = null;
@@ -872,6 +965,7 @@ const loadDeptDeviceList = async (page = 1) => {
 
     deptDeviceList.value = pageData.records || [];
 	// console.log("设备列表",deptDeviceList.value);
+	await loadDeviceListDeptNames(deptDeviceList.value);
     deptDevicePagination.total = pageData.total || 0;
     deptDevicePagination.current = page;
 	jumpDevicePage.value = null;
@@ -886,21 +980,21 @@ const loadDeptDeviceList = async (page = 1) => {
 };
 
 const deptRefresh = async () => {
-  await loadDeptList(1);
-  const currentId = currentDeptId.value;
-  deviceKeyword.value = "";
-  await loadDeptDeviceList(1);
-  if (currentId != undefined) {
-    const current = deptList.value.find(item => item.id === currentId);
+	const loaded = await loadDeptList(deptPagination.current || 1, { keepCurrent: true });
+	if (loaded) {
+		await loadDeptDeviceList(deptDevicePagination.current || 1);
+	}
+};
 
-    if (current) {
-      await handleDeptTableRowClick(current);
-    }
-  }
+const loadInitialDeptData = async () => {
+	const loaded = await loadDeptList(1, { resetCurrent: true });
+	if (loaded) {
+		await loadDeptDeviceList(1);
+	}
 };
 
 onMounted(async () => {
-  await deptRefresh();
+  await loadInitialDeptData();
 });
 
 type DeptColumn = {
@@ -928,6 +1022,14 @@ interface DeptDeviceItem {
   id: number;
   deviceNumber: string;
   deviceId?: number;
+  deptId?: number;
+  deptIds?: number[];
+  deptName?: string;
+  deptNames?: string;
+  regionId?: number;
+  regionIds?: number[];
+  regionName?: string;
+  regionNames?: string;
   deviceAlias?: string;
   productName?: string;
   deviceType?: string;
@@ -963,6 +1065,8 @@ const fillDeptForm = (item: DeptApiItem) => {
   });
   clearDeptIconTempFile();
   regionIconFileName.value = getFileName(item.regionIcon);
+  selectedOrganizationId.value = normalizeOrganizationId(item.organizationId);
+  expandOrganizationAncestors(selectedOrganizationId.value);
   void loadRegionIconDetail(item.regionIcon);
 };
 
@@ -982,6 +1086,7 @@ const deptDevicePagination = reactive({
 const deptLoading = ref(false);
 const deptDeviceLoading = ref(false);
 const deptDeviceList = ref<DeptDeviceItem[]>([]);
+const deviceDeptNamesMap = ref<Record<number, string>>({});
 const deviceKeyword = ref("");
 const jumpDeptPage = ref<number | null>(null);
 const jumpDevicePage = ref<number | null>(null);
@@ -989,6 +1094,7 @@ const jumpDevicePage = ref<number | null>(null);
 const openDeptDialog = () => {
   activeSelect.value = false;
   deptDialogVisible.value = true;
+  void ensureOrganizationTreeLoaded();
 };
 
 const deptColumns: DeptColumn[] = [
@@ -1027,41 +1133,9 @@ function handleTypeChange(event: { detail: { value: number } }) {
 }
 
 const searchDept = async () => {
-  deptLoading.value = true;
-  deptPagination.current = 1;
-  
-  const params: any = {
-	  pageNum: 1,
-	  pageSize: deptPagination.size,
-  };
-  
-  const deptName = filters.deptName.trim();
-  if(deptName){
-	  params.deptName = deptName;
-  }
-  if(filters.regionType != undefined) {
-	  params.regionType = filters.regionType;
-  }
-  
-  try{
-	const res = await getDeptPage(params) as ApiResponseLike;
-	assertSuccessResponse(res);
-	const pageData = res.data as {
-		records: DeptApiItem[];
-		total: number;
-	};
-	console.log("sous", res);
-	deptList.value = pageData.records || [];
-	deptPagination.total = pageData.total || 0;
-	loadDeptDeviceList(1);
-	jumpDeptPage.value = null;
-  }catch (error){
-	uni.showToast({
-		title: (error as {msg?: string })?.msg || "查询分区失败", 
-		icon: "none",
-	});
-  }finally{
-	deptLoading.value = false;
+  const loaded = await loadDeptList(1, { resetCurrent: true });
+  if (loaded) {
+	  await loadDeptDeviceList(1);
   }
 };
 
@@ -1070,18 +1144,13 @@ const resetFilters = async () => {
   filters.regionType = "";
   filters.gisVisible = "";
   deviceKeyword.value = "";
-  searchDept();
+  await searchDept();
 };
 
 const handleDeptTableRowClick = async (item: DeptTableItem) => {
   currentDeptId.value = item.id;
   deptDevicePagination.current = 1;
   deptDeviceList.value = [];
-
-  const dept = getDeptById(item.id);
-  if (dept) {
-    fillDeptForm(dept);
-  }
   await loadDeptDeviceList(1);
 };
 
@@ -1106,6 +1175,7 @@ const handleDeviceSearch = async () => {
 		total: number;
 	};
 	deptDeviceList.value = pageData.records || [];
+	await loadDeviceListDeptNames(deptDeviceList.value);
 	deptDevicePagination.current = 1;
 	deptDevicePagination.total = pageData.total || 0;
 	jumpDevicePage.value = null;
@@ -1145,6 +1215,21 @@ type SelectOption = {
   label: string;
   value: string;
 };
+
+type OrganizationTreeRecord = Record<string, unknown>;
+
+interface OrganizationTreeNode {
+  id: number;
+  name: string;
+  children: OrganizationTreeNode[];
+}
+
+interface OrganizationTreeRow {
+  node: OrganizationTreeNode;
+  level: number;
+  hasChildren: boolean;
+  expanded: boolean;
+}
 
 const deptTypeOptions: SelectOption[] = [
   { label: "不限", value: "" },
@@ -1198,6 +1283,22 @@ const defaultDeptForm: DeptForm =  {
 };
 
 const deptForm = reactive<DeptForm>({ ...defaultDeptForm });
+const organizationDialogVisible = ref(false);
+const organizationTreeLoading = ref(false);
+const organizationTreeLoaded = ref(false);
+const organizationTree = ref<OrganizationTreeNode[]>([]);
+const organizationExpandedIds = ref<Set<number>>(new Set());
+const selectedOrganizationId = ref<number | null>(null);
+const organizationInputLabel = computed(() => {
+  const id = normalizeOrganizationId(deptForm.organizationId);
+  if (id === null) {
+    return "";
+  }
+  return getOrganizationNodeNameById(id) || String(id);
+});
+const organizationTreeRows = computed<OrganizationTreeRow[]>(() =>
+  flattenOrganizationTreeRows(organizationTree.value, organizationExpandedIds.value),
+);
 
 function getEmptyValidationErrors(): Record<ValidationKey, string> {
   return {
@@ -1209,6 +1310,7 @@ function getEmptyValidationErrors(): Record<ValidationKey, string> {
 const resetDeptForm = () => {
 	Object.assign(deptForm, defaultDeptForm);
 	activeSelect.value = false;
+	selectedOrganizationId.value = null;
 	clearErrors();
 	clearDeptIconTempFile();
 	clearRegionIconPreviewState();
@@ -1256,8 +1358,193 @@ const closeDeptDialog = () => {
   }
   deptDialogVisible.value = false;
   activeSelect.value = false;
+  organizationDialogVisible.value = false;
+  selectedOrganizationId.value = null;
   clearErrors();
 };
+
+function isOrganizationTreeRecord(value: unknown): value is OrganizationTreeRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function normalizeOrganizationId(value: unknown): number | null {
+  if (value === "" || value === null || value === undefined) {
+    return null;
+  }
+  const id = Number(value);
+  return Number.isFinite(id) ? id : null;
+}
+
+function getFirstString(record: OrganizationTreeRecord, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return String(value);
+    }
+  }
+  return "";
+}
+
+function getFirstArray(record: OrganizationTreeRecord, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key];
+    if (Array.isArray(value)) {
+      return value;
+    }
+  }
+  return [];
+}
+
+function getTreeSourceItems(data: unknown): unknown[] {
+  if (Array.isArray(data)) {
+    return data;
+  }
+  if (!isOrganizationTreeRecord(data)) {
+    return [];
+  }
+  const nested = getFirstArray(data, ["records", "list", "tree", "rows", "children"]);
+  if (nested.length) {
+    return nested;
+  }
+  return normalizeOrganizationId(data.id) !== null ? [data] : [];
+}
+
+function normalizeOrganizationTreeNodes(items: unknown[]): OrganizationTreeNode[] {
+  return items
+    .filter(isOrganizationTreeRecord)
+    .map((item) => {
+      const id = normalizeOrganizationId(item.id ?? item.deptId ?? item.regionId ?? item.value);
+      if (id === null) {
+        return null;
+      }
+      const name = getFirstString(item, ["deptName", "regionName", "name", "label", "title"]) || String(id);
+      const children = normalizeOrganizationTreeNodes(getFirstArray(item, ["children", "childList", "nodes"]));
+      return { id, name, children };
+    })
+    .filter((item): item is OrganizationTreeNode => item !== null);
+}
+
+function flattenOrganizationTreeRows(
+  nodes: OrganizationTreeNode[],
+  expandedIds: Set<number>,
+  level = 0,
+): OrganizationTreeRow[] {
+  return nodes.flatMap((node) => {
+    const hasChildren = node.children.length > 0;
+    const expanded = expandedIds.has(node.id);
+    const current = [{ node, level, hasChildren, expanded }];
+    return hasChildren && expanded
+      ? [...current, ...flattenOrganizationTreeRows(node.children, expandedIds, level + 1)]
+      : current;
+  });
+}
+
+function findOrganizationNodeById(nodes: OrganizationTreeNode[], id: number): OrganizationTreeNode | null {
+  for (const node of nodes) {
+    if (node.id === id) {
+      return node;
+    }
+    const child = findOrganizationNodeById(node.children, id);
+    if (child) {
+      return child;
+    }
+  }
+  return null;
+}
+
+function getOrganizationNodeNameById(id: number) {
+  return findOrganizationNodeById(organizationTree.value, id)?.name || getDeptById(id)?.deptName || "";
+}
+
+function expandOrganizationAncestors(id: number | null) {
+  if (id === null) {
+    return;
+  }
+  const next = new Set(organizationExpandedIds.value);
+  function visit(nodes: OrganizationTreeNode[], parents: number[]): boolean {
+    for (const node of nodes) {
+      if (node.id === id) {
+        parents.forEach((parentId) => next.add(parentId));
+        return true;
+      }
+      if (visit(node.children, [...parents, node.id])) {
+        return true;
+      }
+    }
+    return false;
+  }
+  visit(organizationTree.value, []);
+  organizationExpandedIds.value = next;
+}
+
+async function loadOrganizationTree() {
+  organizationTreeLoading.value = true;
+  try {
+    const res = await getPartitionTree() as ApiResponseLike;
+    assertSuccessResponse(res);
+    organizationTree.value = normalizeOrganizationTreeNodes(getTreeSourceItems(res.data));
+    organizationTreeLoaded.value = true;
+    expandOrganizationAncestors(selectedOrganizationId.value);
+  } catch (error) {
+    uni.showToast({
+      title: (error as { msg?: string })?.msg || "加载分区树失败",
+      icon: "none",
+    });
+  } finally {
+    organizationTreeLoading.value = false;
+  }
+}
+
+async function ensureOrganizationTreeLoaded() {
+  if (organizationTreeLoaded.value || organizationTreeLoading.value) {
+    return;
+  }
+  await loadOrganizationTree();
+}
+
+const openOrganizationDialog = async () => {
+  activeSelect.value = false;
+  selectedOrganizationId.value = normalizeOrganizationId(deptForm.organizationId);
+  organizationDialogVisible.value = true;
+  await ensureOrganizationTreeLoaded();
+  expandOrganizationAncestors(selectedOrganizationId.value);
+};
+
+const closeOrganizationDialog = () => {
+  organizationDialogVisible.value = false;
+};
+
+function toggleOrganizationNode(id: number) {
+  const next = new Set(organizationExpandedIds.value);
+  if (next.has(id)) {
+    next.delete(id);
+  } else {
+    next.add(id);
+  }
+  organizationExpandedIds.value = next;
+}
+
+function selectOrganizationNode(node: OrganizationTreeNode) {
+  selectedOrganizationId.value = node.id;
+}
+
+function confirmOrganizationSelection() {
+  if (selectedOrganizationId.value === null) {
+    uni.showToast({ title: "请选择所属组织", icon: "none" });
+    return;
+  }
+  deptForm.organizationId = selectedOrganizationId.value;
+  closeOrganizationDialog();
+}
+
+function clearOrganizationSelection() {
+  deptForm.organizationId = undefined;
+  selectedOrganizationId.value = null;
+  closeOrganizationDialog();
+}
 
 const closeDeviceDialog = () => {
 	deviceDialogVisible.value = false;
@@ -3754,15 +4041,16 @@ const handleDeleteDept = async () => {
       success: async (res) => {
         if (!res.confirm) return;
 		try{
-			await deleteDept(currentDeptId.value!);
-			uni.showToast({ title: "删除成功", icon: "success" });
+			const deleteResponse = await deleteDept(currentDeptId.value!) as ApiResponseLike;
+			assertSuccessResponse(deleteResponse);
+			uni.showToast({ title: deleteResponse?.msg || "删除成功", icon: "success" });
 			
 			currentDeptId.value = undefined;
 			deptDeviceList.value = [];
 			resetDeptForm();
 			await loadDeptList(1);
-		}catch{
-			uni.showToast({ title: "删除失败", icon: "none" });
+		}catch (error){
+			uni.showToast({ title: (error as {msg?: string })?.msg || "删除失败", icon: "none" });
 		}
 	  },
   });
@@ -3771,6 +4059,7 @@ const handleDeleteDept = async () => {
 const deviceDetail = ref<DeptDeviceItem | null>(null);
 const deviceDetailDeptNames = ref("-");
 const deviceDetailDeptLoading = ref(false);
+const deptNameCache = new Map<number, string>();
 
 function formatDeviceLocation(detail: DeptDeviceItem | null) {
   const longitude = Number(detail?.installLongitude);
@@ -3788,7 +4077,7 @@ function normalizeDeptIds(data: unknown): number[] {
     ? data
     : Array.isArray((data as { deptIds?: unknown[] })?.deptIds)
       ? (data as { deptIds: unknown[] }).deptIds
-      : [];
+      : [data];
 
   return raw.map(Number).filter(Number.isFinite);
 }
@@ -3797,14 +4086,123 @@ function getDeviceId(item: DeptDeviceItem) {
   return Number((item as DeptDeviceItem & { deviceId?: number }).deviceId ?? item.id);
 }
 
+function getDeviceProvidedDeptNames(item: DeptDeviceItem) {
+  return getFirstString(item as unknown as Record<string, unknown>, [
+    "deptNames",
+    "deptName",
+    "regionNames",
+    "regionName",
+    "partitionNames",
+    "partitionName",
+  ]);
+}
+
+function getDeviceProvidedDeptIds(item: DeptDeviceItem) {
+  const record = item as unknown as Record<string, unknown>;
+  return normalizeDeptIds(
+    record.deptIds ??
+      record.deptId ??
+      record.regionIds ??
+      record.regionId ??
+      record.partitionIds ??
+      record.partitionId,
+  );
+}
+
+function getDeviceDeptNames(item: DeptDeviceItem) {
+  const deviceId = getDeviceId(item);
+  if (Number.isFinite(deviceId) && deviceDeptNamesMap.value[deviceId]) {
+    return deviceDeptNamesMap.value[deviceId];
+  }
+  return getDeviceProvidedDeptNames(item) || "-";
+}
+
 async function getDeviceDetailDeptName(deptId: number) {
+  const cachedName = deptNameCache.get(deptId);
+  if (cachedName) return cachedName;
+
   const cached = getDeptById(deptId);
-  if (cached?.deptName) return cached.deptName;
+  if (cached?.deptName) {
+    deptNameCache.set(deptId, cached.deptName);
+    return cached.deptName;
+  }
 
   const res = await getDeptDetail(deptId) as ApiResponseLike;
   assertSuccessResponse(res);
 
-  return (res.data as DeptApiItem | undefined)?.deptName || String(deptId);
+  const name = (res.data as DeptApiItem | undefined)?.deptName || String(deptId);
+  deptNameCache.set(deptId, name);
+  return name;
+}
+
+async function resolveDeviceDeptNames(item: DeptDeviceItem) {
+  const providedNames = getDeviceProvidedDeptNames(item);
+  if (providedNames) {
+    return providedNames;
+  }
+
+  let deptIds = getDeviceProvidedDeptIds(item);
+  if (!deptIds.length) {
+    const deviceId = getDeviceId(item);
+    if (!Number.isFinite(deviceId)) {
+      return "-";
+    }
+
+    const res = await getDeptDeviceDeptIds(deviceId) as ApiResponseLike;
+    assertSuccessResponse(res);
+    deptIds = normalizeDeptIds(res.data);
+  }
+
+  if (!deptIds.length) {
+    return "-";
+  }
+
+  const names = await Promise.all(deptIds.map(getDeviceDetailDeptName));
+  return names.filter(Boolean).join("、") || "-";
+}
+
+async function loadDeviceListDeptNames(list: DeptDeviceItem[]) {
+  if (!list.length) {
+    deviceDeptNamesMap.value = {};
+    return;
+  }
+
+  const loadingMap = { ...deviceDeptNamesMap.value };
+  list.forEach((item) => {
+    const deviceId = getDeviceId(item);
+    if (Number.isFinite(deviceId)) {
+      loadingMap[deviceId] = getDeviceProvidedDeptNames(item) || "加载中...";
+    }
+  });
+  deviceDeptNamesMap.value = loadingMap;
+
+  let hasError = false;
+  const entries = await Promise.all(
+    list.map(async (item) => {
+      const deviceId = getDeviceId(item);
+      if (!Number.isFinite(deviceId)) {
+        return null;
+      }
+      try {
+        return [deviceId, await resolveDeviceDeptNames(item)] as const;
+      } catch {
+        hasError = true;
+        return [deviceId, getDeviceProvidedDeptNames(item) || "-"] as const;
+      }
+    }),
+  );
+
+  const nextMap = { ...deviceDeptNamesMap.value };
+  entries.forEach((entry) => {
+    if (entry) {
+      nextMap[entry[0]] = entry[1];
+    }
+  });
+  deviceDeptNamesMap.value = nextMap;
+
+  if (hasError) {
+    uni.showToast({ title: "加载设备所属分区失败", icon: "none" });
+  }
 }
 
 async function loadDeviceDetailDeptNames(deviceId: number) {
@@ -5150,6 +5548,108 @@ function getStatusClass(value: number) {
   background: #eef3f7;
   border-color: #d7e2ec;
   opacity: 0.72;
+}
+
+.organization-tree-panel {
+  width: 560px;
+  max-width: calc(100vw - 28px);
+}
+
+.organization-tree-body {
+  min-height: 320px;
+  max-height: min(56vh, 520px);
+  padding: 12px 14px;
+  overflow-y: auto;
+}
+
+.organization-tree-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  color: #7a8da3;
+  font-size: 14px;
+  background: #fbfdff;
+  border: 1px solid #d5e2ee;
+  border-radius: 4px;
+}
+
+.organization-tree-list {
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #d5e2ee;
+  border-radius: 4px;
+}
+
+.organization-tree-row {
+  min-height: 38px;
+  border-bottom: 1px solid #edf3f8;
+  cursor: pointer;
+}
+
+.organization-tree-row:last-child {
+  border-bottom: 0;
+}
+
+.organization-tree-row:hover,
+.organization-tree-row--active {
+  background: #edf7ff;
+}
+
+.organization-tree-row--active .organization-tree-label {
+  color: #0d82ee;
+  font-weight: 700;
+}
+
+.organization-tree-row__inner {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  height: 38px;
+  padding-right: 12px;
+}
+
+.organization-tree-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  margin: 0 6px 0 8px;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 22px;
+  background: #f6fbff;
+  border: 1px solid #d9e7f3;
+  border-radius: 3px;
+}
+
+.organization-tree-toggle::after {
+  border: 0;
+}
+
+.organization-tree-toggle--hover {
+  color: #0d82ee;
+  background: #edf7ff;
+}
+
+.organization-tree-toggle--empty {
+  background: transparent;
+  border-color: transparent;
+}
+
+.organization-tree-label {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  color: #172033;
+  font-size: 14px;
+  line-height: 38px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .color-picker-panel {
