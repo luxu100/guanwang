@@ -278,6 +278,9 @@ const {
   ValveView,
   WorkOrderCreateView,
   WorksheetTableView,
+  BurstIdentificationView,
+  MeasurementAnalysisView,
+  LossReportView,
 } = appShellModules.views;
 
 /**
@@ -443,9 +446,9 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/report/device-ledger/device-ledger": { component: DeviceLedgerView },
   "/pages/report/battery-health/battery-health": { component: BatteryHealthView },
   "/pages/report/operation-analysis/operation-analysis": { component: OperationAnalysisView },
-  "/pages/leak-burst/burst-identification/burst-identification": createPlaceholderContent("/pages/leak-burst/burst-identification/burst-identification"),
-  "/pages/leak-burst/measurement-analysis/measurement-analysis": createPlaceholderContent("/pages/leak-burst/measurement-analysis/measurement-analysis"),
-  "/pages/leak-burst/loss-report/loss-report": createPlaceholderContent("/pages/leak-burst/loss-report/loss-report"),
+  "/pages/leak-burst/burst-identification/burst-identification": { component: BurstIdentificationView },
+  "/pages/leak-burst/measurement-analysis/measurement-analysis": { component: MeasurementAnalysisView },
+  "/pages/leak-burst/loss-report/loss-report": { component: LossReportView },
   "/pages/report/command/command": createPlaceholderContent("/pages/report/command/command"),
   "/pages/system/user/user": { component: SystemManagementView, props: { mode: "user" } },
   "/pages/system/auth/auth": { component: SystemManagementView, props: { mode: "auth" } },
