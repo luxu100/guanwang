@@ -19,6 +19,7 @@
         <button class="primary" @click="search">{{ localeText("查询", "Search") }}</button>
         <button @click="reset">{{ localeText("重置", "Reset") }}</button>
         <button class="primary" @click="generate">{{ localeText("生成报告", "Generate Report") }}</button>
+        <button class="primary" @click="exportReport">{{ localeText("导出", "Export") }}</button>
       </view>
       <text v-if="error" class="error">{{ error }}</text>
     </view>
@@ -285,6 +286,95 @@ function generate() {
     return;
   }
   generated.value = new Date().toLocaleString(locale.value === 'en-US' ? 'en-US' : 'zh-CN', { hour12: false });
+}
+// 报表导出：在页面内生成 CSV 并下载。
+type Cell = string | number;
+type Translate = (zh: string, en: string) => string;
+
+interface ReportExport {
+  title: string;
+  start: string;
+  end: string;
+  report: number;
+  grain: string;
+  cards: { label: string; value: Cell; unit: string; hint: string }[];
+  trend: { date: string; totalAlarms: number; alarms: number; repairs: number; completed: number }[];
+  causes: { name: string; value: number }[];
+}
+
+function buildOperationReportCsv(report: ReportExport, t: Translate): string {
+  const rows: Cell[][] = [
+    [t('分析报告', 'Analysis Report'), report.title],
+    [t('开始时间', 'Start Time'), report.start.replace('T', ' ')],
+    [t('结束时间', 'End Time'), report.end.replace('T', ' ')],
+    [],
+    [t('指标', 'Metric'), t('数值', 'Value'), t('单位', 'Unit'), t('说明', 'Description')],
+    ...report.cards.map(card => [card.label, card.value, card.unit, card.hint]),
+    [],
+  ];
+  if (report.report === 2) {
+    const total = report.causes.reduce((sum, item) => sum + item.value, 0);
+    rows.push([t('原因', 'Cause'), t('事件数', 'Events'), t('占比（%）', 'Share (%)')]);
+    rows.push(...report.causes.map(item => [item.name, item.value, total ? (item.value / total * 100).toFixed(2) : '—']));
+  } else {
+    rows.push([t('统计粒度', 'Time Granularity'), report.grain]);
+    if (report.report === 0) {
+      rows.push([t('时间', 'Time'), t('总报警数', 'Total Alarms'), t('水锤报警数', 'Water Hammer Alarms'), t('水锤报警率（%）', 'Water Hammer Alarm Rate (%)')]);
+      rows.push(...report.trend.map(item => [item.date, item.totalAlarms, item.alarms, item.totalAlarms ? (item.alarms / item.totalAlarms * 100).toFixed(2) : '—']));
+    } else {
+      rows.push([t('时间', 'Time'), t('维修工单总数', 'Repair Worksheets'), t('已完成工单', 'Completed Worksheets'), t('未完成工单', 'Unfinished Worksheets'), t('维修完成率（%）', 'Repair Completion Rate (%)')]);
+      rows.push(...report.trend.map(item => [item.date, item.repairs, item.completed, item.repairs - item.completed, item.repairs ? (item.completed / item.repairs * 100).toFixed(2) : '—']));
+    }
+  }
+  return '\uFEFF' + rows.map(row => row.map(value => {
+    let text = String(value);
+    // 防止文本单元格被表格软件识别为公式。
+    if (typeof value === 'string' && /^[\s]*[=+@-]/.test(text)) text = "'" + text;
+    return `"${text.replace(/"/g, '""')}"`;
+  }).join(',')).join('\r\n');
+}
+
+function downloadOperationReport(report: ReportExport, t: Translate): void {
+  // #ifdef H5
+  const blob = new Blob([buildOperationReportCsv(report, t)], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${report.title.replace(/[\\/:*?"<>|]/g, '-')}_${report.start.slice(0, 10)}_${report.end.slice(0, 10)}.csv`;
+  try {
+    document.body.appendChild(link);
+    link.click();
+  } finally {
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  // #endif
+  // #ifndef H5
+  throw new Error(t('请在网页端导出报告', 'Please export reports in the web version'));
+  // #endif
+}
+
+function exportReport() {
+  if (!search()) return;
+  const t = localeText;
+  if (!rows.value.length) {
+    error.value = t('当前筛选范围内没有数据，无法导出报告。', 'No data in the current filter range. Cannot export report.');
+    return;
+  }
+  try {
+    downloadOperationReport({
+      title: getReportLabel(query.report),
+      start: query.start,
+      end: query.end,
+      report: query.report,
+      grain: grainOptions.value.find(item => item.value === grain.value)?.label || grain.value,
+      cards: cards.value,
+      trend: trendData.value,
+      causes: causeData.value,
+    }, t);
+  } catch (reason) {
+    error.value = reason instanceof Error ? reason.message : t('导出失败，请重试。', 'Export failed. Please try again.');
+  }
 }
 </script>
 

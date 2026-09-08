@@ -216,8 +216,8 @@ import UserLogoBindingField from "@/pages/system/components/UserLogoBindingField
 import { getSysFileDetail } from "@/services/system/file";
 import { getUnreadAlarmCount } from "@/services/alarm/processing";
 
-import appShellModules from "@/components/app-shell/appShellModules.local";
-// import appShellModules from "@/components/app-shell/appShellModules.localized";
+// import appShellModules from "@/components/app-shell/appShellModules.local";
+import appShellModules from "@/components/app-shell/appShellModules.localized";
 
 import { MENU_COLLAPSED_KEY, OPENED_TABS_KEY } from "@/utils/appShellStorage";
 import { clearAuthStorage, createProtectedRouteDecision, LOGIN_PATH } from "@/utils/authGuard";
