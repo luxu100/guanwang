@@ -8,20 +8,10 @@
         </view>
 
         <view class="filter-group">
-          <text class="filter-label">{{ localeText("规则类型", "Rule Type") }}</text>
-          <picker :range="ruleTypeOptions" range-key="label" :value="filters.ruleTypeIndex" @change="handleFilterTypeChange">
+          <text class="filter-label">{{ localeText("报警类型", "Alarm Type") }}</text>
+          <picker :range="alarmTypeFilterOptions" range-key="label" :value="filters.ruleTypeIndex" @change="handleFilterTypeChange">
             <view class="filter-select">
-              <text>{{ ruleTypeOptions[filters.ruleTypeIndex].label }}</text>
-              <text class="filter-select__arrow"></text>
-            </view>
-          </picker>
-        </view>
-
-        <view class="filter-group">
-          <text class="filter-label">{{ localeText("报警级别", "Alarm Level") }}</text>
-          <picker :range="alarmLevelOptions" range-key="label" :value="filters.alarmLevelIndex" @change="handleFilterLevelChange">
-            <view class="filter-select">
-              <text>{{ alarmLevelOptions[filters.alarmLevelIndex].label }}</text>
+              <text>{{ alarmTypeFilterOptions[filters.ruleTypeIndex].label }}</text>
               <text class="filter-select__arrow"></text>
             </view>
           </picker>
@@ -32,16 +22,6 @@
           <picker :range="enabledOptions" range-key="label" :value="filters.enabledIndex" @change="handleFilterEnabledChange">
             <view class="filter-select">
               <text>{{ enabledOptions[filters.enabledIndex].label }}</text>
-              <text class="filter-select__arrow"></text>
-            </view>
-          </picker>
-        </view>
-
-        <view class="filter-group">
-          <text class="filter-label">{{ localeText("生效范围", "Scope") }}</text>
-          <picker :range="scopeOptions" range-key="label" :value="filters.scopeIndex" @change="handleFilterScopeChange">
-            <view class="filter-select">
-              <text>{{ scopeOptions[filters.scopeIndex].label }}</text>
               <text class="filter-select__arrow"></text>
             </view>
           </picker>
@@ -63,35 +43,34 @@
 
       <scroll-view class="table-scroll" scroll-x scroll-y>
         <view class="table">
-          <view class="table-row table-row--header rule-table-row">
+          <view class="table-row table-row--header rule-table-row" :style="{ gridTemplateColumns: strategyGridColumns }">
             <view v-for="column in ruleColumns" :key="column.key" class="table-cell table-header-cell">
-              <text>{{ column.label }}</text>
+              <text>{{ localeText(column.label, column.labelEn) }}</text>
             </view>
           </view>
 
           <view v-if="loading" class="table-state">{{ localeText("加载中...", "Loading...") }}</view>
           <view v-else-if="ruleList.length === 0" class="table-state">{{ localeText("暂无规则数据", "No rules") }}</view>
 
-          <view v-for="(item, index) in ruleList" v-else :key="item.id" class="table-row rule-table-row">
-            <text class="table-cell col-index">{{ (pagination.current - 1) * pagination.size + index + 1 }}</text>
-            <text class="table-cell col-rule-name" :title="item.ruleName">{{ item.ruleName || "-" }}</text>
-            <text class="table-cell" :title="getRuleTypeText(item.ruleType)">{{ getRuleTypeText(item.ruleType) }}</text>
-            <view class="table-cell">
-              <text class="level-pill" :class="getLevelClass(item.alarmLevel)">{{ getLevelText(item.alarmLevel) }}</text>
-            </view>
-            <text class="table-cell">{{ getThresholdTypeText(item.thresholdType) }}</text>
-            <text class="table-cell" :title="getThresholdRangeText(item)">{{ getThresholdRangeText(item) }}</text>
-            <text class="table-cell" :title="getSilenceText(item.silenceSeconds)">{{ getSilenceText(item.silenceSeconds) }}</text>
-            <text class="table-cell" :title="getScopeText(item)">{{ getScopeText(item) }}</text>
-            <view class="table-cell">
-              <text class="status-pill" :class="item.enabled ? 'status-pill--open' : 'status-pill--muted'">
-                {{ item.enabled ? localeText("启用", "Enabled") : localeText("停用", "Disabled") }}
-              </text>
-            </view>
-            <view class="table-cell col-action">
-              <button class="table-action-btn" @click.stop="openEditDialog(item)">{{ localeText("编辑", "Edit") }}</button>
-              <button class="table-action-btn table-action-btn--danger" @click.stop="handleDelete(item)">{{ localeText("删除", "Delete") }}</button>
-            </view>
+          <view
+            v-for="(item, index) in ruleList"
+            v-else
+            :key="item.id"
+            class="table-row rule-table-row"
+            :style="{ gridTemplateColumns: strategyGridColumns }"
+          >
+            <template v-for="column in ruleColumns" :key="column.key">
+              <text v-if="column.renderType === 'index'" class="table-cell" :class="column.className">{{ (pagination.current - 1) * pagination.size + index + 1 }}</text>
+              <view v-else-if="column.renderType === 'level-pill'" class="table-cell" :class="column.className">
+                <text class="level-pill" :class="getLevelClass(getCellValue(item, column.key) as number | null)">{{ getLevelText(getCellValue(item, column.key) as number | null) }}</text>
+              </view>
+              <view v-else-if="column.renderType === 'action'" class="table-cell col-action">
+                <button class="table-action-btn" @click.stop="openEditDialog(item)">{{ localeText("编辑", "Edit") }}</button>
+                <button class="table-action-btn" @click.stop="handleToggleEnabled(item)">{{ item.enabled ? localeText("停用", "Disable") : localeText("启用", "Enable") }}</button>
+                <button class="table-action-btn table-action-btn--danger" @click.stop="handleDelete(item)">{{ localeText("删除", "Delete") }}</button>
+              </view>
+              <text v-else class="table-cell" :class="column.className" :title="cellText(item, column)">{{ cellText(item, column) }}</text>
+            </template>
           </view>
         </view>
       </scroll-view>
@@ -136,14 +115,14 @@
             </view>
 
             <view class="form-field">
-              <text class="form-label form-label--required">{{ localeText("规则类型", "Rule Type") }}</text>
+              <text class="form-label form-label--required">{{ localeText("报警类型", "Alarm Type") }}</text>
               <view class="select-field">
                 <view class="form-select form-select--dropdown" @click.stop="toggleSelect('ruleType')">
                   <text :class="{ 'select-placeholder': form.ruleType === null }">{{ getRuleTypeText(form.ruleType, true) }}</text>
                   <text class="select-arrow"></text>
                 </view>
                 <view v-if="activeSelect === 'ruleType'" class="select-menu">
-                  <view v-for="option in ruleTypeOptions.slice(1)" :key="option.label" class="select-option" :class="{ 'select-option--active': form.ruleType === option.value }" @click.stop="selectRuleType(option.value)">
+                  <view v-for="option in ALARM_TYPES" :key="option.label" class="select-option" :class="{ 'select-option--active': form.ruleType === option.value }" @click.stop="selectRuleType(option.value)">
                     {{ option.label }}
                   </view>
                 </view>
@@ -168,7 +147,7 @@
             </view>
 
             <view class="form-field">
-              <text class="form-label">{{ localeText("阈值模式", "Threshold Mode") }}</text>
+              <text class="form-label form-label--required">{{ localeText("阈值模式", "Threshold Mode") }}</text>
               <view class="select-field">
                 <view class="form-select form-select--dropdown" @click.stop="toggleSelect('thresholdType')">
                   <text>{{ getThresholdTypeText(form.thresholdType) }}</text>
@@ -197,26 +176,26 @@
 
             <template v-else>
               <view class="form-field">
-                <text class="form-label form-label--required">{{ localeText("统计窗口长度", "Window Length") }}</text>
+                <text class="form-label form-label--required">{{ localeText("统计窗口长度（分钟）", "Window Length (min)") }}</text>
                 <input v-model="form.windowMinutes" class="form-input" :class="{ 'form-control--error': validationErrors.windowMinutes }" type="number" :placeholder="localeText('请输入统计窗口长度', 'Enter window length')" placeholder-class="input-placeholder" @input="clearError('windowMinutes')" />
                 <text v-if="validationErrors.windowMinutes" class="form-error">{{ validationErrors.windowMinutes }}</text>
               </view>
               <view class="form-field">
-                <text class="form-label form-label--required">{{ localeText("倍数 N", "Sigma Times N") }}</text>
+                <text class="form-label form-label--required">{{ localeText("倍数 N（均值±Nσ）", "Sigma Times N") }}</text>
                 <input v-model="form.sigmaTimes" class="form-input" :class="{ 'form-control--error': validationErrors.sigmaTimes }" type="digit" :placeholder="localeText('请输入倍数 N', 'Enter sigma times N')" placeholder-class="input-placeholder" @input="clearError('sigmaTimes')" />
                 <text v-if="validationErrors.sigmaTimes" class="form-error">{{ validationErrors.sigmaTimes }}</text>
               </view>
             </template>
 
             <view class="form-field">
-              <text class="form-label">{{ localeText("持续时长", "Duration") }}（{{ localeText("秒", "s") }}）</text>
-              <input v-model="form.durationSeconds" class="form-input" :class="{ 'form-control--error': validationErrors.durationSeconds }" type="number" :placeholder="localeText('请输入持续时长', 'Enter duration')" placeholder-class="input-placeholder" @input="clearError('durationSeconds')" />
+              <text class="form-label">{{ localeText("持续时长（秒）", "Duration (s)") }}</text>
+              <input v-model="form.durationSeconds" class="form-input" :class="{ 'form-control--error': validationErrors.durationSeconds }" type="number" :placeholder="localeText('超限持续该时长才报警', 'Alarm after duration')" placeholder-class="input-placeholder" @input="clearError('durationSeconds')" />
               <text v-if="validationErrors.durationSeconds" class="form-error">{{ validationErrors.durationSeconds }}</text>
             </view>
 
             <view class="form-field">
-              <text class="form-label">{{ localeText("静默期", "Silence Period") }}（{{ localeText("秒", "s") }}）</text>
-              <input v-model="form.silenceSeconds" class="form-input" :class="{ 'form-control--error': validationErrors.silenceSeconds }" type="number" :placeholder="localeText('请输入静默期', 'Enter silence period')" placeholder-class="input-placeholder" @input="clearError('silenceSeconds')" />
+              <text class="form-label">{{ localeText("静默期（秒）", "Silence Period (s)") }}</text>
+              <input v-model="form.silenceSeconds" class="form-input" :class="{ 'form-control--error': validationErrors.silenceSeconds }" type="number" :placeholder="localeText('静默期内重复触发不重复报警', 'No repeat alarm within silence period')" placeholder-class="input-placeholder" @input="clearError('silenceSeconds')" />
               <text v-if="validationErrors.silenceSeconds" class="form-error">{{ validationErrors.silenceSeconds }}</text>
             </view>
 
@@ -233,7 +212,7 @@
                   <text class="select-arrow"></text>
                 </view>
                 <view v-if="activeSelect === 'scopeType'" class="select-menu">
-                  <view v-for="option in scopeOptions.slice(1)" :key="option.label" class="select-option" :class="{ 'select-option--active': form.scopeType === option.value }" @click.stop="selectScopeType(option.value)">
+                  <view v-for="option in scopeOptions" :key="option.label" class="select-option" :class="{ 'select-option--active': form.scopeType === option.value }" @click.stop="selectScopeType(option.value)">
                     {{ option.label }}
                   </view>
                 </view>
@@ -290,25 +269,25 @@
         </view>
       </view>
     </view>
-
-    <XTreeMultiSelectDialog
-      v-model:visible="deviceDialogVisible"
-      v-model="deviceDialogValue"
-      :tree-data="deviceTree"
-      :bound-ids="form.deviceIds"
-      :remove-ids="[]"
-      :title="localeText('选择设备', 'Select Devices')"
-      :subtitle="localeText('按部门选择生效设备', 'Select devices by department')"
-      @confirm="handleDeviceConfirm"
-    />
   </view>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
+import { useI18n } from "@/i18n";
 import { useLocaleText, useLocalizedPageInfo, useLocalizedTotal } from "@/i18n/localeText";
-import { getRulePage, createRule, updateRule, deleteRule } from "@/services/alarm/strategy";
-import type { AlarmRule } from "@/services/alarm/strategy";
+import {
+  getRulePage,
+  createRule,
+  updateRule,
+  deleteRule,
+} from "@/services/alarm/strategy";
+import type { AlarmRule, AlarmRulePageQuery, AlarmRulePayload, PageInfo } from "@/services/alarm/strategy";
+import {
+  strategyColumns,
+  strategyGridColumns,
+  type AlarmTableColumn,
+} from "@/pages/alarm/components/alarmColumns";
 import { getDeptList } from "@/services/partition/partition";
 import { getDeviceList } from "@/services/device/info";
 import { confirmDangerAction } from "@/utils/confirmAction";
@@ -336,35 +315,40 @@ interface DeviceItem {
   deptId?: number | null;
 }
 
-/** 下拉选项（value 为 null 表示不限）。 */
-const ruleTypeOptions = [
-  { label: localeText("不限", "All"), value: null },
+/** 报警类型（协议四类）。computed：随语言切换实时刷新选项文案。 */
+const ALARM_TYPES = computed(() => [
   { label: localeText("压力异常", "Pressure Anomaly"), value: 1 },
   { label: localeText("渗漏", "Leakage"), value: 2 },
   { label: localeText("爆管", "Pipe Burst"), value: 3 },
-  { label: localeText("离线", "Offline"), value: 4 },
-];
-const alarmLevelOptions = [
+  { label: localeText("设备离线", "Offline"), value: 4 },
+]);
+
+/** 筛选专用：首项"不限"= 不过滤（表单必填选择直接用 ALARM_TYPES） */
+const alarmTypeFilterOptions = computed(() => [
+  { label: localeText("不限", "All"), value: null as number | null },
+  ...ALARM_TYPES.value,
+]);
+
+const alarmLevelOptions = computed(() => [
   { label: localeText("不限", "All"), value: null },
   { label: localeText("提示", "Info"), value: 1 },
   { label: localeText("警告", "Warning"), value: 2 },
   { label: localeText("严重", "Critical"), value: 3 },
-];
-const enabledOptions = [
+]);
+const enabledOptions = computed(() => [
   { label: localeText("不限", "All"), value: null },
   { label: localeText("启用", "Enabled"), value: 1 },
   { label: localeText("停用", "Disabled"), value: 0 },
-];
-const scopeOptions = [
-  { label: localeText("不限", "All"), value: null },
+]);
+const thresholdTypeOptions = computed(() => [
+  { label: localeText("静态", "Static"), value: 0 },
+  { label: localeText("动态", "Dynamic"), value: 1 },
+]);
+const scopeOptions = computed(() => [
   { label: localeText("全局", "Global"), value: 0 },
   { label: localeText("部门", "Department"), value: 1 },
   { label: localeText("指定设备", "Specific Devices"), value: 2 },
-];
-const thresholdTypeOptions = [
-  { label: localeText("静态", "Static"), value: 0 },
-  { label: localeText("动态", "Dynamic"), value: 1 },
-];
+]);
 
 const filters = reactive({
   ruleName: "",
@@ -380,40 +364,50 @@ const ruleList = ref<AlarmRule[]>([]);
 const pagination = reactive({ current: 1, size: 10, total: 0 });
 const jumpPage = ref<number | null>(null);
 
-const ruleColumns = [
-  { key: "index", label: localeText("序号", "No.") },
-  { key: "ruleName", label: localeText("规则名称", "Rule Name") },
-  { key: "ruleType", label: localeText("规则类型", "Rule Type") },
-  { key: "alarmLevel", label: localeText("报警级别", "Level") },
-  { key: "thresholdType", label: localeText("阈值模式", "Mode") },
-  { key: "thresholdRange", label: localeText("阈值范围", "Range") },
-  { key: "silenceSeconds", label: localeText("静默期", "Silence") },
-  { key: "scopeType", label: localeText("生效范围", "Scope") },
-  { key: "enabled", label: localeText("状态", "Status") },
-  { key: "action", label: localeText("操作", "Actions") },
-];
+const ruleColumns = strategyColumns;
+
+/* 枚举/计算列文本格式化器：与 alarmColumns.ts 的 formatKey 对应 */
+const textFormatters: Record<string, (item: AlarmRule) => string> = {
+  ruleKind: (item) => getRuleTypeText(item.ruleType as number | null),
+  alarmType: (item) => getRuleTypeText(item.ruleType as number | null),
+  alarmLevel: () => "",
+  thresholdDesc: (item) => getThresholdDescText(item),
+  scope: (item) => getScopeText(item),
+  enabledText: (item) => (item.enabled ? localeText("启用", "Enabled") : localeText("停用", "Disabled")),
+};
+
+function getCellValue(item: AlarmRule, key: string): unknown {
+  return (item as Record<string, unknown>)[key];
+}
+
+function cellText(item: AlarmRule, column: AlarmTableColumn): string {
+  const formatter = column.formatKey ? textFormatters[column.formatKey] : undefined;
+  if (formatter) return formatter(item);
+  const raw = getCellValue(item, column.key);
+  return raw == null || raw === "" ? "-" : String(raw);
+}
 
 const totalPages = computed(() => Math.max(1, Math.ceil(pagination.total / pagination.size)));
 
 /* ========================= 文案映射 ========================= */
 
 function getRuleTypeText(value?: number | null, placeholder = false) {
-  if (value == null) return placeholder ? localeText("请选择规则类型", "Select rule type") : "-";
-  const map: Record<number, string> = { 1: "压力异常", 2: "渗漏", 3: "爆管", 4: "离线" };
+  const zhMap: Record<number, string> = { 1: "压力异常", 2: "渗漏", 3: "爆管", 4: "设备离线" };
   const enMap: Record<number, string> = { 1: "Pressure Anomaly", 2: "Leakage", 3: "Pipe Burst", 4: "Offline" };
-  return localeText(map[value] || "-", enMap[value] || "-");
+  if (value == null) return placeholder ? localeText("请选择报警类型", "Select alarm type") : "-";
+  return localeText(zhMap[value] || "-", enMap[value] || "-");
 }
 
 function getLevelText(value?: number | null, placeholder = false) {
-  if (value == null) return placeholder ? localeText("请选择报警级别", "Select alarm level") : "-";
-  const map: Record<number, string> = { 1: "提示", 2: "警告", 3: "严重" };
+  const zhMap: Record<number, string> = { 1: "提示", 2: "警告", 3: "严重" };
   const enMap: Record<number, string> = { 1: "Info", 2: "Warning", 3: "Critical" };
-  return localeText(map[value] || "-", enMap[value] || "-");
+  if (value == null) return placeholder ? localeText("请选择报警级别", "Select alarm level") : "-";
+  return localeText(zhMap[value] || "-", enMap[value] || "-");
 }
 
-function getLevelClass(value?: number | null) {
-  if (value === 1) return "level-pill--info";
-  if (value === 2) return "level-pill--warning";
+function getLevelClass(value?: string | number | null) {
+  if (value === 1 || value === "INFO") return "level-pill--info";
+  if (value === 2 || value === "WARNING") return "level-pill--warning";
   return "level-pill--critical";
 }
 
@@ -421,50 +415,37 @@ function getThresholdTypeText(value?: number | null) {
   return value === 1 ? localeText("动态", "Dynamic") : localeText("静态", "Static");
 }
 
-function getThresholdRangeText(item: AlarmRule) {
-  if (item.thresholdType === 1) {
-    const extra = parseThresholdExtra(item.thresholdExtra);
-    const windowText = extra?.windowMinutes ?? "-";
-    const sigmaText = extra?.sigmaTimes ?? "-";
-    return `${localeText("窗口", "Window")} ${windowText}${localeText("分钟", "min")} ±${sigmaText}σ`;
-  }
-  const upper = item.thresholdUpper ?? "-";
-  const lower = item.thresholdLower ?? "-";
-  return `${lower} ~ ${upper}`;
-}
-
-function parseThresholdExtra(extra: AlarmRule["thresholdExtra"]) {
-  if (!extra) return null;
-  if (typeof extra === "string") {
-    try {
-      return JSON.parse(extra) as { windowMinutes?: number; sigmaTimes?: number };
-    } catch {
-      return null;
-    }
-  }
-  return extra;
-}
-
-function getSilenceText(seconds?: number | null) {
-  if (seconds == null) return "-";
-  if (seconds >= 3600 && seconds % 3600 === 0) return `${seconds / 3600}${localeText("小时", "h")}`;
-  if (seconds >= 60 && seconds % 60 === 0) return `${seconds / 60}${localeText("分钟", "min")}`;
-  return `${seconds}${localeText("秒", "s")}`;
-}
-
 function getScopeTypeText(value?: number | null) {
-  const map: Record<number, string> = { 0: "全局", 1: "部门", 2: "指定设备" };
+  const zhMap: Record<number, string> = { 0: "全局", 1: "部门", 2: "指定设备" };
   const enMap: Record<number, string> = { 0: "Global", 1: "Department", 2: "Specific Devices" };
   const key = value ?? 0;
-  return localeText(map[key] || "全局", enMap[key] || "Global");
+  return localeText(zhMap[key] || "全局", enMap[key] || "Global");
+}
+
+/** 判定条件列：静态=上下限 / 动态=窗口+Nσ / 离线=分钟 */
+function getThresholdDescText(item: AlarmRule) {
+  if (Number(item.ruleType) === 4) {
+    return item.offlineMinutes != null
+      ? localeText(`离线超过 ${item.offlineMinutes} 分钟`, `Offline > ${item.offlineMinutes} min`)
+      : "-";
+  }
+  if (Number(item.thresholdType) === 1) {
+    const w = item.windowMinutes ?? "-";
+    const s = item.sigmaTimes ?? "-";
+    return localeText(`窗口 ${w}分钟 ±${s}σ`, `Window ${w}min ±${s}σ`);
+  }
+  const upper = item.thresholdUpper;
+  const lower = item.thresholdLower;
+  if (upper == null && lower == null) return "-";
+  return `${lower ?? "-∞"} ~ ${upper ?? "+∞"}`;
 }
 
 function getScopeText(item: AlarmRule) {
-  if (item.scopeType === 2) {
+  if (Number(item.scopeType) === 2) {
     const ids = Array.isArray(item.deviceIds) ? item.deviceIds : [];
     return ids.length ? `${localeText("设备", "Devices")} ×${ids.length}` : localeText("指定设备", "Specific Devices");
   }
-  if (item.scopeType === 1) {
+  if (Number(item.scopeType) === 1) {
     const deptName = deptList.value.find((dept) => dept.id === item.deptId)?.deptName;
     return deptName || localeText("部门", "Department");
   }
@@ -473,44 +454,48 @@ function getScopeText(item: AlarmRule) {
 
 /* ========================= 数据加载 ========================= */
 
-function buildPageParams(page: number) {
-  const params: Record<string, unknown> = {
+function buildPageParams(page: number): AlarmRulePageQuery {
+  const params: AlarmRulePageQuery = {
     pageNum: page,
     pageSize: pagination.size,
   };
   if (filters.ruleName.trim()) params.ruleName = filters.ruleName.trim();
-  const ruleType = ruleTypeOptions[filters.ruleTypeIndex].value;
+  const ruleType = alarmTypeFilterOptions.value[filters.ruleTypeIndex].value;
   if (ruleType !== null) params.ruleType = ruleType;
-  const alarmLevel = alarmLevelOptions[filters.alarmLevelIndex].value;
+  const alarmLevel = filters.alarmLevelIndex > 0 ? filters.alarmLevelIndex : null;
   if (alarmLevel !== null) params.alarmLevel = alarmLevel;
-  const enabled = enabledOptions[filters.enabledIndex].value;
-  if (enabled !== null) params.enabled = enabled === 1;
-  const scopeType = scopeOptions[filters.scopeIndex].value;
-  if (scopeType !== null) params.scopeType = scopeType;
+  const enabled = filters.enabledIndex > 0 ? filters.enabledIndex === 1 : null;
+  if (enabled !== null) params.enabled = enabled;
   return params;
 }
 
+let fetchRequestId = 0;
+
 async function loadRules(page = 1) {
+  const requestId = ++fetchRequestId;
   loading.value = true;
   const params = buildPageParams(page);
   try {
-    const res = (await getRulePage(params as never)) as ApiLikeResponse<{ records?: AlarmRule[]; total?: number }>;
+    const res = await getRulePage(params);
+    if (requestId !== fetchRequestId) return;
     if (res.code !== undefined && res.code !== 200) {
       throw new Error(res.msg || "load failed");
     }
-    const pageData = res.data || {};
+    const pageData: PageInfo<AlarmRule> = res.data || {};
     ruleList.value = pageData.records || [];
     pagination.total = pageData.total || 0;
     pagination.current = page;
   } catch {
-
-      ruleList.value = [];
-      pagination.total = 0;
-      pagination.current = page;
-      uni.showToast({ title: localeText("加载规则列表失败", "Failed to load rules"), icon: "none" });
+    if (requestId !== fetchRequestId) return;
+    ruleList.value = [];
+    pagination.total = 0;
+    pagination.current = page;
+    uni.showToast({ title: localeText("加载规则列表失败", "Failed to load rules"), icon: "none" });
   } finally {
-    loading.value = false;
-    jumpPage.value = null;
+    if (requestId === fetchRequestId) {
+      loading.value = false;
+      jumpPage.value = null;
+    }
   }
 }
 
@@ -630,6 +615,50 @@ function selectDept(value: number) {
   activeSelect.value = null;
 }
 
+async function loadDeptOptions() {
+  try {
+    const res = (await getDeptList()) as ApiLikeResponse<DeptItem[]>;
+    deptList.value = res.data || [];
+  } catch {
+    deptList.value = [];
+  }
+}
+
+async function loadDeviceTreeBase() {
+  try {
+    const [deptRes, deviceRes] = (await Promise.all([
+      getDeptList() as Promise<ApiLikeResponse<DeptItem[]>>,
+      getDeviceList({ pageSize: 999 }) as Promise<ApiLikeResponse<DeviceItem[]>>,
+    ])) as [ApiLikeResponse<DeptItem[]>, ApiLikeResponse<DeviceItem[]>];
+
+    const depts = deptRes.data || [];
+    const devices = deviceRes.data || [];
+
+    const map = new Map<number, DeviceItem>();
+    devices.forEach((device) => map.set(device.id, device));
+    deviceMap.value = map;
+
+    const childrenByDept = new Map<number, DeviceItem[]>();
+    devices.forEach((device) => {
+      if (device.deptId == null) return;
+      const list = childrenByDept.get(device.deptId) || [];
+      list.push(device);
+      childrenByDept.set(device.deptId, list);
+    });
+
+    deviceTree.value = depts.map((dept) => ({
+      id: dept.id,
+      name: dept.deptName,
+      children: (childrenByDept.get(dept.id) || []).map((device) => ({
+        id: device.id,
+        name: device.deviceNumber,
+      })),
+    }));
+  } catch {
+    deviceTree.value = [];
+  }
+}
+
 function openCreateDialog() {
   isCreating.value = true;
   formError.value = "";
@@ -664,21 +693,20 @@ function openEditDialog(item: AlarmRule) {
   Object.keys(validationErrors).forEach((key) => {
     validationErrors[key] = "";
   });
-  const extra = parseThresholdExtra(item.thresholdExtra);
   Object.assign(form, {
     id: item.id ?? null,
     ruleName: item.ruleName || "",
-    ruleType: item.ruleType ?? null,
-    alarmLevel: item.alarmLevel ?? null,
-    thresholdType: item.thresholdType ?? 0,
+    ruleType: (Number(item.ruleType) || null) as number | null,
+    alarmLevel: (Number(item.alarmLevel) || null) as number | null,
+    thresholdType: Number(item.thresholdType) || 0,
     thresholdUpper: item.thresholdUpper ?? "",
     thresholdLower: item.thresholdLower ?? "",
-    windowMinutes: extra?.windowMinutes ?? "",
-    sigmaTimes: extra?.sigmaTimes ?? "",
+    windowMinutes: item.windowMinutes ?? "",
+    sigmaTimes: item.sigmaTimes ?? "",
     durationSeconds: item.durationSeconds ?? "",
     silenceSeconds: item.silenceSeconds ?? "",
     effectivePeriod: item.effectivePeriod || "",
-    scopeType: item.scopeType ?? 0,
+    scopeType: Number(item.scopeType) || 0,
     deptId: item.deptId ?? null,
     deviceIds: Array.isArray(item.deviceIds) ? [...item.deviceIds] : [],
     enabled: item.enabled !== false,
@@ -702,7 +730,7 @@ function validateForm() {
     validationErrors.ruleName = localeText("规则名称必填", "Rule name is required");
   }
   if (form.ruleType === null) {
-    validationErrors.ruleType = localeText("请选择规则类型（必填）", "Rule type is required");
+    validationErrors.ruleType = localeText("请选择报警类型（必填）", "Alarm type is required");
   }
   if (form.alarmLevel === null) {
     validationErrors.alarmLevel = localeText("请选择报警级别", "Select alarm level");
@@ -737,17 +765,17 @@ function validateForm() {
     validationErrors.deptId = localeText("请选择部门", "Select department");
   }
   if (form.scopeType === 2 && form.deviceIds.length === 0) {
-    validationErrors.deviceIds = localeText("生效范围为指定设备时必须选择设备", "Devices are required when scope is specific devices");
+    validationErrors.deviceIds = localeText("生效范围为指定设备时必须选择设备", "Devices are required for specific devices scope");
   }
 
   return !Object.values(validationErrors).some(Boolean) && !formError.value;
 }
 
-function buildSavePayload() {
-  const payload: Record<string, unknown> = {
+function buildSavePayload(): AlarmRulePayload {
+  const payload: AlarmRulePayload = {
     ruleName: form.ruleName.trim(),
-    ruleType: form.ruleType,
-    alarmLevel: form.alarmLevel,
+    ruleType: form.ruleType ?? undefined,
+    alarmLevel: form.alarmLevel ?? undefined,
     thresholdType: form.thresholdType,
     durationSeconds: form.durationSeconds === "" ? 0 : Number(form.durationSeconds),
     silenceSeconds: form.silenceSeconds === "" ? 0 : Number(form.silenceSeconds),
@@ -760,14 +788,13 @@ function buildSavePayload() {
   if (form.thresholdType === 0) {
     payload.thresholdUpper = form.thresholdUpper === "" ? null : Number(form.thresholdUpper);
     payload.thresholdLower = form.thresholdLower === "" ? null : Number(form.thresholdLower);
-    payload.thresholdExtra = null;
+    payload.windowMinutes = null;
+    payload.sigmaTimes = null;
   } else {
     payload.thresholdUpper = null;
     payload.thresholdLower = null;
-    payload.thresholdExtra = {
-      windowMinutes: Number(form.windowMinutes) || null,
-      sigmaTimes: form.sigmaTimes === "" ? null : Number(form.sigmaTimes),
-    };
+    payload.windowMinutes = Number(form.windowMinutes) || null;
+    payload.sigmaTimes = form.sigmaTimes === "" ? null : Number(form.sigmaTimes);
   }
 
   if (form.scopeType === 1) {
@@ -791,8 +818,8 @@ async function handleSave() {
   try {
     const payload = buildSavePayload();
     const res = isCreating.value
-      ? ((await createRule(payload as never)) as ApiLikeResponse)
-      : ((await updateRule(form.id as number, payload as never)) as ApiLikeResponse);
+      ? await createRule(payload)
+      : await updateRule(form.id as number, payload);
 
     if (res.code !== undefined && res.code !== 200) {
       formError.value = res.msg || localeText("保存失败", "Save failed");
@@ -809,6 +836,19 @@ async function handleSave() {
   }
 }
 
+/** 行内启停：翻转 enabled 后整体保存（走 updateRule）。 */
+async function handleToggleEnabled(item: AlarmRule) {
+  try {
+    const res = await updateRule(item.id as number, { ...item, enabled: !item.enabled } as AlarmRulePayload);
+    if (res.code !== undefined && res.code !== 200) {
+      throw new Error(res.msg);
+    }
+    loadRules(pagination.current);
+  } catch (error) {
+    uni.showToast({ title: (error as { msg?: string })?.msg || localeText("切换启停失败", "Toggle failed"), icon: "none" });
+  }
+}
+
 async function handleDelete(item: AlarmRule) {
   const confirmed = await confirmDangerAction({
     content: localeText(`确认删除规则「${item.ruleName || ""}」吗？`, `Delete rule "${item.ruleName || ""}"?`),
@@ -816,7 +856,7 @@ async function handleDelete(item: AlarmRule) {
   if (!confirmed) return;
 
   try {
-    const res = (await deleteRule(item.id as number)) as ApiLikeResponse;
+    const res = await deleteRule(item.id as number);
     if (res.code !== undefined && res.code !== 200) {
       throw new Error(res.msg);
     }
@@ -833,42 +873,6 @@ async function handleDelete(item: AlarmRule) {
 
 /* ========================= 设备选择 ========================= */
 
-async function loadDeviceTree() {
-  try {
-    const [deptRes, deviceRes] = (await Promise.all([
-      getDeptList() as Promise<ApiLikeResponse<DeptItem[]>>,
-      getDeviceList({ pageSize: 999 }) as Promise<ApiLikeResponse<DeviceItem[]>>,
-    ])) as [ApiLikeResponse<DeptItem[]>, ApiLikeResponse<DeviceItem[]>];
-
-    const depts = deptRes.data || [];
-    const devices = deviceRes.data || [];
-    deptList.value = depts;
-
-    const map = new Map<number, DeviceItem>();
-    devices.forEach((device) => map.set(device.id, device));
-    deviceMap.value = map;
-
-    const childrenByDept = new Map<number, DeviceItem[]>();
-    devices.forEach((device) => {
-      if (device.deptId == null) return;
-      const list = childrenByDept.get(device.deptId) || [];
-      list.push(device);
-      childrenByDept.set(device.deptId, list);
-    });
-
-    deviceTree.value = depts.map((dept) => ({
-      id: dept.id,
-      name: dept.deptName,
-      children: (childrenByDept.get(dept.id) || []).map((device) => ({
-        id: device.id,
-        name: device.deviceNumber,
-      })),
-    }));
-  } catch {
-    deviceTree.value = [];
-  }
-}
-
 function openDeviceDialog() {
   deviceDialogValue.value = [...form.deviceIds];
   deviceDialogVisible.value = true;
@@ -884,7 +888,8 @@ function handleDeviceConfirm(data: { addIds: number[]; removeIds: number[] }) {
 
 onMounted(() => {
   loadRules(1);
-  loadDeviceTree();
+  loadDeptOptions();
+  loadDeviceTreeBase();
 });
 </script>
 
@@ -1046,18 +1051,8 @@ onMounted(() => {
 }
 
 .rule-table-row {
+  /* 列宽模板由 alarmColumns.ts 的 strategyGridColumns 内联绑定（字段配置化） */
   min-width: 1080px;
-  grid-template-columns:
-    54px
-    minmax(150px, 1.6fr)
-    minmax(88px, 1fr)
-    minmax(72px, 0.8fr)
-    minmax(64px, 0.7fr)
-    minmax(130px, 1.2fr)
-    minmax(76px, 0.8fr)
-    minmax(96px, 1fr)
-    minmax(68px, 0.7fr)
-    minmax(128px, 1.2fr);
 }
 
 .table-row--header {

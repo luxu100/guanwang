@@ -8,10 +8,10 @@
         </view>
 
         <view class="filter-group">
-          <text class="filter-label">规则类型</text>
-          <picker :range="ruleTypeOptions" range-key="label" :value="filters.ruleTypeIndex" @change="handleFilterTypeChange">
+          <text class="filter-label">报警类型</text>
+          <picker :range="alarmTypeFilterOptions" range-key="label" :value="filters.ruleTypeIndex" @change="handleFilterTypeChange">
             <view class="filter-select">
-              <text>{{ ruleTypeOptions[filters.ruleTypeIndex].label }}</text>
+              <text>{{ alarmTypeFilterOptions[filters.ruleTypeIndex].label }}</text>
               <text class="filter-select__arrow"></text>
             </view>
           </picker>
@@ -37,16 +37,6 @@
           </picker>
         </view>
 
-        <view class="filter-group">
-          <text class="filter-label">生效范围</text>
-          <picker :range="scopeOptions" range-key="label" :value="filters.scopeIndex" @change="handleFilterScopeChange">
-            <view class="filter-select">
-              <text>{{ scopeOptions[filters.scopeIndex].label }}</text>
-              <text class="filter-select__arrow"></text>
-            </view>
-          </picker>
-        </view>
-
         <view class="toolbar-actions">
           <button class="toolbar-button toolbar-button--primary" @click="loadRules(1)">查询</button>
           <button class="toolbar-button" @click="resetFilters">重置</button>
@@ -63,7 +53,7 @@
 
       <scroll-view class="table-scroll" scroll-x scroll-y>
         <view class="table">
-          <view class="table-row table-row--header rule-table-row">
+          <view class="table-row table-row--header rule-table-row" :style="{ gridTemplateColumns: strategyGridColumns }">
             <view v-for="column in ruleColumns" :key="column.key" class="table-cell table-header-cell">
               <text>{{ column.label }}</text>
             </view>
@@ -72,26 +62,26 @@
           <view v-if="loading" class="table-state">加载中...</view>
           <view v-else-if="ruleList.length === 0" class="table-state">暂无规则数据</view>
 
-          <view v-for="(item, index) in ruleList" v-else :key="item.id" class="table-row rule-table-row">
-            <text class="table-cell col-index">{{ (pagination.current - 1) * pagination.size + index + 1 }}</text>
-            <text class="table-cell col-rule-name" :title="item.ruleName">{{ item.ruleName || "-" }}</text>
-            <text class="table-cell" :title="getRuleTypeText(item.ruleType)">{{ getRuleTypeText(item.ruleType) }}</text>
-            <view class="table-cell">
-              <text class="level-pill" :class="getLevelClass(item.alarmLevel)">{{ getLevelText(item.alarmLevel) }}</text>
-            </view>
-            <text class="table-cell">{{ getThresholdTypeText(item.thresholdType) }}</text>
-            <text class="table-cell" :title="getThresholdRangeText(item)">{{ getThresholdRangeText(item) }}</text>
-            <text class="table-cell" :title="getSilenceText(item.silenceSeconds)">{{ getSilenceText(item.silenceSeconds) }}</text>
-            <text class="table-cell" :title="getScopeText(item)">{{ getScopeText(item) }}</text>
-            <view class="table-cell">
-              <text class="status-pill" :class="item.enabled ? 'status-pill--open' : 'status-pill--muted'">
-                {{ item.enabled ? "启用" : "停用" }}
-              </text>
-            </view>
-            <view class="table-cell col-action">
-              <button class="table-action-btn" @click.stop="openEditDialog(item)">编辑</button>
-              <button class="table-action-btn table-action-btn--danger" @click.stop="handleDelete(item)">删除</button>
-            </view>
+          <view
+            v-for="(item, index) in ruleList"
+            v-else
+            :key="item.id"
+            class="table-row rule-table-row"
+            :style="{ gridTemplateColumns: strategyGridColumns }"
+          >
+            <template v-for="column in ruleColumns" :key="column.key">
+              <text v-if="column.renderType === 'index'" class="table-cell" :class="column.className">{{ (pagination.current - 1) * pagination.size + index + 1 }}</text>
+              <view v-else-if="column.renderType === 'level-pill'" class="table-cell" :class="column.className">
+                <text class="level-pill" :class="getLevelClass(getCellValue(item, column.key) as number | null)">{{ getLevelText(getCellValue(item, column.key) as number | null) }}</text>
+              </view>
+              <view v-else-if="column.renderType === 'action'" class="table-cell col-action">
+                <button class="table-action-btn" @click.stop="openEditDialog(item)">编辑</button>
+                <!-- 启停：编辑弹窗内改 enabled 保存，或行内快捷切换 -->
+                <button class="table-action-btn" @click.stop="handleToggleEnabled(item)">{{ item.enabled ? "停用" : "启用" }}</button>
+                <button class="table-action-btn table-action-btn--danger" @click.stop="handleDelete(item)">删除</button>
+              </view>
+              <text v-else class="table-cell" :class="column.className" :title="cellText(item, column)">{{ cellText(item, column) }}</text>
+            </template>
           </view>
         </view>
       </scroll-view>
@@ -130,14 +120,14 @@
             </view>
 
             <view class="form-field">
-              <text class="form-label form-label--required">规则类型</text>
+              <text class="form-label form-label--required">报警类型</text>
               <view class="select-field">
                 <view class="form-select form-select--dropdown" @click.stop="toggleSelect('ruleType')">
                   <text :class="{ 'select-placeholder': form.ruleType === null }">{{ getRuleTypeText(form.ruleType, true) }}</text>
                   <text class="select-arrow"></text>
                 </view>
                 <view v-if="activeSelect === 'ruleType'" class="select-menu">
-                  <view v-for="option in ruleTypeOptions.slice(1)" :key="option.label" class="select-option" :class="{ 'select-option--active': form.ruleType === option.value }" @click.stop="selectRuleType(option.value)">
+                  <view v-for="option in ALARM_TYPES" :key="option.label" class="select-option" :class="{ 'select-option--active': form.ruleType === option.value }" @click.stop="selectRuleType(option.value)">
                     {{ option.label }}
                   </view>
                 </view>
@@ -162,7 +152,7 @@
             </view>
 
             <view class="form-field">
-              <text class="form-label">阈值模式</text>
+              <text class="form-label form-label--required">阈值模式</text>
               <view class="select-field">
                 <view class="form-select form-select--dropdown" @click.stop="toggleSelect('thresholdType')">
                   <text>{{ getThresholdTypeText(form.thresholdType) }}</text>
@@ -204,13 +194,13 @@
 
             <view class="form-field">
               <text class="form-label">持续时长（秒）</text>
-              <input v-model="form.durationSeconds" class="form-input" :class="{ 'form-control--error': validationErrors.durationSeconds }" type="number" placeholder="请输入持续时长" placeholder-class="input-placeholder" @input="clearError('durationSeconds')" />
+              <input v-model="form.durationSeconds" class="form-input" :class="{ 'form-control--error': validationErrors.durationSeconds }" type="number" placeholder="超限持续该时长才报警" placeholder-class="input-placeholder" @input="clearError('durationSeconds')" />
               <text v-if="validationErrors.durationSeconds" class="form-error">{{ validationErrors.durationSeconds }}</text>
             </view>
 
             <view class="form-field">
               <text class="form-label">静默期（秒）</text>
-              <input v-model="form.silenceSeconds" class="form-input" :class="{ 'form-control--error': validationErrors.silenceSeconds }" type="number" placeholder="请输入静默期" placeholder-class="input-placeholder" @input="clearError('silenceSeconds')" />
+              <input v-model="form.silenceSeconds" class="form-input" :class="{ 'form-control--error': validationErrors.silenceSeconds }" type="number" placeholder="静默期内重复触发不重复报警" placeholder-class="input-placeholder" @input="clearError('silenceSeconds')" />
               <text v-if="validationErrors.silenceSeconds" class="form-error">{{ validationErrors.silenceSeconds }}</text>
             </view>
 
@@ -227,7 +217,7 @@
                   <text class="select-arrow"></text>
                 </view>
                 <view v-if="activeSelect === 'scopeType'" class="select-menu">
-                  <view v-for="option in scopeOptions.slice(1)" :key="option.label" class="select-option" :class="{ 'select-option--active': form.scopeType === option.value }" @click.stop="selectScopeType(option.value)">
+                  <view v-for="option in scopeOptions" :key="option.label" class="select-option" :class="{ 'select-option--active': form.scopeType === option.value }" @click.stop="selectScopeType(option.value)">
                     {{ option.label }}
                   </view>
                 </view>
@@ -284,24 +274,23 @@
         </view>
       </view>
     </view>
-
-    <XTreeMultiSelectDialog
-      v-model:visible="deviceDialogVisible"
-      v-model="deviceDialogValue"
-      :tree-data="deviceTree"
-      :bound-ids="form.deviceIds"
-      :remove-ids="[]"
-      title="选择设备"
-      subtitle="按部门选择生效设备"
-      @confirm="handleDeviceConfirm"
-    />
   </view>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
-import { getRulePage, createRule, updateRule, deleteRule } from "@/services/alarm/strategy";
-import type { AlarmRule } from "@/services/alarm/strategy";
+import {
+  getRulePage,
+  createRule,
+  updateRule,
+  deleteRule,
+} from "@/services/alarm/strategy";
+import type { AlarmRule, AlarmRulePageQuery, AlarmRulePayload, PageInfo } from "@/services/alarm/strategy";
+import {
+  strategyColumns,
+  strategyGridColumns,
+  type AlarmTableColumn,
+} from "@/pages/alarm/components/alarmColumns";
 import { getDeptList } from "@/services/partition/partition";
 import { getDeviceList } from "@/services/device/info";
 import { confirmDangerAction } from "@/utils/confirmAction";
@@ -325,14 +314,21 @@ interface DeviceItem {
   deptId?: number | null;
 }
 
-/** 下拉选项（value 为 null 表示不限）。 */
-const ruleTypeOptions = [
-  { label: "不限", value: null },
+/** 报警类型（协议四类）。数字枚举与后端约定一致。 */
+const ALARM_TYPES = [
   { label: "压力异常", value: 1 },
   { label: "渗漏", value: 2 },
   { label: "爆管", value: 3 },
-  { label: "离线", value: 4 },
+  { label: "设备离线", value: 4 },
+] as const;
+type RuleAlarmType = 1 | 2 | 3 | 4;
+
+/** 筛选专用：首项"不限"= 不过滤（表单必填选择直接用 ALARM_TYPES） */
+const alarmTypeFilterOptions = [
+  { label: "不限", value: null as RuleAlarmType | null },
+  ...ALARM_TYPES,
 ];
+
 const alarmLevelOptions = [
   { label: "不限", value: null },
   { label: "提示", value: 1 },
@@ -344,15 +340,14 @@ const enabledOptions = [
   { label: "启用", value: 1 },
   { label: "停用", value: 0 },
 ];
-const scopeOptions = [
-  { label: "不限", value: null },
-  { label: "全局", value: 0 },
-  { label: "部门", value: 1 },
-  { label: "指定设备", value: 2 },
-];
 const thresholdTypeOptions = [
   { label: "静态", value: 0 },
   { label: "动态", value: 1 },
+];
+const scopeOptions = [
+  { label: "全局", value: 0 },
+  { label: "部门", value: 1 },
+  { label: "指定设备", value: 2 },
 ];
 
 const filters = reactive({
@@ -369,27 +364,38 @@ const ruleList = ref<AlarmRule[]>([]);
 const pagination = reactive({ current: 1, size: 10, total: 0 });
 const jumpPage = ref<number | null>(null);
 
-const ruleColumns = [
-  { key: "index", label: "序号" },
-  { key: "ruleName", label: "规则名称" },
-  { key: "ruleType", label: "规则类型" },
-  { key: "alarmLevel", label: "报警级别" },
-  { key: "thresholdType", label: "阈值模式" },
-  { key: "thresholdRange", label: "阈值范围" },
-  { key: "silenceSeconds", label: "静默期" },
-  { key: "scopeType", label: "生效范围" },
-  { key: "enabled", label: "状态" },
-  { key: "action", label: "操作" },
-];
+const ruleColumns = strategyColumns;
+
+/* 枚举/计算列文本格式化器：与 alarmColumns.ts 的 formatKey 对应 */
+const textFormatters: Record<string, (item: AlarmRule) => string> = {
+  ruleKind: (item) => getRuleTypeText(item.ruleType as number | null),
+  alarmType: (item) => getRuleTypeText(item.ruleType as number | null),
+  alarmLevel: () => "",
+  thresholdDesc: (item) => getThresholdDescText(item),
+  scope: (item) => getScopeText(item),
+  enabledText: (item) => (item.enabled ? "启用" : "停用"),
+};
+
+function getCellValue(item: AlarmRule, key: string): unknown {
+  return (item as Record<string, unknown>)[key];
+}
+
+/** 表格文本单元格取值：formatKey 优先，缺省输出原始值（null/undefined/空串显示 "-"，保留 0/false） */
+function cellText(item: AlarmRule, column: AlarmTableColumn): string {
+  const formatter = column.formatKey ? textFormatters[column.formatKey] : undefined;
+  if (formatter) return formatter(item);
+  const raw = getCellValue(item, column.key);
+  return raw == null || raw === "" ? "-" : String(raw);
+}
 
 const totalPages = computed(() => Math.max(1, Math.ceil(pagination.total / pagination.size)));
 
 /* ========================= 文案映射 ========================= */
 
 function getRuleTypeText(value?: number | null, placeholder = false) {
-  if (value == null) return placeholder ? "请选择规则类型" : "-";
-  const map: Record<number, string> = { 1: "压力异常", 2: "渗漏", 3: "爆管", 4: "离线" };
-  return map[value] || "-";
+  if (value == null) return placeholder ? "请选择报警类型" : "-";
+  const t = ALARM_TYPES.find((t) => t.value === value);
+  return t ? t.label : "-";
 }
 
 function getLevelText(value?: number | null, placeholder = false) {
@@ -398,45 +404,14 @@ function getLevelText(value?: number | null, placeholder = false) {
   return map[value] || "-";
 }
 
-function getLevelClass(value?: number | null) {
-  if (value === 1) return "level-pill--info";
-  if (value === 2) return "level-pill--warning";
+function getLevelClass(value?: string | number | null) {
+  if (value === 1 || value === "INFO") return "level-pill--info";
+  if (value === 2 || value === "WARNING") return "level-pill--warning";
   return "level-pill--critical";
 }
 
 function getThresholdTypeText(value?: number | null) {
   return value === 1 ? "动态" : "静态";
-}
-
-function getThresholdRangeText(item: AlarmRule) {
-  if (item.thresholdType === 1) {
-    const extra = parseThresholdExtra(item.thresholdExtra);
-    const windowText = extra?.windowMinutes ?? "-";
-    const sigmaText = extra?.sigmaTimes ?? "-";
-    return `窗口 ${windowText}分钟 ±${sigmaText}σ`;
-  }
-  const upper = item.thresholdUpper ?? "-";
-  const lower = item.thresholdLower ?? "-";
-  return `${lower} ~ ${upper}`;
-}
-
-function parseThresholdExtra(extra: AlarmRule["thresholdExtra"]) {
-  if (!extra) return null;
-  if (typeof extra === "string") {
-    try {
-      return JSON.parse(extra) as { windowMinutes?: number; sigmaTimes?: number };
-    } catch {
-      return null;
-    }
-  }
-  return extra;
-}
-
-function getSilenceText(seconds?: number | null) {
-  if (seconds == null) return "-";
-  if (seconds >= 3600 && seconds % 3600 === 0) return `${seconds / 3600}小时`;
-  if (seconds >= 60 && seconds % 60 === 0) return `${seconds / 60}分钟`;
-  return `${seconds}秒`;
 }
 
 function getScopeTypeText(value?: number | null) {
@@ -445,12 +420,28 @@ function getScopeTypeText(value?: number | null) {
   return map[key] || "全局";
 }
 
+/** 判定条件列：静态=上下限 / 动态=窗口+Nσ / 离线=分钟 */
+function getThresholdDescText(item: AlarmRule) {
+  if (Number(item.ruleType) === 4) {
+    return item.offlineMinutes != null ? `离线超过 ${item.offlineMinutes} 分钟` : "-";
+  }
+  if (Number(item.thresholdType) === 1) {
+    const w = item.windowMinutes ?? "-";
+    const s = item.sigmaTimes ?? "-";
+    return `窗口 ${w}分钟 ±${s}σ`;
+  }
+  const upper = item.thresholdUpper;
+  const lower = item.thresholdLower;
+  if (upper == null && lower == null) return "-";
+  return `${lower ?? "-∞"} ~ ${upper ?? "+∞"}`;
+}
+
 function getScopeText(item: AlarmRule) {
-  if (item.scopeType === 2) {
+  if (Number(item.scopeType) === 2) {
     const ids = Array.isArray(item.deviceIds) ? item.deviceIds : [];
     return ids.length ? `设备 ×${ids.length}` : "指定设备";
   }
-  if (item.scopeType === 1) {
+  if (Number(item.scopeType) === 1) {
     const deptName = deptList.value.find((dept) => dept.id === item.deptId)?.deptName;
     return deptName || "部门";
   }
@@ -459,44 +450,48 @@ function getScopeText(item: AlarmRule) {
 
 /* ========================= 数据加载 ========================= */
 
-function buildPageParams(page: number) {
-  const params: Record<string, unknown> = {
+function buildPageParams(page: number): AlarmRulePageQuery {
+  const params: AlarmRulePageQuery = {
     pageNum: page,
     pageSize: pagination.size,
   };
   if (filters.ruleName.trim()) params.ruleName = filters.ruleName.trim();
-  const ruleType = ruleTypeOptions[filters.ruleTypeIndex].value;
+  const ruleType = alarmTypeFilterOptions[filters.ruleTypeIndex].value;
   if (ruleType !== null) params.ruleType = ruleType;
-  const alarmLevel = alarmLevelOptions[filters.alarmLevelIndex].value;
+  const alarmLevel = filters.alarmLevelIndex > 0 ? filters.alarmLevelIndex : null;
   if (alarmLevel !== null) params.alarmLevel = alarmLevel;
-  const enabled = enabledOptions[filters.enabledIndex].value;
-  if (enabled !== null) params.enabled = enabled === 1;
-  const scopeType = scopeOptions[filters.scopeIndex].value;
-  if (scopeType !== null) params.scopeType = scopeType;
+  const enabled = filters.enabledIndex > 0 ? filters.enabledIndex === 1 : null;
+  if (enabled !== null) params.enabled = enabled;
   return params;
 }
 
+let fetchRequestId = 0;
+
 async function loadRules(page = 1) {
+  const requestId = ++fetchRequestId;
   loading.value = true;
   const params = buildPageParams(page);
   try {
-    const res = (await getRulePage(params as never)) as ApiLikeResponse<{ records?: AlarmRule[]; total?: number }>;
+    const res = await getRulePage(params);
+    if (requestId !== fetchRequestId) return;
     if (res.code !== undefined && res.code !== 200) {
       throw new Error(res.msg || "load failed");
     }
-    const pageData = res.data || {};
+    const pageData: PageInfo<AlarmRule> = res.data || {};
     ruleList.value = pageData.records || [];
     pagination.total = pageData.total || 0;
     pagination.current = page;
   } catch {
-
-      ruleList.value = [];
-      pagination.total = 0;
-      pagination.current = page;
-      uni.showToast({ title: "加载规则列表失败", icon: "none" });
+    if (requestId !== fetchRequestId) return;
+    ruleList.value = [];
+    pagination.total = 0;
+    pagination.current = page;
+    uni.showToast({ title: "加载规则列表失败", icon: "none" });
   } finally {
-    loading.value = false;
-    jumpPage.value = null;
+    if (requestId === fetchRequestId) {
+      loading.value = false;
+      jumpPage.value = null;
+    }
   }
 }
 
@@ -544,7 +539,7 @@ const deviceMap = ref<Map<number, DeviceItem>>(new Map());
 const form = reactive({
   id: null as number | null,
   ruleName: "",
-  ruleType: null as number | null,
+  ruleType: null as RuleAlarmType | null,
   alarmLevel: null as number | null,
   thresholdType: 0,
   thresholdUpper: "" as string | number,
@@ -582,7 +577,7 @@ function getDeptName(deptId: number | null) {
   return deptList.value.find((dept) => dept.id === deptId)?.deptName || `#${deptId}`;
 }
 
-function selectRuleType(value: number | null) {
+function selectRuleType(value: RuleAlarmType | null) {
   if (value === null) return;
   form.ruleType = value;
   validationErrors.ruleType = "";
@@ -614,6 +609,50 @@ function selectDept(value: number) {
   form.deptId = value;
   validationErrors.deptId = "";
   activeSelect.value = null;
+}
+
+async function loadDeptOptions() {
+  try {
+    const res = (await getDeptList()) as ApiLikeResponse<DeptItem[]>;
+    deptList.value = res.data || [];
+  } catch {
+    deptList.value = [];
+  }
+}
+
+async function loadDeviceTreeBase() {
+  try {
+    const [deptRes, deviceRes] = (await Promise.all([
+      getDeptList() as Promise<ApiLikeResponse<DeptItem[]>>,
+      getDeviceList({ pageSize: 999 }) as Promise<ApiLikeResponse<DeviceItem[]>>,
+    ])) as [ApiLikeResponse<DeptItem[]>, ApiLikeResponse<DeviceItem[]>];
+
+    const depts = deptRes.data || [];
+    const devices = deviceRes.data || [];
+
+    const map = new Map<number, DeviceItem>();
+    devices.forEach((device) => map.set(device.id, device));
+    deviceMap.value = map;
+
+    const childrenByDept = new Map<number, DeviceItem[]>();
+    devices.forEach((device) => {
+      if (device.deptId == null) return;
+      const list = childrenByDept.get(device.deptId) || [];
+      list.push(device);
+      childrenByDept.set(device.deptId, list);
+    });
+
+    deviceTree.value = depts.map((dept) => ({
+      id: dept.id,
+      name: dept.deptName,
+      children: (childrenByDept.get(dept.id) || []).map((device) => ({
+        id: device.id,
+        name: device.deviceNumber,
+      })),
+    }));
+  } catch {
+    deviceTree.value = [];
+  }
 }
 
 function openCreateDialog() {
@@ -650,21 +689,20 @@ function openEditDialog(item: AlarmRule) {
   Object.keys(validationErrors).forEach((key) => {
     validationErrors[key] = "";
   });
-  const extra = parseThresholdExtra(item.thresholdExtra);
   Object.assign(form, {
     id: item.id ?? null,
     ruleName: item.ruleName || "",
-    ruleType: item.ruleType ?? null,
-    alarmLevel: item.alarmLevel ?? null,
-    thresholdType: item.thresholdType ?? 0,
+    ruleType: (Number(item.ruleType) || null) as RuleAlarmType | null,
+    alarmLevel: (Number(item.alarmLevel) || null) as number | null,
+    thresholdType: Number(item.thresholdType) || 0,
     thresholdUpper: item.thresholdUpper ?? "",
     thresholdLower: item.thresholdLower ?? "",
-    windowMinutes: extra?.windowMinutes ?? "",
-    sigmaTimes: extra?.sigmaTimes ?? "",
+    windowMinutes: item.windowMinutes ?? "",
+    sigmaTimes: item.sigmaTimes ?? "",
     durationSeconds: item.durationSeconds ?? "",
     silenceSeconds: item.silenceSeconds ?? "",
     effectivePeriod: item.effectivePeriod || "",
-    scopeType: item.scopeType ?? 0,
+    scopeType: Number(item.scopeType) || 0,
     deptId: item.deptId ?? null,
     deviceIds: Array.isArray(item.deviceIds) ? [...item.deviceIds] : [],
     enabled: item.enabled !== false,
@@ -688,7 +726,7 @@ function validateForm() {
     validationErrors.ruleName = "规则名称必填";
   }
   if (form.ruleType === null) {
-    validationErrors.ruleType = "请选择规则类型（必填）";
+    validationErrors.ruleType = "请选择报警类型（必填）";
   }
   if (form.alarmLevel === null) {
     validationErrors.alarmLevel = "请选择报警级别";
@@ -729,11 +767,11 @@ function validateForm() {
   return !Object.values(validationErrors).some(Boolean) && !formError.value;
 }
 
-function buildSavePayload() {
-  const payload: Record<string, unknown> = {
+function buildSavePayload(): AlarmRulePayload {
+  const payload: AlarmRulePayload = {
     ruleName: form.ruleName.trim(),
-    ruleType: form.ruleType,
-    alarmLevel: form.alarmLevel,
+    ruleType: form.ruleType ?? undefined,
+    alarmLevel: form.alarmLevel ?? undefined,
     thresholdType: form.thresholdType,
     durationSeconds: form.durationSeconds === "" ? 0 : Number(form.durationSeconds),
     silenceSeconds: form.silenceSeconds === "" ? 0 : Number(form.silenceSeconds),
@@ -746,14 +784,13 @@ function buildSavePayload() {
   if (form.thresholdType === 0) {
     payload.thresholdUpper = form.thresholdUpper === "" ? null : Number(form.thresholdUpper);
     payload.thresholdLower = form.thresholdLower === "" ? null : Number(form.thresholdLower);
-    payload.thresholdExtra = null;
+    payload.windowMinutes = null;
+    payload.sigmaTimes = null;
   } else {
     payload.thresholdUpper = null;
     payload.thresholdLower = null;
-    payload.thresholdExtra = {
-      windowMinutes: Number(form.windowMinutes) || null,
-      sigmaTimes: form.sigmaTimes === "" ? null : Number(form.sigmaTimes),
-    };
+    payload.windowMinutes = Number(form.windowMinutes) || null;
+    payload.sigmaTimes = form.sigmaTimes === "" ? null : Number(form.sigmaTimes);
   }
 
   if (form.scopeType === 1) {
@@ -777,8 +814,8 @@ async function handleSave() {
   try {
     const payload = buildSavePayload();
     const res = isCreating.value
-      ? ((await createRule(payload as never)) as ApiLikeResponse)
-      : ((await updateRule(form.id as number, payload as never)) as ApiLikeResponse);
+      ? await createRule(payload)
+      : await updateRule(form.id as number, payload);
 
     if (res.code !== undefined && res.code !== 200) {
       formError.value = res.msg || "保存失败";
@@ -795,6 +832,19 @@ async function handleSave() {
   }
 }
 
+/** 行内启停：翻转 enabled 后整体保存（走 updateRule）。 */
+async function handleToggleEnabled(item: AlarmRule) {
+  try {
+    const res = await updateRule(item.id as number, { ...item, enabled: !item.enabled } as AlarmRulePayload);
+    if (res.code !== undefined && res.code !== 200) {
+      throw new Error(res.msg);
+    }
+    loadRules(pagination.current);
+  } catch (error) {
+    uni.showToast({ title: (error as { msg?: string })?.msg || "切换启停失败", icon: "none" });
+  }
+}
+
 async function handleDelete(item: AlarmRule) {
   const confirmed = await confirmDangerAction({
     content: `确认删除规则「${item.ruleName || ""}」吗？`,
@@ -802,7 +852,7 @@ async function handleDelete(item: AlarmRule) {
   if (!confirmed) return;
 
   try {
-    const res = (await deleteRule(item.id as number)) as ApiLikeResponse;
+    const res = await deleteRule(item.id as number);
     if (res.code !== undefined && res.code !== 200) {
       throw new Error(res.msg);
     }
@@ -819,42 +869,6 @@ async function handleDelete(item: AlarmRule) {
 
 /* ========================= 设备选择 ========================= */
 
-async function loadDeviceTree() {
-  try {
-    const [deptRes, deviceRes] = (await Promise.all([
-      getDeptList() as Promise<ApiLikeResponse<DeptItem[]>>,
-      getDeviceList({ pageSize: 999 }) as Promise<ApiLikeResponse<DeviceItem[]>>,
-    ])) as [ApiLikeResponse<DeptItem[]>, ApiLikeResponse<DeviceItem[]>];
-
-    const depts = deptRes.data || [];
-    const devices = deviceRes.data || [];
-    deptList.value = depts;
-
-    const map = new Map<number, DeviceItem>();
-    devices.forEach((device) => map.set(device.id, device));
-    deviceMap.value = map;
-
-    const childrenByDept = new Map<number, DeviceItem[]>();
-    devices.forEach((device) => {
-      if (device.deptId == null) return;
-      const list = childrenByDept.get(device.deptId) || [];
-      list.push(device);
-      childrenByDept.set(device.deptId, list);
-    });
-
-    deviceTree.value = depts.map((dept) => ({
-      id: dept.id,
-      name: dept.deptName,
-      children: (childrenByDept.get(dept.id) || []).map((device) => ({
-        id: device.id,
-        name: device.deviceNumber,
-      })),
-    }));
-  } catch {
-    deviceTree.value = [];
-  }
-}
-
 function openDeviceDialog() {
   deviceDialogValue.value = [...form.deviceIds];
   deviceDialogVisible.value = true;
@@ -870,7 +884,8 @@ function handleDeviceConfirm(data: { addIds: number[]; removeIds: number[] }) {
 
 onMounted(() => {
   loadRules(1);
-  loadDeviceTree();
+  loadDeptOptions();
+  loadDeviceTreeBase();
 });
 </script>
 
@@ -1032,18 +1047,8 @@ onMounted(() => {
 }
 
 .rule-table-row {
+  /* 列宽模板由 alarmColumns.ts 的 strategyGridColumns 内联绑定（字段配置化） */
   min-width: 1080px;
-  grid-template-columns:
-    54px
-    minmax(150px, 1.6fr)
-    minmax(88px, 1fr)
-    minmax(72px, 0.8fr)
-    minmax(64px, 0.7fr)
-    minmax(130px, 1.2fr)
-    minmax(76px, 0.8fr)
-    minmax(96px, 1fr)
-    minmax(68px, 0.7fr)
-    minmax(128px, 1.2fr);
 }
 
 .table-row--header {
@@ -1479,6 +1484,12 @@ onMounted(() => {
   border: 1px solid #d5e2ee;
   border-radius: 4px;
   transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+}
+
+.form-input--readonly {
+  color: #5f7188;
+  background: #f3f6f9;
+  cursor: default;
 }
 
 .form-input:focus {

@@ -1,3 +1,8 @@
+/**
+ * 报警记录接口类型声明。
+ * 枚举为数字编码（与页面胶囊一致）；导出/忽略/批量确认/转工单等函数签名一并保留。
+ */
+
 export interface ApiResponse<T = unknown> {
   code?: number;
   msg?: string;
@@ -11,81 +16,85 @@ export interface PageInfo<T = unknown> {
   current?: number;
 }
 
-/** 报警记录分页查询入参（AlarmRecordPageDTO）。 */
+/** 报警类型（协议四类）。 */
+export type AlarmType = 1 | 2 | 3 | 4;
+/** 报警级别。 */
+export type AlarmLevel = 1 | 2 | 3;
+/** 报警状态（状态机：未处理→已确认/已忽略/已转工单→已恢复）。 */
+export type AlarmStatus = 0 | 1 | 2 | 3 | 4;
+
+/** 报警记录分页查询入参（时间按 alarmTime 过滤）。 */
 export interface AlarmPageQuery {
   pageNum?: number;
   pageSize?: number;
+  /** 报警编号（模糊） */
   alarmNo?: string;
-  /** 报警类型：1-压力异常 2-渗漏 3-爆管 4-离线 */
-  ruleType?: number;
-  /** 报警级别：1-提示 2-警告 3-严重 */
-  alarmLevel?: number;
-  /** 状态：0-未处理 1-已确认 2-已忽略 3-已转工单 4-已恢复 */
-  status?: number;
+  ruleType?: AlarmType;
+  alarmLevel?: AlarmLevel;
+  status?: AlarmStatus;
   deviceNumber?: string;
   deptId?: number;
   startTime?: string;
   endTime?: string;
 }
 
-/** 确认/忽略报警入参（AlarmHandleDTO）。 */
+/** 确认/忽略报警入参。 */
 export interface AlarmHandlePayload {
-  /** 处理人账号（可取当前登录用户） */
-  handler?: string;
   handleRemark?: string;
 }
 
-/** 报警转工单入参（AlarmDispatchDTO，字段对齐 Worksheet）。 */
+/** 报警转工单入参（对齐 Worksheet 字段）。 */
 export interface AlarmDispatchPayload {
-  /** 工单类型：0-巡检 1-检漏 2-拆装 3-维护（报警转工单默认 1-检漏） */
   worksheetType?: number;
-  /** 执行人账号 */
   executeAccount?: string;
-  /** 紧急程度：0-一般 1-紧急 */
   urgencyLevel?: number;
-  /** 截止时间 */
   deadlineTime?: string;
-  /** 工单说明 */
   worksheetInstruction?: string;
   remark?: string;
 }
 
-/** 报警记录实体（alarm_record）。 */
+/** 报警记录。 */
 export interface AlarmRecord {
   id?: number;
+  /** 报警编号（如 AL202609080001） */
   alarmNo?: string;
   ruleId?: number;
-  /** 报警类型：1-压力异常 2-渗漏 3-爆管 4-离线 */
-  ruleType?: number;
-  /** 报警级别：1-提示 2-警告 3-严重 */
-  alarmLevel?: number;
+  ruleName?: string;
+  /** 报警类型：1-压力异常 2-渗漏 3-爆管 4-设备离线 */
+  ruleType?: AlarmType;
+  alarmLevel?: AlarmLevel;
   deviceId?: number;
   deviceNumber?: string;
+  deviceAlias?: string;
   deptId?: number;
-  /** 触发值（报警时刻的实际值） */
-  triggerValue?: string;
-  /** 阈值快照（报警时规则配置） */
+  status?: AlarmStatus;
+  /** 触发时实测值 */
+  triggerValue?: number | string;
+  /** 命中阈值快照 */
   thresholdSnapshot?: string;
+  triggerCount?: number;
   alarmTime?: string;
-  /** 状态：0-未处理 1-已确认 2-已忽略 3-已转工单 4-已恢复 */
-  status?: number;
   recoverTime?: string;
   handler?: string;
   handleTime?: string;
   handleRemark?: string;
-  worksheetId?: number;
+  /** 关联工单编号（转工单后回写） */
   worksheetNo?: string;
-  /** 静默期内重复触发次数（合并计数） */
-  triggerCount?: number;
+  worksheetId?: number;
   createdAt?: string;
-  updatedAt?: string;
-  /* —— 详情 VO 扩展（关联设备信息 / 命中规则快照） —— */
-  /** 设备安装地址 */
-  deviceInstallAddress?: string;
-  /** 命中规则名称快照 */
-  ruleName?: string;
-  /** 部门名称 */
-  deptName?: string;
+}
+
+/** 当前活跃报警列表项（轮询比对基准：alarmTime）。 */
+export interface AlarmMapItem {
+  alarmRecordId?: number;
+  deviceNumber?: string;
+  deviceAlias?: string;
+  longitude?: number | string;
+  latitude?: number | string;
+  ruleType?: AlarmType;
+  alarmLevel?: AlarmLevel;
+  alarmTime?: string;
+  triggerValue?: number | string;
 }
 
 export function getAlarmPage(data: AlarmPageQuery): Promise<ApiResponse<PageInfo<AlarmRecord>>>;
@@ -96,7 +105,8 @@ export function ignoreAlarm(id: number | string, data?: AlarmHandlePayload): Pro
 export function batchConfirmAlarms(ids: Array<number | string>): Promise<ApiResponse>;
 export function dispatchAlarm(id: number | string, data: AlarmDispatchPayload): Promise<ApiResponse>;
 export function getUnreadAlarmCount(): Promise<ApiResponse<number>>;
-export function getLatestAlarms(since?: string): Promise<ApiResponse<AlarmRecord[]>>;
+export function getLatestAlarms(since: string): Promise<ApiResponse<AlarmRecord[]>>;
+export function getLatestActiveAlarms(limit?: number): Promise<ApiResponse<AlarmMapItem[]>>;
 export function exportAlarms(query?: AlarmPageQuery): Promise<ApiResponse<{ filename: string; filePath?: string }>>;
 
 declare const service: {
@@ -109,6 +119,7 @@ declare const service: {
   dispatchAlarm: typeof dispatchAlarm;
   getUnreadAlarmCount: typeof getUnreadAlarmCount;
   getLatestAlarms: typeof getLatestAlarms;
+  getLatestActiveAlarms: typeof getLatestActiveAlarms;
   exportAlarms: typeof exportAlarms;
 };
 
