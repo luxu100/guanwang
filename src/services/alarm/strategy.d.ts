@@ -1,6 +1,7 @@
 /**
- * 报警规则接口类型声明（2026-09-08 回切完整模型）。
- * 规则类型：协议四类（压力/渗漏/爆管/离线）；静态/动态阈值；含静默期。
+ * 报警规则接口类型声明（2026-09-09 对齐后端实况）。
+ * ruleKind=FIXED/CUSTOM；alarmType=OFFLINE/NO_DATA/LEAK_SUSPECT/CUSTOM；
+ * 级别 INFO/WARNING/CRITICAL；无静态/动态阈值与静默期字段。
  */
 
 export interface ApiResponse<T = unknown> {
@@ -16,16 +17,14 @@ export interface PageInfo<T = unknown> {
   current?: number;
 }
 
-/** 报警类型（协议四类，数字枚举）。 */
-export type RuleAlarmType = 1 | 2 | 3 | 4;
+/** 规则类型：FIXED 系统预置 / CUSTOM 用户自定义。 */
+export type RuleKind = "FIXED" | "CUSTOM";
+/** 报警类型（后端字符串枚举）。 */
+export type AlarmType = "OFFLINE" | "NO_DATA" | "LEAK_SUSPECT" | "CUSTOM";
 /** 报警级别。 */
-export type AlarmLevel = 1 | 2 | 3;
-/** 阈值模式：0-静态 1-动态 */
-export type ThresholdType = 0 | 1;
-/** 生效范围：0-全局 1-部门 2-指定设备 */
-export type ScopeType = 0 | 1 | 2;
+export type AlarmLevel = "INFO" | "WARNING" | "CRITICAL";
 
-/** 报警规则分页查询入参。 */
+/** 报警规则分页查询入参（对齐 AlarmRulePageDTO + BasePageDTO）。 */
 export interface AlarmRulePageQuery {
   pageNum?: number;
   pageSize?: number;
@@ -35,65 +34,91 @@ export interface AlarmRulePageQuery {
   sortField?: string;
   /** 规则名称（模糊） */
   ruleName?: string;
-  ruleType?: number;
-  alarmLevel?: number;
-  enabled?: boolean | number;
-  scopeType?: number;
-  deptId?: number;
-  deviceNumber?: string;
+  ruleKind?: RuleKind;
+  alarmType?: AlarmType;
+  enabled?: boolean;
 }
 
-/** 报警规则实体。 */
+/** 可选字段下拉项（对齐 AlarmFieldOptionVO）。 */
+export interface AlarmFieldOption {
+  /** 字段英文名（写入规则的 fieldName） */
+  fieldName?: string;
+  /** 字段中文名 */
+  fieldCnName?: string;
+  /** 单位 */
+  unit?: string;
+  /** 字段描述 */
+  description?: string;
+}
+
+/** 报警规则实体（对齐 AlarmRuleVO）。 */
 export interface AlarmRule {
   id?: number;
   ruleName?: string;
-  /** 报警类型：1-压力异常 2-渗漏 3-爆管 4-设备离线 */
-  ruleType?: number;
-  /** 报警级别：1-提示 2-警告 3-严重 */
-  alarmLevel?: number;
-  /** 阈值模式：0-静态 1-动态 */
-  thresholdType?: number;
-  thresholdUpper?: number | string | null;
-  thresholdLower?: number | string | null;
-  /** 动态阈值：统计窗口长度（分钟） */
-  windowMinutes?: number | null;
-  /** 动态阈值：均值±Nσ 的 N */
-  sigmaTimes?: number | null;
-  /** 离线判定分钟数（设备离线类专用） */
-  offlineMinutes?: number | null;
-  /** 持续时长（秒），超限持续该时长才报警 */
-  durationSeconds?: number;
-  /** 静默期（秒），同一设备同一规则静默期内重复触发不重复报警 */
-  silenceSeconds?: number;
-  /** 生效时间段（如 "22:00-06:00"，空为全天） */
-  effectivePeriod?: string;
-  /** 生效范围：0-全局 1-部门 2-指定设备 */
-  scopeType?: number;
+  /** FIXED / CUSTOM */
+  ruleKind?: RuleKind;
+  alarmType?: AlarmType;
+  /** 报警类型中文名（后端 VO 附带） */
+  alarmTypeName?: string;
+  /** 自定义字段名（CUSTOM 专用） */
+  fieldName?: string | null;
+  /** 区间下限（可空） */
+  minValue?: number | string | null;
+  /** 区间上限（可空） */
+  maxValue?: number | string | null;
+  /** 渗漏疑似触发值集合（如 "2,0"，FIXED-LEAK_SUSPECT 专用） */
+  triggerValue?: string | null;
+  /** 离线判定分钟数（FIXED-OFFLINE 专用） */
+  thresholdMinutes?: number | null;
+  /** 超时判定小时数（FIXED-NO_DATA 专用） */
+  thresholdHours?: number | null;
+  alarmLevel?: AlarmLevel;
+  /** 报警级别中文名（后端 VO 附带） */
+  alarmLevelName?: string;
+  /** 作用范围部门ID */
   deptId?: number | null;
-  deviceIds?: number[] | string | null;
+  notifyEnabled?: boolean;
   enabled?: boolean;
   remark?: string;
   createdAt?: string;
   updatedAt?: string;
 }
 
-/** 新建/更新规则的入参。 */
-export interface AlarmRulePayload extends AlarmRule {}
+/** 新建/修改规则入参（对齐 AlarmRuleCreateDTO；新建固定写入 CUSTOM，FIXED 编辑仅提交可改项）。 */
+export interface AlarmRulePayload {
+  ruleName?: string;
+  ruleKind?: RuleKind;
+  alarmType?: AlarmType;
+  fieldName?: string | null;
+  minValue?: number | null;
+  maxValue?: number | null;
+  /** FIXED-OFFLINE：离线判定分钟数 */
+  thresholdMinutes?: number | null;
+  /** FIXED-NO_DATA：超时判定小时数 */
+  thresholdHours?: number | null;
+  /** FIXED-LEAK_SUSPECT：渗漏触发值集合（如 "2,0"） */
+  triggerValue?: string | null;
+  alarmLevel?: AlarmLevel;
+  deptId?: number | null;
+  notifyEnabled?: boolean;
+  enabled?: boolean;
+  remark?: string;
+}
 
 export function getRulePage(data: AlarmRulePageQuery): Promise<ApiResponse<PageInfo<AlarmRule>>>;
-export function getRuleList(params?: Record<string, unknown>): Promise<ApiResponse<AlarmRule[]>>;
-export function getRuleDetail(id: number | string): Promise<ApiResponse<AlarmRule>>;
 export function createRule(data: AlarmRulePayload): Promise<ApiResponse<AlarmRule>>;
 export function updateRule(id: number | string, data: AlarmRulePayload): Promise<ApiResponse<AlarmRule>>;
-export function deleteRule(id: number | string, isForce?: boolean): Promise<ApiResponse>;
+export function deleteRule(id: number | string): Promise<ApiResponse>;
+export function toggleRule(id: number | string): Promise<ApiResponse>;
+export function getRuleFields(): Promise<ApiResponse<AlarmFieldOption[]>>;
 
 declare const service: {
   getRulePage: typeof getRulePage;
-  getRuleList: typeof getRuleList;
-  getRuleDetail: typeof getRuleDetail;
   createRule: typeof createRule;
   updateRule: typeof updateRule;
   deleteRule: typeof deleteRule;
+  toggleRule: typeof toggleRule;
+  getRuleFields: typeof getRuleFields;
 };
 
 export default service;

@@ -9,19 +9,9 @@
 
         <view class="filter-group">
           <text class="filter-label">报警类型</text>
-          <picker :range="alarmTypeFilterOptions" range-key="label" :value="filters.ruleTypeIndex" @change="handleFilterTypeChange">
+          <picker :range="alarmTypeFilterOptions" range-key="label" :value="filters.alarmTypeIndex" @change="handleFilterTypeChange">
             <view class="filter-select">
-              <text>{{ alarmTypeFilterOptions[filters.ruleTypeIndex].label }}</text>
-              <text class="filter-select__arrow"></text>
-            </view>
-          </picker>
-        </view>
-
-        <view class="filter-group">
-          <text class="filter-label">报警级别</text>
-          <picker :range="alarmLevelOptions" range-key="label" :value="filters.alarmLevelIndex" @change="handleFilterLevelChange">
-            <view class="filter-select">
-              <text>{{ alarmLevelOptions[filters.alarmLevelIndex].label }}</text>
+              <text>{{ alarmTypeFilterOptions[filters.alarmTypeIndex].label }}</text>
               <text class="filter-select__arrow"></text>
             </view>
           </picker>
@@ -72,13 +62,13 @@
             <template v-for="column in ruleColumns" :key="column.key">
               <text v-if="column.renderType === 'index'" class="table-cell" :class="column.className">{{ (pagination.current - 1) * pagination.size + index + 1 }}</text>
               <view v-else-if="column.renderType === 'level-pill'" class="table-cell" :class="column.className">
-                <text class="level-pill" :class="getLevelClass(getCellValue(item, column.key) as number | null)">{{ getLevelText(getCellValue(item, column.key) as number | null) }}</text>
+                <text class="level-pill" :class="getLevelClass(getCellValue(item, column.key) as string | null)">{{ getLevelText(getCellValue(item, column.key) as string | null) }}</text>
               </view>
               <view v-else-if="column.renderType === 'action'" class="table-cell col-action">
                 <button class="table-action-btn" @click.stop="openEditDialog(item)">编辑</button>
-                <!-- 启停：编辑弹窗内改 enabled 保存，或行内快捷切换 -->
+                <!-- 启停：行内快捷切换，走 PUT /{id}/toggle -->
                 <button class="table-action-btn" @click.stop="handleToggleEnabled(item)">{{ item.enabled ? "停用" : "启用" }}</button>
-                <button class="table-action-btn table-action-btn--danger" @click.stop="handleDelete(item)">删除</button>
+                <button v-if="item.ruleKind !== 'FIXED'" class="table-action-btn table-action-btn--danger" @click.stop="handleDelete(item)">删除</button>
               </view>
               <text v-else class="table-cell" :class="column.className" :title="cellText(item, column)">{{ cellText(item, column) }}</text>
             </template>
@@ -102,7 +92,7 @@
         <view class="dialog-head">
           <view>
             <text class="dialog-title">{{ isCreating ? "新增规则" : "编辑规则" }}</text>
-            <text class="dialog-subtitle">维护报警规则</text>
+            <text class="dialog-subtitle">{{ isCreating ? "新建自定义规则" : "维护报警规则" }}</text>
           </view>
           <button class="icon-button" hover-class="icon-button--hover" aria-label="关闭" @click="closeDialog">
             <text class="close-icon"></text>
@@ -119,21 +109,57 @@
               <text v-if="validationErrors.ruleName" class="form-error">{{ validationErrors.ruleName }}</text>
             </view>
 
-            <view class="form-field">
-              <text class="form-label form-label--required">报警类型</text>
-              <view class="select-field">
-                <view class="form-select form-select--dropdown" @click.stop="toggleSelect('ruleType')">
-                  <text :class="{ 'select-placeholder': form.ruleType === null }">{{ getRuleTypeText(form.ruleType, true) }}</text>
+            <template v-if="!editingFixed">
+              <view class="form-field">
+                <text class="form-label form-label--required">监测字段</text>
+                <view class="select-field">
+                  <input
+                    v-model="fieldKeyword"
+                    class="form-input form-input--field"
+                    :class="{ 'form-control--error': validationErrors.fieldName }"
+                    type="text"
+                    placeholder="输入关键字筛选字段"
+                    placeholder-class="input-placeholder"
+                    @focus="activeSelect = 'fieldName'"
+                    @input="activeSelect = 'fieldName'"
+                  />
                   <text class="select-arrow"></text>
-                </view>
-                <view v-if="activeSelect === 'ruleType'" class="select-menu">
-                  <view v-for="option in ALARM_TYPES" :key="option.label" class="select-option" :class="{ 'select-option--active': form.ruleType === option.value }" @click.stop="selectRuleType(option.value)">
-                    {{ option.label }}
+                  <view v-if="activeSelect === 'fieldName'" class="select-menu select-menu--field">
+                    <view
+                      v-for="option in filteredFieldOptions"
+                      :key="option.fieldName"
+                      class="select-option"
+                      :class="{ 'select-option--active': form.fieldName === option.fieldName }"
+                      @click.stop="selectFieldName(option)"
+                    >
+                      {{ option.fieldCnName || option.fieldName }}
+                    </view>
+                    <view v-if="filteredFieldOptions.length === 0" class="select-option select-option--empty">
+                      无匹配字段
+                    </view>
                   </view>
                 </view>
+                <text v-if="validationErrors.fieldName" class="form-error">{{ validationErrors.fieldName }}</text>
               </view>
-              <text v-if="validationErrors.ruleType" class="form-error">{{ validationErrors.ruleType }}</text>
-            </view>
+            </template>
+
+            <template v-else>
+              <view v-if="form.alarmType === 'OFFLINE'" class="form-field">
+                <text class="form-label form-label--required">离线判定（分钟）</text>
+                <input v-model="form.thresholdMinutes" class="form-input" :class="{ 'form-control--error': validationErrors.thresholdMinutes }" type="number" placeholder="设备离线超过该分钟数触发" placeholder-class="input-placeholder" @input="clearError('thresholdMinutes')" />
+                <text v-if="validationErrors.thresholdMinutes" class="form-error">{{ validationErrors.thresholdMinutes }}</text>
+              </view>
+              <view v-if="form.alarmType === 'NO_DATA'" class="form-field">
+                <text class="form-label form-label--required">超时判定（小时）</text>
+                <input v-model="form.thresholdHours" class="form-input" :class="{ 'form-control--error': validationErrors.thresholdHours }" type="number" placeholder="无上报超过该小时数触发" placeholder-class="input-placeholder" @input="clearError('thresholdHours')" />
+                <text v-if="validationErrors.thresholdHours" class="form-error">{{ validationErrors.thresholdHours }}</text>
+              </view>
+              <view v-if="form.alarmType === 'LEAK_SUSPECT'" class="form-field">
+                <text class="form-label form-label--required">渗漏触发值集合</text>
+                <input v-model="form.triggerValue" class="form-input" :class="{ 'form-control--error': validationErrors.triggerValue }" type="text" placeholder="命中集合即触发，如 2,0" placeholder-class="input-placeholder" @input="clearError('triggerValue')" />
+                <text v-if="validationErrors.triggerValue" class="form-error">{{ validationErrors.triggerValue }}</text>
+              </view>
+            </template>
 
             <view class="form-field">
               <text class="form-label form-label--required">报警级别</text>
@@ -143,7 +169,7 @@
                   <text class="select-arrow"></text>
                 </view>
                 <view v-if="activeSelect === 'alarmLevel'" class="select-menu">
-                  <view v-for="option in alarmLevelOptions.slice(1)" :key="option.label" class="select-option" :class="{ 'select-option--active': form.alarmLevel === option.value }" @click.stop="selectAlarmLevel(option.value)">
+                  <view v-for="option in alarmLevelOptions" :key="option.value" class="select-option" :class="{ 'select-option--active': form.alarmLevel === option.value }" @click.stop="selectAlarmLevel(option.value)">
                     {{ option.label }}
                   </view>
                 </view>
@@ -151,63 +177,19 @@
               <text v-if="validationErrors.alarmLevel" class="form-error">{{ validationErrors.alarmLevel }}</text>
             </view>
 
-            <view class="form-field">
-              <text class="form-label form-label--required">阈值模式</text>
-              <view class="select-field">
-                <view class="form-select form-select--dropdown" @click.stop="toggleSelect('thresholdType')">
-                  <text>{{ getThresholdTypeText(form.thresholdType) }}</text>
-                  <text class="select-arrow"></text>
-                </view>
-                <view v-if="activeSelect === 'thresholdType'" class="select-menu">
-                  <view v-for="option in thresholdTypeOptions" :key="option.label" class="select-option" :class="{ 'select-option--active': form.thresholdType === option.value }" @click.stop="selectThresholdType(option.value)">
-                    {{ option.label }}
-                  </view>
-                </view>
+            <template v-if="!editingFixed">
+              <view class="form-field">
+                <text class="form-label">区间下限</text>
+                <input v-model="form.minValue" class="form-input" :class="{ 'form-control--error': validationErrors.minValue }" type="digit" :placeholder="getFieldUnitPlaceholder()" placeholder-class="input-placeholder" @input="clearError('minValue')" />
+                <text v-if="validationErrors.minValue" class="form-error">{{ validationErrors.minValue }}</text>
               </view>
-            </view>
 
-            <template v-if="form.thresholdType === 0">
               <view class="form-field">
-                <text class="form-label form-label--required">阈值上限</text>
-                <input v-model="form.thresholdUpper" class="form-input" :class="{ 'form-control--error': validationErrors.thresholdUpper }" type="digit" placeholder="请输入阈值上限" placeholder-class="input-placeholder" @input="clearError('thresholdUpper')" />
-                <text v-if="validationErrors.thresholdUpper" class="form-error">{{ validationErrors.thresholdUpper }}</text>
-              </view>
-              <view class="form-field">
-                <text class="form-label form-label--required">阈值下限</text>
-                <input v-model="form.thresholdLower" class="form-input" :class="{ 'form-control--error': validationErrors.thresholdLower }" type="digit" placeholder="请输入阈值下限" placeholder-class="input-placeholder" @input="clearError('thresholdLower')" />
-                <text v-if="validationErrors.thresholdLower" class="form-error">{{ validationErrors.thresholdLower }}</text>
+                <text class="form-label">区间上限</text>
+                <input v-model="form.maxValue" class="form-input" :class="{ 'form-control--error': validationErrors.maxValue }" type="digit" :placeholder="getFieldUnitPlaceholder()" placeholder-class="input-placeholder" @input="clearError('maxValue')" />
+                <text v-if="validationErrors.maxValue" class="form-error">{{ validationErrors.maxValue }}</text>
               </view>
             </template>
-
-            <template v-else>
-              <view class="form-field">
-                <text class="form-label form-label--required">统计窗口长度（分钟）</text>
-                <input v-model="form.windowMinutes" class="form-input" :class="{ 'form-control--error': validationErrors.windowMinutes }" type="number" placeholder="请输入统计窗口长度" placeholder-class="input-placeholder" @input="clearError('windowMinutes')" />
-                <text v-if="validationErrors.windowMinutes" class="form-error">{{ validationErrors.windowMinutes }}</text>
-              </view>
-              <view class="form-field">
-                <text class="form-label form-label--required">倍数 N（均值±Nσ）</text>
-                <input v-model="form.sigmaTimes" class="form-input" :class="{ 'form-control--error': validationErrors.sigmaTimes }" type="digit" placeholder="请输入倍数 N" placeholder-class="input-placeholder" @input="clearError('sigmaTimes')" />
-                <text v-if="validationErrors.sigmaTimes" class="form-error">{{ validationErrors.sigmaTimes }}</text>
-              </view>
-            </template>
-
-            <view class="form-field">
-              <text class="form-label">持续时长（秒）</text>
-              <input v-model="form.durationSeconds" class="form-input" :class="{ 'form-control--error': validationErrors.durationSeconds }" type="number" placeholder="超限持续该时长才报警" placeholder-class="input-placeholder" @input="clearError('durationSeconds')" />
-              <text v-if="validationErrors.durationSeconds" class="form-error">{{ validationErrors.durationSeconds }}</text>
-            </view>
-
-            <view class="form-field">
-              <text class="form-label">静默期（秒）</text>
-              <input v-model="form.silenceSeconds" class="form-input" :class="{ 'form-control--error': validationErrors.silenceSeconds }" type="number" placeholder="静默期内重复触发不重复报警" placeholder-class="input-placeholder" @input="clearError('silenceSeconds')" />
-              <text v-if="validationErrors.silenceSeconds" class="form-error">{{ validationErrors.silenceSeconds }}</text>
-            </view>
-
-            <view class="form-field">
-              <text class="form-label">生效时间段</text>
-              <input v-model="form.effectivePeriod" class="form-input" placeholder="如 22:00-06:00，留空为全天" placeholder-class="input-placeholder" />
-            </view>
 
             <view class="form-field">
               <text class="form-label">生效范围</text>
@@ -240,17 +222,6 @@
               <text v-if="validationErrors.deptId" class="form-error">{{ validationErrors.deptId }}</text>
             </view>
 
-            <view v-if="form.scopeType === 2" class="form-field form-field--full">
-              <text class="form-label form-label--required">指定设备</text>
-              <view class="device-select-field">
-                <button class="toolbar-button device-select-btn" type="button" @click="openDeviceDialog">请选择设备（{{ form.deviceIds.length }}）</button>
-                <view v-if="form.deviceIds.length" class="device-tags">
-                  <text v-for="tag in deviceTagList" :key="tag" class="device-tag" :title="tag">{{ tag }}</text>
-                </view>
-              </view>
-              <text v-if="validationErrors.deviceIds" class="form-error">{{ validationErrors.deviceIds }}</text>
-            </view>
-
             <view class="form-field">
               <text class="form-label">启用状态</text>
               <view class="switch-field" @click="form.enabled = !form.enabled">
@@ -258,6 +229,16 @@
                   <view class="switch-thumb"></view>
                 </view>
                 <text class="switch-label">{{ form.enabled ? "启用" : "停用" }}</text>
+              </view>
+            </view>
+
+            <view class="form-field">
+              <text class="form-label">发送通知</text>
+              <view class="switch-field" @click="form.notifyEnabled = !form.notifyEnabled">
+                <view class="switch-track" :class="{ 'switch-track--on': form.notifyEnabled }">
+                  <view class="switch-thumb"></view>
+                </view>
+                <text class="switch-label">{{ form.notifyEnabled ? "开启" : "关闭" }}</text>
               </view>
             </view>
 
@@ -284,6 +265,8 @@ import {
   createRule,
   updateRule,
   deleteRule,
+  toggleRule,
+  getRuleFields,
 } from "@/services/alarm/strategy";
 import type { AlarmRule, AlarmRulePageQuery, AlarmRulePayload, PageInfo } from "@/services/alarm/strategy";
 import {
@@ -292,10 +275,7 @@ import {
   type AlarmTableColumn,
 } from "@/pages/alarm/components/alarmColumns";
 import { getDeptList } from "@/services/partition/partition";
-import { getDeviceList } from "@/services/device/info";
 import { confirmDangerAction } from "@/utils/confirmAction";
-import XTreeMultiSelectDialog from "@/pages/device/components/x/dialog/XTreeMultiSelectDialog.vue";
-import type { PartitionNode } from "@/pages/device/components/x/tree/XTreeNode.vue";
 
 interface ApiLikeResponse<T = unknown> {
   code?: number;
@@ -308,54 +288,35 @@ interface DeptItem {
   deptName: string;
 }
 
-interface DeviceItem {
-  id: number;
-  deviceNumber: string;
-  deptId?: number | null;
-}
-
-/** 报警类型（协议四类）。数字枚举与后端约定一致。 */
-const ALARM_TYPES = [
-  { label: "压力异常", value: 1 },
-  { label: "渗漏", value: 2 },
-  { label: "爆管", value: 3 },
-  { label: "设备离线", value: 4 },
+/** 报警类型筛选选项（后端字符串枚举；首项"不限"= 不过滤）。 */
+const ALARM_TYPE_FILTERS = [
+  { label: "不限", value: null as string | null },
+  { label: "设备离线", value: "OFFLINE" },
+  { label: "数据超时", value: "NO_DATA" },
+  { label: "渗漏疑似", value: "LEAK_SUSPECT" },
+  { label: "自定义规则", value: "CUSTOM" },
 ] as const;
-type RuleAlarmType = 1 | 2 | 3 | 4;
-
-/** 筛选专用：首项"不限"= 不过滤（表单必填选择直接用 ALARM_TYPES） */
-const alarmTypeFilterOptions = [
-  { label: "不限", value: null as RuleAlarmType | null },
-  ...ALARM_TYPES,
-];
+const alarmTypeFilterOptions = ALARM_TYPE_FILTERS;
 
 const alarmLevelOptions = [
-  { label: "不限", value: null },
-  { label: "提示", value: 1 },
-  { label: "警告", value: 2 },
-  { label: "严重", value: 3 },
+  { label: "提示", value: "INFO" },
+  { label: "警告", value: "WARNING" },
+  { label: "严重", value: "CRITICAL" },
 ];
 const enabledOptions = [
   { label: "不限", value: null },
   { label: "启用", value: 1 },
   { label: "停用", value: 0 },
 ];
-const thresholdTypeOptions = [
-  { label: "静态", value: 0 },
-  { label: "动态", value: 1 },
-];
 const scopeOptions = [
   { label: "全局", value: 0 },
   { label: "部门", value: 1 },
-  { label: "指定设备", value: 2 },
 ];
 
 const filters = reactive({
   ruleName: "",
-  ruleTypeIndex: 0,
-  alarmLevelIndex: 0,
+  alarmTypeIndex: 0,
   enabledIndex: 0,
-  scopeIndex: 0,
 });
 
 const loading = ref(false);
@@ -368,8 +329,11 @@ const ruleColumns = strategyColumns;
 
 /* 枚举/计算列文本格式化器：与 alarmColumns.ts 的 formatKey 对应 */
 const textFormatters: Record<string, (item: AlarmRule) => string> = {
-  ruleKind: (item) => getRuleTypeText(item.ruleType as number | null),
-  alarmType: (item) => getRuleTypeText(item.ruleType as number | null),
+  ruleKind: (item) => getRuleKindText(item.ruleKind),
+  // 历史 CUSTOM 规则可能 alarmType 为空（后端建规则时不自动挂类型），回退显示"自定义规则"
+  alarmType: (item) =>
+    item.alarmTypeName ||
+    (item.ruleKind === "CUSTOM" && !item.alarmType ? "自定义规则" : getRuleTypeText(item.alarmType)),
   alarmLevel: () => "",
   thresholdDesc: (item) => getThresholdDescText(item),
   scope: (item) => getScopeText(item),
@@ -390,62 +354,92 @@ function cellText(item: AlarmRule, column: AlarmTableColumn): string {
 
 const totalPages = computed(() => Math.max(1, Math.ceil(pagination.total / pagination.size)));
 
-/* ========================= 文案映射 ========================= */
+/* ========================= 文案映射（对齐后端字符串枚举） ========================= */
 
-function getRuleTypeText(value?: number | null, placeholder = false) {
+const RULE_TYPE_ZH: Record<string, string> = {
+  OFFLINE: "设备离线",
+  NO_DATA: "数据超时",
+  LEAK_SUSPECT: "渗漏疑似",
+  CUSTOM: "自定义规则",
+};
+
+function getRuleTypeText(value?: string | null, placeholder = false) {
   if (value == null) return placeholder ? "请选择报警类型" : "-";
-  const t = ALARM_TYPES.find((t) => t.value === value);
-  return t ? t.label : "-";
+  return RULE_TYPE_ZH[value] || value;
 }
 
-function getLevelText(value?: number | null, placeholder = false) {
+function getRuleKindText(value?: string | null) {
+  if (value === "FIXED") return "固定";
+  if (value === "CUSTOM") return "自定义";
+  return value || "-";
+}
+
+function getLevelText(value?: string | null, placeholder = false) {
   if (value == null) return placeholder ? "请选择报警级别" : "-";
-  const map: Record<number, string> = { 1: "提示", 2: "警告", 3: "严重" };
-  return map[value] || "-";
+  const map: Record<string, string> = { INFO: "提示", WARNING: "警告", CRITICAL: "严重" };
+  return map[value] || value || "-";
 }
 
 function getLevelClass(value?: string | number | null) {
-  if (value === 1 || value === "INFO") return "level-pill--info";
-  if (value === 2 || value === "WARNING") return "level-pill--warning";
+  if (value === "INFO") return "level-pill--info";
+  if (value === "WARNING") return "level-pill--warning";
   return "level-pill--critical";
 }
 
-function getThresholdTypeText(value?: number | null) {
-  return value === 1 ? "动态" : "静态";
-}
-
 function getScopeTypeText(value?: number | null) {
-  const map: Record<number, string> = { 0: "全局", 1: "部门", 2: "指定设备" };
+  const map: Record<number, string> = { 0: "全局", 1: "部门" };
   const key = value ?? 0;
   return map[key] || "全局";
 }
 
-/** 判定条件列：静态=上下限 / 动态=窗口+Nσ / 离线=分钟 */
+/** 判定条件列：对齐后端 FIXED 三类只读参数 + CUSTOM 字段区间 */
 function getThresholdDescText(item: AlarmRule) {
-  if (Number(item.ruleType) === 4) {
-    return item.offlineMinutes != null ? `离线超过 ${item.offlineMinutes} 分钟` : "-";
+  if (item.ruleKind === "FIXED") {
+    if (item.alarmType === "OFFLINE") {
+      return item.thresholdMinutes != null ? `离线超过 ${item.thresholdMinutes} 分钟` : "-";
+    }
+    if (item.alarmType === "NO_DATA") {
+      return item.thresholdHours != null ? `无上报超过 ${item.thresholdHours} 小时` : "-";
+    }
+    if (item.alarmType === "LEAK_SUSPECT") {
+      return item.triggerValue ? `渗漏状态命中 ${item.triggerValue}` : "-";
+    }
+    return "-";
   }
-  if (Number(item.thresholdType) === 1) {
-    const w = item.windowMinutes ?? "-";
-    const s = item.sigmaTimes ?? "-";
-    return `窗口 ${w}分钟 ±${s}σ`;
-  }
-  const upper = item.thresholdUpper;
-  const lower = item.thresholdLower;
-  if (upper == null && lower == null) return "-";
-  return `${lower ?? "-∞"} ~ ${upper ?? "+∞"}`;
+  const field = item.fieldName || "-";
+  const upper = item.maxValue;
+  const lower = item.minValue;
+  if (upper == null && lower == null) return field;
+  return `${field}: ${lower ?? "-∞"} ~ ${upper ?? "+∞"}`;
 }
 
 function getScopeText(item: AlarmRule) {
-  if (Number(item.scopeType) === 2) {
-    const ids = Array.isArray(item.deviceIds) ? item.deviceIds : [];
-    return ids.length ? `设备 ×${ids.length}` : "指定设备";
-  }
-  if (Number(item.scopeType) === 1) {
+  if (item.deptId != null) {
     const deptName = deptList.value.find((dept) => dept.id === item.deptId)?.deptName;
     return deptName || "部门";
   }
   return "全局";
+}
+
+/** 字段下拉数据（GET /fields，供 CUSTOM 规则选择监测字段） */
+const fieldOptions = ref<Array<{ fieldName?: string; fieldCnName?: string; unit?: string; description?: string }>>([]);
+
+/** 可搜索下拉：按关键字过滤（匹配中文名/英文名，不区分大小写） */
+const fieldKeyword = ref("");
+
+const filteredFieldOptions = computed(() => {
+  const kw = fieldKeyword.value.trim().toLowerCase();
+  if (!kw) return fieldOptions.value;
+  return fieldOptions.value.filter(
+    (option) =>
+      (option.fieldCnName || "").toLowerCase().includes(kw) ||
+      (option.fieldName || "").toLowerCase().includes(kw),
+  );
+});
+
+function getFieldUnitPlaceholder() {
+  const hit = fieldOptions.value.find((option) => option.fieldName === form.fieldName);
+  return hit?.unit ? `留空表示不限制（${hit.unit}）` : "留空表示不限制";
 }
 
 /* ========================= 数据加载 ========================= */
@@ -456,10 +450,8 @@ function buildPageParams(page: number): AlarmRulePageQuery {
     pageSize: pagination.size,
   };
   if (filters.ruleName.trim()) params.ruleName = filters.ruleName.trim();
-  const ruleType = alarmTypeFilterOptions[filters.ruleTypeIndex].value;
-  if (ruleType !== null) params.ruleType = ruleType;
-  const alarmLevel = filters.alarmLevelIndex > 0 ? filters.alarmLevelIndex : null;
-  if (alarmLevel !== null) params.alarmLevel = alarmLevel;
+  const alarmType = alarmTypeFilterOptions[filters.alarmTypeIndex].value;
+  if (alarmType !== null) params.alarmType = alarmType as AlarmRulePageQuery["alarmType"];
   const enabled = filters.enabledIndex > 0 ? filters.enabledIndex === 1 : null;
   if (enabled !== null) params.enabled = enabled;
   return params;
@@ -497,10 +489,8 @@ async function loadRules(page = 1) {
 
 function resetFilters() {
   filters.ruleName = "";
-  filters.ruleTypeIndex = 0;
-  filters.alarmLevelIndex = 0;
+  filters.alarmTypeIndex = 0;
   filters.enabledIndex = 0;
-  filters.scopeIndex = 0;
   loadRules(1);
 }
 
@@ -512,16 +502,10 @@ function handlePageChange(page: number | null) {
 /* ========================= 筛选事件 ========================= */
 
 function handleFilterTypeChange(event: { detail: { value: number } }) {
-  filters.ruleTypeIndex = Number(event.detail.value);
-}
-function handleFilterLevelChange(event: { detail: { value: number } }) {
-  filters.alarmLevelIndex = Number(event.detail.value);
+  filters.alarmTypeIndex = Number(event.detail.value);
 }
 function handleFilterEnabledChange(event: { detail: { value: number } }) {
   filters.enabledIndex = Number(event.detail.value);
-}
-function handleFilterScopeChange(event: { detail: { value: number } }) {
-  filters.scopeIndex = Number(event.detail.value);
 }
 
 /* ========================= 弹窗表单 ========================= */
@@ -531,36 +515,30 @@ const isCreating = ref(true);
 const activeSelect = ref<string | null>(null);
 const formError = ref("");
 const deptList = ref<DeptItem[]>([]);
-const deviceDialogVisible = ref(false);
-const deviceDialogValue = ref<number[]>([]);
-const deviceTree = ref<PartitionNode[]>([]);
-const deviceMap = ref<Map<number, DeviceItem>>(new Map());
 
 const form = reactive({
   id: null as number | null,
+  ruleKind: "CUSTOM" as "FIXED" | "CUSTOM",
+  alarmType: null as string | null,
   ruleName: "",
-  ruleType: null as RuleAlarmType | null,
-  alarmLevel: null as number | null,
-  thresholdType: 0,
-  thresholdUpper: "" as string | number,
-  thresholdLower: "" as string | number,
-  windowMinutes: "" as string | number,
-  sigmaTimes: "" as string | number,
-  durationSeconds: "" as string | number,
-  silenceSeconds: "" as string | number,
-  effectivePeriod: "",
+  alarmLevel: null as string | null,
+  fieldName: "" as string,
+  minValue: "" as string | number,
+  maxValue: "" as string | number,
+  thresholdMinutes: "" as string | number,
+  thresholdHours: "" as string | number,
+  triggerValue: "" as string,
   scopeType: 0,
   deptId: null as number | null,
-  deviceIds: [] as number[],
   enabled: true,
+  notifyEnabled: false,
   remark: "",
 });
 
-const validationErrors = reactive<Record<string, string>>({});
+/** 编辑 FIXED 预置规则时表单切换为"参数可改"模式（监测字段/区间隐藏） */
+const editingFixed = computed(() => form.ruleKind === "FIXED");
 
-const deviceTagList = computed(() =>
-  form.deviceIds.map((id) => deviceMap.value.get(id)?.deviceNumber || `#${id}`),
-);
+const validationErrors = reactive<Record<string, string>>({});
 
 function toggleSelect(key: string) {
   activeSelect.value = activeSelect.value === key ? null : key;
@@ -577,23 +555,19 @@ function getDeptName(deptId: number | null) {
   return deptList.value.find((dept) => dept.id === deptId)?.deptName || `#${deptId}`;
 }
 
-function selectRuleType(value: RuleAlarmType | null) {
-  if (value === null) return;
-  form.ruleType = value;
-  validationErrors.ruleType = "";
+function selectFieldName(option: { fieldName?: string; fieldCnName?: string }) {
+  if (!option.fieldName) return;
+  form.fieldName = option.fieldName;
+  // 回填中文名，作为下次筛选的初始关键字
+  fieldKeyword.value = option.fieldCnName || option.fieldName;
+  validationErrors.fieldName = "";
   activeSelect.value = null;
 }
 
-function selectAlarmLevel(value: number | null) {
+function selectAlarmLevel(value: string | null) {
   if (value === null) return;
   form.alarmLevel = value;
   validationErrors.alarmLevel = "";
-  activeSelect.value = null;
-}
-
-function selectThresholdType(value: number | null) {
-  if (value === null) return;
-  form.thresholdType = value;
   activeSelect.value = null;
 }
 
@@ -601,7 +575,6 @@ function selectScopeType(value: number | null) {
   if (value === null) return;
   form.scopeType = value;
   if (value !== 1) validationErrors.deptId = "";
-  if (value !== 2) validationErrors.deviceIds = "";
   activeSelect.value = null;
 }
 
@@ -620,38 +593,12 @@ async function loadDeptOptions() {
   }
 }
 
-async function loadDeviceTreeBase() {
+async function loadFieldOptions() {
   try {
-    const [deptRes, deviceRes] = (await Promise.all([
-      getDeptList() as Promise<ApiLikeResponse<DeptItem[]>>,
-      getDeviceList({ pageSize: 999 }) as Promise<ApiLikeResponse<DeviceItem[]>>,
-    ])) as [ApiLikeResponse<DeptItem[]>, ApiLikeResponse<DeviceItem[]>];
-
-    const depts = deptRes.data || [];
-    const devices = deviceRes.data || [];
-
-    const map = new Map<number, DeviceItem>();
-    devices.forEach((device) => map.set(device.id, device));
-    deviceMap.value = map;
-
-    const childrenByDept = new Map<number, DeviceItem[]>();
-    devices.forEach((device) => {
-      if (device.deptId == null) return;
-      const list = childrenByDept.get(device.deptId) || [];
-      list.push(device);
-      childrenByDept.set(device.deptId, list);
-    });
-
-    deviceTree.value = depts.map((dept) => ({
-      id: dept.id,
-      name: dept.deptName,
-      children: (childrenByDept.get(dept.id) || []).map((device) => ({
-        id: device.id,
-        name: device.deviceNumber,
-      })),
-    }));
+    const res = (await getRuleFields()) as ApiLikeResponse<Array<{ fieldName?: string; fieldCnName?: string; unit?: string; description?: string }>>;
+    fieldOptions.value = res.data || [];
   } catch {
-    deviceTree.value = [];
+    fieldOptions.value = [];
   }
 }
 
@@ -663,23 +610,23 @@ function openCreateDialog() {
   });
   Object.assign(form, {
     id: null,
+    ruleKind: "CUSTOM",
+    alarmType: null,
     ruleName: "",
-    ruleType: null,
     alarmLevel: null,
-    thresholdType: 0,
-    thresholdUpper: "",
-    thresholdLower: "",
-    windowMinutes: "",
-    sigmaTimes: "",
-    durationSeconds: "",
-    silenceSeconds: "",
-    effectivePeriod: "",
+    fieldName: "",
+    minValue: "",
+    maxValue: "",
+    thresholdMinutes: "",
+    thresholdHours: "",
+    triggerValue: "",
     scopeType: 0,
     deptId: null,
-    deviceIds: [],
     enabled: true,
+    notifyEnabled: false,
     remark: "",
   });
+  fieldKeyword.value = "";
   dialogVisible.value = true;
 }
 
@@ -691,23 +638,25 @@ function openEditDialog(item: AlarmRule) {
   });
   Object.assign(form, {
     id: item.id ?? null,
+    ruleKind: item.ruleKind || "CUSTOM",
+    alarmType: item.alarmType || null,
     ruleName: item.ruleName || "",
-    ruleType: (Number(item.ruleType) || null) as RuleAlarmType | null,
-    alarmLevel: (Number(item.alarmLevel) || null) as number | null,
-    thresholdType: Number(item.thresholdType) || 0,
-    thresholdUpper: item.thresholdUpper ?? "",
-    thresholdLower: item.thresholdLower ?? "",
-    windowMinutes: item.windowMinutes ?? "",
-    sigmaTimes: item.sigmaTimes ?? "",
-    durationSeconds: item.durationSeconds ?? "",
-    silenceSeconds: item.silenceSeconds ?? "",
-    effectivePeriod: item.effectivePeriod || "",
-    scopeType: Number(item.scopeType) || 0,
+    alarmLevel: item.alarmLevel || null,
+    fieldName: item.fieldName || "",
+    minValue: item.minValue ?? "",
+    maxValue: item.maxValue ?? "",
+    thresholdMinutes: item.thresholdMinutes ?? "",
+    thresholdHours: item.thresholdHours ?? "",
+    triggerValue: item.triggerValue || "",
+    scopeType: item.deptId != null ? 1 : 0,
     deptId: item.deptId ?? null,
-    deviceIds: Array.isArray(item.deviceIds) ? [...item.deviceIds] : [],
     enabled: item.enabled !== false,
+    notifyEnabled: item.notifyEnabled === true,
     remark: item.remark || "",
   });
+  // 回显字段名（优先中文名）
+  const hit = fieldOptions.value.find((o) => o.fieldName === item.fieldName);
+  fieldKeyword.value = item.fieldName ? hit?.fieldCnName || item.fieldName : "";
   dialogVisible.value = true;
 }
 
@@ -725,86 +674,73 @@ function validateForm() {
   if (!form.ruleName.trim()) {
     validationErrors.ruleName = "规则名称必填";
   }
-  if (form.ruleType === null) {
-    validationErrors.ruleType = "请选择报警类型（必填）";
-  }
   if (form.alarmLevel === null) {
     validationErrors.alarmLevel = "请选择报警级别";
   }
 
-  if (form.thresholdType === 0) {
-    if (form.thresholdUpper === "" || form.thresholdUpper === null) {
-      validationErrors.thresholdUpper = "请输入阈值上限";
+  if (editingFixed.value) {
+    // FIXED 预置规则：只校验对应类型的判定参数
+    if (form.alarmType === "OFFLINE" && (form.thresholdMinutes === "" || Number(form.thresholdMinutes) <= 0)) {
+      validationErrors.thresholdMinutes = "请输入离线判定分钟数";
     }
-    if (form.thresholdLower === "" || form.thresholdLower === null) {
-      validationErrors.thresholdLower = "请输入阈值下限";
+    if (form.alarmType === "NO_DATA" && (form.thresholdHours === "" || Number(form.thresholdHours) <= 0)) {
+      validationErrors.thresholdHours = "请输入超时判定小时数";
+    }
+    if (form.alarmType === "LEAK_SUSPECT" && !String(form.triggerValue).trim()) {
+      validationErrors.triggerValue = "请输入渗漏触发值集合";
+    }
+  } else {
+    // CUSTOM 自定义规则：字段 + 区间至少一项
+    if (!form.fieldName) {
+      validationErrors.fieldName = "请选择监测字段";
+    }
+    if (form.minValue === "" && form.maxValue === "") {
+      validationErrors.minValue = "区间下限与上限至少填写一项";
     }
     if (
-      form.thresholdUpper !== "" &&
-      form.thresholdLower !== "" &&
-      Number(form.thresholdUpper) <= Number(form.thresholdLower)
+      form.minValue !== "" &&
+      form.maxValue !== "" &&
+      Number(form.maxValue) <= Number(form.minValue)
     ) {
-      validationErrors.thresholdUpper = "上限须大于下限";
+      validationErrors.maxValue = "上限须大于下限";
     }
-  } else if (form.windowMinutes === "" || Number(form.windowMinutes) <= 0) {
-    validationErrors.windowMinutes = "请输入统计窗口长度";
-  }
-
-  if (form.durationSeconds !== "" && Number(form.durationSeconds) < 0) {
-    validationErrors.durationSeconds = "持续时长不能为负数";
-  }
-  if (form.silenceSeconds !== "" && Number(form.silenceSeconds) < 0) {
-    validationErrors.silenceSeconds = "静默期不能为负数";
   }
 
   if (form.scopeType === 1 && form.deptId === null) {
     validationErrors.deptId = "请选择部门";
-  }
-  if (form.scopeType === 2 && form.deviceIds.length === 0) {
-    validationErrors.deviceIds = "生效范围为指定设备时必须选择设备";
   }
 
   return !Object.values(validationErrors).some(Boolean) && !formError.value;
 }
 
 function buildSavePayload(): AlarmRulePayload {
-  const payload: AlarmRulePayload = {
+  if (editingFixed.value) {
+    // FIXED：仅提交可改项（判定参数 + 级别/启停/通知/备注），避免覆盖预置字段
+    const payload: AlarmRulePayload = {
+      alarmLevel: (form.alarmLevel ?? undefined) as AlarmRulePayload["alarmLevel"],
+      notifyEnabled: form.notifyEnabled,
+      enabled: form.enabled,
+      remark: form.remark.trim(),
+    };
+    if (form.alarmType === "OFFLINE") payload.thresholdMinutes = Number(form.thresholdMinutes);
+    if (form.alarmType === "NO_DATA") payload.thresholdHours = Number(form.thresholdHours);
+    if (form.alarmType === "LEAK_SUSPECT") payload.triggerValue = String(form.triggerValue).trim();
+    return payload;
+  }
+
+  return {
     ruleName: form.ruleName.trim(),
-    ruleType: form.ruleType ?? undefined,
-    alarmLevel: form.alarmLevel ?? undefined,
-    thresholdType: form.thresholdType,
-    durationSeconds: form.durationSeconds === "" ? 0 : Number(form.durationSeconds),
-    silenceSeconds: form.silenceSeconds === "" ? 0 : Number(form.silenceSeconds),
-    effectivePeriod: form.effectivePeriod.trim(),
-    scopeType: form.scopeType,
+    // 后端新建 CUSTOM 时只强制 ruleKind，不自动设 alarmType；显式携带避免规则漏挂类型（否则按 alarmType=CUSTOM 筛选会漏）
+    alarmType: "CUSTOM" as AlarmRulePayload["alarmType"],
+    alarmLevel: (form.alarmLevel ?? undefined) as AlarmRulePayload["alarmLevel"],
+    fieldName: form.fieldName,
+    minValue: form.minValue === "" ? null : Number(form.minValue),
+    maxValue: form.maxValue === "" ? null : Number(form.maxValue),
+    deptId: form.scopeType === 1 ? form.deptId : null,
+    notifyEnabled: form.notifyEnabled,
     enabled: form.enabled,
     remark: form.remark.trim(),
   };
-
-  if (form.thresholdType === 0) {
-    payload.thresholdUpper = form.thresholdUpper === "" ? null : Number(form.thresholdUpper);
-    payload.thresholdLower = form.thresholdLower === "" ? null : Number(form.thresholdLower);
-    payload.windowMinutes = null;
-    payload.sigmaTimes = null;
-  } else {
-    payload.thresholdUpper = null;
-    payload.thresholdLower = null;
-    payload.windowMinutes = Number(form.windowMinutes) || null;
-    payload.sigmaTimes = form.sigmaTimes === "" ? null : Number(form.sigmaTimes);
-  }
-
-  if (form.scopeType === 1) {
-    payload.deptId = form.deptId;
-    payload.deviceIds = null;
-  } else if (form.scopeType === 2) {
-    payload.deptId = null;
-    payload.deviceIds = form.deviceIds;
-  } else {
-    payload.deptId = null;
-    payload.deviceIds = null;
-  }
-
-  return payload;
 }
 
 async function handleSave() {
@@ -867,25 +803,10 @@ async function handleDelete(item: AlarmRule) {
   }
 }
 
-/* ========================= 设备选择 ========================= */
-
-function openDeviceDialog() {
-  deviceDialogValue.value = [...form.deviceIds];
-  deviceDialogVisible.value = true;
-}
-
-function handleDeviceConfirm(data: { addIds: number[]; removeIds: number[] }) {
-  form.deviceIds = deviceDialogValue.value;
-  if (form.deviceIds.length) {
-    validationErrors.deviceIds = "";
-  }
-  void data;
-}
-
 onMounted(() => {
   loadRules(1);
   loadDeptOptions();
-  loadDeviceTreeBase();
+  loadFieldOptions();
 });
 </script>
 
@@ -1533,6 +1454,27 @@ onMounted(() => {
 
 .select-field {
   position: relative;
+}
+.select-field {
+  position: relative;
+}
+
+/* 监测字段：可输入搜索的下拉（输入框留出箭头位） */
+.form-input--field {
+  padding-right: 30px;
+}
+
+.select-field .select-arrow {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%) rotate(45deg);
+  pointer-events: none;
+}
+
+.select-option--empty {
+  color: #94a3b8;
+  cursor: default;
 }
 
 .select-arrow {

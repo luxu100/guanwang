@@ -64,19 +64,20 @@ export const processingColumns: AlarmTableColumn[] = [
   { key: "deviceNumber", label: "设备编号", labelEn: "Device No.", renderType: "text", width: "minmax(96px, 0.9fr)" },
   { key: "triggerValue", label: "触发值", labelEn: "Trigger Value", renderType: "text", width: "minmax(88px, 0.9fr)" },
   { key: "triggerCount", label: "触发次数", labelEn: "Count", renderType: "text", width: "minmax(72px, 0.7fr)" },
-  { key: "lastTriggeredAt", label: "报警时间", labelEn: "Alarm Time", renderType: "text", width: "minmax(140px, 1.3fr)", className: "col-alarm-time" },
+  { key: "lastTriggeredAt", label: "最后触发", labelEn: "Last Triggered", renderType: "text", formatKey: "lastTriggeredAt", width: "minmax(140px, 1.3fr)", className: "col-alarm-time" },
   { key: "status", label: "状态", labelEn: "Status", renderType: "status-pill", width: "minmax(80px, 0.8fr)" },
   { key: "action", label: "操作", labelEn: "Actions", renderType: "action", width: "minmax(120px, 1.1fr)" },
 ];
 
-/** 处理页表格 grid 列宽（含首列复选框固定宽度）；批量确认暂缓期视图可改用 processingGridColumnsNoCheck */
-export const processingGridColumns = [PROCESSING_CHECKBOX_WIDTH, ...processingColumns.map((column) => column.width)].join(" ");
-
-/** 处理页表格 grid 列宽（不含复选框列——批量确认暂缓期间使用） */
+/** 处理页表格 grid 列宽（不含复选框列——后端无 batch-confirm，批量确认未提供） */
 export const processingGridColumnsNoCheck = processingColumns.map((column) => column.width).join(" ");
+
+/** 兼容导出：历史名称，现等同于不含复选框列的宽度 */
+export const processingGridColumns = processingGridColumnsNoCheck;
 
 export const processingDetailFields: AlarmDetailField[] = [
   { key: "ruleName", label: "命中规则", labelEn: "Matched Rule" },
+  { key: "ruleKind", label: "规则类型", labelEn: "Rule Kind" },
   { key: "alarmType", label: "类型", labelEn: "Type", formatKey: "alarmType" },
   { key: "alarmLevel", label: "级别", labelEn: "Level", renderType: "level-pill" },
   { key: "status", label: "状态", labelEn: "Status", renderType: "status-pill" },

@@ -1,6 +1,8 @@
 /**
- * 报警记录接口类型声明。
- * 枚举为数字编码（与页面胶囊一致）；导出/忽略/批量确认/转工单等函数签名一并保留。
+ * 报警记录接口类型声明（2026-09-09 对齐后端实况）。
+ * 枚举为字符串编码：alarmType=OFFLINE/NO_DATA/LEAK_SUSPECT/CUSTOM、
+ * alarmLevel=INFO/WARNING/CRITICAL、status=ACTIVE/CONFIRMED/RESOLVED（三态）。
+ * 后端暂缺 ignore/batch-confirm/dispatch/export/unread-count/latest?since。
  */
 
 export interface ApiResponse<T = unknown> {
@@ -16,111 +18,106 @@ export interface PageInfo<T = unknown> {
   current?: number;
 }
 
-/** 报警类型（协议四类）。 */
-export type AlarmType = 1 | 2 | 3 | 4;
+/** 报警类型（后端字符串枚举）。 */
+export type AlarmType = "OFFLINE" | "NO_DATA" | "LEAK_SUSPECT" | "CUSTOM";
 /** 报警级别。 */
-export type AlarmLevel = 1 | 2 | 3;
-/** 报警状态（状态机：未处理→已确认/已忽略/已转工单→已恢复）。 */
-export type AlarmStatus = 0 | 1 | 2 | 3 | 4;
+export type AlarmLevel = "INFO" | "WARNING" | "CRITICAL";
+/** 报警状态（三态状态机：ACTIVE→CONFIRMED→RESOLVED；自动恢复 ACTIVE→RESOLVED）。 */
+export type AlarmStatus = "ACTIVE" | "CONFIRMED" | "RESOLVED";
 
-/** 报警记录分页查询入参（时间按 alarmTime 过滤）。 */
+/** 报警记录分页查询入参（对齐 AlarmRecordPageDTO + BasePageDTO；时间按 firstTriggeredAt）。 */
 export interface AlarmPageQuery {
   pageNum?: number;
   pageSize?: number;
-  /** 报警编号（模糊） */
-  alarmNo?: string;
-  ruleType?: AlarmType;
-  alarmLevel?: AlarmLevel;
-  status?: AlarmStatus;
-  deviceNumber?: string;
-  deptId?: number;
   startTime?: string;
   endTime?: string;
+  sortOrder?: string;
+  sortField?: string;
+  deviceId?: number;
+  /** 设备编号（后端 eq 精确匹配） */
+  deviceNumber?: string;
+  alarmType?: AlarmType;
+  alarmLevel?: AlarmLevel;
+  status?: AlarmStatus;
+  deptId?: number;
 }
 
-/** 确认/忽略报警入参。 */
+/** 确认/关闭报警入参（对齐 AlarmHandleDTO）。 */
 export interface AlarmHandlePayload {
   handleRemark?: string;
 }
 
-/** 报警转工单入参（对齐 Worksheet 字段）。 */
-export interface AlarmDispatchPayload {
-  worksheetType?: number;
-  executeAccount?: string;
-  urgencyLevel?: number;
-  deadlineTime?: string;
-  worksheetInstruction?: string;
-  remark?: string;
-}
-
-/** 报警记录。 */
+/** 报警记录（对齐 AlarmRecordVO）。 */
 export interface AlarmRecord {
   id?: number;
-  /** 报警编号（如 AL202609080001） */
-  alarmNo?: string;
   ruleId?: number;
   ruleName?: string;
-  /** 报警类型：1-压力异常 2-渗漏 3-爆管 4-设备离线 */
-  ruleType?: AlarmType;
+  /** FIXED / CUSTOM */
+  ruleKind?: string;
+  alarmType?: AlarmType;
+  /** 报警类型中文名（后端 VO 附带） */
+  alarmTypeName?: string;
+  /** 自定义字段名（CUSTOM 记录有值） */
+  fieldName?: string | null;
   alarmLevel?: AlarmLevel;
+  /** 报警级别中文名（后端 VO 附带） */
+  alarmLevelName?: string;
   deviceId?: number;
   deviceNumber?: string;
   deviceAlias?: string;
   deptId?: number;
   status?: AlarmStatus;
+  /** 状态中文名（后端 VO 附带） */
+  statusName?: string;
   /** 触发时实测值 */
   triggerValue?: number | string;
-  /** 命中阈值快照 */
-  thresholdSnapshot?: string;
+  /** 累计触发次数 */
   triggerCount?: number;
-  alarmTime?: string;
-  recoverTime?: string;
-  handler?: string;
-  handleTime?: string;
+  /** 首次触发时间（分页排序与时间过滤依据） */
+  firstTriggeredAt?: string;
+  /** 最后触发时间 */
+  lastTriggeredAt?: string;
+  /** 恢复时间（resolve 后写入） */
+  recoveredAt?: string;
+  /** 触发上下文快照 JSON */
+  contextJson?: string;
+  handleUserId?: number;
   handleRemark?: string;
-  /** 关联工单编号（转工单后回写） */
-  worksheetNo?: string;
-  worksheetId?: number;
   createdAt?: string;
 }
 
-/** 当前活跃报警列表项（轮询比对基准：alarmTime）。 */
+/** 当前活跃报警列表项（对齐 AlarmMapItemVO；铃铛轮询比对基准 firstTriggeredAt）。 */
 export interface AlarmMapItem {
   alarmRecordId?: number;
   deviceNumber?: string;
   deviceAlias?: string;
-  longitude?: number | string;
-  latitude?: number | string;
-  ruleType?: AlarmType;
+  longitude?: number | null;
+  latitude?: number | null;
+  alarmType?: AlarmType;
+  alarmTypeName?: string;
   alarmLevel?: AlarmLevel;
-  alarmTime?: string;
+  firstTriggeredAt?: string;
   triggerValue?: number | string;
 }
 
 export function getAlarmPage(data: AlarmPageQuery): Promise<ApiResponse<PageInfo<AlarmRecord>>>;
 export function getAlarmDetail(id: number | string): Promise<ApiResponse<AlarmRecord>>;
-export function deleteAlarm(id: number | string, isForce?: boolean): Promise<ApiResponse>;
 export function confirmAlarm(id: number | string, data?: AlarmHandlePayload): Promise<ApiResponse>;
-export function ignoreAlarm(id: number | string, data?: AlarmHandlePayload): Promise<ApiResponse>;
-export function batchConfirmAlarms(ids: Array<number | string>): Promise<ApiResponse>;
-export function dispatchAlarm(id: number | string, data: AlarmDispatchPayload): Promise<ApiResponse>;
-export function getUnreadAlarmCount(): Promise<ApiResponse<number>>;
-export function getLatestAlarms(since: string): Promise<ApiResponse<AlarmRecord[]>>;
+export function resolveAlarm(id: number | string, data?: AlarmHandlePayload): Promise<ApiResponse>;
 export function getLatestActiveAlarms(limit?: number): Promise<ApiResponse<AlarmMapItem[]>>;
-export function exportAlarms(query?: AlarmPageQuery): Promise<ApiResponse<{ filename: string; filePath?: string }>>;
+export function getAlarmTrend(data?: Record<string, unknown>): Promise<ApiResponse<unknown>>;
+export function getAlarmOverview(data?: Record<string, unknown>): Promise<ApiResponse<unknown>>;
+export function getAlarmMap(data?: Record<string, unknown>): Promise<ApiResponse<unknown>>;
 
 declare const service: {
   getAlarmPage: typeof getAlarmPage;
   getAlarmDetail: typeof getAlarmDetail;
-  deleteAlarm: typeof deleteAlarm;
   confirmAlarm: typeof confirmAlarm;
-  ignoreAlarm: typeof ignoreAlarm;
-  batchConfirmAlarms: typeof batchConfirmAlarms;
-  dispatchAlarm: typeof dispatchAlarm;
-  getUnreadAlarmCount: typeof getUnreadAlarmCount;
-  getLatestAlarms: typeof getLatestAlarms;
+  resolveAlarm: typeof resolveAlarm;
   getLatestActiveAlarms: typeof getLatestActiveAlarms;
-  exportAlarms: typeof exportAlarms;
+  getAlarmTrend: typeof getAlarmTrend;
+  getAlarmOverview: typeof getAlarmOverview;
+  getAlarmMap: typeof getAlarmMap;
 };
 
 export default service;
