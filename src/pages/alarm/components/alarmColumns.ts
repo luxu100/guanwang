@@ -66,7 +66,7 @@ export const processingColumns: AlarmTableColumn[] = [
   { key: "triggerCount", label: "触发次数", labelEn: "Count", renderType: "text", width: "minmax(72px, 0.7fr)" },
   { key: "lastTriggeredAt", label: "最后触发", labelEn: "Last Triggered", renderType: "text", formatKey: "lastTriggeredAt", width: "minmax(140px, 1.3fr)", className: "col-alarm-time" },
   { key: "status", label: "状态", labelEn: "Status", renderType: "status-pill", width: "minmax(80px, 0.8fr)" },
-  { key: "action", label: "操作", labelEn: "Actions", renderType: "action", width: "minmax(120px, 1.1fr)" },
+  { key: "action", label: "操作", labelEn: "Actions", renderType: "action", width: "minmax(190px, 1.1fr)" },
 ];
 
 /** 处理页表格 grid 列宽（不含复选框列——后端无 batch-confirm，批量确认未提供） */
@@ -86,9 +86,9 @@ export const processingDetailFields: AlarmDetailField[] = [
   { key: "fieldName", label: "自定义字段", labelEn: "Field" },
   { key: "triggerValue", label: "触发值", labelEn: "Trigger Value" },
   { key: "triggerCount", label: "触发次数", labelEn: "Trigger Count" },
-  { key: "firstTriggeredAt", label: "首次触发", labelEn: "First Triggered" },
-  { key: "lastTriggeredAt", label: "最后触发", labelEn: "Last Triggered" },
-  { key: "recoveredAt", label: "恢复时间", labelEn: "Recover Time" },
+  { key: "firstTriggeredAt", label: "首次触发", labelEn: "First Triggered", formatKey: "firstTriggeredAt" },
+  { key: "lastTriggeredAt", label: "最后触发", labelEn: "Last Triggered", formatKey: "lastTriggeredAt" },
+  { key: "recoveredAt", label: "恢复时间", labelEn: "Recover Time", formatKey: "recoveredAt" },
   { key: "handleRemark", label: "处理备注", labelEn: "Handle Remark", full: true },
 ];
 
@@ -103,7 +103,7 @@ export const strategyColumns: AlarmTableColumn[] = [
   { key: "thresholdDesc", label: "判定条件", labelEn: "Condition", renderType: "text", formatKey: "thresholdDesc", width: "minmax(140px, 1.3fr)" },
   { key: "scopeDesc", label: "生效范围", labelEn: "Scope", renderType: "text", formatKey: "scope", width: "minmax(88px, 0.9fr)" },
   { key: "enabled", label: "状态", labelEn: "Status", renderType: "text", formatKey: "enabledText", width: "minmax(68px, 0.7fr)" },
-  { key: "action", label: "操作", labelEn: "Actions", renderType: "action", width: "minmax(110px, 1fr)" },
+  { key: "action", label: "操作", labelEn: "Actions", renderType: "action", width: "minmax(180px, 1fr)" },
 ];
 
 /** 策略页表格 grid 列宽 */

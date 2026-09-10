@@ -61,7 +61,7 @@
         </view>
 
         <view class="toolbar-actions">
-          <button class="toolbar-button toolbar-button--primary" @click="loadAlarms(1)">{{ localeText("查询", "Search") }}</button>
+          <button class="toolbar-button toolbar-button--primary" @click="searchAlarms">{{ localeText("查询", "Search") }}</button>
           <button class="toolbar-button" @click="resetFilters">{{ localeText("重置", "Reset") }}</button>
           </view>
         </view>
@@ -73,6 +73,10 @@
       <view class="table-panel">
       <view class="table-head">
         <text>{{ localeText("报警处理", "Alarm Handling") }}</text>
+        <view class="table-head__status">
+          <text v-if="pollFailed" class="refresh-status refresh-status--failed">{{ localeText("更新失败，正在重试", "Update failed, retrying") }}</text>
+          <text v-else-if="lastRefreshSuccessAt" class="refresh-status">{{ localeText("已更新", "Updated") }} {{ fmtClock(lastRefreshSuccessAt) }}</text>
+        </view>
         <text class="table-head__meta">{{ localizedTotal(pagination.total) }}</text>
       </view>
 
@@ -106,7 +110,7 @@
               <view v-else-if="column.renderType === 'action'" class="table-cell col-action">
                 <button class="table-action-btn" :class="{ 'table-action-btn--active': selectedRecordKey === String(item.id) }" @click.stop="toggleDetail(item)">{{ localeText("详情", "Detail") }}</button>
                 <button v-if="item.status === 'ACTIVE'" class="table-action-btn" @click.stop="openHandleDialog(item)">{{ localeText("确认", "Confirm") }}</button>
-                <button v-if="item.status !== 'RESOLVED'" class="table-action-btn" @click.stop="openResolveDialog(item)">{{ localeText("关闭", "Close") }}</button>
+                <button v-if="item.status === 'ACTIVE' || item.status === 'CONFIRMED'" class="table-action-btn" @click.stop="openResolveDialog(item)">{{ localeText("关闭", "Close") }}</button>
               </view>
               <text v-else class="table-cell" :class="column.className" :title="cellText(item, column)">{{ cellText(item, column) }}</text>
             </template>
@@ -227,6 +231,7 @@ import { useLocaleText, useLocalizedPageInfo, useLocalizedTotal } from "@/i18n/l
 import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
 import {
   getAlarmPage,
+  getAlarmDetail,
   confirmAlarm,
   resolveAlarm,
   getLatestActiveAlarms,
@@ -296,6 +301,9 @@ const loading = ref(false);
 const alarmList = ref<AlarmRecord[]>([]);
 const deptList = ref<DeptItem[]>([]);
 const pagination = reactive({ current: 1, size: 10, total: 0 });
+/** 轮询健康状态：最后一次成功刷新时间 / 是否处于失败态（供页面显示，不弹窗） */
+const lastRefreshSuccessAt = ref<number | null>(null);
+const pollFailed = ref(false);
 const jumpPage = ref<number | null>(null);
 
 const recordColumns = processingColumns;
@@ -308,11 +316,19 @@ const textFormatters: Record<string, (item: AlarmRecord) => string> = {
 };
 const detailFormatters: Record<string, (item: AlarmRecord) => string> = {
   alarmType: (item) => item.alarmTypeName || getRuleTypeText(item.alarmType),
+  ruleKind: (item) => getRuleKindText(item.ruleKind),
   triggerCount: (item) => (item.triggerCount == null ? "-" : String(item.triggerCount)),
   firstTriggeredAt: (item) => fmtDateTime(item.firstTriggeredAt),
   lastTriggeredAt: (item) => fmtDateTime(item.lastTriggeredAt),
   recoveredAt: (item) => fmtDateTime(item.recoveredAt),
 };
+
+/** 时间戳格式化为 HH:mm:ss（轮询状态展示用） */
+function fmtClock(ts: number) {
+  const d = new Date(ts);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
 
 /** 后端 LocalDateTime 形如 2026-09-09T12:02:00.146924，格式化为 YYYY-MM-DD HH:mm:ss */
 function fmtDateTime(value?: string | null) {
@@ -363,6 +379,13 @@ function getRuleTypeText(value?: string | null) {
   return localeText(map[value] || value, enMap[value] || value);
 }
 
+function getRuleKindText(value?: string | null) {
+  if (value == null) return "-";
+  const map: Record<string, string> = { FIXED: "固定", CUSTOM: "自定义" };
+  const enMap: Record<string, string> = { FIXED: "Fixed", CUSTOM: "Custom" };
+  return localeText(map[value] || value, enMap[value] || value);
+}
+
 function getLevelText(value?: string | null) {
   if (value == null) return "-";
   const map: Record<string, string> = { INFO: "提示", WARNING: "警告", CRITICAL: "严重" };
@@ -373,7 +396,8 @@ function getLevelText(value?: string | null) {
 function getLevelClass(value?: string | number | null) {
   if (value === "INFO") return "level-pill--info";
   if (value === "WARNING") return "level-pill--warning";
-  return "level-pill--critical";
+  if (value === "CRITICAL") return "level-pill--critical";
+  return "level-pill--muted"; // 未知级别用中性色，不误标为严重
 }
 
 function getStatusText(value?: string | null) {
@@ -407,44 +431,79 @@ function normalizeDateForApi(value: string, isEnd: boolean) {
   return `${normalizedValue}T${isEnd ? "23:59:59" : "00:00:00"}`;
 }
 
-function buildPageParams(page: number) {
+/** 已应用的查询条件快照：点"查询"（或重置/翻页）时保存；轮询只使用它，
+ * 不会把用户正在编辑、尚未点击查询的条件应用到请求里。 */
+const appliedQuery = ref<Record<string, unknown>>({});
+
+function buildPageParams(page: number, source: Record<string, unknown> = {}) {
   const params: Record<string, unknown> = {
     pageNum: page,
     pageSize: pagination.size,
+    ...source,
   };
-  const alarmType = alarmTypeOptions.value[filters.alarmTypeIndex].value;
-  if (alarmType !== null) params.alarmType = alarmType;
-  const alarmLevel = alarmLevelOptions.value[filters.alarmLevelIndex].value;
-  if (alarmLevel !== null) params.alarmLevel = alarmLevel;
-  const status = statusOptions.value[filters.statusIndex].value;
-  if (status !== null) params.status = status;
-  if (filters.deviceNumber.trim()) params.deviceNumber = filters.deviceNumber.trim();
-  const deptId = deptPickerOptions.value[filters.deptIndex].value;
-  if (deptId !== null) params.deptId = deptId;
-  params.startTime = normalizeDateForApi(filters.startTime, false);
-  params.endTime = normalizeDateForApi(filters.endTime, true);
   return params;
+}
+
+/** 从当前筛选表单收集查询条件（不含分页） */
+function collectFilterParams(): Record<string, unknown> {
+  const filterParams: Record<string, unknown> = {};
+  const alarmType = alarmTypeOptions.value[filters.alarmTypeIndex].value;
+  if (alarmType !== null) filterParams.alarmType = alarmType;
+  const alarmLevel = alarmLevelOptions.value[filters.alarmLevelIndex].value;
+  if (alarmLevel !== null) filterParams.alarmLevel = alarmLevel;
+  const status = statusOptions.value[filters.statusIndex].value;
+  if (status !== null) filterParams.status = status;
+  if (filters.deviceNumber.trim()) filterParams.deviceNumber = filters.deviceNumber.trim();
+  const deptId = deptPickerOptions.value[filters.deptIndex].value;
+  if (deptId !== null) filterParams.deptId = deptId;
+  filterParams.startTime = normalizeDateForApi(filters.startTime, false);
+  filterParams.endTime = normalizeDateForApi(filters.endTime, true);
+  return filterParams;
 }
 
 let fetchRequestId = 0;
 
-async function loadAlarms(page = 1) {
+async function loadAlarms(page = 1, opts: { silent?: boolean; applyFilters?: boolean } = {}) {
+  // 统一竞态守卫：静默刷新（轮询/页面恢复可见）遇到用户请求在途时让路，
+  // 避免后发的静默请求作废用户正在等待的手动查询/翻页/操作后刷新
+  if (opts.silent && loading.value) return;
   const requestId = ++fetchRequestId;
-  loading.value = true;
-  const params = buildPageParams(page);
+  if (!opts.silent) loading.value = true;
+  // 仅显式 applyFilters（点查询/重置）才应用当前表单条件；
+  // 操作成功后的刷新、翻页、轮询一律沿用已有快照，避免把未提交的筛选带进请求
+  if (opts.applyFilters) appliedQuery.value = collectFilterParams();
+  const params = buildPageParams(page, appliedQuery.value);
   try {
     const res = (await getAlarmPage(params as never)) as { code?: number; msg?: string; data?: { records?: AlarmRecord[]; total?: number } };
     if (requestId !== fetchRequestId) return;
     if (res.code !== undefined && res.code !== 200) {
       throw new Error(res.msg || "load failed");
     }
+    lastRefreshSuccessAt.value = Date.now();
+    pollFailed.value = false; // 列表已成功更新，立即清除"更新失败"提示
     const pageData = res.data || {};
     alarmList.value = pageData.records || [];
-    trackLatestAlarmTime(alarmList.value);
     pagination.total = pageData.total || 0;
     pagination.current = page;
+    // 打开中的详情随列表刷新同步：只在列表仍包含该行时替换引用；
+    // 列表更新本身会使旧详情请求失效（detailRequestId++），旧响应不会回写
+    if (selectedRecord.value) {
+      detailRequestId++;
+      const refreshed = alarmList.value.find((item) => String(item.id) === selectedRecordKey.value);
+      if (refreshed) {
+        selectedRecord.value = refreshed;
+      } else {
+        // 详情所在行不在当前页/筛选结果中，关闭面板避免展示过期数据
+        closeDetail();
+      }
+    }
   } catch {
     if (requestId !== fetchRequestId) return;
+    if (opts.silent) {
+      // 轮询静默失败：保留上次成功数据，标记失败态（不弹窗，45s 一次的弹窗是骚扰）
+      pollFailed.value = true;
+      return;
+    }
     alarmList.value = [];
     pagination.total = 0;
     pagination.current = page;
@@ -457,6 +516,11 @@ async function loadAlarms(page = 1) {
   }
 }
 
+/** 点"查询"：应用当前表单条件并回到第一页 */
+function searchAlarms() {
+  loadAlarms(1, { applyFilters: true });
+}
+
 function resetFilters() {
   filters.alarmTypeIndex = 0;
   filters.alarmLevelIndex = 0;
@@ -465,7 +529,7 @@ function resetFilters() {
   filters.deptIndex = 0;
   filters.startTime = "";
   filters.endTime = "";
-  loadAlarms(1);
+  loadAlarms(1, { applyFilters: true });
 }
 
 function handlePageChange(page: number | null) {
@@ -492,15 +556,36 @@ function handleFilterDeptChange(event: { detail: { value: number } }) {
 
 const selectedRecord = ref<AlarmRecord | null>(null);
 const selectedRecordKey = ref("");
+const detailLoading = ref(false);
+let detailRequestId = 0;
 
-function toggleDetail(item: AlarmRecord) {
+async function toggleDetail(item: AlarmRecord) {
   const key = String(item.id);
   if (selectedRecordKey.value === key) {
+    // 关闭面板时同步使在途详情请求失效，旧响应不允许再回写
+    detailRequestId++;
     closeDetail();
     return;
   }
+  // 先展示行数据（秒开），再拉详情接口校准最新值（报警合并/他人处理会持续变化）
+  detailRequestId++;
   selectedRecord.value = item;
   selectedRecordKey.value = key;
+  const requestId = detailRequestId;
+  detailLoading.value = true;
+  try {
+    const res = (await getAlarmDetail(item.id as number)) as { code?: number; msg?: string; data?: AlarmRecord };
+    if (requestId !== detailRequestId) return; // 期间切换过详情/关闭/列表刷新，丢弃
+    if (res.code !== undefined && res.code !== 200) return; // 失败保留行数据
+    // 仍选中同一条才回写；期间面板已换行/关闭则丢弃
+    if (res.data && selectedRecordKey.value === key) {
+      selectedRecord.value = res.data;
+    }
+  } catch {
+    // 静默：详情接口失败时保留列表行数据展示
+  } finally {
+    if (requestId === detailRequestId) detailLoading.value = false;
+  }
 }
 
 function closeDetail() {
@@ -575,37 +660,54 @@ async function submitResolve() {
   }
 }
 
-/* 实时刷新轮询状态：记录见过的最新 firstTriggeredAt，用于判断是否有新活跃报警 */
-let latestAlarmTime = "";
+/* 实时刷新轮询状态：以"见过的报警 ID 集合"为基准判新增（避免同时间戳报警漏提示）；
+ * 首次成功轮询只建基准不提示。集合仅由轮询更新，与当前分页/筛选解耦。 */
+const pollBaselineReady = ref(false);
+const seenAlarmIds = ref<Set<number>>(new Set());
 
-function trackLatestAlarmTime(records: AlarmRecord[]) {
-  for (const item of records) {
-    const time = item.firstTriggeredAt || "";
-    if (time && time > latestAlarmTime) latestAlarmTime = time;
-  }
-}
-
-/* ========================= 实时刷新轮询（latest-active 活跃数近似，仅 H5） ========================= */
+/* ========================= 实时刷新轮询（latest-active，仅 H5） ========================= */
 // #ifdef H5
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 let pollInFlight = false;
 
 async function pollLatestAlarms() {
   if (document.hidden || pollInFlight) return;
+  // 用户请求在途时本轮让路（兜底，统一守卫在 loadAlarms 内）
+  if (loading.value) return;
   pollInFlight = true;
   try {
-    const res = (await getLatestActiveAlarms(200)) as { code?: number; msg?: string; data?: AlarmRecord[] };
+    // latest-active 返回 AlarmMapItemVO（含 alarmRecordId），非 AlarmRecord
+    const res = (await getLatestActiveAlarms(200)) as { code?: number; msg?: string; data?: Array<{ alarmRecordId?: number }> };
+    if (res.code !== undefined && res.code !== 200) {
+      pollFailed.value = true;
+      return;
+    }
     const active = res.data || [];
-    const hasNew = active.some((item) => {
-      const time = item.firstTriggeredAt || "";
-      return time && (!latestAlarmTime || time > latestAlarmTime);
-    });
+    // 新报警判定（按 ID 去重，避免同秒报警漏提示）：
+    // 首次成功轮询只建立基准（seenIds），不把已有报警当新报警提示
+    const currentIds = new Set(active.map((item) => item.alarmRecordId).filter((id): id is number => id != null));
+    let hasNew = false;
+    if (pollBaselineReady.value) {
+      for (const id of currentIds) {
+        if (!seenAlarmIds.value.has(id)) {
+          hasNew = true;
+          break;
+        }
+      }
+    } else {
+      pollBaselineReady.value = true;
+    }
+    seenAlarmIds.value = currentIds;
+    // 每轮都刷新当前列表（按已应用条件快照）：已有报警的触发次数/状态变化也能同步
     if (hasNew) {
       uni.showToast({ title: localeText("检测到新报警，已自动刷新", "New alarms detected, list refreshed"), icon: "none" });
-      loadAlarms(pagination.current);
     }
+    // 成功/失败状态由随后的 loadAlarms(silent) 按列表实际结果更新（分开管理）；
+    // 用户请求在途时 loadAlarms 内的统一守卫会让路
+    await loadAlarms(pagination.current, { silent: true });
   } catch {
-    // 后端未就绪时静默跳过，不打扰用户
+    // 轮询失败：保留上次成功数据，标记失败态（页面显示"更新失败"，不弹窗）
+    pollFailed.value = true;
   } finally {
     pollInFlight = false;
   }
@@ -622,6 +724,13 @@ function stopPolling() {
     pollTimer = null;
   }
 }
+
+function onVisibilityChange() {
+  if (!document.hidden) {
+    // silent 刷新：用户请求在途时由 loadAlarms 内统一守卫让路，不会覆盖手动翻页/查询
+    loadAlarms(pagination.current, { silent: true });
+  }
+}
 // #endif
 
 /* ========================= 生命周期 ========================= */
@@ -636,16 +745,19 @@ async function loadDeptOptions() {
 }
 
 onMounted(() => {
-  loadAlarms(1);
+  loadAlarms(1, { applyFilters: true });
   loadDeptOptions();
   // #ifdef H5
   startPolling();
+  // 页面从后台切回时立即刷新一次（轮询在 hidden 时跳过，回来可能已错过更新）
+  document.addEventListener("visibilitychange", onVisibilityChange);
   // #endif
 });
 
 onUnmounted(() => {
   // #ifdef H5
   stopPolling();
+  document.removeEventListener("visibilitychange", onVisibilityChange);
   // #endif
 });
 </script>
@@ -854,6 +966,15 @@ onUnmounted(() => {
   border: 1px solid #d8e5ef;
   border-radius: 6px;
   box-shadow: 0 12px 26px rgba(35, 72, 104, 0.09);
+}
+
+.refresh-status {
+  color: #8191a2;
+  font-size: 12px;
+}
+
+.refresh-status--failed {
+  color: #d64541;
 }
 
 .table-head {
@@ -1189,6 +1310,12 @@ onUnmounted(() => {
   font-size: 12px;
   font-weight: 800;
   line-height: 24px;
+}
+
+.level-pill--muted {
+  color: #5f7186;
+  background: #f3f6f9;
+  border-color: #dbe4ec;
 }
 
 .level-pill--info {

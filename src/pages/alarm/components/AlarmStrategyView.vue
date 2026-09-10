@@ -67,7 +67,7 @@
               <view v-else-if="column.renderType === 'action'" class="table-cell col-action">
                 <button class="table-action-btn" @click.stop="openEditDialog(item)">编辑</button>
                 <!-- 启停：行内快捷切换，走 PUT /{id}/toggle -->
-                <button class="table-action-btn" @click.stop="handleToggleEnabled(item)">{{ item.enabled ? "停用" : "启用" }}</button>
+                <button class="table-action-btn" :disabled="togglingId != null" @click.stop="handleToggleEnabled(item)">{{ item.enabled ? "停用" : "启用" }}</button>
                 <button v-if="item.ruleKind !== 'FIXED'" class="table-action-btn table-action-btn--danger" @click.stop="handleDelete(item)">删除</button>
               </view>
               <text v-else class="table-cell" :class="column.className" :title="cellText(item, column)">{{ cellText(item, column) }}</text>
@@ -104,8 +104,10 @@
         <view class="dialog-body">
           <view class="alarm-dialog-form">
             <view class="form-field">
-              <text class="form-label form-label--required">规则名称</text>
-              <input v-model="form.ruleName" class="form-input" :class="{ 'form-control--error': validationErrors.ruleName }" placeholder="请输入规则名称" placeholder-class="input-placeholder" @input="clearError('ruleName')" />
+              <text class="form-label" :class="{ 'form-label--required': !editingFixed }">规则名称</text>
+              <!-- FIXED 预置规则名称只读（保存不提交该字段，可编辑会造成"假保存"） -->
+              <input v-if="!editingFixed" v-model="form.ruleName" class="form-input" :class="{ 'form-control--error': validationErrors.ruleName }" placeholder="请输入规则名称" placeholder-class="input-placeholder" @input="clearError('ruleName')" />
+              <view v-else class="form-input form-input--readonly">{{ form.ruleName }}</view>
               <text v-if="validationErrors.ruleName" class="form-error">{{ validationErrors.ruleName }}</text>
             </view>
 
@@ -120,23 +122,31 @@
                     type="text"
                     placeholder="输入关键字筛选字段"
                     placeholder-class="input-placeholder"
-                    @focus="activeSelect = 'fieldName'"
-                    @input="activeSelect = 'fieldName'"
+                    @focus="onFieldKeywordInput"
+                    @input="onFieldKeywordInput"
                   />
                   <text class="select-arrow"></text>
                   <view v-if="activeSelect === 'fieldName'" class="select-menu select-menu--field">
-                    <view
-                      v-for="option in filteredFieldOptions"
-                      :key="option.fieldName"
-                      class="select-option"
-                      :class="{ 'select-option--active': form.fieldName === option.fieldName }"
-                      @click.stop="selectFieldName(option)"
-                    >
-                      {{ option.fieldCnName || option.fieldName }}
+                    <view v-if="fieldLoadState === 'loading'" class="select-option select-option--empty">
+                      字段加载中...
                     </view>
-                    <view v-if="filteredFieldOptions.length === 0" class="select-option select-option--empty">
-                      无匹配字段
+                    <view v-else-if="fieldLoadState === 'failed'" class="select-option select-option--empty" @click.stop="loadFieldOptions">
+                      <text class="field-retry">字段加载失败，点击重试</text>
                     </view>
+                    <template v-else>
+                      <view
+                        v-for="option in filteredFieldOptions"
+                        :key="option.fieldName"
+                        class="select-option"
+                        :class="{ 'select-option--active': form.fieldName === option.fieldName }"
+                        @click.stop="selectFieldName(option)"
+                      >
+                        {{ option.fieldCnName || option.fieldName }}
+                      </view>
+                      <view v-if="filteredFieldOptions.length === 0" class="select-option select-option--empty">
+                        无匹配字段
+                      </view>
+                    </template>
                   </view>
                 </view>
                 <text v-if="validationErrors.fieldName" class="form-error">{{ validationErrors.fieldName }}</text>
@@ -191,36 +201,46 @@
               </view>
             </template>
 
-            <view class="form-field">
-              <text class="form-label">生效范围</text>
-              <view class="select-field">
-                <view class="form-select form-select--dropdown" @click.stop="toggleSelect('scopeType')">
-                  <text>{{ getScopeTypeText(form.scopeType) }}</text>
-                  <text class="select-arrow"></text>
-                </view>
-                <view v-if="activeSelect === 'scopeType'" class="select-menu">
-                  <view v-for="option in scopeOptions" :key="option.label" class="select-option" :class="{ 'select-option--active': form.scopeType === option.value }" @click.stop="selectScopeType(option.value)">
-                    {{ option.label }}
+            <template v-if="!editingFixed">
+              <view class="form-field">
+                <text class="form-label">生效范围</text>
+                <view class="select-field">
+                  <view class="form-select form-select--dropdown" @click.stop="toggleSelect('scopeType')">
+                    <text>{{ getScopeTypeText(form.scopeType) }}</text>
+                    <text class="select-arrow"></text>
+                  </view>
+                  <view v-if="activeSelect === 'scopeType'" class="select-menu">
+                    <view v-for="option in scopeOptions" :key="option.label" class="select-option" :class="{ 'select-option--active': form.scopeType === option.value }" @click.stop="selectScopeType(option.value)">
+                      {{ option.label }}
+                    </view>
                   </view>
                 </view>
+                <text v-if="validationErrors.scopeType" class="form-error">{{ validationErrors.scopeType }}</text>
               </view>
-            </view>
 
-            <view v-if="form.scopeType === 1" class="form-field">
-              <text class="form-label form-label--required">部门</text>
-              <view class="select-field">
-                <view class="form-select form-select--dropdown" @click.stop="toggleSelect('deptId')">
-                  <text :class="{ 'select-placeholder': form.deptId === null }">{{ getDeptName(form.deptId) }}</text>
-                  <text class="select-arrow"></text>
-                </view>
-                <view v-if="activeSelect === 'deptId'" class="select-menu">
-                  <view v-for="dept in deptList" :key="dept.id" class="select-option" :class="{ 'select-option--active': form.deptId === dept.id }" @click.stop="selectDept(dept.id)">
-                    {{ dept.deptName }}
+              <view v-if="form.scopeType === 1" class="form-field">
+                <text class="form-label form-label--required">部门</text>
+                <view class="select-field">
+                  <view class="form-select form-select--dropdown" @click.stop="toggleSelect('deptId')">
+                    <text :class="{ 'select-placeholder': form.deptId === null }">{{ getDeptName(form.deptId) }}</text>
+                    <text class="select-arrow"></text>
+                  </view>
+                  <view v-if="activeSelect === 'deptId'" class="select-menu">
+                    <view v-for="dept in deptList" :key="dept.id" class="select-option" :class="{ 'select-option--active': form.deptId === dept.id }" @click.stop="selectDept(dept.id)">
+                      {{ dept.deptName }}
+                    </view>
                   </view>
                 </view>
+                <text v-if="validationErrors.deptId" class="form-error">{{ validationErrors.deptId }}</text>
               </view>
-              <text v-if="validationErrors.deptId" class="form-error">{{ validationErrors.deptId }}</text>
-            </view>
+            </template>
+            <!-- FIXED：生效范围只读（保存不提交该字段，避免"假保存"） -->
+            <template v-else>
+              <view class="form-field">
+                <text class="form-label">生效范围</text>
+                <view class="form-input form-input--readonly">{{ getScopeTypeText(form.scopeType) }}</view>
+              </view>
+            </template>
 
             <view class="form-field">
               <text class="form-label">启用状态</text>
@@ -289,12 +309,13 @@ interface DeptItem {
 }
 
 /** 报警类型筛选选项（后端字符串枚举；首项"不限"= 不过滤）。 */
+// "自定义规则"筛选用 ruleKind=CUSTOM 而非 alarmType=CUSTOM：历史规则可能 alarmType 为空
 const ALARM_TYPE_FILTERS = [
   { label: "不限", value: null as string | null },
   { label: "设备离线", value: "OFFLINE" },
   { label: "数据超时", value: "NO_DATA" },
   { label: "渗漏疑似", value: "LEAK_SUSPECT" },
-  { label: "自定义规则", value: "CUSTOM" },
+  { label: "自定义规则", value: "kind:CUSTOM" },
 ] as const;
 const alarmTypeFilterOptions = ALARM_TYPE_FILTERS;
 
@@ -424,7 +445,8 @@ function getScopeText(item: AlarmRule) {
 /** 字段下拉数据（GET /fields，供 CUSTOM 规则选择监测字段） */
 const fieldOptions = ref<Array<{ fieldName?: string; fieldCnName?: string; unit?: string; description?: string }>>([]);
 
-/** 可搜索下拉：按关键字过滤（匹配中文名/英文名，不区分大小写） */
+/** 可搜索下拉：按关键字过滤（匹配中文名/英文名，不区分大小写）。
+ * 关键字变化即取消已选字段，防止"改了文字没重选、保存仍提交旧字段"的静默不一致。 */
 const fieldKeyword = ref("");
 
 const filteredFieldOptions = computed(() => {
@@ -436,6 +458,18 @@ const filteredFieldOptions = computed(() => {
       (option.fieldName || "").toLowerCase().includes(kw),
   );
 });
+
+function onFieldKeywordInput() {
+  const hit = fieldOptions.value.find((option) => option.fieldName === form.fieldName);
+  const echo = hit?.fieldCnName || form.fieldName;
+  if (form.fieldName && fieldKeyword.value.trim() !== (echo || "").trim()) {
+    form.fieldName = "";
+  }
+  activeSelect.value = "fieldName";
+}
+
+/** 字段下拉加载状态：failed 时显示重试，与"无匹配"区分 */
+const fieldLoadState = ref<"idle" | "loading" | "failed" | "ready">("idle");
 
 function getFieldUnitPlaceholder() {
   const hit = fieldOptions.value.find((option) => option.fieldName === form.fieldName);
@@ -451,7 +485,13 @@ function buildPageParams(page: number): AlarmRulePageQuery {
   };
   if (filters.ruleName.trim()) params.ruleName = filters.ruleName.trim();
   const alarmType = alarmTypeFilterOptions[filters.alarmTypeIndex].value;
-  if (alarmType !== null) params.alarmType = alarmType as AlarmRulePageQuery["alarmType"];
+  if (alarmType !== null) {
+    if (alarmType === "kind:CUSTOM") {
+      params.ruleKind = "CUSTOM";
+    } else {
+      params.alarmType = alarmType as AlarmRulePageQuery["alarmType"];
+    }
+  }
   const enabled = filters.enabledIndex > 0 ? filters.enabledIndex === 1 : null;
   if (enabled !== null) params.enabled = enabled;
   return params;
@@ -535,6 +575,9 @@ const form = reactive({
   remark: "",
 });
 
+/** 编辑 CUSTOM 规则时的原始值基线（null 清空语义未获后端支持，用于拦截清空类修改） */
+const editBaseline = ref<{ deptId: number | null; minValue: number | string | null; maxValue: number | string | null } | null>(null);
+
 /** 编辑 FIXED 预置规则时表单切换为"参数可改"模式（监测字段/区间隐藏） */
 const editingFixed = computed(() => form.ruleKind === "FIXED");
 
@@ -575,6 +618,7 @@ function selectScopeType(value: number | null) {
   if (value === null) return;
   form.scopeType = value;
   if (value !== 1) validationErrors.deptId = "";
+  if (value === 1) validationErrors.scopeType = ""; // 改回部门即解除"改为全局"拦截
   activeSelect.value = null;
 }
 
@@ -594,16 +638,26 @@ async function loadDeptOptions() {
 }
 
 async function loadFieldOptions() {
+  fieldLoadState.value = "loading";
   try {
     const res = (await getRuleFields()) as ApiLikeResponse<Array<{ fieldName?: string; fieldCnName?: string; unit?: string; description?: string }>>;
+    // 业务层失败（如登录失效 code=401）也进入错误态，不能只看 HTTP 成功
+    if (res.code !== undefined && res.code !== 200) {
+      fieldOptions.value = [];
+      fieldLoadState.value = "failed";
+      return;
+    }
     fieldOptions.value = res.data || [];
+    fieldLoadState.value = "ready";
   } catch {
     fieldOptions.value = [];
+    fieldLoadState.value = "failed";
   }
 }
 
 function openCreateDialog() {
   isCreating.value = true;
+  editBaseline.value = null; // 新建无基线：null 即"不设置"，合法
   formError.value = "";
   Object.keys(validationErrors).forEach((key) => {
     validationErrors[key] = "";
@@ -632,6 +686,12 @@ function openCreateDialog() {
 
 function openEditDialog(item: AlarmRule) {
   isCreating.value = false;
+  // 记录编辑前基线：用于拦截后端尚不支持的"清空"修改（null 不会真正清除数据库原值）
+  editBaseline.value = {
+    deptId: item.deptId ?? null,
+    minValue: item.minValue ?? null,
+    maxValue: item.maxValue ?? null,
+  };
   formError.value = "";
   Object.keys(validationErrors).forEach((key) => {
     validationErrors[key] = "";
@@ -680,14 +740,22 @@ function validateForm() {
 
   if (editingFixed.value) {
     // FIXED 预置规则：只校验对应类型的判定参数
-    if (form.alarmType === "OFFLINE" && (form.thresholdMinutes === "" || Number(form.thresholdMinutes) <= 0)) {
-      validationErrors.thresholdMinutes = "请输入离线判定分钟数";
+    const minutesNum = Number(form.thresholdMinutes);
+    if (form.alarmType === "OFFLINE" && (!Number.isInteger(minutesNum) || minutesNum <= 0)) {
+      validationErrors.thresholdMinutes = "请输入正整数分钟数";
     }
-    if (form.alarmType === "NO_DATA" && (form.thresholdHours === "" || Number(form.thresholdHours) <= 0)) {
-      validationErrors.thresholdHours = "请输入超时判定小时数";
+    const hoursNum = Number(form.thresholdHours);
+    if (form.alarmType === "NO_DATA" && (!Number.isInteger(hoursNum) || hoursNum <= 0)) {
+      validationErrors.thresholdHours = "请输入正整数小时数";
     }
-    if (form.alarmType === "LEAK_SUSPECT" && !String(form.triggerValue).trim()) {
-      validationErrors.triggerValue = "请输入渗漏触发值集合";
+    // 触发值集合：逗号分隔的合法整数列表（如 "2,0"）
+    if (form.alarmType === "LEAK_SUSPECT") {
+      const raw = String(form.triggerValue).trim();
+      if (!raw) {
+        validationErrors.triggerValue = "请输入渗漏触发值集合";
+      } else if (!/^-?\d+(\s*,\s*-?\d+)*$/.test(raw)) {
+        validationErrors.triggerValue = "触发值须为逗号分隔的整数，如 2,0";
+      }
     }
   } else {
     // CUSTOM 自定义规则：字段 + 区间至少一项
@@ -697,12 +765,34 @@ function validateForm() {
     if (form.minValue === "" && form.maxValue === "") {
       validationErrors.minValue = "区间下限与上限至少填写一项";
     }
+    // 上下限必须为有限数值（防止 "abc" 等 Number() 结果为 NaN 的输入提交后端）
+    if (form.minValue !== "" && !Number.isFinite(Number(form.minValue))) {
+      validationErrors.minValue = "下限须为有效数字";
+    }
+    if (form.maxValue !== "" && !Number.isFinite(Number(form.maxValue))) {
+      validationErrors.maxValue = "上限须为有效数字";
+    }
     if (
       form.minValue !== "" &&
       form.maxValue !== "" &&
       Number(form.maxValue) <= Number(form.minValue)
     ) {
       validationErrors.maxValue = "上限须大于下限";
+    }
+    // 编辑已有规则时拦截"清空"类修改：后端 updateById 会跳过 null 字段，
+    // 提交 null 并不会真正清除数据库原值，会造成"保存成功但没改"的假象
+    if (!isCreating.value && editBaseline.value) {
+      const b = editBaseline.value;
+      if (b.minValue != null && form.minValue === "") {
+        validationErrors.minValue = "后端暂不支持清空下限，可修改数值或删除规则后重建";
+      }
+      if (b.maxValue != null && form.maxValue === "") {
+        validationErrors.maxValue = "后端暂不支持清空上限，可修改数值或删除规则后重建";
+      }
+      if (b.deptId != null && form.scopeType !== 1) {
+        // 挂在 scopeType 上：生效范围字段始终可见；deptId 错误所在区域在全局模式下是隐藏的
+        validationErrors.scopeType = "暂不支持将已有部门规则改为全局，请保留原范围";
+      }
     }
   }
 
@@ -769,15 +859,23 @@ async function handleSave() {
 }
 
 /** 行内启停：翻转 enabled 后整体保存（走 updateRule）。 */
+/** 行内启停进行中标记（防连点重复请求：刚停用又被启用） */
+const togglingId = ref<number | null>(null);
+
 async function handleToggleEnabled(item: AlarmRule) {
+  if (togglingId.value != null) return;
+  togglingId.value = item.id ?? null;
   try {
-    const res = await updateRule(item.id as number, { ...item, enabled: !item.enabled } as AlarmRulePayload);
+    const res = await toggleRule(item.id as number);
     if (res.code !== undefined && res.code !== 200) {
       throw new Error(res.msg);
     }
-    loadRules(pagination.current);
+    // 等列表刷新完成再解锁：期间按钮保持禁用，避免行数据未更新时再次点击
+    await loadRules(pagination.current);
   } catch (error) {
     uni.showToast({ title: (error as { msg?: string })?.msg || "切换启停失败", icon: "none" });
+  } finally {
+    togglingId.value = null;
   }
 }
 
