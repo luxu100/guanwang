@@ -97,7 +97,7 @@
         <view class="dialog-head">
           <view>
             <text class="dialog-title">{{ isCreating ? localeText("新增规则", "Add Rule") : localeText("编辑规则", "Edit Rule") }}</text>
-            <text class="dialog-subtitle">{{ isCreating ? localeText("新建自定义规则", "Create custom rule") : localeText("维护报警规则", "Maintain alarm rules") }}</text>
+            <text class="dialog-subtitle">{{ isCreating ? localeText("新建自定义规则", "Create custom rule") : localeText("维护报警规则", "Manage Alarm Rules") }}</text>
           </view>
           <button class="icon-button" hover-class="icon-button--hover" :aria-label="localeText('关闭', 'Close')" @click="closeDialog">
             <text class="close-icon"></text>
@@ -108,6 +108,7 @@
 
         <view class="dialog-body">
           <view class="alarm-dialog-form">
+            <text class="form-group-title">{{ localeText("基本信息", "Basic Info") }}</text>
             <view class="form-field">
               <text class="form-label" :class="{ 'form-label--required': !editingFixed }">{{ localeText("规则名称", "Rule Name") }}</text>
               <!-- FIXED 预置规则名称只读（保存不提交该字段，可编辑会造成"假保存"） -->
@@ -116,9 +117,10 @@
               <text v-if="validationErrors.ruleName" class="form-error">{{ validationErrors.ruleName }}</text>
             </view>
 
+            <text class="form-group-title">{{ localeText("判定条件", "Trigger Condition") }}</text>
             <template v-if="!editingFixed">
-              <view class="form-field">
-                <text class="form-label form-label--required">{{ localeText("监测字段", "Monitor Field") }}</text>
+              <view class="form-field form-field--full">
+                <text class="form-label form-label--required">{{ localeText("监测字段", "Monitored Field") }}</text>
                 <view class="select-field">
                   <input
                     v-model="fieldKeyword"
@@ -127,8 +129,9 @@
                     type="text"
                     :placeholder="localeText('输入关键字筛选字段', 'Type to filter fields')"
                     placeholder-class="input-placeholder"
-                    @focus="onFieldKeywordInput"
+                    @focus="onFieldFocus"
                     @input="onFieldKeywordInput"
+                    @click.stop="toggleFieldMenu"
                   />
                   <text class="select-arrow"></text>
                   <view v-if="activeSelect === 'fieldName'" class="select-menu select-menu--field">
@@ -161,21 +164,22 @@
             <template v-else>
               <view v-if="form.alarmType === 'OFFLINE'" class="form-field">
                 <text class="form-label form-label--required">{{ localeText("离线判定（分钟）", "Offline Threshold (min)") }}</text>
-                <input v-model="form.thresholdMinutes" class="form-input" :class="{ 'form-control--error': validationErrors.thresholdMinutes }" type="number" :placeholder="localeText('设备离线超过该分钟数触发', 'Trigger after offline minutes')" placeholder-class="input-placeholder" @input="clearError('thresholdMinutes')" />
+                <input v-model="form.thresholdMinutes" class="form-input" :class="{ 'form-control--error': validationErrors.thresholdMinutes }" type="number" :placeholder="localeText('设备离线超过该分钟数触发', 'Trigger when offline longer than this threshold')" placeholder-class="input-placeholder" @input="clearError('thresholdMinutes')" />
                 <text v-if="validationErrors.thresholdMinutes" class="form-error">{{ validationErrors.thresholdMinutes }}</text>
               </view>
               <view v-if="form.alarmType === 'NO_DATA'" class="form-field">
                 <text class="form-label form-label--required">{{ localeText("超时判定（小时）", "No-data Threshold (hours)") }}</text>
-                <input v-model="form.thresholdHours" class="form-input" :class="{ 'form-control--error': validationErrors.thresholdHours }" type="number" :placeholder="localeText('无上报超过该小时数触发', 'Trigger after no-data hours')" placeholder-class="input-placeholder" @input="clearError('thresholdHours')" />
+                <input v-model="form.thresholdHours" class="form-input" :class="{ 'form-control--error': validationErrors.thresholdHours }" type="number" :placeholder="localeText('无上报超过该小时数触发', 'Trigger when no data is reported for longer than this threshold')" placeholder-class="input-placeholder" @input="clearError('thresholdHours')" />
                 <text v-if="validationErrors.thresholdHours" class="form-error">{{ validationErrors.thresholdHours }}</text>
               </view>
               <view v-if="form.alarmType === 'LEAK_SUSPECT'" class="form-field">
                 <text class="form-label form-label--required">{{ localeText("渗漏触发值集合", "Leak Trigger Values") }}</text>
-                <input v-model="form.triggerValue" class="form-input" :class="{ 'form-control--error': validationErrors.triggerValue }" type="text" :placeholder="localeText('命中集合即触发，如 2,0', 'Trigger when status in set, e.g. 2,0')" placeholder-class="input-placeholder" @input="clearError('triggerValue')" />
+                <input v-model="form.triggerValue" class="form-input" :class="{ 'form-control--error': validationErrors.triggerValue }" type="text" :placeholder="localeText('命中集合即触发，如 2,0', 'Trigger when status matches any listed value, e.g. 2, 0')" placeholder-class="input-placeholder" @input="clearError('triggerValue')" />
                 <text v-if="validationErrors.triggerValue" class="form-error">{{ validationErrors.triggerValue }}</text>
               </view>
             </template>
 
+            <text class="form-group-title">{{ localeText("生效设置", "Effect Settings") }}</text>
             <view class="form-field">
               <text class="form-label form-label--required">{{ localeText("报警级别", "Alarm Level") }}</text>
               <view class="select-field">
@@ -204,6 +208,7 @@
                 <input v-model="form.maxValue" class="form-input" :class="{ 'form-control--error': validationErrors.maxValue }" type="digit" :placeholder="getFieldUnitPlaceholder()" placeholder-class="input-placeholder" @input="clearError('maxValue')" />
                 <text v-if="validationErrors.maxValue" class="form-error">{{ validationErrors.maxValue }}</text>
               </view>
+              <view class="form-hint">{{ localeText("实测值落在区间外触发；只填下限=低于触发，只填上限=高于触发", "Trigger when the value falls outside the range; min-only triggers below, max-only above") }}</view>
             </template>
 
             <template v-if="!editingFixed">
@@ -269,7 +274,7 @@
 
             <view class="form-field form-field--full">
               <text class="form-label">{{ localeText("备注", "Remark") }}</text>
-              <input v-model="form.remark" class="form-input" :placeholder="localeText('请输入备注', 'Enter remark')" placeholder-class="input-placeholder" />
+              <textarea v-model="form.remark" class="form-textarea" :placeholder="localeText('请输入备注', 'Enter remark')" placeholder-class="input-placeholder" :maxlength="255" />
             </view>
           </view>
         </view>
@@ -301,6 +306,14 @@ import {
   strategyGridColumns,
   type AlarmTableColumn,
 } from "@/pages/alarm/components/alarmColumns";
+import {
+  ALARM_LEVEL_MAP as ALARM_LEVEL_MAP_LOCAL,
+  ALARM_TYPE_MAP as ALARM_TYPE_MAP_LOCAL,
+  RULE_KIND_MAP as RULE_KIND_MAP_LOCAL,
+  alarmTypeOptions as publicAlarmTypeOptions,
+  alarmLevelOptions as publicAlarmLevelOptions,
+  mapEnumText,
+} from "@/pages/alarm/components/alarmLocale";
 import { getDeptList } from "@/services/partition/partition";
 import { confirmDangerAction } from "@/utils/confirmAction";
 
@@ -324,19 +337,12 @@ interface DeptItem {
  * 按 alarmType 筛会漏掉它们；ruleKind 才是稳定的自定义标识。 */
 const ALARM_TYPE_FILTERS = computed(() => [
   { label: localeText("不限", "All"), value: null as string | null },
-  { label: localeText("设备离线", "Offline"), value: "OFFLINE" },
-  { label: localeText("数据超时", "No Data"), value: "NO_DATA" },
-  { label: localeText("渗漏疑似", "Leak Suspect"), value: "LEAK_SUSPECT" },
-  { label: localeText("自定义规则", "Custom Rule"), value: "kind:CUSTOM" },
+  ...publicAlarmTypeOptions(localeText).slice(1).map((o, i) => (i === 2 ? { ...o, value: "kind:CUSTOM" } : o)),
 ]);
 const alarmTypeFilterOptions = ALARM_TYPE_FILTERS;
 
-/** 级别选项（筛选首项"不限"，表单用 slice 后的子集按值取）。 */
-const alarmLevelOptions = computed(() => [
-  { label: localeText("提示", "Info"), value: "INFO" },
-  { label: localeText("警告", "Warning"), value: "WARNING" },
-  { label: localeText("严重", "Critical"), value: "CRITICAL" },
-]);
+/** 级别选项（公共映射；表单与筛选共用）。 */
+const alarmLevelOptions = computed(() => publicAlarmLevelOptions(localeText));
 const enabledOptions = computed(() => [
   { label: localeText("不限", "All"), value: null },
   { label: localeText("启用", "Enabled"), value: 1 },
@@ -366,10 +372,9 @@ const textFormatters: Record<string, (item: AlarmRule) => string> = {
   ruleKind: (item) => getRuleKindText(item.ruleKind),
   // 历史 CUSTOM 规则可能 alarmType 为空（后端建规则时不自动挂类型），回退显示"自定义规则"
   alarmType: (item) =>
-    item.alarmTypeName ||
-    (item.ruleKind === "CUSTOM" && !item.alarmType
+    item.ruleKind === "CUSTOM" && !item.alarmType
       ? localeText("自定义规则", "Custom Rule")
-      : getRuleTypeText(item.alarmType)),
+      : getRuleTypeText(item.alarmType, item.alarmTypeName),
   alarmLevel: () => "",
   thresholdDesc: (item) => getThresholdDescText(item),
   scope: (item) => getScopeText(item),
@@ -391,35 +396,18 @@ const totalPages = computed(() => Math.max(1, Math.ceil(pagination.total / pagin
 
 /* ========================= 文案映射（对齐后端字符串枚举） ========================= */
 
-const RULE_TYPE_ZH: Record<string, string> = {
-  OFFLINE: "设备离线",
-  NO_DATA: "数据超时",
-  LEAK_SUSPECT: "渗漏疑似",
-  CUSTOM: "自定义规则",
-};
-const RULE_TYPE_EN: Record<string, string> = {
-  OFFLINE: "Offline",
-  NO_DATA: "No Data",
-  LEAK_SUSPECT: "Leak Suspect",
-  CUSTOM: "Custom Rule",
-};
-
-function getRuleTypeText(value?: string | null, placeholder = false) {
-  if (value == null) return placeholder ? localeText("请选择报警类型", "Select alarm type") : "-";
-  return localeText(RULE_TYPE_ZH[value] || value, RULE_TYPE_EN[value] || value);
+function getRuleTypeText(value?: string | null, fallbackName?: string | null, placeholder = false) {
+  if (value == null) return placeholder ? localeText("请选择报警类型", "Select alarm type") : fallbackName || "-";
+  return mapEnumText(ALARM_TYPE_MAP_LOCAL, value, localeText, fallbackName);
 }
 
 function getRuleKindText(value?: string | null) {
-  if (value === "FIXED") return localeText("固定", "Fixed");
-  if (value === "CUSTOM") return localeText("自定义", "Custom");
-  return value || "-";
+  return mapEnumText(RULE_KIND_MAP_LOCAL, value, localeText);
 }
 
 function getLevelText(value?: string | null, placeholder = false) {
-  const zhMap: Record<string, string> = { INFO: "提示", WARNING: "警告", CRITICAL: "严重" };
-  const enMap: Record<string, string> = { INFO: "Info", WARNING: "Warning", CRITICAL: "Critical" };
   if (value == null) return placeholder ? localeText("请选择报警级别", "Select alarm level") : "-";
-  return localeText(zhMap[value] || value, enMap[value] || value);
+  return mapEnumText(ALARM_LEVEL_MAP_LOCAL, value, localeText);
 }
 
 function getLevelClass(value?: string | number | null) {
@@ -496,6 +484,25 @@ function onFieldKeywordInput() {
   activeSelect.value = "fieldName";
 }
 
+/** 点输入框：已展开则收起，未展开则展开（再点一下可收起，不必点其他区域）。
+ * 收起后紧随的 focus 事件不应重新展开，用时间戳抑制。 */
+let fieldMenuCollapsedAt = 0;
+
+function toggleFieldMenu() {
+  if (activeSelect.value === "fieldName") {
+    activeSelect.value = null;
+    fieldMenuCollapsedAt = Date.now();
+  } else {
+    activeSelect.value = "fieldName";
+  }
+}
+
+function onFieldFocus() {
+  // 刚通过点击收起（300ms 内），本次 focus 不重新展开
+  if (Date.now() - fieldMenuCollapsedAt < 300) return;
+  onFieldKeywordInput();
+}
+
 /** 字段下拉加载状态：idle/loading/failed/ready（failed 时显示重试，避免与"无匹配"混淆） */
 const fieldLoadState = ref<"idle" | "loading" | "failed" | "ready">("idle");
 
@@ -520,7 +527,7 @@ async function loadFieldOptions() {
 function getFieldUnitPlaceholder() {
   const hit = fieldOptions.value.find((option) => option.fieldName === form.fieldName);
   const unit = hit?.unit ? `（${hit.unit}）` : "";
-  return localeText(`留空表示不限制${unit}`, `Empty for no limit${unit}`);
+  return localeText(`留空表示不限制${unit}`, `Leave blank for no limit${unit}`);
 }
 
 /* ========================= 数据加载 ========================= */
@@ -790,10 +797,10 @@ function validateForm() {
   } else {
     // CUSTOM 自定义规则：字段 + 区间至少一项
     if (!form.fieldName) {
-      validationErrors.fieldName = localeText("请选择监测字段", "Select monitor field");
+      validationErrors.fieldName = localeText("请选择监测字段", "Select monitored field");
     }
     if (form.minValue === "" && form.maxValue === "") {
-      validationErrors.minValue = localeText("区间下限与上限至少填写一项", "Min or max value is required");
+      validationErrors.minValue = localeText("区间下限与上限至少填写一项", "Enter a minimum or maximum value");
     }
     // 上下限必须为有限数值（防止 "abc" 等 Number() 结果为 NaN 的输入提交后端）
     if (form.minValue !== "" && !Number.isFinite(Number(form.minValue))) {
@@ -807,7 +814,7 @@ function validateForm() {
       form.maxValue !== "" &&
       Number(form.maxValue) <= Number(form.minValue)
     ) {
-      validationErrors.maxValue = localeText("上限须大于下限", "Upper must be greater than lower");
+      validationErrors.maxValue = localeText("上限须大于下限", "Max value must be greater than min value");
     }
     // 编辑已有规则时拦截"清空"类修改：后端 updateById 会跳过 null 字段，
     // 提交 null 并不会真正清除数据库原值，会造成"保存成功但没改"的假象
@@ -1440,6 +1447,23 @@ onMounted(() => {
   gap: 12px 18px;
 }
 
+.form-group-title {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+  padding-left: 10px;
+  border-left: 3px solid #3b82f6;
+  color: #183755;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.3;
+}
+
+.form-hint {
+  color: #8191a2;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .form-field {
   position: relative;
   display: flex;
@@ -1514,6 +1538,18 @@ onMounted(() => {
   margin-left: 4px;
   color: #ef4444;
   content: "*";
+}
+
+.form-textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 64px;
+  padding: 8px 12px;
+  color: #172033;
+  font-size: 14px;
+  background: #fbfdff;
+  border: 1px solid #d5e2ee;
+  border-radius: 4px;
 }
 
 .form-input,

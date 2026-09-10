@@ -73,11 +73,11 @@
       <view class="table-panel">
       <view class="table-head">
         <text>报警处理</text>
-        <view class="table-head__status">
+        <view class="table-head__aux">
           <text v-if="pollFailed" class="refresh-status refresh-status--failed">更新失败，正在重试</text>
           <text v-else-if="lastRefreshSuccessAt" class="refresh-status">已更新 {{ fmtClock(lastRefreshSuccessAt) }}</text>
+          <text class="table-head__meta">共 {{ pagination.total }} 条</text>
         </view>
-        <text class="table-head__meta">共 {{ pagination.total }} 条</text>
       </view>
 
       <scroll-view class="table-scroll" scroll-x scroll-y>
@@ -146,23 +146,46 @@
           <text class="close-icon"></text>
         </button>
       </view>
-      <scroll-view class="detail-panel__body" scroll-y>
-        <view class="detail-grid">
-          <view
-            v-for="field in detailFields"
-            :key="field.key"
-            class="detail-item"
-            :class="{ 'detail-item--full': field.full }"
-          >
-            <text class="detail-item__label">{{ field.label }}</text>
-            <text v-if="field.renderType === 'level-pill'" class="detail-item__value">
-              <text class="level-pill" :class="getLevelClass(detailPillValue(field))">{{ getLevelText(detailPillValue(field)) }}</text>
-            </text>
-            <text v-else-if="field.renderType === 'status-pill'" class="detail-item__value">
-              <text class="status-pill" :class="getStatusClass(detailPillValue(field))">{{ getStatusText(detailPillValue(field)) }}</text>
-            </text>
-            <text v-else class="detail-item__value" :title="detailValue(field)">{{ detailValue(field) }}</text>
+      <scroll-view class="detail-panel__body detail-section" scroll-y>
+        <!-- 摘要卡：设备 + 类型 + 级别 + 状态（蓝色竖线强调，同漏点详情） -->
+        <view class="detail-summary">
+          <view class="detail-summary__main">
+            <text class="detail-summary__label">设备编号</text>
+            <text class="detail-summary__value">{{ selectedRecord.deviceNumber || "-" }}<text v-if="selectedRecord.deviceAlias" class="detail-summary__alias">{{ selectedRecord.deviceAlias }}</text></text>
           </view>
+          <view class="detail-summary__badges">
+            <text class="detail-summary__badge detail-summary__badge--type">{{ getRuleTypeText(selectedRecord.alarmType, selectedRecord.alarmTypeName) }}</text>
+            <text class="level-pill" :class="getLevelClass(selectedRecord.alarmLevel)">{{ getLevelText(selectedRecord.alarmLevel) }}</text>
+            <text class="status-pill" :class="getStatusClass(selectedRecord.status)">{{ getStatusText(selectedRecord.status) }}</text>
+          </view>
+          <view class="detail-summary__meta">
+            <view class="detail-summary__meta-item"><text class="detail-summary__meta-label">设备别名</text><text class="detail-summary__meta-value">{{ selectedRecord.deviceAlias || "-" }}</text></view>
+            <view class="detail-summary__meta-item"><text class="detail-summary__meta-label">规则类型</text><text class="detail-summary__meta-value">{{ getRuleKindText(selectedRecord.ruleKind) }}</text></view>
+          </view>
+        </view>
+
+        <!-- 触发信息 -->
+        <text class="detail-section-title">触发信息</text>
+        <view class="detail-grid">
+          <view class="detail-item"><text class="detail-item__label">命中规则</text><text class="detail-item__value">{{ selectedRecord.ruleName || "-" }}</text></view>
+          <view class="detail-item"><text class="detail-item__label">自定义字段</text><text class="detail-item__value">{{ selectedRecord.fieldName || "-" }}</text></view>
+          <view class="detail-item"><text class="detail-item__label">触发值</text><text class="detail-item__value">{{ selectedRecord.triggerValue == null ? "-" : String(selectedRecord.triggerValue) }}</text></view>
+          <view class="detail-item"><text class="detail-item__label">触发次数</text><text class="detail-item__value">{{ selectedRecord.triggerCount == null ? "-" : String(selectedRecord.triggerCount) }}</text></view>
+        </view>
+
+        <!-- 时间信息（整行） -->
+        <text class="detail-section-title">时间信息</text>
+        <view class="detail-grid detail-grid--single">
+          <view class="detail-item"><text class="detail-item__label">首次触发</text><text class="detail-item__value">{{ fmtDateTime(selectedRecord.firstTriggeredAt) }}</text></view>
+          <view class="detail-item"><text class="detail-item__label">最后触发</text><text class="detail-item__value">{{ fmtDateTime(selectedRecord.lastTriggeredAt) }}</text></view>
+          <view class="detail-item"><text class="detail-item__label">恢复时间</text><text class="detail-item__value">{{ fmtDateTime(selectedRecord.recoveredAt) }}</text></view>
+        </view>
+
+        <!-- 处理信息 -->
+        <text class="detail-section-title">处理信息</text>
+        <view class="detail-grid detail-grid--single">
+          <view class="detail-item"><text class="detail-item__label">处理人</text><text class="detail-item__value">{{ selectedRecord.handleUserId == null ? "-" : String(selectedRecord.handleUserId) }}</text></view>
+          <view class="detail-item"><text class="detail-item__label">处理备注</text><text class="detail-item__value">{{ selectedRecord.handleRemark || "-" }}</text></view>
         </view>
       </scroll-view>
     </view>
@@ -242,28 +265,31 @@ import {
   type AlarmDetailField,
   type AlarmTableColumn,
 } from "@/pages/alarm/components/alarmColumns";
+import {
+  ALARM_LEVEL_MAP,
+  ALARM_STATUS_MAP,
+  ALARM_TYPE_MAP as ALARM_TYPE_MAP_LOCAL,
+  RULE_KIND_MAP as RULE_KIND_MAP_LOCAL,
+  alarmLevelOptions as publicAlarmLevelOptions,
+  alarmStatusOptions as publicAlarmStatusOptions,
+  alarmTypeOptions as publicAlarmTypeOptions,
+  mapEnumText,
+} from "@/pages/alarm/components/alarmLocale";
 import { getDeptList } from "@/services/partition/partition";
 
-/** 报警类型筛选（后端字符串枚举）；首项"不限"= 不过滤 */
+/** 报警类型筛选（首项"不限"= 不过滤）；枚举文案统一读 alarmLocale.ts */
 const alarmTypeOptions = [
   { label: "不限", value: null as string | null },
-  { label: "设备离线", value: "OFFLINE" },
-  { label: "数据超时", value: "NO_DATA" },
-  { label: "渗漏疑似", value: "LEAK_SUSPECT" },
-  { label: "自定义规则", value: "CUSTOM" },
+  ...publicAlarmTypeOptions((zh) => zh),
 ];
 const alarmLevelOptions = [
   { label: "不限", value: null as string | null },
-  { label: "提示", value: "INFO" },
-  { label: "警告", value: "WARNING" },
-  { label: "严重", value: "CRITICAL" },
+  ...publicAlarmLevelOptions((zh) => zh),
 ];
 /** 三态状态机（后端：ACTIVE→CONFIRMED→RESOLVED）；首项"不限"= 不过滤 */
 const statusOptions = [
   { label: "不限", value: null as string | null },
-  { label: "活跃", value: "ACTIVE" },
-  { label: "已确认", value: "CONFIRMED" },
-  { label: "已关闭", value: "RESOLVED" },
+  ...publicAlarmStatusOptions((zh) => zh),
 ];
 
 interface DeptItem {
@@ -296,11 +322,11 @@ const detailFields = processingDetailFields;
 
 /* 文案映射（后端字符串枚举；类型优先取后端附带的中文名） */
 const textFormatters: Record<string, (item: AlarmRecord) => string> = {
-  alarmType: (item) => item.alarmTypeName || getRuleTypeText(item.alarmType),
+  alarmType: (item) => getRuleTypeText(item.alarmType, item.alarmTypeName),
   lastTriggeredAt: (item) => fmtDateTime(item.lastTriggeredAt),
 };
 const detailFormatters: Record<string, (item: AlarmRecord) => string> = {
-  alarmType: (item) => item.alarmTypeName || getRuleTypeText(item.alarmType),
+  alarmType: (item) => getRuleTypeText(item.alarmType, item.alarmTypeName),
   ruleKind: (item) => getRuleKindText(item.ruleKind),
   triggerCount: (item) => (item.triggerCount == null ? "-" : String(item.triggerCount)),
   firstTriggeredAt: (item) => fmtDateTime(item.firstTriggeredAt),
@@ -355,24 +381,18 @@ const deptPickerOptions = computed(() => [
   ...deptList.value.map((dept) => ({ label: dept.deptName, value: dept.id as number | null })),
 ]);
 
-/* ========================= 文案映射（后端字符串枚举） ========================= */
+/* ========================= 文案映射（读公共枚举映射 alarmLocale.ts） ========================= */
 
-function getRuleTypeText(value?: string | null) {
-  if (value == null) return "-";
-  const map: Record<string, string> = { OFFLINE: "设备离线", NO_DATA: "数据超时", LEAK_SUSPECT: "渗漏疑似", CUSTOM: "自定义规则" };
-  return map[value] || value;
+function getRuleTypeText(value?: string | null, fallbackName?: string | null) {
+  return mapEnumText(ALARM_TYPE_MAP_LOCAL, value, (zh) => zh, fallbackName);
 }
 
 function getRuleKindText(value?: string | null) {
-  if (value == null) return "-";
-  const map: Record<string, string> = { FIXED: "固定", CUSTOM: "自定义" };
-  return map[value] || value;
+  return mapEnumText(RULE_KIND_MAP_LOCAL, value, (zh) => zh);
 }
 
 function getLevelText(value?: string | null) {
-  if (value == null) return "-";
-  const map: Record<string, string> = { INFO: "提示", WARNING: "警告", CRITICAL: "严重" };
-  return map[value] || value;
+  return mapEnumText(ALARM_LEVEL_MAP, value, (zh) => zh);
 }
 
 function getLevelClass(value?: string | number | null) {
@@ -383,9 +403,7 @@ function getLevelClass(value?: string | number | null) {
 }
 
 function getStatusText(value?: string | null) {
-  const map: Record<string, string> = { ACTIVE: "活跃", CONFIRMED: "已确认", RESOLVED: "已关闭" };
-  if (value == null) return "-";
-  return map[value] || value;
+  return mapEnumText(ALARM_STATUS_MAP, value, (zh) => zh);
 }
 
 function getStatusClass(value?: string | null) {
@@ -802,8 +820,110 @@ onUnmounted(() => {
 .detail-panel__body {
   flex: 1;
   min-height: 0;
-  padding: 12px 14px;
+  padding: 14px 16px;
   box-sizing: border-box;
+}
+
+/* 摘要卡（蓝色竖线强调，同漏点详情） */
+.detail-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #3b82f6;
+  border-radius: 6px;
+  box-shadow: 0 8px 18px rgba(33, 72, 108, 0.045);
+}
+
+.detail-summary__main {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.detail-summary__label {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.detail-summary__value {
+  color: #0f4c81;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.detail-summary__alias {
+  margin-left: 8px;
+  color: #52677b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.detail-summary__badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.detail-summary__badge--type {
+  display: inline-block;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 24px;
+  border-radius: 10px;
+  color: #3b82f6;
+  background: #eff6ff;
+}
+
+.detail-summary__meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid #edf3f8;
+}
+
+.detail-summary__meta-item {
+  min-width: 0;
+  padding: 7px 10px;
+  background: #f8fafc;
+  border-radius: 6px;
+  border: 1px solid #e8eef5;
+}
+
+.detail-summary__meta-label {
+  display: block;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.detail-summary__meta-value {
+  color: #172033;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* 分组标题 */
+.detail-section-title {
+  display: block;
+  margin: 14px 0 10px;
+  color: #183755;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.detail-grid--single {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 @media (max-width: 1024px) {
@@ -963,6 +1083,14 @@ onUnmounted(() => {
   font-weight: 800;
   background: #ffffff;
   border-bottom: 1px solid #edf3ed;
+}
+
+.table-head__aux {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  min-width: 0;
 }
 
 .table-head__meta {

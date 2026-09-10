@@ -103,6 +103,7 @@
 
         <view class="dialog-body">
           <view class="alarm-dialog-form">
+            <text class="form-group-title">{{ "基本信息" }}</text>
             <view class="form-field">
               <text class="form-label" :class="{ 'form-label--required': !editingFixed }">规则名称</text>
               <!-- FIXED 预置规则名称只读（保存不提交该字段，可编辑会造成"假保存"） -->
@@ -111,8 +112,9 @@
               <text v-if="validationErrors.ruleName" class="form-error">{{ validationErrors.ruleName }}</text>
             </view>
 
+            <text class="form-group-title">判定条件</text>
             <template v-if="!editingFixed">
-              <view class="form-field">
+              <view class="form-field form-field--full">
                 <text class="form-label form-label--required">监测字段</text>
                 <view class="select-field">
                   <input
@@ -122,8 +124,9 @@
                     type="text"
                     placeholder="输入关键字筛选字段"
                     placeholder-class="input-placeholder"
-                    @focus="onFieldKeywordInput"
+                    @focus="onFieldFocus"
                     @input="onFieldKeywordInput"
+                    @click.stop="toggleFieldMenu"
                   />
                   <text class="select-arrow"></text>
                   <view v-if="activeSelect === 'fieldName'" class="select-menu select-menu--field">
@@ -171,6 +174,7 @@
               </view>
             </template>
 
+            <text class="form-group-title">生效设置</text>
             <view class="form-field">
               <text class="form-label form-label--required">报警级别</text>
               <view class="select-field">
@@ -199,6 +203,7 @@
                 <input v-model="form.maxValue" class="form-input" :class="{ 'form-control--error': validationErrors.maxValue }" type="digit" :placeholder="getFieldUnitPlaceholder()" placeholder-class="input-placeholder" @input="clearError('maxValue')" />
                 <text v-if="validationErrors.maxValue" class="form-error">{{ validationErrors.maxValue }}</text>
               </view>
+              <view class="form-hint">实测值落在区间外触发；只填下限=低于触发，只填上限=高于触发</view>
             </template>
 
             <template v-if="!editingFixed">
@@ -264,7 +269,7 @@
 
             <view class="form-field form-field--full">
               <text class="form-label">备注</text>
-              <input v-model="form.remark" class="form-input" placeholder="请输入备注" placeholder-class="input-placeholder" />
+              <textarea v-model="form.remark" class="form-textarea" placeholder="请输入备注" placeholder-class="input-placeholder" :maxlength="255" />
             </view>
           </view>
         </view>
@@ -294,6 +299,14 @@ import {
   strategyGridColumns,
   type AlarmTableColumn,
 } from "@/pages/alarm/components/alarmColumns";
+import {
+  ALARM_LEVEL_MAP as ALARM_LEVEL_MAP_LOCAL,
+  ALARM_TYPE_MAP as ALARM_TYPE_MAP_LOCAL,
+  RULE_KIND_MAP as RULE_KIND_MAP_LOCAL,
+  alarmLevelOptions as publicAlarmLevelOptions,
+  alarmTypeOptions as publicAlarmTypeOptions,
+  mapEnumText,
+} from "@/pages/alarm/components/alarmLocale";
 import { getDeptList } from "@/services/partition/partition";
 import { confirmDangerAction } from "@/utils/confirmAction";
 
@@ -312,18 +325,11 @@ interface DeptItem {
 // "自定义规则"筛选用 ruleKind=CUSTOM 而非 alarmType=CUSTOM：历史规则可能 alarmType 为空
 const ALARM_TYPE_FILTERS = [
   { label: "不限", value: null as string | null },
-  { label: "设备离线", value: "OFFLINE" },
-  { label: "数据超时", value: "NO_DATA" },
-  { label: "渗漏疑似", value: "LEAK_SUSPECT" },
-  { label: "自定义规则", value: "kind:CUSTOM" },
+  ...publicAlarmTypeOptions((zh) => zh).slice(1).map((o, i) => (i === 2 ? { ...o, value: "kind:CUSTOM" } : o)),
 ] as const;
 const alarmTypeFilterOptions = ALARM_TYPE_FILTERS;
 
-const alarmLevelOptions = [
-  { label: "提示", value: "INFO" },
-  { label: "警告", value: "WARNING" },
-  { label: "严重", value: "CRITICAL" },
-];
+const alarmLevelOptions = publicAlarmLevelOptions((zh) => zh);
 const enabledOptions = [
   { label: "不限", value: null },
   { label: "启用", value: 1 },
@@ -353,8 +359,9 @@ const textFormatters: Record<string, (item: AlarmRule) => string> = {
   ruleKind: (item) => getRuleKindText(item.ruleKind),
   // 历史 CUSTOM 规则可能 alarmType 为空（后端建规则时不自动挂类型），回退显示"自定义规则"
   alarmType: (item) =>
-    item.alarmTypeName ||
-    (item.ruleKind === "CUSTOM" && !item.alarmType ? "自定义规则" : getRuleTypeText(item.alarmType)),
+    item.ruleKind === "CUSTOM" && !item.alarmType
+      ? "自定义规则"
+      : getRuleTypeText(item.alarmType, item.alarmTypeName),
   alarmLevel: () => "",
   thresholdDesc: (item) => getThresholdDescText(item),
   scope: (item) => getScopeText(item),
@@ -377,28 +384,18 @@ const totalPages = computed(() => Math.max(1, Math.ceil(pagination.total / pagin
 
 /* ========================= 文案映射（对齐后端字符串枚举） ========================= */
 
-const RULE_TYPE_ZH: Record<string, string> = {
-  OFFLINE: "设备离线",
-  NO_DATA: "数据超时",
-  LEAK_SUSPECT: "渗漏疑似",
-  CUSTOM: "自定义规则",
-};
-
-function getRuleTypeText(value?: string | null, placeholder = false) {
-  if (value == null) return placeholder ? "请选择报警类型" : "-";
-  return RULE_TYPE_ZH[value] || value;
+function getRuleTypeText(value?: string | null, fallbackName?: string | null, placeholder = false) {
+  if (value == null) return placeholder ? "请选择报警类型" : fallbackName || "-";
+  return mapEnumText(ALARM_TYPE_MAP_LOCAL, value, (zh) => zh, fallbackName);
 }
 
 function getRuleKindText(value?: string | null) {
-  if (value === "FIXED") return "固定";
-  if (value === "CUSTOM") return "自定义";
-  return value || "-";
+  return mapEnumText(RULE_KIND_MAP_LOCAL, value, (zh) => zh);
 }
 
 function getLevelText(value?: string | null, placeholder = false) {
   if (value == null) return placeholder ? "请选择报警级别" : "-";
-  const map: Record<string, string> = { INFO: "提示", WARNING: "警告", CRITICAL: "严重" };
-  return map[value] || value || "-";
+  return mapEnumText(ALARM_LEVEL_MAP_LOCAL, value, (zh) => zh);
 }
 
 function getLevelClass(value?: string | number | null) {
@@ -466,6 +463,25 @@ function onFieldKeywordInput() {
     form.fieldName = "";
   }
   activeSelect.value = "fieldName";
+}
+
+/** 点输入框：已展开则收起，未展开则展开（再点一下可收起，不必点其他区域）。
+ * 收起后紧随的 focus 事件不应重新展开，用时间戳抑制。 */
+let fieldMenuCollapsedAt = 0;
+
+function toggleFieldMenu() {
+  if (activeSelect.value === "fieldName") {
+    activeSelect.value = null;
+    fieldMenuCollapsedAt = Date.now();
+  } else {
+    activeSelect.value = "fieldName";
+  }
+}
+
+function onFieldFocus() {
+  // 刚通过点击收起（300ms 内），本次 focus 不重新展开
+  if (Date.now() - fieldMenuCollapsedAt < 300) return;
+  onFieldKeywordInput();
 }
 
 /** 字段下拉加载状态：failed 时显示重试，与"无匹配"区分 */
@@ -1410,6 +1426,23 @@ onMounted(() => {
   gap: 12px 18px;
 }
 
+.form-group-title {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+  padding-left: 10px;
+  border-left: 3px solid #3b82f6;
+  color: #183755;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.3;
+}
+
+.form-hint {
+  color: #8191a2;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .form-field {
   position: relative;
   display: flex;
@@ -1484,6 +1517,18 @@ onMounted(() => {
   margin-left: 4px;
   color: #ef4444;
   content: "*";
+}
+
+.form-textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 64px;
+  padding: 8px 12px;
+  color: #172033;
+  font-size: 14px;
+  background: #fbfdff;
+  border: 1px solid #d5e2ee;
+  border-radius: 4px;
 }
 
 .form-input,

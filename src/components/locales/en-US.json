@@ -29,7 +29,7 @@
     "workOrderProcessing": "Process Orders",
     "alarm": "Alarms",
     "alarmStrategy": "Alarm Rules",
-    "alarmProcessing": "Alarm Handling",
+    "alarmProcessing": "Alarm Management",
     "report": "Operations Reports",
     "reportDeviceResume": "Device History",
     "reportDeviceLedger": "Device Ledger",

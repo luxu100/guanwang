@@ -59,11 +59,11 @@ export const PROCESSING_CHECKBOX_WIDTH = "44px";
 export const processingColumns: AlarmTableColumn[] = [
   { key: "index", label: "序号", labelEn: "No.", renderType: "index", width: "54px", className: "col-index" },
   { key: "ruleName", label: "命中规则", labelEn: "Rule", renderType: "text", width: "minmax(120px, 1.1fr)" },
-  { key: "alarmType", label: "类型", labelEn: "Type", renderType: "text", formatKey: "alarmType", width: "minmax(96px, 1fr)" },
-  { key: "alarmLevel", label: "级别", labelEn: "Level", renderType: "level-pill", width: "minmax(72px, 0.8fr)" },
+  { key: "alarmType", label: "报警类型", labelEn: "Alarm Type", renderType: "text", formatKey: "alarmType", width: "minmax(96px, 1fr)" },
+  { key: "alarmLevel", label: "报警级别", labelEn: "Alarm Level", renderType: "level-pill", width: "minmax(72px, 0.8fr)" },
   { key: "deviceNumber", label: "设备编号", labelEn: "Device No.", renderType: "text", width: "minmax(96px, 0.9fr)" },
   { key: "triggerValue", label: "触发值", labelEn: "Trigger Value", renderType: "text", width: "minmax(88px, 0.9fr)" },
-  { key: "triggerCount", label: "触发次数", labelEn: "Count", renderType: "text", width: "minmax(72px, 0.7fr)" },
+  { key: "triggerCount", label: "触发次数", labelEn: "Trigger Count", renderType: "text", width: "minmax(72px, 0.7fr)" },
   { key: "lastTriggeredAt", label: "最后触发", labelEn: "Last Triggered", renderType: "text", formatKey: "lastTriggeredAt", width: "minmax(140px, 1.3fr)", className: "col-alarm-time" },
   { key: "status", label: "状态", labelEn: "Status", renderType: "status-pill", width: "minmax(80px, 0.8fr)" },
   { key: "action", label: "操作", labelEn: "Actions", renderType: "action", width: "minmax(190px, 1.1fr)" },
@@ -77,9 +77,9 @@ export const processingGridColumns = processingGridColumnsNoCheck;
 
 export const processingDetailFields: AlarmDetailField[] = [
   { key: "ruleName", label: "命中规则", labelEn: "Matched Rule" },
-  { key: "ruleKind", label: "规则类型", labelEn: "Rule Kind" },
-  { key: "alarmType", label: "类型", labelEn: "Type", formatKey: "alarmType" },
-  { key: "alarmLevel", label: "级别", labelEn: "Level", renderType: "level-pill" },
+  { key: "ruleKind", label: "规则类型", labelEn: "Rule Type" },
+  { key: "alarmType", label: "报警类型", labelEn: "Alarm Type", formatKey: "alarmType" },
+  { key: "alarmLevel", label: "报警级别", labelEn: "Alarm Level", renderType: "level-pill" },
   { key: "status", label: "状态", labelEn: "Status", renderType: "status-pill" },
   { key: "deviceNumber", label: "设备编号", labelEn: "Device No." },
   { key: "deviceAlias", label: "设备别名", labelEn: "Device Alias" },
@@ -88,8 +88,8 @@ export const processingDetailFields: AlarmDetailField[] = [
   { key: "triggerCount", label: "触发次数", labelEn: "Trigger Count" },
   { key: "firstTriggeredAt", label: "首次触发", labelEn: "First Triggered", formatKey: "firstTriggeredAt" },
   { key: "lastTriggeredAt", label: "最后触发", labelEn: "Last Triggered", formatKey: "lastTriggeredAt" },
-  { key: "recoveredAt", label: "恢复时间", labelEn: "Recover Time", formatKey: "recoveredAt" },
-  { key: "handleRemark", label: "处理备注", labelEn: "Handle Remark", full: true },
+  { key: "recoveredAt", label: "恢复时间", labelEn: "Recovery Time", formatKey: "recoveredAt" },
+  { key: "handleRemark", label: "处理备注", labelEn: "Handling Notes", full: true },
 ];
 
 /* ========================= 报警策略页 ========================= */
@@ -97,9 +97,9 @@ export const processingDetailFields: AlarmDetailField[] = [
 export const strategyColumns: AlarmTableColumn[] = [
   { key: "index", label: "序号", labelEn: "No.", renderType: "index", width: "54px", className: "col-index" },
   { key: "ruleName", label: "规则名称", labelEn: "Rule Name", renderType: "text", width: "minmax(140px, 1.4fr)", className: "col-rule-name" },
-  { key: "ruleKind", label: "规则类型", labelEn: "Kind", renderType: "text", formatKey: "ruleKind", width: "minmax(80px, 0.8fr)" },
-  { key: "alarmType", label: "报警类型", labelEn: "Type", renderType: "text", formatKey: "alarmType", width: "minmax(96px, 1fr)" },
-  { key: "alarmLevel", label: "报警级别", labelEn: "Level", renderType: "level-pill", width: "minmax(72px, 0.8fr)" },
+  { key: "ruleKind", label: "规则类型", labelEn: "Rule Type", renderType: "text", formatKey: "ruleKind", width: "minmax(80px, 0.8fr)" },
+  { key: "alarmType", label: "报警类型", labelEn: "Alarm Type", renderType: "text", formatKey: "alarmType", width: "minmax(96px, 1fr)" },
+  { key: "alarmLevel", label: "报警级别", labelEn: "Alarm Level", renderType: "level-pill", width: "minmax(72px, 0.8fr)" },
   { key: "thresholdDesc", label: "判定条件", labelEn: "Condition", renderType: "text", formatKey: "thresholdDesc", width: "minmax(140px, 1.3fr)" },
   { key: "scopeDesc", label: "生效范围", labelEn: "Scope", renderType: "text", formatKey: "scope", width: "minmax(88px, 0.9fr)" },
   { key: "enabled", label: "状态", labelEn: "Status", renderType: "text", formatKey: "enabledText", width: "minmax(68px, 0.7fr)" },
