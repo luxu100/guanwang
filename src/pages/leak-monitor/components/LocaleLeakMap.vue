@@ -7,6 +7,12 @@
       :regions="mapRegions"
       :selected-device-number="selectedDevice?.deviceNumber"
       @device-click="handleMapDeviceClick"
+      @ready="handleTencentMapReady"
+    />
+    <TencentPipeDemoLayer
+      v-if="provider === 'tencent'"
+      :map-instance="tencentMapInstance"
+      :points="mapPoints"
     />
     <GoogleLeakMap
       v-else
@@ -15,6 +21,12 @@
       :regions="mapRegions"
       :selected-device-number="selectedDevice?.deviceNumber"
       @device-click="handleMapDeviceClick"
+      @ready="handleGoogleMapReady"
+    />
+    <GooglePipeDemoLayer
+      v-if="provider !== 'tencent'"
+      :map-instance="googleMapInstance"
+      :points="mapPoints"
     />
 
     <LeakMonitorSidebar
@@ -63,6 +75,9 @@ import TencentLeakMap from "./TencentLeakMap.vue";
 import GoogleLeakMap from "./GoogleLeakMap.vue";
 import LeakMonitorSidebar from "./LeakMonitorSidebar.vue";
 import DeviceDetailDialog from "./DeviceDetailDialog.vue";
+import TencentPipeDemoLayer from "./TencentPipeDemoLayer.vue";
+import GooglePipeDemoLayer from "./GooglePipeDemoLayer.vue";
+import type { TencentMapInstanceHandle } from "./tencent-map.types";
 import { useLeakMonitorWorkspace } from "../composables/useLeakMonitorWorkspace";
 import { LEAK_MONITOR_LOCALIZED_KEY } from "../i18n";
 import type { LeakMonitorDevice, MapDevicePoint } from "../types";
@@ -94,10 +109,13 @@ const {
   sidebarLoading,
 } = workspace;
 const mapRef = ref<{
+  getMapInstance?: () => TencentMapInstanceHandle | google.maps.Map | null;
   focusDevice?: (deviceNumber: string) => void;
   fitDevices?: () => void;
   resize?: () => void;
 } | null>(null);
+const tencentMapInstance = ref<TencentMapInstanceHandle | null>(null);
+const googleMapInstance = ref<google.maps.Map | null>(null);
 
 function handleSelectDevice(device: LeakMonitorDevice) {
   void workspace.openDevice(device);
@@ -105,6 +123,14 @@ function handleSelectDevice(device: LeakMonitorDevice) {
 }
 function handleMapDeviceClick(device: MapDevicePoint) {
   void workspace.openDevice(device);
+}
+function handleTencentMapReady() {
+  tencentMapInstance.value =
+    (mapRef.value?.getMapInstance?.() as TencentMapInstanceHandle | null) ?? null;
+}
+function handleGoogleMapReady() {
+  googleMapInstance.value =
+    (mapRef.value?.getMapInstance?.() as google.maps.Map | null) ?? null;
 }
 function toggleSidebar() {
   sidebarCollapsed.value = !sidebarCollapsed.value;
@@ -122,6 +148,14 @@ watch(() => mapPoints.value.length, () => {
   window.requestAnimationFrame(() => {
     mapRef.value?.resize?.();
   });
+});
+
+watch(provider, (nextProvider) => {
+  if (nextProvider !== "tencent") {
+    tencentMapInstance.value = null;
+  } else {
+    googleMapInstance.value = null;
+  }
 });
 </script>
 

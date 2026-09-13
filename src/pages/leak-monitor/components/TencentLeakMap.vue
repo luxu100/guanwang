@@ -40,7 +40,7 @@ import type { MapDevicePoint, MapRegion } from "../types";
 const { t } = useLeakMonitorI18n();
 const TENCENT_MAP_KEY = MAP_CONFIG.tencentKey;
 const TENCENT_MAP_SCRIPT_ID = "tencent-map-gl-sdk";
-const TENCENT_MAP_SCRIPT_URL = `https://map.qq.com/api/gljs?v=1.exp&key=${TENCENT_MAP_KEY}`;
+const TENCENT_MAP_SCRIPT_URL = `https://map.qq.com/api/gljs?v=1.exp&key=${TENCENT_MAP_KEY}&libraries=visualization`;
 const MAP_RESIZE_DELAY = 300;
 
 /**
@@ -267,7 +267,7 @@ function initMap() {
   const map = new TMap.Map(mapContainer.value, {
     center,
     zoom: DEFAULT_MAP_ZOOM,
-    pitch: 45,
+    pitch: 0,
     rotation: 0,
   });
   mapInstance = map;
@@ -565,6 +565,7 @@ watch(
 );
 
 defineExpose({
+  getMapInstance: () => mapInstance,
   focusDevice,
   fitDevices,
   resize: () => mapInstance?.resize?.(),

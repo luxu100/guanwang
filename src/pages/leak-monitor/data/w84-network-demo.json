@@ -1,0 +1,5109 @@
+{
+  "version": "w84-demo-v1",
+  "coordinateSystem": "WGS84",
+  "coordinateOrder": "LNG_LAT",
+  "source": "POC_KG556",
+  "layers": {
+    "pipes": {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "id": "pipes-4",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52153850100007,
+                3.103861747000053
+              ],
+              [
+                101.52157912300004,
+                3.1033848250000347
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 4,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 52.929815864
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-7",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52475956300003,
+                3.102145731000064
+              ],
+              [
+                101.52473663200004,
+                3.10228676600002
+              ],
+              [
+                101.52465297100008,
+                3.102479401000039
+              ],
+              [
+                101.52457517300007,
+                3.102569709000022
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 7,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 52.2548987076
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-15",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52328363100008,
+                3.1028844970000478
+              ],
+              [
+                101.52328473400007,
+                3.102862336000044
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 15,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 2.45357400284
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-53",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52492567900003,
+                3.1020316470000466
+              ],
+              [
+                101.52472909300008,
+                3.10201723900002
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 53,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 200,
+            "status": 4,
+            "shapeLengthM": 21.910004612
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-56",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52457517300007,
+                3.102569709000022
+              ],
+              [
+                101.52443196300004,
+                3.102744160000043
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 56,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 25.0105555217
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-60",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52237961500003,
+                3.1047915670000634
+              ],
+              [
+                101.52275983800007,
+                3.1047764480000524
+              ],
+              [
+                101.52275846100008,
+                3.104664359000026
+              ],
+              [
+                101.52210176500006,
+                3.104683787000056
+              ],
+              [
+                101.52180889500005,
+                3.104824921000045
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 60,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 163.823171059
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-62",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52345227800004,
+                3.1041399270000625
+              ],
+              [
+                101.52345307300004,
+                3.104119160000039
+              ],
+              [
+                101.52343665800004,
+                3.1041194830000336
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 62,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 4.12305924374
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-79",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52401384600006,
+                3.103437837000058
+              ],
+              [
+                101.52391017000008,
+                3.103628911000044
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 79,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 24.0670670285
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-86",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52345227800004,
+                3.1041399270000625
+              ],
+              [
+                101.52356923400004,
+                3.10413545800003
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 86,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 13.009896034
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-89",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52356923400004,
+                3.10413545800003
+              ],
+              [
+                101.52357628900006,
+                3.104212281000059
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 89,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 8.5310190405
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-92",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52329019400008,
+                3.102927315000045
+              ],
+              [
+                101.52328363100008,
+                3.1028844970000478
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 92,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 4.79058199096
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-101",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52170066500008,
+                3.1047868090000748
+              ],
+              [
+                101.52159207600005,
+                3.104600838000067
+              ],
+              [
+                101.52151602000004,
+                3.1043161030000306
+              ],
+              [
+                101.52153151400006,
+                3.1040492420000305
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 101,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 86.0045850912
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-112",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52460405200009,
+                3.1019798070000206
+              ],
+              [
+                101.52471505000005,
+                3.10201723900002
+              ],
+              [
+                101.52472909300008,
+                3.10201723900002
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 112,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 14.5750174038
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-116",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52391017000008,
+                3.103628911000044
+              ],
+              [
+                101.52380577900004,
+                3.103839808000032
+              ],
+              [
+                101.52376299400004,
+                3.103897603000064
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 116,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 34.0141355076
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-140",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52358268600005,
+                3.104281925000066
+              ],
+              [
+                101.52358845900005,
+                3.1043447860000697
+              ],
+              [
+                101.52350651800003,
+                3.104491625000037
+              ],
+              [
+                101.52350464600005,
+                3.1045894960000737
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 140,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 36.4222377768
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-161",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52317340600007,
+                3.1016607870000716
+              ],
+              [
+                101.52390928500006,
+                3.1017523070000266
+              ],
+              [
+                101.52392719861193,
+                3.1017581727817505
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 161,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 84.516329443
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-163",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52413313800008,
+                3.1032205610000574
+              ],
+              [
+                101.52409230100005,
+                3.1031948050000437
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 163,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 5.35880989991
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-181",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52154366700006,
+                3.1020076980000226
+              ],
+              [
+                101.52154044700006,
+                3.101883287000021
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 181,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 13.7617166228
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-187",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52604543000007,
+                3.102432469000064
+              ],
+              [
+                101.52601818800008,
+                3.1024312540000665
+              ],
+              [
+                101.52601795100009,
+                3.102368438000042
+              ],
+              [
+                101.52593718400004,
+                3.1023471410000525
+              ],
+              [
+                101.52531074400008,
+                3.1024323000000322
+              ],
+              [
+                101.52498305200004,
+                3.102459305000025
+              ],
+              [
+                101.52482517700008,
+                3.1024705230000222
+              ],
+              [
+                101.52480999000005,
+                3.1024764910000613
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 187,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 145.479006091
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-210",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52157969200005,
+                3.101252594000073
+              ],
+              [
+                101.52224551600005,
+                3.1012590870000736
+              ],
+              [
+                101.52235353900005,
+                3.1012851470000555
+              ],
+              [
+                101.52248233600005,
+                3.101353088000053
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 210,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 102.531565151
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-229",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52163929200003,
+                3.1032671800000458
+              ],
+              [
+                101.52157482800004,
+                3.103262409000024
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 229,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 7.18504137988
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-239",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52260524300004,
+                3.1064232780000225
+              ],
+              [
+                101.52252392100007,
+                3.106277435000038
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 239,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 18.4876068461
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-248",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52391017000008,
+                3.103628911000044
+              ],
+              [
+                101.52383044600003,
+                3.1035813990000634
+              ],
+              [
+                101.52375191200008,
+                3.103604775000065
+              ],
+              [
+                101.52367310800008,
+                3.103557919000025
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 248,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 29.5837277845
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-250",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52325923100005,
+                3.1035735580000505
+              ],
+              [
+                101.52325659800005,
+                3.1036372970000343
+              ],
+              [
+                101.52354418400006,
+                3.103647557000045
+              ],
+              [
+                101.52364631100005,
+                3.103663635000032
+              ],
+              [
+                101.52366115000007,
+                3.10360509700007
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 250,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 57.2119624198
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-252",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52156185100006,
+                3.1027104240000654
+              ],
+              [
+                101.52280240800008,
+                3.102706992000037
+              ],
+              [
+                101.52280207900009,
+                3.102599403000056
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 252,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 149.794594005
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-257",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52314020800009,
+                3.1041627000000744
+              ],
+              [
+                101.52312004500004,
+                3.10420588300002
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 257,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 5.27489841718
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-268",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52153831000004,
+                3.101811296000051
+              ],
+              [
+                101.52152119900006,
+                3.1012540290000743
+              ],
+              [
+                101.52157969200005,
+                3.101252594000073
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 268,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 68.1544300794
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-273",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52367310800008,
+                3.103557919000025
+              ],
+              [
+                101.52356059100003,
+                3.103538077000053
+              ],
+              [
+                101.52328239159809,
+                3.103527176040336
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 273,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 43.6454612619
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-280",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52477914700006,
+                3.1024886120000588
+              ],
+              [
+                101.52475837500003,
+                3.10249677500002
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 280,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 2.47912731927
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-285",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52328068525243,
+                3.102709585194351
+              ],
+              [
+                101.52327167400006,
+                3.102369663000047
+              ],
+              [
+                101.52368116600007,
+                3.102352652000036
+              ],
+              [
+                101.52422701200004,
+                3.102507715000058
+              ],
+              [
+                101.52443288600006,
+                3.1026626660000716
+              ],
+              [
+                101.52443196300004,
+                3.102744160000043
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 285,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 183.809101374
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-288",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52293708700006,
+                3.105998965000026
+              ],
+              [
+                101.52285624500007,
+                3.1058073610000747
+              ],
+              [
+                101.52283202100006,
+                3.1055268700000624
+              ],
+              [
+                101.52228166600008,
+                3.105519700000059
+              ],
+              [
+                101.52214264600008,
+                3.105597289000059
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 288,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 133.002702351
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-295",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52164584800005,
+                3.102581022000038
+              ],
+              [
+                101.52155847400007,
+                3.102579917000071
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 295,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 9.71303632771
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-299",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52397428900008,
+                3.1023292530000504
+              ],
+              [
+                101.52369303200004,
+                3.1022492720000514
+              ],
+              [
+                101.52315831100003,
+                3.1022647450000704
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 299,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 91.9535150201
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-301",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52209123100005,
+                3.105501580000066
+              ],
+              [
+                101.52208156900008,
+                3.1054841460000375
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 301,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 2.20679014751
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-307",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52157187600005,
+                3.1031783050000286
+              ],
+              [
+                101.52156185100006,
+                3.1027104240000654
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 307,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 51.7491261793
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-308",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52443196300004,
+                3.102744160000043
+              ],
+              [
+                101.52416705900004,
+                3.103029113000048
+              ],
+              [
+                101.52409343500005,
+                3.1030413890000546
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 308,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 51.4223540607
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-311",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52492567900003,
+                3.1020316470000466
+              ],
+              [
+                101.52486221900006,
+                3.1020931230000315
+              ],
+              [
+                101.52482823500009,
+                3.1022768090000454
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 311,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 30.4562980567
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-322",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52315476300004,
+                3.1016554880000626
+              ],
+              [
+                101.52317340600007,
+                3.101660787000071
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 322,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 2.15355617599
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-324",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.5222898766296,
+                3.1018727356676856
+              ],
+              [
+                101.52162939400006,
+                3.101882036000063
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 324,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 73.424790946
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-337",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52343665800004,
+                3.1041194830000336
+              ],
+              [
+                101.52318730200005,
+                3.104110917000071
+              ],
+              [
+                101.52314020800009,
+                3.1041627000000744
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 337,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 35.49219606
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-352",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52209123100005,
+                3.105501580000066
+              ],
+              [
+                101.52227974700008,
+                3.1053971120000483
+              ],
+              [
+                101.52266892100005,
+                3.105404786000065
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 352,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 200,
+            "status": 4,
+            "shapeLengthM": 67.1958409929
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-355",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52376299400004,
+                3.103897603000064
+              ],
+              [
+                101.52369177400004,
+                3.1039938090000305
+              ],
+              [
+                101.52356708000008,
+                3.1041119960000287
+              ],
+              [
+                101.52356923400004,
+                3.10413545800003
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 355,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 34.9162794347
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-372",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52155681700003,
+                3.1025159060000647
+              ],
+              [
+                101.52154957913471,
+                3.102236184311923
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 372,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 30.941395537
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-386",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52157912300004,
+                3.1033848250000347
+              ],
+              [
+                101.52157482800004,
+                3.103262409000024
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 386,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 13.5448758925
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-397",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52454608000005,
+                3.102572050000049
+              ],
+              [
+                101.52450053600006,
+                3.1025757160000467
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 397,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 5.07875730825
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-407",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52153151400006,
+                3.1040492420000305
+              ],
+              [
+                101.52153850100007,
+                3.103861747000053
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 407,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 20.7472767395
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-410",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52343170200004,
+                3.104677858000059
+              ],
+              [
+                101.52343760800005,
+                3.1045234440000513
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 410,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 17.0873357597
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-412",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52409343500005,
+                3.1030413890000546
+              ],
+              [
+                101.52407744000004,
+                3.1030449520000616
+              ],
+              [
+                101.52387726500007,
+                3.102948182000034
+              ],
+              [
+                101.52374574700008,
+                3.102903172000026
+              ],
+              [
+                101.52328363100008,
+                3.1028844970000478
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 412,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 93.3635915646
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-413",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52214264600008,
+                3.105597289000059
+              ],
+              [
+                101.52209123100005,
+                3.105501580000066
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 413,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 12.0278162834
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-415",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52480999000005,
+                3.1024764910000613
+              ],
+              [
+                101.52477914700006,
+                3.1024886120000588
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 415,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 3.68110755747
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-416",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52305027600005,
+                3.10162579200005
+              ],
+              [
+                101.52315476300004,
+                3.1016554880000626
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 416,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 12.0697849107
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-429",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52154044700006,
+                3.101883287000021
+              ],
+              [
+                101.52154005600005,
+                3.101868189000072
+              ],
+              [
+                101.52153831000004,
+                3.101811296000051
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 429,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 7.96414564806
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-445",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52532655400006,
+                3.1023135270000353
+              ],
+              [
+                101.52537883100007,
+                3.1023089010000717
+              ],
+              [
+                101.52578516200003,
+                3.102247977000047
+              ],
+              [
+                101.52597064300005,
+                3.102238975000034
+              ],
+              [
+                101.52605889179306,
+                3.102263437932099
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 445,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 82.3170720617
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-455",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52350464600005,
+                3.1045894960000737
+              ],
+              [
+                101.52350295600007,
+                3.1046778570000697
+              ],
+              [
+                101.52346424100006,
+                3.104677858000059
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 455,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 14.0759982528
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-460",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52333227800005,
+                3.1029929810000567
+              ],
+              [
+                101.52329999300008,
+                3.102991232000022
+              ],
+              [
+                101.52329019400008,
+                3.102927315000045
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 460,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 10.7451467233
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-468",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52482823500009,
+                3.1022768090000454
+              ],
+              [
+                101.52475837500003,
+                3.10249677500002
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 468,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 25.5328250514
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-481",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52484904500005,
+                3.1023076330000663
+              ],
+              [
+                101.52486880600009,
+                3.1023369030000367
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 481,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 3.91159574119
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-483",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52288695700008,
+                3.1041040880000423
+              ],
+              [
+                101.52261456300005,
+                3.104095917000052
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 483,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 300,
+            "status": 4,
+            "shapeLengthM": 30.2920468421
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-499",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52457517300007,
+                3.102569709000022
+              ],
+              [
+                101.52454608000005,
+                3.102572050000049
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 499,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 3.24424656178
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-506",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52156185100006,
+                3.1027104240000654
+              ],
+              [
+                101.52155847400007,
+                3.102579917000071
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 506,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 14.4360233026
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-520",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52312004500004,
+                3.10420588300002
+              ],
+              [
+                101.52301660000006,
+                3.104190021000022
+              ],
+              [
+                101.52296048900007,
+                3.1041063900000267
+              ],
+              [
+                101.52288695700008,
+                3.1041040880000423
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 520,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 300,
+            "status": 4,
+            "shapeLengthM": 30.9637097664
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-526",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52208156900008,
+                3.1054841460000375
+              ],
+              [
+                101.52206889400009,
+                3.1054612690000454
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 526,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 2.8955721573
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-543",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52278899700008,
+                3.10150769400002
+              ],
+              [
+                101.52299883300009,
+                3.101607680000029
+              ],
+              [
+                101.52305027600005,
+                3.10162579200005
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 543,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 31.871422071
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-550",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52248233600005,
+                3.101353088000053
+              ],
+              [
+                101.52278899700008,
+                3.10150769400002
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 550,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 38.1345175266
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-572",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52475837500003,
+                3.10249677500002
+              ],
+              [
+                101.52461598400004,
+                3.102673596000045
+              ],
+              [
+                101.52454519600008,
+                3.102757764000046
+              ],
+              [
+                101.52413313800008,
+                3.1032205610000574
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 572,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 106.022515328
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-573",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52450053600006,
+                3.1025757160000467
+              ],
+              [
+                101.52429425200006,
+                3.1024202390000255
+              ],
+              [
+                101.52397428900008,
+                3.1023292530000504
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 573,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 65.6212709962
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-586",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52346424100006,
+                3.104677858000059
+              ],
+              [
+                101.52343170200004,
+                3.104677858000059
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 586,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 3.61694391127
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-597",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52261456300005,
+                3.104095917000052
+              ],
+              [
+                101.52197081200006,
+                3.1040766040000562
+              ],
+              [
+                101.52153151400006,
+                3.1040492420000305
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 597,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 300,
+            "status": 4,
+            "shapeLengthM": 120.514260707
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-610",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52609558600005,
+                3.1024347050000642
+              ],
+              [
+                101.52604543000007,
+                3.102432469000064
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 610,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 5.580691842
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-619",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52409230100005,
+                3.1031948050000437
+              ],
+              [
+                101.52398458500005,
+                3.1031268650000357
+              ],
+              [
+                101.52383687200006,
+                3.103051684000036
+              ],
+              [
+                101.52372188100009,
+                3.1030140940000592
+              ],
+              [
+                101.52333227800005,
+                3.1029929810000567
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 619,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 89.3502557535
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-626",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52486880600009,
+                3.1023369030000367
+              ],
+              [
+                101.52487972100005,
+                3.10235306900006
+              ],
+              [
+                101.52532655400006,
+                3.1023135270000353
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 626,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 52.0213518268
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-630",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52270669100005,
+                3.1066008580000357
+              ],
+              [
+                101.52260524300004,
+                3.1064232780000225
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 630,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 22.6439745271
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-635",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52155847400007,
+                3.102579917000071
+              ],
+              [
+                101.52155681700003,
+                3.1025159060000647
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 635,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 7.08057446499
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-650",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52413313800008,
+                3.1032205610000574
+              ],
+              [
+                101.52408722800004,
+                3.1033025960000487
+              ],
+              [
+                101.52401384600006,
+                3.103437837000058
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 650,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 27.4427412078
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-660",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52252392100007,
+                3.106277435000038
+              ],
+              [
+                101.52214264600008,
+                3.105597289000059
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 660,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 86.3281999942
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-661",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52154366700006,
+                3.1020076980000226
+              ],
+              [
+                101.52282270400008,
+                3.1019780570000535
+              ],
+              [
+                101.52282647900006,
+                3.101864019000061
+              ],
+              [
+                101.52260224700007,
+                3.1018683370000417
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 661,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 179.758956108
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-663",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52206889400009,
+                3.1054612690000454
+              ],
+              [
+                101.52180265100009,
+                3.1049757740000246
+              ],
+              [
+                101.52213826400003,
+                3.1048018460000435
+              ],
+              [
+                101.52237961500003,
+                3.1047915670000634
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 663,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 130.125364331
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-683",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52157912300004,
+                3.1033848250000347
+              ],
+              [
+                101.52195204200007,
+                3.1034145380000377
+              ],
+              [
+                101.52265372926304,
+                3.103400368364989
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 683,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 119.596101109
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-695",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52328473400007,
+                3.102862336000044
+              ],
+              [
+                101.52328359700005,
+                3.1028194220000387
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 695,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 4.74700704922
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-704",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52266892100005,
+                3.105404786000065
+              ],
+              [
+                101.52295550500008,
+                3.1054105240000354
+              ],
+              [
+                101.52311380200007,
+                3.1054109010000275
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 704,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 200,
+            "status": 4,
+            "shapeLengthM": 49.4580568542
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-708",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52482823500009,
+                3.1022768090000454
+              ],
+              [
+                101.52484904500005,
+                3.1023076330000663
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 708,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 4.1192605323
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-712",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52286156100007,
+                3.103342016000056
+              ],
+              [
+                101.52286539300007,
+                3.103283384000065
+              ],
+              [
+                101.52194174200008,
+                3.1032895650000683
+              ],
+              [
+                101.52163929200003,
+                3.1032671800000458
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 712,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 142.880758149
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-727",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52252392100007,
+                3.106277435000038
+              ],
+              [
+                101.52290787900006,
+                3.106064303000039
+              ],
+              [
+                101.52293708700006,
+                3.105998965000026
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 727,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 56.6751950851
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-730",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52343760800005,
+                3.1045234440000513
+              ],
+              [
+                101.52345227800004,
+                3.1041399270000625
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 730,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 42.4397048199
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-737",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52162939400006,
+                3.101882036000063
+              ],
+              [
+                101.52154044700006,
+                3.101883287000021
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 737,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 9.88809250938
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-756",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52472909300008,
+                3.10201723900002
+              ],
+              [
+                101.52476910800004,
+                3.1020870310000532
+              ],
+              [
+                101.52475956300003,
+                3.102145731000064
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 756,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 15.4845180504
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-765",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52366115000007,
+                3.10360509700007
+              ],
+              [
+                101.52367310800008,
+                3.103557919000025
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 765,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 5.38350323012
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-776",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52357628900006,
+                3.104212281000059
+              ],
+              [
+                101.52358268600005,
+                3.104281925000066
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 776,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 7.73382053588
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-782",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52269192520663,
+                3.1025976519022396
+              ],
+              [
+                101.52164584800005,
+                3.1025810220000385
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 782,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 116.293774096
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-785",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52157482800004,
+                3.103262409000024
+              ],
+              [
+                101.52157187600005,
+                3.1031783050000286
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 785,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 9.30579997217
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-787",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52180889500005,
+                3.104824921000045
+              ],
+              [
+                101.52174699600005,
+                3.104854749000026
+              ],
+              [
+                101.52170066500008,
+                3.1047868090000748
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 787,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 16.7385999303
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-782",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52280207900009,
+                3.102599403000056
+              ],
+              [
+                101.52269192520663,
+                3.1025976519022396
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 782,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 12.2459413803
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-372",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52154957913471,
+                3.102236184311923
+              ],
+              [
+                101.52154366700006,
+                3.1020076980000226
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 372,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 25.2739977464
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-324",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52260224700007,
+                3.1018683370000417
+              ],
+              [
+                101.5222898766296,
+                3.1018727356676856
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 324,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 34.7257118035
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-161",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52392719861193,
+                3.1017581727817505
+              ],
+              [
+                101.52460405200009,
+                3.1019798070000206
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 161,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 79.1282824487
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-445",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52605889179306,
+                3.102263437932099
+              ],
+              [
+                101.52613043500008,
+                3.1022832700000436
+              ],
+              [
+                101.52613023900005,
+                3.102436250000039
+              ],
+              [
+                101.52609558600005,
+                3.1024347050000642
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 445,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 29.0212768524
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-285",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52328359700005,
+                3.102819422000039
+              ],
+              [
+                101.52328068525243,
+                3.102709585194351
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 285,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 12.1497948955
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-273",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52328239159809,
+                3.103527176040336
+              ],
+              [
+                101.52326118300005,
+                3.1035263450000343
+              ],
+              [
+                101.52325923100005,
+                3.1035735580000505
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 273,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 7.5844853024
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pipes-683",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                101.52265372926304,
+                3.103400368364989
+              ],
+              [
+                101.52285801500005,
+                3.10339624300002
+              ],
+              [
+                101.52286156100007,
+                3.1033420160000555
+              ]
+            ]
+          },
+          "properties": {
+            "sourceId": 683,
+            "dmzId": "KG.556",
+            "dmzName": "Bukit Jelutong High Level",
+            "district": "Klang",
+            "districtId": "KG",
+            "type": 2,
+            "classification": "GM",
+            "material": "MS",
+            "outerDiameterMm": 150,
+            "status": 4,
+            "shapeLengthM": 28.7216670744
+          }
+        }
+      ]
+    },
+    "hydrants": {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "id": "hydrants-32999",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.5227066912868,
+              3.1066008583426594
+            ]
+          },
+          "properties": {
+            "sourceId": 32999,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "hydrantSizeMm": 0,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "rotation": 299,
+            "enabled": 1,
+            "netBaseId": "656",
+            "gisSysId": "HYDKG32999"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "hydrants-33001",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52266892071334,
+              3.105404785599303
+            ]
+          },
+          "properties": {
+            "sourceId": 33001,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "hydrantSizeMm": 0,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "rotation": 0,
+            "enabled": 1,
+            "netBaseId": "658",
+            "gisSysId": "HYDKG33001"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "hydrants-34301",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52157969156042,
+              3.101252593888695
+            ]
+          },
+          "properties": {
+            "sourceId": 34301,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "hydrantSizeMm": 0,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "rotation": 0,
+            "enabled": 1,
+            "netBaseId": "1959",
+            "gisSysId": "HYDKG34301"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "hydrants-34306",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.5215383101849,
+              3.101811295858535
+            ]
+          },
+          "properties": {
+            "sourceId": 34306,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "hydrantSizeMm": 0,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "rotation": 272,
+            "enabled": 1,
+            "netBaseId": "1964",
+            "gisSysId": "HYDKG34306"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "hydrants-34302",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52248233645469,
+              3.101353087886263
+            ]
+          },
+          "properties": {
+            "sourceId": 34302,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "hydrantSizeMm": 0,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "rotation": 332,
+            "enabled": 1,
+            "netBaseId": "1960",
+            "gisSysId": "HYDKG34302"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "hydrants-34305",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52280207878275,
+              3.1025994027412565
+            ]
+          },
+          "properties": {
+            "sourceId": 34305,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "hydrantSizeMm": 0,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "rotation": 359,
+            "enabled": 1,
+            "netBaseId": "1963",
+            "gisSysId": "HYDKG34305"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "hydrants-41035",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52376299367812,
+              3.1038976031698406
+            ]
+          },
+          "properties": {
+            "sourceId": 41035,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "hydrantSizeMm": 6,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "rotation": 233,
+            "enabled": 1,
+            "netBaseId": "8823",
+            "gisSysId": "HYDKG41035"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "hydrants-34304",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52260224685153,
+              3.101868336533333
+            ]
+          },
+          "properties": {
+            "sourceId": 34304,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "hydrantSizeMm": 0,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "rotation": 181,
+            "enabled": 1,
+            "netBaseId": "1962",
+            "gisSysId": "HYDKG34304"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "hydrants-34308",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52170066524565,
+              3.1047868085922765
+            ]
+          },
+          "properties": {
+            "sourceId": 34308,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "hydrantSizeMm": 0,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "rotation": 305,
+            "enabled": 1,
+            "netBaseId": "1966",
+            "gisSysId": "HYDKG34308"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "hydrants-41025",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.5234376084452,
+              3.104523443581105
+            ]
+          },
+          "properties": {
+            "sourceId": 41025,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "hydrantSizeMm": 6,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "rotation": 88,
+            "enabled": 1,
+            "netBaseId": "8813",
+            "gisSysId": "HYDKG41025"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "hydrants-41038",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52454608049553,
+              3.1025720503712533
+            ]
+          },
+          "properties": {
+            "sourceId": 41038,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "hydrantSizeMm": 6,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "rotation": 185,
+            "enabled": 1,
+            "netBaseId": "8826",
+            "gisSysId": "HYDKG41038"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "hydrants-41040",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52460405154717,
+              3.1019798068392928
+            ]
+          },
+          "properties": {
+            "sourceId": 41040,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "hydrantSizeMm": 6,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "rotation": 341,
+            "enabled": 1,
+            "netBaseId": "8828",
+            "gisSysId": "HYDKG41040"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "hydrants-41043",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.5253265541581,
+              3.1023135269643975
+            ]
+          },
+          "properties": {
+            "sourceId": 41043,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "hydrantSizeMm": 6,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "rotation": 177,
+            "enabled": 1,
+            "netBaseId": "8831",
+            "gisSysId": "HYDKG41043"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "hydrants-33003",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52237961492256,
+              3.1047915674787068
+            ]
+          },
+          "properties": {
+            "sourceId": 33003,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "hydrantSizeMm": 0,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "rotation": 3,
+            "enabled": 1,
+            "netBaseId": "660",
+            "gisSysId": "HYDKG33003"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "hydrants-41039",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52397428910409,
+              3.102329252663571
+            ]
+          },
+          "properties": {
+            "sourceId": 41039,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "hydrantSizeMm": 6,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "rotation": 164,
+            "enabled": 1,
+            "netBaseId": "8827",
+            "gisSysId": "HYDKG41039"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "hydrants-41044",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52409343522152,
+              3.103041389298864
+            ]
+          },
+          "properties": {
+            "sourceId": 41044,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "hydrantSizeMm": 6,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "rotation": 192,
+            "enabled": 1,
+            "netBaseId": "8832",
+            "gisSysId": "HYDKG41044"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "hydrants-33000",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.5229370870876,
+              3.1059989648174646
+            ]
+          },
+          "properties": {
+            "sourceId": 33000,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "hydrantSizeMm": 0,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "rotation": 293,
+            "enabled": 1,
+            "netBaseId": "657",
+            "gisSysId": "HYDKG33000"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "hydrants-33004",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52261456305447,
+              3.1040959170699933
+            ]
+          },
+          "properties": {
+            "sourceId": 33004,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "hydrantSizeMm": 0,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "rotation": 358,
+            "enabled": 1,
+            "netBaseId": "661",
+            "gisSysId": "HYDKG33004"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "hydrants-33005",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.5215385010655,
+              3.1038617465190135
+            ]
+          },
+          "properties": {
+            "sourceId": 33005,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "hydrantSizeMm": 0,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "rotation": 88,
+            "enabled": 1,
+            "netBaseId": "662",
+            "gisSysId": "HYDKG33005"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "hydrants-41033",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52314020785067,
+              3.1041627002972243
+            ]
+          },
+          "properties": {
+            "sourceId": 41033,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "hydrantSizeMm": 6,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "rotation": 0,
+            "enabled": 1,
+            "netBaseId": "8821",
+            "gisSysId": "HYDKG41033"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "hydrants-41037",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52609558563334,
+              3.10243470521583
+            ]
+          },
+          "properties": {
+            "sourceId": 41037,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "hydrantSizeMm": 6,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "rotation": 177,
+            "enabled": 1,
+            "netBaseId": "8825",
+            "gisSysId": "HYDKG41037"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "hydrants-41042",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52315831097256,
+              3.1022647451505856
+            ]
+          },
+          "properties": {
+            "sourceId": 41042,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "hydrantSizeMm": 6,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "rotation": 182,
+            "enabled": 1,
+            "netBaseId": "8830",
+            "gisSysId": "HYDKG41042"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "hydrants-33002",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52206889406011,
+              3.1054612687915175
+            ]
+          },
+          "properties": {
+            "sourceId": 33002,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "hydrantSizeMm": 0,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "rotation": 299,
+            "enabled": 1,
+            "netBaseId": "659",
+            "gisSysId": "HYDKG33002"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "hydrants-41036",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52328473365347,
+              3.1028623358597294
+            ]
+          },
+          "properties": {
+            "sourceId": 41036,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "hydrantSizeMm": 6,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "rotation": 92,
+            "enabled": 1,
+            "netBaseId": "8824",
+            "gisSysId": "HYDKG41036"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "hydrants-34303",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.5227889973101,
+              3.1015076943581774
+            ]
+          },
+          "properties": {
+            "sourceId": 34303,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "hydrantSizeMm": 0,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "rotation": 332,
+            "enabled": 1,
+            "netBaseId": "1961",
+            "gisSysId": "HYDKG34303"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "hydrants-33006",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52286156140329,
+              3.1033420158701506
+            ]
+          },
+          "properties": {
+            "sourceId": 33006,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "hydrantSizeMm": 0,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "rotation": 87,
+            "enabled": 1,
+            "netBaseId": "663",
+            "gisSysId": "HYDKG33006"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "hydrants-33007",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52157187593274,
+              3.1031783050156965
+            ]
+          },
+          "properties": {
+            "sourceId": 33007,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "hydrantSizeMm": 0,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "rotation": 272,
+            "enabled": 1,
+            "netBaseId": "664",
+            "gisSysId": "HYDKG33007"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "hydrants-34307",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.5215568170182,
+              3.1025159064304
+            ]
+          },
+          "properties": {
+            "sourceId": 34307,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "hydrantSizeMm": 0,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "rotation": 271,
+            "enabled": 1,
+            "netBaseId": "1965",
+            "gisSysId": "HYDKG34307"
+          }
+        }
+      ]
+    },
+    "pumps": {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "id": "pumps-P1",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.5229370870876,
+              3.1059989648174646
+            ]
+          },
+          "properties": {
+            "sourceId": "P1",
+            "latitude": 3.105954,
+            "longitude": 101.522988,
+            "remark": "CTP"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pumps-P2",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52266892071334,
+              3.105404785599303
+            ]
+          },
+          "properties": {
+            "sourceId": "P2",
+            "latitude": 3.105427,
+            "longitude": 101.5225,
+            "remark": "CTP"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pumps-P3",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52237961492256,
+              3.1047915674787068
+            ]
+          },
+          "properties": {
+            "sourceId": "P3",
+            "latitude": 3.104733,
+            "longitude": 101.522433,
+            "remark": "CTP"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pumps-P4",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52180889543698,
+              3.1048249206131926
+            ]
+          },
+          "properties": {
+            "sourceId": "P4",
+            "latitude": 3.104731,
+            "longitude": 101.521824,
+            "remark": "CTP"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pumps-P5",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.5215968,
+              3.1033845
+            ]
+          },
+          "properties": {
+            "sourceId": "P5",
+            "latitude": 3.103385,
+            "longitude": 101.521597,
+            "remark": "CTP"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pumps-P6",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.5226536,
+              3.1033939
+            ]
+          },
+          "properties": {
+            "sourceId": "P6",
+            "latitude": 3.103394,
+            "longitude": 101.522654,
+            "remark": "CTP"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pumps-P7",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52269192520663,
+              3.1025976519022396
+            ]
+          },
+          "properties": {
+            "sourceId": "P7",
+            "latitude": 3.102533,
+            "longitude": 101.522691,
+            "remark": "CTP"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pumps-P8",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52154957913471,
+              3.102236184311923
+            ]
+          },
+          "properties": {
+            "sourceId": "P8",
+            "latitude": 3.102236,
+            "longitude": 101.521583,
+            "remark": "CTP"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pumps-P9",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.5222898766296,
+              3.1018727356676856
+            ]
+          },
+          "properties": {
+            "sourceId": "P9",
+            "latitude": 3.101764,
+            "longitude": 101.522293,
+            "remark": "CTP"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pumps-P10",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.5215646,
+              3.101244
+            ]
+          },
+          "properties": {
+            "sourceId": "P10",
+            "latitude": 3.101244,
+            "longitude": 101.521565,
+            "remark": "CTP"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pumps-P11",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.5228038,
+              3.101492
+            ]
+          },
+          "properties": {
+            "sourceId": "P11",
+            "latitude": 3.101492,
+            "longitude": 101.522804,
+            "remark": "CTP"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pumps-P12",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52392719861193,
+              3.101758172781749
+            ]
+          },
+          "properties": {
+            "sourceId": "P12",
+            "latitude": 3.101729,
+            "longitude": 101.523939,
+            "remark": "CTP"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pumps-P13",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52454608049553,
+              3.1025720503712533
+            ]
+          },
+          "properties": {
+            "sourceId": "P13",
+            "latitude": 3.102577,
+            "longitude": 101.524571,
+            "remark": "CTP"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pumps-P14",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52315831097256,
+              3.102264745150585
+            ]
+          },
+          "properties": {
+            "sourceId": "P14",
+            "latitude": 3.102275,
+            "longitude": 101.523184,
+            "remark": "CTP"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pumps-P15",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52328068525243,
+              3.1027095851943516
+            ]
+          },
+          "properties": {
+            "sourceId": "P15",
+            "latitude": 3.102708,
+            "longitude": 101.523308,
+            "remark": "CTP"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pumps-P16",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52605889179306,
+              3.102263437932098
+            ]
+          },
+          "properties": {
+            "sourceId": "P16",
+            "latitude": 3.102286,
+            "longitude": 101.526051,
+            "remark": "CTP"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pumps-P17",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52480999030534,
+              3.1024764912328364
+            ]
+          },
+          "properties": {
+            "sourceId": "P17",
+            "latitude": 3.102478,
+            "longitude": 101.52479,
+            "remark": "CTP"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pumps-P18",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52376299367812,
+              3.1038976031698406
+            ]
+          },
+          "properties": {
+            "sourceId": "P18",
+            "latitude": 3.103865,
+            "longitude": 101.523837,
+            "remark": "CTP"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pumps-P19",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.5234376084452,
+              3.104523443581105
+            ]
+          },
+          "properties": {
+            "sourceId": "P19",
+            "latitude": 3.104472,
+            "longitude": 101.523454,
+            "remark": "CTP"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "pumps-P20",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52328239159809,
+              3.103527176040336
+            ]
+          },
+          "properties": {
+            "sourceId": "P20",
+            "latitude": 3.103533,
+            "longitude": 101.523282,
+            "remark": "CTP"
+          }
+        }
+      ]
+    },
+    "valves": {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "id": "valves-10769",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52484904470408,
+              3.1023076325255214
+            ]
+          },
+          "properties": {
+            "sourceId": 10769,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "valveClass": "N",
+            "valveSizeMm": 150,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "currentlyOpen": 1,
+            "percentOpen": 100,
+            "location": "Fasa J5,Tmn Bkt Jelutong",
+            "gisId": "KGSLV0009228",
+            "operable": 1,
+            "netBaseId": "10949",
+            "gisSysId": "KGSLV0009228"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "valves-10758",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52357628919799,
+              3.1042122813583743
+            ]
+          },
+          "properties": {
+            "sourceId": 10758,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "valveClass": "N",
+            "valveSizeMm": 150,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "currentlyOpen": 1,
+            "percentOpen": 100,
+            "location": "Fasa J5,Tmn Bkt Jelutong",
+            "gisId": "KGSLV0009223",
+            "operable": 1,
+            "netBaseId": "10938",
+            "gisSysId": "KGSLV0009223"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "valves-10776",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52480999030534,
+              3.1024764912328364
+            ]
+          },
+          "properties": {
+            "sourceId": 10776,
+            "facilityId": null,
+            "type": 5,
+            "material": null,
+            "valveClass": "N",
+            "valveSizeMm": 50,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "currentlyOpen": 1,
+            "percentOpen": 100,
+            "location": "Fasa J5,Tmn Bkt Jelutong",
+            "gisId": "KGARV0002298",
+            "operable": 0,
+            "netBaseId": "10957",
+            "gisSysId": "KGARV0002298"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "valves-10763",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52343665758733,
+              3.1041194834779273
+            ]
+          },
+          "properties": {
+            "sourceId": 10763,
+            "facilityId": null,
+            "type": 5,
+            "material": null,
+            "valveClass": "N",
+            "valveSizeMm": 50,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "currentlyOpen": 1,
+            "percentOpen": 100,
+            "location": "Fasa J5,Tmn Bkt Jelutong",
+            "gisId": "KGARV0002291",
+            "operable": 0,
+            "netBaseId": "10943",
+            "gisSysId": "KGARV0002291"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "valves-10749",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52346424069884,
+              3.104677857940334
+            ]
+          },
+          "properties": {
+            "sourceId": 10749,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "valveClass": "N",
+            "valveSizeMm": 150,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "currentlyOpen": 1,
+            "percentOpen": 100,
+            "location": "Fasa J5,Tmn Bkt Jelutong",
+            "gisId": "KGSLV0009215",
+            "operable": 1,
+            "netBaseId": "10929",
+            "gisSysId": "KGSLV0009215"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "valves-10774",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52475956347983,
+              3.1021457312966603
+            ]
+          },
+          "properties": {
+            "sourceId": 10774,
+            "facilityId": null,
+            "type": 5,
+            "material": null,
+            "valveClass": "N",
+            "valveSizeMm": 25,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "currentlyOpen": 1,
+            "percentOpen": 100,
+            "location": "Fasa J5,Tmn Bkt Jelutong",
+            "gisId": "KGARV0002297",
+            "operable": 0,
+            "netBaseId": "10955",
+            "gisSysId": "KGARV0002297"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "valves-10751",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.5232592311504,
+              3.103573557810468
+            ]
+          },
+          "properties": {
+            "sourceId": 10751,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "valveClass": "N",
+            "valveSizeMm": 150,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "currentlyOpen": 1,
+            "percentOpen": 100,
+            "location": "Fasa J5,Tmn Bkt Jelutong",
+            "gisId": "KGSLV0009217",
+            "operable": 1,
+            "netBaseId": "10931",
+            "gisSysId": "KGSLV0009217"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "valves-10752",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.5235046460812,
+              3.104589495751031
+            ]
+          },
+          "properties": {
+            "sourceId": 10752,
+            "facilityId": null,
+            "type": 3,
+            "material": null,
+            "valveClass": "N",
+            "valveSizeMm": 150,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "currentlyOpen": 1,
+            "percentOpen": 0,
+            "location": "Fasa J5,Tmn Bkt Jelutong",
+            "gisId": "KGSCV0000876",
+            "operable": 0,
+            "netBaseId": "10932",
+            "gisSysId": "KGSCV0000876"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "valves-10775",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52477914685369,
+              3.1024886117611477
+            ]
+          },
+          "properties": {
+            "sourceId": 10775,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "valveClass": "N",
+            "valveSizeMm": 150,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "currentlyOpen": 1,
+            "percentOpen": 100,
+            "location": "Fasa J5,Tmn Bkt Jelutong",
+            "gisId": "KGSLV0009235",
+            "operable": 1,
+            "netBaseId": "10956",
+            "gisSysId": "KGSLV0009235"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "valves-10755",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52409230146117,
+              3.1031948047979268
+            ]
+          },
+          "properties": {
+            "sourceId": 10755,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "valveClass": "N",
+            "valveSizeMm": 150,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "currentlyOpen": 1,
+            "percentOpen": 100,
+            "location": "Fasa J5,Tmn Bkt Jelutong",
+            "gisId": "KGSLV0009220",
+            "operable": 1,
+            "netBaseId": "10935",
+            "gisSysId": "KGSLV0009220"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "valves-10761",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52401384627507,
+              3.1034378374316662
+            ]
+          },
+          "properties": {
+            "sourceId": 10761,
+            "facilityId": null,
+            "type": 5,
+            "material": null,
+            "valveClass": "N",
+            "valveSizeMm": 50,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "currentlyOpen": 1,
+            "percentOpen": 100,
+            "location": "Fasa J5,Tmn Bkt Jelutong",
+            "gisId": "KGARV0002290",
+            "operable": 0,
+            "netBaseId": "10941",
+            "gisSysId": "KGARV0002290"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "valves-21043",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.5231547625903,
+              3.101655488321546
+            ]
+          },
+          "properties": {
+            "sourceId": 21043,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "valveClass": "N",
+            "valveSizeMm": 200,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "currentlyOpen": 0,
+            "percentOpen": 100,
+            "location": "U8",
+            "gisId": "KGSLV0015912",
+            "operable": 1,
+            "netBaseId": "21393",
+            "gisSysId": "KGSLV0015912"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "valves-10759",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52604542968403,
+              3.1024324687799893
+            ]
+          },
+          "properties": {
+            "sourceId": 10759,
+            "facilityId": null,
+            "type": 5,
+            "material": null,
+            "valveClass": "N",
+            "valveSizeMm": 50,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "currentlyOpen": 1,
+            "percentOpen": 100,
+            "location": "Fasa J5,Tmn Bkt Jelutong",
+            "gisId": "KGARV0002289",
+            "operable": 0,
+            "netBaseId": "10939",
+            "gisSysId": "KGARV0002289"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "valves-10744",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52358268573182,
+              3.1042819247202185
+            ]
+          },
+          "properties": {
+            "sourceId": 10744,
+            "facilityId": null,
+            "type": 5,
+            "material": null,
+            "valveClass": "N",
+            "valveSizeMm": 25,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "currentlyOpen": 1,
+            "percentOpen": 100,
+            "location": "Fasa J5,Tmn Bkt Jelutong",
+            "gisId": "KGARV0002288",
+            "operable": 0,
+            "netBaseId": "10924",
+            "gisSysId": "KGARV0002288"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "valves-10767",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52486880636279,
+              3.1023369030643297
+            ]
+          },
+          "properties": {
+            "sourceId": 10767,
+            "facilityId": null,
+            "type": 5,
+            "material": null,
+            "valveClass": "N",
+            "valveSizeMm": 50,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "currentlyOpen": 1,
+            "percentOpen": 100,
+            "location": "Fasa J5,Tmn Bkt Jelutong",
+            "gisId": "KGARV0002292",
+            "operable": 0,
+            "netBaseId": "10947",
+            "gisSysId": "KGARV0002292"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "valves-10764",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52328359676888,
+              3.1028194220826486
+            ]
+          },
+          "properties": {
+            "sourceId": 10764,
+            "facilityId": null,
+            "type": 3,
+            "material": null,
+            "valveClass": "N",
+            "valveSizeMm": 150,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "currentlyOpen": 1,
+            "percentOpen": 0,
+            "location": "Fasa J5,Tmn Bkt Jelutong",
+            "gisId": "KGSCV0000878",
+            "operable": 0,
+            "netBaseId": "10944",
+            "gisSysId": "KGSCV0000878"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "valves-10745",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52329019447741,
+              3.102927314637889
+            ]
+          },
+          "properties": {
+            "sourceId": 10745,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "valveClass": "N",
+            "valveSizeMm": 150,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "currentlyOpen": 1,
+            "percentOpen": 100,
+            "location": "Fasa J5,Tmn Bkt Jelutong",
+            "gisId": "KGSLV0009210",
+            "operable": 1,
+            "netBaseId": "10925",
+            "gisSysId": "KGSLV0009210"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "valves-10771",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52450053612003,
+              3.1025757164325682
+            ]
+          },
+          "properties": {
+            "sourceId": 10771,
+            "facilityId": null,
+            "type": 3,
+            "material": null,
+            "valveClass": "N",
+            "valveSizeMm": 150,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "currentlyOpen": 1,
+            "percentOpen": 0,
+            "location": "Fasa J5,Tmn Bkt Jelutong",
+            "gisId": "KGSCV0000879",
+            "operable": 0,
+            "netBaseId": "10951",
+            "gisSysId": "KGSCV0000879"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "valves-10762",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52333227817776,
+              3.1029929810530477
+            ]
+          },
+          "properties": {
+            "sourceId": 10762,
+            "facilityId": null,
+            "type": 3,
+            "material": null,
+            "valveClass": "N",
+            "valveSizeMm": 150,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "currentlyOpen": 1,
+            "percentOpen": 0,
+            "location": "Fasa J5,Tmn Bkt Jelutong",
+            "gisId": "KGSCV0000877",
+            "operable": 0,
+            "netBaseId": "10942",
+            "gisSysId": "KGSCV0000877"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "valves-10765",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52366114956975,
+              3.103605096816381
+            ]
+          },
+          "properties": {
+            "sourceId": 10765,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "valveClass": "N",
+            "valveSizeMm": 150,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "currentlyOpen": 1,
+            "percentOpen": 100,
+            "location": "Fasa J5,Tmn Bkt Jelutong",
+            "gisId": "KGSLV0009225",
+            "operable": 1,
+            "netBaseId": "10945",
+            "gisSysId": "KGSLV0009225"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "valves-2980",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52162939366754,
+              3.1018820359350996
+            ]
+          },
+          "properties": {
+            "sourceId": 2980,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "valveClass": "N",
+            "valveSizeMm": 150,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "currentlyOpen": 1,
+            "percentOpen": 100,
+            "location": null,
+            "gisId": "KGSLV0001299",
+            "operable": 1,
+            "netBaseId": "3003",
+            "gisSysId": "KGSLV0001299"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "valves-3039",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52288695664573,
+              3.104104088251153
+            ]
+          },
+          "properties": {
+            "sourceId": 3039,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "valveClass": "N",
+            "valveSizeMm": 300,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "currentlyOpen": 1,
+            "percentOpen": 100,
+            "location": null,
+            "gisId": "KGSLV0003434",
+            "operable": 1,
+            "netBaseId": "3067",
+            "gisSysId": "KGSLV0003434"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "valves-2057",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.5220815692418,
+              3.105484145776916
+            ]
+          },
+          "properties": {
+            "sourceId": 2057,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "valveClass": "N",
+            "valveSizeMm": 150,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "currentlyOpen": 1,
+            "percentOpen": 100,
+            "location": null,
+            "gisId": "KGSLV0002385",
+            "operable": 1,
+            "netBaseId": "2071",
+            "gisSysId": "KGSLV0002385"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "valves-2981",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52164584843949,
+              3.102581021518322
+            ]
+          },
+          "properties": {
+            "sourceId": 2981,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "valveClass": "N",
+            "valveSizeMm": 150,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "currentlyOpen": 1,
+            "percentOpen": 100,
+            "location": null,
+            "gisId": "KGSLV0001300",
+            "operable": 1,
+            "netBaseId": "3004",
+            "gisSysId": "KGSLV0001300"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "valves-2058",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52180889543698,
+              3.1048249206131926
+            ]
+          },
+          "properties": {
+            "sourceId": 2058,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "valveClass": "N",
+            "valveSizeMm": 150,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "currentlyOpen": 1,
+            "percentOpen": 100,
+            "location": null,
+            "gisId": "KGSLV0002386",
+            "operable": 1,
+            "netBaseId": "2072",
+            "gisSysId": "KGSLV0002386"
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "valves-2982",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              101.52163929152498,
+              3.1032671802095377
+            ]
+          },
+          "properties": {
+            "sourceId": 2982,
+            "facilityId": null,
+            "type": 1,
+            "material": null,
+            "valveClass": "N",
+            "valveSizeMm": 150,
+            "status": 4,
+            "condition": null,
+            "installDate": null,
+            "currentlyOpen": 1,
+            "percentOpen": 100,
+            "location": null,
+            "gisId": "KGSLV0001301",
+            "operable": 1,
+            "netBaseId": "3005",
+            "gisSysId": "KGSLV0001301"
+          }
+        }
+      ]
+    }
+  },
+  "crossings": []
+}

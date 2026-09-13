@@ -358,6 +358,7 @@ watch(
 );
 
 defineExpose({
+  getMapInstance: () => mapInstance,
   focusDevice,
   fitDevices,
   resize: () => scheduleMapResize(),
