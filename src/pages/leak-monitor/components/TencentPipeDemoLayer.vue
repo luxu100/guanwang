@@ -1,6 +1,21 @@
 <template>
   <view class="pipe-demo-layer">
-    <view class="pipe-demo-panel" @click.stop>
+    <view
+      v-if="panelCollapsed"
+      class="pipe-demo-collapsed"
+      @click.stop="openPanel"
+    >
+      <button
+        class="pipe-demo-collapsed__button"
+        type="button"
+        aria-label="打开管线演示面板"
+        @click.stop="openPanel"
+      >
+        <text class="pipe-demo-collapsed__icon"></text>
+        <text>管线面板</text>
+      </button>
+    </view>
+    <view v-else class="pipe-demo-panel" @click.stop>
       <view class="pipe-demo-panel__head">
         <view>
           <text class="pipe-demo-panel__title">管线演示</text>
@@ -8,6 +23,14 @@
             {{ drawing ? "绘制模式：点击地图添加节点" : "腾讯 Pipe mock 图层" }}
           </text>
         </view>
+        <button
+          class="pipe-demo-icon-button pipe-demo-icon-button--collapse"
+          type="button"
+          aria-label="收起管线演示面板"
+          @click="closePanel"
+        >
+          <text class="pipe-demo-chevron pipe-demo-chevron--up"></text>
+        </button>
         <button
           class="pipe-demo-icon-button"
           type="button"
@@ -290,6 +313,7 @@ const props = withDefaults(defineProps<{
 });
 
 const visible = ref(true);
+const panelCollapsed = ref(true);
 const drawing = ref(false);
 const pipeRadius = ref(4);
 const pipes = ref<DemoPipe[]>([]);
@@ -375,6 +399,14 @@ function toggleVisible() {
   applyLayerVisibility();
 }
 
+function openPanel() {
+  panelCollapsed.value = false;
+}
+
+function closePanel() {
+  panelCollapsed.value = true;
+}
+
 function toggleGisVisible() {
   gisVisible.value = !gisVisible.value;
   applyLayerVisibility();
@@ -408,6 +440,7 @@ function handleRadiusChange(event: { detail?: { value?: number | string } }) {
 }
 
 function startDrawing() {
+  openPanel();
   drawing.value = true;
   draftPoints.value = [];
   snapCandidate.value = null;
@@ -981,6 +1014,52 @@ function normalizeStyleId(value: unknown): DemoPipeStyleId {
   pointer-events: none;
 }
 
+.pipe-demo-collapsed {
+  position: absolute;
+  top: 88px;
+  left: 18px;
+  pointer-events: auto;
+}
+
+.pipe-demo-collapsed__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 13px;
+  color: #31506d;
+  font-size: 12px;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid #cbd8e5;
+  border-left: 4px solid #2f80ed;
+  border-radius: 6px;
+  box-shadow: 0 8px 20px rgba(15, 35, 55, 0.14);
+}
+
+.pipe-demo-collapsed__button::after {
+  border: 0;
+}
+
+.pipe-demo-collapsed__icon {
+  position: relative;
+  display: block;
+  width: 13px;
+  height: 10px;
+  border-top: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+}
+
+.pipe-demo-collapsed__icon::after {
+  position: absolute;
+  top: 3px;
+  left: 0;
+  width: 13px;
+  height: 2px;
+  content: "";
+  background: currentColor;
+}
+
 .pipe-demo-panel {
   position: absolute;
   top: 88px;
@@ -1014,6 +1093,11 @@ function normalizeStyleId(value: unknown): DemoPipeStyleId {
 .pipe-demo-control__label {
   justify-content: space-between;
   gap: 10px;
+}
+
+.pipe-demo-panel__head > view:first-child {
+  flex: 1;
+  min-width: 0;
 }
 
 .pipe-demo-panel__title,
@@ -1058,6 +1142,19 @@ function normalizeStyleId(value: unknown): DemoPipeStyleId {
 .pipe-demo-icon-button::after,
 .pipe-demo-button::after {
   border: 0;
+}
+
+.pipe-demo-icon-button--collapse {
+  color: #64748b;
+}
+
+.pipe-demo-chevron {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-top: 2px solid currentColor;
+  border-left: 2px solid currentColor;
+  transform: rotate(45deg) translate(1px, 1px);
 }
 
 .pipe-demo-eye {
@@ -1346,6 +1443,11 @@ function normalizeStyleId(value: unknown): DemoPipeStyleId {
 }
 
 @media (max-width: 900px) {
+  .pipe-demo-collapsed {
+    top: 68px;
+    left: 10px;
+  }
+
   .pipe-demo-panel {
     top: 68px;
     left: 10px;

@@ -1,6 +1,21 @@
 <template>
   <view class="pipe-demo-layer">
-    <view class="pipe-demo-panel" @click.stop>
+    <view
+      v-if="panelCollapsed"
+      class="pipe-demo-collapsed"
+      @click.stop="openPanel"
+    >
+      <button
+        class="pipe-demo-collapsed__button"
+        type="button"
+        aria-label="打开管线演示面板"
+        @click.stop="openPanel"
+      >
+        <text class="pipe-demo-collapsed__icon"></text>
+        <text>管线面板</text>
+      </button>
+    </view>
+    <view v-else class="pipe-demo-panel" @click.stop>
       <view class="pipe-demo-panel__head">
         <view>
           <text class="pipe-demo-panel__title">管线演示</text>
@@ -8,6 +23,14 @@
             {{ drawing ? "绘制模式：点击地图添加节点" : "Google Maps mock 图层" }}
           </text>
         </view>
+        <button
+          class="pipe-demo-icon-button pipe-demo-icon-button--collapse"
+          type="button"
+          aria-label="收起管线演示面板"
+          @click="closePanel"
+        >
+          <text class="pipe-demo-chevron pipe-demo-chevron--up"></text>
+        </button>
         <button
           class="pipe-demo-icon-button"
           type="button"
@@ -190,6 +213,7 @@ const props = withDefaults(defineProps<{
 });
 
 const visible = ref(true);
+const panelCollapsed = ref(true);
 const drawing = ref(false);
 const pipeRadius = ref(4);
 const pipes = ref<DemoPipe[]>([]);
@@ -249,6 +273,14 @@ function toggleVisible() {
   applyVisibility();
 }
 
+function openPanel() {
+  panelCollapsed.value = false;
+}
+
+function closePanel() {
+  panelCollapsed.value = true;
+}
+
 function toggleGisVisible() {
   gisVisible.value = !gisVisible.value;
   applyGisVisibility();
@@ -278,6 +310,7 @@ function handleRadiusChange(event: { detail?: { value?: number | string } }) {
 }
 
 function startDrawing() {
+  openPanel();
   drawing.value = true;
   draftPoints.value = [];
   snapCandidate.value = null;
@@ -626,15 +659,23 @@ function distanceMeters(first: MapCoordinate, second: MapCoordinate) {
 
 <style scoped lang="scss">
 .pipe-demo-layer { position: absolute; inset: 0; z-index: 6; pointer-events: none; }
+.pipe-demo-collapsed { position: absolute; top: 88px; left: 18px; pointer-events: auto; }
+.pipe-demo-collapsed__button { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 13px; color: #31506d; font-size: 12px; font-weight: 800; background: rgba(255,255,255,.97); border: 1px solid #cbd8e5; border-left: 4px solid #2f80ed; border-radius: 6px; box-shadow: 0 8px 20px rgba(15,35,55,.14); }
+.pipe-demo-collapsed__button::after { border: 0; }
+.pipe-demo-collapsed__icon { position: relative; display: block; width: 13px; height: 10px; border-top: 2px solid currentColor; border-bottom: 2px solid currentColor; }
+.pipe-demo-collapsed__icon::after { position: absolute; top: 3px; left: 0; width: 13px; height: 2px; content: ""; background: currentColor; }
 .pipe-demo-panel { position: absolute; top: 88px; left: 18px; width: 270px; max-height: calc(100% - 106px); padding: 13px; overflow-y: auto; pointer-events: auto; background: rgba(255,255,255,.97); border: 1px solid #cbd8e5; border-left: 4px solid #2f80ed; border-radius: 6px; box-shadow: 0 10px 26px rgba(15,35,55,.16); }
 .pipe-demo-panel__head,.pipe-demo-panel__footer,.pipe-demo-control,.pipe-demo-control__label,.pipe-demo-actions,.pipe-demo-legend__item,.pipe-demo-drawing__status { display: flex; align-items: center; }
 .pipe-demo-panel__head,.pipe-demo-panel__footer,.pipe-demo-control,.pipe-demo-control__label { justify-content: space-between; gap: 10px; }
+.pipe-demo-panel__head > view:first-child { flex: 1; min-width: 0; }
 .pipe-demo-panel__title,.pipe-demo-panel__subtitle { display: block; }
 .pipe-demo-panel__title { color: #172b3a; font-size: 14px; font-weight: 900; }
 .pipe-demo-panel__subtitle { margin-top: 3px; color: #718397; font-size: 11px; }
 .pipe-demo-icon-button,.pipe-demo-button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; margin: 0; color: #31506d; background: #f6fbff; border: 1px solid #cbdced; border-radius: 4px; }
 .pipe-demo-icon-button { width: 30px; height: 30px; padding: 0; }
 .pipe-demo-icon-button::after,.pipe-demo-button::after { border: 0; }
+.pipe-demo-icon-button--collapse { color: #64748b; }
+.pipe-demo-chevron { display: block; width: 8px; height: 8px; border-top: 2px solid currentColor; border-left: 2px solid currentColor; transform: rotate(45deg) translate(1px, 1px); }
 .pipe-demo-eye { position: relative; width: 15px; height: 10px; border: 2px solid currentColor; border-radius: 3px; }
 .pipe-demo-eye::after { position: absolute; top: 3px; right: -4px; width: 5px; height: 2px; content: ""; background: currentColor; transform: rotate(45deg); }
 .pipe-demo-eye--off { opacity: .42; }
@@ -683,5 +724,5 @@ function distanceMeters(first: MapCoordinate, second: MapCoordinate) {
 .pipe-demo-legend__node { display: block; width: 11px; height: 11px; border: 3px solid #16a34a; border-radius: 50%; }.pipe-demo-legend__node--connected { background: #16a34a; }.pipe-demo-legend__node--separate { border-color: #f97316; }
 .pipe-demo-panel__footer { margin-top: 10px; color: #718397; font-size: 10px; }
 .pipe-demo-error { position: absolute; top: 18px; left: 310px; max-width: 300px; padding: 9px 12px; color: #b42318; font-size: 12px; line-height: 1.4; pointer-events: auto; background: #fff1ee; border: 1px solid #ffd3cb; border-radius: 4px; }
-@media (max-width: 900px) { .pipe-demo-panel { top: 68px; left: 10px; width: min(270px, calc(100vw - 20px)); max-height: 42%; } .pipe-demo-error { top: auto; bottom: 12px; left: 10px; } }
+@media (max-width: 900px) { .pipe-demo-collapsed { top: 68px; left: 10px; } .pipe-demo-panel { top: 68px; left: 10px; width: min(270px, calc(100vw - 20px)); max-height: 42%; } .pipe-demo-error { top: auto; bottom: 12px; left: 10px; } }
 </style>
