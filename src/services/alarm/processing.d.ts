@@ -1,3 +1,10 @@
+/**
+ * 报警记录接口类型声明（2026-09-09 对齐后端实况）。
+ * 枚举为字符串编码：alarmType=OFFLINE/NO_DATA/LEAK_SUSPECT/CUSTOM、
+ * alarmLevel=INFO/WARNING/CRITICAL、status=ACTIVE/CONFIRMED/RESOLVED（三态）。
+ * 后端暂缺 ignore/batch-confirm/dispatch/export/unread-count/latest?since。
+ */
+
 export interface ApiResponse<T = unknown> {
   code?: number;
   msg?: string;
@@ -11,105 +18,106 @@ export interface PageInfo<T = unknown> {
   current?: number;
 }
 
-/** 报警记录分页查询入参（AlarmRecordPageDTO）。 */
+/** 报警类型（后端字符串枚举）。 */
+export type AlarmType = "OFFLINE" | "NO_DATA" | "LEAK_SUSPECT" | "CUSTOM";
+/** 报警级别。 */
+export type AlarmLevel = "INFO" | "WARNING" | "CRITICAL";
+/** 报警状态（三态状态机：ACTIVE→CONFIRMED→RESOLVED；自动恢复 ACTIVE→RESOLVED）。 */
+export type AlarmStatus = "ACTIVE" | "CONFIRMED" | "RESOLVED";
+
+/** 报警记录分页查询入参（对齐 AlarmRecordPageDTO + BasePageDTO；时间按 firstTriggeredAt）。 */
 export interface AlarmPageQuery {
   pageNum?: number;
   pageSize?: number;
-  alarmNo?: string;
-  /** 报警类型：1-压力异常 2-渗漏 3-爆管 4-离线 */
-  ruleType?: number;
-  /** 报警级别：1-提示 2-警告 3-严重 */
-  alarmLevel?: number;
-  /** 状态：0-未处理 1-已确认 2-已忽略 3-已转工单 4-已恢复 */
-  status?: number;
-  deviceNumber?: string;
-  deptId?: number;
   startTime?: string;
   endTime?: string;
+  sortOrder?: string;
+  sortField?: string;
+  deviceId?: number;
+  /** 设备编号（后端 eq 精确匹配） */
+  deviceNumber?: string;
+  alarmType?: AlarmType;
+  alarmLevel?: AlarmLevel;
+  status?: AlarmStatus;
+  deptId?: number;
 }
 
-/** 确认/忽略报警入参（AlarmHandleDTO）。 */
+/** 确认/关闭报警入参（对齐 AlarmHandleDTO）。 */
 export interface AlarmHandlePayload {
-  /** 处理人账号（可取当前登录用户） */
-  handler?: string;
   handleRemark?: string;
 }
 
-/** 报警转工单入参（AlarmDispatchDTO，字段对齐 Worksheet）。 */
-export interface AlarmDispatchPayload {
-  /** 工单类型：0-巡检 1-检漏 2-拆装 3-维护（报警转工单默认 1-检漏） */
-  worksheetType?: number;
-  /** 执行人账号 */
-  executeAccount?: string;
-  /** 紧急程度：0-一般 1-紧急 */
-  urgencyLevel?: number;
-  /** 截止时间 */
-  deadlineTime?: string;
-  /** 工单说明 */
-  worksheetInstruction?: string;
-  remark?: string;
-}
-
-/** 报警记录实体（alarm_record）。 */
+/** 报警记录（对齐 AlarmRecordVO）。 */
 export interface AlarmRecord {
   id?: number;
-  alarmNo?: string;
   ruleId?: number;
-  /** 报警类型：1-压力异常 2-渗漏 3-爆管 4-离线 */
-  ruleType?: number;
-  /** 报警级别：1-提示 2-警告 3-严重 */
-  alarmLevel?: number;
+  ruleName?: string;
+  /** FIXED / CUSTOM */
+  ruleKind?: string;
+  alarmType?: AlarmType;
+  /** 报警类型中文名（后端 VO 附带） */
+  alarmTypeName?: string;
+  /** 自定义字段名（CUSTOM 记录有值） */
+  fieldName?: string | null;
+  alarmLevel?: AlarmLevel;
+  /** 报警级别中文名（后端 VO 附带） */
+  alarmLevelName?: string;
   deviceId?: number;
   deviceNumber?: string;
+  deviceAlias?: string;
   deptId?: number;
-  /** 触发值（报警时刻的实际值） */
-  triggerValue?: string;
-  /** 阈值快照（报警时规则配置） */
-  thresholdSnapshot?: string;
-  alarmTime?: string;
-  /** 状态：0-未处理 1-已确认 2-已忽略 3-已转工单 4-已恢复 */
-  status?: number;
-  recoverTime?: string;
-  handler?: string;
-  handleTime?: string;
-  handleRemark?: string;
-  worksheetId?: number;
-  worksheetNo?: string;
-  /** 静默期内重复触发次数（合并计数） */
+  status?: AlarmStatus;
+  /** 状态中文名（后端 VO 附带） */
+  statusName?: string;
+  /** 触发时实测值 */
+  triggerValue?: number | string;
+  /** 累计触发次数 */
   triggerCount?: number;
+  /** 首次触发时间（分页排序与时间过滤依据） */
+  firstTriggeredAt?: string;
+  /** 最后触发时间 */
+  lastTriggeredAt?: string;
+  /** 恢复时间（resolve 后写入） */
+  recoveredAt?: string;
+  /** 触发上下文快照 JSON */
+  contextJson?: string;
+  handleUserId?: number;
+  handleRemark?: string;
   createdAt?: string;
-  updatedAt?: string;
-  /* —— 详情 VO 扩展（关联设备信息 / 命中规则快照） —— */
-  /** 设备安装地址 */
-  deviceInstallAddress?: string;
-  /** 命中规则名称快照 */
-  ruleName?: string;
-  /** 部门名称 */
-  deptName?: string;
+}
+
+/** 当前活跃报警列表项（对齐 AlarmMapItemVO；铃铛轮询比对基准 firstTriggeredAt）。 */
+export interface AlarmMapItem {
+  alarmRecordId?: number;
+  deviceNumber?: string;
+  deviceAlias?: string;
+  longitude?: number | null;
+  latitude?: number | null;
+  alarmType?: AlarmType;
+  alarmTypeName?: string;
+  alarmLevel?: AlarmLevel;
+  firstTriggeredAt?: string;
+  triggerValue?: number | string;
 }
 
 export function getAlarmPage(data: AlarmPageQuery): Promise<ApiResponse<PageInfo<AlarmRecord>>>;
 export function getAlarmDetail(id: number | string): Promise<ApiResponse<AlarmRecord>>;
-export function deleteAlarm(id: number | string, isForce?: boolean): Promise<ApiResponse>;
 export function confirmAlarm(id: number | string, data?: AlarmHandlePayload): Promise<ApiResponse>;
-export function ignoreAlarm(id: number | string, data?: AlarmHandlePayload): Promise<ApiResponse>;
-export function batchConfirmAlarms(ids: Array<number | string>): Promise<ApiResponse>;
-export function dispatchAlarm(id: number | string, data: AlarmDispatchPayload): Promise<ApiResponse>;
-export function getUnreadAlarmCount(): Promise<ApiResponse<number>>;
-export function getLatestAlarms(since?: string): Promise<ApiResponse<AlarmRecord[]>>;
-export function exportAlarms(query?: AlarmPageQuery): Promise<ApiResponse<{ filename: string; filePath?: string }>>;
+export function resolveAlarm(id: number | string, data?: AlarmHandlePayload): Promise<ApiResponse>;
+export function getLatestActiveAlarms(limit?: number): Promise<ApiResponse<AlarmMapItem[]>>;
+export function getAlarmTrend(data?: Record<string, unknown>): Promise<ApiResponse<unknown>>;
+export function getAlarmOverview(data?: Record<string, unknown>): Promise<ApiResponse<unknown>>;
+export function getAlarmMap(data?: Record<string, unknown>): Promise<ApiResponse<unknown>>;
 
 declare const service: {
   getAlarmPage: typeof getAlarmPage;
   getAlarmDetail: typeof getAlarmDetail;
-  deleteAlarm: typeof deleteAlarm;
   confirmAlarm: typeof confirmAlarm;
-  ignoreAlarm: typeof ignoreAlarm;
-  batchConfirmAlarms: typeof batchConfirmAlarms;
-  dispatchAlarm: typeof dispatchAlarm;
-  getUnreadAlarmCount: typeof getUnreadAlarmCount;
-  getLatestAlarms: typeof getLatestAlarms;
-  exportAlarms: typeof exportAlarms;
+  resolveAlarm: typeof resolveAlarm;
+  getLatestActiveAlarms: typeof getLatestActiveAlarms;
+  getAlarmTrend: typeof getAlarmTrend;
+  getAlarmOverview: typeof getAlarmOverview;
+  getAlarmMap: typeof getAlarmMap;
 };
 
 export default service;

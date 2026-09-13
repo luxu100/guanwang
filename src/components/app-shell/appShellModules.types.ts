@@ -13,6 +13,10 @@ export interface AppShellModuleViews {
   DataReceiveView: Component;
   DeviceManagementView: Component;
   DeviceParameterView: Component;
+  DeviceResumeView: Component;
+  DeviceLedgerView: Component;
+  BatteryHealthView: Component;
+  OperationAnalysisView: Component;
   HistoryOverviewView: Component;
   LeakAnalysisView: Component;
   LeakManagementView: Component;
@@ -40,6 +44,7 @@ export function getAppShellModuleKey(path: string): LocalizedModuleKey | undefin
   if (path.startsWith("/pages/data-analysis/")) return "dataAnalysis";
   if (path.startsWith("/pages/work-order/")) return "workOrder";
   if (path.startsWith("/pages/alarm/")) return "alarm";
+  if (path.startsWith("/pages/report/")) return "report";
   if (path.startsWith("/pages/leak-report/")) return "leakReport";
   if (path.startsWith("/pages/system/")) return "system";
   if (path.startsWith("/pages/data-receive/")) return "dataReceive";

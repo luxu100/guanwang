@@ -214,7 +214,7 @@ import AppShellModuleHost from "@/components/app-shell/AppShellModuleHost.vue";
 import LanguageSelect from "@/components/common/LanguageSelect.vue";
 import UserLogoBindingField from "@/pages/system/components/UserLogoBindingField.vue";
 import { getSysFileDetail } from "@/services/system/file";
-import { getUnreadAlarmCount } from "@/services/alarm/processing";
+import { getLatestActiveAlarms } from "@/services/alarm/processing";
 
 // import appShellModules from "@/components/app-shell/appShellModules.local";
 import appShellModules from "@/components/app-shell/appShellModules.localized";
@@ -263,6 +263,10 @@ const {
   DataReceiveView,
   DeviceManagementView,
   DeviceParameterView,
+  DeviceResumeView,
+  DeviceLedgerView,
+  BatteryHealthView,
+  OperationAnalysisView,
   HistoryOverviewView,
   LeakAnalysisView,
   LeakManagementView,
@@ -438,10 +442,10 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/work-order/statistics/statistics": { component: WorksheetTableView, props: { mode: "statistics" } },
   "/pages/alarm/strategy/strategy": { component: AlarmStrategyView },
   "/pages/alarm/processing/processing": { component: AlarmProcessingView },
-  "/pages/report/device-resume/device-resume": createPlaceholderContent("/pages/report/device-resume/device-resume"),
-  "/pages/report/device-ledger/device-ledger": createPlaceholderContent("/pages/report/device-ledger/device-ledger"),
-  "/pages/report/battery-health/battery-health": createPlaceholderContent("/pages/report/battery-health/battery-health"),
-  "/pages/report/operation-analysis/operation-analysis": createPlaceholderContent("/pages/report/operation-analysis/operation-analysis"),
+  "/pages/report/device-resume/device-resume": { component: DeviceResumeView },
+  "/pages/report/device-ledger/device-ledger": { component: DeviceLedgerView },
+  "/pages/report/battery-health/battery-health": { component: BatteryHealthView },
+  "/pages/report/operation-analysis/operation-analysis": { component: OperationAnalysisView },
   "/pages/leak-burst/burst-identification/burst-identification": { component: BurstIdentificationView },
   "/pages/leak-burst/measurement-analysis/measurement-analysis": { component: MeasurementAnalysisView },
   "/pages/leak-burst/loss-report/loss-report": { component: LossReportView },
@@ -1092,11 +1096,12 @@ let warningPollTimer: ReturnType<typeof setInterval> | null = null;
 
 async function refreshWarningCount() {
   try {
-    const res = (await getUnreadAlarmCount()) as { code?: number; msg?: string; data?: number };
+    // 【降级实现】后端暂无 unread-count 接口，暂以 latest-active 活跃数近似未处理数；后端补齐后切换
+    const res = (await getLatestActiveAlarms(200)) as { code?: number; msg?: string; data?: Array<unknown> };
     if (res.code !== undefined && res.code !== 200) {
       throw new Error(res.msg);
     }
-    warningCount.value = Number(res.data) || 0;
+    warningCount.value = Array.isArray(res.data) ? res.data.length : 0;
   } catch {
     // 接口失败时保持当前值，不回退
   }

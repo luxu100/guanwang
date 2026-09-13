@@ -1,11 +1,12 @@
 <template>
   <AppShell>
-    <view class="content-page"></view>
+    <DeviceResumeView />
   </AppShell>
 </template>
 
 <script setup lang="ts">
 import AppShell from "@/components/AppShell.vue";
+import DeviceResumeView from "@/pages/report/components/DeviceResumeView.vue";
 </script>
 
 <style scoped lang="scss">

@@ -101,7 +101,7 @@ const enUS = {
     workOrderStatistics: "Order Statistics",
     alarm: "Alarms",
     alarmStrategy: "Alarm Rules",
-    alarmProcessing: "Alarm Handling",
+    alarmProcessing: "Alarm Management",
     alarmAnalysis: "Alarm Analysis",
     report: "Operations Reports",
     reportDeviceResume: "Device History",

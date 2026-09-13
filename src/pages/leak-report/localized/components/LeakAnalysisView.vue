@@ -59,39 +59,29 @@
       @jump-page="jumpToPage"
       @page-size-change="handlePageSizeChange"
     >
-      <view class="data-table" :style="{ minWidth: tableMinWidth }">
-        <!-- 算法分析列头 -->
-        <view class="data-row data-row--header data-row--algorithm" :style="{ gridTemplateColumns: tableGridTemplateColumns, minWidth: tableMinWidth }">
-          <text class="data-cell data-cell--index">{{ t('table.index') }}</text>
-          <text class="data-cell data-cell--device">{{ t('table.deviceNumber') }}</text>
-          <text class="data-cell data-cell--time">{{ t('table.audioTime') }}</text>
-          <text class="data-cell data-cell--audio-id">{{ t('table.audioFileId') }}</text>
-          <text class="data-cell data-cell--process-result">{{ t('table.signalprocessingResult') }}</text>
-          <text class="data-cell data-cell--status">{{ t('table.algorithmStatus') }}</text>
-          <text class="data-cell data-cell--error">{{ t('table.algorithmError') }}</text>
-        </view>
-
-        <view v-if="loading" class="table-state table-state--loading"><view class="state-spinner"></view><text class="state-text">{{ t('common.loading') }}</text></view>
-        <view v-else-if="records.length === 0" class="table-state table-state--empty"><view class="state-icon-empty"></view><text class="state-text">{{ t('leakAnalysis.noAnalysisData') }}</text></view>
-
-        <!-- 算法分析行 -->
-        <view
-          v-for="(item, index) in records"
-          v-else
-          :key="getRowKey(item, index)"
-          :class="['data-row', 'data-row--algorithm', { 'data-row--active': selectedRecordKey === getRowKey(item, index) }]"
-          :style="{ gridTemplateColumns: tableGridTemplateColumns, minWidth: tableMinWidth }"
-          @click="selectRecord(item, index)"
-        >
-          <text class="data-cell data-cell--index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</text>
-          <text class="data-cell data-cell--device">{{ displayValue(getFieldValue(item, "deviceNumber")) }}</text>
-          <text class="data-cell data-cell--time">{{ formatDateTime(getFieldValue(item, "audioTime")) }}</text>
-          <text class="data-cell data-cell--audio-id">{{ displayValue(getFieldValue(item, "audioFileId")) }}</text>
-          <text class="data-cell data-cell--process-result" :title="getFieldValue(item, 'signalprocessingResult')">{{ displayValue(getFieldValue(item, "signalprocessingResult")) }}</text>
-          <text class="data-cell data-cell--status"><text v-if="getFieldValue(item, 'algorithmStatus')" class="status-tag" :class="getAlgorithmStatusTagClass(item)">{{ getAlgorithmStatusLabel(item) }}</text><text v-else>-</text></text>
-          <text class="data-cell data-cell--error" :title="getFieldValue(item, 'algorithmError')">{{ displayValue(getFieldValue(item, "algorithmError")) }}</text>
-        </view>
-      </view>
+      <LeakDataTable
+        :columns="columnDefs"
+        :data="records"
+        :loading="loading"
+        :grid-template-columns="tableGridTemplateColumns"
+        :min-width="tableMinWidth"
+        :selected-key="selectedRecordKey"
+        :sort-field="sortField"
+        :sort-order="sortOrder"
+        @sort="toggleSort"
+        :empty-text="t('leakAnalysis.noAnalysisData')"
+        :loading-text="t('common.loading')"
+        :page-num="pagination.pageNum"
+        :page-size="pagination.pageSize"
+        :get-row-key="getRowKey"
+        :get-field-value="getFieldValue"
+        :format-date-time="formatDateTime"
+        :label-fn="t"
+        header-row-class="data-row--algorithm"
+        body-row-class="data-row--algorithm"
+        @row-click="selectRecord"
+      >
+      </LeakDataTable>
 
       <!-- 右侧详情 -->
       <template #detail>
@@ -201,6 +191,8 @@ import WorkOrderDatetimePicker from "@/pages/work-order/localized/components/Wor
 import LeakTableView from "@/pages/leak-report/localized/components/LeakTableView.vue";
 import { createScopedT, useI18n } from "@/i18n";
 import { ALGORITHM_STATUS } from "@/pages/leak-report/constants/status";
+import LeakDataTable from "@/pages/leak-report/components/LeakDataTable.vue";
+import type { ColumnDef } from "@/pages/leak-report/constants/columnTypes";
 import { fetchAllPages } from "@/utils/fetch-all-pages";
 
 const t = createScopedT("leakReport");
@@ -216,11 +208,78 @@ const { locale } = useI18n();
  *
  * 每列 minmax 的最小值基于英文表头字符数 × 6.5px + 24px padding 计算，确保完整展示。
  */
+const columnDefs = computed<ColumnDef[]>(() => [
+  {
+    key: "_index",
+    labelKey: "table.index",
+    renderType: "index",
+    widthZh: "58px",
+    widthEn: "58px",
+    cellClass: "data-cell--index",
+  },
+  {
+    key: "deviceNumber",
+    labelKey: "table.deviceNumber",
+    renderType: "text",
+    widthZh: "minmax(110px, 2.2fr)",
+    widthEn: "minmax(110px, 2.0fr)",
+    cellClass: "data-cell--device",
+  },
+  {
+    key: "audioTime",
+    labelKey: "table.audioTime",
+    renderType: "dateTime",
+    widthZh: "minmax(160px, 3fr)",
+    widthEn: "minmax(170px, 3.0fr)",
+    cellClass: "data-cell--time data-cell--sortable",
+    sortable: true,
+  },
+  {
+    key: "audioFileId",
+    labelKey: "table.audioFileId",
+    renderType: "text",
+    widthZh: "minmax(100px, 1.8fr)",
+    widthEn: "minmax(115px, 1.8fr)",
+    cellClass: "data-cell--audio-id",
+  },
+  {
+    key: "signalprocessingResult",
+    labelKey: "table.signalprocessingResult",
+    renderType: "title",
+    widthZh: "minmax(140px, 2.4fr)",
+    widthEn: "minmax(200px, 3.0fr)",
+    cellClass: "data-cell--process-result",
+  },
+  {
+    key: "algorithmStatus",
+    labelKey: "table.algorithmStatus",
+    renderType: "statusTag",
+    statusVariant: "algorithm",
+    widthZh: "minmax(96px, 1.6fr)",
+    widthEn: "minmax(130px, 1.6fr)",
+    cellClass: "data-cell--status",
+    // options 声明式映射（labelKey 走 label-fn(t)，与标准版一致）
+    options: [
+      { value: ALGORITHM_STATUS.PENDING, labelKey: "status.pending", tagClass: "status-tag--pending" },
+      { value: ALGORITHM_STATUS.SUCCESS, labelKey: "status.success", tagClass: "status-tag--success" },
+      { value: ALGORITHM_STATUS.FAILED, labelKey: "status.failed", tagClass: "status-tag--failed" },
+      { value: ALGORITHM_STATUS.SKIPPED, labelKey: "status.skipped", tagClass: "status-tag--skipped" },
+      { value: ALGORITHM_STATUS.TIMEOUT, labelKey: "status.timeout", tagClass: "status-tag--failed" },
+    ],
+  },
+  {
+    key: "algorithmError",
+    labelKey: "table.algorithmError",
+    renderType: "title",
+    widthZh: "minmax(140px, 2.4fr)",
+    widthEn: "minmax(120px, 2.2fr)",
+    cellClass: "data-cell--error",
+  },
+]);
+
 const tableGridTemplateColumns = computed<string>(() => {
-  if (locale.value === "en-US") {
-    return "58px minmax(110px, 2.0fr) minmax(170px, 3.0fr) minmax(115px, 1.8fr) minmax(200px, 3.0fr) minmax(130px, 1.6fr) minmax(120px, 2.2fr)";
-  }
-  return "58px minmax(110px, 2.2fr) minmax(160px, 3fr) minmax(100px, 1.8fr) minmax(140px, 2.4fr) minmax(96px, 1.6fr) minmax(140px, 2.4fr)";
+  const isEn = locale.value === "en-US";
+  return columnDefs.value.map((c) => (isEn ? c.widthEn : c.widthZh)).join(" ");
 });
 
 const tableMinWidth = computed<string>(() => (locale.value === "en-US" ? "903px" : "820px"));
@@ -445,22 +504,16 @@ async function handleExport(scope: "current" | "all") {
     return;
   }
   // #ifdef H5
-  const headers = [
-    t("table.index"),
-    t("table.deviceNumber"),
-    t("table.audioTime"),
-    t("table.audioFileId"),
-    t("table.signalprocessingResult"),
-    t("table.algorithmStatus"),
-    t("table.algorithmError"),
-  ];
-  const rows = exportRecords.map((r, idx) => {
-    const keys = ["deviceNumber", "audioTime", "audioFileId", "signalprocessingResult", "algorithmStatus", "algorithmError"];
-    return [String(idx + 1), ...keys.map((k) => {
-      if (k === "audioTime") return escapeCsvCell(formatDateTime(getFieldValue(r, k)));
-      return escapeCsvCell(getFieldValue(r, k));
-    })];
-  });
+  // 导出列从 columnDefs 派生：列头、字段顺序与表格保持一致，新增字段自动纳入导出（与标准版一致）。
+  const exportColumns = columnDefs.value.filter((c) => c.exportable !== false);
+  const headers = exportColumns.map((c) => t(c.labelKey));
+  const rows = exportRecords.map((r, idx) =>
+    exportColumns.map((c) => {
+      if (c.renderType === "index") return escapeCsvCell(String(idx + 1));
+      if (c.renderType === "dateTime") return escapeCsvCell(formatDateTime(getFieldValue(r, c.key)));
+      return escapeCsvCell(getFieldValue(r, c.key));
+    })
+  );
   const csv = [headers.join(","), ...rows.map((row) => row.map((c) => `"${c}"`).join(","))].join("\n");
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
@@ -1283,107 +1336,6 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   background: linear-gradient(90deg, #7f9ab4, #4d6f91);
 }
 
-.data-table {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  min-width: 820px;
-  background: #ffffff;
-}
-
-.data-row {
-  display: grid;
-  grid-template-columns: 58px minmax(110px, 2.2fr) minmax(160px, 3fr) minmax(100px, 1.8fr) minmax(140px, 2.4fr) minmax(96px, 1.6fr) minmax(140px, 2.4fr);
-  min-height: 42px;
-  width: 100%;
-  min-width: 820px;
-  border-bottom: 1px solid #edf1f5;
-  cursor: pointer;
-  transition: background 0.18s ease, box-shadow 0.18s ease;
-}
-
-.data-row--algorithm {
-  grid-template-columns: 58px minmax(110px, 2.2fr) minmax(160px, 3fr) minmax(100px, 1.8fr) minmax(140px, 2.4fr) minmax(96px, 1.6fr) minmax(140px, 2.4fr);
-}
-
-
-.data-row--header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  min-height: 44px;
-  color: #20384f;
-  font-weight: 800;
-  background: #f6f9fc;
-  cursor: default;
-  box-shadow: 0 1px 0 #dbe7f0;
-}
-
-.data-row:not(.data-row--header):nth-child(odd) {
-  background: #ffffff;
-}
-
-.data-row:not(.data-row--header):nth-child(even) {
-  background: #fbfdff;
-}
-
-.data-row:not(.data-row--header):hover {
-  background: #f1f8ff;
-  box-shadow: inset 0 0 0 1px #d7ebfb;
-}
-
-.data-row--active {
-  position: relative;
-  background: #e7f3ff !important;
-  box-shadow: inset 0 0 0 1px #b9dcff;
-}
-
-.data-row--active::before {
-  position: absolute;
-  top: 7px;
-  bottom: 7px;
-  left: 0;
-  width: 3px;
-  content: "";
-  background: #0d82ee;
-  border-radius: 0 999px 999px 0;
-}
-
-.data-cell {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 0;
-  padding: 0 12px;
-  overflow: hidden;
-  color: #24384d;
-  font-size: 13px;
-  line-height: 1.35;
-  text-align: center;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  border-right: 1px solid #edf1f5;
-}
-
-.data-row--header .data-cell {
-  color: #415a73;
-  font-size: 12px;
-  letter-spacing: 0;
-}
-
-.data-cell:last-child { border-right: 0; }
-
-.data-cell--index { justify-content: center; color: #64748b; }
-.data-cell--device { color: #0f4c81; }
-.data-cell--time { color: #0f4c81; }
-.data-cell--address { justify-content: center; text-align: center; }
-
-.data-cell--sortable { cursor: pointer; user-select: none; }
-.data-cell--sortable:hover { color: #3b82f6; }
-
-.sort-arrow { flex: none; font-size: 10px; line-height: 1; margin-left: 2px; color: #bcc7d6; transition: color 0.18s ease; &--active { color: #3b82f6; } }
-.data-cell--sortable:hover .sort-arrow:not(.sort-arrow--active) { color: #7f8fa3; }
-
 .level-pill {
   display: inline-block;
   padding: 2px 10px;
@@ -1466,55 +1418,6 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
   color: #6b7280;
   background: #f9fafb;
   border: 1px solid #e5e7eb;
-}
-
-.data-cell--error {
-  color: #475569;
-  text-align: center;
-  justify-content: center;
-}
-
-.table-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 48px 32px;
-  color: #a0aec0;
-  font-size: 14px;
-  text-align: center;
-}
-
-.state-spinner {
-  width: 28px;
-  height: 28px;
-  border: 3px solid #e2e8f0;
-  border-top-color: #3b82f6;
-  border-radius: 50%;
-  animation: state-spin 0.7s linear infinite;
-}
-
-@keyframes state-spin {
-  to { transform: rotate(360deg); }
-}
-
-.state-icon-empty {
-  width: 40px;
-  height: 40px;
-  border: 2px dashed #cbd5e1;
-  border-radius: 50%;
-  position: relative;
-}
-
-.state-icon-empty::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 14px;
-  height: 2px;
-  background: #cbd5e1;
-  transform: translate(-50%, -50%);
 }
 
 .pagination-bar {

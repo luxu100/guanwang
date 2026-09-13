@@ -4,22 +4,17 @@
       <view class="alarm-toolbar">
         <view class="toolbar-row toolbar-row--filters">
           <view class="filter-group">
-          <text class="filter-label">{{ localeText("报警编号", "Alarm No.") }}</text>
-          <input v-model="filters.alarmNo" class="filter-input" :placeholder="localeText('请输入报警编号', 'Enter alarm no.')" placeholder-class="input-placeholder" />
-        </view>
-
-        <view class="filter-group">
-          <text class="filter-label">{{ localeText("报警类型", "Type") }}</text>
-          <picker :range="ruleTypeOptions" range-key="label" :value="filters.ruleTypeIndex" @change="handleFilterTypeChange">
+          <text class="filter-label">{{ localeText("报警类型", "Alarm Type") }}</text>
+          <picker :range="alarmTypeOptions" range-key="label" :value="filters.alarmTypeIndex" @change="handleFilterTypeChange">
             <view class="filter-select">
-              <text>{{ ruleTypeOptions[filters.ruleTypeIndex].label }}</text>
+              <text>{{ alarmTypeOptions[filters.alarmTypeIndex].label }}</text>
               <text class="filter-select__arrow"></text>
             </view>
           </picker>
         </view>
 
         <view class="filter-group">
-          <text class="filter-label">{{ localeText("报警级别", "Level") }}</text>
+          <text class="filter-label">{{ localeText("报警级别", "Alarm Level") }}</text>
           <picker :range="alarmLevelOptions" range-key="label" :value="filters.alarmLevelIndex" @change="handleFilterLevelChange">
             <view class="filter-select">
               <text>{{ alarmLevelOptions[filters.alarmLevelIndex].label }}</text>
@@ -66,67 +61,59 @@
         </view>
 
         <view class="toolbar-actions">
-          <button class="toolbar-button toolbar-button--primary" @click="loadAlarms(1)">{{ localeText("查询", "Search") }}</button>
+          <button class="toolbar-button toolbar-button--primary" @click="searchAlarms">{{ localeText("查询", "Search") }}</button>
           <button class="toolbar-button" @click="resetFilters">{{ localeText("重置", "Reset") }}</button>
-          <button class="toolbar-button" :disabled="selectedIds.length === 0" @click="handleBatchConfirm">{{ localeText("批量确认", "Batch Confirm") }}</button>
-          <button class="toolbar-button" :loading="exporting" @click="handleExport">{{ localeText("导出", "Export") }}</button>
           </view>
         </view>
       </view>
     </view>
 
-    <view class="table-panel">
+    <!-- 表格 + 右侧详情（同漏点页双栏布局） -->
+    <view class="main-layout">
+      <view class="table-panel">
       <view class="table-head">
-        <text>{{ localeText("报警处理", "Alarm Handling") }}</text>
-        <text class="table-head__meta">{{ localizedTotal(pagination.total) }}</text>
+        <text>{{ localeText("报警处理", "Alarm Management") }}</text>
+        <view class="table-head__aux">
+          <text v-if="pollFailed" class="refresh-status refresh-status--failed">{{ localeText("更新失败，正在重试", "Update failed. Retrying...") }}</text>
+          <text v-else-if="lastRefreshSuccessAt" class="refresh-status">{{ localeText("已更新", "Updated") }} {{ fmtClock(lastRefreshSuccessAt) }}</text>
+          <text class="table-head__meta">{{ localizedTotal(pagination.total) }}</text>
+        </view>
       </view>
 
       <scroll-view class="table-scroll" scroll-x scroll-y>
         <view class="table">
-          <view class="table-row table-row--header record-table-row">
-            <view class="table-cell table-header-cell col-check">
-              <view class="checkbox" :class="{ 'checkbox--checked': isAllSelected, 'checkbox--partial': isPartSelected && !isAllSelected }" @click="toggleSelectAll">
-                <text v-if="isAllSelected || isPartSelected" class="checkbox__mark">✓</text>
-              </view>
-            </view>
+          <view class="table-row table-row--header record-table-row" :style="{ gridTemplateColumns: processingGridColumnsNoCheck }">
             <view v-for="column in recordColumns" :key="column.key" class="table-cell table-header-cell">
-              <text>{{ column.label }}</text>
+              <text>{{ localeText(column.label, column.labelEn) }}</text>
             </view>
           </view>
 
           <view v-if="loading" class="table-state">{{ localeText("加载中...", "Loading...") }}</view>
           <view v-else-if="alarmList.length === 0" class="table-state">{{ localeText("暂无报警数据", "No alarms") }}</view>
 
-          <view v-for="(item, index) in alarmList" v-else :key="item.id" class="table-row record-table-row">
-            <view class="table-cell col-check">
-              <view
-                v-if="item.status === 0"
-                class="checkbox"
-                :class="{ 'checkbox--checked': selectedIds.includes(item.id as number) }"
-                @click="toggleSelect(item.id as number)"
-              >
-                <text v-if="selectedIds.includes(item.id as number)" class="checkbox__mark">✓</text>
+          <view
+            v-for="(item, index) in alarmList"
+            v-else
+            :key="item.id"
+            class="table-row record-table-row"
+            :class="{ 'table-row--selected': selectedRecordKey === String(item.id) }"
+            :style="{ gridTemplateColumns: processingGridColumnsNoCheck }"
+          >
+            <template v-for="column in recordColumns" :key="column.key">
+              <text v-if="column.renderType === 'index'" class="table-cell" :class="column.className">{{ (pagination.current - 1) * pagination.size + index + 1 }}</text>
+              <view v-else-if="column.renderType === 'level-pill'" class="table-cell" :class="column.className">
+                <text class="level-pill" :class="getLevelClass(getCellValue(item, column.key) as string | null)">{{ getLevelText(getCellValue(item, column.key) as string | null) }}</text>
               </view>
-            </view>
-            <text class="table-cell col-index">{{ (pagination.current - 1) * pagination.size + index + 1 }}</text>
-            <text class="table-cell col-alarm-no" :title="item.alarmNo">{{ item.alarmNo || "-" }}</text>
-            <text class="table-cell" :title="getRuleTypeText(item.ruleType)">{{ getRuleTypeText(item.ruleType) }}</text>
-            <view class="table-cell">
-              <text class="level-pill" :class="getLevelClass(item.alarmLevel)">{{ getLevelText(item.alarmLevel) }}</text>
-            </view>
-            <text class="table-cell" :title="item.deviceNumber">{{ item.deviceNumber || "-" }}</text>
-            <text class="table-cell" :title="item.triggerValue">{{ item.triggerValue || "-" }}</text>
-            <text class="table-cell" :title="item.thresholdSnapshot">{{ item.thresholdSnapshot || "-" }}</text>
-            <text class="table-cell col-alarm-time" :title="item.alarmTime">{{ item.alarmTime || "-" }}</text>
-            <view class="table-cell">
-              <text class="status-pill" :class="getStatusClass(item.status)">{{ getStatusText(item.status) }}</text>
-            </view>
-            <view class="table-cell col-action">
-              <button class="table-action-btn" @click.stop="openDetailDialog(item)">{{ localeText("详情", "Detail") }}</button>
-              <button v-if="item.status === 0" class="table-action-btn" @click.stop="openHandleDialog(item, 'confirm')">{{ localeText("确认", "Confirm") }}</button>
-              <button v-if="item.status === 0" class="table-action-btn" @click.stop="openHandleDialog(item, 'ignore')">{{ localeText("忽略", "Ignore") }}</button>
-              <button v-if="item.status === 0" class="table-action-btn" @click.stop="openDispatchDialog(item)">{{ localeText("转工单", "Dispatch") }}</button>
-            </view>
+              <view v-else-if="column.renderType === 'status-pill'" class="table-cell" :class="column.className">
+                <text class="status-pill" :class="getStatusClass(getCellValue(item, column.key) as string | null)">{{ getStatusText(getCellValue(item, column.key) as string | null) }}</text>
+              </view>
+              <view v-else-if="column.renderType === 'action'" class="table-cell col-action">
+                <button class="table-action-btn" :class="{ 'table-action-btn--active': selectedRecordKey === String(item.id) }" @click.stop="toggleDetail(item)">{{ localeText("详情", "Detail") }}</button>
+                <button v-if="item.status === 'ACTIVE'" class="table-action-btn" @click.stop="openHandleDialog(item)">{{ localeText("确认", "Acknowledge") }}</button>
+                <button v-if="item.status === 'ACTIVE' || item.status === 'CONFIRMED'" class="table-action-btn" @click.stop="openResolveDialog(item)">{{ localeText("关闭", "Close") }}</button>
+              </view>
+              <text v-else class="table-cell" :class="column.className" :title="cellText(item, column)">{{ cellText(item, column) }}</text>
+            </template>
           </view>
         </view>
       </scroll-view>
@@ -146,107 +133,70 @@
           {{ localeText("跳转", "Go") }}
         </button>
       </view>
-    </view>
-
-    <!-- 详情弹窗 -->
-    <view v-if="detailVisible" class="dialog-mask" @click="detailVisible = false">
-      <view class="dialog-panel dialog-panel--form" @click.stop>
-        <view class="dialog-head">
-          <view>
-            <text class="dialog-title">{{ localeText("报警详情", "Alarm Detail") }}</text>
-            <text class="dialog-subtitle">{{ detailRecord?.alarmNo || "-" }}</text>
-          </view>
-          <button class="icon-button" hover-class="icon-button--hover" :aria-label="localeText('关闭', 'Close')" @click="detailVisible = false">
-            <text class="close-icon"></text>
-          </button>
-        </view>
-
-        <view class="dialog-body">
-          <view class="detail-grid">
-            <view class="detail-item">
-              <text class="detail-item__label">{{ localeText("报警编号", "Alarm No.") }}</text>
-              <text class="detail-item__value" :title="detailRecord?.alarmNo">{{ detailRecord?.alarmNo || "-" }}</text>
-            </view>
-            <view class="detail-item">
-              <text class="detail-item__label">{{ localeText("类型", "Type") }}</text>
-              <text class="detail-item__value">{{ getRuleTypeText(detailRecord?.ruleType) }}</text>
-            </view>
-            <view class="detail-item">
-              <text class="detail-item__label">{{ localeText("级别", "Level") }}</text>
-              <text class="detail-item__value">
-                <text class="level-pill" :class="getLevelClass(detailRecord?.alarmLevel)">{{ getLevelText(detailRecord?.alarmLevel) }}</text>
-              </text>
-            </view>
-            <view class="detail-item">
-              <text class="detail-item__label">{{ localeText("状态", "Status") }}</text>
-              <text class="detail-item__value">
-                <text class="status-pill" :class="getStatusClass(detailRecord?.status)">{{ getStatusText(detailRecord?.status) }}</text>
-              </text>
-            </view>
-            <view class="detail-item">
-              <text class="detail-item__label">{{ localeText("设备编号", "Device No.") }}</text>
-              <text class="detail-item__value" :title="detailRecord?.deviceNumber">{{ detailRecord?.deviceNumber || "-" }}</text>
-            </view>
-            <view class="detail-item">
-              <text class="detail-item__label">{{ localeText("安装地址", "Install Address") }}</text>
-              <text class="detail-item__value" :title="detailRecord?.deviceInstallAddress">{{ detailRecord?.deviceInstallAddress || "-" }}</text>
-            </view>
-            <view class="detail-item">
-              <text class="detail-item__label">{{ localeText("触发值", "Trigger Value") }}</text>
-              <text class="detail-item__value" :title="detailRecord?.triggerValue">{{ detailRecord?.triggerValue || "-" }}</text>
-            </view>
-            <view class="detail-item">
-              <text class="detail-item__label">{{ localeText("阈值快照", "Threshold Snapshot") }}</text>
-              <text class="detail-item__value" :title="detailRecord?.thresholdSnapshot">{{ detailRecord?.thresholdSnapshot || "-" }}</text>
-            </view>
-            <view class="detail-item">
-              <text class="detail-item__label">{{ localeText("命中规则", "Matched Rule") }}</text>
-              <text class="detail-item__value" :title="detailRecord?.ruleName">{{ detailRecord?.ruleName || "-" }}</text>
-            </view>
-            <view class="detail-item">
-              <text class="detail-item__label">{{ localeText("报警时间", "Alarm Time") }}</text>
-              <text class="detail-item__value" :title="detailRecord?.alarmTime">{{ detailRecord?.alarmTime || "-" }}</text>
-            </view>
-            <view class="detail-item">
-              <text class="detail-item__label">{{ localeText("触发次数", "Trigger Count") }}</text>
-              <text class="detail-item__value">{{ detailRecord?.triggerCount ?? "-" }}</text>
-            </view>
-            <view class="detail-item">
-              <text class="detail-item__label">{{ localeText("恢复时间", "Recover Time") }}</text>
-              <text class="detail-item__value" :title="detailRecord?.recoverTime">{{ detailRecord?.recoverTime || "-" }}</text>
-            </view>
-            <view class="detail-item">
-              <text class="detail-item__label">{{ localeText("处理人", "Handler") }}</text>
-              <text class="detail-item__value" :title="detailRecord?.handler">{{ detailRecord?.handler || "-" }}</text>
-            </view>
-            <view class="detail-item">
-              <text class="detail-item__label">{{ localeText("处理时间", "Handle Time") }}</text>
-              <text class="detail-item__value" :title="detailRecord?.handleTime">{{ detailRecord?.handleTime || "-" }}</text>
-            </view>
-            <view class="detail-item">
-              <text class="detail-item__label">{{ localeText("关联工单", "Related Worksheet") }}</text>
-              <text class="detail-item__value" :title="detailRecord?.worksheetNo">{{ detailRecord?.worksheetNo || "-" }}</text>
-            </view>
-            <view class="detail-item detail-item--full">
-              <text class="detail-item__label">{{ localeText("处理备注", "Handle Remark") }}</text>
-              <text class="detail-item__value" :title="detailRecord?.handleRemark">{{ detailRecord?.handleRemark || "-" }}</text>
-            </view>
-          </view>
-        </view>
-
-        <view class="dialog-footer">
-          <button class="toolbar-button" @click="detailVisible = false">{{ localeText("关闭", "Close") }}</button>
-        </view>
       </view>
+
+    <!-- 右侧详情面板（同漏点页交互：点"详情"出现，再点一次隐藏） -->
+    <view v-if="selectedRecord" class="detail-panel">
+      <view class="detail-panel__head">
+        <view class="detail-panel__title-wrap">
+          <text class="detail-panel__title">{{ localeText("报警详情", "Alarm Details") }}</text>
+          <text class="detail-panel__subtitle">{{ selectedRecord.ruleName || "-" }}</text>
+        </view>
+        <button class="icon-button" hover-class="icon-button--hover" :aria-label="localeText('关闭', 'Close')" @click="closeDetail">
+          <text class="close-icon"></text>
+        </button>
+      </view>
+      <scroll-view class="detail-panel__body detail-section" scroll-y>
+        <!-- 摘要卡：设备 + 类型 + 级别 + 状态（蓝色竖线强调，同漏点详情） -->
+        <view class="detail-summary">
+          <view class="detail-summary__main">
+            <text class="detail-summary__label">{{ localeText("设备编号", "Device No.") }}</text>
+            <text class="detail-summary__value">{{ selectedRecord.deviceNumber || "-" }}<text v-if="selectedRecord.deviceAlias" class="detail-summary__alias">{{ selectedRecord.deviceAlias }}</text></text>
+          </view>
+          <view class="detail-summary__badges">
+            <text class="detail-summary__badge detail-summary__badge--type">{{ getRuleTypeText(selectedRecord.alarmType, selectedRecord.alarmTypeName) }}</text>
+            <text class="level-pill" :class="getLevelClass(selectedRecord.alarmLevel)">{{ getLevelText(selectedRecord.alarmLevel) }}</text>
+            <text class="status-pill" :class="getStatusClass(selectedRecord.status)">{{ getStatusText(selectedRecord.status) }}</text>
+          </view>
+          <view class="detail-summary__meta">
+            <view class="detail-summary__meta-item"><text class="detail-summary__meta-label">{{ localeText("设备别名", "Device Alias") }}</text><text class="detail-summary__meta-value">{{ selectedRecord.deviceAlias || "-" }}</text></view>
+            <view class="detail-summary__meta-item"><text class="detail-summary__meta-label">{{ localeText("规则类型", "Rule Type") }}</text><text class="detail-summary__meta-value">{{ getRuleKindText(selectedRecord.ruleKind) }}</text></view>
+          </view>
+        </view>
+
+        <!-- 触发信息 -->
+        <text class="detail-section-title">{{ localeText("触发信息", "Trigger Details") }}</text>
+        <view class="detail-grid">
+          <view class="detail-item"><text class="detail-item__label">{{ localeText("命中规则", "Matched Rule") }}</text><text class="detail-item__value">{{ selectedRecord.ruleName || "-" }}</text></view>
+          <view class="detail-item"><text class="detail-item__label">{{ localeText("自定义字段", "Field") }}</text><text class="detail-item__value">{{ selectedRecord.fieldName || "-" }}</text></view>
+          <view class="detail-item"><text class="detail-item__label">{{ localeText("触发值", "Trigger Value") }}</text><text class="detail-item__value">{{ selectedRecord.triggerValue == null ? "-" : String(selectedRecord.triggerValue) }}</text></view>
+          <view class="detail-item"><text class="detail-item__label">{{ localeText("触发次数", "Trigger Count") }}</text><text class="detail-item__value">{{ selectedRecord.triggerCount == null ? "-" : String(selectedRecord.triggerCount) }}</text></view>
+        </view>
+
+        <!-- 时间信息（整行） -->
+        <text class="detail-section-title">{{ localeText("时间信息", "Timestamps") }}</text>
+        <view class="detail-grid detail-grid--single">
+          <view class="detail-item"><text class="detail-item__label">{{ localeText("首次触发", "First Triggered") }}</text><text class="detail-item__value">{{ fmtDateTime(selectedRecord.firstTriggeredAt) }}</text></view>
+          <view class="detail-item"><text class="detail-item__label">{{ localeText("最后触发", "Last Triggered") }}</text><text class="detail-item__value">{{ fmtDateTime(selectedRecord.lastTriggeredAt) }}</text></view>
+          <view class="detail-item"><text class="detail-item__label">{{ localeText("恢复时间", "Recovery Time") }}</text><text class="detail-item__value">{{ fmtDateTime(selectedRecord.recoveredAt) }}</text></view>
+        </view>
+
+        <!-- 处理信息 -->
+        <text class="detail-section-title">{{ localeText("处理信息", "Handling Details") }}</text>
+        <view class="detail-grid detail-grid--single">
+          <view class="detail-item"><text class="detail-item__label">{{ localeText("处理人", "Handler") }}</text><text class="detail-item__value">{{ selectedRecord.handleUserId == null ? "-" : String(selectedRecord.handleUserId) }}</text></view>
+          <view class="detail-item"><text class="detail-item__label">{{ localeText("处理备注", "Handling Notes") }}</text><text class="detail-item__value">{{ selectedRecord.handleRemark || "-" }}</text></view>
+        </view>
+      </scroll-view>
+    </view>
     </view>
 
-    <!-- 确认/忽略弹窗 -->
     <view v-if="handleVisible" class="dialog-mask" @click="handleVisible = false">
       <view class="dialog-panel dialog-panel--narrow" @click.stop>
         <view class="dialog-head">
           <view>
-            <text class="dialog-title">{{ handleAction === "confirm" ? localeText("确认报警", "Confirm Alarm") : localeText("忽略报警", "Ignore Alarm") }}</text>
-            <text class="dialog-subtitle">{{ handleRecord?.alarmNo || "-" }}</text>
+            <text class="dialog-title">{{ localeText("确认报警", "Acknowledge Alarm") }}</text>
+            <text class="dialog-subtitle">{{ handleRecord?.ruleName || "-" }}</text>
           </view>
           <button class="icon-button" hover-class="icon-button--hover" :aria-label="localeText('关闭', 'Close')" @click="handleVisible = false">
             <text class="close-icon"></text>
@@ -255,94 +205,45 @@
 
         <view class="dialog-body">
           <view class="form-field">
-            <text class="form-label">{{ localeText("处理备注", "Handle Remark") }}</text>
-            <textarea v-model="handleRemark" class="form-textarea" :placeholder="localeText('请输入处理备注', 'Enter handle remark')" placeholder-class="input-placeholder" :maxlength="200" />
+            <text class="form-label">{{ localeText("处理备注", "Handling Notes") }}</text>
+            <textarea v-model="handleRemark" class="form-textarea" :placeholder="localeText('请输入处理备注', 'Enter handling notes')" placeholder-class="input-placeholder" :maxlength="200" />
           </view>
         </view>
 
         <view class="dialog-footer">
           <button class="toolbar-button" @click="handleVisible = false">{{ localeText("取消", "Cancel") }}</button>
-          <button class="toolbar-button toolbar-button--primary" :loading="handling" @click="submitHandle">{{ localeText("确认", "Confirm") }}</button>
+          <button class="toolbar-button toolbar-button--primary" :loading="handling" @click="submitHandle">{{ localeText("确认", "Acknowledge") }}</button>
         </view>
       </view>
     </view>
 
-    <!-- 转工单弹窗 -->
-    <view v-if="dispatchVisible" class="dialog-mask" @click="closeDispatchDialog">
-      <view class="dialog-panel dialog-panel--form" @click.stop>
+    <!-- 关闭报警弹窗（resolve：人工关闭，写恢复时间） -->
+    <view v-if="resolveVisible" class="dialog-mask" @click="resolveVisible = false">
+      <view class="dialog-panel dialog-panel--narrow" @click.stop>
         <view class="dialog-head">
           <view>
-            <text class="dialog-title">{{ localeText("报警转工单", "Dispatch to Worksheet") }}</text>
-            <text class="dialog-subtitle">{{ dispatchRecord?.alarmNo || "-" }}</text>
+            <text class="dialog-title">{{ localeText("关闭报警", "Close Alarm") }}</text>
+            <text class="dialog-subtitle">{{ resolveRecord?.ruleName || "-" }}</text>
           </view>
-          <button class="icon-button" hover-class="icon-button--hover" :aria-label="localeText('关闭', 'Close')" @click="closeDispatchDialog">
+          <button class="icon-button" hover-class="icon-button--hover" :aria-label="localeText('关闭', 'Close')" @click="resolveVisible = false">
             <text class="close-icon"></text>
           </button>
         </view>
 
-        <view v-if="dispatchFormError" class="error-summary">{{ dispatchFormError }}</view>
-
         <view class="dialog-body">
-          <view class="alarm-dialog-form">
-            <view class="form-field">
-              <text class="form-label form-label--required">{{ localeText("工单类型", "Worksheet Type") }}</text>
-              <view class="select-field">
-                <view class="form-select form-select--dropdown" @click.stop="toggleDispatchSelect('worksheetType')">
-                  <text>{{ getWorksheetTypeText(dispatchForm.worksheetType) }}</text>
-                  <text class="select-arrow"></text>
-                </view>
-                <view v-if="activeSelect === 'worksheetType'" class="select-menu">
-                  <view v-for="option in worksheetTypeOptions" :key="option.value" class="select-option" :class="{ 'select-option--active': dispatchForm.worksheetType === option.value }" @click.stop="selectWorksheetType(option.value)">
-                    {{ option.label }}
-                  </view>
-                </view>
-              </view>
-            </view>
-
-            <view class="form-field">
-              <text class="form-label form-label--required">{{ localeText("执行人", "Executor") }}</text>
-              <input v-model="dispatchForm.executeAccount" class="form-input" :class="{ 'form-control--error': dispatchErrors.executeAccount }" :placeholder="localeText('请输入执行人账号', 'Enter executor account')" placeholder-class="input-placeholder" @input="clearDispatchError('executeAccount')" />
-              <text v-if="dispatchErrors.executeAccount" class="form-error">{{ dispatchErrors.executeAccount }}</text>
-            </view>
-
-            <view class="form-field">
-              <text class="form-label">{{ localeText("紧急程度", "Urgency") }}</text>
-              <view class="select-field">
-                <view class="form-select form-select--dropdown" @click.stop="toggleDispatchSelect('urgencyLevel')">
-                  <text>{{ getUrgencyText(dispatchForm.urgencyLevel) }}</text>
-                  <text class="select-arrow"></text>
-                </view>
-                <view v-if="activeSelect === 'urgencyLevel'" class="select-menu">
-                  <view v-for="option in urgencyOptions" :key="option.value" class="select-option" :class="{ 'select-option--active': dispatchForm.urgencyLevel === option.value }" @click.stop="selectUrgency(option.value)">
-                    {{ option.label }}
-                  </view>
-                </view>
-              </view>
-            </view>
-
-            <view class="form-field">
-              <text class="form-label">{{ localeText("截止时间", "Deadline") }}</text>
-              <WorkOrderDatetimePicker v-model="dispatchForm.deadlineTime" :title="localeText('选择截止时间', 'Select Deadline')" :placeholder="localeText('请选择截止时间', 'Select Deadline')" />
-            </view>
-
-            <view class="form-field form-field--full">
-              <text class="form-label">{{ localeText("工单说明", "Instruction") }}</text>
-              <input v-model="dispatchForm.worksheetInstruction" class="form-input" :placeholder="localeText('请输入工单说明', 'Enter worksheet instruction')" placeholder-class="input-placeholder" />
-            </view>
-
-            <view class="form-field form-field--full">
-              <text class="form-label">{{ localeText("备注", "Remark") }}</text>
-              <input v-model="dispatchForm.remark" class="form-input" :placeholder="localeText('请输入备注', 'Enter remark')" placeholder-class="input-placeholder" />
-            </view>
+          <view class="form-field">
+            <text class="form-label">{{ localeText("处理备注", "Handling Notes") }}</text>
+            <textarea v-model="resolveRemark" class="form-textarea" :placeholder="localeText('请输入处理备注', 'Enter handling notes')" placeholder-class="input-placeholder" :maxlength="200" />
           </view>
         </view>
 
         <view class="dialog-footer">
-          <button class="toolbar-button" @click="closeDispatchDialog">{{ localeText("取消", "Cancel") }}</button>
-          <button class="toolbar-button toolbar-button--primary" :loading="dispatching" @click="submitDispatch">{{ localeText("提交", "Submit") }}</button>
+          <button class="toolbar-button" @click="resolveVisible = false">{{ localeText("取消", "Cancel") }}</button>
+          <button class="toolbar-button toolbar-button--primary" :loading="resolving" @click="submitResolve">{{ localeText("确认关闭", "Confirm Close") }}</button>
         </view>
       </view>
     </view>
+
   </view>
 </template>
 
@@ -353,77 +254,52 @@ import { useLocaleText, useLocalizedPageInfo, useLocalizedTotal } from "@/i18n/l
 import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
 import {
   getAlarmPage,
+  getAlarmDetail,
   confirmAlarm,
-  ignoreAlarm,
-  batchConfirmAlarms,
-  dispatchAlarm,
-  exportAlarms,
-  getLatestAlarms,
-} from "@/services/alarm/processing";
-import type { AlarmRecord } from "@/services/alarm/processing";
+  resolveAlarm,
+  getLatestActiveAlarms,
+} from "@/services/alarm/api";
+import type { AlarmRecord } from "@/services/alarm/api";
+import {
+  processingColumns,
+  processingDetailFields,
+  processingGridColumnsNoCheck,
+  type AlarmDetailField,
+  type AlarmTableColumn,
+} from "@/pages/alarm/components/alarmColumns";
+import {
+  ALARM_LEVEL_MAP,
+  ALARM_STATUS_MAP,
+  ALARM_TYPE_MAP as ALARM_TYPE_MAP_LOCAL,
+  RULE_KIND_MAP as RULE_KIND_MAP_LOCAL,
+  alarmLevelOptions as publicAlarmLevelOptions,
+  alarmStatusOptions as publicAlarmStatusOptions,
+  alarmTypeOptions as publicAlarmTypeOptions,
+  mapEnumText,
+} from "@/pages/alarm/components/alarmLocale";
 import { getDeptList } from "@/services/partition/partition";
-import { confirmAction } from "@/utils/confirmAction";
 
 const { locale } = useI18n();
 const localeText = useLocaleText();
-const isEnglishLocale = computed(() => locale.value === "en-US");
-const filterDateText = computed(() => ({
-  startTitle: isEnglishLocale.value ? "Select Start Time" : "选择开始时间",
-  startPlaceholder: isEnglishLocale.value ? "Select Start Time" : "请选择开始时间",
-  endTitle: isEnglishLocale.value ? "Select End Time" : "选择结束时间",
-  endPlaceholder: isEnglishLocale.value ? "Select End Time" : "请选择结束时间",
-}));
 const localizedPageInfo = useLocalizedPageInfo();
 const localizedTotal = useLocalizedTotal();
 
-interface ApiLikeResponse<T = unknown> {
-  code?: number;
-  msg?: string;
-  data?: T;
-}
 
+/** 报警类型筛选（后端字符串枚举；首项"不限"= 不过滤）。computed：随语言切换实时刷新。 */
+const alarmTypeOptions = computed(() => publicAlarmTypeOptions(localeText));
+const alarmLevelOptions = computed(() => [
+  { label: localeText("不限", "All"), value: null as string | null },
+  ...publicAlarmLevelOptions(localeText),
+]);
+/** 三态状态机（后端：ACTIVE→CONFIRMED→RESOLVED；自动恢复 ACTIVE→RESOLVED） */
+const statusOptions = computed(() => publicAlarmStatusOptions(localeText));
 interface DeptItem {
   id: number;
   deptName: string;
 }
 
-const POLL_INTERVAL = 45 * 1000;
-
-const ruleTypeOptions = [
-  { label: localeText("不限", "All"), value: null },
-  { label: localeText("压力异常", "Pressure Anomaly"), value: 1 },
-  { label: localeText("渗漏", "Leakage"), value: 2 },
-  { label: localeText("爆管", "Pipe Burst"), value: 3 },
-  { label: localeText("离线", "Offline"), value: 4 },
-];
-const alarmLevelOptions = [
-  { label: localeText("不限", "All"), value: null },
-  { label: localeText("提示", "Info"), value: 1 },
-  { label: localeText("警告", "Warning"), value: 2 },
-  { label: localeText("严重", "Critical"), value: 3 },
-];
-const statusOptions = [
-  { label: localeText("不限", "All"), value: null },
-  { label: localeText("未处理", "Unhandled"), value: 0 },
-  { label: localeText("已确认", "Confirmed"), value: 1 },
-  { label: localeText("已忽略", "Ignored"), value: 2 },
-  { label: localeText("已转工单", "Dispatched"), value: 3 },
-  { label: localeText("已恢复", "Recovered"), value: 4 },
-];
-const worksheetTypeOptions = [
-  { label: localeText("巡检", "Inspection"), value: 0 },
-  { label: localeText("检漏", "Leak Detection"), value: 1 },
-  { label: localeText("拆装", "Install/Remove"), value: 2 },
-  { label: localeText("维护", "Maintenance"), value: 3 },
-];
-const urgencyOptions = [
-  { label: localeText("一般", "Normal"), value: 0 },
-  { label: localeText("紧急", "Urgent"), value: 1 },
-];
-
 const filters = reactive({
-  alarmNo: "",
-  ruleTypeIndex: 0,
+  alarmTypeIndex: 0,
   alarmLevelIndex: 0,
   statusIndex: 0,
   deviceNumber: "",
@@ -432,90 +308,118 @@ const filters = reactive({
   endTime: "",
 });
 
+const POLL_INTERVAL = 45 * 1000;
+
+const isEnglishLocale = computed(() => locale.value === "en-US");
+const filterDateText = computed(() => ({
+  startTitle: isEnglishLocale.value ? "Select Start Time" : "选择开始时间",
+  startPlaceholder: isEnglishLocale.value ? "Select Start Time" : "请选择开始时间",
+  endTitle: isEnglishLocale.value ? "Select End Time" : "选择结束时间",
+  endPlaceholder: isEnglishLocale.value ? "Select End Time" : "请选择结束时间",
+}));
 const loading = ref(false);
-const exporting = ref(false);
 const alarmList = ref<AlarmRecord[]>([]);
-const selectedIds = ref<number[]>([]);
 const deptList = ref<DeptItem[]>([]);
 const pagination = reactive({ current: 1, size: 10, total: 0 });
+/** 轮询健康状态：最后一次成功刷新时间 / 是否处于失败态（供页面显示，不弹窗） */
+const lastRefreshSuccessAt = ref<number | null>(null);
+const pollFailed = ref(false);
 const jumpPage = ref<number | null>(null);
 
-const recordColumns = [
-  { key: "index", label: localeText("序号", "No.") },
-  { key: "alarmNo", label: localeText("报警编号", "Alarm No.") },
-  { key: "ruleType", label: localeText("类型", "Type") },
-  { key: "alarmLevel", label: localeText("级别", "Level") },
-  { key: "deviceNumber", label: localeText("设备编号", "Device No.") },
-  { key: "triggerValue", label: localeText("触发值", "Trigger Value") },
-  { key: "thresholdSnapshot", label: localeText("阈值", "Threshold") },
-  { key: "alarmTime", label: localeText("报警时间", "Alarm Time") },
-  { key: "status", label: localeText("状态", "Status") },
-  { key: "action", label: localeText("操作", "Actions") },
-];
+const recordColumns = processingColumns;
+const detailFields = processingDetailFields;
+
+/* 文案映射（后端字符串枚举；类型优先取后端附带的中文名） */
+const textFormatters: Record<string, (item: AlarmRecord) => string> = {
+  alarmType: (item) => getRuleTypeText(item.alarmType, item.alarmTypeName),
+  lastTriggeredAt: (item) => fmtDateTime(item.lastTriggeredAt),
+};
+const detailFormatters: Record<string, (item: AlarmRecord) => string> = {
+  alarmType: (item) => getRuleTypeText(item.alarmType, item.alarmTypeName),
+  ruleKind: (item) => getRuleKindText(item.ruleKind),
+  triggerCount: (item) => (item.triggerCount == null ? "-" : String(item.triggerCount)),
+  firstTriggeredAt: (item) => fmtDateTime(item.firstTriggeredAt),
+  lastTriggeredAt: (item) => fmtDateTime(item.lastTriggeredAt),
+  recoveredAt: (item) => fmtDateTime(item.recoveredAt),
+};
+
+/** 时间戳格式化为 HH:mm:ss（轮询状态展示用） */
+function fmtClock(ts: number) {
+  const d = new Date(ts);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+/** 后端 LocalDateTime 形如 2026-09-09T12:02:00.146924，格式化为 YYYY-MM-DD HH:mm:ss */
+function fmtDateTime(value?: string | null) {
+  if (!value) return "-";
+  const m = String(value).match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})(?::(\d{2}))?/);
+  if (!m) return String(value);
+  return `${m[1]} ${m[2]}:${m[3] || "00"}`;
+}
+
+function getCellValue(item: AlarmRecord, key: string): unknown {
+  return (item as Record<string, unknown>)[key];
+}
+
+function cellText(item: AlarmRecord, column: AlarmTableColumn): string {
+  const formatter = column.formatKey ? textFormatters[column.formatKey] : undefined;
+  if (formatter) return formatter(item);
+  const raw = getCellValue(item, column.key);
+  return raw == null || raw === "" ? "-" : String(raw);
+}
+
+function detailPillValue(field: AlarmDetailField): string | null | undefined {
+  if (!selectedRecord.value) return undefined;
+  return (selectedRecord.value as Record<string, unknown>)[field.key] as string | null | undefined;
+}
+
+function detailValue(field: AlarmDetailField): string {
+  const record = selectedRecord.value;
+  if (!record) return "-";
+  const formatter = field.formatKey ? detailFormatters[field.formatKey] : undefined;
+  if (formatter) return formatter(record);
+  const raw = (record as Record<string, unknown>)[field.key];
+  return raw == null || raw === "" ? "-" : String(raw);
+}
 
 const totalPages = computed(() => Math.max(1, Math.ceil(pagination.total / pagination.size)));
 
-const selectableIds = computed(() =>
-  alarmList.value.filter((item) => item.status === 0 && item.id != null).map((item) => item.id as number),
-);
-const isAllSelected = computed(() => selectableIds.value.length > 0 && selectableIds.value.every((id) => selectedIds.value.includes(id)));
-const isPartSelected = computed(() => selectableIds.value.some((id) => selectedIds.value.includes(id)));
-
 const deptPickerOptions = computed(() => [
-  { label: localeText("不限", "All"), value: null as number | null },
+  { label: "不限", value: null as number | null },
   ...deptList.value.map((dept) => ({ label: dept.deptName, value: dept.id as number | null })),
 ]);
 
-/* ========================= 文案映射 ========================= */
+/* ========================= 文案映射（读公共枚举映射 alarmLocale.ts） ========================= */
 
-function getRuleTypeText(value?: number | null) {
-  if (value == null) return "-";
-  const map: Record<number, string> = { 1: "压力异常", 2: "渗漏", 3: "爆管", 4: "离线" };
-  const enMap: Record<number, string> = { 1: "Pressure Anomaly", 2: "Leakage", 3: "Pipe Burst", 4: "Offline" };
-  return localeText(map[value] || "-", enMap[value] || "-");
+function getRuleTypeText(value?: string | null, fallbackName?: string | null) {
+  return mapEnumText(ALARM_TYPE_MAP_LOCAL, value, localeText, fallbackName);
 }
 
-function getLevelText(value?: number | null) {
-  if (value == null) return "-";
-  const map: Record<number, string> = { 1: "提示", 2: "警告", 3: "严重" };
-  const enMap: Record<number, string> = { 1: "Info", 2: "Warning", 3: "Critical" };
-  return localeText(map[value] || "-", enMap[value] || "-");
+function getRuleKindText(value?: string | null) {
+  return mapEnumText(RULE_KIND_MAP_LOCAL, value, localeText);
 }
 
-function getLevelClass(value?: number | null) {
-  if (value === 1) return "level-pill--info";
-  if (value === 2) return "level-pill--warning";
-  return "level-pill--critical";
+function getLevelText(value?: string | null) {
+  return mapEnumText(ALARM_LEVEL_MAP, value, localeText);
 }
 
-function getStatusText(value?: number | null) {
-  const map: Record<number, string> = { 0: "未处理", 1: "已确认", 2: "已忽略", 3: "已转工单", 4: "已恢复" };
-  const enMap: Record<number, string> = { 0: "Unhandled", 1: "Confirmed", 2: "Ignored", 3: "Dispatched", 4: "Recovered" };
-  const key = value ?? 0;
-  return localeText(map[key] || "-", enMap[key] || "-");
+function getLevelClass(value?: string | number | null) {
+  if (value === "INFO") return "level-pill--info";
+  if (value === "WARNING") return "level-pill--warning";
+  if (value === "CRITICAL") return "level-pill--critical";
+  return "level-pill--muted"; // 未知级别用中性色，不误标为严重
 }
 
-function getStatusClass(value?: number | null) {
-  const key = value ?? 0;
-  if (key === 0) return "status-pill--processing";
-  if (key === 1) return "status-pill--done";
-  if (key === 2) return "status-pill--muted";
-  if (key === 3) return "status-pill--closed";
+function getStatusText(value?: string | null) {
+  return mapEnumText(ALARM_STATUS_MAP, value, localeText);
+}
+
+function getStatusClass(value?: string | null) {
+  if (value === "ACTIVE") return "status-pill--processing";
+  if (value === "CONFIRMED") return "status-pill--done";
+  if (value === "RESOLVED") return "status-pill--muted";
   return "status-pill--open";
-}
-
-function getWorksheetTypeText(value?: number | null) {
-  const map: Record<number, string> = { 0: "巡检", 1: "检漏", 2: "拆装", 3: "维护" };
-  const enMap: Record<number, string> = { 0: "Inspection", 1: "Leak Detection", 2: "Install/Remove", 3: "Maintenance" };
-  const key = value ?? 1;
-  return localeText(map[key] || "检漏", enMap[key] || "Leak Detection");
-}
-
-function getUrgencyText(value?: number | null) {
-  const map: Record<number, string> = { 0: "一般", 1: "紧急" };
-  const enMap: Record<number, string> = { 0: "Normal", 1: "Urgent" };
-  const key = value ?? 0;
-  return localeText(map[key] || "一般", enMap[key] || "Normal");
 }
 
 /* ========================= 数据加载 ========================= */
@@ -528,71 +432,112 @@ function normalizeDateForApi(value: string, isEnd: boolean) {
   if (!value) {
     return undefined;
   }
-
   const normalizedValue = normalizeDisplayDatetime(value);
-
   if (normalizedValue.includes("T")) {
     return normalizedValue.length === 16 ? `${normalizedValue}:00` : normalizedValue;
   }
-
   return `${normalizedValue}T${isEnd ? "23:59:59" : "00:00:00"}`;
 }
 
-function buildPageParams(page: number) {
+/** 已应用的查询条件快照：点"查询"（或重置/翻页）时保存；轮询只使用它，
+ * 不会把用户正在编辑、尚未点击查询的条件应用到请求里。 */
+const appliedQuery = ref<Record<string, unknown>>({});
+
+function buildPageParams(page: number, source: Record<string, unknown> = {}) {
   const params: Record<string, unknown> = {
     pageNum: page,
     pageSize: pagination.size,
+    ...source,
   };
-  if (filters.alarmNo.trim()) params.alarmNo = filters.alarmNo.trim();
-  const ruleType = ruleTypeOptions[filters.ruleTypeIndex].value;
-  if (ruleType !== null) params.ruleType = ruleType;
-  const alarmLevel = alarmLevelOptions[filters.alarmLevelIndex].value;
-  if (alarmLevel !== null) params.alarmLevel = alarmLevel;
-  const status = statusOptions[filters.statusIndex].value;
-  if (status !== null) params.status = status;
-  if (filters.deviceNumber.trim()) params.deviceNumber = filters.deviceNumber.trim();
-  const deptId = deptPickerOptions.value[filters.deptIndex].value;
-  if (deptId !== null) params.deptId = deptId;
-  params.startTime = normalizeDateForApi(filters.startTime, false);
-  params.endTime = normalizeDateForApi(filters.endTime, true);
   return params;
 }
 
-async function loadAlarms(page = 1) {
-  loading.value = true;
-  const params = buildPageParams(page);
+/** 从当前筛选表单收集查询条件（不含分页） */
+function collectFilterParams(): Record<string, unknown> {
+  const filterParams: Record<string, unknown> = {};
+  const alarmType = alarmTypeOptions.value[filters.alarmTypeIndex].value;
+  if (alarmType !== null) filterParams.alarmType = alarmType;
+  const alarmLevel = alarmLevelOptions.value[filters.alarmLevelIndex].value;
+  if (alarmLevel !== null) filterParams.alarmLevel = alarmLevel;
+  const status = statusOptions.value[filters.statusIndex].value;
+  if (status !== null) filterParams.status = status;
+  if (filters.deviceNumber.trim()) filterParams.deviceNumber = filters.deviceNumber.trim();
+  const deptId = deptPickerOptions.value[filters.deptIndex].value;
+  if (deptId !== null) filterParams.deptId = deptId;
+  filterParams.startTime = normalizeDateForApi(filters.startTime, false);
+  filterParams.endTime = normalizeDateForApi(filters.endTime, true);
+  return filterParams;
+}
+
+let fetchRequestId = 0;
+
+async function loadAlarms(page = 1, opts: { silent?: boolean; applyFilters?: boolean } = {}) {
+  // 统一竞态守卫：静默刷新（轮询/页面恢复可见）遇到用户请求在途时让路，
+  // 避免后发的静默请求作废用户正在等待的手动查询/翻页/操作后刷新
+  if (opts.silent && loading.value) return;
+  const requestId = ++fetchRequestId;
+  if (!opts.silent) loading.value = true;
+  // 仅显式 applyFilters（点查询/重置）才应用当前表单条件；
+  // 操作成功后的刷新、翻页、轮询一律沿用已有快照，避免把未提交的筛选带进请求
+  if (opts.applyFilters) appliedQuery.value = collectFilterParams();
+  const params = buildPageParams(page, appliedQuery.value);
   try {
-    const res = (await getAlarmPage(params as never)) as ApiLikeResponse<{ records?: AlarmRecord[]; total?: number }>;
+    const res = (await getAlarmPage(params as never)) as { code?: number; msg?: string; data?: { records?: AlarmRecord[]; total?: number } };
+    if (requestId !== fetchRequestId) return;
     if (res.code !== undefined && res.code !== 200) {
       throw new Error(res.msg || "load failed");
     }
+    lastRefreshSuccessAt.value = Date.now();
+    pollFailed.value = false; // 列表已成功更新，立即清除"更新失败"提示
     const pageData = res.data || {};
     alarmList.value = pageData.records || [];
     pagination.total = pageData.total || 0;
     pagination.current = page;
+    // 打开中的详情随列表刷新同步：只在列表仍包含该行时替换引用；
+    // 列表更新本身会使旧详情请求失效（detailRequestId++），旧响应不会回写
+    if (selectedRecord.value) {
+      detailRequestId++;
+      const refreshed = alarmList.value.find((item) => String(item.id) === selectedRecordKey.value);
+      if (refreshed) {
+        selectedRecord.value = refreshed;
+      } else {
+        // 详情所在行不在当前页/筛选结果中，关闭面板避免展示过期数据
+        closeDetail();
+      }
+    }
   } catch {
-
-      alarmList.value = [];
-      pagination.total = 0;
-      pagination.current = page;
-      uni.showToast({ title: localeText("加载报警列表失败", "Failed to load alarms"), icon: "none" });
+    if (requestId !== fetchRequestId) return;
+    if (opts.silent) {
+      // 轮询静默失败：保留上次成功数据，标记失败态（不弹窗，45s 一次的弹窗是骚扰）
+      pollFailed.value = true;
+      return;
+    }
+    alarmList.value = [];
+    pagination.total = 0;
+    pagination.current = page;
+    uni.showToast({ title: localeText("加载报警列表失败", "Failed to load alarms"), icon: "none" });
   } finally {
-    loading.value = false;
-    jumpPage.value = null;
-    selectedIds.value = [];
+    if (requestId === fetchRequestId) {
+      loading.value = false;
+      jumpPage.value = null;
+    }
   }
 }
 
+/** 点"查询"：应用当前表单条件并回到第一页 */
+function searchAlarms() {
+  loadAlarms(1, { applyFilters: true });
+}
+
 function resetFilters() {
-  filters.alarmNo = "";
-  filters.ruleTypeIndex = 0;
+  filters.alarmTypeIndex = 0;
   filters.alarmLevelIndex = 0;
   filters.statusIndex = 0;
   filters.deviceNumber = "";
   filters.deptIndex = 0;
   filters.startTime = "";
   filters.endTime = "";
-  loadAlarms(1);
+  loadAlarms(1, { applyFilters: true });
 }
 
 function handlePageChange(page: number | null) {
@@ -603,7 +548,7 @@ function handlePageChange(page: number | null) {
 /* ========================= 筛选事件 ========================= */
 
 function handleFilterTypeChange(event: { detail: { value: number } }) {
-  filters.ruleTypeIndex = Number(event.detail.value);
+  filters.alarmTypeIndex = Number(event.detail.value);
 }
 function handleFilterLevelChange(event: { detail: { value: number } }) {
   filters.alarmLevelIndex = Number(event.detail.value);
@@ -615,45 +560,55 @@ function handleFilterDeptChange(event: { detail: { value: number } }) {
   filters.deptIndex = Number(event.detail.value);
 }
 
-/* ========================= 行选择 ========================= */
+/* ========================= 右侧详情面板（同漏点页：点详情出现，再点隐藏） ========================= */
 
-function toggleSelect(id: number) {
-  const index = selectedIds.value.indexOf(id);
-  if (index >= 0) {
-    selectedIds.value.splice(index, 1);
-  } else {
-    selectedIds.value.push(id);
+const selectedRecord = ref<AlarmRecord | null>(null);
+const selectedRecordKey = ref("");
+const detailLoading = ref(false);
+let detailRequestId = 0;
+
+async function toggleDetail(item: AlarmRecord) {
+  const key = String(item.id);
+  if (selectedRecordKey.value === key) {
+    // 关闭面板时同步使在途详情请求失效，旧响应不允许再回写
+    detailRequestId++;
+    closeDetail();
+    return;
+  }
+  // 先展示行数据（秒开），再拉详情接口校准最新值（报警合并/他人处理会持续变化）
+  detailRequestId++;
+  selectedRecord.value = item;
+  selectedRecordKey.value = key;
+  const requestId = detailRequestId;
+  detailLoading.value = true;
+  try {
+    const res = (await getAlarmDetail(item.id as number)) as { code?: number; msg?: string; data?: AlarmRecord };
+    if (requestId !== detailRequestId) return; // 期间切换过详情/关闭/列表刷新，丢弃
+    if (res.code !== undefined && res.code !== 200) return; // 失败保留行数据
+    // 仍选中同一条才回写；期间面板已换行/关闭则丢弃
+    if (res.data && selectedRecordKey.value === key) {
+      selectedRecord.value = res.data;
+    }
+  } catch {
+    // 静默：详情接口失败时保留列表行数据展示
+  } finally {
+    if (requestId === detailRequestId) detailLoading.value = false;
   }
 }
 
-function toggleSelectAll() {
-  if (isAllSelected.value) {
-    selectedIds.value = [];
-  } else {
-    selectedIds.value = [...selectableIds.value];
-  }
+function closeDetail() {
+  selectedRecord.value = null;
+  selectedRecordKey.value = "";
 }
 
-/* ========================= 详情弹窗 ========================= */
-
-const detailVisible = ref(false);
-const detailRecord = ref<AlarmRecord | null>(null);
-
-function openDetailDialog(item: AlarmRecord) {
-  detailRecord.value = item;
-  detailVisible.value = true;
-}
-
-/* ========================= 确认/忽略 ========================= */
+/* ========================= 确认 ========================= */
 
 const handleVisible = ref(false);
-const handleAction = ref<"confirm" | "ignore">("confirm");
 const handleRecord = ref<AlarmRecord | null>(null);
 const handleRemark = ref("");
 const handling = ref(false);
 
-function openHandleDialog(item: AlarmRecord, action: "confirm" | "ignore") {
-  handleAction.value = action;
+function openHandleDialog(item: AlarmRecord) {
   handleRecord.value = item;
   handleRemark.value = "";
   handleVisible.value = true;
@@ -664,186 +619,105 @@ async function submitHandle() {
   handling.value = true;
   try {
     const payload = { handleRemark: handleRemark.value.trim() };
-    const res = (handleAction.value === "confirm"
-      ? await confirmAlarm(handleRecord.value.id, payload)
-      : await ignoreAlarm(handleRecord.value.id, payload)) as ApiLikeResponse;
+    const res = (await confirmAlarm(handleRecord.value.id, payload)) as { code?: number; msg?: string };
 
     if (res.code !== undefined && res.code !== 200) {
-      uni.showToast({ title: res.msg || localeText("处理失败", "Handle failed"), icon: "none" });
+      uni.showToast({ title: res.msg || "处理失败", icon: "none" });
       return;
     }
-    uni.showToast({ title: localeText("处理成功", "Handled"), icon: "success" });
+    uni.showToast({ title: localeText("确认成功", "Acknowledged"), icon: "success" });
     handleVisible.value = false;
     loadAlarms(pagination.current);
   } catch (error) {
-    uni.showToast({ title: (error as { msg?: string })?.msg || localeText("处理失败", "Handle failed"), icon: "none" });
+    uni.showToast({ title: (error as { msg?: string })?.msg || "处理失败", icon: "none" });
   } finally {
     handling.value = false;
   }
 }
 
-/* ========================= 批量确认 ========================= */
+/* ========================= 关闭（resolve：写恢复时间与处理备注） ========================= */
 
-async function handleBatchConfirm() {
-  if (selectedIds.value.length === 0) {
-    uni.showToast({ title: localeText("请先勾选未处理的报警", "Select unhandled alarms first"), icon: "none" });
-    return;
-  }
-  const confirmed = await confirmAction({
-    content: localeText(`确认批量处理选中的 ${selectedIds.value.length} 条报警吗？`, `Batch confirm ${selectedIds.value.length} selected alarms?`),
-  });
-  if (!confirmed) return;
+const resolveVisible = ref(false);
+const resolveRecord = ref<AlarmRecord | null>(null);
+const resolveRemark = ref("");
+const resolving = ref(false);
 
+function openResolveDialog(item: AlarmRecord) {
+  resolveRecord.value = item;
+  resolveRemark.value = "";
+  resolveVisible.value = true;
+}
+
+async function submitResolve() {
+  if (!resolveRecord.value?.id || resolving.value) return;
+  resolving.value = true;
   try {
-    const res = (await batchConfirmAlarms(selectedIds.value)) as ApiLikeResponse;
+    const payload = { handleRemark: resolveRemark.value.trim() };
+    const res = (await resolveAlarm(resolveRecord.value.id, payload)) as { code?: number; msg?: string };
     if (res.code !== undefined && res.code !== 200) {
-      throw new Error(res.msg);
-    }
-    uni.showToast({ title: localeText("批量确认成功", "Batch confirmed"), icon: "success" });
-    loadAlarms(pagination.current);
-  } catch (error) {
-    uni.showToast({ title: (error as { msg?: string })?.msg || localeText("批量确认失败", "Batch confirm failed"), icon: "none" });
-  }
-}
-
-/* ========================= 转工单 ========================= */
-
-const dispatchVisible = ref(false);
-const dispatching = ref(false);
-const dispatchRecord = ref<AlarmRecord | null>(null);
-const activeSelect = ref<string | null>(null);
-const dispatchFormError = ref("");
-
-const dispatchForm = reactive({
-  worksheetType: 1,
-  executeAccount: "",
-  urgencyLevel: 0,
-  deadlineTime: "",
-  worksheetInstruction: "",
-  remark: "",
-});
-const dispatchErrors = reactive<Record<string, string>>({});
-
-function toggleDispatchSelect(key: string) {
-  activeSelect.value = activeSelect.value === key ? null : key;
-}
-
-function clearDispatchError(key: string) {
-  if (dispatchErrors[key]) {
-    dispatchErrors[key] = "";
-  }
-}
-
-function selectWorksheetType(value: number) {
-  dispatchForm.worksheetType = value;
-  activeSelect.value = null;
-}
-
-function selectUrgency(value: number) {
-  dispatchForm.urgencyLevel = value;
-  activeSelect.value = null;
-}
-
-function openDispatchDialog(item: AlarmRecord) {
-  dispatchRecord.value = item;
-  dispatchFormError.value = "";
-  Object.keys(dispatchErrors).forEach((key) => {
-    dispatchErrors[key] = "";
-  });
-  Object.assign(dispatchForm, {
-    worksheetType: 1,
-    executeAccount: "",
-    urgencyLevel: 0,
-    deadlineTime: "",
-    worksheetInstruction: "",
-    remark: "",
-  });
-  dispatchVisible.value = true;
-}
-
-function closeDispatchDialog() {
-  dispatchVisible.value = false;
-  activeSelect.value = null;
-}
-
-async function submitDispatch() {
-  Object.keys(dispatchErrors).forEach((key) => {
-    dispatchErrors[key] = "";
-  });
-  dispatchFormError.value = "";
-
-  if (!dispatchForm.executeAccount.trim()) {
-    dispatchErrors.executeAccount = localeText("请输入执行人账号", "Enter executor account");
-  }
-  if (Object.keys(dispatchErrors).some((key) => dispatchErrors[key])) return;
-  if (!dispatchRecord.value?.id || dispatching.value) return;
-
-  dispatching.value = true;
-  try {
-    const res = (await dispatchAlarm(dispatchRecord.value.id, {
-      worksheetType: dispatchForm.worksheetType,
-      executeAccount: dispatchForm.executeAccount.trim(),
-      urgencyLevel: dispatchForm.urgencyLevel,
-      deadlineTime: dispatchForm.deadlineTime || undefined,
-      worksheetInstruction: dispatchForm.worksheetInstruction.trim(),
-      remark: dispatchForm.remark.trim(),
-    })) as ApiLikeResponse;
-
-    if (res.code !== undefined && res.code !== 200) {
-      dispatchFormError.value = res.msg || localeText("转工单失败", "Dispatch failed");
+      uni.showToast({ title: res.msg || "关闭失败", icon: "none" });
       return;
     }
-
-    uni.showToast({ title: localeText("转工单成功", "Dispatched to worksheet"), icon: "success" });
-    closeDispatchDialog();
+    uni.showToast({ title: localeText("已关闭", "Closed"), icon: "success" });
+    resolveVisible.value = false;
     loadAlarms(pagination.current);
   } catch (error) {
-    dispatchFormError.value = (error as { msg?: string })?.msg || localeText("转工单失败", "Dispatch failed");
+    uni.showToast({ title: (error as { msg?: string })?.msg || "关闭失败", icon: "none" });
   } finally {
-    dispatching.value = false;
+    resolving.value = false;
   }
 }
 
-/* ========================= 导出 ========================= */
+/* 实时刷新轮询状态：以"见过的报警 ID 集合"为基准判新增（避免同时间戳报警漏提示）；
+ * 首次成功轮询只建基准不提示。集合仅由轮询更新，与当前分页/筛选解耦。 */
+const pollBaselineReady = ref(false);
+const seenAlarmIds = ref<Set<number>>(new Set());
 
-async function handleExport() {
-  if (exporting.value) return;
-  exporting.value = true;
-  try {
-    const params = buildPageParams(pagination.current);
-    delete params.pageNum;
-    delete params.pageSize;
-    await exportAlarms(params as never);
-    uni.showToast({ title: localeText("导出成功", "Exported"), icon: "success" });
-  } catch (error) {
-    uni.showToast({ title: (error as { msg?: string })?.msg || localeText("导出失败", "Export failed"), icon: "none" });
-  } finally {
-    exporting.value = false;
-  }
-}
-
-/* ========================= 增量轮询（需求 1.5 消费方） ========================= */
-
+/* ========================= 实时刷新轮询（latest-active，仅 H5） ========================= */
+// #ifdef H5
 let pollTimer: ReturnType<typeof setInterval> | null = null;
+let pollInFlight = false;
 
 async function pollLatestAlarms() {
-  if (document.hidden) return;
-  const latest = alarmList.value
-    .map((item) => item.alarmTime || "")
-    .filter(Boolean)
-    .sort()
-    .pop();
-  if (!latest) return;
-
+  if (document.hidden || pollInFlight) return;
+  // 用户请求在途时本轮让路（兜底，统一守卫在 loadAlarms 内）
+  if (loading.value) return;
+  pollInFlight = true;
   try {
-    const res = (await getLatestAlarms(latest)) as ApiLikeResponse<AlarmRecord[]>;
-    const newRecords = (res.data || []).filter((item) => item.status === 0);
-    if (newRecords.length > 0) {
-      uni.showToast({ title: localeText("检测到新报警，已自动刷新", "New alarms detected, list refreshed"), icon: "none" });
-      loadAlarms(pagination.current);
+    // latest-active 返回 AlarmMapItemVO（含 alarmRecordId），非 AlarmRecord
+    const res = (await getLatestActiveAlarms(200)) as { code?: number; msg?: string; data?: Array<{ alarmRecordId?: number }> };
+    if (res.code !== undefined && res.code !== 200) {
+      pollFailed.value = true;
+      return;
     }
+    const active = res.data || [];
+    // 新报警判定（按 ID 去重，避免同秒报警漏提示）：
+    // 首次成功轮询只建立基准（seenIds），不把已有报警当新报警提示
+    const currentIds = new Set(active.map((item) => item.alarmRecordId).filter((id): id is number => id != null));
+    let hasNew = false;
+    if (pollBaselineReady.value) {
+      for (const id of currentIds) {
+        if (!seenAlarmIds.value.has(id)) {
+          hasNew = true;
+          break;
+        }
+      }
+    } else {
+      pollBaselineReady.value = true;
+    }
+    seenAlarmIds.value = currentIds;
+    // 每轮都刷新当前列表（按已应用条件快照）：已有报警的触发次数/状态变化也能同步
+    if (hasNew) {
+      uni.showToast({ title: localeText("检测到新报警，已自动刷新", "New alarms detected, list refreshed"), icon: "none" });
+    }
+    // 成功/失败状态由随后的 loadAlarms(silent) 按列表实际结果更新（分开管理）；
+    // 用户请求在途时 loadAlarms 内的统一守卫会让路
+    await loadAlarms(pagination.current, { silent: true });
   } catch {
-    // 后端未就绪时静默跳过，不打扰用户
+    // 轮询失败：保留上次成功数据，标记失败态（页面显示"更新失败"，不弹窗）
+    pollFailed.value = true;
+  } finally {
+    pollInFlight = false;
   }
 }
 
@@ -859,11 +733,19 @@ function stopPolling() {
   }
 }
 
+function onVisibilityChange() {
+  if (!document.hidden) {
+    // silent 刷新：用户请求在途时由 loadAlarms 内统一守卫让路，不会覆盖手动翻页/查询
+    loadAlarms(pagination.current, { silent: true });
+  }
+}
+// #endif
+
 /* ========================= 生命周期 ========================= */
 
 async function loadDeptOptions() {
   try {
-    const res = (await getDeptList()) as ApiLikeResponse<DeptItem[]>;
+    const res = (await getDeptList()) as { code?: number; data?: DeptItem[] };
     deptList.value = res.data || [];
   } catch {
     deptList.value = [];
@@ -871,13 +753,20 @@ async function loadDeptOptions() {
 }
 
 onMounted(() => {
-  loadAlarms(1);
+  loadAlarms(1, { applyFilters: true });
   loadDeptOptions();
+  // #ifdef H5
   startPolling();
+  // 页面从后台切回时立即刷新一次（轮询在 hidden 时跳过，回来可能已错过更新）
+  document.addEventListener("visibilitychange", onVisibilityChange);
+  // #endif
 });
 
 onUnmounted(() => {
+  // #ifdef H5
   stopPolling();
+  document.removeEventListener("visibilitychange", onVisibilityChange);
+  // #endif
 });
 </script>
 
@@ -891,6 +780,176 @@ onUnmounted(() => {
   padding: 0 14px 14px;
   overflow: hidden;
   background: #eef4f8;
+}
+
+/* 表格 + 右侧详情双栏布局（同漏点页 main-layout 模式） */
+.main-layout {
+  display: flex;
+  flex: 1;
+  gap: 12px;
+  min-height: 0;
+  min-width: 0;
+}
+
+.detail-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 clamp(340px, 24vw, 420px);
+  min-width: 0;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #d8e5ef;
+  border-radius: 6px;
+  box-shadow: 0 12px 26px rgba(35, 72, 104, 0.09);
+}
+
+.detail-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: none;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e3edf5;
+}
+
+.detail-panel__title-wrap {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.detail-panel__title {
+  color: #172033;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.detail-panel__subtitle {
+  color: #52677b;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail-panel__body {
+  flex: 1;
+  min-height: 0;
+  padding: 14px 16px;
+  box-sizing: border-box;
+}
+
+/* 摘要卡（蓝色竖线强调，同漏点详情） */
+.detail-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #3b82f6;
+  border-radius: 6px;
+  box-shadow: 0 8px 18px rgba(33, 72, 108, 0.045);
+}
+
+.detail-summary__main {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.detail-summary__label {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.detail-summary__value {
+  color: #0f4c81;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.detail-summary__alias {
+  margin-left: 8px;
+  color: #52677b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.detail-summary__badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.detail-summary__badge--type {
+  display: inline-block;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 24px;
+  border-radius: 10px;
+  color: #3b82f6;
+  background: #eff6ff;
+}
+
+.detail-summary__meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid #edf3f8;
+}
+
+.detail-summary__meta-item {
+  min-width: 0;
+  padding: 7px 10px;
+  background: #f8fafc;
+  border-radius: 6px;
+  border: 1px solid #e8eef5;
+}
+
+.detail-summary__meta-label {
+  display: block;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.detail-summary__meta-value {
+  color: #172033;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* 分组标题 */
+.detail-section-title {
+  display: block;
+  margin: 14px 0 10px;
+  color: #183755;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.detail-grid--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (max-width: 1024px) {
+  .main-layout {
+    flex-direction: column;
+  }
+  .detail-panel {
+    flex: none;
+    max-height: 340px;
+  }
 }
 
 .toolbar-panel {
@@ -1009,7 +1068,7 @@ onUnmounted(() => {
   flex-direction: column;
   flex: 1;
   gap: 0;
-  margin-top: 14px;
+  margin-top: 0;
   min-height: 0;
   min-width: 0;
   overflow: hidden;
@@ -1017,6 +1076,15 @@ onUnmounted(() => {
   border: 1px solid #d8e5ef;
   border-radius: 6px;
   box-shadow: 0 12px 26px rgba(35, 72, 104, 0.09);
+}
+
+.refresh-status {
+  color: #8191a2;
+  font-size: 12px;
+}
+
+.refresh-status--failed {
+  color: #d64541;
 }
 
 .table-head {
@@ -1031,6 +1099,14 @@ onUnmounted(() => {
   font-weight: 800;
   background: #ffffff;
   border-bottom: 1px solid #edf3ed;
+}
+
+.table-head__aux {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  min-width: 0;
 }
 
 .table-head__meta {
@@ -1070,19 +1146,8 @@ onUnmounted(() => {
 }
 
 .record-table-row {
+  /* 列宽模板由 alarmColumns.ts 的 processingGridColumns 内联绑定（字段配置化） */
   min-width: 1180px;
-  grid-template-columns:
-    44px
-    54px
-    minmax(140px, 1.3fr)
-    minmax(88px, 1fr)
-    minmax(72px, 0.8fr)
-    minmax(96px, 0.9fr)
-    minmax(96px, 1fr)
-    minmax(120px, 1.1fr)
-    minmax(140px, 1.3fr)
-    minmax(80px, 0.8fr)
-    minmax(186px, 1.7fr);
 }
 
 .table-row--header {
@@ -1198,6 +1263,16 @@ onUnmounted(() => {
   background: #edf7ff;
   border: 1px solid #b9dcfb;
   border-radius: 4px;
+}
+
+.table-action-btn--active {
+  color: #ffffff;
+  background: #0d82ee;
+  border-color: #0d82ee;
+}
+
+.table-row--selected .table-cell {
+  background: #f2f9ff;
 }
 
 .table-action-btn::after {
@@ -1355,6 +1430,12 @@ onUnmounted(() => {
   line-height: 24px;
 }
 
+.level-pill--muted {
+  color: #5f7186;
+  background: #f3f6f9;
+  border-color: #dbe4ec;
+}
+
 .level-pill--info {
   color: #5f7186;
   background: #f3f6f9;
@@ -1471,19 +1552,19 @@ onUnmounted(() => {
 
 .detail-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .detail-item {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
   min-width: 0;
-  padding: 10px 12px;
+  padding: 8px 10px;
   background: #f8fbfe;
   border: 1px solid #e6eef5;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
 .detail-item--full {
