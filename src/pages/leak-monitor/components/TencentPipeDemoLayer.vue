@@ -114,6 +114,46 @@
         </text>
       </view>
 
+      <view class="pipe-demo-gis pipe-demo-gis--formal">
+        <view class="pipe-demo-control__label">
+          <text>正式管线（API）</text>
+          <button class="pipe-demo-mini-button" type="button" @click="toggleFormalVisible">
+            {{ formalVisible ? "隐藏" : "显示" }}
+          </button>
+        </view>
+        <view v-if="formalTubeLoading" class="pipe-demo-gis__meta">正式管线加载中…</view>
+        <view v-else-if="formalTubeError" class="pipe-demo-error pipe-demo-error--inline">
+          {{ formalTubeError }}
+        </view>
+        <template v-else>
+          <button class="pipe-demo-button pipe-demo-button--wide" type="button" @click="focusFormalTubes">
+            定位正式管线
+          </button>
+          <text class="pipe-demo-gis__meta">
+            记录 {{ formalTubesStats.total }} 条（启用 {{ formalTubesStats.enabled }}）· 折线段 {{ formalTubesStats.partCount }} · 国家 {{ formalTubesStats.countries.join("/") || "--" }}
+          </text>
+          <text class="pipe-demo-gis__meta">
+            长度合计 {{ formalTubesStats.lengthSum.toFixed(2) }} m
+          </text>
+          <view
+            v-for="tube in formalTubes.slice(0, 8)"
+            :key="tube.id"
+            class="pipe-demo-gis__meta"
+          >
+            #{{ tube.id }} {{ tube.tubeName || "--" }} · {{ tube.countryCode }} · {{ tube.material || "--" }} · {{ tube.diameterMm ?? "--" }}mm · {{ tube.shapeLengthM ?? "--" }}m
+          </view>
+          <text v-if="formalTubes.length > 8" class="pipe-demo-gis__meta">
+            …其余 {{ formalTubes.length - 8 }} 条略
+          </text>
+        </template>
+        <view v-if="formalTubeRejected.length" class="pipe-demo-error pipe-demo-error--inline">
+          {{ formalTubeRejected.length }} 条记录元数据缺失/非法已跳过：
+          <view v-for="(item, index) in formalTubeRejected.slice(0, 3)" :key="index">
+            #{{ item.id ?? "?" }} {{ item.tubeName || "--" }}：{{ item.reason }}
+          </view>
+        </view>
+      </view>
+
       <view v-if="drawing" class="pipe-demo-drawing">
         <view class="pipe-demo-drawing__status">
           <text class="pipe-demo-drawing__dot"></text>
@@ -204,7 +244,7 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { onBeforeUnmount, onMounted, computed, ref, watch } from "vue";
 import type { MapCoordinate, MapDevicePoint } from "../types";
 import {
   createDemoPipeNetwork,
@@ -213,7 +253,11 @@ import {
   type DemoPipeStyleId,
 } from "./pipe-demo-data";
 import type { TencentMapInstanceHandle } from "./tencent-map.types";
-import { convertMapCoordinate } from "../coordinateTransform";
+import { convertMapCoordinate, tencentDisplayCoordinate } from "../coordinateTransform";
+import type {
+  RejectedTubeRecord,
+  TubeNetworkRecord,
+} from "@/services/leak-monitor/tube-network";
 import {
   featurePaths,
   featurePoint,
@@ -237,7 +281,7 @@ interface SnapCandidate {
 interface TencentPipeData {
   path: unknown[];
   radius: number;
-  styleId: DemoPipeStyleId;
+  styleId: DemoPipeStyleId | "formal-enabled" | "formal-disabled";
   properties?: Record<string, unknown>;
 }
 
@@ -307,9 +351,18 @@ interface TencentMapClickEvent {
 const props = withDefaults(defineProps<{
   mapInstance?: TencentMapInstanceHandle | null;
   points?: MapDevicePoint[];
+  /** 正式管线（后端 API）；与静态演示 JSON 完全独立，失败必须显式呈现 */
+  formalTubes?: TubeNetworkRecord[];
+  formalTubeRejected?: RejectedTubeRecord[];
+  formalTubeError?: string;
+  formalTubeLoading?: boolean;
 }>(), {
   mapInstance: null,
   points: () => [],
+  formalTubes: () => [],
+  formalTubeRejected: () => [],
+  formalTubeError: "",
+  formalTubeLoading: false,
 });
 
 const visible = ref(true);
@@ -321,19 +374,42 @@ const junctions = ref<DemoJunction[]>([]);
 const draftPoints = ref<DraftPoint[]>([]);
 const snapCandidate = ref<SnapCandidate | null>(null);
 const errorMessage = ref("");
-const gisVisible = ref(true);
 const gisLayerVisible = ref<Record<W84LayerKey, boolean>>({
   pipes: true,
   hydrants: true,
   pumps: true,
   valves: true,
 });
+// 正式管线（API）图层状态：默认开启。
+// 演示静态 GIS 图层在正式验收模式下从初始化即关闭（不以"成功收到正式记录"为
+// 关闭条件）：正式数据失败/为空/全部被拒时，地图上不得出现演示管线造成混淆；
+// 需要看演示数据时手动打开开关。remount（切换地图 provider 后切回）同样保持关闭。
+const formalVisible = ref(true);
+const gisVisible = ref(false);
 
 let pipeLayer: TencentPipeLayer | null = null;
 let draftPipeLayer: TencentPipeLayer | null = null;
 let junctionLayer: TencentMarkerLayer | null = null;
 let gisPipeLayer: TencentPipeLayer | null = null;
 let gisPointLayer: TencentMarkerLayer | null = null;
+let formalPipeLayer: TencentPipeLayer | null = null;
+
+const FORMAL_TUBE_COLORS = {
+  enabled: "#16A34A",
+  disabled: "#94A3B8",
+} as const;
+
+const formalTubesStats = computed(() => {
+  const tubes = props.formalTubes;
+  const enabled = tubes.filter((tube) => tube.status === 1).length;
+  const partCount = tubes.reduce((sum, tube) => sum + (tube.lineCoords?.length ?? 0), 0);
+  const lengthSum = tubes.reduce(
+    (sum, tube) => sum + (Number(tube.shapeLengthM) || 0),
+    0,
+  );
+  const countries = [...new Set(tubes.map((tube) => tube.countryCode).filter(Boolean))];
+  return { total: tubes.length, enabled, partCount, lengthSum, countries };
+});
 
 const PIPE_COLORS: Record<DemoPipeStyleId, string> = {
   normal: "#2F80ED",
@@ -354,11 +430,13 @@ onBeforeUnmount(() => {
   destroyPipeLayer(pipeLayer);
   destroyPipeLayer(draftPipeLayer);
   destroyPipeLayer(gisPipeLayer);
+  destroyPipeLayer(formalPipeLayer);
   junctionLayer?.setMap?.(null);
   gisPointLayer?.setMap?.(null);
   junctionLayer = null;
   gisPointLayer = null;
   gisPipeLayer = null;
+  formalPipeLayer = null;
 });
 
 watch(
@@ -368,15 +446,29 @@ watch(
     destroyPipeLayer(pipeLayer);
     destroyPipeLayer(draftPipeLayer);
     destroyPipeLayer(gisPipeLayer);
+    destroyPipeLayer(formalPipeLayer);
     junctionLayer?.setMap?.(null);
     gisPointLayer?.setMap?.(null);
     pipeLayer = null;
     draftPipeLayer = null;
     gisPipeLayer = null;
+    formalPipeLayer = null;
     junctionLayer = null;
     gisPointLayer = null;
     syncPipeLayers();
+    // 地图实例就绪即渲染正式管线（数据可能早于地图到达）
+    renderFormalTubeLayer();
+    applyLayerVisibility();
   },
+);
+
+watch(
+  () => props.formalTubes,
+  () => {
+    renderFormalTubeLayer();
+    applyLayerVisibility();
+  },
+  { deep: true },
 );
 
 watch(
@@ -603,6 +695,15 @@ function syncPipeLayers() {
   });
   gisPipeLayer.addTo?.(props.mapInstance);
 
+  formalPipeLayer = new TMap.visualization.Pipe({
+    pickStyle: (item) => ({
+      color: item.styleId === "formal-disabled"
+        ? FORMAL_TUBE_COLORS.disabled
+        : FORMAL_TUBE_COLORS.enabled,
+    }),
+  });
+  formalPipeLayer.addTo?.(props.mapInstance);
+
   if (TMap.MultiMarker && TMap.MarkerStyle) {
     junctionLayer = new TMap.MultiMarker({
       map: props.mapInstance,
@@ -651,6 +752,8 @@ function handleMapClick(event: TencentMapClickEvent) {
 }
 
 function renderAllLayers() {
+  // 正式管线优先渲染：即使后续演示图层渲染异常，也不影响正式数据上屏
+  renderFormalTubeLayer();
   renderPipeLayer();
   renderDraftLayer();
   renderJunctionLayer();
@@ -766,6 +869,83 @@ function renderJunctionLayer() {
   junctionLayer.setGeometries(geometries);
 }
 
+/**
+ * 正式管线渲染：每条记录 × 每段（partIndex）独立一条折线，key = `${id}:${partIndex}`，
+ * 多段之间绝不拼接；坐标按国家策略转换（CN→GCJ02，MY 等海外原样），
+ * API 加载失败时不进入本函数（数据层已拦截并显式报错，无演示回退）。
+ */
+function renderFormalTubeLayer() {
+  if (!formalPipeLayer?.setData) return;
+  const TMap = getTMap();
+  if (!TMap) return;
+
+  const data: TencentPipeData[] = [];  props.formalTubes.forEach((tube) => {
+    const parts = tube.lineCoords ?? [];
+    parts.forEach((part, partIndex) => {
+      const path = part.map(([lng, lat]) => {
+        const display = tencentDisplayCoordinate({ lat, lng }, tube.countryCode);
+        return new TMap.LatLng(display.lat, display.lng, 0);
+      });
+      if (path.length < 2) return;
+      data.push({
+        path,
+        radius: pipeRadius.value,
+        styleId: tube.status === 0 ? "formal-disabled" : "formal-enabled",
+        properties: {
+          key: `${tube.id}:${partIndex}`,
+          tubeId: tube.id,
+          partIndex,
+          tubeName: tube.tubeName,
+          countryCode: tube.countryCode,
+          coordinateSystem: tube.coordinateSystem,
+          material: tube.material,
+          diameterMm: tube.diameterMm,
+          shapeLengthM: tube.shapeLengthM,
+          status: tube.status,
+          gisSource: tube.gisSource,
+          gisSourceId: tube.gisSourceId,
+        },
+      });
+    });
+  });
+  formalPipeLayer.setData(data);
+
+  // 验收诊断钩子：正式管线原始数据 + 地图实例，供联调取证（控制台读取
+  // window.__w84FormalTubesDebug，比对 getCenter() 与 API 原值，验证 MY 未做 GCJ02 偏移）
+  if (typeof window !== "undefined") {
+    (window as unknown as Record<string, unknown>).__w84FormalTubesDebug = {
+      tubes: props.formalTubes,
+      map: props.mapInstance,
+      sampleFirstPoint: props.formalTubes[0]?.lineCoords?.[0]?.[0] ?? null,
+    };
+  }
+}
+
+function toggleFormalVisible() {
+  formalVisible.value = !formalVisible.value;
+  applyLayerVisibility();
+}
+
+/** 正式管线定位：边界计算与折线绘制使用同一坐标策略（同国家、同转换）。 */
+function focusFormalTubes() {
+  const TMap = getTMap();
+  if (!props.mapInstance || !TMap?.LatLngBounds) return;
+  const bounds = new TMap.LatLngBounds();
+  let extended = false;
+  props.formalTubes.forEach((tube) => {
+    (tube.lineCoords ?? []).forEach((part) => {
+      part.forEach(([lng, lat]) => {
+        const display = tencentDisplayCoordinate({ lat, lng }, tube.countryCode);
+        bounds.extend?.(new TMap.LatLng(display.lat, display.lng));
+        extended = true;
+      });
+    });
+  });
+  if (extended) {
+    props.mapInstance.fitBounds?.(bounds, { padding: 80 });
+  }
+}
+
 function applyLayerVisibility() {
   const layers = [pipeLayer, draftPipeLayer];
   layers.forEach((layer) => {
@@ -788,6 +968,11 @@ function applyLayerVisibility() {
   } else {
     gisPipeLayer?.hide?.();
     gisPointLayer?.setMap?.(null);
+  }
+  if (formalVisible.value) {
+    formalPipeLayer?.show?.();
+  } else {
+    formalPipeLayer?.hide?.();
   }
 }
 

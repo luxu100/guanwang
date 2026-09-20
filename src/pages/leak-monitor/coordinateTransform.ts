@@ -21,6 +21,32 @@ export function convertMapCoordinate(
     : gcj02ToWgs84(coordinate);
 }
 
+/**
+ * 国家驱动的坐标策略（正式管线数据链路专用）。
+ *
+ * 返回是否应对该国家/地区的 WGS84 数据执行 WGS84→GCJ02 转换：
+ * - CN：腾讯/高德等 GCJ02 底图需要转换；
+ * - 其他已声明国家（如 MY）：底图坐标与 WGS84 一致，禁止任何偏移转换
+ *   （既不做正向 GCJ02，也不做逆向"纠偏"）。
+ *
+ * 与 convertMapCoordinate 的粗矩形判断互不依赖：正式数据必须携带
+ * countryCode，缺失时在数据层校验拒绝（见 services/leak-monitor/tube-network.ts），
+ * 不得退化为矩形猜测。旧设备/演示图层继续走原路径，行为不变。
+ */
+export function shouldApplyGcj02TransformForCountry(countryCode?: string | null): boolean {
+  return (countryCode || "").trim().toUpperCase() === "CN";
+}
+
+/** WGS84 点按国家策略转成腾讯底图坐标：CN 转 GCJ02，其余原样返回。 */
+export function tencentDisplayCoordinate(
+  coordinate: MapCoordinate,
+  countryCode?: string | null,
+): MapCoordinate {
+  return shouldApplyGcj02TransformForCountry(countryCode)
+    ? wgs84ToGcj02(coordinate)
+    : coordinate;
+}
+
 export function normalizeCoordinateSystem(
   value: unknown,
   fallback: CoordinateSystem,

@@ -15,6 +15,11 @@ import {
   submitLeakMonitorManualAnalysis,
 } from "@/services/leak-monitor/device-query";
 import { analyzeWavArrayBuffer } from "../audioAnalysis";
+import {
+  fetchFormalTubeNetworks,
+  type RejectedTubeRecord,
+  type TubeNetworkRecord,
+} from "@/services/leak-monitor/tube-network";
 import type {
   DateRangeValue,
   DeviceDetailState,
@@ -119,6 +124,12 @@ export function useLeakMonitorWorkspace(localized?: Readonly<Ref<boolean>>) {
   const sidebarData = ref<Record<string, unknown>>({});
   const onlineRate = ref<number | string>("--");
   const communicationRate = ref<number | string>("--");
+  // 正式管线（后端 /api/tube-network/list）：失败显式呈现，绝不回退本地演示 JSON
+  const formalTubes = ref<TubeNetworkRecord[]>([]);
+  const formalTubesRejected = ref<RejectedTubeRecord[]>([]);
+  const formalTubesError = ref("");
+  const formalTubesLoading = ref(false);
+  let formalTubesRequestId = 0;
   let listRequestId = 0;
   let sidebarRequestId = 0;
   let detailRequestId = 0;
@@ -203,6 +214,30 @@ export function useLeakMonitorWorkspace(localized?: Readonly<Ref<boolean>>) {
       mapRegions.value = result.regions;
     } catch (error) {
       console.error(error);
+    }
+  }
+
+  /**
+   * 正式管线加载：业务 code !== 200 / HTTP 失败 → formalTubesError 显式记录；
+   * 元数据非法的记录进入 rejected 由图层组件显式提示并跳过渲染。
+   * 不做任何演示数据回退。
+   */
+  async function refreshFormalTubes() {
+    const requestId = ++formalTubesRequestId;
+    formalTubesLoading.value = true;
+    formalTubesError.value = "";
+    try {
+      const result = await fetchFormalTubeNetworks();
+      if (requestId !== formalTubesRequestId) return;
+      formalTubes.value = result.tubes;
+      formalTubesRejected.value = result.rejected;
+    } catch (error: any) {
+      if (requestId !== formalTubesRequestId) return;
+      formalTubes.value = [];
+      formalTubesRejected.value = [];
+      formalTubesError.value = error?.message || String(error || "管线数据加载失败");
+    } finally {
+      if (requestId === formalTubesRequestId) formalTubesLoading.value = false;
     }
   }
 
@@ -443,7 +478,10 @@ export function useLeakMonitorWorkspace(localized?: Readonly<Ref<boolean>>) {
     void refreshAll(true);
   }
 
-  onMounted(() => void refreshAll(true));
+  onMounted(() => {
+    void refreshAll(true);
+    void refreshFormalTubes();
+  });
   watch(locale, () => void refreshAll(true));
   onBeforeUnmount(() => revokeAudioUrl(detail.value));
 
@@ -463,6 +501,11 @@ export function useLeakMonitorWorkspace(localized?: Readonly<Ref<boolean>>) {
     mapDevices,
     mapPoints,
     mapRegions,
+    formalTubes,
+    formalTubesRejected,
+    formalTubesError,
+    formalTubesLoading,
+    refreshFormalTubes,
     closeDetail,
     downloadLatestAudio,
     loadHistory,

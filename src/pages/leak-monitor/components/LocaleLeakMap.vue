@@ -13,6 +13,10 @@
       v-if="provider === 'tencent'"
       :map-instance="tencentMapInstance"
       :points="mapPoints"
+      :formal-tubes="formalTubes"
+      :formal-tube-rejected="formalTubesRejected"
+      :formal-tube-error="formalTubesError"
+      :formal-tube-loading="formalTubesLoading"
     />
     <GoogleLeakMap
       v-else
@@ -99,6 +103,10 @@ const {
   detailVisible,
   devices,
   errorMessage,
+  formalTubes,
+  formalTubesError,
+  formalTubesLoading,
+  formalTubesRejected,
   loading,
   mapDevices,
   mapPoints,
