@@ -4,6 +4,8 @@
  */
 
 /* ================= 爆管识别 ================= */
+export type BurstStatus = "NORMAL" | "SUSPECTED_BURST" | "BURST";
+
 
 /** 爆管识别结果（列表项，3.1 /leakage/burst-pipe/results） */
 export interface BurstPipeResult {
@@ -33,12 +35,13 @@ export interface BurstPipeResult {
   abnormalRate?: number;
   /** 是否疑似爆管 */
   burstSuspected?: boolean;
-  /** NORMAL / SUSPECTED_BURST */
-  status?: string;
+  /** 已确认爆管必须由后端确认结果提供，不能仅由越界推断。 */
+  status?: BurstStatus;
 }
 
 /** 爆管识别查询参数 */
 export interface BurstPipeQuery {
+  status?: BurstStatus;
   deviceId?: number | null;
   deviceNumber?: string;
   deptId?: number | null;
@@ -58,6 +61,7 @@ export interface BurstPipePoint {
 
 /** 爆管识别详情（3.2 /leakage/burst-pipe/analyze） */
 export interface BurstPipeAnalyzeData {
+  status?: BurstStatus;
   deviceId?: number;
   deviceNumber?: string;
   deviceAlias?: string;
@@ -78,6 +82,7 @@ export interface BurstPipeAnalyzeData {
 export interface BurstPipeSummary {
   monitoredCount?: number;
   suspectedCount?: number;
+  confirmedCount?: number;
   abnormalPointTotal?: number;
   lastCheckTime?: string;
 }
@@ -131,6 +136,9 @@ export type ComparisonPeriod = "DAY" | "MONTH" | "YEAR";
 
 /** 同环比概览（4.3 /leakage/comparison/overview） */
 export interface ComparisonOverview {
+  currentPeriodLabel?: string;
+  yoyPeriodLabel?: string;
+  momPeriodLabel?: string;
   metric: string;
   period?: string;
   periodValue?: string;
@@ -138,14 +146,16 @@ export interface ComparisonOverview {
   currentValue?: number;
   yoyValue?: number;
   /** 同比增长率 % */
-  yoyRate?: number;
+  yoyRate?: number | null;
   momValue?: number;
   /** 环比增长率 % */
-  momRate?: number;
+  momRate?: number | null;
   sampleCount?: number;
 }
 
 export interface ComparisonOverviewQuery {
+  /** 月周期截止日，用于本月未结束时的同期对齐。 */
+  asOfDate?: string;
   metric: ComparisonMetric;
   aggType?: "AVG" | "MAX" | "MIN" | "SUM";
   period: ComparisonPeriod;
@@ -156,11 +166,12 @@ export interface ComparisonOverviewQuery {
 
 /** 同环比趋势序列点（4.4） */
 export interface ComparisonTrendPoint {
+  momValue?: number;
   period: string;
   currentValue?: number;
   yoyValue?: number;
-  yoyRate?: number;
-  momRate?: number;
+  yoyRate?: number | null;
+  momRate?: number | null;
 }
 
 /** 同环比趋势（4.4 /leakage/comparison/trend） */
@@ -183,6 +194,7 @@ export interface ComparisonTrendQuery {
 
 /** 报表公共查询（5.1–5.3） */
 export interface LeakReportQuery {
+  comparisonPeriod?: "DAY" | "MONTH";
   startTime: string;
   endTime: string;
   granularity?: "DAY" | "MONTH";
@@ -251,4 +263,41 @@ export interface HandlingEffectData {
   avgHandleDurationHours?: number;
   avgRepairDurationHours?: number;
   leakPointList?: LeakPointItem[];
+}
+
+/** 2026-09 需求补充；新增报表接口字段需与后端联调确认。 */
+export interface DeviceComparisonRow extends ComparisonOverview {
+  rowKey: string;
+  deviceId: number;
+  deviceNumber: string;
+  deviceAlias: string;
+  metricLabel: string;
+}
+export interface RepairReportRow {
+  eventId: number;
+  deviceNumber: string;
+  eventType: "LEAK" | "BURST";
+  detectedAt: string;
+  repairedAt?: string;
+  cause: string;
+  status: "PENDING" | "REPAIRING" | "REPAIRED";
+}
+export interface CauseReportRow {
+  eventType: "LEAK" | "BURST";
+  cause: string;
+  count: number;
+  percent: number;
+}
+export interface ExtendedLeakReport {
+  deviceCount: number;
+  comparisons: DeviceComparisonRow[];
+  waterHammer: {
+    monitoredTerminalCount: number;
+    alarmTerminalCount: number;
+    alarmCount: number;
+    alarmRate: number | null;
+  };
+  repair: { total: number; pending: number; repairing: number; repaired: number; completionRate: number | null };
+  repairs: RepairReportRow[];
+  causes: CauseReportRow[];
 }

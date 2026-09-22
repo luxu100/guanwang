@@ -1,6 +1,6 @@
 <template>
   <view class="page-container">
-    <view class="module-heading"><view><text class="module-heading__title">测点分析</text><text class="module-heading__description">从测点排名发现重点关注对象，展开查看流量、压力与噪声的同比、环比。</text></view><text v-if="USE_MOCK" class="demo-badge">演示数据</text></view>
+    <view class="module-heading"><view><text class="module-heading__title">测点分析</text><text class="module-heading__description">查看测点监测数据，展开查看流量、压力与噪声的同比、环比。</text></view><text v-if="USE_MOCK" class="demo-badge">演示数据</text></view>
 
     <!-- 顶部筛选栏：时间范围 + 排名指标 -->
     <XConfigToolbar
@@ -16,12 +16,12 @@
     />
 
     <view v-if="error" class="module-error" @click="fetchRanking">{{ error }} · 点击重试</view>
-    <view class="module-note">排名范围：{{ appliedForm.startTime }} ～ {{ appliedForm.endTime }}。异常次数 = 漏损次数 + 疑似次数；综合风险分仅用于关注优先级。点击测点展开分析。</view>
+    <view class="module-note">统计范围：{{ appliedForm.startTime }} ～ {{ appliedForm.endTime }}。排名指标待确认，当前按设备编号排列，不代表风险排名。点击测点展开分析。</view>
     <!-- 排名表格（行内展开同环比详情，手风琴模式） -->
     <view class="content-layout layout-full">
       <view class="data-table-container">
         <view class="table-head">
-          <text>测点排名</text>
+          <text>测点列表（排名规则待确认）</text>
           <text class="table-head__meta">共 {{ pagination.total }} 条 · 点击行展开同环比分析</text>
         </view>
 
@@ -96,18 +96,22 @@
                 </view>
                 <!-- 本期 / 同比 / 环比 三张卡片 -->
                 <view class="compare-cards">
-                  <LeakStatCard :label="`本期值（${periodLabel}）`" :value="fmtNum(overview?.currentValue)" tone="primary" :unit="overview?.unit || ''" />
+                  <LeakStatCard :label="`本期值（${periodLabel}）`" :value="fmtNum(overview?.currentValue)" tone="primary" :unit="overview?.unit || ''">
+                    <template #footer><text class="period-hint">{{ overview?.currentPeriodLabel }}</text></template>
+                  </LeakStatCard>
 
                   <LeakStatCard label="去年同期（同比）" :value="fmtNum(overview?.yoyValue)" tone="info" :unit="overview?.unit || ''">
                     <template #footer>
+                      <text class="period-hint">{{ overview?.yoyPeriodLabel }}</text>
                       <view class="compare-rate">
                         <text :class="rateClass(overview?.yoyRate)">同比 {{ fmtRate(overview?.yoyValue === 0 ? undefined : overview?.yoyRate) }}</text>
                       </view>
                     </template>
                   </LeakStatCard>
 
-                  <LeakStatCard label="上一周期（环比）" :value="fmtNum(overview?.momValue)" tone="success" :unit="overview?.unit || ''">
+                  <LeakStatCard label="上月同期（环比）" :value="fmtNum(overview?.momValue)" tone="success" :unit="overview?.unit || ''">
                     <template #footer>
+                      <text class="period-hint">{{ overview?.momPeriodLabel }}</text>
                       <view class="compare-rate">
                         <text :class="rateClass(overview?.momRate)">环比 {{ fmtRate(overview?.momValue === 0 ? undefined : overview?.momRate) }}</text>
                       </view>
@@ -115,7 +119,7 @@
                   </LeakStatCard>
                 </view>
 
-                <view class="module-note">概览为所选范围最后一个{{ deriveGranularity(appliedForm.startTime, appliedForm.endTime) === 'MONTH' ? '月' : '日' }}周期（{{ periodLabel }}）的平均值；趋势覆盖完整查询范围。同比对比去年同期，环比对比上一相邻周期。增长率不代表异常判定，对比基数为零或缺失时显示“—”。</view>
+                <view class="module-note">概览显示截止日期所在{{ appliedForm.comparisonPeriod === 'MONTH' ? '月份截至该日' : '日期' }}的平均值；同比对比去年同期，环比对比上月同期。月末、闰日以目标月最后一天对齐。无对比数据或基数为零时不计算增长率。</view>
                 <!-- 同环比趋势对比图 -->
                 <view ref="trendChartEl" class="trend-chart"/>
 
@@ -160,7 +164,6 @@ import type {
   ComparisonOverview,
   ComparisonTrendData,
   PointRankingItem,
-  RankMetric,
 } from "@/services/leak-burst/types";
 
 /* ================= 时间工具 ================= */
@@ -176,12 +179,6 @@ function defaultRange() {
   return { startTime: toDateStr(start), endTime: toDateStr(end) };
 }
 
-/** 依据时间跨度推导周期粒度：>45 天按月，否则按天 */
-function deriveGranularity(startTime: string, endTime: string): "DAY" | "MONTH" {
-  const diff = (new Date(endTime).getTime() - new Date(startTime).getTime()) / 86400000;
-  return Number.isFinite(diff) && diff > 45 ? "MONTH" : "DAY";
-}
-
 /**
  * =========================
  * 筛选
@@ -189,7 +186,7 @@ function deriveGranularity(startTime: string, endTime: string): "DAY" | "MONTH" 
  */
 const searchForm = ref<Record<string, any>>({
   ...defaultRange(),
-  rankMetric: "RISK_SCORE" as RankMetric,
+  comparisonPeriod: "DAY",
   order:"DESC", deptId:"",
 });
 
@@ -198,22 +195,12 @@ const error = ref("");
 let rankingRequest = 0;
 let detailRequest = 0;
 
-const rankMetricOptions = [
-  { label: "综合风险分", value: "RISK_SCORE" },
-  { label: "漏损次数", value: "LEAK_COUNT" },
-  { label: "疑似次数", value: "SUSPECTED_COUNT" },
-  { label: "异常次数", value: "ANOMALY_COUNT" },
-  { label: "平均漏水特征值", value: "AVG_LEAK_ESA" },
-  { label: "最大漏水强度", value: "MAX_LEAK_INTENSITY" },
-  { label: "平均噪声值", value: "AVG_NOISE" },
-];
-
 const toolbarFields: Field[] = [
   {key:"deptId",label:"分区",type:"select",options:deptOptions},
-  {key:"order",label:"排序",type:"select",options:[{label:"从高到低",value:"DESC"},{label:"从低到高",value:"ASC"}]},
+
   { key: "startTime", label: "开始时间", type: "date" },
   { key: "endTime", label: "结束时间", type: "date" },
-  { key: "rankMetric", label: "排名指标", type: "select", options: rankMetricOptions },
+  { key: "comparisonPeriod", label: "统计周期", type: "select", options: [{label:"日均值",value:"DAY"},{label:"月均值",value:"MONTH"}] },
 ];
 
 /* ================= 排名列表 ================= */
@@ -240,7 +227,6 @@ const columns: Column[] = [
   { key: "suspectedCount", label: "疑似次数", width: 100, align: "right" },
   { key: "avgPressure", label: "压力 MPa", width: 100, align: "right", formatter: (r) => fmtNum(r.avgPressure) },
   { key: "avgNoise", label: "噪声 dB", width: 100, align: "right", formatter: (r) => fmtNum(r.avgNoise) },
-  { key: "riskScore", label: "综合风险分", width: 110, align: "right", formatter: (r) => fmtNum(r.riskScore) },
   { key: "currentLeakStatus", label: "漏损状态", width: 110, align: "center" },
   { key: "lastSamplingTime", label: "最近采样", width: 160, formatter: (r) => (r.lastSamplingTime ? formatDate(r.lastSamplingTime) : "-") },
 ];
@@ -295,8 +281,8 @@ async function fetchRanking() {
     const res = await getPointRankingT({
       startTime: searchForm.value.startTime,
       endTime: searchForm.value.endTime,
-      rankMetric: searchForm.value.rankMetric as RankMetric,
-      order: searchForm.value.order,
+      // 排名指标待确认，不传未经确认的风险权重。
+      order: "ASC",
       deptId: searchForm.value.deptId === "" ? null : Number(searchForm.value.deptId),
       pageNum: pagination.value.current,
       pageSize: pagination.value.size,
@@ -346,7 +332,7 @@ let resizeObserver: ResizeObserver | null = null;
 
 /** 展开区周期标签（随粒度变化） */
 function getPeriodLabel() {
-  const g = deriveGranularity(appliedForm.value.startTime, appliedForm.value.endTime);
+  const g = appliedForm.value.comparisonPeriod;
   return g === "MONTH" ? appliedForm.value.endTime.slice(0, 7) : appliedForm.value.endTime;
 }
 const periodLabel = ref(getPeriodLabel());
@@ -383,10 +369,10 @@ function loadMetric(m: ComparisonMetric): Promise<MetricDetail> {
   if (cached) return cached;
   const row = expandedDevice.value!;
   const form = {...appliedForm.value};
-  const granularity = deriveGranularity(form.startTime, form.endTime);
+  const granularity: "DAY" | "MONTH" = form.comparisonPeriod;
   const periodValue = form.endTime.slice(0, granularity === "MONTH" ? 7 : 10);
   const pending = Promise.all([
-    getComparisonOverviewT({ metric:m, period:granularity, periodValue, deviceId:row.deviceId }),
+    getComparisonOverviewT({ metric:m, period:granularity, periodValue, asOfDate:form.endTime.slice(0,10), deviceId:row.deviceId }),
     getComparisonTrendT({ metric:m, startTime:form.startTime, endTime:form.endTime, granularity, deviceId:row.deviceId }),
   ]).then(([overviewRes, trendRes]) => ({
     overview: overviewRes.data ?? null,
@@ -457,12 +443,12 @@ function renderTrendChart() {
     animationDurationUpdate: 300,
     animationEasingUpdate: "cubicOut",
     tooltip: { trigger: "axis" },
-    legend: { data: ["本期值", "去年同期值", "环比增长率"], top: 6 },
+    legend: { data: ["本期值", "去年同期值", "上月同期值"], top: 6 },
     grid: { left: 48, right: 52, top: 40, bottom: 30 },
     xAxis: { type: "category", data: series.map((p) => p.period) },
     yAxis: [
       { type: "value", name: trend.value.unit || "值" },
-      { type: "value", name: "%", axisLabel: { formatter: "{value}%" } },
+
     ],
     series: [
       {
@@ -480,11 +466,10 @@ function renderTrendChart() {
         itemStyle: { color: "#f59e0b" },
       },
       {
-        name: "环比增长率",
-        type: "bar",
-        yAxisIndex: 1,
-        barWidth: 10,
-        data: series.map((p) => p.momRate ?? null),
+        name: "上月同期值",
+        type: "line",
+        smooth: true,
+        data: series.map((p) => p.momValue ?? null),
         itemStyle: { color: "rgba(22,163,74,.55)" },
       },
     ],
@@ -508,7 +493,7 @@ function handleSearch() {
 
 async function handleReset() {
   await nextTick();
-  searchForm.value = { ...defaultRange(), rankMetric: "RISK_SCORE", order:"DESC", deptId:"" };
+  searchForm.value = { ...defaultRange(), comparisonPeriod: "DAY", order:"ASC", deptId:"" };
   pagination.value.current = 1;
   fetchRanking();
 }
@@ -599,6 +584,8 @@ onBeforeUnmount(() => { ++rankingRequest; ++detailRequest; detailCache.clear(); 
   gap: 12px;
   margin-bottom: 14px;
 }
+
+.period-hint { display:block; margin-top:8px; font-size:12px; color:#678094; }
 
 .compare-rate {
   margin-top: 8px;

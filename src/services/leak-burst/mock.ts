@@ -1,8 +1,9 @@
+import { comparisonWindows } from "./comparison-period";
 import type { ApiResponse, PageResult } from "@/types/api";
 import type {
   BurstPipeAnalyzeData, BurstPipeQuery, ComparisonOverviewQuery,
   ComparisonTrendQuery, HandlingEffectData, LeakAnomalyData,
-  LeakReportQuery, PointRankingItem, PointRankingQuery,
+  LeakReportQuery, PointRankingItem, PointRankingQuery, BurstStatus, ExtendedLeakReport, RepairReportRow, DeviceComparisonRow,
 } from "./types";
 const dayMs = 86400000;
 const round = (n: number, digits = 3) => Number(n.toFixed(digits));
@@ -38,11 +39,12 @@ const windows = burstDevices.flatMap((d, i) => Array.from({ length: 3 }, (_, w) 
     const upperLimit = mean + 3 * stdDev, lowerLimit = mean - 3 * stdDev;
     const points = values.map((pressure, j) => ({ time: `${startTime.slice(0, -2)}${String(Math.floor(j / 100)).padStart(2, '0')}.${String(j % 100 * 10).padStart(3, '0')}`, pressure, abnormal: pressure > upperLimit || pressure < lowerLimit }));
     const abnormalCount = points.filter(p => p.abnormal).length;
+    // 已确认状态为独立的演示确认记录，不是压力越界自动确诊。
     const burstSuspected = abnormalCount >= 10; // 仅为演示规则，生产环境采用后端识别结果。
-    return { deptId: i % 4 + 1, result: { ...d, startTime, endTime, samplingRate: 100, mean, stdDev, upperLimit, lowerLimit, totalCount: 1000, abnormalCount, abnormalRate: abnormalCount / 10, burstSuspected, status: burstSuspected ? 'SUSPECTED_BURST' : 'NORMAL' }, points };
+    return { deptId: i % 4 + 1, result: { ...d, startTime, endTime, samplingRate: 100, mean, stdDev, upperLimit, lowerLimit, totalCount: 1000, abnormalCount, abnormalRate: abnormalCount / 10, burstSuspected, status: (burstSuspected ? (i % 6 === 0 && w === 0 ? 'BURST' : 'SUSPECTED_BURST') : 'NORMAL') as BurstStatus }, points };
 })).sort((a, b) => b.result.startTime.localeCompare(a.result.startTime));
 export function mockGetBurstPipeResults(q: BurstPipeQuery) {
-    return mockDelay(page(windows.filter(w => (!q.deviceId || w.result.deviceId === q.deviceId) && (!q.deviceNumber || w.result.deviceNumber.toLowerCase().includes(q.deviceNumber.trim().toLowerCase())) && (!q.deptId || w.deptId === q.deptId) && (typeof q.burstSuspected !== 'boolean' || w.result.burstSuspected === q.burstSuspected) && inRange(w.result.startTime, q.startTime, q.endTime)).map(w => w.result), q));
+    return mockDelay(page(windows.filter(w => (!q.status || w.result.status === q.status) && (!q.deviceId || w.result.deviceId === q.deviceId) && (!q.deviceNumber || w.result.deviceNumber.toLowerCase().includes(q.deviceNumber.trim().toLowerCase())) && (!q.deptId || w.deptId === q.deptId) && (typeof q.burstSuspected !== 'boolean' || w.result.burstSuspected === q.burstSuspected) && inRange(w.result.startTime, q.startTime, q.endTime)).map(w => w.result), q));
 }
 export function mockGetBurstPipeAnalyze(q: {
     deviceNumber: string;
@@ -56,7 +58,7 @@ export function mockGetBurstPipeAnalyze(q: {
 }
 export function mockGetBurstPipeSummary() {
     const latest = burstDevices.map(d => windows.find(w => w.result.deviceId === d.deviceId)!.result);
-    return mockDelay({ monitoredCount: latest.length, suspectedCount: latest.filter(r => r.burstSuspected).length, abnormalPointTotal: latest.reduce((s, r) => s + r.abnormalCount, 0), lastCheckTime: windows[0].result.endTime });
+    return mockDelay({ monitoredCount: latest.length, suspectedCount: latest.filter(r => r.status === "SUSPECTED_BURST").length, confirmedCount: latest.filter(r => r.status === "BURST").length, abnormalPointTotal: latest.reduce((s, r) => s + r.abnormalCount, 0), lastCheckTime: windows[0].result.endTime });
 }
 // 其余统计覆盖最近90天，各接口共享日记录和工单记录。
 const daily = Array.from({ length: 90 }, (_, offset) => burstDevices.map((d, i) => ({ ...d, deptId: i % 4 + 1, period: dateText(new Date(today.getTime() - offset * dayMs)), leakCount: (offset + i * 3) % 13 === 0 ? 1 : 0, suspectedCount: (offset * 2 + i) % 7 === 0 ? 1 : 0, normalCount: 20 + (i + offset) % 8 }))).flat();
@@ -71,8 +73,8 @@ export function mockGetPointRanking(q: PointRankingQuery) {
         rows.push({ ...d, rank: 0, deptName: ['东区', '西区', '南区', '北区'][i % 4], leakCount, suspectedCount, anomalyCount: leakCount + suspectedCount, avgLeakEsa: round(2 + i * .37, 2), maxLeakIntensity: 8 + i, avgNoise: round(42 + i * 1.3, 1), avgPressure: round(.38 + i * .006), riskScore: round(Math.min(100, leakCount * 8 + suspectedCount * 3 + i * .3), 1), currentLeakStatus: i % 6 === 0 ? 0 : i % 3 === 0 ? 2 : 1, lastSamplingTime: records[0].period + ' 12:00:00' });
     });
     const keys: Record<string, keyof PointRankingItem> = { RISK_SCORE: 'riskScore', LEAK_COUNT: 'leakCount', SUSPECTED_COUNT: 'suspectedCount', ANOMALY_COUNT: 'anomalyCount', AVG_LEAK_ESA: 'avgLeakEsa', MAX_LEAK_INTENSITY: 'maxLeakIntensity', AVG_NOISE: 'avgNoise' };
-    const key = keys[q.rankMetric || 'RISK_SCORE'];
-    rows.sort((a, b) => (Number(a[key]) - Number(b[key])) * (q.order === 'ASC' ? 1 : -1) || a.deviceId - b.deviceId);
+    const key = q.rankMetric ? keys[q.rankMetric] : 'deviceId';
+    rows.sort((a, b) => (Number(a[key]) - Number(b[key])) * (!q.rankMetric || q.order === 'ASC' ? 1 : -1) || a.deviceId - b.deviceId);
     return mockDelay(page(rows.map((r, i) => ({ ...r, rank: i + 1 })), q));
 }
 function periods(start: string, end: string, monthly = false) {
@@ -88,23 +90,32 @@ function periods(start: string, end: string, monthly = false) {
     }
     return out;
 }
-function comparison(metric: string, period: string, id = 1001) {
-    const d = parseDate(period.length === 7 ? period + '-01' : period), prev = new Date(d), year = new Date(d);
-    if (period.length === 7)
-        prev.setMonth(prev.getMonth() - 1);
-    else
-        prev.setDate(prev.getDate() - 1);
-    const month = year.getMonth();
-    year.setFullYear(year.getFullYear() - 1);
-    if (year.getMonth() !== month)
-        year.setDate(0);
-    const unit = metric === 'FLOW' ? 'm³/h' : metric === 'PRESSURE' ? 'MPa' : 'dB', base = metric === 'FLOW' ? 120 : metric === 'PRESSURE' ? .42 : 48;
-    const value = (date: Date) => round(base * (1 + (id - 1000) * .021 + Math.sin(Math.floor(date.getTime() / dayMs) * .12 + id) * .08));
-    const currentValue = value(d), yoyValue = value(year), momValue = value(prev);
-    return { period, unit, currentValue, yoyValue, momValue, yoyRate: round((currentValue - yoyValue) / yoyValue * 100, 2), momRate: round((currentValue - momValue) / momValue * 100, 2), sampleCount: period.length === 7 ? new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate() * 1440 : 1440 };
+function comparison(metric: string, periodValue: string, id = 1001, asOfDate?: string) {
+    const period = periodValue.length === 7 ? 'MONTH' : 'DAY';
+    const windows = comparisonWindows(period, periodValue, asOfDate);
+    const unit = metric === 'FLOW' ? 'm³/h' : metric === 'PRESSURE' ? 'MPa' : 'dB';
+    const base = metric === 'FLOW' ? 120 : metric === 'PRESSURE' ? .42 : 48;
+    const average = (range: {start: Date; end: Date}) => {
+      const values: number[] = [];
+      for (const d = new Date(range.start); d <= range.end; d.setDate(d.getDate() + 1)) {
+        values.push(base * (1 + (id - 1000) * .021 + Math.sin(Math.floor(d.getTime() / dayMs) * .12 + id) * .08));
+      }
+      return round(values.reduce((a,b) => a+b,0) / values.length);
+    };
+    const currentValue = average(windows.current), yoyValue = average(windows.yoy), momValue = average(windows.mom);
+    const rate = (previous: number) => previous === 0 ? null : round((currentValue - previous) / previous * 100, 2);
+    return { period: periodValue, unit, currentValue, yoyValue, momValue,
+      currentPeriodLabel: windows.current.label, yoyPeriodLabel: windows.yoy.label, momPeriodLabel: windows.mom.label,
+      yoyRate: rate(yoyValue), momRate: rate(momValue),
+      sampleCount: Math.round((windows.current.end.getTime() - windows.current.start.getTime()) / dayMs + 1) * 1440 };
 }
-export function mockGetComparisonOverview(q: ComparisonOverviewQuery) { return mockDelay({ ...comparison(q.metric, q.periodValue, q.deviceId || undefined), metric: q.metric, period: q.period, periodValue: q.periodValue }); }
-export function mockGetComparisonTrend(q: ComparisonTrendQuery) { const series = periods(q.startTime, q.endTime, q.granularity === 'MONTH').map(p => comparison(q.metric, p, q.deviceId || undefined)); return mockDelay({ metric: q.metric, unit: series[0]?.unit, series }); }
+export function mockGetComparisonOverview(q: ComparisonOverviewQuery) {
+    return mockDelay({ ...comparison(q.metric, q.periodValue, q.deviceId || undefined, q.asOfDate), metric:q.metric, period:q.period, periodValue:q.periodValue });
+}
+export function mockGetComparisonTrend(q: ComparisonTrendQuery) {
+    const series = periods(q.startTime, q.endTime, q.granularity === 'MONTH').map(p => comparison(q.metric,p,q.deviceId || undefined,q.endTime.slice(0,10)));
+    return mockDelay({ metric:q.metric, unit:series[0]?.unit, series });
+}
 export function mockGetLeakReportTrend(q: LeakReportQuery) {
     const groups = new Map<string, {
         period: string;
@@ -124,4 +135,50 @@ export function mockGetLeakReportAnomaly(q: LeakReportQuery) {
 export function mockGetLeakHandlingEffect(q: LeakReportQuery) {
     const reports = eventsFor(q), finished = reports.filter(r => r.processStatus === 2);
     return mockDelay<HandlingEffectData>({ totalWorkOrders: reports.length, pendingCount: reports.filter(r => r.processStatus === 0).length, handlingCount: reports.filter(r => r.processStatus === 1).length, finishedCount: finished.length, finishRate: reports.length ? round(finished.length / reports.length * 100, 1) : 0, confirmedLeakPoints: reports.filter(r => r.processStatus > 0).length, avgHandleDurationHours: finished.length ? 6 : undefined, avgRepairDurationHours: finished.length ? 6 : undefined, leakPointList: reports.filter(r => r.processStatus > 0).map(r => ({ deviceId: r.deviceId, deviceNumber: r.deviceNumber, detectTime: r.reportTime, repairTime: r.processStatus === 2 ? r.period + ' 18:00:00' : undefined, leakVolume: `${round(3 + r.deviceId % 9 * .8, 1)} m³/h`, leakPointType: '管道接口', repairMethod: r.processStatus === 2 ? '更换密封件' : '现场排查', leakStatus: r.processStatus === 2 ? '已修复' : '处理中' })) });
+}
+
+/** 所有设备报表。终端类型、告警、维修原因均为独立演示数据。 */
+export function mockGetExtendedLeakReport(q: LeakReportQuery) {
+  const records = dailyFor({...q,deptId:null});
+  const activeIds = new Set(records.map(r => r.deviceId));
+  const period = q.comparisonPeriod || 'DAY';
+  const periodValue = q.endTime.slice(0, period === 'MONTH' ? 7 : 10);
+  const comparisons: DeviceComparisonRow[] = burstDevices.flatMap(d =>
+    (['FLOW','PRESSURE','NOISE'] as const).map((metric,i) => ({
+      ...comparison(metric,periodValue,d.deviceId,q.endTime.slice(0,10)),
+      rowKey:`${d.deviceId}_${metric}`,deviceId:d.deviceId,deviceNumber:d.deviceNumber,deviceAlias:d.deviceAlias,
+      metric,metricLabel:['流量','压力','噪声'][i],period,periodValue,
+      ...(!activeIds.has(d.deviceId) ? {currentValue:undefined,yoyValue:undefined,momValue:undefined,yoyRate:null,momRate:null,sampleCount:0} : {}),
+    })));
+  const terminals = records.filter(r => (r.deviceId - 1001) % 2 === 0);
+  const monitored = new Set(terminals.map(r => r.deviceId));
+  const alarms = terminals.filter(r => r.suspectedCount > 0 && r.deviceId % 3 === 0);
+  const alarmIds = new Set(alarms.map(r => r.deviceId));
+  const repairs: RepairReportRow[] = eventsFor({...q,deptId:null}).filter(r => r.processStatus > 0).map(r => ({
+    eventId:r.reportId,deviceNumber:r.deviceNumber,eventType:'LEAK',detectedAt:r.reportTime,
+    repairedAt:r.processStatus === 2 ? r.period + ' 18:00:00' : undefined,
+    status:r.processStatus === 2 ? 'REPAIRED' : 'REPAIRING',
+    cause:r.processStatus === 2 ? ['接口密封老化','管壁腐蚀','外力破坏'][r.reportId % 3] : '待查明',
+  }));
+  windows.filter(w => w.result.status === 'BURST' && inRange(w.result.startTime,q.startTime,q.endTime)).forEach((w,i) => {
+    repairs.push({eventId:100000+i,deviceNumber:w.result.deviceNumber,eventType:'BURST',detectedAt:w.result.startTime,
+      repairedAt:i%2===0?w.result.startTime.slice(0,10)+' 16:00:00':undefined,
+      status:i%2===0?'REPAIRED':'PENDING',cause:i%2===0?'管材破损':'待查明'});
+  });
+  const causes: ExtendedLeakReport['causes'] = [];
+  for (const eventType of ['LEAK','BURST'] as const) {
+    const subset = repairs.filter(r => r.eventType === eventType);
+    for (const cause of new Set(subset.map(r => r.cause))) {
+      const count = subset.filter(r => r.cause === cause).length;
+      causes.push({eventType,cause,count,percent:round(count / subset.length * 100,1)});
+    }
+  }
+  const repaired = repairs.filter(r => r.status === 'REPAIRED').length;
+  return mockDelay<ExtendedLeakReport>({ deviceCount:burstDevices.length,comparisons,
+    waterHammer:{monitoredTerminalCount:monitored.size,alarmTerminalCount:alarmIds.size,alarmCount:alarms.length,
+      alarmRate:monitored.size ? round(alarmIds.size / monitored.size * 100,1) : null},
+    repair:{total:repairs.length,pending:repairs.filter(r=>r.status==='PENDING').length,
+      repairing:repairs.filter(r=>r.status==='REPAIRING').length,repaired,
+      completionRate:repairs.length ? round(repaired / repairs.length * 100,1) : null},
+    repairs,causes });
 }

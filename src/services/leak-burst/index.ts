@@ -1,3 +1,5 @@
+import { mockGetExtendedLeakReport } from "./mock";
+import type { ExtendedLeakReport } from "./types";
 import { getRequestT } from "@/services/shared/crud.typed";
 import {
   mockGetBurstPipeResults,
@@ -194,4 +196,9 @@ export function getLeakReportExportUrl(params: LeakReportQuery) {
   });
 
   return `/api/leakage/report/export?${search.toString()}`;
+}
+/** 新增报表接口为前端约定，后端地址和字段需联调确认。 */
+export function getExtendedLeakReportT(params: LeakReportQuery) {
+  if (USE_MOCK) return mockGetExtendedLeakReport(params);
+  return getRequestT<ExtendedLeakReport>("/api/leakage/report/extended", params);
 }
