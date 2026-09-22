@@ -213,91 +213,32 @@ export interface LeakTrendData {
   series: LeakTrendPoint[];
 }
 
-/** 疑似漏损事件（5.2） */
-export interface SuspectedLeakItem {
-  reportId?: number;
-  deviceNumber?: string;
-  reportTime?: string;
-  leakPointPosition?: string;
-  processStatus?: number;
+/** 水锤报警汇总。当前后端未提供对应能力，接口需联调确认。 */
+export interface WaterHammerSummary {
+  monitoredTerminalCount: number;
+  alarmTerminalCount: number;
+  alarmCount: number;
+  alarmRate: number | null;
 }
 
-/** 漏损状态分布（5.2） */
-export interface LeakStatusDistribution {
-  leakStatus: number;
-  count: number;
-}
-
-/** 异常情况统计（5.2 /leakage/report/anomaly） */
-export interface LeakAnomalyData {
-  pressureAbnormalCount?: number;
-  flowAbnormalCount?: number;
-  noiseAbnormalCount?: number;
-  burstSuspectedCount?: number;
-  suspectedLeakCount?: number;
-  leakPointCount?: number;
-  statusDistribution?: LeakStatusDistribution[];
-  suspectedList?: SuspectedLeakItem[];
-}
-
-/** 漏点明细（5.3） */
-export interface LeakPointItem {
-  deviceId?: number;
-  deviceNumber?: string;
-  detectTime?: string;
-  repairTime?: string;
-  leakVolume?: string;
-  leakPointType?: string;
-  repairMethod?: string;
-  leakStatus?: string;
-}
-
-/** 处理效果统计（5.3 /leakage/report/handling-effect） */
-export interface HandlingEffectData {
-  totalWorkOrders?: number;
-  pendingCount?: number;
-  handlingCount?: number;
-  finishedCount?: number;
-  finishRate?: number;
-  confirmedLeakPoints?: number;
-  avgHandleDurationHours?: number;
-  avgRepairDurationHours?: number;
-  leakPointList?: LeakPointItem[];
-}
-
-/** 2026-09 需求补充；新增报表接口字段需与后端联调确认。 */
-export interface DeviceComparisonRow extends ComparisonOverview {
-  rowKey: string;
-  deviceId: number;
-  deviceNumber: string;
-  deviceAlias: string;
-  metricLabel: string;
-}
-export interface RepairReportRow {
-  eventId: number;
-  deviceNumber: string;
-  eventType: "LEAK" | "BURST";
-  detectedAt: string;
-  repairedAt?: string;
-  cause: string;
-  status: "PENDING" | "REPAIRING" | "REPAIRED";
-}
 export interface CauseReportRow {
   eventType: "LEAK" | "BURST";
   cause: string;
   count: number;
   percent: number;
 }
-export interface ExtendedLeakReport {
-  deviceCount: number;
-  comparisons: DeviceComparisonRow[];
-  waterHammer: {
-    monitoredTerminalCount: number;
-    alarmTerminalCount: number;
-    alarmCount: number;
-    alarmRate: number | null;
-  };
-  repair: { total: number; pending: number; repairing: number; repaired: number; completionRate: number | null };
-  repairs: RepairReportRow[];
+
+export interface LeakCauseAnalysis {
   causes: CauseReportRow[];
+}
+
+/** 复用 /api/worksheet/list 时页面需要的最小工单字段。 */
+export interface ReportWorkOrder {
+  id?: number;
+  worksheetNumber?: string;
+  worksheetType?: number;
+  worksheetStatus?: number;
+  riseTime?: string;
+  finishTime?: string;
+  createdAt?: string;
 }

@@ -1,6 +1,5 @@
-import { mockGetExtendedLeakReport } from "./mock";
-import type { ExtendedLeakReport } from "./types";
 import { getRequestT } from "@/services/shared/crud.typed";
+import { getWorksheetStatisticsList } from "@/services/work-order/statistics";
 import {
   mockGetBurstPipeResults,
   mockGetBurstPipeAnalyze,
@@ -9,8 +8,8 @@ import {
   mockGetComparisonOverview,
   mockGetComparisonTrend,
   mockGetLeakReportTrend,
-  mockGetLeakReportAnomaly,
-  mockGetLeakHandlingEffect,
+  mockGetLeakCauseAnalysis,
+  mockGetWaterHammerSummary,
 } from "./mock";
 
 import type { PageResult } from "@/types/api";
@@ -24,12 +23,13 @@ import type {
   ComparisonOverviewQuery,
   ComparisonTrendData,
   ComparisonTrendQuery,
-  HandlingEffectData,
-  LeakAnomalyData,
   LeakReportQuery,
   LeakTrendData,
   PointRankingItem,
   PointRankingQuery,
+  LeakCauseAnalysis,
+  ReportWorkOrder,
+  WaterHammerSummary,
 } from "./types";
 
 /**
@@ -141,42 +141,23 @@ export function getComparisonTrendT(
  * 5.1 漏损趋势
  */
 export function getLeakReportTrendT(params: LeakReportQuery) {
-  if (USE_MOCK) {
-    return mockGetLeakReportTrend(params);
-  }
-
+  if (USE_MOCK) return mockGetLeakReportTrend(params);
   return getRequestT<LeakTrendData>(
       "/api/leakage/report/trend",
       params
   );
 }
 
-/**
- * 5.2 异常情况统计
- */
-export function getLeakReportAnomalyT(params: LeakReportQuery) {
-  if (USE_MOCK) {
-    return mockGetLeakReportAnomaly(params);
-  }
-
-  return getRequestT<LeakAnomalyData>(
-      "/api/leakage/report/anomaly",
-      params
-  );
+/** 报表页同环比：与测点分析共用后端地址，但始终请求真实接口。 */
+export function getReportComparisonOverviewT(params: ComparisonOverviewQuery) {
+  if (USE_MOCK) return mockGetComparisonOverview(params);
+  return getRequestT<ComparisonOverview>("/api/leakage/comparison/overview", params);
 }
 
-/**
- * 5.3 处理效果统计
- */
-export function getLeakHandlingEffectT(params: LeakReportQuery) {
-  if (USE_MOCK) {
-    return mockGetLeakHandlingEffect(params);
-  }
-
-  return getRequestT<HandlingEffectData>(
-      "/api/leakage/report/handling-effect",
-      params
-  );
+/** 报表页测点排名：与测点分析共用后端地址，但始终请求真实接口。 */
+export function getReportPointRankingT(params: PointRankingQuery) {
+  if (USE_MOCK) return mockGetPointRanking(params);
+  return getRequestT<PageResult<PointRankingItem>>("/api/leakage/point-ranking", params);
 }
 
 /**
@@ -197,8 +178,20 @@ export function getLeakReportExportUrl(params: LeakReportQuery) {
 
   return `/api/leakage/report/export?${search.toString()}`;
 }
-/** 新增报表接口为前端约定，后端地址和字段需联调确认。 */
-export function getExtendedLeakReportT(params: LeakReportQuery) {
-  if (USE_MOCK) return mockGetExtendedLeakReport(params);
-  return getRequestT<ExtendedLeakReport>("/api/leakage/report/extended", params);
+/** 水锤报警率。后端暂无可复用接口，因此保持为独立报表接口。 */
+export function getWaterHammerSummaryT(params: LeakReportQuery) {
+  if (USE_MOCK) return mockGetWaterHammerSummary(params);
+  return getRequestT<WaterHammerSummary>("/api/leakage/report/water-hammer", params);
+}
+
+/** 渗漏和爆管原因聚合。现有漏点接口不包含完整爆管原因，因此独立统计。 */
+export function getLeakCauseAnalysisT(params: LeakReportQuery) {
+  if (USE_MOCK) return mockGetLeakCauseAnalysis(params);
+  return getRequestT<LeakCauseAnalysis>("/api/leakage/report/cause-analysis", params);
+}
+
+/** 维修完成情况直接复用已有 /api/worksheet/list，不新增后端地址。 */
+export function getReportWorkOrdersT(params: LeakReportQuery) {
+  void params;
+  return getWorksheetStatisticsList() as Promise<import("@/types/api").ApiResponse<ReportWorkOrder[]>>;
 }

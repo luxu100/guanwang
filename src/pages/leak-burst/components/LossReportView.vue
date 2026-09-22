@@ -1,498 +1,316 @@
 <template>
-  <view class="page-container">
-    <view class="module-heading"><view><text class="module-heading__title">漏损报表</text><text class="module-heading__description">汇总漏损变化、异常事件与处理结果，支持按统计范围导出报表。</text></view><text v-if="USE_MOCK" class="demo-badge">演示数据</text></view>
+  <view class="page-container report-page">
+    <view class="module-heading">
+      <view>
+        <text class="module-heading__title">漏损报表</text>
+        <text class="module-heading__description">面向全部设备，查看同环比、漏损趋势、测点排名及处置情况。</text>
+      </view>
+      <text v-if="USE_MOCK" class="demo-badge">统计演示数据 · 工单真实数据</text>
+    </view>
 
-    <!-- 顶部筛选栏（含导出按钮） -->
     <XConfigToolbar
-        v-model="searchForm"
-        :fields="toolbarFields"
-        :loading="loading"
-        :show-add="false"
-        :show-delete="false"
-        :show-edit="false"
-        @search="handleSearch"
-        @reset="handleReset"
-        @refresh="fetchAll"
+      v-model="searchForm"
+      :fields="toolbarFields"
+      :loading="loading"
+      :show-add="false"
+      :show-delete="false"
+      :show-edit="false"
+      @search="fetchReport"
+      @reset="handleReset"
+      @refresh="fetchReport"
     >
       <template #actions-left>
-        <button class="toolbar-button" :disabled="loading || !trendData" @click="handleExport">{{ USE_MOCK ? "导出报表 CSV" : "导出报表" }}</button>
+        <button class="export-button" :disabled="loading || !loaded" @click="handleExport">导出报表</button>
       </template>
     </XConfigToolbar>
 
-    <view v-if="error" class="module-error" @click="fetchAll">{{ error }} · 点击重试</view>
-    <view v-if="loading" class="module-note">正在汇总统计数据…</view>
-    <scroll-view class="report-scroll" scroll-y>
-      <view class="module-note">{{ USE_MOCK ? '演示统计覆盖最近 90 天。' : '' }}统计范围为所有设备。同环比概览取截止日期所在日/月；同比为去年同期，环比为上月同期。趋势按测点状态次数统计；不同类型异常可能重叠，不宜直接相加。处理完成率 = 已完成工单 / 工单总数。</view>
-      <view v-if="!loading && trendData && !trendData.series.length" class="module-note">所选时间暂无监测记录，请调整筛选条件。</view>
+    <view v-if="error" class="module-error" @click="fetchReport">{{ error }} · 点击重试</view>
+    <view v-if="loading" class="module-note">正在汇总报表数据…</view>
 
-      <view class="report-panel">
-        <view class="table-head"><text>全设备指标同环比</text><text class="table-head__meta">{{ extended?.deviceCount ?? '—' }} 台设备 · 排名规则待确认，按编号展示</text></view>
-        <view class="report-metric-tabs">
-          <button v-for="item in reportMetrics" :key="item.value" class="toolbar-button" :class="{'report-metric-active':reportMetric === item.value}" @click="reportMetric = item.value">{{ item.label }}</button>
+    <scroll-view v-else class="report-scroll" scroll-y>
+      <view class="scope-bar">
+        <view>
+          <text class="scope-bar__title">全部设备汇总</text>
+          <text class="scope-bar__period">{{ appliedForm.startTime }} 至 {{ appliedForm.endTime }}</text>
         </view>
-        <view class="module-note">本期：{{ comparisonLabels?.currentPeriodLabel || '—' }} ｜ 同比：{{ comparisonLabels?.yoyPeriodLabel || '—' }} ｜ 环比：{{ comparisonLabels?.momPeriodLabel || '—' }}。无数据或对比基数为零时增长率为“—”。</view>
-        <XDataTable :columns="comparisonColumns" :data="comparisonRows" id-key="rowKey" :show-index="false" empty-text="暂无指标数据" />
+        <text class="scope-bar__rule">同比：去年同期　环比：上月同期</text>
       </view>
 
-      <view class="report-section-title">多探头预警终端 · 水锤报警</view>
-      <view class="stat-grid stat-grid--four">
-        <LeakStatCard label="参与监测终端" :value="extended?.waterHammer.monitoredTerminalCount" unit="台" />
-        <LeakStatCard label="发生报警终端" :value="extended?.waterHammer.alarmTerminalCount" unit="台" tone="warning" />
-        <LeakStatCard label="水锤报警次数" :value="extended?.waterHammer.alarmCount" unit="次" tone="danger" />
-        <LeakStatCard label="水锤报警率（暂定口径）" :value="fmtRate(extended?.waterHammer.alarmRate)" unit="%" tone="info" />
+      <view class="section-heading">
+        <view><text class="section-heading__title">流量、压力与噪声</text><text class="section-heading__hint">当前统计周期的全设备均值</text></view>
       </view>
-      <view class="module-note">水锤报警率暂按发生过水锤报警的终端数 / 参与监测的多探头终端数计算，同一终端重复报警只计一台。水锤报警次数单独展示；水锤不直接等同于爆管。</view>
-
-      <view class="report-section-title">渗漏与爆管 · 维修完成情况</view>
-      <view class="stat-grid stat-grid--four">
-        <LeakStatCard label="待维修事件" :value="extended?.repair.pending" tone="warning" />
-        <LeakStatCard label="维修中事件" :value="extended?.repair.repairing" tone="info" />
-        <LeakStatCard label="已修复事件" :value="extended?.repair.repaired" tone="success" />
-        <LeakStatCard label="维修完成率" :value="fmtRate(extended?.repair.completionRate)" unit="%" tone="success" :progress="extended?.repair.completionRate" />
-      </view>
-      <view class="module-note">统计期内检出的渗漏、已确认爆管事件共 {{ extended?.repair.total ?? '—' }} 起，维修完成率 = 已修复事件数 / 需维修事件总数。独立于下方工单完成率，避免将工单结单视为修复完成。</view>
-      <view class="report-panel">
-        <view class="table-head"><text>渗漏与爆管原因分析</text><text class="table-head__meta">按事件类型分别计算占比，包含待查明原因</text></view>
-        <XDataTable :columns="causeColumns" :data="causeRows" id-key="rowKey" :show-index="false" empty-text="暂无原因分析记录" />
-      </view>
-      <view class="report-panel">
-        <view class="table-head"><text>维修事件明细</text></view>
-        <XDataTable :columns="repairColumns" :data="extended?.repairs || []" id-key="eventId" :show-index="false" empty-text="暂无维修事件" />
-      </view>
-
-      <!-- ================= 漏损趋势 ================= -->
-      <view class="report-panel">
-        <view class="table-head">
-          <text>漏损趋势</text>
-          <text class="table-head__meta">
-            {{ appliedForm.startTime }} ~ {{ appliedForm.endTime }} · {{ granularityLabel }}
-          </text>
-        </view>
-        <view ref="trendChartEl" class="report-chart"/>
-      </view>
-
-      <!-- ================= 异常情况统计 ================= -->
-      <view class="report-section-title">异常情况统计</view>
-      <view class="stat-grid stat-grid--six">
-        <LeakStatCard label="压力异常次数" :value="anomaly?.pressureAbnormalCount ?? '-'" tone="warning" />
-
-        <LeakStatCard label="流量异常次数" :value="anomaly?.flowAbnormalCount ?? '-'" tone="info" />
-
-        <LeakStatCard label="噪声异常次数" :value="anomaly?.noiseAbnormalCount ?? '-'" tone="primary" />
-
-        <LeakStatCard label="疑似爆管次数" :value="anomaly?.burstSuspectedCount ?? '-'" tone="danger" />
-
-        <LeakStatCard label="疑似漏损上报数" :value="anomaly?.suspectedLeakCount ?? '-'" tone="warning" />
-
-        <LeakStatCard label="确认漏点数" :value="anomaly?.leakPointCount ?? '-'" tone="danger" />
-      </view>
-
-      <view class="anomaly-row">
-        <!-- 漏损状态分布饼图 -->
-        <view class="report-panel">
-          <view class="table-head"><text>漏损状态分布</text></view>
-          <view ref="pieChartEl" class="pie-chart"/>
-        </view>
-
-        <!-- 疑似漏损事件列表 -->
-        <view class="report-panel">
-          <view class="table-head">
-            <text>疑似漏损事件</text>
-            <text class="table-head__meta">共 {{ suspectedList.length }} 条</text>
+      <view class="comparison-grid">
+        <view v-for="item in comparisonCards" :key="item.metric" class="comparison-card" :class="`comparison-card--${item.tone}`">
+          <view class="comparison-card__head"><text>{{ item.label }}</text><text>{{ item.unit || "—" }}</text></view>
+          <view class="comparison-card__value">{{ formatValue(item.currentValue) }}</view>
+          <text class="comparison-card__period">{{ item.currentPeriodLabel || "本期暂无数据" }}</text>
+          <view class="comparison-card__changes">
+            <view><text>同比</text><text :class="changeClass(item.yoyRate)">{{ formatRate(item.yoyRate) }}</text></view>
+            <view><text>环比</text><text :class="changeClass(item.momRate)">{{ formatRate(item.momRate) }}</text></view>
           </view>
-          <XDataTable
-              :columns="suspectedColumns"
-              :data="suspectedList"
-              :show-index="false"
-              id-key="reportId"
-              empty-text="暂无疑似漏损事件"
-          />
         </view>
       </view>
 
-      <!-- ================= 处理效果统计 ================= -->
-      <view class="report-section-title">处理效果统计</view>
-      <view class="stat-grid stat-grid--four">
-        <LeakStatCard label="工单总数" :value="effect?.totalWorkOrders ?? '-'" tone="primary" />
-
-        <LeakStatCard label="待处理" :value="effect?.pendingCount ?? '-'" tone="warning" />
-
-        <LeakStatCard label="处理中" :value="effect?.handlingCount ?? '-'" tone="info" />
-
-        <LeakStatCard label="已完成" :value="effect?.finishedCount ?? '-'" tone="success" :progress="finishRatePercent" />
-
-        <LeakStatCard label="完成率" :value="fmtRate(effect?.finishRate)" tone="success" unit="%" />
-
-        <LeakStatCard label="确认漏点数" :value="effect?.confirmedLeakPoints ?? '-'" tone="danger" />
-
-        <LeakStatCard label="平均处理时长" :value="fmtNum(effect?.avgHandleDurationHours)" tone="info" unit="小时" />
-
-        <LeakStatCard label="平均修复时长" :value="fmtNum(effect?.avgRepairDurationHours)" tone="warning" unit="小时" />
-      </view>
-
-      <!-- 漏点明细 -->
-      <view class="report-panel">
-        <view class="table-head">
-          <text>漏点明细</text>
-          <text class="table-head__meta">共 {{ leakPointList.length }} 条</text>
+      <view class="dashboard-grid">
+        <view class="report-panel trend-panel">
+          <view class="panel-head"><view><text class="panel-head__title">漏损趋势</text><text class="panel-head__hint">漏损与疑似事件变化</text></view></view>
+          <view v-if="trend?.series.length" ref="trendChartEl" class="trend-chart" />
+          <view v-else class="empty-block">暂无趋势数据</view>
         </view>
-        <XDataTable
-            :columns="leakPointColumns"
-            :data="leakPointList"
-            :show-index="false"
-            id-key="recordKey"
-            empty-text="暂无漏点记录"
-        />
+
+        <view class="report-panel status-panel">
+          <view class="panel-head"><view><text class="panel-head__title">报警与处置</text><text class="panel-head__hint">水锤统计与维修工单</text></view></view>
+          <view class="status-item">
+            <view><text class="status-item__label">水锤报警率</text><text class="status-item__detail">{{ waterHammer?.alarmTerminalCount ?? "—" }} / {{ waterHammer?.monitoredTerminalCount ?? "—" }} 台终端</text></view>
+            <text class="status-item__value status-item__value--warning">{{ formatRate(waterHammer?.alarmRate) }}</text>
+          </view>
+          <view class="status-item">
+            <view><text class="status-item__label">水锤报警次数</text><text class="status-item__detail">统计周期内累计</text></view>
+            <text class="status-item__value">{{ waterHammer?.alarmCount ?? "—" }} 次</text>
+          </view>
+          <view class="status-divider" />
+          <view v-if="workOrderError" class="work-order-error">真实工单数据加载失败，请稍后刷新</view>
+          <view class="status-item">
+            <view><text class="status-item__label">维修完成率</text><text class="status-item__detail">{{ workOrderSummary.finished }} / {{ workOrderSummary.total }} 张有效工单</text></view>
+            <text class="status-item__value status-item__value--success">{{ workOrderSummary.finishRate.toFixed(1) }}%</text>
+          </view>
+          <view class="progress-track"><view class="progress-value" :style="{ width: `${workOrderSummary.finishRate}%` }" /></view>
+          <view class="status-counts">
+            <text>待处理 {{ workOrderSummary.pending }}</text><text>处理中 {{ workOrderSummary.processing }}</text><text>已完成 {{ workOrderSummary.finished }}</text>
+          </view>
+        </view>
       </view>
 
+      <view class="detail-grid">
+        <view class="report-panel">
+          <view class="panel-head"><view><text class="panel-head__title">测点风险排名</text><text class="panel-head__hint">复用测点排名接口 · 综合风险前 5 名</text></view></view>
+          <XDataTable :columns="rankingColumns" :data="rankingRows" id-key="deviceId" :show-index="false" empty-text="暂无排名数据" />
+        </view>
+        <view class="report-panel">
+          <view class="panel-head"><view><text class="panel-head__title">渗漏与爆管原因</text><text class="panel-head__hint">按事件类型分别统计</text></view></view>
+          <XDataTable :columns="causeColumns" :data="causeRows" id-key="rowKey" :show-index="false" empty-text="暂无原因分析数据" />
+        </view>
+      </view>
+
+      <view class="caliber-note">水锤报警率暂按“发生过报警的多探头终端数 ÷ 参与监测终端数”计算；维修情况直接取自现有工单数据，已取消工单不计入完成率。</view>
     </scroll-view>
   </view>
 </template>
 
 <script setup lang="ts">
-import LeakStatCard from "./LeakStatCard.vue";
-import { USE_MOCK } from "@/services/leak-burst";
-import { chartElement, validateRange } from "./view-utils";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import * as echarts from "echarts";
+import { chartElement, validateRange } from "./view-utils";
 import XConfigToolbar from "@/pages/device/components/x/toolbar/XConfigToolbar.vue";
 import XDataTable from "@/pages/device/components/x/table/XDataTable.vue";
 import type { Field, XDataColumn } from "@/pages/device/components/x/types";
-import { formatDate } from "@/utils/time";
 import {
-  getLeakHandlingEffectT,
-  getLeakReportAnomalyT,
+  getLeakCauseAnalysisT,
   getLeakReportExportUrl,
   getLeakReportTrendT,
-  getExtendedLeakReportT,
+  getReportComparisonOverviewT,
+  getReportPointRankingT,
+  getReportWorkOrdersT,
+  getWaterHammerSummaryT,
+  USE_MOCK,
 } from "@/services/leak-burst";
 import type {
-  ExtendedLeakReport,
-  HandlingEffectData,
-  LeakAnomalyData,
-  LeakPointItem,
+  CauseReportRow,
+  ComparisonMetric,
+  ComparisonOverview,
+  LeakReportQuery,
   LeakTrendData,
-  SuspectedLeakItem,
+  PointRankingItem,
+  ReportWorkOrder,
+  WaterHammerSummary,
 } from "@/services/leak-burst/types";
 
-const extended = ref<ExtendedLeakReport | null>(null);
-const reportMetric = ref("FLOW");
-const reportMetrics = [{label:"流量",value:"FLOW"},{label:"压力",value:"PRESSURE"},{label:"噪声",value:"NOISE"}];
-const comparisonRows = computed(() => (extended.value?.comparisons || []).filter(r=>r.metric === reportMetric.value));
-const comparisonLabels = computed(() => comparisonRows.value[0]);
-const causeRows = computed(() => (extended.value?.causes || []).map(r=>({...r,rowKey:`${r.eventType}_${r.cause}`})));
-const comparisonColumns: XDataColumn[] = [
-  {key:"deviceNumber",label:"设备编号",width:110},
-  {key:"deviceAlias",label:"测点名称",width:180},
-  {key:"unit",label:"单位",width:80},
-  ...["currentValue","yoyValue","momValue"].map((key,i)=>({key,label:["本期均值","去年同期均值","上月同期均值"][i],width:125,formatter:(v: number | null | undefined)=>v == null ? "—" : v.toFixed(3)})),
-  ...["yoyRate","momRate"].map((key,i)=>({key,label:["同比变化","环比变化"][i],width:110,formatter:(v: number | null | undefined)=>v == null ? "—" : `${v>0?'+':''}${v.toFixed(1)}%`})),
-];
-const eventOptions = [{value:"LEAK",label:"渗漏",tagClass:"status-tag--warning"},{value:"BURST",label:"爆管",tagClass:"status-tag--danger"}];
-const causeColumns: XDataColumn[] = [
-  {key:"eventType",label:"事件类型",width:120,options:eventOptions},
-  {key:"cause",label:"原因",width:200},{key:"count",label:"事件数",width:100},
-  {key:"percent",label:"该类事件占比",width:140,formatter:v=>`${v}%`},
-];
-const repairColumns: XDataColumn[] = [
-  {key:"deviceNumber",label:"设备编号",width:110},{key:"eventType",label:"事件类型",width:100,options:eventOptions},
-  {key:"detectedAt",label:"检出时间",width:170},{key:"repairedAt",label:"修复时间",width:170},
-  {key:"cause",label:"原因",width:180},
-  {key:"status",label:"维修状态",width:110,options:[{value:"PENDING",label:"待维修",tagClass:"status-tag--warning"},{value:"REPAIRING",label:"维修中",tagClass:"status-tag--info"},{value:"REPAIRED",label:"已修复",tagClass:"status-tag--success"}]},
+const metricOptions: Array<{ metric: ComparisonMetric; label: string; tone: string }> = [
+  { metric: "FLOW", label: "流量", tone: "blue" },
+  { metric: "PRESSURE", label: "压力", tone: "cyan" },
+  { metric: "NOISE", label: "噪声", tone: "orange" },
 ];
 
-/* ================= 时间工具 ================= */
-function toDateStr(d: Date) {
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${m}-${day}`;
+function toDateString(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
-
-function defaultRange() {
+function defaultForm() {
   const end = new Date();
   const start = new Date(end.getTime() - 29 * 86400000);
-  return { startTime: toDateStr(start), endTime: toDateStr(end) };
+  return { startTime: toDateString(start), endTime: toDateString(end), comparisonPeriod: "DAY" };
+}
+function granularity(start: string, end: string): "DAY" | "MONTH" {
+  return (new Date(end).getTime() - new Date(start).getTime()) / 86400000 > 45 ? "MONTH" : "DAY";
 }
 
-/** 依据时间跨度推导粒度：>45 天按月，否则按天 */
-function deriveGranularity(startTime: string, endTime: string): "DAY" | "MONTH" {
-  const diff = (new Date(endTime).getTime() - new Date(startTime).getTime()) / 86400000;
-  return Number.isFinite(diff) && diff > 45 ? "MONTH" : "DAY";
-}
-
-/**
- * =========================
- * 筛选
- * =========================
- */
-const searchForm = ref<Record<string, any>>({
-  ...defaultRange(),
-  comparisonPeriod: "DAY",
-});
-
-const appliedForm = ref({...searchForm.value});
+const searchForm = ref<Record<string, any>>(defaultForm());
+const appliedForm = ref({ ...searchForm.value });
 const loading = ref(false);
+const loaded = ref(false);
 const error = ref("");
-let reportRequest = 0;
+const comparisons = ref<ComparisonOverview[]>([]);
+const trend = ref<LeakTrendData | null>(null);
+const waterHammer = ref<WaterHammerSummary | null>(null);
+const workOrders = ref<ReportWorkOrder[]>([]);
+const workOrderError = ref(false);
+const rankings = ref<PointRankingItem[]>([]);
+const causes = ref<CauseReportRow[]>([]);
+let requestId = 0;
 
 const toolbarFields: Field[] = [
   { key: "startTime", label: "开始时间", type: "date" },
   { key: "endTime", label: "结束时间", type: "date" },
-  { key: "comparisonPeriod", label: "同环比周期", type: "select", options:[{label:"日均值",value:"DAY"},{label:"月均值",value:"MONTH"}] },
+  { key: "comparisonPeriod", label: "同环比周期", type: "select", options: [{ label: "按日", value: "DAY" }, { label: "按月", value: "MONTH" }] },
 ];
 
-const granularityLabel = computed(() =>
-  deriveGranularity(appliedForm.value.startTime, appliedForm.value.endTime) === "MONTH"
-    ? "按月统计"
-    : "按天统计"
-);
+const comparisonCards = computed(() => metricOptions.map((option) => ({
+  ...option,
+  ...(comparisons.value.find((item) => item.metric === option.metric) ?? {}),
+})));
+const rankingRows = computed(() => rankings.value.slice(0, 5));
+const causeRows = computed(() => causes.value.map((item) => ({ ...item, rowKey: `${item.eventType}_${item.cause}` })));
+const workOrderSummary = computed(() => {
+  const active = workOrders.value.filter((item) => Number(item.worksheetStatus) !== 3);
+  const count = (status: number) => active.filter((item) => Number(item.worksheetStatus) === status).length;
+  const finished = count(2);
+  return { total: active.length, pending: count(0), processing: count(1), finished, finishRate: active.length ? finished / active.length * 100 : 0 };
+});
 
-function buildQuery(form = appliedForm.value) {
-  return {
-    startTime: form.startTime,
-    endTime: form.endTime,
-    granularity: deriveGranularity(form.startTime, form.endTime),
-    comparisonPeriod: form.comparisonPeriod as "DAY" | "MONTH",
-  };
+const rankingColumns: XDataColumn[] = [
+  { key: "rank", label: "排名", width: 64 }, { key: "deviceNumber", label: "设备编号", width: 110 },
+  { key: "deviceAlias", label: "测点名称", width: 160 }, { key: "riskScore", label: "风险分", width: 90, formatter: (value) => formatValue(value, 1) },
+];
+const eventOptions = [
+  { value: "LEAK", label: "渗漏", tagClass: "status-tag--warning" }, { value: "BURST", label: "爆管", tagClass: "status-tag--danger" },
+];
+const causeColumns: XDataColumn[] = [
+  { key: "eventType", label: "类型", width: 88, options: eventOptions }, { key: "cause", label: "原因", width: 160 },
+  { key: "count", label: "数量", width: 76 }, { key: "percent", label: "占比", width: 88, formatter: (value) => `${value}%` },
+];
+
+function formatValue(value: unknown, digits = 2) { return value == null || value === "" ? "—" : Number(value).toFixed(digits); }
+function formatRate(value: unknown) {
+  if (value == null || value === "") return "—";
+  const number = Number(value);
+  return `${number > 0 ? "+" : ""}${number.toFixed(1)}%`;
+}
+function changeClass(value: unknown) { const number = Number(value); return number > 0 ? "change-up" : number < 0 ? "change-down" : ""; }
+function buildQuery(form = appliedForm.value): LeakReportQuery {
+  return { startTime: form.startTime, endTime: form.endTime, comparisonPeriod: form.comparisonPeriod as "DAY" | "MONTH", granularity: granularity(form.startTime, form.endTime) };
 }
 
-function fmtNum(v: number | null | undefined) {
-  return v == null ? "-" : Number(v).toFixed(1);
-}
-
-function fmtRate(v: number | null | undefined) {
-  return v == null ? "-" : Number(v).toFixed(1);
-}
-
-/* ================= 漏损趋势 ================= */
-const trendData = ref<LeakTrendData | null>(null);
 const trendChartEl = ref<HTMLElement | null>(null);
 let trendChart: echarts.ECharts | null = null;
 let trendObserver: ResizeObserver | null = null;
-
-function renderTrendChart() {
-  if (!trendChartEl.value || !trendData.value) return;
-
+function renderTrend() {
+  if (!trendChartEl.value || !trend.value?.series.length) { disposeTrend(); return; }
+  const element = chartElement(trendChartEl.value);
+  if (!element) return;
   if (!trendChart || trendChart.isDisposed()) {
-    trendChart = echarts.init(chartElement(trendChartEl.value)!);
+    trendChart = echarts.init(element);
     trendObserver = new ResizeObserver(() => trendChart?.resize());
-    trendObserver.observe(chartElement(trendChartEl.value)!);
+    trendObserver.observe(element);
   }
-
-  const series = trendData.value.series ?? [];
+  const points = trend.value.series;
   trendChart.setOption({
-    tooltip: { trigger: "axis" },
-    legend: { data: ["漏损次数", "疑似次数", "正常次数"], selected: {"正常次数":false}, top: 6 },
-    grid: { left: 44, right: 20, top: 40, bottom: 30 },
-    xAxis: { type: "category", data: series.map((p) => p.period) },
-    yAxis: { type: "value", minInterval: 1 },
+    color: ["#e05a47", "#efad32"], tooltip: { trigger: "axis" }, legend: { top: 2, right: 8, data: ["漏损", "疑似"] },
+    grid: { left: 42, right: 18, top: 42, bottom: 30 }, xAxis: { type: "category", boundaryGap: false, data: points.map((item) => item.period), axisLine: { lineStyle: { color: "#cbd8e3" } } },
+    yAxis: { type: "value", minInterval: 1, splitLine: { lineStyle: { color: "#edf2f6" } } },
     series: [
-      {
-        name: "漏损次数",
-        type: "line",
-        smooth: true,
-        data: series.map((p) => p.leakCount ?? 0),
-        itemStyle: { color: "#dc2626" },
-        areaStyle: { color: "rgba(220,38,38,.08)" },
-      },
-      {
-        name: "疑似次数",
-        type: "line",
-        smooth: true,
-        data: series.map((p) => p.suspectedCount ?? 0),
-        itemStyle: { color: "#f59e0b" },
-      },
-      {
-        name: "正常次数",
-        type: "line",
-        smooth: true,
-        data: series.map((p) => p.normalCount ?? 0),
-        itemStyle: { color: "#16a34a" },
-      },
+      { name: "漏损", type: "line", smooth: true, symbol: "none", data: points.map((item) => item.leakCount ?? 0), areaStyle: { color: "rgba(224,90,71,.08)" } },
+      { name: "疑似", type: "line", smooth: true, symbol: "none", data: points.map((item) => item.suspectedCount ?? 0) },
     ],
   }, true);
-
-  trendChart.resize();
 }
+function disposeTrend() { trendChart?.dispose(); trendChart = null; trendObserver?.disconnect(); trendObserver = null; }
 
-/* ================= 异常情况统计 ================= */
-const anomaly = ref<LeakAnomalyData | null>(null);
-const suspectedList = ref<SuspectedLeakItem[]>([]);
-const pieChartEl = ref<HTMLElement | null>(null);
-let pieChart: echarts.ECharts | null = null;
-let pieObserver: ResizeObserver | null = null;
-
-/* 漏损状态：0 漏损 / 1 正常 / 2 疑似 / 3 未知 */
-function leakStatusLabel(status: number) {
-  switch (status) {
-    case 0: return "漏损";
-    case 1: return "正常";
-    case 2: return "疑似";
-    case 3: return "未知";
-    default: return `状态${status}`;
-  }
-}
-
-function renderPieChart() {
-  if (!pieChartEl.value || !anomaly.value) return;
-
-  if (!pieChart || pieChart.isDisposed()) {
-    pieChart = echarts.init(chartElement(pieChartEl.value)!);
-    pieObserver = new ResizeObserver(() => pieChart?.resize());
-    pieObserver.observe(chartElement(pieChartEl.value)!);
-  }
-
-  const dist = anomaly.value.statusDistribution ?? [];
-  pieChart.setOption({
-    tooltip: { trigger: "item", formatter: "{b}：{c} 次（{d}%）" },
-    legend: { bottom: 0 },
-    color: ["#dc2626", "#16a34a", "#f59e0b", "#94a3b8"],
-    series: [
-      {
-        type: "pie",
-        radius: ["38%", "62%"],
-        center: ["50%", "46%"],
-        label: { formatter: "{b} {c}" },
-        data: dist.map((d) => ({
-          name: leakStatusLabel(d.leakStatus),
-          value: d.count,
-        })),
-      },
-    ],
-  }, true);
-
-  pieChart.resize();
-}
-
-const suspectedColumns: XDataColumn[] = [
-  { key: "deviceNumber", label: "设备编号", width: 110 },
-  { key: "reportTime", label: "上报时间", width: 160, formatter: (v) => (v ? formatDate(v) : "-") },
-  { key: "leakPointPosition", label: "位置", width: 180, tooltip: true },
-  {
-    key: "processStatus",
-    label: "处理状态",
-    width: 100,
-    formatter: (v) => {
-      switch (v) {
-        case 0: return "待处理";
-        case 1: return "处理中";
-        case 2: return "已完成";
-        default: return "-";
-      }
-    },
-  },
-];
-
-/* ================= 处理效果统计 ================= */
-const effect = ref<HandlingEffectData | null>(null);
-const leakPointList = ref<(LeakPointItem & {recordKey:string})[]>([]);
-
-const finishRatePercent = computed(() => {
-  const v = effect.value?.finishRate;
-  return v == null ? 0 : Math.min(100, Math.max(0, Number(v)));
-});
-
-const leakPointColumns: XDataColumn[] = [
-  { key: "deviceNumber", label: "设备编号", width: 110 },
-  { key: "detectTime", label: "检出时间", width: 160, formatter: (v) => (v ? formatDate(v) : "-") },
-  { key: "repairTime", label: "修复时间", width: 160, formatter: (v) => (v ? formatDate(v) : "-") },
-  { key: "leakVolume", label: "漏量", width: 100 },
-  { key: "leakPointType", label: "漏点类型", width: 110 },
-  { key: "repairMethod", label: "修复方式", width: 120 },
-  { key: "leakStatus", label: "漏点状态", width: 100 },
-];
-
-/* ================= 查询/导出 ================= */
-async function fetchAll() {
+async function fetchReport() {
   if (!validateRange(searchForm.value)) return;
-  const request = ++reportRequest;
-  const form = {...searchForm.value};
+  const currentRequest = ++requestId;
+  const form = { ...searchForm.value };
   const query = buildQuery(form);
+  const period = form.comparisonPeriod as "DAY" | "MONTH";
+  const periodValue = form.endTime.slice(0, period === "MONTH" ? 7 : 10);
   loading.value = true; error.value = "";
   try {
-    const [t, a, e, x] = await Promise.all([getLeakReportTrendT(query),getLeakReportAnomalyT(query),getLeakHandlingEffectT(query),getExtendedLeakReportT(query)]);
-    if (request !== reportRequest) return;
+    const comparisonQuery = { period, periodValue, asOfDate: form.endTime };
+    const [flow, pressure, noise, trendResult, rankingResult, waterResult, workOrderResult, causeResult] = await Promise.all([
+      getReportComparisonOverviewT({ ...comparisonQuery, metric: "FLOW" }),
+      getReportComparisonOverviewT({ ...comparisonQuery, metric: "PRESSURE" }),
+      getReportComparisonOverviewT({ ...comparisonQuery, metric: "NOISE" }),
+      getLeakReportTrendT(query),
+      getReportPointRankingT({ startTime: form.startTime, endTime: form.endTime, rankMetric: "RISK_SCORE", order: "DESC", pageNum: 1, pageSize: 5 }),
+      getWaterHammerSummaryT(query),
+      getReportWorkOrdersT(query).catch(() => null),
+      getLeakCauseAnalysisT(query),
+    ]);
+    if (currentRequest !== requestId) return;
     appliedForm.value = form;
-    extended.value = x.data ?? null;
-    trendData.value = t.data ?? null; anomaly.value = a.data ?? null; effect.value = e.data ?? null;
-    suspectedList.value = a.data?.suspectedList ?? [];
-    leakPointList.value = (e.data?.leakPointList ?? []).map((r,i)=>({...r,recordKey:`${r.deviceId}_${r.detectTime}_${i}`}));
-    await nextTick(); renderTrendChart(); renderPieChart();
+    comparisons.value = [flow.data, pressure.data, noise.data].filter(Boolean) as ComparisonOverview[];
+    trend.value = trendResult.data ?? null;
+    rankings.value = rankingResult.data?.records ?? [];
+    waterHammer.value = waterResult.data ?? null;
+    workOrderError.value = !workOrderResult;
+    workOrders.value = (workOrderResult?.data ?? []).filter((item) => {
+      const time = item.riseTime || item.createdAt;
+      return !time || (time.slice(0, 10) >= form.startTime && time.slice(0, 10) <= form.endTime);
+    });
+    causes.value = causeResult.data?.causes ?? [];
+    loaded.value = true;
+    // 先结束加载，让 v-else 中的图表容器重新挂载，再初始化 ECharts。
+    loading.value = false;
+    await nextTick();
+    renderTrend();
   } catch {
-    if (request !== reportRequest) return;
-    error.value = "报表加载失败，请重试";
-    extended.value = null;
-    disposeCharts(); trendData.value = null; anomaly.value = null; effect.value = null;
-    suspectedList.value = []; leakPointList.value = [];
-  } finally { if (request === reportRequest) loading.value = false; }
+    if (currentRequest !== requestId) return;
+    comparisons.value = []; trend.value = null; rankings.value = []; waterHammer.value = null; workOrders.value = []; causes.value = []; workOrderError.value = false;
+    loaded.value = false; disposeTrend(); error.value = "报表加载失败，请重试";
+  } finally { if (currentRequest === requestId) loading.value = false; }
 }
-
-function handleSearch() {
-  fetchAll();
-}
-
-async function handleReset() {
-  await nextTick();
-  searchForm.value = { ...defaultRange(), comparisonPeriod: "DAY" };
-  fetchAll();
-}
+async function handleReset() { await nextTick(); searchForm.value = defaultForm(); fetchReport(); }
 
 function handleExport() {
-  if (loading.value || !trendData.value) return;
+  if (!loaded.value) return;
   // #ifdef H5
-  if (!USE_MOCK) { window.open(getLeakReportExportUrl(buildQuery()), "_blank"); return; }
+  if (!USE_MOCK) {
+    window.open(getLeakReportExportUrl(buildQuery()), "_blank");
+    return;
+  }
   const rows: unknown[][] = [
-    ["漏损报表（演示数据）"], ["开始时间",appliedForm.value.startTime,"结束时间",appliedForm.value.endTime],
-    ["统计范围","所有设备","同环比周期",appliedForm.value.comparisonPeriod === "MONTH" ? "月均值" : "日均值"],
-    [],["全设备指标同环比（排名规则待确认）"],["设备编号","测点名称","指标","单位","本期范围","去年同期","上月同期","本期均值","去年均值","上月均值","同比%","环比%"],
-    ...(extended.value?.comparisons || []).map(r=>[r.deviceNumber,r.deviceAlias,r.metricLabel,r.unit,r.currentPeriodLabel,r.yoyPeriodLabel,r.momPeriodLabel,r.currentValue,r.yoyValue,r.momValue,r.yoyRate,r.momRate]),
-    [],["水锤报警率暂定口径：报警终端数/参与监测多探头终端数"],["参与监测终端","报警终端","报警次数","报警率%"],
-    [extended.value?.waterHammer.monitoredTerminalCount,extended.value?.waterHammer.alarmTerminalCount,extended.value?.waterHammer.alarmCount,extended.value?.waterHammer.alarmRate],
-    [],["维修完成情况"],["总事件","待维修","维修中","已修复","完成率%"],
-    [extended.value?.repair.total,extended.value?.repair.pending,extended.value?.repair.repairing,extended.value?.repair.repaired,extended.value?.repair.completionRate],
-    [],["原因分析"],["事件类型","原因","次数","同类占比%"],
-    ...(extended.value?.causes || []).map(r=>[r.eventType==='LEAK'?'渗漏':'爆管',r.cause,r.count,r.percent]),
-    [],["维修明细"],["设备编号","事件类型","检出时间","修复时间","原因","维修状态"],
-    ...(extended.value?.repairs || []).map(r=>[r.deviceNumber,r.eventType==='LEAK'?'渗漏':'爆管',r.detectedAt,r.repairedAt,r.cause,({PENDING:'待维修',REPAIRING:'维修中',REPAIRED:'已修复'})[r.status]]),
-    [],["漏损趋势"],["周期","漏损次数","疑似次数","正常次数"],
-    ...trendData.value.series.map(r=>[r.period,r.leakCount,r.suspectedCount,r.normalCount]),
-    [],["异常情况"],["压力异常","流量异常","噪声异常","疑似爆管","疑似漏损上报","确认漏点"],
-    [anomaly.value?.pressureAbnormalCount,anomaly.value?.flowAbnormalCount,anomaly.value?.noiseAbnormalCount,anomaly.value?.burstSuspectedCount,anomaly.value?.suspectedLeakCount,anomaly.value?.leakPointCount],
-    [],["处理效果"],["工单总数","待处理","处理中","已完成","完成率%","平均处理小时","平均修复小时"],
-    [effect.value?.totalWorkOrders,effect.value?.pendingCount,effect.value?.handlingCount,effect.value?.finishedCount,effect.value?.finishRate,effect.value?.avgHandleDurationHours,effect.value?.avgRepairDurationHours],
-    [],["疑似漏损事件"],["设备编号","上报时间","位置","处理状态"],
-    ...suspectedList.value.map(r=>[r.deviceNumber,r.reportTime,r.leakPointPosition,["待处理","处理中","已完成"][r.processStatus ?? -1]]),
-    [],["漏点明细"],["设备编号","检出时间","修复时间","漏量","类型","修复方式","状态"],
-    ...leakPointList.value.map(r=>[r.deviceNumber,r.detectTime,r.repairTime,r.leakVolume,r.leakPointType,r.repairMethod,r.leakStatus]),
+    ["漏损报表（统计为演示数据，工单为真实数据）"],
+    ["开始时间", appliedForm.value.startTime, "结束时间", appliedForm.value.endTime],
+    [], ["指标同环比"], ["指标", "本期", "同比%", "环比%", "单位"],
+    ...comparisonCards.value.map(item => [item.label, item.currentValue, item.yoyRate, item.momRate, item.unit]),
+    [], ["漏损趋势"], ["周期", "漏损", "疑似"],
+    ...(trend.value?.series ?? []).map(item => [item.period, item.leakCount, item.suspectedCount]),
+    [], ["水锤报警"], ["监测终端", "报警终端", "报警次数", "报警率%"],
+    [waterHammer.value?.monitoredTerminalCount, waterHammer.value?.alarmTerminalCount, waterHammer.value?.alarmCount, waterHammer.value?.alarmRate],
+    [], ["真实维修工单汇总"], ["有效工单", "待处理", "处理中", "已完成", "完成率%"],
+    [workOrderSummary.value.total, workOrderSummary.value.pending, workOrderSummary.value.processing, workOrderSummary.value.finished, workOrderSummary.value.finishRate.toFixed(1)],
+    [], ["原因分析"], ["类型", "原因", "数量", "占比%"],
+    ...causes.value.map(item => [item.eventType === "LEAK" ? "渗漏" : "爆管", item.cause, item.count, item.percent]),
   ];
   const cell = (value: unknown) => {
     let text = String(value ?? "");
-    if (/^[=+@-]/.test(text)) text = "'" + text;
-    return '"' + text.replace(/"/g, '""') + '"';
+    if (/^[=+@-]/.test(text)) text = `'${text}`;
+    return `"${text.replace(/"/g, '""')}"`;
   };
-  const blob = new Blob(["\uFEFF" + rows.map(r=>r.map(cell).join(',')).join('\r\n')],{type:"text/csv;charset=utf-8;"});
-  const url=URL.createObjectURL(blob),link=document.createElement('a');
-  link.href=url;link.download=`漏损报表_${appliedForm.value.startTime.slice(0,10)}_${appliedForm.value.endTime.slice(0,10)}.csv`;
-  document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  const url = URL.createObjectURL(new Blob(["\uFEFF" + rows.map(row => row.map(cell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8;" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `漏损报表_${appliedForm.value.startTime}_${appliedForm.value.endTime}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
   // #endif
   // #ifndef H5
-  uni.showToast({title:"请在浏览器端导出报表",icon:"none"});
+  uni.showToast({ title: "请在浏览器端导出报表", icon: "none" });
   // #endif
 }
 
-function disposeCharts() {
-  trendChart?.dispose();
-  trendChart = null;
-  trendObserver?.disconnect();
-  trendObserver = null;
-  pieChart?.dispose();
-  pieChart = null;
-  pieObserver?.disconnect();
-  pieObserver = null;
-}
-
-onMounted(fetchAll);
-onBeforeUnmount(() => { ++reportRequest; disposeCharts(); });
+onMounted(fetchReport);
+onBeforeUnmount(() => { ++requestId; disposeTrend(); });
 </script>
 
 <style scoped lang="scss">
@@ -501,95 +319,40 @@ onBeforeUnmount(() => { ++reportRequest; disposeCharts(); });
 @import "@/pages/device/components/x/table/styles/table.css";
 @import "@/pages/device/components/x/table/styles/table-row.css";
 @import "@/pages/device/components/x/table/styles/table-cell.css";
-
-.report-scroll {
-  flex: 1;
-  margin-top: 14px;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.report-panel {
-  display: flex;
-  flex-direction: column;
-  flex: none;
-  min-width: 0;
-  overflow: hidden;
-  background: #ffffff;
-  border: 1px solid #d8e5ef;
-  border-radius: 6px;
-  box-shadow: 0 12px 26px rgba(35, 72, 104, 0.09);
-}
-
-.report-section-title {
-  flex: none;
-  color: #24445f;
-  font-size: 15px;
-  font-weight: 800;
-  padding-left: 2px;
-}
-
-.report-chart {
-  width: 100%;
-  height: 300px;
-}
-
-/* ================= 统计卡片 ================= */
-.stat-grid {
-  display: grid;
-  gap: 12px;
-  flex: none;
-}
-
-.stat-grid--six {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-}
-
-.stat-grid--four {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-/* ================= 饼图 + 疑似事件 ================= */
-.anomaly-row {
-  display: grid;
-  grid-template-columns: 360px minmax(0, 1fr);
-  gap: 14px;
-  flex: none;
-}
-
-.pie-chart {
-  width: 100%;
-  height: 280px;
-}
-
-/* ================= 导出按钮 ================= */
-.toolbar-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  height: 34px;
-  margin: 0;
-  padding: 0 14px;
-  color: #31506d;
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 34px;
-  background: #f6fbff;
-  border: 1px solid #cbdced;
-  border-radius: 4px;
-}
-
-.toolbar-button::after {
-  border: 0;
-}
 @import "./module.scss";
-.report-scroll :deep(.uni-scroll-view-content) > view {margin-bottom:14px;}
-.report-panel > :deep(.data-table-container) {height:320px;flex:none;border:0;box-shadow:none;}
-.toolbar-button[disabled] {opacity:.5;}
 
-.report-metric-tabs {display:flex;gap:8px;padding:12px 16px;}
-.report-metric-active {background:#0d82ee;color:white;}
+.report-page { background: #f5f8fb; }
+.report-scroll { flex: 1; min-height: 0; margin-top: 12px; }
+.report-scroll :deep(.uni-scroll-view-content) > view { margin-bottom: 12px; }
+.scope-bar { display: flex; align-items: center; justify-content: space-between; padding: 13px 18px; color: #34516b; background: linear-gradient(100deg,#eef7ff,#f7fbff); border: 1px solid #d8e8f5; border-radius: 8px; }
+.scope-bar__title { display: block; font-size: 15px; font-weight: 800; }
+.scope-bar__period,.scope-bar__rule { display: block; margin-top: 3px; color: #73889a; font-size: 12px; }
+.section-heading,.panel-head { display: flex; align-items: center; justify-content: space-between; }
+.section-heading__title,.panel-head__title { display: block; color: #1f3f59; font-size: 15px; font-weight: 800; }
+.section-heading__hint,.panel-head__hint { display: block; margin-top: 3px; color: #8495a4; font-size: 12px; }
+.comparison-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
+.comparison-card { position: relative; overflow: hidden; padding: 16px 18px; background: #fff; border: 1px solid #dfe8ef; border-radius: 8px; box-shadow: 0 5px 16px rgba(42,73,98,.06); }
+.comparison-card::before { position: absolute; top: 0; left: 0; width: 4px; height: 100%; content: ""; background: #3189d8; }
+.comparison-card--cyan::before { background: #21a6a1; }.comparison-card--orange::before { background: #e69b32; }
+.comparison-card__head { display: flex; justify-content: space-between; color: #537087; font-size: 13px; font-weight: 700; }
+.comparison-card__value { margin-top: 9px; color: #183b56; font-size: 27px; font-weight: 800; line-height: 1.1; }
+.comparison-card__period { display: block; height: 18px; margin-top: 5px; overflow: hidden; color: #91a0ac; font-size: 11px; white-space: nowrap; text-overflow: ellipsis; }
+.comparison-card__changes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #edf1f4; }
+.comparison-card__changes view { display: flex; justify-content: space-between; color: #7a8d9e; font-size: 12px; }.comparison-card__changes text:last-child { color: #405b70; font-weight: 700; }
+.change-up { color: #d45b48 !important; }.change-down { color: #1b9b72 !important; }
+.dashboard-grid { display: grid; grid-template-columns: minmax(0,1.75fr) minmax(300px,.75fr); gap: 12px; }
+.detail-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.report-panel { min-width: 0; overflow: hidden; background: #fff; border: 1px solid #dfe8ef; border-radius: 8px; box-shadow: 0 5px 16px rgba(42,73,98,.05); }
+.panel-head { min-height: 54px; padding: 0 16px; border-bottom: 1px solid #edf1f4; }
+.trend-chart { width: 100%; height: 265px; }.empty-block { display: flex; align-items: center; justify-content: center; height: 265px; color: #8a9ba9; }
+.status-panel { padding-bottom: 14px; }.status-item { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px 5px; }
+.status-item__label { display: block; color: #36546b; font-size: 13px; font-weight: 700; }.status-item__detail { display: block; margin-top: 3px; color: #93a2ae; font-size: 11px; }
+.status-item__value { color: #254e6c; font-size: 20px; font-weight: 800; }.status-item__value--warning { color: #dc8a22; }.status-item__value--success { color: #1b9670; }
+.status-divider { height: 1px; margin: 8px 16px 0; background: #edf1f4; }.progress-track { height: 6px; margin: 9px 16px; overflow: hidden; background: #eaf0f3; border-radius: 99px; }.progress-value { height: 100%; background: #27a77c; border-radius: 99px; }
+.work-order-error { margin: 12px 16px 0; padding: 8px 10px; color: #b45309; font-size: 12px; background: #fff7ed; border-radius: 4px; }
+.status-counts { display: flex; justify-content: space-between; padding: 2px 16px 0; color: #758a9a; font-size: 11px; }
+.detail-grid .report-panel > :deep(.data-table-container) { height: 250px; border: 0; box-shadow: none; }
+.caliber-note { padding: 10px 14px; color: #748898; font-size: 12px; line-height: 1.7; background: #eef3f7; border-radius: 6px; }
+.export-button { height: 34px; margin: 0; padding: 0 15px; color: #fff; font-size: 13px; font-weight: 700; line-height: 34px; background: #187ecc; border: 0; border-radius: 5px; }.export-button::after { border: 0; }.export-button[disabled] { opacity: .5; }
+@media (max-width: 1050px) { .dashboard-grid,.detail-grid { grid-template-columns: 1fr; }.comparison-grid { grid-template-columns: 1fr; } }
 </style>
