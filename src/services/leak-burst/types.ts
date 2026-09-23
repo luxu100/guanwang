@@ -37,6 +37,19 @@ export interface BurstPipeResult {
   burstSuspected?: boolean;
   /** 已确认爆管必须由后端确认结果提供，不能仅由越界推断。 */
   status?: BurstStatus;
+  /** 资产评分使用的管材原文。 */
+  tubeMaterial?: string;
+  /** 管龄，无法取得建设年份时为空。 */
+  pipeAgeYears?: number | null;
+  /** 临时材质与管龄评分。 */
+  assetScore?: number | null;
+}
+
+export interface BurstPipeConfirmRequest {
+  deviceNumber: string;
+  startTime: string;
+  endTime: string;
+  cause: string;
 }
 
 /** 爆管识别查询参数 */
@@ -75,6 +88,9 @@ export interface BurstPipeAnalyzeData {
   abnormalCount?: number;
   abnormalRate?: number;
   burstSuspected?: boolean;
+  tubeMaterial?: string;
+  pipeAgeYears?: number | null;
+  assetScore?: number | null;
   points: BurstPipePoint[];
 }
 
@@ -194,7 +210,7 @@ export interface ComparisonTrendQuery {
 
 /** 报表公共查询（5.1–5.3） */
 export interface LeakReportQuery {
-  comparisonPeriod?: "DAY" | "MONTH";
+  comparisonPeriod?: "DAY" | "MONTH" | "YEAR";
   startTime: string;
   endTime: string;
   granularity?: "DAY" | "MONTH";

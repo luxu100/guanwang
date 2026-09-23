@@ -74,17 +74,33 @@ export function downloadBinaryFile(url, options = {}) {
   const fullUrl = normalizeUrl(url);
 
   if (process.env.UNI_PLATFORM === "h5") {
-    return new Promise((resolve) => {
-      const a = document.createElement("a");
-      a.href = fullUrl;
-      a.download = filename;
-      a.style.display = "none";
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        document.body.removeChild(a);
-        resolve({ statusCode: 200 });
-      }, 150);
+    return new Promise((resolve, reject) => {
+      uni.request({
+        url: fullUrl,
+        method: "GET",
+        header: headers,
+        responseType: "arraybuffer",
+        success(res) {
+          if (res.statusCode < 200 || res.statusCode >= 300) {
+            reject({ code: res.statusCode, msg: res.data?.msg || "文件下载失败", data: res.data });
+            return;
+          }
+          const disposition = res.header?.["content-disposition"] || res.header?.["Content-Disposition"] || "";
+          const responseFilename = parseFilenameFromDisposition(disposition) || filename;
+          const blob = new Blob([res.data], { type: mimeType });
+          const blobUrl = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = blobUrl;
+          a.download = responseFilename;
+          a.style.display = "none";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+          resolve(res);
+        },
+        fail: reject,
+      });
     });
   }
 

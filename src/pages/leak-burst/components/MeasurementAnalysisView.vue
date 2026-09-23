@@ -281,8 +281,8 @@ async function fetchRanking() {
     const res = await getPointRankingT({
       startTime: searchForm.value.startTime,
       endTime: searchForm.value.endTime,
-      // 排名指标待确认，不传未经确认的风险权重。
-      order: "ASC",
+      rankMetric: "LEAK_COUNT",
+      order: "DESC",
       deptId: searchForm.value.deptId === "" ? null : Number(searchForm.value.deptId),
       pageNum: pagination.value.current,
       pageSize: pagination.value.size,
@@ -493,7 +493,7 @@ function handleSearch() {
 
 async function handleReset() {
   await nextTick();
-  searchForm.value = { ...defaultRange(), comparisonPeriod: "DAY", order:"ASC", deptId:"" };
+  searchForm.value = { ...defaultRange(), comparisonPeriod: "DAY", order:"DESC", deptId:"" };
   pagination.value.current = 1;
   fetchRanking();
 }

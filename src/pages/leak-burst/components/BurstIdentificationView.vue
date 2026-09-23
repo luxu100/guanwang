@@ -117,6 +117,7 @@
             <text class="status-tag" :class="burstStatusInfo(analyzeData.status, analyzeData.burstSuspected).tagClass">
               {{ burstStatusInfo(analyzeData.status, analyzeData.burstSuspected).label }}
             </text>
+            <button v-if="analyzeData.status === 'SUSPECTED_BURST'" class="confirm-burst-button" :disabled="confirming" @click="confirmSelectedBurst">{{ confirming ? '确认中…' : '确认爆管' }}</button>
           </view>
 
           <!-- 曲线图 -->
@@ -130,8 +131,8 @@
 
 <script setup lang="ts">
 import { burstStatuses, burstStatusInfo } from "@/services/leak-burst/burst-status";
-import LeakStatCard from "./LeakStatCard.vue";
 import { USE_MOCK } from "@/services/leak-burst";
+import LeakStatCard from "./LeakStatCard.vue";
 import { chartElement, validateRange, deptOptions } from "./view-utils";
 import {
   computed,
@@ -159,6 +160,7 @@ import {
   getBurstPipeAnalyzeT,
   getBurstPipeResultsT,
   getBurstPipeSummaryT,
+  confirmBurstPipeT,
 } from "@/services/leak-burst";
 
 import type {
@@ -298,6 +300,9 @@ const columns: XDataColumn[] = [
     formatter: (v) =>
         v == null ? "-" : `${fmt(v)}%`,
   },
+  { key: "tubeMaterial", label: "管材", width: 100 },
+  { key: "pipeAgeYears", label: "管龄", width: 80, formatter: (v) => v == null ? "-" : `${v} 年` },
+  { key: "assetScore", label: "资产评分", width: 90, align: "right", formatter: (v) => v == null ? "-" : String(v) },
   {
     key: "status",
     label: "识别状态",
@@ -387,6 +392,7 @@ async function fetchSummary() {
 const analyzeData = ref<BurstPipeAnalyzeData | null>(null);
 
 const analyzeLoading = ref(false);
+const confirming = ref(false);
 
 const chartEl = ref<HTMLElement | null>(null);
 
@@ -428,6 +434,35 @@ async function handleRowClick(
   } finally {
     if (request === detailRequest) analyzeLoading.value = false;
   }
+}
+
+function confirmSelectedBurst() {
+  const data = analyzeData.value;
+  if (!data || data.status !== "SUSPECTED_BURST" || confirming.value) return;
+  uni.showModal({
+    title: "确认爆管",
+    content: "",
+    editable: true,
+    placeholderText: "请输入爆管原因（必填，最多 200 字）",
+    success: async (result) => {
+      if (!result.confirm) return;
+      const cause = String(result.content ?? "").trim();
+      if (!cause) {
+        uni.showToast({ title: "请输入爆管原因", icon: "none" });
+        return;
+      }
+      confirming.value = true;
+      try {
+        await confirmBurstPipeT({ deviceNumber: data.deviceNumber || "", startTime: data.startTime, endTime: data.endTime, cause: cause.slice(0, 200) });
+        uni.showToast({ title: "已确认爆管", icon: "success" });
+        await fetchAll();
+      } catch (failure: any) {
+        uni.showToast({ title: failure?.msg || "确认失败", icon: "none" });
+      } finally {
+        confirming.value = false;
+      }
+    },
+  });
 }
 
 /* =========================
@@ -829,6 +864,20 @@ onBeforeUnmount(() => {
   border-color: #bfe8ce;
   background: #eaf8ef;
 }
+
+.confirm-burst-button {
+  height: 28px;
+  margin: 0;
+  padding: 0 12px;
+  color: #fff;
+  font-size: 12px;
+  line-height: 28px;
+  background: #dc2626;
+  border: 0;
+  border-radius: 4px;
+}
+.confirm-burst-button::after { border: 0; }
+.confirm-burst-button[disabled] { opacity: .55; }
 
 /* =========================
  * 曲线

@@ -5,7 +5,7 @@
         <text class="module-heading__title">漏损报表</text>
         <text class="module-heading__description">面向全部设备，查看同环比、漏损趋势、测点排名及处置情况。</text>
       </view>
-      <text v-if="USE_MOCK" class="demo-badge">统计演示数据 · 工单真实数据</text>
+      <text v-if="USE_MOCK" class="demo-badge">演示数据</text>
     </view>
 
     <XConfigToolbar
@@ -83,7 +83,7 @@
 
       <view class="detail-grid">
         <view class="report-panel">
-          <view class="panel-head"><view><text class="panel-head__title">测点风险排名</text><text class="panel-head__hint">复用测点排名接口 · 综合风险前 5 名</text></view></view>
+          <view class="panel-head"><view><text class="panel-head__title">测点漏损排名</text><text class="panel-head__hint">按漏损采样条数排序 · 前 5 名</text></view></view>
           <XDataTable :columns="rankingColumns" :data="rankingRows" id-key="deviceId" :show-index="false" empty-text="暂无排名数据" />
         </view>
         <view class="report-panel">
@@ -104,16 +104,8 @@ import { chartElement, validateRange } from "./view-utils";
 import XConfigToolbar from "@/pages/device/components/x/toolbar/XConfigToolbar.vue";
 import XDataTable from "@/pages/device/components/x/table/XDataTable.vue";
 import type { Field, XDataColumn } from "@/pages/device/components/x/types";
-import {
-  getLeakCauseAnalysisT,
-  getLeakReportExportUrl,
-  getLeakReportTrendT,
-  getReportComparisonOverviewT,
-  getReportPointRankingT,
-  getReportWorkOrdersT,
-  getWaterHammerSummaryT,
-  USE_MOCK,
-} from "@/services/leak-burst";
+import { getComparisonOverviewT, getLeakCauseAnalysisT, getLeakReportExportUrl, getLeakReportTrendT, getPointRankingT, getReportWorkOrdersT, getWaterHammerSummaryT, USE_MOCK } from "@/services/leak-burst";
+import { downloadBinaryFile } from "@/utils/download";
 import type {
   CauseReportRow,
   ComparisonMetric,
@@ -178,7 +170,7 @@ const workOrderSummary = computed(() => {
 
 const rankingColumns: XDataColumn[] = [
   { key: "rank", label: "排名", width: 64 }, { key: "deviceNumber", label: "设备编号", width: 110 },
-  { key: "deviceAlias", label: "测点名称", width: 160 }, { key: "riskScore", label: "风险分", width: 90, formatter: (value) => formatValue(value, 1) },
+  { key: "deviceAlias", label: "测点名称", width: 160 }, { key: "leakCount", label: "漏损次数", width: 90 },
 ];
 const eventOptions = [
   { value: "LEAK", label: "渗漏", tagClass: "status-tag--warning" }, { value: "BURST", label: "爆管", tagClass: "status-tag--danger" },
@@ -235,11 +227,11 @@ async function fetchReport() {
   try {
     const comparisonQuery = { period, periodValue, asOfDate: form.endTime };
     const [flow, pressure, noise, trendResult, rankingResult, waterResult, workOrderResult, causeResult] = await Promise.all([
-      getReportComparisonOverviewT({ ...comparisonQuery, metric: "FLOW" }),
-      getReportComparisonOverviewT({ ...comparisonQuery, metric: "PRESSURE" }),
-      getReportComparisonOverviewT({ ...comparisonQuery, metric: "NOISE" }),
+      getComparisonOverviewT({ ...comparisonQuery, metric: "FLOW" }),
+      getComparisonOverviewT({ ...comparisonQuery, metric: "PRESSURE" }),
+      getComparisonOverviewT({ ...comparisonQuery, metric: "NOISE" }),
       getLeakReportTrendT(query),
-      getReportPointRankingT({ startTime: form.startTime, endTime: form.endTime, rankMetric: "RISK_SCORE", order: "DESC", pageNum: 1, pageSize: 5 }),
+      getPointRankingT({ startTime: form.startTime, endTime: form.endTime, rankMetric: "LEAK_COUNT", order: "DESC", pageNum: 1, pageSize: 5 }),
       getWaterHammerSummaryT(query),
       getReportWorkOrdersT(query).catch(() => null),
       getLeakCauseAnalysisT(query),
@@ -269,44 +261,42 @@ async function fetchReport() {
 }
 async function handleReset() { await nextTick(); searchForm.value = defaultForm(); fetchReport(); }
 
-function handleExport() {
+async function handleExport() {
   if (!loaded.value) return;
-  // #ifdef H5
-  if (!USE_MOCK) {
-    window.open(getLeakReportExportUrl(buildQuery()), "_blank");
+  if (USE_MOCK) {
+    // #ifdef H5
+    const rows: unknown[][] = [
+      ["漏损报表（演示数据）"], ["开始时间", appliedForm.value.startTime, "结束时间", appliedForm.value.endTime],
+      [], ["同环比"], ["指标", "本期", "同比%", "环比%", "单位"],
+      ...comparisonCards.value.map(item => [item.label, item.currentValue, item.yoyRate, item.momRate, item.unit]),
+      [], ["漏损趋势"], ["周期", "漏损设备数", "疑似设备数"],
+      ...(trend.value?.series ?? []).map(item => [item.period, item.leakCount, item.suspectedCount]),
+      [], ["维修完成情况"], ["有效工单", "待处理", "处理中", "已完成", "完成率%"],
+      [workOrderSummary.value.total, workOrderSummary.value.pending, workOrderSummary.value.processing, workOrderSummary.value.finished, workOrderSummary.value.finishRate.toFixed(1)],
+    ];
+    const cell = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+    const url = URL.createObjectURL(new Blob(["\uFEFF" + rows.map(row => row.map(cell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `漏损报表_${appliedForm.value.startTime}_${appliedForm.value.endTime}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    // #endif
+    // #ifndef H5
+    uni.showToast({ title: "演示模式请在浏览器端导出", icon: "none" });
+    // #endif
     return;
   }
-  const rows: unknown[][] = [
-    ["漏损报表（统计为演示数据，工单为真实数据）"],
-    ["开始时间", appliedForm.value.startTime, "结束时间", appliedForm.value.endTime],
-    [], ["指标同环比"], ["指标", "本期", "同比%", "环比%", "单位"],
-    ...comparisonCards.value.map(item => [item.label, item.currentValue, item.yoyRate, item.momRate, item.unit]),
-    [], ["漏损趋势"], ["周期", "漏损", "疑似"],
-    ...(trend.value?.series ?? []).map(item => [item.period, item.leakCount, item.suspectedCount]),
-    [], ["水锤报警"], ["监测终端", "报警终端", "报警次数", "报警率%"],
-    [waterHammer.value?.monitoredTerminalCount, waterHammer.value?.alarmTerminalCount, waterHammer.value?.alarmCount, waterHammer.value?.alarmRate],
-    [], ["真实维修工单汇总"], ["有效工单", "待处理", "处理中", "已完成", "完成率%"],
-    [workOrderSummary.value.total, workOrderSummary.value.pending, workOrderSummary.value.processing, workOrderSummary.value.finished, workOrderSummary.value.finishRate.toFixed(1)],
-    [], ["原因分析"], ["类型", "原因", "数量", "占比%"],
-    ...causes.value.map(item => [item.eventType === "LEAK" ? "渗漏" : "爆管", item.cause, item.count, item.percent]),
-  ];
-  const cell = (value: unknown) => {
-    let text = String(value ?? "");
-    if (/^[=+@-]/.test(text)) text = `'${text}`;
-    return `"${text.replace(/"/g, '""')}"`;
-  };
-  const url = URL.createObjectURL(new Blob(["\uFEFF" + rows.map(row => row.map(cell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8;" }));
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `漏损报表_${appliedForm.value.startTime}_${appliedForm.value.endTime}.csv`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-  // #endif
-  // #ifndef H5
-  uni.showToast({ title: "请在浏览器端导出报表", icon: "none" });
-  // #endif
+  try {
+    await downloadBinaryFile(getLeakReportExportUrl(buildQuery()), {
+      filename: `漏损报表_${appliedForm.value.startTime}_${appliedForm.value.endTime}.xlsx`,
+      mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+  } catch (cause: any) {
+    uni.showToast({ title: cause?.msg || "报表导出失败", icon: "none" });
+  }
 }
 
 onMounted(fetchReport);
