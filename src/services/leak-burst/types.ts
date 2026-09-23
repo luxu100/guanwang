@@ -4,6 +4,8 @@
  */
 
 /* ================= 爆管识别 ================= */
+export type BurstStatus = "NORMAL" | "SUSPECTED_BURST" | "BURST";
+
 
 /** 爆管识别结果（列表项，3.1 /leakage/burst-pipe/results） */
 export interface BurstPipeResult {
@@ -33,12 +35,26 @@ export interface BurstPipeResult {
   abnormalRate?: number;
   /** 是否疑似爆管 */
   burstSuspected?: boolean;
-  /** NORMAL / SUSPECTED_BURST */
-  status?: string;
+  /** 已确认爆管必须由后端确认结果提供，不能仅由越界推断。 */
+  status?: BurstStatus;
+  /** 资产评分使用的管材原文。 */
+  tubeMaterial?: string;
+  /** 管龄，无法取得建设年份时为空。 */
+  pipeAgeYears?: number | null;
+  /** 临时材质与管龄评分。 */
+  assetScore?: number | null;
+}
+
+export interface BurstPipeConfirmRequest {
+  deviceNumber: string;
+  startTime: string;
+  endTime: string;
+  cause: string;
 }
 
 /** 爆管识别查询参数 */
 export interface BurstPipeQuery {
+  status?: BurstStatus;
   deviceId?: number | null;
   deviceNumber?: string;
   deptId?: number | null;
@@ -58,6 +74,7 @@ export interface BurstPipePoint {
 
 /** 爆管识别详情（3.2 /leakage/burst-pipe/analyze） */
 export interface BurstPipeAnalyzeData {
+  status?: BurstStatus;
   deviceId?: number;
   deviceNumber?: string;
   deviceAlias?: string;
@@ -71,6 +88,9 @@ export interface BurstPipeAnalyzeData {
   abnormalCount?: number;
   abnormalRate?: number;
   burstSuspected?: boolean;
+  tubeMaterial?: string;
+  pipeAgeYears?: number | null;
+  assetScore?: number | null;
   points: BurstPipePoint[];
 }
 
@@ -78,6 +98,7 @@ export interface BurstPipeAnalyzeData {
 export interface BurstPipeSummary {
   monitoredCount?: number;
   suspectedCount?: number;
+  confirmedCount?: number;
   abnormalPointTotal?: number;
   lastCheckTime?: string;
 }
@@ -131,6 +152,9 @@ export type ComparisonPeriod = "DAY" | "MONTH" | "YEAR";
 
 /** 同环比概览（4.3 /leakage/comparison/overview） */
 export interface ComparisonOverview {
+  currentPeriodLabel?: string;
+  yoyPeriodLabel?: string;
+  momPeriodLabel?: string;
   metric: string;
   period?: string;
   periodValue?: string;
@@ -138,14 +162,16 @@ export interface ComparisonOverview {
   currentValue?: number;
   yoyValue?: number;
   /** 同比增长率 % */
-  yoyRate?: number;
+  yoyRate?: number | null;
   momValue?: number;
   /** 环比增长率 % */
-  momRate?: number;
+  momRate?: number | null;
   sampleCount?: number;
 }
 
 export interface ComparisonOverviewQuery {
+  /** 月周期截止日，用于本月未结束时的同期对齐。 */
+  asOfDate?: string;
   metric: ComparisonMetric;
   aggType?: "AVG" | "MAX" | "MIN" | "SUM";
   period: ComparisonPeriod;
@@ -156,11 +182,12 @@ export interface ComparisonOverviewQuery {
 
 /** 同环比趋势序列点（4.4） */
 export interface ComparisonTrendPoint {
+  momValue?: number;
   period: string;
   currentValue?: number;
   yoyValue?: number;
-  yoyRate?: number;
-  momRate?: number;
+  yoyRate?: number | null;
+  momRate?: number | null;
 }
 
 /** 同环比趋势（4.4 /leakage/comparison/trend） */
@@ -183,6 +210,7 @@ export interface ComparisonTrendQuery {
 
 /** 报表公共查询（5.1–5.3） */
 export interface LeakReportQuery {
+  comparisonPeriod?: "DAY" | "MONTH" | "YEAR";
   startTime: string;
   endTime: string;
   granularity?: "DAY" | "MONTH";
@@ -201,54 +229,32 @@ export interface LeakTrendData {
   series: LeakTrendPoint[];
 }
 
-/** 疑似漏损事件（5.2） */
-export interface SuspectedLeakItem {
-  reportId?: number;
-  deviceNumber?: string;
-  reportTime?: string;
-  leakPointPosition?: string;
-  processStatus?: number;
+/** 水锤报警汇总。当前后端未提供对应能力，接口需联调确认。 */
+export interface WaterHammerSummary {
+  monitoredTerminalCount: number;
+  alarmTerminalCount: number;
+  alarmCount: number;
+  alarmRate: number | null;
 }
 
-/** 漏损状态分布（5.2） */
-export interface LeakStatusDistribution {
-  leakStatus: number;
+export interface CauseReportRow {
+  eventType: "LEAK" | "BURST";
+  cause: string;
   count: number;
+  percent: number;
 }
 
-/** 异常情况统计（5.2 /leakage/report/anomaly） */
-export interface LeakAnomalyData {
-  pressureAbnormalCount?: number;
-  flowAbnormalCount?: number;
-  noiseAbnormalCount?: number;
-  burstSuspectedCount?: number;
-  suspectedLeakCount?: number;
-  leakPointCount?: number;
-  statusDistribution?: LeakStatusDistribution[];
-  suspectedList?: SuspectedLeakItem[];
+export interface LeakCauseAnalysis {
+  causes: CauseReportRow[];
 }
 
-/** 漏点明细（5.3） */
-export interface LeakPointItem {
-  deviceId?: number;
-  deviceNumber?: string;
-  detectTime?: string;
-  repairTime?: string;
-  leakVolume?: string;
-  leakPointType?: string;
-  repairMethod?: string;
-  leakStatus?: string;
-}
-
-/** 处理效果统计（5.3 /leakage/report/handling-effect） */
-export interface HandlingEffectData {
-  totalWorkOrders?: number;
-  pendingCount?: number;
-  handlingCount?: number;
-  finishedCount?: number;
-  finishRate?: number;
-  confirmedLeakPoints?: number;
-  avgHandleDurationHours?: number;
-  avgRepairDurationHours?: number;
-  leakPointList?: LeakPointItem[];
+/** 复用 /api/worksheet/list 时页面需要的最小工单字段。 */
+export interface ReportWorkOrder {
+  id?: number;
+  worksheetNumber?: string;
+  worksheetType?: number;
+  worksheetStatus?: number;
+  riseTime?: string;
+  finishTime?: string;
+  createdAt?: string;
 }
