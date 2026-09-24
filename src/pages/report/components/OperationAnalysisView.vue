@@ -21,7 +21,28 @@
     </view>
     <view v-if="!rows.length" class="panel empty">暂无运行分析数据</view>
     <template v-else>
-      <view v-if="query.report === 0" class="panel chart-panel">
+      <view v-if="query.report === 3" class="overview-charts">
+        <view class="heading overview-charts__heading">
+          <text class="title">{{ summaryText('综合运行概览', 'Operation Overview') }}</text>
+          <view class="grain-switch">
+            <button v-for="item in grainOptions" :key="item.value" class="grain-button" :class="{ 'grain-button--active': grain === item.value }" :aria-pressed="grain === item.value" @click="grain = item.value">{{ item.label }}</button>
+          </view>
+        </view>
+        <view class="panel chart-panel">
+          <view class="heading"><text class="title">{{ summaryText('水锤报警率趋势', 'Water Hammer Alarm Rate Trend') }}</text></view>
+          <AnalysisChart :option="summaryAlarmOption" />
+        </view>
+        <view class="panel chart-panel">
+          <view class="heading"><text class="title">{{ summaryText('维修完成率趋势', 'Repair Completion Rate Trend') }}</text></view>
+          <AnalysisChart :option="summaryRepairOption" />
+        </view>
+        <view class="panel chart-panel overview-charts__causes">
+          <view class="heading"><view><text class="title">{{ summaryText('主要渗漏 / 爆管原因', 'Leading Leak / Burst Causes') }}</text><text class="hint block">{{ summaryText('仅展示事件数最多的三项原因', 'Only the top three causes by event count') }}</text></view></view>
+          <AnalysisChart v-if="topCauses.length" :option="summaryCauseOption" />
+          <view v-else class="empty">{{ summaryText('暂无原因数据', 'No cause data') }}</view>
+        </view>
+      </view>
+      <view v-else-if="query.report === 0" class="panel chart-panel">
         <view class="heading"><view><text class="title">水锤报警趋势</text><text class="hint block">水锤报警率 = 水锤报警数 / 总报警数 × 100% · 点击图例可切换指标显示</text></view>
           <view class="grain-switch"><button v-for="item in grainOptions" :key="item.value" class="grain-button" :class="{ 'grain-button--active': grain === item.value }" :aria-pressed="grain === item.value" @click="grain = item.value">{{ item.label }}</button></view>
         </view><AnalysisChart :option="alarmOption" />
@@ -32,7 +53,8 @@
     <view v-if="generated" class="panel report-panel">
       <view class="heading"><text class="title">{{ reports[query.report] }}摘要</text><text class="badge">生成时间：{{ generated }}</text></view>
       <view class="report-body"><text>统计范围：{{ query.start.replace('T', ' ') }} 至 {{ query.end.replace('T', ' ') }}<!-- ，{{ partitions[query.partition] }} -->。</text>
-        <text v-if="query.report === 0">报警总数 {{ totals.totalAlarms }} 次，其中水锤报警 {{ totals.alarms }} 次，水锤报警率 {{ rate(totals.alarms, totals.totalAlarms) }}%；受影响设备 {{ affectedDevices }} 台<!-- ，受影响分区 {{ affectedPartitions }} 个 -->。</text>
+        <text v-if="query.report === 3">{{ summaryReportText }}</text>
+        <text v-else-if="query.report === 0">报警总数 {{ totals.totalAlarms }} 次，其中水锤报警 {{ totals.alarms }} 次，水锤报警率 {{ rate(totals.alarms, totals.totalAlarms) }}%；受影响设备 {{ affectedDevices }} 台<!-- ，受影响分区 {{ affectedPartitions }} 个 -->。</text>
         <text v-else-if="query.report === 1">维修工单 {{ totals.repairs }} 单，已完成 {{ totals.completed }} 单，未完成 {{ totals.repairs - totals.completed }} 单，完成率 {{ rate(totals.completed, totals.repairs) }}%。</text>
         <text v-else>渗漏 {{ totals.leaks }} 起，爆管 {{ totals.bursts }} 起，主要原因为{{ leadingCause }}，建议优先核查相关管段并安排巡检。</text>
       </view>
@@ -49,7 +71,7 @@ type TrendGrain = 'day' | 'month' | 'year';
 const grain = ref<TrendGrain>('day');
 const grainOptions: { label: string; value: TrendGrain }[] = [{ label: '天', value: 'day' }, { label: '月', value: 'month' }, { label: '年', value: 'year' }];
 const partitions = ref<string[]>(['全部分区']);
-const reports = ['水锤报警率报告', '维修完成情况报告', '渗漏 / 爆管原因报告'];
+const reports = ['水锤报警率报告', '维修完成情况报告', '渗漏 / 爆管原因报告', '综合运行分析'];
 const causes = ['管道老化', '接口松动', '压力波动', '外力破坏', '其他原因'];
 function dateKey(date: Date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; }
 function defaultRange() { const end = new Date(); const start = new Date(end); start.setDate(start.getDate() - 29); return { start: `${dateKey(start)}T00:00:00`, end: `${dateKey(end)}T23:59:59` }; }
@@ -72,7 +94,7 @@ interface OperationAnalysisRecord {
 }
 // 待接入运行分析接口，记录时间使用实际统计时间。
 const records = ref<OperationAnalysisRecord[]>([]);
-const filters = reactive({ ...defaultRange(), partition: 0, report: 0 });
+const filters = reactive({ ...defaultRange(), partition: 0, report: 3 });
 const query = reactive({ ...filters });
 const error = ref(''); const generated = ref('');
 function normalizeTime(value: string) { return value.replace(' ', 'T'); }
@@ -104,6 +126,14 @@ function card(label: string, value: string | number, unit: string, hint: string,
 }
 const cards = computed(() => {
   const total = totals.value;
+  if (query.report === 3) return [
+    card('水锤报警数', total.alarms, '次', '所选范围内水锤报警总数', '#dfa23b'),
+    card('水锤报警率', rate(total.alarms, total.totalAlarms), '%', '水锤报警数 / 总报警数 × 100%', '#31b59b'),
+    card('维修完成率', rate(total.completed, total.repairs), '%', '已完成工单 / 维修工单总数 × 100%', '#7b88cb'),
+    card('逾期数', overdueCount.value, '单', '超过截止时间仍未完成的维修工单', '#e47a77'),
+    card('渗漏事件', total.leaks, '起', '所选时间内的渗漏事件总数', '#dfa23b'),
+    card('爆管事件', total.bursts, '起', '所选时间内的爆管事件总数', '#e47a77'),
+  ];
   if (query.report === 0) return [
     card('报警总数', total.totalAlarms, '次', '所选范围内全部类型报警', '#3287da'),
     card('水锤报警数', total.alarms, '次', '所选范围内水锤报警总数', '#dfa23b'),
@@ -163,9 +193,31 @@ const causeData = computed(() => causes.map((name, index) => ({ name, value: row
 const leadingCause = computed(() => [...causeData.value].filter(item => item.value > 0).sort((a, b) => b.value - a.value)[0]?.name || '—');
 const causeOption = computed<EChartsOption>(() => ({ color: ['#3287da', '#31b59b', '#f2b44f', '#ec7b78', '#90a4c5'], tooltip: { trigger: 'item', confine: true, formatter: '{b}<br/>{c} 起（{d}%）' }, legend: { bottom: 10, icon: 'circle', itemWidth: 9, textStyle: { color: '#6c8295' } }, series: [{ type: 'pie', radius: ['40%', '64%'], center: ['50%', '44%'], avoidLabelOverlap: true, itemStyle: { borderColor: '#fff', borderWidth: 3, borderRadius: 4 }, label: { formatter: '{b}\n{d}%', color: '#6c8295', fontSize: 11 }, data: causeData.value }] }));
 function search() { if (!filters.start || !filters.end || normalizeTime(filters.start) > normalizeTime(filters.end)) { error.value = '请选择有效的时间范围，开始日期不能晚于结束日期。'; return false; } error.value = ''; generated.value = ''; Object.assign(query, filters); return true; }
-function reset() { Object.assign(filters, defaultRange(), { partition: 0, report: 0 }); grain.value = 'day'; search(); }
+function reset() { Object.assign(filters, defaultRange(), { partition: 0, report: 3 }); grain.value = 'day'; search(); }
 function changeReport(index: number) { filters.report = index; query.report = index; generated.value = ''; }
 function generate() { if (!search()) return; if (!rows.value.length) { error.value = '当前筛选范围内没有数据，无法生成报告。'; return; } generated.value = new Date().toLocaleString('zh-CN', { hour12: false }); }
+
+const summaryText = (zh: string, _en: string) => zh;
+const topCauses = computed(() => [...causeData.value].filter(item => item.value > 0).sort((a, b) => b.value - a.value).slice(0, 3));
+function summaryRateOption(name: string, values: (number | null)[]): EChartsOption {
+  return {
+    ...axes(),
+    yAxis: { type: 'value', min: 0, max: 100, axisLabel: { formatter: '{value}%' }, splitLine: { lineStyle: { color: '#edf2f6', type: 'dashed' } } },
+    series: [{ name, type: 'line', smooth: true, symbolSize: 6, data: values, tooltip: { valueFormatter: value => value == null ? '—' : value + '%' } }],
+  };
+}
+const summaryAlarmOption = computed(() => summaryRateOption(summaryText('水锤报警率', 'Water Hammer Alarm Rate'), trendData.value.map(row => row.totalAlarms ? Number(rate(row.alarms, row.totalAlarms)) : null)));
+const summaryRepairOption = computed(() => summaryRateOption(summaryText('维修完成率', 'Repair Completion Rate'), trendData.value.map(row => row.repairs ? Number(rate(row.completed, row.repairs)) : null)));
+const summaryCauseOption = computed<EChartsOption>(() => ({
+  color: ['#3287da'],
+  tooltip: { trigger: 'axis', confine: true },
+  grid: { left: 24, right: 35, top: 20, bottom: 25, containLabel: true },
+  xAxis: { type: 'value', minInterval: 1 },
+  yAxis: { type: 'category', inverse: true, data: topCauses.value.map(item => item.name) },
+  series: [{ name: summaryText('事件数', 'Events'), type: 'bar', barMaxWidth: 28, label: { show: true, position: 'right' }, data: topCauses.value.map(item => item.value) }],
+}));
+const summaryReportText = computed(() => cards.value.map(item => item.label + ': ' + item.value + (item.unit ? ' ' + item.unit : '')).join('；') + '；' + summaryText('主要原因：', 'Leading causes: ') + (topCauses.value.map(item => item.name).join('、') || '—'));
+
 // 报表导出：在页面内生成 CSV 并下载。
 type Cell = string | number;
 type Translate = (zh: string, en: string) => string;
@@ -191,7 +243,13 @@ function buildOperationReportCsv(report: ReportExport, t: Translate): string {
     ...report.cards.map(card => [card.label, card.value, card.unit, card.hint]),
     [],
   ];
-  if (report.report === 2) {
+  if (report.report === 3) {
+    rows.push([t('统计粒度', 'Time Granularity'), report.grain]);
+    rows.push([t('时间', 'Time'), t('水锤报警率（%）', 'Water Hammer Alarm Rate (%)'), t('维修完成率（%）', 'Repair Completion Rate (%)')]);
+    rows.push(...report.trend.map(item => [item.date, item.totalAlarms ? (item.alarms / item.totalAlarms * 100).toFixed(2) : '—', item.repairs ? (item.completed / item.repairs * 100).toFixed(2) : '—']));
+    rows.push([], [t('主要原因（前三项）', 'Leading Causes (Top 3)'), t('事件数', 'Events')]);
+    rows.push(...[...report.causes].filter(item => item.value > 0).sort((a, b) => b.value - a.value).slice(0, 3).map(item => [item.name, item.value]));
+  } else if (report.report === 2) {
     const total = report.causes.reduce((sum, item) => sum + item.value, 0);
     rows.push([t('原因', 'Cause'), t('事件数', 'Events'), t('占比（%）', 'Share (%)')]);
     rows.push(...report.causes.map(item => [item.name, item.value, total ? (item.value / total * 100).toFixed(2) : '—']));
@@ -636,6 +694,31 @@ button:hover {
 
   .filter-group {
     gap: 6px;
+  }
+}
+
+.overview-charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.overview-charts__heading,
+.overview-charts__causes {
+  grid-column: 1 / -1;
+}
+
+.overview-charts .chart-panel {
+  margin-bottom: 0;
+}
+
+.overview-charts {
+  margin-bottom: 16px;
+}
+
+@media (max-width: 1100px) {
+  .overview-charts {
+    grid-template-columns: 1fr;
   }
 }
 </style>
