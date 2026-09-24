@@ -8,8 +8,8 @@
         </view>
         <view class="filter-group">
           <text class="filter-label">{{ localeText("所属分区", "Partition") }}</text>
-          <picker :range="areaOptions" :value="areaIndex" @change="areaIndex = Number($event.detail.value)">
-            <view class="filter-select"><text class="filter-select__text">{{ areaOptions[areaIndex] }}</text><text class="filter-select__arrow" /></view>
+          <picker :range="areaOptions" :disabled="departmentsLoading" :value="areaIndex" @change="areaIndex = Number($event.detail.value)">
+            <view class="filter-select"><text class="filter-select__text">{{ departmentsLoading ? localeText('正在加载分区…', 'Loading partitions...') : areaOptions[areaIndex] }}</text><text class="filter-select__arrow" /></view>
           </picker>
         </view>
         <view class="toolbar-actions">
@@ -18,14 +18,22 @@
         </view>
       </view>
     </view>
+    <view v-if="departmentsFailed" class="partition-error">
+      <text>{{ localeText('分区加载失败，请重试', 'Failed to load partitions. Please retry.') }}</text>
+      <button class="secondary-button" :disabled="departmentsLoading" @click="loadDepartments">{{ localeText('重试', 'Retry') }}</button>
+    </view>
+    <view v-if="listError" class="partition-error">
+      <text>{{ listError }}</text>
+      <button class="secondary-button" @click="search">{{ localeText('重试', 'Retry') }}</button>
+    </view>
     <view class="panel">
       <view class="summary">
         <view class="filter current-device">
           <text class="filter-label">{{ localeText("当前设备", "Current Device") }}</text>
           <view class="current-device__selection">
-            <picker class="current-device__picker" :range="matches" range-key="number" :value="deviceIndex" :disabled="!matches.length" @change="deviceIndex = Number($event.detail.value); typeIndex = 0">
+            <picker class="current-device__picker" :range="matches" range-key="number" :value="deviceIndex" :disabled="!matches.length" @change="selectDevice">
               <view class="filter-select" :class="{ 'filter-select--empty': !matches.length }">
-                <text class="filter-select__text">{{ selected?.number || localeText('暂无设备', 'No device') }}</text>
+                <text class="filter-select__text">{{ loading ? localeText('正在加载…', 'Loading...') : selected?.number || localeText('暂无设备', 'No device') }}</text>
                 <text class="filter-select__arrow" />
               </view>
             </picker>
@@ -33,22 +41,23 @@
           </view>
         </view>
         <text v-if="selected">{{ localeText("所属分区：", "Partition: ") }}{{ selected.area }}</text>
-        <text v-if="selected" class="status" :class="{ offline: !selected.online }">● {{ selected.online ? localeText('在线', 'Online') : localeText('离线', 'Offline') }}</text>
+        <text v-if="selected && selected.online !== null" class="status" :class="{ offline: !selected.online }">● {{ selected.online ? localeText('在线', 'Online') : localeText('离线', 'Offline') }}</text>
       </view>
       <view class="columns">
         <view class="ledger-column">
-          <view class="heading"><text>{{ localeText("设备台账", "Device Ledger") }}</text><text class="muted small">{{ localeText("设备当前信息", "Current Device Info") }}</text></view>
+          <view class="heading"><text>{{ localeText("设备台账", "Device Ledger") }}</text><text class="muted small">{{ detailLoading ? localeText('正在加载详情…', 'Loading details...') : localeText("设备当前信息", "Current Device Info") }}</text></view>
           <view class="detail-panel__tabs">
             <view v-for="tab in detailTabs" :key="tab.key" class="detail-panel__tab" :class="{ 'detail-panel__tab--active': activeTab === tab.key }" @click="activeTab = tab.key">{{ tab.title }}</view>
           </view>
           <view class="detail-panel__body ledger-page">
+            <view v-if="detailError" class="detail-error">{{ detailError }}</view>
             <view v-for="(column, columnIndex) in sectionColumns" :key="columnIndex" class="ledger-page__column">
             <view v-for="section in column" :key="section.title" class="detail-panel__timeline-section">
               <text class="detail-panel__timeline-title">{{ section.title }}</text>
               <view class="detail-panel__grid detail-panel__grid--base">
                 <view v-for="field in section.fields" :key="field.key" class="detail-panel__item detail-panel__item--base">
                   <text class="detail-panel__item-label">{{ field.label }}</text>
-                  <text class="detail-panel__item-value">{{ selected?.details[field.key] ?? '--' }}</text>
+                  <text class="detail-panel__item-value">{{ formatDetail(field.key, field.value ?? selected?.details[field.key]) }}</text>
                 </view>
               </view>
             </view>
@@ -103,34 +112,63 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
+import { getDeviceResumeDeptTree } from '@/services/report/device-resume';
+import type { DepartmentNode, DeviceId } from '@/services/report/device-resume';
+import { formatLedgerField, useDeviceLedgerData } from '../../components/useDeviceLedgerData';
+import type { LedgerLifecycleRecord } from '../../components/useDeviceLedgerData';
 import { useLocaleText } from '@/i18n/localeText';
 
 const localeText = useLocaleText();
 
-interface LedgerLifecycleRecord {
-  id: string | number;
-  eventName: string;
-  eventTime: string;
-  operatorName?: string;
-  beforeStatus?: string;
-  afterStatus?: string;
-  address?: string;
-  description?: string;
-}
-
-interface LedgerDevice {
-  number: string;
-  details: Record<string, string | number | undefined>;
-  area: string;
-  online: boolean;
-  lifecycle: number[];
-  lifecycleRecords?: LedgerLifecycleRecord[];
-  changes: { time: string; operator: string; field: string; before: string; after: string; type: string }[];
-}
-
-const devices = ref<LedgerDevice[]>([]);
+const { devices, loading, listError, detailLoading, detailError, loadDevices, loadDeviceDetails, dispose } = useDeviceLedgerData();
+const formatDetail = (key: string, value: string | number | undefined) => formatLedgerField(key, value, localeText);
 const areas = ref<string[]>(['全部分区']);
+const areaIds = ref<Array<DeviceId | undefined>>([undefined]);
+const departmentsLoading = ref(false);
+const departmentsFailed = ref(false);
+let disposed = false;
+
+type PartitionNode = Omit<DepartmentNode, 'children'> & {
+  regionName?: string;
+  children?: PartitionNode[];
+};
+
+async function loadDepartments() {
+  if (departmentsLoading.value) return;
+  departmentsLoading.value = true;
+  departmentsFailed.value = false;
+  try {
+    const response = await getDeviceResumeDeptTree();
+    if (response.code !== undefined && response.code !== 0 && response.code !== 200) {
+      throw new Error(response.msg || 'Partition query failed');
+    }
+    if (!Array.isArray(response.data)) throw new Error('Invalid partition data');
+    const options: Array<{ id: DeviceId; name: string }> = [];
+    const visit = (nodes: PartitionNode[]) => {
+      for (const node of nodes) {
+        const name = node.regionName || node.deptName || node.name;
+        if (name && node.id != null) options.push({ id: node.id, name });
+        if (Array.isArray(node.children)) visit(node.children);
+      }
+    };
+    visit(response.data);
+    if (disposed) return;
+    const currentArea = areas.value[areaIndex.value];
+    const unique = options.filter((option, index) => options.findIndex(candidate => candidate.id === option.id) === index);
+    areas.value = ['全部分区', ...unique.map(option => option.name)];
+    areaIds.value = [undefined, ...unique.map(option => option.id)];
+    areaIndex.value = Math.max(0, areas.value.indexOf(currentArea));
+  } catch {
+    if (!disposed) departmentsFailed.value = true;
+  } finally {
+    if (!disposed) departmentsLoading.value = false;
+  }
+}
+
+onMounted(async () => { await loadDepartments(); if (!disposed) search(); });
+onBeforeUnmount(() => { disposed = true; dispose(); });
+
 const areaOptions = computed(() => areas.value.map((area, index) => index === 0 ? localeText('全部分区', 'All Partitions') : area));
 const typeSources = ['全部类型', '基础信息变更', '安装信息变更', '分区变更', '状态信息变更'] as const;
 const types = computed(() => [
@@ -148,11 +186,9 @@ const lifecycleLabels = computed(() => [
 ]);
 const number = ref('');
 const areaIndex = ref(0);
-const queryNumber = ref('');
-const queryArea = ref(0);
 const deviceIndex = ref(0);
 const typeIndex = ref(0);
-const matches = computed(() => devices.value.filter(device => device.number.includes(queryNumber.value) && (!queryArea.value || device.area === areas.value[queryArea.value])));
+const matches = computed(() => devices.value);
 const selected = computed(() => matches.value[deviceIndex.value]);
 const recentLifecycle = computed(() => [...(selected.value?.lifecycleRecords || [])]
   .sort((a, b) => b.eventTime.localeCompare(a.eventTime))
@@ -185,16 +221,38 @@ const detailSections = computed(() => [
   { tab: 'relation', title: localeText('阀门信息', 'Valve Information'), fields: [['valveNumber', localeText('阀门编号', 'Valve No.')], ['valveName', localeText('阀门名称', 'Valve Name')]] },
   { tab: 'relation', title: localeText('分区信息', 'Partition Information'), fields: [['deptName', localeText('所属分区', 'Partition')], ['deptAdministrator', localeText('负责人', 'Owner')], ['description', localeText('描述', 'Description')]] },
 ]);
-const sectionColumns = computed(() => {
+type LedgerSection = { title: string; fields: Array<{ key: string; label: string; value?: string | number }> };
+const sectionColumns = computed<LedgerSection[][]>(() => {
   const groups = activeTab.value === 'overview'
     ? [['base'], ['status', 'install']]
     : [['communication'], ['relation']];
-  return groups.map(tabs => detailSections.value.filter(section => tabs.includes(section.tab)).map(section => ({
-    title: section.title,
-    fields: section.fields.map(([key, label]) => ({ key, label })),
-  })));
+  return groups.map(tabs => detailSections.value.filter(section => tabs.includes(section.tab)).flatMap(section => {
+    if (section.tab === 'relation' && section.fields[0]?.[0] === 'deptName' && selected.value?.partitions.length) {
+      return selected.value.partitions.map((partition, index) => ({
+        title: selected.value!.partitions.length > 1 ? `${section.title} ${index + 1}` : section.title,
+        fields: section.fields.map(([key, label]) => ({
+          key,
+          label,
+          value: partition[key as keyof typeof partition],
+        })),
+      }));
+    }
+    return [{ title: section.title, fields: section.fields.map(([key, label]) => ({ key, label })) }];
+  }));
 });
-function search() { queryNumber.value = number.value.trim(); queryArea.value = areaIndex.value; deviceIndex.value = 0; typeIndex.value = 0; }
+function selectDevice(event: { detail: { value: string | number } }) {
+  deviceIndex.value = Number(event.detail.value);
+  typeIndex.value = 0;
+  const device = selected.value;
+  if (device) void loadDeviceDetails(device);
+}
+function search() {
+  deviceIndex.value = 0;
+  typeIndex.value = 0;
+  const areaById = new Map(areaIds.value.flatMap((id, index): Array<[string, string]> =>
+    id == null ? [] : [[String(id), areas.value[index]]]));
+  void loadDevices({ deviceNumber: number.value.trim() || undefined, deptId: areaIds.value[areaIndex.value] }, areaById);
+}
 function reset() { number.value = ''; areaIndex.value = 0; search(); }
 </script>
 
@@ -346,7 +404,7 @@ button.primary {
   min-height: 0;
   overflow: hidden;
   grid-template-rows: minmax(0, 1fr);
-  grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+  grid-template-columns: minmax(0, 3fr) minmax(300px, 2fr);
 }
 
 .ledger-column,
@@ -693,12 +751,16 @@ button.primary {
 }
 
 .ledger-page .detail-panel__item--base {
-  grid-template-columns: minmax(0, 1fr) minmax(50px, 1fr);
-  gap: 10px;
+  grid-template-columns: minmax(0, 132px) minmax(0, 1fr);
+  gap: 4px;
 }
 
 .ledger-page .detail-panel__item-label {
   line-height: 1.4;
+}
+
+.ledger-page .detail-panel__item--base .detail-panel__item-value {
+  text-align: right;
 }
 
 .detail-panel__timeline-section + .detail-panel__timeline-section {
@@ -779,5 +841,22 @@ button.primary {
     gap: 12px;
   }
 }
+.partition-error {
+  display: flex;
+  align-items: center;
+  flex: none;
+  gap: 12px;
+  margin-bottom: 14px;
+  color: #b45309;
+  font-size: 13px;
+}
+.detail-error {
+  grid-column: 1 / -1;
+  padding: 8px 10px;
+  color: #b45309;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 4px;
+  font-size: 12px;
+}
 </style>
-

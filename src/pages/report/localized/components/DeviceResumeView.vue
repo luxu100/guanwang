@@ -40,17 +40,17 @@
             </view>
             <view
               v-for="(device, index) in pageDevices"
-              :key="device.id"
+              :key="device.deviceNumber"
               class="table-row device-table-row"
-              :class="{ 'table-row--active': selectedId === device.id }"
-              @click="select(device.id)"
+              :class="{ 'table-row--active': selectedDeviceNumber === device.deviceNumber }"
+              @click="select(device.deviceNumber)"
             >
               <view class="table-cell col-index">{{ (page - 1) * size + index + 1 }}</view>
               <view class="table-cell col-dept-name" :title="device.deptNames">{{ device.deptNames || '—' }}</view>
               <view class="table-cell col-device-number" :title="device.deviceNumber">{{ device.deviceNumber }}</view>
               <view class="table-cell col-device-alias" :title="device.deviceAlias">{{ device.deviceAlias || '—' }}</view>
               <view class="table-cell col-state">
-                <text class="status-pill" :class="device.onlineStatus === 1 ? 'success' : 'neutral'">
+                <text class="status-pill" :class="getOnlineStatusClass(device.onlineStatus)">
                   {{ getOnlineStatusText(device.onlineStatus) }}
                 </text>
               </view>
@@ -76,13 +76,9 @@
           <text>{{ localeText("设备履历详情", "Device Lifecycle Details") }}</text>
           <text class="table-head__meta">{{ selected?.deviceNumber || localeText('未选择设备', 'No device selected') }}</text>
         </view>
-        <view v-if="selected" class="detail-scroll">
-          <view class="summary">
-            <view class="summary-title">
-              <text>{{ selected.deviceAlias }}</text>
-              <text class="status-pill" :class="tone(selected.status)">{{ selected.status || '—' }}</text>
-            </view>
-            <view class="info-grid">
+          <view v-if="selected" class="detail-scroll">
+            <view class="summary">
+              <view class="info-grid">
               <view>
                 <text class="muted">{{ localeText("设备编号", "Device No.") }}</text>
                 <text>{{ selected.deviceNumber }}</text>
@@ -96,7 +92,7 @@
                 <text>{{ selected.deviceType || '—' }}</text>
               </view>
               <view>
-                <text class="muted">{{ localeText("首次安装", "First Install") }}</text>
+                <text class="muted">{{ localeText("安装时间", "Install Time") }}</text>
                 <text>{{ selected.installTime || '—' }}</text>
               </view>
               <view class="wide">
@@ -118,7 +114,7 @@
           </view>
           <view v-if="detailLoading || detailError" class="table-state">
             <text>{{ detailLoading ? localeText('正在加载履历…', 'Loading lifecycle...') : detailError }}</text>
-            <button v-if="detailError" class="table-action-btn" @click="select(selected.id)">{{ localeText("重新加载", "Reload") }}</button>
+            <button v-if="detailError" class="table-action-btn" @click="select(selected.deviceNumber)">{{ localeText("重新加载", "Reload") }}</button>
           </view>
           <view v-else-if="!visibleEvents.length" class="table-state">
             <text>{{ getEmptyEventText() }}</text>
@@ -161,12 +157,12 @@ import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
 import { useLocaleText, useLocalizedPageInfo } from '@/i18n/localeText';
 import {
   getDeviceResumePage,
-  getDeviceLifecycle,
   getDeviceResumeDeptTree,
+  getDeviceMaintenancePage,
 } from '@/services/report/device-resume';
 import type {
   DeviceResumeItem, DeviceId, LifecycleEvent,
-  DepartmentNode, DeviceResumeQuery, EventType,
+  DepartmentNode, DeviceResumeQuery, EventType, DeviceMaintenanceItem,
 } from '@/services/report/device-resume';
 import type { ApiResponse } from '@/types/api';
 
@@ -199,8 +195,7 @@ function flattenDepartments(nodes: DepartmentNode[]): DepartmentOption[] {
   ]);
 }
 
-// 后端就绪并核对响应字段后改为 true，启用真实接口请求。
-const connected = false;
+const connected = true;
 const areas = ref<Array<{ id?: DeviceId; name: string }>>([{ name: '全部分区' }]);
 const areaOptions = computed(() => areas.value.map(area => ({
   ...area,
@@ -218,7 +213,7 @@ function handleJumpPage() {
   if (canJump.value) changePage(Number(jumpPage.value));
 }
 const pageDevices = ref<DeviceResumeItem[]>([]);
-const selectedId = ref<DeviceId | null>(null);
+const selectedDeviceNumber = ref<string | null>(null);
 const events = ref<LifecycleEvent[]>([]);
 const eventType = ref<EventType | ''>('');
 const ascending = ref(false);
@@ -231,35 +226,96 @@ let appliedFilters: Pick<DeviceResumeQuery, 'deviceNumber' | 'deptId'> = {};
 let listRequest = 0;
 let detailRequest = 0;
 let disposed = false;
-const selected = computed(() => pageDevices.value.find(device => device.id === selectedId.value));
+const selected = computed(() => pageDevices.value.find(device => device.deviceNumber === selectedDeviceNumber.value));
 const visibleEvents = computed(() => events.value
   .filter(event => !eventType.value || event.eventType === eventType.value)
   .slice().sort((a, b) => ascending.value
     ? a.eventTime.localeCompare(b.eventTime) : b.eventTime.localeCompare(a.eventTime)));
 
-async function select(id: DeviceId) {
-  selectedId.value = id;
+function select(deviceNumber: string) {
+  selectedDeviceNumber.value = deviceNumber;
   eventType.value = '';
   events.value = [];
   detailError.value = '';
+  void loadLifecycle(deviceNumber);
+}
+
+const maintenanceEventTypes: Record<number, EventType> = {
+  0: 'REMOVE',
+  1: 'INSTALL',
+  2: 'MAINTAIN',
+  3: 'INSPECT',
+};
+
+function getMaintenanceStatus(record: DeviceMaintenanceItem, before: boolean): string {
+  if (record.maintainType === 1) return before ? localeText('未安装', 'Not installed') : localeText('已安装', 'Installed');
+  if (record.maintainType === 0) return before ? localeText('已安装', 'Installed') : localeText('未安装', 'Not installed');
+  if (record.installState === 1) return localeText('已安装', 'Installed');
+  if (record.installState === 0) return localeText('未安装', 'Not installed');
+  return '';
+}
+
+function mapLifecycleRecord(record: DeviceMaintenanceItem): LifecycleEvent {
+  const eventType = maintenanceEventTypes[Number(record.maintainType)] || 'MAINTAIN';
+  return {
+    id: record.id,
+    deviceId: record.deviceId || record.deviceNumber || '',
+    eventType,
+    eventName: eventLabels.value[eventType],
+    eventTime: record.maintainTime || record.createdAt || '',
+    operatorName: record.maintainAccount,
+    address: record.maintainAddress,
+    coordinate: record.maintainCoordinate,
+    beforeStatus: getMaintenanceStatus(record, true),
+    afterStatus: getMaintenanceStatus(record, false),
+    description: record.maintainFeedback,
+    remark: record.remark,
+  };
+}
+
+async function loadLifecycle(deviceNumber: string) {
   const request = ++detailRequest;
-  if (!connected) return;
   detailLoading.value = true;
+  detailError.value = '';
   try {
-    const result = unwrap(await getDeviceLifecycle(id));
-    if (request === detailRequest) events.value = result;
+    const result = unwrap(await getDeviceMaintenancePage({
+      deviceNumber,
+      pageNum: 1,
+      pageSize: 200,
+      sortField: 'maintainTime',
+      sortOrder: 'desc',
+    }));
+    if (disposed || request !== detailRequest || selectedDeviceNumber.value !== deviceNumber) return;
+    events.value = (result.records || []).map(mapLifecycleRecord);
   } catch (error) {
-    if (request === detailRequest) detailError.value = error instanceof Error ? error.message : localeText('履历加载失败', 'Failed to load lifecycle');
+    if (!disposed && request === detailRequest) {
+      detailError.value = error instanceof Error ? error.message : localeText('设备履历加载失败', 'Failed to load device history');
+    }
   } finally {
-    if (request === detailRequest) detailLoading.value = false;
+    if (!disposed && request === detailRequest) detailLoading.value = false;
   }
+}
+
+function normalizeDeviceDepartments(records: DeviceResumeItem[]): DeviceResumeItem[] {
+  const departmentNames = new Map(areas.value
+    .filter((area): area is { id: DeviceId; name: string } => area.id !== undefined)
+    .map(area => [String(area.id), area.name]));
+  return records.map(device => ({
+    ...device,
+    deptNames: device.deptNames
+      || device.regionNames
+      || device.deptName
+      || device.regionName
+      || departmentNames.get(String(device.deptId ?? device.regionId ?? ''))
+      || '',
+  }));
 }
 
 async function loadDevices() {
   if (!connected) return;
   const request = ++listRequest;
   ++detailRequest;
-  selectedId.value = null;
+  selectedDeviceNumber.value = null;
   pageDevices.value = [];
   events.value = [];
   total.value = 0;
@@ -278,11 +334,11 @@ async function loadDevices() {
       await loadDevices();
       return;
     }
-    pageDevices.value = records;
+    pageDevices.value = normalizeDeviceDepartments(records);
     total.value = totalCount;
     // 初次加载、查询和翻页后默认展示当前页第一台设备的履历。
-    const next = records[0];
-    if (next) void select(next.id);
+    const next = pageDevices.value[0];
+    if (next) select(next.deviceNumber);
   } catch (error) {
     if (request === listRequest) listError.value = error instanceof Error ? error.message : localeText('设备加载失败', 'Failed to load devices');
   } finally {
@@ -290,7 +346,6 @@ async function loadDevices() {
   }
 }
 async function loadDepartments() {
-  if (!connected) return;
   departmentError.value = '';
   try {
     const options = flattenDepartments(unwrap(await getDeviceResumeDeptTree()));
@@ -315,10 +370,21 @@ function changePage(value: number) {
   page.value = value;
   void loadDevices();
 }
-function getOnlineStatusText(status?: number | null): string {
-  if (status === 1) return localeText('在线', 'Online');
-  if (status === 0) return localeText('离线', 'Offline');
+function normalizeOnlineStatus(status?: number | string | null): number | null {
+  if (status === 1 || status === '1') return 1;
+  if (status === 0 || status === '0') return 0;
+  return null;
+}
+function getOnlineStatusText(status?: number | string | null): string {
+  if (normalizeOnlineStatus(status) === 1) return localeText('在线', 'Online');
+  if (normalizeOnlineStatus(status) === 0) return localeText('离线', 'Offline');
   return '—';
+}
+function getOnlineStatusClass(status?: number | string | null): string {
+  const normalized = normalizeOnlineStatus(status);
+  if (normalized === 1) return 'status-pill--open';
+  if (normalized === 0) return 'status-pill--close';
+  return 'status-pill--unknown';
 }
 function getEmptyEventText() {
   if (!eventType.value) return localeText('暂无记录', 'No records');
@@ -835,11 +901,30 @@ onBeforeUnmount(() => { disposed = true; ++listRequest; ++detailRequest; });
 
 .status-pill {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 54px;
+  height: 24px;
   padding: 3px 8px;
+  border: 1px solid transparent;
   border-radius: 999px;
   font-size: 12px;
-  line-height: 18px;
+  font-weight: 800;
+  line-height: 24px;
   white-space: nowrap;
+}
+
+.status-pill--open {
+  color: #177245;
+  background: #eaf8ef;
+  border-color: #bfe8ce;
+}
+
+.status-pill--close,
+.status-pill--unknown {
+  color: #5f7186;
+  background: #f3f6f9;
+  border-color: #dbe4ec;
 }
 
 .success {
@@ -885,21 +970,11 @@ onBeforeUnmount(() => { disposed = true; ++listRequest; ++detailRequest; });
   padding: 16px;
 }
 
-.summary-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 16px;
-  font-weight: 700;
-  color: #24445f;
-}
-
 .info-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px 18px;
-  margin-top: 18px;
+  margin-top: 0;
 }
 
 .info-grid > view {
