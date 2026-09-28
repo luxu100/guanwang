@@ -93,3 +93,14 @@
 ```
 
 异常和处置相关内容已经分散到水锤汇总、原因分析、维修工单及报表导出中，不需要重新补这两个旧接口。
+
+## 9. OpenAPI 数组元素模型重名
+
+2026-09-24 最新 OpenAPI 已登记本模块使用的爆管识别、测点分析和漏损报表接口，但文档中存在模型命名冲突：
+
+- 爆管详情 `BurstPipeAnalyzeVO.points` 引用 `Point`。
+- 同环比趋势 `ComparisonTrendVO.series` 引用 `Point`。
+- 漏损趋势 `LeakTrendVO.series` 也引用 `Point`。
+- `components.schemas` 最终只保留了一份漏损趋势的 `Point` 定义。
+
+因此 Swagger 中爆管压力点和同环比趋势点的字段说明不准确。前端暂时继续按照 `api-notes.md` 中约定的实际返回字段解析；后端需要将这三种元素模型改成不同的类名后重新生成 OpenAPI。

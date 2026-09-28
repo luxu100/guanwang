@@ -159,11 +159,11 @@ export interface ComparisonOverview {
   period?: string;
   periodValue?: string;
   unit?: string;
-  currentValue?: number;
-  yoyValue?: number;
+  currentValue?: number | null;
+  yoyValue?: number | null;
   /** 同比增长率 % */
   yoyRate?: number | null;
-  momValue?: number;
+  momValue?: number | null;
   /** 环比增长率 % */
   momRate?: number | null;
   sampleCount?: number;
@@ -182,10 +182,10 @@ export interface ComparisonOverviewQuery {
 
 /** 同环比趋势序列点（4.4） */
 export interface ComparisonTrendPoint {
-  momValue?: number;
+  momValue?: number | null;
   period: string;
-  currentValue?: number;
-  yoyValue?: number;
+  currentValue?: number | null;
+  yoyValue?: number | null;
   yoyRate?: number | null;
   momRate?: number | null;
 }

@@ -326,11 +326,14 @@ async function fetchResults() {
   error.value = "";
   loading.value = true;
 
+  let first: (BurstPipeResult & { resultKey: string }) | undefined;
+
   try {
     const res = await getBurstPipeResultsT({
-      ...searchForm.value,
-      deviceNumber: searchForm.value.deviceNumber.trim(),
-      deptId: searchForm.value.deptId === "" ? null : Number(searchForm.value.deptId),
+      deviceNumber: searchForm.value.deviceNumber.trim() || undefined,
+      deptId: searchForm.value.deptId === "" ? undefined : Number(searchForm.value.deptId),
+      startTime: searchForm.value.startTime || undefined,
+      endTime: searchForm.value.endTime || undefined,
       status: searchForm.value.status || undefined,
       pageNum: pagination.value.current,
       pageSize: pagination.value.size,
@@ -338,25 +341,21 @@ async function fetchResults() {
 
     if (request !== listRequest) return;
     const page = res.data;
+    const records = page?.records;
 
-    resultList.value = (page?.records ?? []).map((row) => ({
+    if (records != null && !Array.isArray(records)) {
+      throw new TypeError("爆管识别分页数据 records 不是数组");
+    }
+
+    resultList.value = (records ?? []).map((row) => ({
       ...row,
       resultKey: buildKey(row),
     }));
 
     pagination.value.total = page?.total ?? 0;
-
-    // 默认选中第一条
-    const first = resultList.value[0];
-
-    if (first) {
-      await handleRowClick(first);
-    } else {
-      selectedKey.value = null;
-      analyzeData.value = null;
-      disposeChart();
-    }
-  } catch {
+    first = resultList.value[0];
+  } catch (failure) {
+    console.error("爆管识别结果加载失败", failure);
     if (request !== listRequest) return;
     error.value = "识别结果加载失败";
     resultList.value = [];
@@ -366,6 +365,17 @@ async function fetchResults() {
     disposeChart();
   } finally {
     if (request === listRequest) loading.value = false;
+  }
+
+  if (request !== listRequest) return;
+
+  // 详情请求拥有独立的错误处理，失败时保留已经成功加载的列表。
+  if (first) {
+    void handleRowClick(first);
+  } else {
+    selectedKey.value = null;
+    analyzeData.value = null;
+    disposeChart();
   }
 }
 
@@ -426,7 +436,8 @@ async function handleRowClick(
     await nextTick();
 
     if (request === detailRequest) renderChart();
-  } catch {
+  } catch (failure) {
+    console.error("爆管压力曲线加载失败", failure);
     if (request !== detailRequest) return;
     error.value = "压力曲线加载失败，请重新选择识别窗口";
     analyzeData.value = null;
