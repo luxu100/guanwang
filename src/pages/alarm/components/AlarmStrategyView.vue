@@ -258,13 +258,14 @@
             </view>
 
             <view class="form-field">
-              <text class="form-label">发送通知</text>
+              <text class="form-label">邮件通知</text>
               <view class="switch-field" @click="form.notifyEnabled = !form.notifyEnabled">
                 <view class="switch-track" :class="{ 'switch-track--on': form.notifyEnabled }">
                   <view class="switch-thumb"></view>
                 </view>
                 <text class="switch-label">{{ form.notifyEnabled ? "开启" : "关闭" }}</text>
               </view>
+              <view class="form-hint">开启后新报警按系统配置发送邮件（默认 WARNING 及以上级别，收件人由系统统一配置）</view>
             </view>
 
             <view class="form-field form-field--full">
@@ -366,6 +367,9 @@ const textFormatters: Record<string, (item: AlarmRule) => string> = {
   thresholdDesc: (item) => getThresholdDescText(item),
   scope: (item) => getScopeText(item),
   enabledText: (item) => (item.enabled ? "启用" : "停用"),
+  // null（老数据/接口未返回）显示 "-"，不臆测为开或关
+  notifyText: (item) =>
+    item.notifyEnabled == null ? "-" : item.notifyEnabled ? "开启" : "关闭",
 };
 
 function getCellValue(item: AlarmRule, key: string): unknown {
@@ -1083,7 +1087,7 @@ onMounted(() => {
 
 .rule-table-row {
   /* 列宽模板由 alarmColumns.ts 的 strategyGridColumns 内联绑定（字段配置化） */
-  min-width: 1080px;
+  min-width: 1160px;
 }
 
 .table-row--header {

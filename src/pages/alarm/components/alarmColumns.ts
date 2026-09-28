@@ -66,7 +66,7 @@ export const processingColumns: AlarmTableColumn[] = [
   { key: "triggerCount", label: "触发次数", labelEn: "Trigger Count", renderType: "text", width: "minmax(72px, 0.7fr)" },
   { key: "lastTriggeredAt", label: "最后触发", labelEn: "Last Triggered", renderType: "text", formatKey: "lastTriggeredAt", width: "minmax(140px, 1.3fr)", className: "col-alarm-time" },
   { key: "status", label: "状态", labelEn: "Status", renderType: "status-pill", width: "minmax(80px, 0.8fr)" },
-  { key: "action", label: "操作", labelEn: "Actions", renderType: "action", width: "minmax(190px, 1.1fr)" },
+  { key: "action", label: "操作", labelEn: "Actions", renderType: "action", width: "minmax(250px, 1.1fr)" },
 ];
 
 /** 处理页表格 grid 列宽（不含复选框列——后端无 batch-confirm，批量确认未提供） */
@@ -103,7 +103,8 @@ export const strategyColumns: AlarmTableColumn[] = [
   { key: "thresholdDesc", label: "判定条件", labelEn: "Condition", renderType: "text", formatKey: "thresholdDesc", width: "minmax(140px, 1.3fr)" },
   { key: "scopeDesc", label: "生效范围", labelEn: "Scope", renderType: "text", formatKey: "scope", width: "minmax(88px, 0.9fr)" },
   { key: "enabled", label: "状态", labelEn: "Status", renderType: "text", formatKey: "enabledText", width: "minmax(68px, 0.7fr)" },
-  { key: "action", label: "操作", labelEn: "Actions", renderType: "action", width: "minmax(180px, 1fr)" },
+  { key: "notifyEnabled", label: "邮件通知", labelEn: "Email Notify", renderType: "text", formatKey: "notifyText", width: "minmax(72px, 0.75fr)" },
+  { key: "action", label: "操作", labelEn: "Actions", renderType: "action", width: "minmax(200px, 1fr)" },
 ];
 
 /** 策略页表格 grid 列宽 */
