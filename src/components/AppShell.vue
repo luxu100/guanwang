@@ -51,11 +51,41 @@
           compact
           class="top-actions__logo-binding"
         />
-        <view class="warning-entry" aria-label="预警信息" @click="goPage('/pages/alarm/processing/processing')">
-          <view class="warning-entry__icon-wrap">
-            <text class="warning-entry__icon"></text>
+        <view class="warning-entry" aria-label="预警信息">
+          <view class="warning-entry__trigger" @click="toggleAlarmPanel">
+            <view class="warning-entry__icon-wrap">
+              <text class="warning-entry__icon"></text>
+            </view>
+            <text v-if="warningCount > 0" class="warning-entry__badge">{{ warningCountText }}</text>
           </view>
-          <text v-if="warningCount > 0" class="warning-entry__badge">{{ warningCountText }}</text>
+          <!-- 铃铛下拉：今日新增报警列表 -->
+          <view v-if="alarmPanelVisible" class="alarm-panel" @click.stop>
+            <view class="alarm-panel__head">
+              <text>今日新增报警</text>
+              <text class="alarm-panel__count">{{ alarmTodayTotal }} 条</text>
+            </view>
+            <scroll-view class="alarm-panel__list" scroll-y>
+              <view v-if="alarmTodayLoading" class="alarm-panel__state">加载中...</view>
+              <view v-else-if="alarmTodayFailed" class="alarm-panel__state alarm-panel__state--action" @click="loadTodayAlarms(true)">加载失败，点击重试</view>
+              <view v-else-if="alarmTodayList.length === 0" class="alarm-panel__state">今天暂无新增报警</view>
+              <template v-else>
+                <view
+                  v-for="item in alarmTodayList"
+                  :key="item.id"
+                  class="alarm-panel__item"
+                  @click="goAlarmProcessing"
+                >
+                  <text class="alarm-panel__dot" :class="`alarm-panel__dot--${item.alarmLevel || 'INFO'}`"></text>
+                  <view class="alarm-panel__item-main">
+                    <text class="alarm-panel__device">{{ item.deviceNumber || "-" }}</text>
+                    <text class="alarm-panel__meta">{{ item.alarmTypeName || item.alarmType || "-" }}</text>
+                  </view>
+                  <text class="alarm-panel__time">{{ fmtAlarmTime(item.firstTriggeredAt) }}</text>
+                </view>
+              </template>
+            </scroll-view>
+            <view class="alarm-panel__foot" @click="goAlarmProcessing">查看全部 ›</view>
+          </view>
         </view>
         <LanguageSelect :key="locale" class="top-actions__lang" />
         <view class="user-chip">
@@ -214,7 +244,7 @@ import AppShellModuleHost from "@/components/app-shell/AppShellModuleHost.vue";
 import LanguageSelect from "@/components/common/LanguageSelect.vue";
 import UserLogoBindingField from "@/pages/system/components/UserLogoBindingField.vue";
 import { getSysFileDetail } from "@/services/system/file";
-import { getLatestActiveAlarms } from "@/services/alarm/processing";
+import { getAlarmPage, getLatestActiveAlarms } from "@/services/alarm/processing";
 
 // import appShellModules from "@/components/app-shell/appShellModules.local";
 import appShellModules from "@/components/app-shell/appShellModules.localized";
@@ -1123,6 +1153,86 @@ function stopWarningPolling() {
   }
 }
 
+// ===== 铃铛下拉：今日新增报警（角标仍为活跃数近似；列表按首次触发时间取今日） =====
+interface AlarmTodayItem {
+  id?: number;
+  deviceNumber?: string;
+  deviceAlias?: string;
+  alarmType?: string | null;
+  alarmTypeName?: string | null;
+  alarmLevel?: string | null;
+  firstTriggeredAt?: string;
+}
+
+const alarmPanelVisible = ref(false);
+const alarmTodayLoading = ref(false);
+const alarmTodayFailed = ref(false);
+const alarmTodayTotal = ref(0);
+const alarmTodayList = ref<AlarmTodayItem[]>([]);
+/** 打开面板拉取过的时刻：60s 内重复打开不重复请求 */
+let alarmTodayFetchedAt = 0;
+
+/** 今日零点（后端时间只认带 T 的格式，见接口怪癖） */
+function fmtTodayStart(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T00:00:00`;
+}
+
+/** 面板行时间显示 MM-DD HH:mm */
+function fmtAlarmTime(value?: string): string {
+  if (!value) return "-";
+  const m = String(value).match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/);
+  return m ? `${m[1].slice(5)} ${m[2]}` : String(value);
+}
+
+async function loadTodayAlarms(force = false) {
+  if (alarmTodayLoading.value) return;
+  if (!force && alarmTodayFetchedAt && Date.now() - alarmTodayFetchedAt < 60 * 1000) return;
+  alarmTodayLoading.value = true;
+  alarmTodayFailed.value = false;
+  try {
+    const res = (await getAlarmPage({ startTime: fmtTodayStart(), pageNum: 1, pageSize: 8 } as never)) as {
+      code?: number;
+      msg?: string;
+      data?: { records?: AlarmTodayItem[]; total?: number };
+    };
+    if (res.code !== undefined && res.code !== 200) {
+      throw new Error(res.msg);
+    }
+    alarmTodayList.value = (res.data && res.data.records) || [];
+    alarmTodayTotal.value = (res.data && res.data.total) || 0;
+    alarmTodayFetchedAt = Date.now();
+  } catch {
+    alarmTodayFailed.value = true;
+  } finally {
+    alarmTodayLoading.value = false;
+  }
+}
+
+function toggleAlarmPanel() {
+  alarmPanelVisible.value = !alarmPanelVisible.value;
+  if (alarmPanelVisible.value) {
+    void loadTodayAlarms();
+  }
+}
+
+function closeAlarmPanel() {
+  alarmPanelVisible.value = false;
+}
+
+function goAlarmProcessing() {
+  closeAlarmPanel();
+  goPage("/pages/alarm/processing/processing");
+}
+
+/** 点面板外关闭（铃铛区域内不关，交给自身 click 逻辑） */
+function onDocMouseDownCloseAlarmPanel(event: MouseEvent) {
+  const target = event.target as HTMLElement | null;
+  if (target && target.closest && target.closest(".warning-entry")) return;
+  closeAlarmPanel();
+}
+
 onMounted(() => {
   if (!ensureAuthenticatedRoute()) {
     return;
@@ -1148,6 +1258,7 @@ onMounted(() => {
   syncFullscreenState();
   void refreshWarningCount();
   startWarningPolling();
+  document.addEventListener("mousedown", onDocMouseDownCloseAlarmPanel);
 });
 
 onUnmounted(() => {
@@ -1158,6 +1269,7 @@ onUnmounted(() => {
   window.removeEventListener("keydown", handleFullscreenKeydown);
   window.removeEventListener(BRAND_LOGO_UPDATED_EVENT, refreshNavigationLogo);
   stopWarningPolling();
+  document.removeEventListener("mousedown", onDocMouseDownCloseAlarmPanel);
 });
 // #endif
 
@@ -1461,6 +1573,142 @@ onMounted(() => {
   padding: 0;
   overflow: visible;
   color: #ffffff;
+  cursor: pointer;
+}
+
+.warning-entry__trigger {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* 铃铛下拉：今日新增报警面板 */
+.alarm-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  width: 320px;
+  max-height: 420px;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #d8e5ef;
+  border-radius: 6px;
+  box-shadow: 0 18px 42px rgba(15, 35, 55, 0.2);
+}
+
+.alarm-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: none;
+  padding: 10px 14px;
+  color: #172033;
+  font-size: 13px;
+  font-weight: 800;
+  border-bottom: 1px solid #edf3f8;
+}
+
+.alarm-panel__count {
+  color: #0d82ee;
+  font-weight: 900;
+}
+
+.alarm-panel__list {
+  flex: 1;
+  min-height: 0;
+  max-height: 300px;
+}
+
+.alarm-panel__state {
+  padding: 26px 14px;
+  color: #7c8da1;
+  font-size: 13px;
+  text-align: center;
+}
+
+.alarm-panel__state--action {
+  color: #0d82ee;
+  cursor: pointer;
+}
+
+.alarm-panel__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #f4f8fb;
+}
+
+.alarm-panel__item:hover {
+  background: #f2f9ff;
+}
+
+.alarm-panel__dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.alarm-panel__dot--INFO {
+  background: #3b82f6;
+}
+
+.alarm-panel__dot--WARNING {
+  background: #f59e0b;
+}
+
+.alarm-panel__dot--CRITICAL {
+  background: #ef4444;
+}
+
+.alarm-panel__item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.alarm-panel__device {
+  color: #172033;
+  font-size: 13px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alarm-panel__meta {
+  color: #7f92a6;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alarm-panel__time {
+  flex: none;
+  color: #7f92a6;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.alarm-panel__foot {
+  flex: none;
+  padding: 9px 14px;
+  color: #0d82ee;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+  background: #f8fbfe;
+  border-top: 1px solid #edf3f8;
   cursor: pointer;
 }
 
