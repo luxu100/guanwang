@@ -2,7 +2,7 @@ import { comparisonWindows } from "./comparison-period";
 import type { ApiResponse, PageResult } from "@/types/api";
 import type {
   BurstPipeAnalyzeData, BurstPipeConfirmRequest, BurstPipeQuery, BurstPipeResult, BurstStatus,
-  ComparisonOverviewQuery, ComparisonTrendQuery, LeakCauseAnalysis, LeakReportQuery,
+  ComparisonOverview, ComparisonOverviewQuery, ComparisonTrendData, ComparisonTrendQuery, LeakCauseAnalysis, LeakReportQuery,
   PointRankingItem, PointRankingQuery, ReportWorkOrder, WaterHammerSummary,
 } from "./types";
 
@@ -140,9 +140,9 @@ function comparison(metric: string, periodValue: string, deviceId?: number, asOf
   return { unit, currentValue, yoyValue, momValue, yoyRate: round((currentValue - yoyValue) / yoyValue * 100, 2), momRate: round((currentValue - momValue) / momValue * 100, 2), currentPeriodLabel: ranges.current.label, yoyPeriodLabel: ranges.yoy.label, momPeriodLabel: ranges.mom.label, sampleCount: 1440 };
 }
 export function mockGetComparisonOverview(query: ComparisonOverviewQuery) {
-  return success({ ...comparison(query.metric, query.periodValue, query.deviceId || undefined, query.asOfDate), metric: query.metric, period: query.period, periodValue: query.periodValue });
+  return success<ComparisonOverview>({ ...comparison(query.metric, query.periodValue, query.deviceId || undefined, query.asOfDate), metric: query.metric, period: query.period, periodValue: query.periodValue });
 }
-export function mockGetComparisonTrend(query: ComparisonTrendQuery) {
+export function mockGetComparisonTrend(query: ComparisonTrendQuery): Promise<ApiResponse<ComparisonTrendData>> {
   const periods: string[] = [];
   const cursor = parseDate(query.startTime.slice(0, 10));
   const stop = parseDate(query.endTime.slice(0, 10));
@@ -152,7 +152,7 @@ export function mockGetComparisonTrend(query: ComparisonTrendQuery) {
     query.granularity === "MONTH" ? cursor.setMonth(cursor.getMonth() + 1) : cursor.setDate(cursor.getDate() + 1);
   }
   const series = periods.map(period => ({ period, ...comparison(query.metric, period, query.deviceId || undefined, query.endTime.slice(0, 10)) }));
-  return success({ metric: query.metric, unit: series[0]?.unit, series });
+  return success<ComparisonTrendData>({ metric: query.metric, unit: series[0]?.unit, series });
 }
 export function mockGetLeakReportTrend(query: LeakReportQuery) {
   const groups = new Map<string, {period: string; leakCount: number; suspectedCount: number; normalCount: number}>();

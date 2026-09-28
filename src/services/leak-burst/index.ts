@@ -33,7 +33,14 @@ function requireSuccess<T>(request: Promise<ApiResponse<T>>): Promise<ApiRespons
   });
 }
 
-export const USE_MOCK = true;
+/** Spring 可选查询参数不发送空字符串、null 或 undefined。 */
+function compactQuery<T extends object>(params: T): T {
+  return Object.fromEntries(
+    Object.entries(params).filter(([, value]) => value !== "" && value !== null && value !== undefined),
+  ) as T;
+}
+
+export const USE_MOCK = false;
 
 /* ================= 爆管识别 ================= */
 
@@ -44,7 +51,7 @@ export function getBurstPipeResultsT(params: BurstPipeQuery) {
   if (USE_MOCK) return mockGetBurstPipeResults(params);
   return requireSuccess(getRequestT<PageResult<BurstPipeResult>>(
       "/api/leakage/burst-pipe/results",
-      params
+      compactQuery(params)
   ));
 }
 
@@ -59,7 +66,12 @@ export function getBurstPipeAnalyzeT(params: {
   if (USE_MOCK) return mockGetBurstPipeAnalyze(params);
   return requireSuccess(getRequestT<BurstPipeAnalyzeData>(
       "/api/leakage/burst-pipe/analyze",
-      params
+      {
+        deviceNumber: params.deviceNumber.trim(),
+        // 这两个值必须与结果列表返回的识别窗口完全一致，包括毫秒。
+        startTime: params.startTime,
+        endTime: params.endTime,
+      }
   ));
 }
 
