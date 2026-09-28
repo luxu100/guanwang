@@ -27,15 +27,8 @@
     <view v-if="error" class="module-error" @click="fetchReport">{{ error }} · 点击重试</view>
     <view v-if="loading" class="module-note">正在汇总报表数据…</view>
 
-    <scroll-view v-else class="report-scroll" scroll-y>
-      <view class="scope-bar">
-        <view>
-          <text class="scope-bar__title">全部设备汇总</text>
-          <text class="scope-bar__period">{{ appliedForm.startTime }} 至 {{ appliedForm.endTime }}</text>
-        </view>
-        <text class="scope-bar__rule">同比：去年同期　环比：上月同期</text>
-      </view>
-
+    <!-- 保持 scroll-view 挂载，避免 H5 异步同步 scrollTop 时节点已被 v-else 销毁。 -->
+    <scroll-view v-show="!loading" class="report-scroll" scroll-y>
       <view class="section-heading">
         <view><text class="section-heading__title">流量、压力与噪声</text><text class="section-heading__hint">当前统计周期的全设备均值</text></view>
       </view>
@@ -83,7 +76,7 @@
 
       <view class="detail-grid">
         <view class="report-panel">
-          <view class="panel-head"><view><text class="panel-head__title">测点漏损排名</text><text class="panel-head__hint">按漏损采样条数排序 · 前 5 名</text></view></view>
+          <view class="panel-head"><view><text class="panel-head__title">测点漏损排名</text><text class="panel-head__hint">按漏损采样条数排序 · 前 10 名</text></view></view>
           <XDataTable :columns="rankingColumns" :data="rankingRows" id-key="deviceId" :show-index="false" empty-text="暂无排名数据" />
         </view>
         <view class="report-panel">
@@ -92,7 +85,6 @@
         </view>
       </view>
 
-      <view class="caliber-note">水锤报警率暂按“发生过报警的多探头终端数 ÷ 参与监测终端数”计算；维修情况直接取自现有工单数据，已取消工单不计入完成率。</view>
     </scroll-view>
   </view>
 </template>
@@ -231,7 +223,7 @@ async function fetchReport() {
       getComparisonOverviewT({ ...comparisonQuery, metric: "PRESSURE" }),
       getComparisonOverviewT({ ...comparisonQuery, metric: "NOISE" }),
       getLeakReportTrendT(query),
-      getPointRankingT({ startTime: form.startTime, endTime: form.endTime, rankMetric: "LEAK_COUNT", order: "DESC", pageNum: 1, pageSize: 5 }),
+      getPointRankingT({ startTime: form.startTime, endTime: form.endTime, rankMetric: "LEAK_COUNT", order: "DESC", pageNum: 1, pageSize: 10 }),
       getWaterHammerSummaryT(query),
       getReportWorkOrdersT(query).catch(() => null),
       getLeakCauseAnalysisT(query),
@@ -314,9 +306,6 @@ onBeforeUnmount(() => { ++requestId; disposeTrend(); });
 .report-page { background: #f5f8fb; }
 .report-scroll { flex: 1; min-height: 0; margin-top: 12px; }
 .report-scroll :deep(.uni-scroll-view-content) > view { margin-bottom: 12px; }
-.scope-bar { display: flex; align-items: center; justify-content: space-between; padding: 13px 18px; color: #34516b; background: linear-gradient(100deg,#eef7ff,#f7fbff); border: 1px solid #d8e8f5; border-radius: 8px; }
-.scope-bar__title { display: block; font-size: 15px; font-weight: 800; }
-.scope-bar__period,.scope-bar__rule { display: block; margin-top: 3px; color: #73889a; font-size: 12px; }
 .section-heading,.panel-head { display: flex; align-items: center; justify-content: space-between; }
 .section-heading__title,.panel-head__title { display: block; color: #1f3f59; font-size: 15px; font-weight: 800; }
 .section-heading__hint,.panel-head__hint { display: block; margin-top: 3px; color: #8495a4; font-size: 12px; }
@@ -341,8 +330,7 @@ onBeforeUnmount(() => { ++requestId; disposeTrend(); });
 .status-divider { height: 1px; margin: 8px 16px 0; background: #edf1f4; }.progress-track { height: 6px; margin: 9px 16px; overflow: hidden; background: #eaf0f3; border-radius: 99px; }.progress-value { height: 100%; background: #27a77c; border-radius: 99px; }
 .work-order-error { margin: 12px 16px 0; padding: 8px 10px; color: #b45309; font-size: 12px; background: #fff7ed; border-radius: 4px; }
 .status-counts { display: flex; justify-content: space-between; padding: 2px 16px 0; color: #758a9a; font-size: 11px; }
-.detail-grid .report-panel > :deep(.data-table-container) { height: 250px; border: 0; box-shadow: none; }
-.caliber-note { padding: 10px 14px; color: #748898; font-size: 12px; line-height: 1.7; background: #eef3f7; border-radius: 6px; }
+.detail-grid .report-panel > :deep(.data-table-container) { height: 420px; border: 0; box-shadow: none; }
 .export-button { height: 34px; margin: 0; padding: 0 15px; color: #fff; font-size: 13px; font-weight: 700; line-height: 34px; background: #187ecc; border: 0; border-radius: 5px; }.export-button::after { border: 0; }.export-button[disabled] { opacity: .5; }
 @media (max-width: 1050px) { .dashboard-grid,.detail-grid { grid-template-columns: 1fr; }.comparison-grid { grid-template-columns: 1fr; } }
 </style>

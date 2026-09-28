@@ -15,6 +15,7 @@
                 v-else-if="item.type==='select'"
                 :range="getOptions(item)"
                 range-key="label"
+                :value="getSelectIndex(item)"
                 @change="handleSelect(item,$event)"
             >
               <view class="filter-select">
@@ -149,6 +150,19 @@ function getSelectLabel(
 
   return hit ? getLabel(hit) : "";
 
+}
+
+/**
+ * uni picker 的蓝色选中项由 value（选项下标）控制。
+ * 只更新外层展示文字不会同步 picker 再次打开时的内部选中位置。
+ */
+function getSelectIndex(
+    item:Extract<Field,{type:"select"}>
+){
+  const index=(item.options||[])
+      .findIndex(i=>i.value===model[item.key]);
+
+  return index >= 0 ? index : 0;
 }
 
 function handleSelect(
