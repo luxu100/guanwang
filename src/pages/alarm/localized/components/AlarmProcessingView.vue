@@ -223,10 +223,15 @@
                 </view>
               </view>
             </view>
+            <!-- 放大：弹大图弹窗查看（同筛选条件的点位） -->
+            <view class="map-filter__select map-filter__select--action" @click.stop="openMapDialog">{{ localeText("放大", "Enlarge") }}</view>
           </view>
         </view>
         <view class="side-card__body side-card__body--map">
-          <div ref="mapChartEl" class="side-chart side-chart--map"></div>
+          <!-- 腾讯真实底图优先；SDK 加载失败（Key 域名白名单等）自动回退 echarts 散点 -->
+          <div v-show="mapProvider === 'tencent'" ref="tMapContainer" class="side-chart side-chart--map"></div>
+          <div v-show="mapProvider === 'google'" ref="gMapContainer" class="side-chart side-chart--map"></div>
+          <div v-show="mapProvider === 'chart'" ref="mapChartEl" class="side-chart side-chart--map"></div>
           <view v-if="mapLoading" class="map-foot">{{ localeText("加载中...", "Loading...") }}</view>
           <view v-else-if="mapError" class="map-foot map-foot--error">{{ localeText("分布数据加载失败，切换筛选可重试", "Failed to load distribution, change filters to retry") }}</view>
           <view v-else class="map-legend">
@@ -234,7 +239,7 @@
             <text class="map-legend__item" :class="{ 'map-legend__item--zero': mapLevelCounts.WARNING === 0 }"><text class="side-breakdown__dot side-breakdown__dot--WARNING"></text>{{ localeText("警告", "Warning") }} {{ mapLevelCounts.WARNING }}</text>
             <text class="map-legend__item" :class="{ 'map-legend__item--zero': mapLevelCounts.INFO === 0 }"><text class="side-breakdown__dot side-breakdown__dot--INFO"></text>{{ localeText("提示", "Info") }} {{ mapLevelCounts.INFO }}</text>
             <text v-if="mapLevelCounts.other > 0" class="map-legend__item">{{ localeText("其他", "Other") }} {{ mapLevelCounts.other }}</text>
-            <text class="map-legend__meta">{{ localeText("共", "Total") }} {{ mapPointCount }} {{ localeText("个报警点（无坐标设备不显示）", "alarm points (devices without coordinates hidden)") }}</text>
+            <text class="map-legend__meta">{{ localeText("共", "Total") }} {{ mapPointCount }} {{ localeText("条报警 · ", "alarms at ") }} {{ mapGroups.length }} {{ localeText("个位置（无效坐标不显示）", "positions (invalid coordinates hidden)") }}</text>
           </view>
         </view>
       </view>
@@ -349,13 +354,33 @@
       </view>
     </view>
 
+    <!-- 地图放大弹窗：大尺寸重绘当前筛选下的点位 -->
+    <view v-if="mapDialogVisible" class="map-fullscreen-mask" @click="closeMapDialog">
+      <view class="map-fullscreen" @click.stop>
+        <view class="map-fullscreen__head">
+          <text class="map-fullscreen__title">{{ localeText("报警分布地图", "Alarm Distribution Map") }}</text>
+          <text class="map-fullscreen__meta">{{ localeText("共", "Total") }} {{ mapPointCount }} {{ localeText("条报警 · ", "alarms at ") }} {{ mapGroups.length }} {{ localeText("个位置", "positions") }}</text>
+          <button class="icon-button" hover-class="icon-button--hover" :aria-label="localeText('关闭', 'Close')" @click="closeMapDialog">
+            <text class="close-icon"></text>
+          </button>
+        </view>
+        <view class="map-fullscreen__body">
+          <div v-show="mapProvider === 'tencent'" ref="mapDialogTContainer" class="map-fullscreen__canvas"></div>
+          <div v-show="mapProvider === 'google'" ref="mapDialogGContainer" class="map-fullscreen__canvas"></div>
+          <div v-show="mapProvider === 'chart'" ref="mapDialogChartEl" class="map-fullscreen__canvas"></div>
+        </view>
+      </view>
+    </view>
+
   </view>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, reactive, ref } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import * as echarts from "echarts";
 import { useI18n } from "@/i18n";
+import { MAP_CONFIG, getMapProvider } from "@/services/map/map";
+import { loadGoogleMaps } from "@/utils/googleMapsLoader";
 import { useLocaleText, useLocalizedPageInfo, useLocalizedTotal } from "@/i18n/localeText";
 import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
 import {
@@ -1007,6 +1032,41 @@ const mapError = ref(false);
 const mapPointCount = ref(0);
 /** 当前已加载的点位（供图例按级别计数） */
 const mapItems = ref<AlarmMapItem[]>([]);
+/** 按坐标聚合后的点位组（同位置多条报警合成一个 marker，弹窗列明细） */
+interface MapPointGroup {
+  lng: number;
+  lat: number;
+  items: AlarmMapItem[];
+}
+const mapGroups = ref<MapPointGroup[]>([]);
+
+/** 坐标有效性：真实 GPS 不会是整数经纬度，(120,30)/(0,0) 这类整数占位值视为无坐标 */
+function isValidCoord(value: number | null | undefined): value is number {
+  return typeof value === "number" && Number.isFinite(value) && !Number.isInteger(value);
+}
+
+/** 同坐标报警聚合为一组（两台设备贴着装时 marker 会完全重叠） */
+function groupMapItems(items: AlarmMapItem[]): MapPointGroup[] {
+  const bucket = new Map<string, MapPointGroup>();
+  for (const item of items) {
+    const lng = item.longitude as number;
+    const lat = item.latitude as number;
+    const key = `${lng.toFixed(6)},${lat.toFixed(6)}`;
+    const group = bucket.get(key) || { lng, lat, items: [] };
+    group.items.push(item);
+    bucket.set(key, group);
+  }
+  return Array.from(bucket.values());
+}
+
+/** 组内最高级别决定 marker 颜色（有严重即标红） */
+function groupLevel(items: AlarmMapItem[]): string {
+  if (items.some((item) => item.alarmLevel === "CRITICAL")) return "CRITICAL";
+  if (items.some((item) => item.alarmLevel === "WARNING")) return "WARNING";
+  if (items.some((item) => item.alarmLevel === "INFO")) return "INFO";
+  return "other";
+}
+
 const mapLevelCounts = computed(() => {
   const counts = { CRITICAL: 0, WARNING: 0, INFO: 0, other: 0 };
   for (const item of mapItems.value) {
@@ -1071,14 +1131,21 @@ async function loadAlarmMap() {
     if (res.code !== undefined && res.code !== 200) {
       throw new Error(res.msg || "load failed");
     }
-    // 坐标非法的点位（后端已滤 999 哨兵值，这里再兜底一次类型异常）
+    // 坐标非法的点位不下图：后端只滤 999 哨兵值，整数占位坐标（如 120,30）会把视野拉偏
     const items = ((res.data && res.data.items) || []).filter(
-      (item) => typeof item.longitude === "number" && typeof item.latitude === "number",
+      (item) => isValidCoord(item.longitude) && isValidCoord(item.latitude),
     );
     mapPointCount.value = items.length;
     mapItems.value = items;
+    mapGroups.value = groupMapItems(items);
     mapLoadedQuery = currentMapQuery();
-    renderMapChart(items);
+    if (mapProvider.value === "tencent" && tMapInstance) {
+      drawTencentMarkers();
+    } else if (mapProvider.value === "google" && gMapInstance) {
+      drawGoogleMarkers();
+    } else {
+      renderMapChart(mapChart, mapGroups.value);
+    }
   } catch {
     mapError.value = true;
   } finally {
@@ -1086,8 +1153,9 @@ async function loadAlarmMap() {
   }
 }
 
-function renderMapChart(items: AlarmMapItem[]) {
-  if (!mapChartEl.value || !mapChart) return;
+/** 散点渲染（卡片与放大弹窗共用）：按坐标组画点，tooltip 列组内明细 */
+function renderMapChart(target: echarts.ECharts | null, groups: MapPointGroup[]) {
+  if (!target) return;
   // 轴标签小数位按数据跨度自适应：设备集中（跨度<0.01°）保留 4 位，跨度大时缩短，
   // 配合 splitNumber=3 + hideOverlap，避免窄栏里经度数字叠在一起
   const axisDecimals = (values: number[]) => {
@@ -1097,22 +1165,19 @@ function renderMapChart(items: AlarmMapItem[]) {
     if (span >= 0.01) return 3;
     return 4;
   };
-  const lngDecimals = axisDecimals(items.map((item) => item.longitude as number));
-  const latDecimals = axisDecimals(items.map((item) => item.latitude as number));
+  const lngDecimals = axisDecimals(groups.map((group) => group.lng));
+  const latDecimals = axisDecimals(groups.map((group) => group.lat));
   const series = MAP_LEVEL_SERIES.map((seriesDef) => {
-    const matches =
-      seriesDef.key === "other"
-        ? (item: AlarmMapItem) => item.alarmLevel !== "CRITICAL" && item.alarmLevel !== "WARNING" && item.alarmLevel !== "INFO"
-        : (item: AlarmMapItem) => item.alarmLevel === seriesDef.key;
+    const bucketGroups = groups.filter((group) => groupLevel(group.items) === seriesDef.key);
     return {
       name: localeText(seriesDef.label, seriesDef.labelEn),
       type: "scatter" as const,
       symbolSize: 16,
       itemStyle: { color: seriesDef.color, borderColor: "#ffffff", borderWidth: 1, opacity: 0.92 },
-      data: items.filter(matches).map((item) => ({ value: [item.longitude, item.latitude], item })),
+      data: bucketGroups.map((group) => ({ value: [group.lng, group.lat], group })),
     };
   });
-  mapChart.setOption(
+  target.setOption(
     {
       // grid 底部留足 45° 斜排标签的空间（学爆管识别页 rotate 先例）
       grid: { left: 64, right: 26, top: 40, bottom: 56 },
@@ -1121,16 +1186,19 @@ function renderMapChart(items: AlarmMapItem[]) {
         backgroundColor: "rgba(23, 32, 51, 0.92)",
         borderWidth: 0,
         textStyle: { color: "#ffffff", fontSize: 12 },
-        formatter: (params: { data?: { item?: AlarmMapItem } }) => {
-          const item = params.data?.item;
-          if (!item) return "";
-          return [
-            `${localeText("设备", "Device")}: ${item.deviceNumber || "-"}${item.deviceAlias ? `（${item.deviceAlias}）` : ""}`,
-            `${localeText("类型", "Type")}: ${item.alarmTypeName || getRuleTypeText(item.alarmType)}`,
-            `${localeText("级别", "Level")}: ${getLevelText(item.alarmLevel)}`,
-            `${localeText("触发值", "Trigger Value")}: ${item.triggerValue == null ? "-" : String(item.triggerValue)}`,
-            `${localeText("首次触发", "First Triggered")}: ${fmtDateTime(item.firstTriggeredAt)}`,
-          ].join("\n");
+        formatter: (params: { data?: { group?: MapPointGroup } }) => {
+          const group = params.data?.group;
+          if (!group) return "";
+          const lines = [`${localeText("该位置", "At this position")} ${group.items.length} ${localeText("条报警", "alarm(s)")}`];
+          for (const item of group.items.slice(0, 5)) {
+            lines.push(
+              `· ${item.deviceNumber || "-"}${item.deviceAlias ? `（${item.deviceAlias}）` : ""} ${item.alarmTypeName || getRuleTypeText(item.alarmType)} · ${getLevelText(item.alarmLevel)} · ${fmtDateTime(item.firstTriggeredAt)}`,
+            );
+          }
+          if (group.items.length > 5) {
+            lines.push(`…${localeText("等共", "total")} ${group.items.length} ${localeText("条", "")}`);
+          }
+          return lines.join("\n");
         },
       },
       // 图例用面板底部的色点条（带计数说明），图表内不再重复绘制 legend
@@ -1159,6 +1227,528 @@ function renderMapChart(items: AlarmMapItem[]) {
     },
     true,
   );
+}
+
+/* ========================= 腾讯地图底图（真实街道，可拖拽缩放） =========================
+ * 复用 MapDialog/XTencentMap 同款懒加载方案与 Key；SDK 加载失败（如 Key 域名白名单未放行）
+ * 自动回退 echarts 散点，保证任何环境都有可用地图。 */
+
+type TencentLatLngLike = unknown;
+
+interface TencentMapInstanceLike {
+  destroy?: () => void;
+  resize?: () => void;
+  fitBounds?: (bounds: unknown, options?: unknown) => void;
+  getZoom?: () => number;
+  setZoom?: (zoom: number) => void;
+}
+
+interface TencentMarkerGeometryLike {
+  id: string;
+  position: TencentLatLngLike;
+  styleId?: string;
+  properties?: { lng: number; lat: number; items: AlarmMapItem[] };
+}
+
+interface TencentMultiMarkerLike {
+  setMap?: (map: unknown) => void;
+  on?: (event: string, handler: (evt: { geometry?: TencentMarkerGeometryLike }) => void) => void;
+}
+
+interface TencentInfoWindowLike {
+  setContent?: (html: string) => void;
+  setPosition?: (position: TencentLatLngLike) => void;
+  open?: () => void;
+  close?: () => void;
+}
+
+interface TencentMapApiLike {
+  LatLng: { new (lat: number, lng: number): TencentLatLngLike };
+  Map: { new (container: HTMLElement, options: { center: TencentLatLngLike; zoom: number; pitch: number; rotation: number }): TencentMapInstanceLike };
+  MultiMarker: { new (options: { map: TencentMapInstanceLike; styles?: Record<string, unknown>; geometries: TencentMarkerGeometryLike[] }): TencentMultiMarkerLike };
+  InfoWindow?: { new (options: { map: TencentMapInstanceLike; position?: TencentLatLngLike; content?: string; offset?: { x: number; y: number } }): TencentInfoWindowLike };
+  MarkerStyle?: { new (options: { color: string }): unknown };
+  LatLngBounds?: { new (): { extend(latLng: TencentLatLngLike): void } };
+}
+
+const TENCENT_MAP_SCRIPT_ID = "tencent-map-gl-sdk";
+const TENCENT_MAP_SCRIPT_URL = `https://map.qq.com/api/gljs?v=1.exp&key=${MAP_CONFIG.tencentKey}`;
+
+function getTMap(): TencentMapApiLike | null {
+  return (window as unknown as { TMap?: TencentMapApiLike }).TMap || null;
+}
+
+/** 底图按语言自动选：中文=腾讯、外文=Google（与设备坐标图同规则）；SDK 加载失败回退 chart 散点 */
+const mapProviderKind = computed(() => getMapProvider(locale.value));
+const mapProvider = ref<"tencent" | "google" | "chart">(mapProviderKind.value === "google" ? "google" : "tencent");
+const tMapContainer = ref<HTMLElement | null>(null);
+let tMapInstance: TencentMapInstanceLike | null = null;
+let tMapMarkers: TencentMultiMarkerLike | null = null;
+let tMapResizeObserver: ResizeObserver | null = null;
+let tencentSdkPromise: Promise<void> | null = null;
+
+function loadTencentSdk(): Promise<void> {
+  if (getTMap()) return Promise.resolve();
+  if (tencentSdkPromise) return tencentSdkPromise;
+  tencentSdkPromise = new Promise<void>((resolve, reject) => {
+    const existing = document.getElementById(TENCENT_MAP_SCRIPT_ID) as HTMLScriptElement | null;
+    const script = existing || document.createElement("script");
+    script.id = TENCENT_MAP_SCRIPT_ID;
+    script.charset = "utf-8";
+    script.src = TENCENT_MAP_SCRIPT_URL;
+    script.onload = () => {
+      if (getTMap()) resolve();
+      else reject(new Error("TMap unavailable after script load"));
+    };
+    script.onerror = () => reject(new Error("TMap script failed to load"));
+    if (!existing) document.body.appendChild(script);
+  });
+  return tencentSdkPromise;
+}
+
+function initTencentMap() {
+  const TMap = getTMap();
+  if (!TMap || !tMapContainer.value) {
+    throw new Error("tencent map container unavailable");
+  }
+  const map = new TMap.Map(tMapContainer.value, {
+    center: new TMap.LatLng(31.2304, 121.4737), // 初始中心（拿到点位后 fitBounds 自动适配）
+    zoom: 12,
+    pitch: 0,
+    rotation: 0,
+  });
+  tMapInstance = map;
+  tMapResizeObserver = new ResizeObserver(() => tMapInstance && tMapInstance.resize && tMapInstance.resize());
+  tMapResizeObserver.observe(tMapContainer.value);
+}
+
+/** marker 按级别着色（散点/图例/腾讯底图/Google 底图同一套色） */
+const MAP_LEVEL_COLORS: Record<string, string> = {
+  CRITICAL: "#ef4444",
+  WARNING: "#f59e0b",
+  INFO: "#3b82f6",
+  other: "#94a3b8",
+};
+
+/** 把点位组画到指定地图实例上（卡片与放大弹窗共用） */
+function drawTencentMarkersTo(map: TencentMapInstanceLike, groups: MapPointGroup[]) {
+  const TMap = getTMap();
+  if (!TMap) return null;
+  const styles: Record<string, unknown> = {};
+  if (typeof TMap.MarkerStyle === "function") {
+    for (const [key, color] of Object.entries(MAP_LEVEL_COLORS)) {
+      styles[key] = new TMap.MarkerStyle({ color });
+    }
+  }
+  const geometries = groups.map((group, index) => ({
+    id: `map-group-${index}`,
+    position: new TMap.LatLng(group.lat, group.lng),
+    styleId: groupLevel(group.items),
+    properties: group,
+  }));
+  const markers = new TMap.MultiMarker(
+    Object.keys(styles).length ? { map, styles, geometries } : { map, geometries },
+  );
+  if (markers.on) {
+    markers.on("click", (evt: { geometry?: { position?: unknown; properties?: MapPointGroup } }) => {
+      const geometry = evt.geometry;
+      const group = geometry && geometry.properties;
+      if (!geometry || !group) return;
+      let infoWindow = dialogInfoWindowOf(map);
+      if (!infoWindow && typeof TMap.InfoWindow === "function") {
+        infoWindow = new TMap.InfoWindow({ map, position: geometry.position, offset: { x: 0, y: -34 } });
+        rememberDialogInfoWindow(map, infoWindow);
+      }
+      if (infoWindow) {
+        infoWindow.setContent && infoWindow.setContent(buildGroupInfoHtml(group));
+        infoWindow.setPosition && infoWindow.setPosition(geometry.position);
+        infoWindow.open && infoWindow.open();
+      }
+    });
+  }
+  return markers;
+}
+
+/** 弹窗内信息窗句柄按地图实例分开记（卡片一张图、放大弹窗一张图） */
+const tencentInfoWindows = new WeakMap<object, TencentInfoWindowLike>();
+function rememberDialogInfoWindow(map: TencentMapInstanceLike, infoWindow: TencentInfoWindowLike) {
+  tencentInfoWindows.set(map as object, infoWindow);
+}
+function dialogInfoWindowOf(map: TencentMapInstanceLike): TencentInfoWindowLike | null {
+  return tencentInfoWindows.get(map as object) || null;
+}
+
+function drawTencentMarkers() {
+  if (!tMapInstance) return;
+  // 清掉上一批点位与信息窗
+  if (tMapMarkers) {
+    tMapMarkers.setMap && tMapMarkers.setMap(null);
+    tMapMarkers = null;
+  }
+  const infoWindow = dialogInfoWindowOf(tMapInstance);
+  if (infoWindow) {
+    infoWindow.close && infoWindow.close();
+  }
+  const groups = mapGroups.value;
+  if (!groups.length) return;
+  tMapMarkers = drawTencentMarkersTo(tMapInstance, groups);
+
+  // 视野适配到点位范围；点位过于集中时限一下最大缩放级别
+  const TMap = getTMap();
+  try {
+    if (TMap && typeof TMap.LatLngBounds === "function" && tMapInstance.fitBounds) {
+      const bounds = new TMap.LatLngBounds();
+      for (const group of groups) {
+        bounds.extend(new TMap.LatLng(group.lat, group.lng));
+      }
+      tMapInstance.fitBounds(bounds, { padding: 40 });
+      window.setTimeout(() => {
+        const zoom = tMapInstance && tMapInstance.getZoom ? tMapInstance.getZoom() : 0;
+        if (zoom > 17 && tMapInstance && tMapInstance.setZoom) {
+          tMapInstance.setZoom(17);
+        }
+      }, 300);
+    }
+  } catch {
+    // 视野适配失败不影响打点
+  }
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch] as string));
+}
+
+/** 同位置多条报警合并展示：标题行 + 每条一行的明细（最多列 5 条，超出折叠计数），腾讯/Google 信息窗共用 */
+function buildGroupInfoHtml(group: MapPointGroup): string {
+  const shown = group.items.slice(0, 5);
+  const rows = shown
+    .map((item) => {
+      const levelColor = MAP_LEVEL_COLORS[item.alarmLevel || ""] || MAP_LEVEL_COLORS.other;
+      return [
+        `<div style="display:flex;align-items:center;gap:6px;line-height:1.7">`,
+        `<span style="flex:none;width:8px;height:8px;border-radius:50%;background:${levelColor}"></span>`,
+        `<b>${escapeHtml(item.deviceNumber || "-")}</b>${item.deviceAlias ? `<span style="color:#64748b">（${escapeHtml(item.deviceAlias)}）</span>` : ""}`,
+        `<span style="color:#64748b">${escapeHtml(item.alarmTypeName || getRuleTypeText(item.alarmType))} · ${escapeHtml(getLevelText(item.alarmLevel))} · ${escapeHtml(fmtDateTime(item.firstTriggeredAt))}</span>`,
+        `</div>`,
+      ].join("");
+    })
+    .join("");
+  const more = group.items.length > shown.length ? `<div style="color:#94a3b8;padding-top:2px">…${localeText("等共", "total")} ${group.items.length} ${localeText("条报警", "alarm(s)")}</div>` : "";
+  return [
+    '<div style="font:12px/1.6 sans-serif;min-width:230px;max-width:300px">',
+    `<div style="font-weight:800;margin-bottom:4px">${localeText("该位置", "At this position")} ${group.items.length} ${localeText("条报警", "alarm(s)")}</div>`,
+    rows,
+    more,
+    "</div>",
+  ].join("");
+}
+
+function destroyTencentMap() {
+  if (tMapResizeObserver) {
+    tMapResizeObserver.disconnect();
+    tMapResizeObserver = null;
+  }
+  if (tMapInstance) {
+    const infoWindow = dialogInfoWindowOf(tMapInstance);
+    infoWindow && infoWindow.close && infoWindow.close();
+  }
+  if (tMapMarkers) {
+    tMapMarkers.setMap && tMapMarkers.setMap(null);
+    tMapMarkers = null;
+  }
+  if (tMapInstance) {
+    tMapInstance.destroy && tMapInstance.destroy();
+    tMapInstance = null;
+  }
+}
+
+/* ========================= Google 地图底图（外文语言环境，与设备坐标图同源） =========================
+ * 复用 @/utils/googleMapsLoader（Key、超时、错误提示齐全）。Map/InfoWindow 在 maps 库、
+ * Marker 在 marker 库、LatLngBounds/event 属 core（bootstrap 后全局可用）；加载失败同样回退 echarts 散点。 */
+
+const gMapContainer = ref<HTMLElement | null>(null);
+let googleMapsLibrary: google.maps.MapsLibrary | null = null;
+let googleMarkerLibrary: google.maps.MarkerLibrary | null = null;
+let gMapInstance: google.maps.Map | null = null;
+let gMapMarkers: google.maps.Marker[] = [];
+let gMapResizeObserver: ResizeObserver | null = null;
+
+function loadGoogleMapStack(): Promise<void> {
+  return loadGoogleMaps().then(async (mapsLibrary) => {
+    googleMapsLibrary = mapsLibrary;
+    googleMarkerLibrary = await google.maps.importLibrary("marker");
+  });
+}
+
+function initGoogleMap() {
+  if (!googleMapsLibrary || !gMapContainer.value) {
+    throw new Error("google map container unavailable");
+  }
+  gMapInstance = new googleMapsLibrary.Map(gMapContainer.value, {
+    center: { lat: 31.2304, lng: 121.4737 }, // 初始中心（拿到点位后 fitBounds 自动适配）
+    zoom: 12,
+    mapTypeControl: false,
+    streetViewControl: false,
+    fullscreenControl: false,
+  });
+  gMapResizeObserver = new ResizeObserver(() => {
+    if (gMapInstance) {
+      google.maps.event.trigger(gMapInstance, "resize");
+    }
+  });
+  gMapResizeObserver.observe(gMapContainer.value);
+}
+
+/** 圆点图标直出 SVG data URL：白描边与散点视觉一致，也不依赖具体库导出 */
+function googleLevelIcon(color: string): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="8" fill="${color}" stroke="#ffffff" stroke-width="3"/></svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
+/** 信息窗句柄按地图实例分开记（卡片一张图、放大弹窗一张图），与腾讯侧同套路 */
+const googleInfoWindows = new WeakMap<object, google.maps.InfoWindow>();
+function rememberGoogleInfoWindow(map: google.maps.Map, infoWindow: google.maps.InfoWindow) {
+  googleInfoWindows.set(map as object, infoWindow);
+}
+function googleInfoWindowOf(map: google.maps.Map): google.maps.InfoWindow | null {
+  return googleInfoWindows.get(map as object) || null;
+}
+
+/** 把点位组画到指定 Google 地图实例上（卡片与放大弹窗共用） */
+function drawGoogleMarkersTo(map: google.maps.Map, groups: MapPointGroup[]): google.maps.Marker[] {
+  if (!googleMarkerLibrary || !googleMapsLibrary) return [];
+  const MarkerCtor = googleMarkerLibrary.Marker;
+  const InfoWindowCtor = googleMapsLibrary.InfoWindow;
+  return groups.map((group) => {
+    const marker = new MarkerCtor({
+      map,
+      position: { lat: group.lat, lng: group.lng },
+      icon: googleLevelIcon(MAP_LEVEL_COLORS[groupLevel(group.items)] || MAP_LEVEL_COLORS.other),
+      title: `${localeText("该位置", "At this position")} ${group.items.length} ${localeText("条报警", "alarm(s)")}`,
+    });
+    marker.addListener("click", () => {
+      let infoWindow = googleInfoWindowOf(map);
+      if (!infoWindow) {
+        infoWindow = new InfoWindowCtor();
+        rememberGoogleInfoWindow(map, infoWindow);
+      }
+      infoWindow.setContent(buildGroupInfoHtml(group));
+      infoWindow.open({ map, anchor: marker });
+    });
+    return marker;
+  });
+}
+
+/** 视野适配到点位范围；点位过于集中时限一下最大缩放级别（与腾讯侧一致） */
+function fitGoogleBounds(map: google.maps.Map, groups: MapPointGroup[], padding: number) {
+  try {
+    const bounds = new google.maps.LatLngBounds();
+    for (const group of groups) {
+      bounds.extend({ lat: group.lat, lng: group.lng });
+    }
+    map.fitBounds(bounds, padding);
+    window.setTimeout(() => {
+      // getZoom 类型是 number | undefined（加载初期可能取不到）
+      if ((map.getZoom() ?? 0) > 17) {
+        map.setZoom(17);
+      }
+    }, 300);
+  } catch {
+    // 视野适配失败不影响打点
+  }
+}
+
+function drawGoogleMarkers() {
+  if (!gMapInstance) return;
+  for (const marker of gMapMarkers) {
+    marker.setMap(null);
+  }
+  gMapMarkers = [];
+  const infoWindow = googleInfoWindowOf(gMapInstance);
+  infoWindow && infoWindow.close();
+  const groups = mapGroups.value;
+  if (!groups.length) return;
+  gMapMarkers = drawGoogleMarkersTo(gMapInstance, groups);
+  fitGoogleBounds(gMapInstance, groups, 40);
+}
+
+function destroyGoogleMap() {
+  if (gMapResizeObserver) {
+    gMapResizeObserver.disconnect();
+    gMapResizeObserver = null;
+  }
+  if (gMapInstance) {
+    const infoWindow = googleInfoWindowOf(gMapInstance);
+    infoWindow && infoWindow.close();
+    google.maps.event.clearInstanceListeners(gMapInstance);
+  }
+  for (const marker of gMapMarkers) {
+    marker.setMap(null);
+  }
+  gMapMarkers = [];
+  gMapInstance = null;
+  // Google SDK 没有 destroy：清空容器避免下次重建时残留旧实例 DOM（与 LocaleCoordinateMap 同做法）
+  if (gMapContainer.value) {
+    gMapContainer.value.innerHTML = "";
+  }
+}
+
+/** 真实底图 SDK 加载失败：回退 echarts 散点，保证任何环境都有可用地图 */
+function fallbackToChart() {
+  mapProvider.value = "chart";
+  nextTick(() => {
+    if (mapChartEl.value && !mapChart) {
+      mapChart = echarts.init(mapChartEl.value);
+      mapResizeObserver = new ResizeObserver(() => mapChart && mapChart.resize());
+      mapResizeObserver.observe(mapChartEl.value);
+    }
+    loadAlarmMap();
+  });
+}
+
+/** 按当前 provider 初始化底图并渲染：已有数据直接画，否则拉一次点位 */
+function setupMapProvider() {
+  const drawCurrent = () => {
+    if (mapGroups.value.length) {
+      if (mapProvider.value === "tencent") {
+        drawTencentMarkers();
+      } else if (mapProvider.value === "google") {
+        drawGoogleMarkers();
+      }
+    } else {
+      loadAlarmMap();
+    }
+  };
+  if (mapProvider.value === "google") {
+    loadGoogleMapStack()
+      .then(() => {
+        initGoogleMap();
+        drawCurrent();
+      })
+      .catch(() => fallbackToChart());
+  } else {
+    loadTencentSdk()
+      .then(() => {
+        initTencentMap();
+        drawCurrent();
+      })
+      .catch(() => fallbackToChart());
+  }
+}
+
+// 语言切换时底图跟着换（腾讯↔Google）：销毁旧的、按新语言重建
+watch(mapProviderKind, (kind) => {
+  const target: "tencent" | "google" = kind === "google" ? "google" : "tencent";
+  if (mapProvider.value === target) return;
+  destroyTencentMap();
+  destroyGoogleMap();
+  mapProvider.value = target;
+  setupMapProvider();
+});
+
+/* ========================= 地图放大弹窗（大尺寸重绘当前点位） ========================= */
+
+const mapDialogVisible = ref(false);
+const mapDialogTContainer = ref<HTMLElement | null>(null);
+const mapDialogGContainer = ref<HTMLElement | null>(null);
+const mapDialogChartEl = ref<HTMLElement | null>(null);
+let mapDialogTMap: TencentMapInstanceLike | null = null;
+let mapDialogGMap: google.maps.Map | null = null;
+let mapDialogGMarkers: google.maps.Marker[] = [];
+let mapDialogMarkers: TencentMultiMarkerLike | null = null;
+let mapDialogChart: echarts.ECharts | null = null;
+let mapDialogResizeObserver: ResizeObserver | null = null;
+
+function openMapDialog() {
+  mapDialogVisible.value = true;
+  nextTick(initMapDialog);
+}
+
+function initMapDialog() {
+  const groups = mapGroups.value;
+  const first = groups[0];
+  if (mapProvider.value === "tencent") {
+    const TMap = getTMap();
+    if (!TMap || !mapDialogTContainer.value) return;
+    const map = new TMap.Map(mapDialogTContainer.value, {
+      center: first ? new TMap.LatLng(first.lat, first.lng) : new TMap.LatLng(31.2304, 121.4737),
+      zoom: 14,
+      pitch: 0,
+      rotation: 0,
+    });
+    mapDialogTMap = map;
+    mapDialogResizeObserver = new ResizeObserver(() => mapDialogTMap && mapDialogTMap.resize && mapDialogTMap.resize());
+    mapDialogResizeObserver.observe(mapDialogTContainer.value);
+    mapDialogMarkers = drawTencentMarkersTo(map, groups);
+    try {
+      if (typeof TMap.LatLngBounds === "function" && groups.length && map.fitBounds) {
+        const bounds = new TMap.LatLngBounds();
+        for (const group of groups) {
+          bounds.extend(new TMap.LatLng(group.lat, group.lng));
+        }
+        map.fitBounds(bounds, { padding: 60 });
+      }
+    } catch {
+      // 视野适配失败不影响打点
+    }
+  } else if (mapProvider.value === "google") {
+    if (!googleMapsLibrary || !mapDialogGContainer.value) return;
+    mapDialogGMap = new googleMapsLibrary.Map(mapDialogGContainer.value, {
+      center: first ? { lat: first.lat, lng: first.lng } : { lat: 31.2304, lng: 121.4737 },
+      zoom: 14,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: false,
+    });
+    mapDialogResizeObserver = new ResizeObserver(() => {
+      if (mapDialogGMap) {
+        google.maps.event.trigger(mapDialogGMap, "resize");
+      }
+    });
+    mapDialogResizeObserver.observe(mapDialogGContainer.value);
+    mapDialogGMarkers = drawGoogleMarkersTo(mapDialogGMap, groups);
+    fitGoogleBounds(mapDialogGMap, groups, 60);
+  } else if (mapDialogChartEl.value) {
+    mapDialogChart = echarts.init(mapDialogChartEl.value);
+    renderMapChart(mapDialogChart, groups);
+  }
+}
+
+function closeMapDialog() {
+  if (mapDialogResizeObserver) {
+    mapDialogResizeObserver.disconnect();
+    mapDialogResizeObserver = null;
+  }
+  if (mapDialogTMap) {
+    const infoWindow = dialogInfoWindowOf(mapDialogTMap);
+    infoWindow && infoWindow.close && infoWindow.close();
+  }
+  if (mapDialogMarkers) {
+    mapDialogMarkers.setMap && mapDialogMarkers.setMap(null);
+    mapDialogMarkers = null;
+  }
+  if (mapDialogTMap) {
+    mapDialogTMap.destroy && mapDialogTMap.destroy();
+    mapDialogTMap = null;
+  }
+  if (mapDialogGMap) {
+    const infoWindow = googleInfoWindowOf(mapDialogGMap);
+    infoWindow && infoWindow.close();
+    google.maps.event.clearInstanceListeners(mapDialogGMap);
+  }
+  for (const marker of mapDialogGMarkers) {
+    marker.setMap(null);
+  }
+  mapDialogGMarkers = [];
+  mapDialogGMap = null;
+  if (mapDialogGContainer.value) {
+    mapDialogGContainer.value.innerHTML = "";
+  }
+  if (mapDialogChart) {
+    mapDialogChart.dispose();
+    mapDialogChart = null;
+  }
+  mapDialogVisible.value = false;
 }
 
 /* ========================= 左右分栏手柄（学爆管识别页：拖动调宽 / 单击折叠） ========================= */
@@ -1228,13 +1818,8 @@ function initSideCharts() {
     overviewResizeObserver = new ResizeObserver(() => overviewChart && overviewChart.resize());
     overviewResizeObserver.observe(overviewChartEl.value);
   }
-  if (mapChartEl.value && !mapChart) {
-    mapChart = echarts.init(mapChartEl.value);
-    mapResizeObserver = new ResizeObserver(() => mapChart && mapChart.resize());
-    mapResizeObserver.observe(mapChartEl.value);
-  }
   loadOverview();
-  loadAlarmMap();
+  setupMapProvider();
 }
 
 async function loadDeptOptions() {
@@ -1285,6 +1870,9 @@ onUnmounted(() => {
     mapChart.dispose();
     mapChart = null;
   }
+  destroyTencentMap();
+  destroyGoogleMap();
+  closeMapDialog();
   // #endif
 });
 </script>
@@ -1501,6 +2089,73 @@ onUnmounted(() => {
   border-radius: 4px;
   white-space: nowrap;
   cursor: pointer;
+}
+
+/* 放大按钮：蓝色强调，与筛选下拉区分 */
+.map-filter__select--action {
+  color: #ffffff;
+  background: #0d82ee;
+  border-color: #0d82ee;
+}
+
+/* 地图放大弹窗 */
+.map-fullscreen-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(15, 35, 55, 0.36);
+}
+
+.map-fullscreen {
+  display: flex;
+  flex-direction: column;
+  width: min(1100px, 94vw);
+  height: min(660px, 86vh);
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #d8e5ef;
+  border-radius: 6px;
+  box-shadow: 0 18px 46px rgba(15, 35, 55, 0.24);
+}
+
+.map-fullscreen__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  padding: 12px 16px;
+  border-bottom: 1px solid #edf3f8;
+}
+
+.map-fullscreen__title {
+  color: #172033;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.map-fullscreen__meta {
+  flex: 1;
+  min-width: 0;
+  color: #7f92a6;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.map-fullscreen__body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background: #edf5ff;
+}
+
+.map-fullscreen__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .map-select-menu {
