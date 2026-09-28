@@ -68,8 +68,8 @@
       </view>
     </view>
 
-    <!-- 表格 + 右侧详情（同漏点页双栏布局） -->
-    <view class="main-layout">
+    <!-- 表格 + 右侧统计地图栏（同数据分析页左右网格）；行"详情"以覆盖层形式盖在右栏上 -->
+    <view class="main-layout" :style="layoutStyle">
       <view class="table-panel">
       <view class="table-head">
         <text>报警处理</text>
@@ -135,8 +135,112 @@
       </view>
       </view>
 
-    <!-- 右侧详情面板（同漏点页交互：点"详情"出现，再点一次隐藏） -->
-    <view v-if="selectedRecord" class="detail-panel">
+      <!-- 左右分栏手柄（学爆管识别页交互）：拖动调宽度，单击折叠/展开右栏；
+           箭头指向下一次点击后面板移动的方向（展开时指向右=收起，收起时指向左=展开） -->
+      <view class="split-handle" @mousedown="startResize">
+        <view class="split-handle__btn">{{ isSideCollapsed ? "⟨" : "⟩" }}</view>
+      </view>
+
+    <!-- 右侧常驻栏上半：报警概况（总览数字 + 分布 + 近 7 天趋势） -->
+    <view class="side-column" :class="{ 'side-column--hidden': isSideCollapsed }">
+      <view class="side-card side-card--stats">
+        <view class="side-card__head">
+          <text class="side-card__title">报警概况</text>
+        </view>
+        <scroll-view class="side-card__body" scroll-y>
+          <view class="side-stats">
+            <view class="side-stat">
+              <text class="side-stat__label">今日新增</text>
+              <text class="side-stat__num">{{ overviewStats?.todayTotal ?? "-" }}</text>
+            </view>
+            <view class="side-stat">
+              <text class="side-stat__label">当前活跃</text>
+              <text class="side-stat__num">{{ overviewStats?.activeTotal ?? "-" }}</text>
+            </view>
+            <view class="side-stat">
+              <text class="side-stat__label">今日已处理</text>
+              <text class="side-stat__num">{{ overviewStats?.resolvedToday ?? "-" }}</text>
+            </view>
+          </view>
+          <view class="side-breakdown">
+            <view class="side-breakdown__group">
+              <text class="side-breakdown__label">按级别</text>
+              <view v-for="lv in levelBreakdownItems" :key="lv.key" class="side-breakdown__item">
+                <text class="side-breakdown__dot" :class="`side-breakdown__dot--${lv.key}`"></text>
+                <text>{{ lv.label }}</text>
+                <text class="side-breakdown__num">{{ lv.count }}</text>
+              </view>
+            </view>
+            <view class="side-breakdown__group">
+              <text class="side-breakdown__label">按类型</text>
+              <view v-for="tp in typeBreakdownItems" :key="tp.name" class="side-breakdown__item">
+                <text>{{ tp.name }}</text>
+                <text class="side-breakdown__num">{{ tp.count }}</text>
+              </view>
+              <text v-if="typeBreakdownItems.length === 0" class="side-breakdown__item side-breakdown__item--na">暂无数据</text>
+            </view>
+          </view>
+          <text class="side-chart-caption">近 7 天新增报警记录数</text>
+          <div ref="overviewChartEl" class="side-chart side-chart--trend"></div>
+        </scroll-view>
+      </view>
+
+      <!-- 右侧常驻栏下半：报警分布地图（stats/map 散点，筛选后重查） -->
+      <view class="side-card side-card--map">
+        <view class="side-card__head side-card__head--map">
+          <text class="side-card__title">报警分布地图</text>
+          <!-- 自定义下拉（uni picker 底部弹层在本布局里会被视口裁剪，改为按钮下方弹菜单） -->
+          <view class="map-filters">
+            <view class="map-filter">
+              <view class="map-filter__select" @click.stop="toggleMapSelect('status')">
+                <text>{{ mapStatusLabels[mapFilters.statusIndex] }}</text>
+              </view>
+              <view v-if="activeMapSelect === 'status'" class="map-select-menu">
+                <view
+                  v-for="(option, index) in mapStatusOptions"
+                  :key="option.label"
+                  class="map-select-option"
+                  :class="{ 'map-select-option--active': mapFilters.statusIndex === index }"
+                  @click.stop="selectMapStatus(index)"
+                >
+                  {{ option.label }}
+                </view>
+              </view>
+            </view>
+            <view class="map-filter">
+              <view class="map-filter__select" @click.stop="toggleMapSelect('level')">
+                <text>{{ mapLevelLabels[mapFilters.levelIndex] }}</text>
+              </view>
+              <view v-if="activeMapSelect === 'level'" class="map-select-menu">
+                <view
+                  v-for="(option, index) in mapLevelOptions"
+                  :key="option.label"
+                  class="map-select-option"
+                  :class="{ 'map-select-option--active': mapFilters.levelIndex === index }"
+                  @click.stop="selectMapLevel(index)"
+                >
+                  {{ option.label }}
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+        <view class="side-card__body side-card__body--map">
+          <div ref="mapChartEl" class="side-chart side-chart--map"></div>
+          <view v-if="mapLoading" class="map-foot">加载中...</view>
+          <view v-else-if="mapError" class="map-foot map-foot--error">分布数据加载失败，切换筛选可重试</view>
+          <view v-else class="map-legend">
+            <text class="map-legend__item" :class="{ 'map-legend__item--zero': mapLevelCounts.CRITICAL === 0 }"><text class="side-breakdown__dot side-breakdown__dot--CRITICAL"></text>严重 {{ mapLevelCounts.CRITICAL }}</text>
+            <text class="map-legend__item" :class="{ 'map-legend__item--zero': mapLevelCounts.WARNING === 0 }"><text class="side-breakdown__dot side-breakdown__dot--WARNING"></text>警告 {{ mapLevelCounts.WARNING }}</text>
+            <text class="map-legend__item" :class="{ 'map-legend__item--zero': mapLevelCounts.INFO === 0 }"><text class="side-breakdown__dot side-breakdown__dot--INFO"></text>提示 {{ mapLevelCounts.INFO }}</text>
+            <text v-if="mapLevelCounts.other > 0" class="map-legend__item">其他 {{ mapLevelCounts.other }}</text>
+            <text class="map-legend__meta">共 {{ mapPointCount }} 个报警点（无坐标设备不显示）</text>
+          </view>
+        </view>
+      </view>
+
+    <!-- 右侧详情覆盖层（同漏点页交互：点"详情"盖在右栏上，再点一次隐藏） -->
+    <view v-if="selectedRecord" class="detail-panel detail-panel--overlay">
       <view class="detail-panel__head">
         <view class="detail-panel__title-wrap">
           <text class="detail-panel__title">报警详情</text>
@@ -190,8 +294,8 @@
       </scroll-view>
     </view>
     </view>
+    </view>
 
-    <!-- 确认弹窗 -->
     <view v-if="handleVisible" class="dialog-mask" @click="handleVisible = false">
       <view class="dialog-panel dialog-panel--narrow" @click.stop>
         <view class="dialog-head">
@@ -248,16 +352,20 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref } from "vue";
+import * as echarts from "echarts";
 import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
 import {
   getAlarmPage,
   getAlarmDetail,
+  getAlarmTrend,
+  getAlarmOverview,
+  getAlarmMap,
   confirmAlarm,
   resolveAlarm,
   getLatestActiveAlarms,
 } from "@/services/alarm/api";
-import type { AlarmRecord } from "@/services/alarm/api";
+import type { AlarmRecord, AlarmMapItem } from "@/services/alarm/api";
 import {
   processingColumns,
   processingDetailFields,
@@ -697,6 +805,9 @@ async function pollLatestAlarms() {
     // 成功/失败状态由随后的 loadAlarms(silent) 按列表实际结果更新（分开管理）；
     // 用户请求在途时 loadAlarms 内的统一守卫会让路
     await loadAlarms(pagination.current, { silent: true });
+    // 右栏统计与地图随轮询同步刷新（内部有 in-flight 守卫，不会叠加请求）
+    loadOverview();
+    loadAlarmMap();
   } catch {
     // 轮询失败：保留上次成功数据，标记失败态（页面显示"更新失败"，不弹窗）
     pollFailed.value = true;
@@ -725,7 +836,387 @@ function onVisibilityChange() {
 }
 // #endif
 
+/* ========================= 报警概况（总览数字 + 近 7 天新增趋势） ========================= */
+
+/** stats/overview 响应结构（对齐 AlarmOverviewVO） */
+interface AlarmOverviewStats {
+  todayTotal?: number;
+  activeTotal?: number;
+  resolvedToday?: number;
+  byLevel?: Partial<Record<"INFO" | "WARNING" | "CRITICAL", number>>;
+  byType?: Array<{ alarmType?: string | null; alarmTypeName?: string | null; count?: number }>;
+}
+
+const overviewStats = ref<AlarmOverviewStats | null>(null);
+const overviewChartEl = ref<HTMLElement | null>(null);
+const overviewHasData = ref(false);
+let overviewChart: echarts.ECharts | null = null;
+let overviewResizeObserver: ResizeObserver | null = null;
+let overviewLoading = false;
+
+/** 按级别分布（固定 INFO/WARNING/CRITICAL 顺序；数据未加载时计数显示 "-"） */
+const levelBreakdownItems = computed(() => {
+  const stats = overviewStats.value;
+  return (["INFO", "WARNING", "CRITICAL"] as const).map((key) => ({
+    key,
+    label: getLevelText(key),
+    count: stats ? stats.byLevel?.[key] ?? 0 : "-",
+  }));
+});
+
+/** 按类型分布（名称优先取后端附带的 alarmTypeName） */
+const typeBreakdownItems = computed(() => {
+  const stats = overviewStats.value;
+  if (!stats) return [];
+  return (stats.byType || []).map((row) => ({
+    name: row.alarmTypeName || getRuleTypeText(row.alarmType) || "-",
+    count: row.count ?? 0,
+  }));
+});
+
+function fmtDate(ts: number): string {
+  const d = new Date(ts);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/** 展开时才加载：近 7 天趋势（stats/trend，按天）+ 总览数字与分布（stats/overview） */
+async function loadOverview() {
+  if (overviewLoading) return;
+  overviewLoading = true;
+  try {
+    const end = fmtDate(Date.now());
+    const start = fmtDate(Date.now() - 6 * 24 * 3600 * 1000);
+    const res = (await getAlarmTrend({ startTime: start, endTime: end })) as {
+      code?: number;
+      data?: { items?: Array<{ bucket: string; total: number }> };
+    };
+    if (res.code === 200 || res.code === undefined) {
+      const items = (res.data && res.data.items) || [];
+      overviewHasData.value = items.some((i) => i.total > 0);
+      renderOverviewChart(items);
+    }
+    // activeTotal 是后端真实活跃数，替代此前 latest-active 长度的近似
+    const overview = (await getAlarmOverview({})) as { code?: number; data?: AlarmOverviewStats };
+    if (overview.code === 200 || overview.code === undefined) {
+      overviewStats.value = overview.data || {};
+    }
+  } catch {
+    // 概况加载失败静默
+  } finally {
+    overviewLoading = false;
+  }
+}
+
+function renderOverviewChart(items: Array<{ bucket: string; total: number }>) {
+  if (!overviewChartEl.value) return;
+  if (!overviewChart) {
+    overviewChart = echarts.init(overviewChartEl.value);
+  }
+  overviewChart.setOption(
+    {
+      grid: { left: 44, right: 20, top: 30, bottom: 30 },
+      tooltip: {
+        trigger: "axis",
+        backgroundColor: "rgba(23, 32, 51, 0.92)",
+        borderWidth: 0,
+        textStyle: { color: "#ffffff", fontSize: 12 },
+        formatter: (params: Array<{ name: string; value: number }>) =>
+          `${params[0].name}
+新增报警记录: ${params[0].value} 条`,
+      },
+      xAxis: {
+        type: "category",
+        data: items.map((i) => i.bucket),
+        axisTick: { show: false },
+        axisLine: { lineStyle: { color: "#d8e5ef" } },
+        axisLabel: { color: "#52677b", fontSize: 11 },
+      },
+      yAxis: {
+        type: "value",
+        minInterval: 1,
+        splitLine: { lineStyle: { color: "#edf3f8", type: "dashed" } },
+        axisLabel: { color: "#8191a2", fontSize: 11 },
+      },
+      series: [
+        {
+          type: "bar",
+          data: items.map((i) => i.total),
+          barMaxWidth: 26,
+          itemStyle: {
+            borderRadius: [4, 4, 0, 0],
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: "#60a5fa" },
+              { offset: 1, color: "#2563eb" },
+            ]),
+          },
+        },
+      ],
+    },
+    true,
+  );
+}
+
+/* ========================= 报警分布地图（stats/map，echarts 散点） ========================= */
+
+/** 散点系列：按级别分桶着色（对齐后端文档建议 红/橙/蓝），未知级别归入灰色"其他" */
+const MAP_LEVEL_SERIES = [
+  { key: "CRITICAL", label: "严重", color: "#ef4444" },
+  { key: "WARNING", label: "警告", color: "#f59e0b" },
+  { key: "INFO", label: "提示", color: "#3b82f6" },
+  { key: "other", label: "其他", color: "#94a3b8" },
+] as const;
+
+const mapStatusOptions = [
+  { label: "全部状态", value: null as string | null },
+  { label: "活跃", value: "ACTIVE" },
+  { label: "已确认", value: "CONFIRMED" },
+  { label: "已关闭", value: "RESOLVED" },
+];
+const mapStatusLabels = mapStatusOptions.map((option) => option.label);
+const mapLevelOptions = [
+  { label: "全部级别", value: null as string | null },
+  { label: "提示", value: "INFO" },
+  { label: "警告", value: "WARNING" },
+  { label: "严重", value: "CRITICAL" },
+];
+const mapLevelLabels = mapLevelOptions.map((option) => option.label);
+
+const mapLoading = ref(false);
+const mapError = ref(false);
+const mapPointCount = ref(0);
+/** 当前已加载的点位（供图例按级别计数） */
+const mapItems = ref<AlarmMapItem[]>([]);
+const mapLevelCounts = computed(() => {
+  const counts = { CRITICAL: 0, WARNING: 0, INFO: 0, other: 0 };
+  for (const item of mapItems.value) {
+    if (item.alarmLevel === "CRITICAL" || item.alarmLevel === "WARNING" || item.alarmLevel === "INFO") {
+      counts[item.alarmLevel] += 1;
+    } else {
+      counts.other += 1;
+    }
+  }
+  return counts;
+});
+const mapFilters = reactive({ statusIndex: 1, levelIndex: 0 });
+const mapChartEl = ref<HTMLElement | null>(null);
+let mapChart: echarts.ECharts | null = null;
+let mapResizeObserver: ResizeObserver | null = null;
+/** 最近一次成功加载的筛选串（当前实现下拉即重查，仅作变更核对留用） */
+let mapLoadedQuery = "";
+
+function currentMapQuery(): string {
+  return JSON.stringify([mapStatusOptions[mapFilters.statusIndex].value, mapLevelOptions[mapFilters.levelIndex].value]);
+}
+
+/** 自定义下拉开合（status/level 互斥）；点页面其他区域由 document mousedown 关闭 */
+const activeMapSelect = ref<"status" | "level" | null>(null);
+
+function closeMapSelect(event?: Event) {
+  // 点的还在筛选下拉区域内（触发器/菜单选项）时不关：交给各自的 click 逻辑处理，
+  // 否则 mousedown 先关菜单会让随后的选项 click 落空
+  if (event) {
+    const target = event.target as HTMLElement | null;
+    if (target && target.closest && target.closest(".map-filters")) return;
+  }
+  activeMapSelect.value = null;
+}
+
+function toggleMapSelect(key: "status" | "level") {
+  activeMapSelect.value = activeMapSelect.value === key ? null : key;
+}
+
+function selectMapStatus(index: number) {
+  mapFilters.statusIndex = index;
+  activeMapSelect.value = null;
+  if (mapChart) loadAlarmMap();
+}
+
+function selectMapLevel(index: number) {
+  mapFilters.levelIndex = index;
+  activeMapSelect.value = null;
+  if (mapChart) loadAlarmMap();
+}
+
+async function loadAlarmMap() {
+  if (mapLoading.value) return;
+  mapLoading.value = true;
+  mapError.value = false;
+  const body: Record<string, unknown> = {};
+  const status = mapStatusOptions[mapFilters.statusIndex].value;
+  if (status !== null) body.status = status;
+  const level = mapLevelOptions[mapFilters.levelIndex].value;
+  if (level !== null) body.alarmLevel = level;
+  try {
+    const res = (await getAlarmMap(body)) as { code?: number; msg?: string; data?: { items?: AlarmMapItem[] } };
+    if (res.code !== undefined && res.code !== 200) {
+      throw new Error(res.msg || "load failed");
+    }
+    // 坐标非法的点位（后端已滤 999 哨兵值，这里再兜底一次类型异常）
+    const items = ((res.data && res.data.items) || []).filter(
+      (item) => typeof item.longitude === "number" && typeof item.latitude === "number",
+    );
+    mapPointCount.value = items.length;
+    mapItems.value = items;
+    mapLoadedQuery = currentMapQuery();
+    renderMapChart(items);
+  } catch {
+    mapError.value = true;
+  } finally {
+    mapLoading.value = false;
+  }
+}
+
+function renderMapChart(items: AlarmMapItem[]) {
+  if (!mapChartEl.value || !mapChart) return;
+  // 轴标签小数位按数据跨度自适应：设备集中（跨度<0.01°）保留 4 位，跨度大时缩短，
+  // 配合 splitNumber=3 + hideOverlap，避免窄栏里经度数字叠在一起
+  const axisDecimals = (values: number[]) => {
+    if (values.length < 2) return 4;
+    const span = Math.max(...values) - Math.min(...values);
+    if (span >= 0.1) return 2;
+    if (span >= 0.01) return 3;
+    return 4;
+  };
+  const lngDecimals = axisDecimals(items.map((item) => item.longitude as number));
+  const latDecimals = axisDecimals(items.map((item) => item.latitude as number));
+  const series = MAP_LEVEL_SERIES.map((seriesDef) => {
+    const matches =
+      seriesDef.key === "other"
+        ? (item: AlarmMapItem) => item.alarmLevel !== "CRITICAL" && item.alarmLevel !== "WARNING" && item.alarmLevel !== "INFO"
+        : (item: AlarmMapItem) => item.alarmLevel === seriesDef.key;
+    return {
+      name: seriesDef.label,
+      type: "scatter" as const,
+      symbolSize: 16,
+      itemStyle: { color: seriesDef.color, borderColor: "#ffffff", borderWidth: 1, opacity: 0.92 },
+      data: items.filter(matches).map((item) => ({ value: [item.longitude, item.latitude], item })),
+    };
+  });
+  mapChart.setOption(
+    {
+      // grid 底部留足 45° 斜排标签的空间（学爆管识别页 rotate 先例）
+      grid: { left: 64, right: 26, top: 40, bottom: 56 },
+      tooltip: {
+        trigger: "item",
+        backgroundColor: "rgba(23, 32, 51, 0.92)",
+        borderWidth: 0,
+        textStyle: { color: "#ffffff", fontSize: 12 },
+        formatter: (params: { data?: { item?: AlarmMapItem } }) => {
+          const item = params.data?.item;
+          if (!item) return "";
+          return [
+            `设备：${item.deviceNumber || "-"}${item.deviceAlias ? `（${item.deviceAlias}）` : ""}`,
+            `类型：${item.alarmTypeName || getRuleTypeText(item.alarmType)}`,
+            `级别：${getLevelText(item.alarmLevel)}`,
+            `触发值：${item.triggerValue == null ? "-" : String(item.triggerValue)}`,
+            `首次触发：${fmtDateTime(item.firstTriggeredAt)}`,
+          ].join("\n");
+        },
+      },
+      // 图例用面板底部的色点条（带计数说明），图表内不再重复绘制 legend
+      xAxis: {
+        // 单位进轴名（学爆管识别页"压力(MPa)"写法）；标签 45° 斜排显示完整数值
+        name: "经度(°E)",
+        nameTextStyle: { color: "#8191a2", fontSize: 11 },
+        type: "value",
+        scale: true,
+        splitNumber: 3,
+        axisLine: { lineStyle: { color: "#d8e5ef" } },
+        axisLabel: { color: "#52677b", fontSize: 11, rotate: 45, hideOverlap: true, formatter: (value: number) => value.toFixed(lngDecimals) },
+        splitLine: { lineStyle: { color: "#edf3f8", type: "dashed" } },
+      },
+      yAxis: {
+        name: "纬度(°N)",
+        nameTextStyle: { color: "#8191a2", fontSize: 11 },
+        type: "value",
+        scale: true,
+        splitNumber: 3,
+        axisLine: { lineStyle: { color: "#d8e5ef" } },
+        axisLabel: { color: "#52677b", fontSize: 11, hideOverlap: true, formatter: (value: number) => value.toFixed(latDecimals) },
+        splitLine: { lineStyle: { color: "#edf3f8", type: "dashed" } },
+      },
+      series,
+    },
+    true,
+  );
+}
+
+/* ========================= 左右分栏手柄（学爆管识别页：拖动调宽 / 单击折叠） ========================= */
+
+/** 右栏初始宽度：跟随 clamp(360px, 22vw, 430px) 的默认档 */
+const sideWidth = ref(
+  typeof window !== "undefined" ? Math.min(430, Math.max(360, Math.round(window.innerWidth * 0.22))) : 420,
+);
+const isSideCollapsed = ref(false);
+/** 宽屏才启用左右分栏（窄屏交给媒体查询单列堆叠，不用手柄） */
+const wideLayout = ref(typeof window === "undefined" || window.innerWidth > 1024);
+
+function syncWideLayout() {
+  wideLayout.value = window.innerWidth > 1024;
+}
+
+const layoutStyle = computed<Record<string, string> | undefined>(() => {
+  if (!wideLayout.value) return undefined;
+  if (isSideCollapsed.value) {
+    return { gridTemplateColumns: "minmax(0, 1fr) 24px" };
+  }
+  return { gridTemplateColumns: `minmax(0, 1fr) 24px minmax(0, ${sideWidth.value}px)` };
+});
+
+let resizeStartX = 0;
+let resizeStartWidth = 0;
+let resizeDragging = false;
+
+function startResize(event: MouseEvent) {
+  resizeStartX = event.clientX;
+  resizeStartWidth = sideWidth.value;
+  resizeDragging = false;
+  document.addEventListener("mousemove", onSideResizeMove);
+  document.addEventListener("mouseup", stopSideResize);
+}
+
+function onSideResizeMove(event: MouseEvent) {
+  const diff = resizeStartX - event.clientX;
+  // 位移超 3px 才算拖拽（与爆管识别页一致），否则视为单击
+  if (Math.abs(diff) > 3) {
+    resizeDragging = true;
+  }
+  // 下限 300 保证筛选可用，上限 55vw 不吞表格
+  const maxWidth = Math.min(760, Math.floor(window.innerWidth * 0.55));
+  sideWidth.value = Math.max(300, Math.min(maxWidth, resizeStartWidth + diff));
+}
+
+function stopSideResize() {
+  document.removeEventListener("mousemove", onSideResizeMove);
+  document.removeEventListener("mouseup", stopSideResize);
+  if (!resizeDragging) {
+    // 单击：折叠/展开右栏（display 隐藏保留图表实例，展开后 resize 复位）
+    isSideCollapsed.value = !isSideCollapsed.value;
+  }
+  nextTick(() => {
+    overviewChart && overviewChart.resize();
+    mapChart && mapChart.resize();
+  });
+}
+
 /* ========================= 生命周期 ========================= */
+
+/** 右栏常驻图表：挂载后初始化（容器已在视口内），并拉概况/地图首批数据 */
+function initSideCharts() {
+  if (overviewChartEl.value && !overviewChart) {
+    overviewChart = echarts.init(overviewChartEl.value);
+    overviewResizeObserver = new ResizeObserver(() => overviewChart && overviewChart.resize());
+    overviewResizeObserver.observe(overviewChartEl.value);
+  }
+  if (mapChartEl.value && !mapChart) {
+    mapChart = echarts.init(mapChartEl.value);
+    mapResizeObserver = new ResizeObserver(() => mapChart && mapChart.resize());
+    mapResizeObserver.observe(mapChartEl.value);
+  }
+  loadOverview();
+  loadAlarmMap();
+}
 
 async function loadDeptOptions() {
   try {
@@ -739,6 +1230,10 @@ async function loadDeptOptions() {
 onMounted(() => {
   loadAlarms(1, { applyFilters: true });
   loadDeptOptions();
+  nextTick(initSideCharts);
+  window.addEventListener("resize", syncWideLayout);
+  // 下拉外部关闭用 mousedown：与触发器 click 不同事件，避免同一次点击"先开后关"
+  document.addEventListener("mousedown", closeMapSelect);
   // #ifdef H5
   startPolling();
   // 页面从后台切回时立即刷新一次（轮询在 hidden 时跳过，回来可能已错过更新）
@@ -750,6 +1245,27 @@ onUnmounted(() => {
   // #ifdef H5
   stopPolling();
   document.removeEventListener("visibilitychange", onVisibilityChange);
+  // 拖拽中途卸载：摘掉挂在 document/window 上的监听
+  document.removeEventListener("mousemove", onSideResizeMove);
+  document.removeEventListener("mouseup", stopSideResize);
+  window.removeEventListener("resize", syncWideLayout);
+  document.removeEventListener("mousedown", closeMapSelect);
+  if (overviewResizeObserver) {
+    overviewResizeObserver.disconnect();
+    overviewResizeObserver = null;
+  }
+  if (overviewChart) {
+    overviewChart.dispose();
+    overviewChart = null;
+  }
+  if (mapResizeObserver) {
+    mapResizeObserver.disconnect();
+    mapResizeObserver = null;
+  }
+  if (mapChart) {
+    mapChart.dispose();
+    mapChart = null;
+  }
   // #endif
 });
 </script>
@@ -762,29 +1278,374 @@ onUnmounted(() => {
   height: 100%;
   min-height: 0;
   padding: 0 14px 14px;
-  overflow: hidden;
+  /* 概况/地图面板展开后内容超出视口：允许整页滚动，避免底部内容被裁掉 */
+  overflow-y: auto;
+  overflow-x: hidden;
   background: #eef4f8;
 }
 
-/* 表格 + 右侧详情双栏布局（同漏点页 main-layout 模式） */
-.main-layout {
+/* 右侧常驻栏：概况 + 地图（同数据分析页左右网格的右栏模式） */
+.side-column {
+  position: relative;
   display: flex;
-  flex: 1;
+  flex-direction: column;
   gap: 12px;
-  min-height: 0;
   min-width: 0;
+  min-height: 0;
+}
+
+.side-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #d8e5ef;
+  border-radius: 6px;
+  box-shadow: 0 12px 26px rgba(35, 72, 104, 0.09);
+}
+
+/* 概况卡：按内容自适应（上限 52%），地图占剩余空间 */
+.side-card--stats {
+  flex: 0 1 auto;
+  max-height: 52%;
+}
+
+/* 地图卡：占剩余空间，图表自适应填充；筛选菜单要向上弹出卡片外，故不裁溢出 */
+.side-card--map {
+  flex: 1;
+  overflow: visible;
+}
+
+.side-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex: none;
+  padding: 12px 14px;
+  border-bottom: 1px solid #edf3f8;
+}
+
+.side-card__head--map {
+  flex-wrap: wrap;
+}
+
+.side-card__title {
+  color: #172033;
+  font-size: 14px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.side-card__body {
+  flex: 1;
+  min-height: 0;
+  padding: 12px 14px;
+  box-sizing: border-box;
+}
+
+.side-card__body--map {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 概况：三个统计数字 */
+.side-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.side-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 6px;
+  text-align: center;
+  background: #f7fafc;
+  border: 1px solid #e3ebf2;
+  border-radius: 4px;
+}
+
+.side-stat__label {
+  color: #52677b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.side-stat__num {
+  color: #0f4c81;
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+/* 概况：按级别 / 按类型分布 */
+.side-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  background: #f7fafc;
+  border: 1px solid #e3ebf2;
+  border-radius: 4px;
+}
+
+.side-breakdown__group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  min-width: 0;
+}
+
+.side-breakdown__label {
+  color: #52677b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.side-breakdown__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #34495e;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.side-breakdown__item--na {
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.side-breakdown__num {
+  color: #0f4c81;
+  font-weight: 900;
+}
+
+.side-breakdown__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.side-breakdown__dot--INFO {
+  background: #3b82f6;
+}
+
+.side-breakdown__dot--WARNING {
+  background: #f59e0b;
+}
+
+.side-breakdown__dot--CRITICAL {
+  background: #ef4444;
+}
+
+.side-chart-caption {
+  display: block;
+  margin-bottom: 6px;
+  color: #52677b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.side-chart--trend {
+  width: 100%;
+  height: 140px;
+}
+
+.side-chart--map {
+  flex: 1;
+  width: 100%;
+  min-height: 200px;
+}
+
+/* 地图筛选下拉（自定义菜单：uni picker 底部弹层在本布局会被裁，改为按钮下方弹出） */
+.map-filters {
+  display: flex;
+  gap: 6px;
+}
+
+.map-filter {
+  position: relative;
+}
+
+.map-filter__select {
+  height: 24px;
+  padding: 0 8px;
+  color: #31506d;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 24px;
+  background: #f6fbff;
+  border: 1px solid #cbdced;
+  border-radius: 4px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.map-select-menu {
+  position: absolute;
+  /* 向上弹出：筛选按钮常在视口下缘，向下弹会整体出屏 */
+  bottom: calc(100% + 4px);
+  top: auto;
+  right: 0;
+  z-index: 30;
+  min-width: 96px;
+  max-height: 180px;
+  overflow: hidden auto;
+  background: #ffffff;
+  border: 1px solid #cbdced;
+  border-radius: 4px;
+  box-shadow: 0 14px 28px rgba(15, 35, 55, 0.16);
+}
+
+.map-select-option {
+  min-height: 32px;
+  padding: 0 12px;
+  color: #172033;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 32px;
+  white-space: nowrap;
+  cursor: pointer;
+  border-bottom: 1px solid #edf3f8;
+}
+
+.map-select-option:last-child {
+  border-bottom: 0;
+}
+
+.map-select-option:hover,
+.map-select-option--active {
+  color: #0d82ee;
+  background: #edf7ff;
+}
+
+.map-foot {
+  flex: none;
+  padding: 4px 2px 0;
+  color: #52677b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.map-foot--error {
+  color: #b42318;
+}
+
+.map-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  flex: none;
+  padding: 4px 2px 0;
+}
+
+.map-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #34495e;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.map-legend__item--zero {
+  color: #a5b3c2;
+}
+
+.map-legend__item--zero .side-breakdown__dot {
+  opacity: 0.45;
+}
+
+.map-legend__meta {
+  margin-left: auto;
+  color: #8191a2;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* 表格 + 右侧统计地图栏（同数据分析页 sheet-layout 网格模式）；
+   宽屏列模板由 layoutStyle 内联写入（手柄拖拽/折叠），此处默认值兜底 */
+.main-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24px minmax(0, clamp(360px, 22vw, 430px));
+  flex: 1 0 auto;
+  min-height: 420px;
+  gap: 12px;
+  margin-top: 12px;
+  min-width: 0;
+}
+
+/* 左右分栏手柄（学爆管识别页交互）：拖动调宽度，单击折叠/展开右栏；
+   胶囊按钮 + col-resize 光标 */
+.split-handle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: col-resize;
+  user-select: none;
+  z-index: 10;
+}
+
+.split-handle__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 56px;
+  color: #0d82ee;
+  font-size: 15px;
+  font-weight: 900;
+  background: #edf7ff;
+  border: 1px solid #b9dcfb;
+  border-radius: 999px;
+  box-shadow: 0 4px 10px rgba(35, 72, 104, 0.14);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.split-handle:hover .split-handle__btn {
+  color: #ffffff;
+  background: #0d82ee;
+  border-color: #0d82ee;
+}
+
+/* 概况卡：按内容自适应（上限 52%），地图占剩余空间 */
+.side-card--stats {
+  flex: 0 1 auto;
+  max-height: 52%;
+}
+
+/* 折叠态：display 隐藏（图表实例保留，展开后 resize 复位） */
+.side-column--hidden {
+  display: none;
 }
 
 .detail-panel {
   display: flex;
   flex-direction: column;
-  flex: 0 0 clamp(340px, 24vw, 420px);
   min-width: 0;
   overflow: hidden;
   background: #ffffff;
   border: 1px solid #d8e5ef;
   border-radius: 6px;
   box-shadow: 0 12px 26px rgba(35, 72, 104, 0.09);
+}
+
+/* 详情覆盖层：点"详情"时盖在右栏上，关闭后露出概况/地图 */
+.detail-panel--overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
 }
 
 .detail-panel__head {
@@ -928,11 +1789,18 @@ onUnmounted(() => {
 
 @media (max-width: 1024px) {
   .main-layout {
-    flex-direction: column;
+    grid-template-columns: minmax(0, 1fr);
   }
-  .detail-panel {
-    flex: none;
-    max-height: 340px;
+  /* 单列堆叠时不需要分栏手柄，右栏始终展示 */
+  .split-handle {
+    display: none;
+  }
+  .side-column--hidden {
+    display: flex;
+  }
+  /* 窄屏单列堆叠时右栏给足高度，地图/详情覆盖层才有空间 */
+  .side-column {
+    min-height: 560px;
   }
 }
 
@@ -1176,9 +2044,16 @@ onUnmounted(() => {
   border-right: 1px solid #edf1f5;
 }
 
+.table-row--header {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
 .table-row--header .table-cell {
   color: #415a73;
   font-size: 12px;
+  background: #ffffff;
 }
 
 .table-cell:last-child {
@@ -1201,6 +2076,20 @@ onUnmounted(() => {
 
 .col-action {
   gap: 6px;
+  /* 操作列固定右侧：横向滚动时按钮始终可见，不再被裁切 */
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  background: #ffffff;
+  border-left: 1px solid #e3edf5;
+}
+
+.table-row--header .col-action {
+  z-index: 3;
+}
+
+.table-row--selected .col-action {
+  background: #f2f9ff;
 }
 
 .checkbox {
