@@ -263,13 +263,14 @@
             </view>
 
             <view class="form-field">
-              <text class="form-label">{{ localeText("发送通知", "Notify") }}</text>
+              <text class="form-label">{{ localeText("邮件通知", "Email Notify") }}</text>
               <view class="switch-field" @click="form.notifyEnabled = !form.notifyEnabled">
                 <view class="switch-track" :class="{ 'switch-track--on': form.notifyEnabled }">
                   <view class="switch-thumb"></view>
                 </view>
                 <text class="switch-label">{{ form.notifyEnabled ? localeText("开启", "On") : localeText("关闭", "Off") }}</text>
               </view>
+              <view class="form-hint">{{ localeText("开启后新报警按系统配置发送邮件（默认 WARNING 及以上级别，收件人由系统统一配置）", "When on, new alarms send emails per system config (WARNING+ by default, recipients configured system-wide)") }}</view>
             </view>
 
             <view class="form-field form-field--full">
@@ -379,6 +380,9 @@ const textFormatters: Record<string, (item: AlarmRule) => string> = {
   thresholdDesc: (item) => getThresholdDescText(item),
   scope: (item) => getScopeText(item),
   enabledText: (item) => (item.enabled ? localeText("启用", "Enabled") : localeText("停用", "Disabled")),
+  // null（老数据/接口未返回）显示 "-"，不臆测为开或关
+  notifyText: (item) =>
+    item.notifyEnabled == null ? "-" : item.notifyEnabled ? localeText("开启", "On") : localeText("关闭", "Off"),
 };
 
 function getCellValue(item: AlarmRule, key: string): unknown {
@@ -1104,7 +1108,7 @@ onMounted(() => {
 
 .rule-table-row {
   /* 列宽模板由 alarmColumns.ts 的 strategyGridColumns 内联绑定（字段配置化） */
-  min-width: 1080px;
+  min-width: 1160px;
 }
 
 .table-row--header {

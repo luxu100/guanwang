@@ -15,12 +15,13 @@
     />
 
     <view v-if="error" class="module-error" @click="fetchAll">{{ error }} · 点击重试</view>
-    <view class="module-note">识别概览统计各测点最新窗口；下方列表按筛选条件展示历史窗口。红点表示压力越过正常区间，疑似爆管结论由识别结果提供。</view>
+    <view class="module-note">识别概览统计各测点最新窗口；下方列表按筛选条件展示历史窗口。状态：正常绿色、疑似黄色、已确认爆管红色。曲线红点仅表示越界，不能据此确认爆管。</view>
     <!-- 概览卡片 -->
     <view class="summary-row">
+      <LeakStatCard label="已确认爆管测点数" :value="summary?.confirmedCount" tone="danger" />
       <LeakStatCard label="参与识别测点数" :value="summary?.monitoredCount ?? '-'" tone="primary" />
 
-      <LeakStatCard label="疑似爆管测点数" :value="summary?.suspectedCount ?? '-'" tone="danger" />
+      <LeakStatCard label="疑似爆管测点数" :value="summary?.suspectedCount ?? '-'" tone="warning" />
 
       <LeakStatCard label="异常点总数" :value="summary?.abnormalPointTotal ?? '-'" tone="warning" />
 
@@ -113,16 +114,10 @@
               （{{ fmt(analyzeData.abnormalRate) }}%）
             </text>
 
-            <text
-                class="status-tag"
-                :class="
-                analyzeData.burstSuspected
-                  ? 'status-tag--danger'
-                  : 'status-tag--success'
-              "
-            >
-              {{ analyzeData.burstSuspected ? "疑似爆管" : "正常" }}
+            <text class="status-tag" :class="burstStatusInfo(analyzeData.status, analyzeData.burstSuspected).tagClass">
+              {{ burstStatusInfo(analyzeData.status, analyzeData.burstSuspected).label }}
             </text>
+            <button v-if="analyzeData.status === 'SUSPECTED_BURST'" class="confirm-burst-button" :disabled="confirming" @click="confirmSelectedBurst">{{ confirming ? '确认中…' : '确认爆管' }}</button>
           </view>
 
           <!-- 曲线图 -->
@@ -135,8 +130,9 @@
 </template>
 
 <script setup lang="ts">
-import LeakStatCard from "./LeakStatCard.vue";
+import { burstStatuses, burstStatusInfo } from "@/services/leak-burst/burst-status";
 import { USE_MOCK } from "@/services/leak-burst";
+import LeakStatCard from "./LeakStatCard.vue";
 import { chartElement, validateRange, deptOptions } from "./view-utils";
 import {
   computed,
@@ -164,6 +160,7 @@ import {
   getBurstPipeAnalyzeT,
   getBurstPipeResultsT,
   getBurstPipeSummaryT,
+  confirmBurstPipeT,
 } from "@/services/leak-burst";
 
 import type {
@@ -181,7 +178,7 @@ const searchForm = ref<Record<string, any>>({
   deptId: "",
   startTime: "",
   endTime: "",
-  burstSuspected: "",
+  status: "",
 });
 
 const toolbarFields: Field[] = [
@@ -202,20 +199,10 @@ const toolbarFields: Field[] = [
     type: "date",
   },
   {
-    key: "burstSuspected",
-    label: "疑似爆管",
+    key: "status",
+    label: "识别状态",
     type: "select",
-    options: [
-      { label: "全部状态", value: "" },
-      {
-        label: "仅看疑似爆管",
-        value: true,
-      },
-      {
-        label: "仅看正常",
-        value: false,
-      },
-    ],
+    options: [{label:"全部状态",value:""}, ...Object.entries(burstStatuses).map(([value,info])=>({value,label:info.label}))],
   },
 ];
 
@@ -313,22 +300,14 @@ const columns: XDataColumn[] = [
     formatter: (v) =>
         v == null ? "-" : `${fmt(v)}%`,
   },
+  { key: "tubeMaterial", label: "管材", width: 100 },
+  { key: "pipeAgeYears", label: "管龄", width: 80, formatter: (v) => v == null ? "-" : `${v} 年` },
+  { key: "assetScore", label: "资产评分", width: 90, align: "right", formatter: (v) => v == null ? "-" : String(v) },
   {
     key: "status",
     label: "识别状态",
     width: 110,
-    options: [
-      {
-        value: "NORMAL",
-        label: "正常",
-        tagClass: "status-tag--success",
-      },
-      {
-        value: "SUSPECTED_BURST",
-        label: "疑似爆管",
-        tagClass: "status-tag--danger",
-      },
-    ],
+    options: Object.entries(burstStatuses).map(([value,info])=>({value,...info})),
   },
 ];
 
@@ -347,37 +326,36 @@ async function fetchResults() {
   error.value = "";
   loading.value = true;
 
+  let first: (BurstPipeResult & { resultKey: string }) | undefined;
+
   try {
     const res = await getBurstPipeResultsT({
-      ...searchForm.value,
-      deviceNumber: searchForm.value.deviceNumber.trim(),
-      deptId: searchForm.value.deptId === "" ? null : Number(searchForm.value.deptId),
-      burstSuspected: typeof searchForm.value.burstSuspected === "boolean" ? searchForm.value.burstSuspected : null,
+      deviceNumber: searchForm.value.deviceNumber.trim() || undefined,
+      deptId: searchForm.value.deptId === "" ? undefined : Number(searchForm.value.deptId),
+      startTime: searchForm.value.startTime || undefined,
+      endTime: searchForm.value.endTime || undefined,
+      status: searchForm.value.status || undefined,
       pageNum: pagination.value.current,
       pageSize: pagination.value.size,
     });
 
     if (request !== listRequest) return;
     const page = res.data;
+    const records = page?.records;
 
-    resultList.value = (page?.records ?? []).map((row) => ({
+    if (records != null && !Array.isArray(records)) {
+      throw new TypeError("爆管识别分页数据 records 不是数组");
+    }
+
+    resultList.value = (records ?? []).map((row) => ({
       ...row,
       resultKey: buildKey(row),
     }));
 
     pagination.value.total = page?.total ?? 0;
-
-    // 默认选中第一条
-    const first = resultList.value[0];
-
-    if (first) {
-      await handleRowClick(first);
-    } else {
-      selectedKey.value = null;
-      analyzeData.value = null;
-      disposeChart();
-    }
-  } catch {
+    first = resultList.value[0];
+  } catch (failure) {
+    console.error("爆管识别结果加载失败", failure);
     if (request !== listRequest) return;
     error.value = "识别结果加载失败";
     resultList.value = [];
@@ -387,6 +365,17 @@ async function fetchResults() {
     disposeChart();
   } finally {
     if (request === listRequest) loading.value = false;
+  }
+
+  if (request !== listRequest) return;
+
+  // 详情请求拥有独立的错误处理，失败时保留已经成功加载的列表。
+  if (first) {
+    void handleRowClick(first);
+  } else {
+    selectedKey.value = null;
+    analyzeData.value = null;
+    disposeChart();
   }
 }
 
@@ -413,6 +402,7 @@ async function fetchSummary() {
 const analyzeData = ref<BurstPipeAnalyzeData | null>(null);
 
 const analyzeLoading = ref(false);
+const confirming = ref(false);
 
 const chartEl = ref<HTMLElement | null>(null);
 
@@ -446,7 +436,8 @@ async function handleRowClick(
     await nextTick();
 
     if (request === detailRequest) renderChart();
-  } catch {
+  } catch (failure) {
+    console.error("爆管压力曲线加载失败", failure);
     if (request !== detailRequest) return;
     error.value = "压力曲线加载失败，请重新选择识别窗口";
     analyzeData.value = null;
@@ -454,6 +445,35 @@ async function handleRowClick(
   } finally {
     if (request === detailRequest) analyzeLoading.value = false;
   }
+}
+
+function confirmSelectedBurst() {
+  const data = analyzeData.value;
+  if (!data || data.status !== "SUSPECTED_BURST" || confirming.value) return;
+  uni.showModal({
+    title: "确认爆管",
+    content: "",
+    editable: true,
+    placeholderText: "请输入爆管原因（必填，最多 200 字）",
+    success: async (result) => {
+      if (!result.confirm) return;
+      const cause = String(result.content ?? "").trim();
+      if (!cause) {
+        uni.showToast({ title: "请输入爆管原因", icon: "none" });
+        return;
+      }
+      confirming.value = true;
+      try {
+        await confirmBurstPipeT({ deviceNumber: data.deviceNumber || "", startTime: data.startTime, endTime: data.endTime, cause: cause.slice(0, 200) });
+        uni.showToast({ title: "已确认爆管", icon: "success" });
+        await fetchAll();
+      } catch (failure: any) {
+        uni.showToast({ title: failure?.msg || "确认失败", icon: "none" });
+      } finally {
+        confirming.value = false;
+      }
+    },
+  });
 }
 
 /* =========================
@@ -698,7 +718,7 @@ async function handleReset() {
     deptId: "",
     startTime: "",
     endTime: "",
-    burstSuspected: "",
+    status: "",
   };
 
   pagination.value.current = 1;
@@ -755,7 +775,7 @@ onBeforeUnmount(() => {
 
 .summary-row {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
   margin-top: 12px;
   flex: none;
@@ -855,6 +875,20 @@ onBeforeUnmount(() => {
   border-color: #bfe8ce;
   background: #eaf8ef;
 }
+
+.confirm-burst-button {
+  height: 28px;
+  margin: 0;
+  padding: 0 12px;
+  color: #fff;
+  font-size: 12px;
+  line-height: 28px;
+  background: #dc2626;
+  border: 0;
+  border-radius: 4px;
+}
+.confirm-burst-button::after { border: 0; }
+.confirm-burst-button[disabled] { opacity: .55; }
 
 /* =========================
  * 曲线
