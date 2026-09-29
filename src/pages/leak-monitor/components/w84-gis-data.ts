@@ -1,4 +1,5 @@
 import rawData from "../data/w84-network-demo.json";
+import type { TubeNetworkRecord } from "@/services/leak-monitor/tube-network";
 import type { MapCoordinate } from "../types";
 
 export type W84LayerKey = "pipes" | "hydrants" | "pumps" | "valves";
@@ -41,6 +42,46 @@ export interface W84NetworkData {
 }
 
 export const W84_NETWORK_DATA = rawData as W84NetworkData;
+
+/**
+ * 将已从 W84 Shapefile 解析并固化的 GeoJSON 风格数据转换为地图统一管线模型。
+ * 这是当前阶段的本地预览源，不代表后端接口已经补齐字段；正式接口代码仍保留。
+ */
+export function buildW84TubeRecords(): TubeNetworkRecord[] {
+  return W84_NETWORK_DATA.layers.pipes.features.flatMap((feature, index) => {
+    const sourceId = Number(feature.properties.sourceId);
+    const paths = featurePaths(feature);
+    if (!Number.isFinite(sourceId) || paths.some((path) => path.length < 2)) return [];
+
+    const sourceStatus = Number(feature.properties.status);
+    const status = sourceStatus === 4 ? 1 : sourceStatus === 0 ? 0 : null;
+    if (status === null) return [];
+
+    const numberValue = (value: unknown) => {
+      const number = Number(value);
+      return Number.isFinite(number) ? number : null;
+    };
+
+    return [{
+      id: sourceId || index + 1,
+      tubeName: `POC_KG556_p-${sourceId}`,
+      tubeType: numberValue(feature.properties.type),
+      tubeShape: null,
+      tubeOrder: null,
+      status,
+      deptId: 2,
+      lineCoords: paths,
+      material: String(feature.properties.material ?? "") || null,
+      diameterMm: numberValue(feature.properties.outerDiameterMm),
+      shapeLengthM: numberValue(feature.properties.shapeLengthM),
+      coordinateSystem: "WGS84",
+      countryCode: "MY",
+      gisSource: "POC_KG556_p",
+      gisSourceId: String(sourceId),
+      remark: "W84 local preview",
+    } satisfies TubeNetworkRecord];
+  });
+}
 
 export const W84_LAYER_LABELS: Record<W84LayerKey, string> = {
   pipes: "GIS 管线",

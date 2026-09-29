@@ -39,6 +39,7 @@ import {
 import { convertMapCoordinate } from "../coordinateTransform";
 import { useLeakMonitorI18n } from "../i18n";
 import type { MapDevicePoint, MapRegion } from "../types";
+import { deviceBindingColor } from "./map-marker-style";
 
 const { language, t } = useLeakMonitorI18n();
 
@@ -76,7 +77,6 @@ let mapInstance: google.maps.Map | null = null;
 let markers: google.maps.Marker[] = [];
 let regionPolygons: google.maps.Polygon[] = [];
 let resizeObserver: ResizeObserver | null = null;
-let resizeFrame: number | null = null;
 let resizeTimer: ReturnType<typeof window.setTimeout> | null = null;
 
 const DEFAULT_MAP_ZOOM = 10;
@@ -181,7 +181,7 @@ function markerIcon(point: MapDevicePoint): google.maps.Symbol {
   return {
     path: google.maps.SymbolPath.CIRCLE,
     scale: props.selectedDeviceNumber === point.deviceNumber ? 16 : 13,
-    fillColor: colorMap[point.status] || colorMap.unknown,
+    fillColor: deviceBindingColor(point) || colorMap[point.status] || colorMap.unknown,
     fillOpacity: 0.95,
     strokeColor: "#ffffff",
     strokeWeight: 2,
@@ -326,7 +326,6 @@ function fitDevices() {
 watch(
   () => props.points,
   () => renderMarkers(),
-  { deep: true },
 );
 
 watch(
@@ -339,7 +338,6 @@ watch(
 watch(
   () => props.regions,
   () => renderRegions(),
-  { deep: true },
 );
 
 watch(language, () => {
@@ -387,11 +385,6 @@ function unbindResizeEvents() {
   resizeObserver?.disconnect();
   resizeObserver = null;
 
-  if (resizeFrame !== null) {
-    window.cancelAnimationFrame(resizeFrame);
-    resizeFrame = null;
-  }
-
   if (resizeTimer) {
     window.clearTimeout(resizeTimer);
     resizeTimer = null;
@@ -407,10 +400,6 @@ function scheduleMapResize() {
     return;
   }
 
-  if (resizeFrame !== null) {
-    window.cancelAnimationFrame(resizeFrame);
-  }
-
   if (resizeTimer) {
     window.clearTimeout(resizeTimer);
   }
@@ -420,15 +409,10 @@ function scheduleMapResize() {
     google.maps.event.trigger(mapInstance, "resize");
   };
 
-  resizeFrame = window.requestAnimationFrame(() => {
-    resizeFrame = null;
+  resizeTimer = window.setTimeout(() => {
+    resizeTimer = null;
     refreshViewport();
-
-    resizeTimer = window.setTimeout(() => {
-      resizeTimer = null;
-      refreshViewport();
-    }, 260);
-  });
+  }, 180);
 }
 </script>
 

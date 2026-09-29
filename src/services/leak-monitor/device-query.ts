@@ -144,6 +144,15 @@ export function normalizeLeakDevice(
       record.coordinateSystem ?? record.coordType ?? record.coordinateType,
       getDefaultCoordinateSystem(domestic),
     ),
+    facilityId: (record.facilityId ?? record.valveId ?? null) as string | number | null,
+    facilityType: (() => {
+      const value = String(record.facilityType || "").trim().toUpperCase();
+      return value === "VALVE" || value === "HYDRANT" || value === "PUMP"
+        ? value as "VALVE" | "HYDRANT" | "PUMP"
+        : null;
+    })(),
+    facilityNumber: (record.facilityNumber ?? record.valveNumber ?? null) as string | null,
+    facilityName: record.facilityName == null ? null : String(record.facilityName),
     ...coordinate,
     raw: record,
   };

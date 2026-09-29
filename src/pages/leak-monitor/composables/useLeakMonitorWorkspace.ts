@@ -20,6 +20,11 @@ import {
   type RejectedTubeRecord,
   type TubeNetworkRecord,
 } from "@/services/leak-monitor/tube-network";
+import {
+  fetchFormalFacilities,
+  type FormalFacilityLoadResult,
+} from "@/services/leak-monitor/facility";
+import { buildW84TubeRecords } from "../components/w84-gis-data";
 import type {
   DateRangeValue,
   DeviceDetailState,
@@ -30,6 +35,8 @@ import type {
   MapRegion,
   ManualAnalysisPayload,
   PageState,
+  FacilityType,
+  LeakMonitorFacility,
 } from "../types";
 import { useLeakMonitorI18n } from "../i18n";
 
@@ -129,7 +136,20 @@ export function useLeakMonitorWorkspace(localized?: Readonly<Ref<boolean>>) {
   const formalTubesRejected = ref<RejectedTubeRecord[]>([]);
   const formalTubesError = ref("");
   const formalTubesLoading = ref(false);
+  const formalFacilities = ref<LeakMonitorFacility[]>([]);
+  const formalFacilitiesRejected = ref<FormalFacilityLoadResult["rejected"]>([]);
+  const formalFacilitiesError = ref("");
+  const formalFacilitiesLoading = ref(false);
+  // 当前先使用 W84 本地解析结果预览管线；正式接口状态保留，待后端字段稳定后恢复。
+  const previewTubes = ref<TubeNetworkRecord[]>(buildW84TubeRecords());
+  const previewFacilities = ref<LeakMonitorFacility[]>([]);
+  const facilityVisibility = reactive<Record<FacilityType, boolean>>({
+    VALVE: true,
+    HYDRANT: true,
+    PUMP: true,
+  });
   let formalTubesRequestId = 0;
+  let formalFacilitiesRequestId = 0;
   let listRequestId = 0;
   let sidebarRequestId = 0;
   let detailRequestId = 0;
@@ -183,6 +203,10 @@ export function useLeakMonitorWorkspace(localized?: Readonly<Ref<boolean>>) {
           coordinateSystem: device.coordinateSystem,
           lat: device.lat as number,
           lng: device.lng as number,
+          facilityId: monitorDevice?.facilityId ?? device.facilityId ?? null,
+          facilityType: monitorDevice?.facilityType ?? device.facilityType ?? null,
+          facilityNumber: monitorDevice?.facilityNumber ?? device.facilityNumber ?? null,
+          facilityName: monitorDevice?.facilityName ?? device.facilityName ?? null,
         };
       });
   });
@@ -241,6 +265,25 @@ export function useLeakMonitorWorkspace(localized?: Readonly<Ref<boolean>>) {
     }
   }
 
+  async function refreshFormalFacilities() {
+    const requestId = ++formalFacilitiesRequestId;
+    formalFacilitiesLoading.value = true;
+    formalFacilitiesError.value = "";
+    try {
+      const result = await fetchFormalFacilities();
+      if (requestId !== formalFacilitiesRequestId) return;
+      formalFacilities.value = result.facilities;
+      formalFacilitiesRejected.value = result.rejected;
+    } catch (error: any) {
+      if (requestId !== formalFacilitiesRequestId) return;
+      formalFacilities.value = [];
+      formalFacilitiesRejected.value = [];
+      formalFacilitiesError.value = error?.message || String(error || "设施数据加载失败");
+    } finally {
+      if (requestId === formalFacilitiesRequestId) formalFacilitiesLoading.value = false;
+    }
+  }
+
   async function refreshDevices(resetPage = false, targetPage = page.current) {
     const requestId = ++listRequestId;
     const requestedPage = resetPage ? 1 : targetPage;
@@ -271,6 +314,9 @@ export function useLeakMonitorWorkspace(localized?: Readonly<Ref<boolean>>) {
       refreshSidebar(),
       refreshDevices(resetPage),
       refreshMapData(),
+      // 后端接口已恢复，重新使用正式管线与设施数据；W84 本地预览仍保留在 previewTubes 中，供回退调试。
+      refreshFormalTubes(),
+      refreshFormalFacilities(),
     ]);
   }
 
@@ -480,7 +526,6 @@ export function useLeakMonitorWorkspace(localized?: Readonly<Ref<boolean>>) {
 
   onMounted(() => {
     void refreshAll(true);
-    void refreshFormalTubes();
   });
   watch(locale, () => void refreshAll(true));
   onBeforeUnmount(() => revokeAudioUrl(detail.value));
@@ -506,6 +551,14 @@ export function useLeakMonitorWorkspace(localized?: Readonly<Ref<boolean>>) {
     formalTubesError,
     formalTubesLoading,
     refreshFormalTubes,
+    formalFacilities,
+    formalFacilitiesRejected,
+    formalFacilitiesError,
+    formalFacilitiesLoading,
+    refreshFormalFacilities,
+    previewTubes,
+    previewFacilities,
+    facilityVisibility,
     closeDetail,
     downloadLatestAudio,
     loadHistory,

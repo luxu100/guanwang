@@ -1,0 +1,3460 @@
+{
+  "created": [
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-7",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:56.630845",
+        "deptId": 2,
+        "description": null,
+        "id": 10,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52475956300003,
+              3.102145731000064
+            ],
+            [
+              101.52473663200004,
+              3.10228676600002
+            ],
+            [
+              101.52465297100008,
+              3.102479401000039
+            ],
+            [
+              101.52457517300007,
+              3.102569709000022
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=7",
+        "status": 1,
+        "tubeName": "POC_KG556_p-7",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-15",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:56.7250189",
+        "deptId": 2,
+        "description": null,
+        "id": 11,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52328363100008,
+              3.1028844970000478
+            ],
+            [
+              101.52328473400007,
+              3.102862336000044
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=15",
+        "status": 1,
+        "tubeName": "POC_KG556_p-15",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-53",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:56.8029937",
+        "deptId": 2,
+        "description": null,
+        "id": 12,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52492567900003,
+              3.1020316470000466
+            ],
+            [
+              101.52472909300008,
+              3.10201723900002
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=53",
+        "status": 1,
+        "tubeName": "POC_KG556_p-53",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-56",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:56.8972068",
+        "deptId": 2,
+        "description": null,
+        "id": 13,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52457517300007,
+              3.102569709000022
+            ],
+            [
+              101.52443196300004,
+              3.102744160000043
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=56",
+        "status": 1,
+        "tubeName": "POC_KG556_p-56",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-60",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:56.9915225",
+        "deptId": 2,
+        "description": null,
+        "id": 14,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52237961500003,
+              3.1047915670000634
+            ],
+            [
+              101.52275983800007,
+              3.1047764480000524
+            ],
+            [
+              101.52275846100008,
+              3.104664359000026
+            ],
+            [
+              101.52210176500006,
+              3.104683787000056
+            ],
+            [
+              101.52180889500005,
+              3.104824921000045
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=60",
+        "status": 1,
+        "tubeName": "POC_KG556_p-60",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-62",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:57.0700839",
+        "deptId": 2,
+        "description": null,
+        "id": 15,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52345227800004,
+              3.1041399270000625
+            ],
+            [
+              101.52345307300004,
+              3.104119160000039
+            ],
+            [
+              101.52343665800004,
+              3.1041194830000336
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=62",
+        "status": 1,
+        "tubeName": "POC_KG556_p-62",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-79",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:57.163954",
+        "deptId": 2,
+        "description": null,
+        "id": 16,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52401384600006,
+              3.103437837000058
+            ],
+            [
+              101.52391017000008,
+              3.103628911000044
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=79",
+        "status": 1,
+        "tubeName": "POC_KG556_p-79",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-86",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:57.2421032",
+        "deptId": 2,
+        "description": null,
+        "id": 17,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52345227800004,
+              3.1041399270000625
+            ],
+            [
+              101.52356923400004,
+              3.10413545800003
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=86",
+        "status": 1,
+        "tubeName": "POC_KG556_p-86",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-89",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:57.3357802",
+        "deptId": 2,
+        "description": null,
+        "id": 18,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52356923400004,
+              3.10413545800003
+            ],
+            [
+              101.52357628900006,
+              3.104212281000059
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=89",
+        "status": 1,
+        "tubeName": "POC_KG556_p-89",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-92",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:57.4148169",
+        "deptId": 2,
+        "description": null,
+        "id": 19,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52329019400008,
+              3.102927315000045
+            ],
+            [
+              101.52328363100008,
+              3.1028844970000478
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=92",
+        "status": 1,
+        "tubeName": "POC_KG556_p-92",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-101",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:57.5089316",
+        "deptId": 2,
+        "description": null,
+        "id": 20,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52170066500008,
+              3.1047868090000748
+            ],
+            [
+              101.52159207600005,
+              3.104600838000067
+            ],
+            [
+              101.52151602000004,
+              3.1043161030000306
+            ],
+            [
+              101.52153151400006,
+              3.1040492420000305
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=101",
+        "status": 1,
+        "tubeName": "POC_KG556_p-101",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-112",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:57.5882977",
+        "deptId": 2,
+        "description": null,
+        "id": 21,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52460405200009,
+              3.1019798070000206
+            ],
+            [
+              101.52471505000005,
+              3.10201723900002
+            ],
+            [
+              101.52472909300008,
+              3.10201723900002
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=112",
+        "status": 1,
+        "tubeName": "POC_KG556_p-112",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-116",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:57.6818923",
+        "deptId": 2,
+        "description": null,
+        "id": 22,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52391017000008,
+              3.103628911000044
+            ],
+            [
+              101.52380577900004,
+              3.103839808000032
+            ],
+            [
+              101.52376299400004,
+              3.103897603000064
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=116",
+        "status": 1,
+        "tubeName": "POC_KG556_p-116",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-140",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:57.7595908",
+        "deptId": 2,
+        "description": null,
+        "id": 23,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52358268600005,
+              3.104281925000066
+            ],
+            [
+              101.52358845900005,
+              3.1043447860000697
+            ],
+            [
+              101.52350651800003,
+              3.104491625000037
+            ],
+            [
+              101.52350464600005,
+              3.1045894960000737
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=140",
+        "status": 1,
+        "tubeName": "POC_KG556_p-140",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-161",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:57.8546437",
+        "deptId": 2,
+        "description": null,
+        "id": 24,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52317340600007,
+              3.1016607870000716
+            ],
+            [
+              101.52390928500006,
+              3.1017523070000266
+            ],
+            [
+              101.52392719861193,
+              3.1017581727817505
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=161",
+        "status": 1,
+        "tubeName": "POC_KG556_p-161",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-163",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:57.9326971",
+        "deptId": 2,
+        "description": null,
+        "id": 25,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52413313800008,
+              3.1032205610000574
+            ],
+            [
+              101.52409230100005,
+              3.1031948050000437
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=163",
+        "status": 1,
+        "tubeName": "POC_KG556_p-163",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-181",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:58.0115672",
+        "deptId": 2,
+        "description": null,
+        "id": 26,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52154366700006,
+              3.1020076980000226
+            ],
+            [
+              101.52154044700006,
+              3.101883287000021
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=181",
+        "status": 1,
+        "tubeName": "POC_KG556_p-181",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-187",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:58.1056101",
+        "deptId": 2,
+        "description": null,
+        "id": 27,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52604543000007,
+              3.102432469000064
+            ],
+            [
+              101.52601818800008,
+              3.1024312540000665
+            ],
+            [
+              101.52601795100009,
+              3.102368438000042
+            ],
+            [
+              101.52593718400004,
+              3.1023471410000525
+            ],
+            [
+              101.52531074400008,
+              3.1024323000000322
+            ],
+            [
+              101.52498305200004,
+              3.102459305000025
+            ],
+            [
+              101.52482517700008,
+              3.1024705230000222
+            ],
+            [
+              101.52480999000005,
+              3.1024764910000613
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=187",
+        "status": 1,
+        "tubeName": "POC_KG556_p-187",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-210",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:58.1848475",
+        "deptId": 2,
+        "description": null,
+        "id": 28,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52157969200005,
+              3.101252594000073
+            ],
+            [
+              101.52224551600005,
+              3.1012590870000736
+            ],
+            [
+              101.52235353900005,
+              3.1012851470000555
+            ],
+            [
+              101.52248233600005,
+              3.101353088000053
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=210",
+        "status": 1,
+        "tubeName": "POC_KG556_p-210",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-229",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:58.2784116",
+        "deptId": 2,
+        "description": null,
+        "id": 29,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52163929200003,
+              3.1032671800000458
+            ],
+            [
+              101.52157482800004,
+              3.103262409000024
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=229",
+        "status": 1,
+        "tubeName": "POC_KG556_p-229",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-239",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:58.3719592",
+        "deptId": 2,
+        "description": null,
+        "id": 30,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52260524300004,
+              3.1064232780000225
+            ],
+            [
+              101.52252392100007,
+              3.106277435000038
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=239",
+        "status": 1,
+        "tubeName": "POC_KG556_p-239",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-248",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:58.623191",
+        "deptId": 2,
+        "description": null,
+        "id": 31,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52391017000008,
+              3.103628911000044
+            ],
+            [
+              101.52383044600003,
+              3.1035813990000634
+            ],
+            [
+              101.52375191200008,
+              3.103604775000065
+            ],
+            [
+              101.52367310800008,
+              3.103557919000025
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=248",
+        "status": 1,
+        "tubeName": "POC_KG556_p-248",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-250",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:58.7167456",
+        "deptId": 2,
+        "description": null,
+        "id": 32,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52325923100005,
+              3.1035735580000505
+            ],
+            [
+              101.52325659800005,
+              3.1036372970000343
+            ],
+            [
+              101.52354418400006,
+              3.103647557000045
+            ],
+            [
+              101.52364631100005,
+              3.103663635000032
+            ],
+            [
+              101.52366115000007,
+              3.10360509700007
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=250",
+        "status": 1,
+        "tubeName": "POC_KG556_p-250",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-252",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:58.7955554",
+        "deptId": 2,
+        "description": null,
+        "id": 33,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52156185100006,
+              3.1027104240000654
+            ],
+            [
+              101.52280240800008,
+              3.102706992000037
+            ],
+            [
+              101.52280207900009,
+              3.102599403000056
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=252",
+        "status": 1,
+        "tubeName": "POC_KG556_p-252",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-257",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:58.874065",
+        "deptId": 2,
+        "description": null,
+        "id": 34,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52314020800009,
+              3.1041627000000744
+            ],
+            [
+              101.52312004500004,
+              3.10420588300002
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=257",
+        "status": 1,
+        "tubeName": "POC_KG556_p-257",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-268",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:58.9521241",
+        "deptId": 2,
+        "description": null,
+        "id": 35,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52153831000004,
+              3.101811296000051
+            ],
+            [
+              101.52152119900006,
+              3.1012540290000743
+            ],
+            [
+              101.52157969200005,
+              3.101252594000073
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=268",
+        "status": 1,
+        "tubeName": "POC_KG556_p-268",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-273",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:59.0475937",
+        "deptId": 2,
+        "description": null,
+        "id": 36,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52367310800008,
+              3.103557919000025
+            ],
+            [
+              101.52356059100003,
+              3.103538077000053
+            ],
+            [
+              101.52328239159809,
+              3.103527176040336
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=273",
+        "status": 1,
+        "tubeName": "POC_KG556_p-273",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-280",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:59.1256026",
+        "deptId": 2,
+        "description": null,
+        "id": 37,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52477914700006,
+              3.1024886120000588
+            ],
+            [
+              101.52475837500003,
+              3.10249677500002
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=280",
+        "status": 1,
+        "tubeName": "POC_KG556_p-280",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-285",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:59.2199614",
+        "deptId": 2,
+        "description": null,
+        "id": 38,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52328068525243,
+              3.102709585194351
+            ],
+            [
+              101.52327167400006,
+              3.102369663000047
+            ],
+            [
+              101.52368116600007,
+              3.102352652000036
+            ],
+            [
+              101.52422701200004,
+              3.102507715000058
+            ],
+            [
+              101.52443288600006,
+              3.1026626660000716
+            ],
+            [
+              101.52443196300004,
+              3.102744160000043
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=285",
+        "status": 1,
+        "tubeName": "POC_KG556_p-285",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-288",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:59.2986113",
+        "deptId": 2,
+        "description": null,
+        "id": 39,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52293708700006,
+              3.105998965000026
+            ],
+            [
+              101.52285624500007,
+              3.1058073610000747
+            ],
+            [
+              101.52283202100006,
+              3.1055268700000624
+            ],
+            [
+              101.52228166600008,
+              3.105519700000059
+            ],
+            [
+              101.52214264600008,
+              3.105597289000059
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=288",
+        "status": 1,
+        "tubeName": "POC_KG556_p-288",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-295",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:59.3774295",
+        "deptId": 2,
+        "description": null,
+        "id": 40,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52164584800005,
+              3.102581022000038
+            ],
+            [
+              101.52155847400007,
+              3.102579917000071
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=295",
+        "status": 1,
+        "tubeName": "POC_KG556_p-295",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-299",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:59.4549932",
+        "deptId": 2,
+        "description": null,
+        "id": 41,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52397428900008,
+              3.1023292530000504
+            ],
+            [
+              101.52369303200004,
+              3.1022492720000514
+            ],
+            [
+              101.52315831100003,
+              3.1022647450000704
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=299",
+        "status": 1,
+        "tubeName": "POC_KG556_p-299",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-301",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:59.533219",
+        "deptId": 2,
+        "description": null,
+        "id": 42,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52209123100005,
+              3.105501580000066
+            ],
+            [
+              101.52208156900008,
+              3.1054841460000375
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=301",
+        "status": 1,
+        "tubeName": "POC_KG556_p-301",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-307",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:59.6277909",
+        "deptId": 2,
+        "description": null,
+        "id": 43,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52157187600005,
+              3.1031783050000286
+            ],
+            [
+              101.52156185100006,
+              3.1027104240000654
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=307",
+        "status": 1,
+        "tubeName": "POC_KG556_p-307",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-308",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:59.7062115",
+        "deptId": 2,
+        "description": null,
+        "id": 44,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52443196300004,
+              3.102744160000043
+            ],
+            [
+              101.52416705900004,
+              3.103029113000048
+            ],
+            [
+              101.52409343500005,
+              3.1030413890000546
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=308",
+        "status": 1,
+        "tubeName": "POC_KG556_p-308",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-311",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:59.8004179",
+        "deptId": 2,
+        "description": null,
+        "id": 45,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52492567900003,
+              3.1020316470000466
+            ],
+            [
+              101.52486221900006,
+              3.1020931230000315
+            ],
+            [
+              101.52482823500009,
+              3.1022768090000454
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=311",
+        "status": 1,
+        "tubeName": "POC_KG556_p-311",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-322",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:59.8790021",
+        "deptId": 2,
+        "description": null,
+        "id": 46,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52315476300004,
+              3.1016554880000626
+            ],
+            [
+              101.52317340600007,
+              3.101660787000071
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=322",
+        "status": 1,
+        "tubeName": "POC_KG556_p-322",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-324",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:44:59.9570249",
+        "deptId": 2,
+        "description": null,
+        "id": 47,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.5222898766296,
+              3.1018727356676856
+            ],
+            [
+              101.52162939400006,
+              3.101882036000063
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=324",
+        "status": 1,
+        "tubeName": "POC_KG556_p-324",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-337",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:00.1302688",
+        "deptId": 2,
+        "description": null,
+        "id": 48,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52343665800004,
+              3.1041194830000336
+            ],
+            [
+              101.52318730200005,
+              3.104110917000071
+            ],
+            [
+              101.52314020800009,
+              3.1041627000000744
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=337",
+        "status": 1,
+        "tubeName": "POC_KG556_p-337",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-352",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:00.2407944",
+        "deptId": 2,
+        "description": null,
+        "id": 49,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52209123100005,
+              3.105501580000066
+            ],
+            [
+              101.52227974700008,
+              3.1053971120000483
+            ],
+            [
+              101.52266892100005,
+              3.105404786000065
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=352",
+        "status": 1,
+        "tubeName": "POC_KG556_p-352",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-355",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:00.3189551",
+        "deptId": 2,
+        "description": null,
+        "id": 50,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52376299400004,
+              3.103897603000064
+            ],
+            [
+              101.52369177400004,
+              3.1039938090000305
+            ],
+            [
+              101.52356708000008,
+              3.1041119960000287
+            ],
+            [
+              101.52356923400004,
+              3.10413545800003
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=355",
+        "status": 1,
+        "tubeName": "POC_KG556_p-355",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-372",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:00.3976506",
+        "deptId": 2,
+        "description": null,
+        "id": 51,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52155681700003,
+              3.1025159060000647
+            ],
+            [
+              101.52154957913471,
+              3.102236184311923
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=372",
+        "status": 1,
+        "tubeName": "POC_KG556_p-372",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-386",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:00.4758899",
+        "deptId": 2,
+        "description": null,
+        "id": 52,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52157912300004,
+              3.1033848250000347
+            ],
+            [
+              101.52157482800004,
+              3.103262409000024
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=386",
+        "status": 1,
+        "tubeName": "POC_KG556_p-386",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-397",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:00.5699764",
+        "deptId": 2,
+        "description": null,
+        "id": 53,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52454608000005,
+              3.102572050000049
+            ],
+            [
+              101.52450053600006,
+              3.1025757160000467
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=397",
+        "status": 1,
+        "tubeName": "POC_KG556_p-397",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-407",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:00.6332214",
+        "deptId": 2,
+        "description": null,
+        "id": 54,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52153151400006,
+              3.1040492420000305
+            ],
+            [
+              101.52153850100007,
+              3.103861747000053
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=407",
+        "status": 1,
+        "tubeName": "POC_KG556_p-407",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-410",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:00.7112846",
+        "deptId": 2,
+        "description": null,
+        "id": 55,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52343170200004,
+              3.104677858000059
+            ],
+            [
+              101.52343760800005,
+              3.1045234440000513
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=410",
+        "status": 1,
+        "tubeName": "POC_KG556_p-410",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-412",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:00.8058476",
+        "deptId": 2,
+        "description": null,
+        "id": 56,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52409343500005,
+              3.1030413890000546
+            ],
+            [
+              101.52407744000004,
+              3.1030449520000616
+            ],
+            [
+              101.52387726500007,
+              3.102948182000034
+            ],
+            [
+              101.52374574700008,
+              3.102903172000026
+            ],
+            [
+              101.52328363100008,
+              3.1028844970000478
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=412",
+        "status": 1,
+        "tubeName": "POC_KG556_p-412",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-413",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:00.8842568",
+        "deptId": 2,
+        "description": null,
+        "id": 57,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52214264600008,
+              3.105597289000059
+            ],
+            [
+              101.52209123100005,
+              3.105501580000066
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=413",
+        "status": 1,
+        "tubeName": "POC_KG556_p-413",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-415",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:00.9623317",
+        "deptId": 2,
+        "description": null,
+        "id": 58,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52480999000005,
+              3.1024764910000613
+            ],
+            [
+              101.52477914700006,
+              3.1024886120000588
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=415",
+        "status": 1,
+        "tubeName": "POC_KG556_p-415",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-416",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:01.0408273",
+        "deptId": 2,
+        "description": null,
+        "id": 59,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52305027600005,
+              3.10162579200005
+            ],
+            [
+              101.52315476300004,
+              3.1016554880000626
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=416",
+        "status": 1,
+        "tubeName": "POC_KG556_p-416",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-429",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:01.1344455",
+        "deptId": 2,
+        "description": null,
+        "id": 60,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52154044700006,
+              3.101883287000021
+            ],
+            [
+              101.52154005600005,
+              3.101868189000072
+            ],
+            [
+              101.52153831000004,
+              3.101811296000051
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=429",
+        "status": 1,
+        "tubeName": "POC_KG556_p-429",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-445",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:01.2132532",
+        "deptId": 2,
+        "description": null,
+        "id": 61,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52532655400006,
+              3.1023135270000353
+            ],
+            [
+              101.52537883100007,
+              3.1023089010000717
+            ],
+            [
+              101.52578516200003,
+              3.102247977000047
+            ],
+            [
+              101.52597064300005,
+              3.102238975000034
+            ],
+            [
+              101.52605889179306,
+              3.102263437932099
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=445",
+        "status": 1,
+        "tubeName": "POC_KG556_p-445",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-455",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:01.2913139",
+        "deptId": 2,
+        "description": null,
+        "id": 62,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52350464600005,
+              3.1045894960000737
+            ],
+            [
+              101.52350295600007,
+              3.1046778570000697
+            ],
+            [
+              101.52346424100006,
+              3.104677858000059
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=455",
+        "status": 1,
+        "tubeName": "POC_KG556_p-455",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-460",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:01.3869907",
+        "deptId": 2,
+        "description": null,
+        "id": 63,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52333227800005,
+              3.1029929810000567
+            ],
+            [
+              101.52329999300008,
+              3.102991232000022
+            ],
+            [
+              101.52329019400008,
+              3.102927315000045
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=460",
+        "status": 1,
+        "tubeName": "POC_KG556_p-460",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-468",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:01.463344",
+        "deptId": 2,
+        "description": null,
+        "id": 64,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52482823500009,
+              3.1022768090000454
+            ],
+            [
+              101.52475837500003,
+              3.10249677500002
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=468",
+        "status": 1,
+        "tubeName": "POC_KG556_p-468",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-481",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:01.5413196",
+        "deptId": 2,
+        "description": null,
+        "id": 65,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52484904500005,
+              3.1023076330000663
+            ],
+            [
+              101.52486880600009,
+              3.1023369030000367
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=481",
+        "status": 1,
+        "tubeName": "POC_KG556_p-481",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-483",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:01.6207047",
+        "deptId": 2,
+        "description": null,
+        "id": 66,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52288695700008,
+              3.1041040880000423
+            ],
+            [
+              101.52261456300005,
+              3.104095917000052
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=483",
+        "status": 1,
+        "tubeName": "POC_KG556_p-483",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-499",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:01.6992022",
+        "deptId": 2,
+        "description": null,
+        "id": 67,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52457517300007,
+              3.102569709000022
+            ],
+            [
+              101.52454608000005,
+              3.102572050000049
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=499",
+        "status": 1,
+        "tubeName": "POC_KG556_p-499",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-506",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:01.7793751",
+        "deptId": 2,
+        "description": null,
+        "id": 68,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52156185100006,
+              3.1027104240000654
+            ],
+            [
+              101.52155847400007,
+              3.102579917000071
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=506",
+        "status": 1,
+        "tubeName": "POC_KG556_p-506",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-520",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:01.8574658",
+        "deptId": 2,
+        "description": null,
+        "id": 69,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52312004500004,
+              3.10420588300002
+            ],
+            [
+              101.52301660000006,
+              3.104190021000022
+            ],
+            [
+              101.52296048900007,
+              3.1041063900000267
+            ],
+            [
+              101.52288695700008,
+              3.1041040880000423
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=520",
+        "status": 1,
+        "tubeName": "POC_KG556_p-520",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-526",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:01.9361199",
+        "deptId": 2,
+        "description": null,
+        "id": 70,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52208156900008,
+              3.1054841460000375
+            ],
+            [
+              101.52206889400009,
+              3.1054612690000454
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=526",
+        "status": 1,
+        "tubeName": "POC_KG556_p-526",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-543",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:02.0153299",
+        "deptId": 2,
+        "description": null,
+        "id": 71,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52278899700008,
+              3.10150769400002
+            ],
+            [
+              101.52299883300009,
+              3.101607680000029
+            ],
+            [
+              101.52305027600005,
+              3.10162579200005
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=543",
+        "status": 1,
+        "tubeName": "POC_KG556_p-543",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-550",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:02.109289",
+        "deptId": 2,
+        "description": null,
+        "id": 72,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52248233600005,
+              3.101353088000053
+            ],
+            [
+              101.52278899700008,
+              3.10150769400002
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=550",
+        "status": 1,
+        "tubeName": "POC_KG556_p-550",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-572",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:02.2032146",
+        "deptId": 2,
+        "description": null,
+        "id": 73,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52475837500003,
+              3.10249677500002
+            ],
+            [
+              101.52461598400004,
+              3.102673596000045
+            ],
+            [
+              101.52454519600008,
+              3.102757764000046
+            ],
+            [
+              101.52413313800008,
+              3.1032205610000574
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=572",
+        "status": 1,
+        "tubeName": "POC_KG556_p-572",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-573",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:02.2818055",
+        "deptId": 2,
+        "description": null,
+        "id": 74,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52450053600006,
+              3.1025757160000467
+            ],
+            [
+              101.52429425200006,
+              3.1024202390000255
+            ],
+            [
+              101.52397428900008,
+              3.1023292530000504
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=573",
+        "status": 1,
+        "tubeName": "POC_KG556_p-573",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-586",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:02.3596227",
+        "deptId": 2,
+        "description": null,
+        "id": 75,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52346424100006,
+              3.104677858000059
+            ],
+            [
+              101.52343170200004,
+              3.104677858000059
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=586",
+        "status": 1,
+        "tubeName": "POC_KG556_p-586",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-597",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:02.4545625",
+        "deptId": 2,
+        "description": null,
+        "id": 76,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52261456300005,
+              3.104095917000052
+            ],
+            [
+              101.52197081200006,
+              3.1040766040000562
+            ],
+            [
+              101.52153151400006,
+              3.1040492420000305
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=597",
+        "status": 1,
+        "tubeName": "POC_KG556_p-597",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-610",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:02.5484863",
+        "deptId": 2,
+        "description": null,
+        "id": 77,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52609558600005,
+              3.1024347050000642
+            ],
+            [
+              101.52604543000007,
+              3.102432469000064
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=610",
+        "status": 1,
+        "tubeName": "POC_KG556_p-610",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-619",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:02.6268652",
+        "deptId": 2,
+        "description": null,
+        "id": 78,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52409230100005,
+              3.1031948050000437
+            ],
+            [
+              101.52398458500005,
+              3.1031268650000357
+            ],
+            [
+              101.52383687200006,
+              3.103051684000036
+            ],
+            [
+              101.52372188100009,
+              3.1030140940000592
+            ],
+            [
+              101.52333227800005,
+              3.1029929810000567
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=619",
+        "status": 1,
+        "tubeName": "POC_KG556_p-619",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-626",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:02.7055332",
+        "deptId": 2,
+        "description": null,
+        "id": 79,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52486880600009,
+              3.1023369030000367
+            ],
+            [
+              101.52487972100005,
+              3.10235306900006
+            ],
+            [
+              101.52532655400006,
+              3.1023135270000353
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=626",
+        "status": 1,
+        "tubeName": "POC_KG556_p-626",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-630",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:02.7998356",
+        "deptId": 2,
+        "description": null,
+        "id": 80,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52270669100005,
+              3.1066008580000357
+            ],
+            [
+              101.52260524300004,
+              3.1064232780000225
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=630",
+        "status": 1,
+        "tubeName": "POC_KG556_p-630",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-635",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:02.878367",
+        "deptId": 2,
+        "description": null,
+        "id": 81,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52155847400007,
+              3.102579917000071
+            ],
+            [
+              101.52155681700003,
+              3.1025159060000647
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=635",
+        "status": 1,
+        "tubeName": "POC_KG556_p-635",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-650",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:02.9564394",
+        "deptId": 2,
+        "description": null,
+        "id": 82,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52413313800008,
+              3.1032205610000574
+            ],
+            [
+              101.52408722800004,
+              3.1033025960000487
+            ],
+            [
+              101.52401384600006,
+              3.103437837000058
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=650",
+        "status": 1,
+        "tubeName": "POC_KG556_p-650",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-660",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:03.0515815",
+        "deptId": 2,
+        "description": null,
+        "id": 83,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52252392100007,
+              3.106277435000038
+            ],
+            [
+              101.52214264600008,
+              3.105597289000059
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=660",
+        "status": 1,
+        "tubeName": "POC_KG556_p-660",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-661",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:03.1298669",
+        "deptId": 2,
+        "description": null,
+        "id": 84,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52154366700006,
+              3.1020076980000226
+            ],
+            [
+              101.52282270400008,
+              3.1019780570000535
+            ],
+            [
+              101.52282647900006,
+              3.101864019000061
+            ],
+            [
+              101.52260224700007,
+              3.1018683370000417
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=661",
+        "status": 1,
+        "tubeName": "POC_KG556_p-661",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-663",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:03.2242206",
+        "deptId": 2,
+        "description": null,
+        "id": 85,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52206889400009,
+              3.1054612690000454
+            ],
+            [
+              101.52180265100009,
+              3.1049757740000246
+            ],
+            [
+              101.52213826400003,
+              3.1048018460000435
+            ],
+            [
+              101.52237961500003,
+              3.1047915670000634
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=663",
+        "status": 1,
+        "tubeName": "POC_KG556_p-663",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-683",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:03.3181082",
+        "deptId": 2,
+        "description": null,
+        "id": 86,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52157912300004,
+              3.1033848250000347
+            ],
+            [
+              101.52195204200007,
+              3.1034145380000377
+            ],
+            [
+              101.52265372926304,
+              3.103400368364989
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=683",
+        "status": 1,
+        "tubeName": "POC_KG556_p-683",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-695",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:03.3965837",
+        "deptId": 2,
+        "description": null,
+        "id": 87,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52328473400007,
+              3.102862336000044
+            ],
+            [
+              101.52328359700005,
+              3.1028194220000387
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=695",
+        "status": 1,
+        "tubeName": "POC_KG556_p-695",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-704",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:03.4751937",
+        "deptId": 2,
+        "description": null,
+        "id": 88,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52266892100005,
+              3.105404786000065
+            ],
+            [
+              101.52295550500008,
+              3.1054105240000354
+            ],
+            [
+              101.52311380200007,
+              3.1054109010000275
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=704",
+        "status": 1,
+        "tubeName": "POC_KG556_p-704",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-708",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:03.5688107",
+        "deptId": 2,
+        "description": null,
+        "id": 89,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52482823500009,
+              3.1022768090000454
+            ],
+            [
+              101.52484904500005,
+              3.1023076330000663
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=708",
+        "status": 1,
+        "tubeName": "POC_KG556_p-708",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-712",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:03.6635266",
+        "deptId": 2,
+        "description": null,
+        "id": 90,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52286156100007,
+              3.103342016000056
+            ],
+            [
+              101.52286539300007,
+              3.103283384000065
+            ],
+            [
+              101.52194174200008,
+              3.1032895650000683
+            ],
+            [
+              101.52163929200003,
+              3.1032671800000458
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=712",
+        "status": 1,
+        "tubeName": "POC_KG556_p-712",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-727",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:03.7416877",
+        "deptId": 2,
+        "description": null,
+        "id": 91,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52252392100007,
+              3.106277435000038
+            ],
+            [
+              101.52290787900006,
+              3.106064303000039
+            ],
+            [
+              101.52293708700006,
+              3.105998965000026
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=727",
+        "status": 1,
+        "tubeName": "POC_KG556_p-727",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-730",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:04.8238832",
+        "deptId": 2,
+        "description": null,
+        "id": 92,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52343760800005,
+              3.1045234440000513
+            ],
+            [
+              101.52345227800004,
+              3.1041399270000625
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=730",
+        "status": 1,
+        "tubeName": "POC_KG556_p-730",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-737",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:04.9181835",
+        "deptId": 2,
+        "description": null,
+        "id": 93,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52162939400006,
+              3.101882036000063
+            ],
+            [
+              101.52154044700006,
+              3.101883287000021
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=737",
+        "status": 1,
+        "tubeName": "POC_KG556_p-737",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-756",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:04.9971629",
+        "deptId": 2,
+        "description": null,
+        "id": 94,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52472909300008,
+              3.10201723900002
+            ],
+            [
+              101.52476910800004,
+              3.1020870310000532
+            ],
+            [
+              101.52475956300003,
+              3.102145731000064
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=756",
+        "status": 1,
+        "tubeName": "POC_KG556_p-756",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-765",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:05.0754093",
+        "deptId": 2,
+        "description": null,
+        "id": 95,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52366115000007,
+              3.10360509700007
+            ],
+            [
+              101.52367310800008,
+              3.103557919000025
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=765",
+        "status": 1,
+        "tubeName": "POC_KG556_p-765",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-776",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:05.1696546",
+        "deptId": 2,
+        "description": null,
+        "id": 96,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52357628900006,
+              3.104212281000059
+            ],
+            [
+              101.52358268600005,
+              3.104281925000066
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=776",
+        "status": 1,
+        "tubeName": "POC_KG556_p-776",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-782",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:05.2644096",
+        "deptId": 2,
+        "description": null,
+        "id": 97,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52269192520663,
+              3.1025976519022396
+            ],
+            [
+              101.52164584800005,
+              3.1025810220000385
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=782",
+        "status": 1,
+        "tubeName": "POC_KG556_p-782",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-785",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:05.357991",
+        "deptId": 2,
+        "description": null,
+        "id": 98,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52157482800004,
+              3.103262409000024
+            ],
+            [
+              101.52157187600005,
+              3.1031783050000286
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=785",
+        "status": 1,
+        "tubeName": "POC_KG556_p-785",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-787",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:05.4363829",
+        "deptId": 2,
+        "description": null,
+        "id": 99,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52180889500005,
+              3.104824921000045
+            ],
+            [
+              101.52174699600005,
+              3.104854749000026
+            ],
+            [
+              101.52170066500008,
+              3.1047868090000748
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=787",
+        "status": 1,
+        "tubeName": "POC_KG556_p-787",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-782",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:05.5302492",
+        "deptId": 2,
+        "description": null,
+        "id": 100,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52280207900009,
+              3.102599403000056
+            ],
+            [
+              101.52269192520663,
+              3.1025976519022396
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=782",
+        "status": 1,
+        "tubeName": "POC_KG556_p-782",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-372",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:05.6090373",
+        "deptId": 2,
+        "description": null,
+        "id": 101,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52154957913471,
+              3.102236184311923
+            ],
+            [
+              101.52154366700006,
+              3.1020076980000226
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=372",
+        "status": 1,
+        "tubeName": "POC_KG556_p-372",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-324",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:05.6874892",
+        "deptId": 2,
+        "description": null,
+        "id": 102,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52260224700007,
+              3.1018683370000417
+            ],
+            [
+              101.5222898766296,
+              3.1018727356676856
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=324",
+        "status": 1,
+        "tubeName": "POC_KG556_p-324",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-161",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:05.7655048",
+        "deptId": 2,
+        "description": null,
+        "id": 103,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52392719861193,
+              3.1017581727817505
+            ],
+            [
+              101.52460405200009,
+              3.1019798070000206
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=161",
+        "status": 1,
+        "tubeName": "POC_KG556_p-161",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-445",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:05.844661",
+        "deptId": 2,
+        "description": null,
+        "id": 104,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52605889179306,
+              3.102263437932099
+            ],
+            [
+              101.52613043500008,
+              3.1022832700000436
+            ],
+            [
+              101.52613023900005,
+              3.102436250000039
+            ],
+            [
+              101.52609558600005,
+              3.1024347050000642
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=445",
+        "status": 1,
+        "tubeName": "POC_KG556_p-445",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-285",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:05.9227461",
+        "deptId": 2,
+        "description": null,
+        "id": 105,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52328359700005,
+              3.102819422000039
+            ],
+            [
+              101.52328068525243,
+              3.102709585194351
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=285",
+        "status": 1,
+        "tubeName": "POC_KG556_p-285",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-273",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:06.0016401",
+        "deptId": 2,
+        "description": null,
+        "id": 106,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52328239159809,
+              3.103527176040336
+            ],
+            [
+              101.52326118300005,
+              3.1035263450000343
+            ],
+            [
+              101.52325923100005,
+              3.1035735580000505
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=273",
+        "status": 1,
+        "tubeName": "POC_KG556_p-273",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    },
+    {
+      "resource": "pipe",
+      "key": "POC_KG556_p-683",
+      "response": {
+        "administrator": null,
+        "createdAt": "2026-09-23T21:45:06.080255",
+        "deptId": 2,
+        "description": null,
+        "id": 107,
+        "isStartEnd": null,
+        "lineCoords": [
+          [
+            [
+              101.52265372926304,
+              3.103400368364989
+            ],
+            [
+              101.52285801500005,
+              3.10339624300002
+            ],
+            [
+              101.52286156100007,
+              3.1033420160000555
+            ]
+          ]
+        ],
+        "parentId": null,
+        "remark": "W84 source: POC_KG556_p, OBJECTID=683",
+        "status": 1,
+        "tubeName": "POC_KG556_p-683",
+        "tubeOrder": null,
+        "tubeShape": null,
+        "tubeType": 2,
+        "wellNumber": null
+      }
+    }
+  ],
+  "alreadyPresent": [
+    "POC_KG556_p-4"
+  ],
+  "startedAt": "2026-09-23T13:44:56.584Z"
+}

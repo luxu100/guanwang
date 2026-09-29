@@ -1,0 +1,21 @@
+- generic [ref=f1e7]:
+  - generic "选择界面语言" [ref=f1e8]:
+    - generic [ref=f1e9] [cursor=pointer]: 中文
+    - generic [ref=f1e10] [cursor=pointer]: EN
+  - generic [ref=f1e11]:
+    - generic [ref=f1e13]: URBAN PIPELINE INTELLIGENCE
+    - generic [ref=f1e14]: 智慧管网 · 实时监测 · 风险预警
+  - generic [ref=f1e15]:
+    - generic [ref=f1e16]:
+      - generic [ref=f1e17]: 欢迎登录
+      - generic [ref=f1e18]: Welcome
+    - generic [ref=f1e20]:
+      - generic [ref=f1e22]:
+        - textbox [ref=f1e26]: string001
+        - generic "清除账号和密码" [ref=f1e42] [cursor=pointer]
+      - generic [ref=f1e28]:
+        - textbox [ref=f1e32]: string001
+        - generic "显示密码" [ref=f1e33] [cursor=pointer]
+    - generic [ref=f1e35]: 记住密码
+    - generic [ref=f1e40] [cursor=pointer]: 登 录
+    - generic [ref=f1e44]: 用户名或密码错误

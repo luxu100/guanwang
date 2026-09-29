@@ -47,6 +47,16 @@ export function tencentDisplayCoordinate(
     : coordinate;
 }
 
+/** 腾讯底图拖动点反解为草稿 WGS84；由国家代码决定，海外数据不偏移。 */
+export function tencentSourceCoordinate(
+  coordinate: MapCoordinate,
+  countryCode?: string | null,
+): MapCoordinate {
+  return shouldApplyGcj02TransformForCountry(countryCode)
+    ? gcj02ToWgs84(coordinate)
+    : coordinate;
+}
+
 export function normalizeCoordinateSystem(
   value: unknown,
   fallback: CoordinateSystem,

@@ -17,6 +17,14 @@
       :formal-tube-rejected="formalTubesRejected"
       :formal-tube-error="formalTubesError"
       :formal-tube-loading="formalTubesLoading"
+      :formal-facilities="formalFacilities"
+      :formal-facility-rejected="formalFacilitiesRejected"
+      :formal-facility-error="formalFacilitiesError"
+      :formal-facility-loading="formalFacilitiesLoading"
+      :facility-visibility="facilityVisibility"
+      :creation="pipeCreation"
+      source="api"
+      @refresh="refreshNetworkLayers"
     />
     <GoogleLeakMap
       v-else
@@ -31,6 +39,18 @@
       v-if="provider !== 'tencent'"
       :map-instance="googleMapInstance"
       :points="mapPoints"
+      :formal-tubes="formalTubes"
+      :formal-tube-rejected="formalTubesRejected"
+      :formal-tube-error="formalTubesError"
+      :formal-tube-loading="formalTubesLoading"
+      :formal-facilities="formalFacilities"
+      :formal-facility-rejected="formalFacilitiesRejected"
+      :formal-facility-error="formalFacilitiesError"
+      :formal-facility-loading="formalFacilitiesLoading"
+      :facility-visibility="facilityVisibility"
+      :creation="pipeCreation"
+      source="api"
+      @refresh="refreshNetworkLayers"
     />
 
     <LeakMonitorSidebar
@@ -85,6 +105,8 @@ import type { TencentMapInstanceHandle } from "./tencent-map.types";
 import { useLeakMonitorWorkspace } from "../composables/useLeakMonitorWorkspace";
 import { LEAK_MONITOR_LOCALIZED_KEY } from "../i18n";
 import type { LeakMonitorDevice, MapDevicePoint } from "../types";
+import { getDraftPointCoordinates, usePipeCreation } from "../pipeCreation";
+import { tencentDisplayCoordinate } from "../coordinateTransform";
 
 const props = withDefaults(defineProps<{
   localized?: boolean;
@@ -107,6 +129,11 @@ const {
   formalTubesError,
   formalTubesLoading,
   formalTubesRejected,
+  formalFacilities,
+  formalFacilitiesRejected,
+  formalFacilitiesError,
+  formalFacilitiesLoading,
+  facilityVisibility,
   loading,
   mapDevices,
   mapPoints,
@@ -116,6 +143,7 @@ const {
   sidebarCollapsed,
   sidebarLoading,
 } = workspace;
+
 const mapRef = ref<{
   getMapInstance?: () => TencentMapInstanceHandle | google.maps.Map | null;
   focusDevice?: (deviceNumber: string) => void;
@@ -124,6 +152,30 @@ const mapRef = ref<{
 } | null>(null);
 const tencentMapInstance = ref<TencentMapInstanceHandle | null>(null);
 const googleMapInstance = ref<google.maps.Map | null>(null);
+
+async function refreshNetworkLayers() {
+  await Promise.all([workspace.refreshFormalTubes(), workspace.refreshFormalFacilities()]);
+}
+
+function focusCreationCoordinate(coordinate: { lng: number; lat: number }, countryCode: string) {
+  if (provider.value === "tencent") {
+    const TMap = (window as unknown as { TMap?: { LatLng: new (lat: number, lng: number) => unknown } }).TMap;
+    const map = tencentMapInstance.value;
+    if (!map || !TMap?.LatLng) return;
+    const display = tencentDisplayCoordinate(coordinate, countryCode);
+    map.easeTo?.({ center: new TMap.LatLng(display.lat, display.lng), zoom: Math.max(16, map.getZoom?.() || 16) });
+    return;
+  }
+  const map = googleMapInstance.value;
+  if (!map) return;
+  map.panTo({ lat: coordinate.lat, lng: coordinate.lng });
+  map.setZoom(Math.max(16, map.getZoom() || 16));
+}
+
+const pipeCreation = usePipeCreation(formalTubes, {
+  focusCoordinate: focusCreationCoordinate,
+  onSaved: refreshNetworkLayers,
+});
 
 function handleSelectDevice(device: LeakMonitorDevice) {
   void workspace.openDevice(device);
@@ -135,10 +187,17 @@ function handleMapDeviceClick(device: MapDevicePoint) {
 function handleTencentMapReady() {
   tencentMapInstance.value =
     (mapRef.value?.getMapInstance?.() as TencentMapInstanceHandle | null) ?? null;
+  focusActiveDraft();
 }
 function handleGoogleMapReady() {
   googleMapInstance.value =
     (mapRef.value?.getMapInstance?.() as google.maps.Map | null) ?? null;
+  focusActiveDraft();
+}
+function focusActiveDraft() {
+  if (!pipeCreation.draft.active || pipeCreation.draft.mode !== "pipe") return;
+  const first = getDraftPointCoordinates(pipeCreation.draft)[0];
+  if (first) focusCreationCoordinate(first, pipeCreation.draft.countryCode);
 }
 function toggleSidebar() {
   sidebarCollapsed.value = !sidebarCollapsed.value;
@@ -148,7 +207,6 @@ function toggleSidebar() {
 function requestMapLayoutRefresh() {
   window.requestAnimationFrame(() => {
     mapRef.value?.resize?.();
-    window.setTimeout(() => mapRef.value?.resize?.(), 280);
   });
 }
 

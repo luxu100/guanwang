@@ -36,12 +36,13 @@ import { MAP_CONFIG } from "@/services/map/map";
 import { convertMapCoordinate } from "../coordinateTransform";
 import { useLeakMonitorI18n } from "../i18n";
 import type { MapDevicePoint, MapRegion } from "../types";
+import { deviceBindingColor } from "./map-marker-style";
 
 const { t } = useLeakMonitorI18n();
 const TENCENT_MAP_KEY = MAP_CONFIG.tencentKey;
 const TENCENT_MAP_SCRIPT_ID = "tencent-map-gl-sdk";
 const TENCENT_MAP_SCRIPT_URL = `https://map.qq.com/api/gljs?v=1.exp&key=${TENCENT_MAP_KEY}&libraries=visualization`;
-const MAP_RESIZE_DELAY = 300;
+const MAP_RESIZE_DELAY = 180;
 
 /**
  * 腾讯地图 GL JS SDK 没有在项目里安装类型包，这里只声明当前组件用到的最小接口。
@@ -165,7 +166,6 @@ let markerLayer: InstanceType<TencentMultiMarkerConstructor> | null = null;
 let polygonLayer: InstanceType<TencentMultiPolygonConstructor> | null = null;
 let sdkLoadingPromise: Promise<void> | null = null;
 let resizeTimer: ReturnType<typeof window.setTimeout> | null = null;
-let resizeFrame: number | null = null;
 let resizeObserver: ResizeObserver | null = null;
 
 const HANGZHOU_CENTER = {
@@ -193,11 +193,6 @@ onBeforeUnmount(() => {
   if (resizeTimer) {
     window.clearTimeout(resizeTimer);
     resizeTimer = null;
-  }
-
-  if (resizeFrame !== null) {
-    window.cancelAnimationFrame(resizeFrame);
-    resizeFrame = null;
   }
 
   unbindResizeEvents();
@@ -312,7 +307,7 @@ function createMarkerStyles() {
   const TMap = getTMap();
   if (!TMap) return {};
 
-  const colors: Record<string, string> = {
+  const statusColors: Record<string, string> = {
     normal: "#00a870",
     suspect: "#f59e0b",
     leak: "#ef4444",
@@ -330,7 +325,7 @@ function createMarkerStyles() {
       context.scale(2, 2);
       context.beginPath();
       context.arc(size / 2, size / 2, size / 2 - 3, 0, Math.PI * 2);
-      context.fillStyle = colors[point.status] || colors.unknown;
+      context.fillStyle = deviceBindingColor(point) || statusColors[point.status] || statusColors.unknown;
       context.fill();
       context.lineWidth = selected ? 4 : 3;
       context.strokeStyle = "#ffffff";
@@ -538,7 +533,6 @@ watch(
   () => {
     renderMarkers();
   },
-  { deep: true },
 );
 
 watch(
@@ -551,7 +545,6 @@ watch(
 watch(
   () => props.regions,
   () => renderRegions(),
-  { deep: true },
 );
 
 watch(
@@ -598,23 +591,14 @@ function unbindResizeEvents() {
 }
 
 function scheduleMapResize() {
+  if (!mapInstance) return;
   if (resizeTimer) {
     window.clearTimeout(resizeTimer);
   }
-
-  if (resizeFrame !== null) {
-    window.cancelAnimationFrame(resizeFrame);
-  }
-
-  resizeFrame = window.requestAnimationFrame(() => {
-    resizeFrame = null;
+  resizeTimer = window.setTimeout(() => {
+    resizeTimer = null;
     mapInstance?.resize?.();
-
-    resizeTimer = window.setTimeout(() => {
-      resizeTimer = null;
-      mapInstance?.resize?.();
-    }, 260);
-  });
+  }, MAP_RESIZE_DELAY);
 }
 </script>
 

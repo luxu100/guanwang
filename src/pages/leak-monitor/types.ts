@@ -1,5 +1,6 @@
 export type LeakDeviceStatus = "normal" | "suspect" | "leak" | "unknown";
 export type CoordinateSystem = "WGS84" | "GCJ02";
+export type FacilityType = "VALVE" | "HYDRANT" | "PUMP";
 
 export interface MapCoordinate {
   lat: number;
@@ -41,6 +42,10 @@ export interface LeakMonitorDevice {
   coordinateSystem: CoordinateSystem;
   lat?: number;
   lng?: number;
+  facilityId?: string | number | null;
+  facilityType?: FacilityType | null;
+  facilityNumber?: string | null;
+  facilityName?: string | null;
   raw: Record<string, unknown>;
 }
 
@@ -59,6 +64,36 @@ export interface MapDevicePoint {
   coordinateSystem: CoordinateSystem;
   lat: number;
   lng: number;
+  facilityId?: string | number | null;
+  facilityType?: FacilityType | null;
+  facilityNumber?: string | null;
+  facilityName?: string | null;
+}
+
+export interface LeakMonitorPipe {
+  id: number;
+  tubeName: string | null;
+  status: number | null;
+  lineCoords: number[][][];
+  coordinateSystem: "WGS84";
+  countryCode: string | null;
+  material: string | null;
+  diameterMm: number | null;
+  shapeLengthM: number | null;
+}
+
+export interface LeakMonitorFacility {
+  id: number;
+  facilityType: FacilityType;
+  facilityNumber: string | null;
+  facilityName: string | null;
+  longitude: number;
+  latitude: number;
+  coordinateSystem: "WGS84";
+  countryCode: string | null;
+  status: number | null;
+  boundDeviceCount: number | null;
+  diameterMm?: number | null;
 }
 
 export interface NearbyAnalysisDevice {

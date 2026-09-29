@@ -35,6 +35,21 @@ export interface TubeNetworkRecord {
   remark: string | null;
 }
 
+export interface TubeNetworkCreatePayload {
+  tubeName: string;
+  tubeType: number;
+  tubeShape: number;
+  status: number;
+  deptId: number;
+  lineCoords: number[][][];
+  coordinateSystem: "WGS84";
+  countryCode: string;
+  material?: string;
+  diameterMm?: number;
+  shapeLengthM?: number;
+  remark?: string;
+}
+
 /** 单条记录的校验拒绝原因（显式呈现，不静默丢弃） */
 export interface RejectedTubeRecord {
   id: number | null;
@@ -51,6 +66,15 @@ const ISO_COUNTRY_CODE = /^[A-Z]{2}$/;
 const EXPECTED_COORDINATE_SYSTEM = "WGS84";
 
 const tubeNetworkApi = createCrudServiceTyped<TubeNetworkRecord>("/api/tube-network");
+
+/** 手动新增使用单条 create 接口；GIS import-batch 不用于此流程。 */
+export async function createTubeNetwork(payload: TubeNetworkCreatePayload) {
+  const envelope = await tubeNetworkApi.create(payload);
+  if (envelope?.code !== 200) {
+    throw new Error(`管线创建失败（code=${envelope?.code ?? "未知"}${envelope?.msg ? `: ${envelope.msg}` : ""}）`);
+  }
+  return envelope.data;
+}
 
 /** 校验单条记录：坐标系必须 WGS84、国家代码必须 alpha-2、几何必须是合法多段折线。 */
 export function validateFormalTubeRecord(record: TubeNetworkRecord): string | null {
