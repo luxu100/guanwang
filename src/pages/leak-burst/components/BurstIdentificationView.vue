@@ -126,6 +126,44 @@
         </template>
       </view>
     </view>
+
+    <view v-if="confirmDialogVisible" class="burst-confirm-mask" @click="closeConfirmDialog">
+      <view class="burst-confirm-dialog" @click.stop>
+        <view class="burst-confirm-dialog__head">
+          <view>
+            <text class="burst-confirm-dialog__title">确认爆管</text>
+            <text class="burst-confirm-dialog__subtitle">确认后该识别窗口将标记为已确认爆管</text>
+          </view>
+          <button class="burst-confirm-dialog__close" :disabled="confirming" @click="closeConfirmDialog">×</button>
+        </view>
+
+        <view class="burst-confirm-dialog__info">
+          <view><text>设备编号</text><text>{{ confirmTarget?.deviceNumber }}</text></view>
+          <view><text>识别窗口</text><text>{{ confirmTarget?.startTime }} 至 {{ confirmTarget?.endTime }}</text></view>
+        </view>
+
+        <view class="burst-confirm-dialog__field">
+          <view class="burst-confirm-dialog__label">
+            <text>爆管原因 <text class="required-mark">*</text></text>
+            <text>{{ confirmCause.length }}/200</text>
+          </view>
+          <textarea
+              v-model="confirmCause"
+              class="burst-confirm-dialog__textarea"
+              :maxlength="200"
+              placeholder="请填写现场核实情况、可能原因或处置说明"
+          />
+          <text v-if="confirmCauseError" class="burst-confirm-dialog__error">{{ confirmCauseError }}</text>
+        </view>
+
+        <view class="burst-confirm-dialog__actions">
+          <button class="dialog-button" :disabled="confirming" @click="closeConfirmDialog">取消</button>
+          <button class="dialog-button dialog-button--danger" :disabled="confirming" @click="submitBurstConfirmation">
+            {{ confirming ? "提交中…" : "确认爆管" }}
+          </button>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -165,6 +203,7 @@ import {
 
 import type {
   BurstPipeAnalyzeData,
+  BurstPipeConfirmRequest,
   BurstPipeResult,
   BurstPipeSummary,
 } from "@/services/leak-burst/types";
@@ -403,6 +442,10 @@ const analyzeData = ref<BurstPipeAnalyzeData | null>(null);
 
 const analyzeLoading = ref(false);
 const confirming = ref(false);
+const confirmDialogVisible = ref(false);
+const confirmCause = ref("");
+const confirmCauseError = ref("");
+const confirmTarget = ref<BurstPipeConfirmRequest | null>(null);
 
 const chartEl = ref<HTMLElement | null>(null);
 
@@ -450,30 +493,47 @@ async function handleRowClick(
 function confirmSelectedBurst() {
   const data = analyzeData.value;
   if (!data || data.status !== "SUSPECTED_BURST" || confirming.value) return;
-  uni.showModal({
-    title: "确认爆管",
-    content: "",
-    editable: true,
-    placeholderText: "请输入爆管原因（必填，最多 200 字）",
-    success: async (result) => {
-      if (!result.confirm) return;
-      const cause = String(result.content ?? "").trim();
-      if (!cause) {
-        uni.showToast({ title: "请输入爆管原因", icon: "none" });
-        return;
-      }
-      confirming.value = true;
-      try {
-        await confirmBurstPipeT({ deviceNumber: data.deviceNumber || "", startTime: data.startTime, endTime: data.endTime, cause: cause.slice(0, 200) });
-        uni.showToast({ title: "已确认爆管", icon: "success" });
-        await fetchAll();
-      } catch (failure: any) {
-        uni.showToast({ title: failure?.msg || "确认失败", icon: "none" });
-      } finally {
-        confirming.value = false;
-      }
-    },
-  });
+  confirmTarget.value = {
+    deviceNumber: data.deviceNumber || "",
+    startTime: data.startTime,
+    endTime: data.endTime,
+    cause: "",
+  };
+  confirmCause.value = "";
+  confirmCauseError.value = "";
+  confirmDialogVisible.value = true;
+}
+
+function closeConfirmDialog() {
+  if (confirming.value) return;
+  confirmDialogVisible.value = false;
+  confirmTarget.value = null;
+  confirmCause.value = "";
+  confirmCauseError.value = "";
+}
+
+async function submitBurstConfirmation() {
+  const target = confirmTarget.value;
+  const cause = confirmCause.value.trim();
+  if (!target || confirming.value) return;
+  if (!cause) {
+    confirmCauseError.value = "请填写爆管原因";
+    return;
+  }
+
+  confirmCauseError.value = "";
+  confirming.value = true;
+  try {
+    await confirmBurstPipeT({ ...target, cause });
+    confirmDialogVisible.value = false;
+    confirmTarget.value = null;
+    uni.showToast({ title: "已确认爆管", icon: "success" });
+    await fetchAll();
+  } catch (failure: any) {
+    uni.showToast({ title: failure?.msg || "确认失败", icon: "none" });
+  } finally {
+    confirming.value = false;
+  }
 }
 
 /* =========================
@@ -889,6 +949,60 @@ onBeforeUnmount(() => {
 }
 .confirm-burst-button::after { border: 0; }
 .confirm-burst-button[disabled] { opacity: .55; }
+
+.burst-confirm-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 35, 52, .48);
+}
+
+.burst-confirm-dialog {
+  box-sizing: border-box;
+  width: min(680px, 92vw);
+  padding: 22px 24px 20px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 22px 60px rgba(16, 42, 63, .26);
+}
+
+.burst-confirm-dialog__head,
+.burst-confirm-dialog__label,
+.burst-confirm-dialog__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.burst-confirm-dialog__title { display: block; color: #203e56; font-size: 19px; font-weight: 800; }
+.burst-confirm-dialog__subtitle { display: block; margin-top: 4px; color: #8293a1; font-size: 12px; }
+.burst-confirm-dialog__close { width: 34px; height: 34px; margin: 0; padding: 0; color: #718697; font-size: 25px; line-height: 31px; background: transparent; border: 0; }
+.burst-confirm-dialog__close::after,.dialog-button::after { border: 0; }
+
+.burst-confirm-dialog__info { margin-top: 18px; padding: 11px 14px; background: #f5f8fb; border-radius: 6px; }
+.burst-confirm-dialog__info view { display: grid; grid-template-columns: 76px minmax(0,1fr); gap: 10px; color: #35536a; font-size: 12px; line-height: 1.8; }
+.burst-confirm-dialog__info view text:first-child { color: #8494a1; }
+.burst-confirm-dialog__field { margin-top: 18px; }
+.burst-confirm-dialog__label { margin-bottom: 8px; color: #405c70; font-size: 13px; font-weight: 700; }
+.burst-confirm-dialog__label > text:last-child { color: #96a4ae; font-size: 11px; font-weight: 400; }
+.required-mark,.burst-confirm-dialog__error { color: #dc2626; }
+.burst-confirm-dialog__textarea { box-sizing: border-box; width: 100%; height: 150px; padding: 12px 14px; color: #263f52; font-size: 14px; line-height: 1.65; background: #fff; border: 1px solid #ccd9e3; border-radius: 6px; }
+.burst-confirm-dialog__textarea:focus { border-color: #3189d8; box-shadow: 0 0 0 3px rgba(49,137,216,.10); }
+.burst-confirm-dialog__error { display: block; margin-top: 6px; font-size: 12px; }
+.burst-confirm-dialog__actions { justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.dialog-button { min-width: 88px; height: 36px; margin: 0; padding: 0 16px; color: #4d6578; font-size: 13px; line-height: 36px; background: #eef3f6; border: 0; border-radius: 5px; }
+.dialog-button--danger { color: #fff; background: #dc2626; }
+.dialog-button[disabled] { opacity: .55; }
+
+@media (max-width: 640px) {
+  .burst-confirm-mask { padding: 12px; }
+  .burst-confirm-dialog { width: 100%; padding: 18px 16px; }
+  .burst-confirm-dialog__textarea { height: 130px; }
+}
 
 /* =========================
  * 曲线
