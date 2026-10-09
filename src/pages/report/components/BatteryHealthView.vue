@@ -111,15 +111,13 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import WorkOrderDatetimePicker from '@/pages/work-order/components/WorkOrderDatetimePicker.vue';
-interface Detection { id: string; date: string; operator: string; voltage: number; capacity: number; charge?: number; health?: number; days?: number; remark?: string }
-interface Battery { id: string; number: string; records: Detection[] }
-// 待接入电池检测接口。
-const batteries = ref<Battery[]>([]);
+import { createMockBatteries, type Battery, type Detection } from '@/pages/report/mock/battery-health';
+const batteries = ref<Battery[]>(createMockBatteries());
 const statuses = ['全部', '健康', '预警', '建议更换', '待检测', '待预测'];
 const number = ref('');
 const statusIndex = ref(0);
 const query = reactive({ number: '', status: '全部' });
-const selectedId = ref('');
+const selectedId = ref(batteries.value[0]?.id || '');
 const batteryEditorVisible = ref(false);
 const batteryError = ref('');
 const batteryForm = reactive({ id: '', number: '' });
