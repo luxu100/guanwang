@@ -1,5 +1,6 @@
 <template>
   <view class="operation-view">
+    <view v-if="USE_OPERATION_ANALYSIS_MOCK" class="demo-notice">示例数据 · 当前为最近 400 天的模拟运行数据，仅用于界面预览。</view>
     <view class="toolbar panel">
       <view class="filter-group"><text>时间范围</text>
         <view class="date-range">
@@ -65,6 +66,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
 import type { EChartsOption } from 'echarts';
+import { createMockOperationAnalysisRecords, USE_OPERATION_ANALYSIS_MOCK } from '@/pages/report/mock/operation-analysis';
 import AnalysisChart from './AnalysisChart.vue';
 import WorkOrderDatetimePicker from '@/pages/work-order/components/WorkOrderDatetimePicker.vue';
 type TrendGrain = 'day' | 'month' | 'year';
@@ -92,8 +94,7 @@ interface OperationAnalysisRecord {
   bursts: number;
   counts: number[];
 }
-// 待接入运行分析接口，记录时间使用实际统计时间。
-const records = ref<OperationAnalysisRecord[]>([]);
+const records = ref<OperationAnalysisRecord[]>(USE_OPERATION_ANALYSIS_MOCK ? createMockOperationAnalysisRecords() : []);
 const filters = reactive({ ...defaultRange(), partition: 0, report: 3 });
 const query = reactive({ ...filters });
 const error = ref(''); const generated = ref('');
@@ -235,6 +236,7 @@ interface ReportExport {
 
 function buildOperationReportCsv(report: ReportExport, t: Translate): string {
   const rows: Cell[][] = [
+    ...(USE_OPERATION_ANALYSIS_MOCK ? [[t('数据说明', 'Data Source'), t('示例数据，仅用于界面预览', 'Sample data for preview only')]] : []),
     [t('分析报告', 'Analysis Report'), report.title],
     [t('开始时间', 'Start Time'), report.start.replace('T', ' ')],
     [t('结束时间', 'End Time'), report.end.replace('T', ' ')],
@@ -316,6 +318,16 @@ function exportReport() {
 </script>
 
 <style scoped lang="scss">
+.demo-notice {
+  margin-bottom: 10px;
+  padding: 10px 14px;
+  color: #aa813d;
+  font-size: 12px;
+  background: #fff6e6;
+  border: 1px solid #f0dfbc;
+  border-radius: 6px;
+}
+
 .operation-view {
   box-sizing: border-box;
   height: 100%;

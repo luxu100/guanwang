@@ -36,7 +36,7 @@ export interface LedgerDevice {
   online: boolean | null;
   lifecycle: number[];
   lifecycleRecords: LedgerLifecycleRecord[];
-  changes: { time: string; operator: string; field: string; before: string; after: string; type: string }[];
+  changes: { time: string; operator: string; field: string; before: string; after: string; type: string; isMock?: boolean }[];
 }
 
 type DataObject = Record<string, unknown>;
@@ -115,7 +115,44 @@ function mapDevice(row: DeviceLedgerItem, areaById: Map<string, string>): Ledger
     online: source.onlineStatus === 1 ? true : source.onlineStatus === 0 ? false : null,
     lifecycle: [],
     lifecycleRecords: [],
-    changes: [],
+    changes: [
+      {
+        time: '2026-09-18 14:35',
+        operator: '示例操作员',
+        field: '所属分区',
+        before: '示例分区 A',
+        after: '示例分区 B',
+        type: '分区变更',
+        isMock: true,
+      },
+      {
+        time: '2026-09-12 10:20',
+        operator: '示例操作员',
+        field: '安装地址',
+        before: '原安装地址（示例）',
+        after: '新安装地址（示例）',
+        type: '拆装信息变更',
+        isMock: true,
+      },
+      {
+        time: '2026-09-05 09:10',
+        operator: '示例操作员',
+        field: '设备别名',
+        before: '原别名（示例）',
+        after: '新别名（示例）',
+        type: '基础信息变更',
+        isMock: true,
+      },
+      {
+        time: '2026-08-28 16:45',
+        operator: '示例操作员',
+        field: '启用状态',
+        before: '停用（示例）',
+        after: '启用（示例）',
+        type: '状态信息变更',
+        isMock: true,
+      },
+    ],
   };
 }
 
