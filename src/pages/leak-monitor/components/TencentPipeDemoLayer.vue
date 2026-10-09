@@ -1,10 +1,10 @@
 <template>
   <view class="network-layer">
-    <PipeCreationPanel :creation="creation" />
     <LeakNetworkPanel
       :provider-label="providerLabel"
       :source="source"
       :pipes="pipes"
+      :regions="regions"
       :facilities="formalFacilities"
       :device-points="points"
       :visible="pipeVisible"
@@ -13,13 +13,13 @@
       :loading="loading"
       :error-message="networkError"
       :facility-visibility="facilityVisibility"
-      :creation-active="creation.draft.active"
-      @expand="panelCollapsed = false"
-      @collapse="panelCollapsed = true"
+      :creation="creation"
+      @expand="panelCollapsed = false; emit('panel-expand')"
+      @collapse="panelCollapsed = true; emit('panel-collapse')"
+      @refresh="emit('refresh')"
       @toggle-visible="togglePipeVisibility"
       @toggle-facility="toggleFacility"
       @fit="fitNetwork"
-      @start-creation="creation.start"
     />
   </view>
 </template>
@@ -27,22 +27,13 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import LeakNetworkPanel from "./LeakNetworkPanel.vue";
-import PipeCreationPanel from "./PipeCreationPanel.vue";
 import type { TencentMapInstanceHandle } from "./tencent-map.types";
 import { tencentDisplayCoordinate, tencentSourceCoordinate } from "../coordinateTransform";
-import type { FacilityType, LeakMonitorFacility, LeakMonitorPipe, MapDevicePoint } from "../types";
+import type { FacilityType, LeakMonitorFacility, LeakMonitorPipe, MapDevicePoint, MapRegion } from "../types";
 import type { RejectedTubeRecord, TubeNetworkRecord } from "@/services/leak-monitor/tube-network";
 import { useLeakMonitorI18n } from "../i18n";
 import { getDraftPointCoordinates, getFacilityCoordinate, type PipeCreationController } from "../pipeCreation";
-
-interface TencentLayer {
-  setData?: (data: unknown[]) => void;
-  addTo?: (map: TencentMapInstanceHandle) => void;
-  show?: () => void;
-  hide?: () => void;
-  remove?: () => void;
-  destroy?: () => void;
-}
+import { getNetworkViewportCoordinates } from "../networkViewport";
 
 interface TencentMarkerLayer {
   setMap?: (map: TencentMapInstanceHandle | null) => void;
@@ -70,7 +61,6 @@ interface TencentOverviewLayer {
 interface TencentPipeApi {
   LatLng: new (lat: number, lng: number, altitude?: number) => unknown;
   LatLngBounds?: new () => { extend?: (position: unknown) => void };
-  visualization?: { Pipe: new (options: { pickStyle: (item: { styleId?: string }) => { color: string } }) => TencentLayer };
   PolylineStyle?: TencentPolylineStyle;
   MultiPolyline?: new (options: { map: TencentMapInstanceHandle; styles: Record<string, unknown>; geometries: unknown[] }) => TencentOverviewLayer;
   MarkerStyle?: new (options: { width: number; height: number; anchor: { x: number; y: number }; src: string }) => unknown;
@@ -80,6 +70,7 @@ interface TencentPipeApi {
 const props = withDefaults(defineProps<{
   mapInstance?: TencentMapInstanceHandle | null;
   points?: MapDevicePoint[];
+  regions?: MapRegion[];
   formalTubes?: TubeNetworkRecord[];
   formalTubeRejected?: RejectedTubeRecord[];
   formalTubeError?: string;
@@ -94,6 +85,7 @@ const props = withDefaults(defineProps<{
 }>(), {
   mapInstance: null,
   points: () => [],
+  regions: () => [],
   formalTubes: () => [],
   formalTubeRejected: () => [],
   formalTubeError: "",
@@ -106,29 +98,23 @@ const props = withDefaults(defineProps<{
   source: "api",
 });
 
-const emit = defineEmits<{ (event: "refresh"): void }>();
+const emit = defineEmits<{ (event: "refresh"): void; (event: "panel-expand"): void; (event: "panel-collapse"): void }>();
 const { language } = useLeakMonitorI18n();
 const pipeVisible = ref(true);
 const panelCollapsed = ref(true);
-let pipeLayer: TencentLayer | null = null;
 let overviewLayer: TencentOverviewLayer | null = null;
 let facilityLayer: TencentMarkerLayer | null = null;
 let draftFacilityLayer: TencentMarkerLayer | null = null;
-let draftPipeLayer: TencentLayer | null = null;
+let draftPipeLayer: TencentOverviewLayer | null = null;
 let layersMap: TencentMapInstanceHandle | null = null;
 let draftSyncFrame: number | null = null;
 let layerSyncFrame: number | null = null;
-let hasFormalPipeData = false;
 let hasOverviewPipeData = false;
 let hasDraftPipeData = false;
 let hasFacilityData = false;
 let hasDraftFacilityData = false;
-let hasAutoFocusedFormalNetwork = false;
-let mapZoomHandler: (() => void) | null = null;
-
 const ACTIVE_PIPE_COLOR = "#16A34A";
 const INACTIVE_PIPE_COLOR = "#94A3B8";
-const OVERVIEW_PIPE_MAX_ZOOM = 13;
 
 const pipes = computed<LeakMonitorPipe[]>(() => props.formalTubes.map((tube) => ({
   id: tube.id,
@@ -140,6 +126,7 @@ const pipes = computed<LeakMonitorPipe[]>(() => props.formalTubes.map((tube) => 
   material: tube.material,
   diameterMm: tube.diameterMm,
   shapeLengthM: tube.shapeLengthM,
+  deptId: tube.deptId,
 })));
 const loaded = computed(() => !props.formalTubeError && !props.formalFacilityError && !props.formalTubeLoading && !props.formalFacilityLoading);
 const loading = computed(() => Boolean(props.formalTubeLoading || props.formalFacilityLoading));
@@ -183,10 +170,8 @@ watch(pipeVisible, applyVisibility);
 onBeforeUnmount(() => {
   if (draftSyncFrame !== null) window.cancelAnimationFrame(draftSyncFrame);
   if (layerSyncFrame !== null) window.cancelAnimationFrame(layerSyncFrame);
-  if (mapZoomHandler && layersMap?.off) layersMap.off("zoom", mapZoomHandler);
-  destroyLayer(pipeLayer);
   destroyOverviewLayer(overviewLayer);
-  destroyLayer(draftPipeLayer);
+  destroyOverviewLayer(draftPipeLayer);
   destroyMarkerLayer(facilityLayer);
   destroyMarkerLayer(draftFacilityLayer);
 });
@@ -202,57 +187,37 @@ function scheduleLayerSync() {
 function syncLayers() {
   const TMap = getTMap();
   if (!props.mapInstance || !TMap) {
-    if (mapZoomHandler && layersMap?.off) layersMap.off("zoom", mapZoomHandler);
-    destroyLayer(pipeLayer);
     destroyOverviewLayer(overviewLayer);
-    destroyLayer(draftPipeLayer);
+    destroyOverviewLayer(draftPipeLayer);
     destroyMarkerLayer(facilityLayer);
     destroyMarkerLayer(draftFacilityLayer);
-    pipeLayer = null;
     overviewLayer = null;
     draftPipeLayer = null;
     facilityLayer = null;
     draftFacilityLayer = null;
     layersMap = null;
-    hasFormalPipeData = false;
     hasOverviewPipeData = false;
     hasDraftPipeData = false;
     hasFacilityData = false;
     hasDraftFacilityData = false;
-    hasAutoFocusedFormalNetwork = false;
-    mapZoomHandler = null;
     return;
   }
 
   // 地图实例变化时才重建图层（例如中英文地图供应商切换）。同一张地图
   // 的接口刷新只更新图层数据，避免重复创建 SDK 对象。
   if (layersMap !== props.mapInstance) {
-    if (mapZoomHandler && layersMap?.off) layersMap.off("zoom", mapZoomHandler);
-    destroyLayer(pipeLayer);
     destroyOverviewLayer(overviewLayer);
-    destroyLayer(draftPipeLayer);
+    destroyOverviewLayer(draftPipeLayer);
     destroyMarkerLayer(facilityLayer);
     destroyMarkerLayer(draftFacilityLayer);
-    pipeLayer = null;
     draftPipeLayer = null;
     facilityLayer = null;
     draftFacilityLayer = null;
     layersMap = props.mapInstance;
-    hasFormalPipeData = false;
     hasOverviewPipeData = false;
     hasDraftPipeData = false;
     hasFacilityData = false;
     hasDraftFacilityData = false;
-    hasAutoFocusedFormalNetwork = false;
-
-    if (TMap.visualization?.Pipe) {
-      pipeLayer = new TMap.visualization.Pipe({
-        pickStyle: (item) => ({ color: item.styleId === "inactive" ? INACTIVE_PIPE_COLOR : ACTIVE_PIPE_COLOR }),
-      });
-      pipeLayer.addTo?.(props.mapInstance);
-      draftPipeLayer = new TMap.visualization.Pipe({ pickStyle: () => ({ color: "#0EA5E9" }) });
-      draftPipeLayer.addTo?.(props.mapInstance);
-    }
 
     if (TMap.MultiPolyline && TMap.PolylineStyle) {
       overviewLayer = new TMap.MultiPolyline({
@@ -260,10 +225,12 @@ function syncLayers() {
         styles: createOverviewStyles(TMap),
         geometries: [],
       });
+      draftPipeLayer = new TMap.MultiPolyline({
+        map: props.mapInstance,
+        styles: { draft: new TMap.PolylineStyle({ color: "#0EA5E9", width: 6 }) },
+        geometries: [],
+      });
     }
-
-    mapZoomHandler = () => applyOverviewVisibility();
-    props.mapInstance.on?.("zoom", mapZoomHandler);
 
     if (TMap.MultiMarker && TMap.MarkerStyle) {
       facilityLayer = new TMap.MultiMarker({ map: props.mapInstance, styles: createFacilityStyles(TMap), geometries: [] });
@@ -288,40 +255,28 @@ function syncDraftLayers() {
 }
 
 function renderPipes(TMap: TencentPipeApi) {
-  if (!pipeLayer?.setData) return;
+  if (!overviewLayer?.setGeometries) return;
   const geometries: unknown[] = [];
-  props.formalTubes.forEach((tube) => (tube.lineCoords || []).forEach((part, partIndex) => {
+  props.formalTubes.forEach((tube) => (tube.lineCoords || []).forEach((part) => {
     const paths = part.map(([lng, lat]) => {
       const display = tencentDisplayCoordinate({ lng, lat }, tube.countryCode);
-      // visualization.Pipe transfers geometry to a worker; plain coordinate
-      // objects are cloneable while SDK LatLng instances are not.
       return { lat: display.lat, lng: display.lng };
     });
     if (paths.length >= 2) geometries.push({ path: paths, radius: 4, styleId: tube.status === 0 ? "inactive" : "active", properties: { tubeId: tube.id, tubeName: tube.tubeName } });
   }));
-  // 腾讯可视化 Pipe 在空数组上会在 SDK 内部执行 reduce，并抛出
-  // "Reduce of empty array with no initial value"。接口加载期间没有数据时，
-  // 只隐藏图层；不能调用 setData([])。
   if (!geometries.length) {
-    hasFormalPipeData = false;
     hasOverviewPipeData = false;
     overviewLayer?.setMap?.(null);
-    pipeLayer.hide?.();
     return;
   }
   try {
-    pipeLayer.setData(geometries);
-    hasFormalPipeData = true;
+    // MultiPolyline 接收一维 TMap.LatLng[] 路径；可视化 Pipe 的 Worker
+    // 在地图缩放后可能无法重绘，正式管线改用 SDK 原生矢量图层。
     renderOverviewPipes(TMap, geometries);
-    if (!hasAutoFocusedFormalNetwork) {
-      hasAutoFocusedFormalNetwork = true;
-      window.requestAnimationFrame(() => fitNetwork());
-    }
+    // Loading network data must not change the viewport; fit only on request.
   } catch (error) {
-    hasFormalPipeData = false;
     hasOverviewPipeData = false;
     overviewLayer?.setMap?.(null);
-    pipeLayer.hide?.();
     console.error("腾讯地图管线图层更新失败", error);
   }
 }
@@ -329,8 +284,8 @@ function renderPipes(TMap: TencentPipeApi) {
 function createOverviewStyles(TMap: TencentPipeApi) {
   if (!TMap.PolylineStyle) return {};
   return {
-    active: new TMap.PolylineStyle({ color: ACTIVE_PIPE_COLOR, width: 4 }),
-    inactive: new TMap.PolylineStyle({ color: INACTIVE_PIPE_COLOR, width: 3 }),
+    active: new TMap.PolylineStyle({ color: ACTIVE_PIPE_COLOR, width: 6 }),
+    inactive: new TMap.PolylineStyle({ color: INACTIVE_PIPE_COLOR, width: 4 }),
   };
 }
 
@@ -339,7 +294,7 @@ function renderOverviewPipes(TMap: TencentPipeApi, pipeGeometries: unknown[]) {
   const geometries = pipeGeometries.map((geometry: any, index) => ({
     id: `overview-pipe-${index}`,
     styleId: geometry.styleId === "inactive" ? "inactive" : "active",
-    paths: [geometry.path],
+    paths: geometry.path.map(({ lat, lng }: { lat: number; lng: number }) => new TMap.LatLng(lat, lng)),
   }));
   if (!geometries.length) {
     hasOverviewPipeData = false;
@@ -352,8 +307,7 @@ function renderOverviewPipes(TMap: TencentPipeApi, pipeGeometries: unknown[]) {
 }
 
 function applyOverviewVisibility() {
-  const zoom = props.mapInstance?.getZoom?.() ?? OVERVIEW_PIPE_MAX_ZOOM;
-  if (pipeVisible.value && hasOverviewPipeData && zoom <= OVERVIEW_PIPE_MAX_ZOOM) {
+  if (pipeVisible.value && hasOverviewPipeData) {
     overviewLayer?.setMap?.(props.mapInstance || null);
   } else {
     overviewLayer?.setMap?.(null);
@@ -361,30 +315,26 @@ function applyOverviewVisibility() {
 }
 
 function renderDraftPipe(TMap: TencentPipeApi) {
-  if (!draftPipeLayer?.setData) return;
-  const points = props.creation.draft.points
-    .filter((point) => point.lng.trim() && point.lat.trim())
-    .map((point) => ({ lng: Number(point.lng), lat: Number(point.lat) }))
-    .filter((point) => Number.isFinite(point.lng) && Number.isFinite(point.lat));
+  if (!draftPipeLayer?.setGeometries) return;
+  const points = getDraftPointCoordinates(props.creation.draft);
   if (points.length < 2) {
     hasDraftPipeData = false;
-    draftPipeLayer.hide?.();
+    draftPipeLayer.setMap?.(null);
     return;
   }
   try {
-    draftPipeLayer.setData([{
-      path: points.map((point) => {
+    draftPipeLayer.setGeometries([{
+      id: "draft-pipe",
+      paths: points.map((point) => {
         const display = tencentDisplayCoordinate(point, props.creation.draft.countryCode);
-        return { lat: display.lat, lng: display.lng };
+        return new TMap.LatLng(display.lat, display.lng);
       }),
-      radius: 5,
       styleId: "draft",
-      properties: { draft: true },
     }]);
     hasDraftPipeData = true;
   } catch (error) {
     hasDraftPipeData = false;
-    draftPipeLayer.hide?.();
+    draftPipeLayer.setMap?.(null);
     console.error("腾讯地图草稿管线图层更新失败", error);
   }
 }
@@ -470,8 +420,7 @@ function createFacilityStyle(TMap: TencentPipeApi, src: string) {
 }
 
 function applyVisibility() {
-  if (pipeVisible.value && hasFormalPipeData) pipeLayer?.show?.(); else pipeLayer?.hide?.();
-  if (props.creation.draft.active && hasDraftPipeData) draftPipeLayer?.show?.(); else draftPipeLayer?.hide?.();
+  draftPipeLayer?.setMap?.(props.creation.draft.active && hasDraftPipeData ? (props.mapInstance || null) : null);
   facilityLayer?.setMap?.(hasFacilityData ? (props.mapInstance || null) : null);
   draftFacilityLayer?.setMap?.(hasDraftFacilityData ? (props.mapInstance || null) : null);
   applyOverviewVisibility();
@@ -487,28 +436,20 @@ function toggleFacility(type: FacilityType) {
   applyVisibility();
 }
 
-function fitNetwork() {
+function fitNetwork(regionKey = "all") {
   const TMap = getTMap();
   if (!props.mapInstance || !TMap?.LatLngBounds) return;
   const bounds = new TMap.LatLngBounds();
-  let hasPoint = false;
-  props.formalTubes.forEach((tube) => (tube.lineCoords || []).forEach((part) => part.forEach(([lng, lat]) => {
-    const display = tencentDisplayCoordinate({ lng, lat }, tube.countryCode);
+  const coordinates = getNetworkViewportCoordinates(props.formalTubes, props.formalFacilities, pipeVisible.value, props.facilityVisibility, regionKey);
+  if (!coordinates.length) { uni.showToast({ title: language.value === "zh-CN" ? "没有可定位的有效坐标" : "No visible coordinates to locate", icon: "none" }); return; }
+  coordinates.forEach((coordinate) => {
+    const display = tencentDisplayCoordinate(coordinate, coordinate.countryCode);
     bounds.extend?.(new TMap.LatLng(display.lat, display.lng));
-    hasPoint = true;
-  })));
-  props.formalFacilities.forEach((facility) => {
-    if (props.facilityVisibility?.[facility.facilityType] === false) return;
-    const display = tencentDisplayCoordinate({ lat: facility.latitude, lng: facility.longitude }, facility.countryCode);
-    bounds.extend?.(new TMap.LatLng(display.lat, display.lng));
-    hasPoint = true;
   });
-  if (hasPoint) props.mapInstance.fitBounds?.(bounds, { padding: 80 });
-}
-
-function destroyLayer(layer: TencentLayer | null) {
-  layer?.remove?.();
-  layer?.destroy?.();
+  // 面板占据地图中央；定位后先收起面板，让适配的管线范围完整可见。
+  // 不通知外层恢复右侧设备面板，否则管线又会被遮住。
+  panelCollapsed.value = true;
+  props.mapInstance.fitBounds?.(bounds, { padding: 80 });
 }
 
 function destroyOverviewLayer(layer: TencentOverviewLayer | null) {

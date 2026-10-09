@@ -8,6 +8,8 @@ export interface FacilityCreatePayload {
   facilityName?: string;
   longitude: number;
   latitude: number;
+  coordinateSystem: "WGS84";
+  countryCode: string;
   coordinatePosition?: string;
   branchCompany?: string;
   region?: string;
@@ -78,8 +80,8 @@ export async function fetchFormalFacilities(): Promise<FormalFacilityLoadResult>
           ? "设施坐标缺失或越界"
           : coordinateSystem !== "WGS84"
             ? `coordinateSystem 缺失或不为 WGS84（实际 ${JSON.stringify(row.coordinateSystem)}）`
-            : countryCode && !/^[A-Z]{2}$/.test(countryCode)
-              ? `countryCode 非法（实际 ${JSON.stringify(row.countryCode)}）`
+            : !/^[A-Z]{2}$/.test(countryCode)
+              ? `countryCode 缺失或非法（实际 ${JSON.stringify(row.countryCode)}）`
               : null;
     if (reason) {
       rejected.push({
@@ -102,6 +104,7 @@ export async function fetchFormalFacilities(): Promise<FormalFacilityLoadResult>
       status: toFiniteNumber(row.status),
       boundDeviceCount: toFiniteNumber(row.boundDeviceCount),
       diameterMm: toFiniteNumber(row.diameterMm),
+      deptId: toFiniteNumber(row.deptId),
     });
   });
   return { facilities, rejected };

@@ -1,6 +1,7 @@
 {
   "appShellMenu": {
     "favorite": "Favorites",
+    "oneMap": "One Map",
     "leakMonitor": "Leak Monitor",
     "partition": "Partitions",
     "device": "Devices",

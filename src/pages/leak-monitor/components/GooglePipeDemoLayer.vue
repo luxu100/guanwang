@@ -1,11 +1,11 @@
 <template>
   <view class="network-layer">
-    <PipeCreationPanel :creation="creation" />
     <LeakNetworkPanel
       provider="google"
       :provider-label="providerLabel"
       :source="source"
       :pipes="pipes"
+      :regions="regions"
       :facilities="formalFacilities"
       :device-points="points"
       :visible="pipeVisible"
@@ -14,13 +14,13 @@
       :loading="loading"
       :error-message="networkError"
       :facility-visibility="facilityVisibility"
-      :creation-active="creation.draft.active"
-      @expand="panelCollapsed = false"
-      @collapse="panelCollapsed = true"
+      :creation="creation"
+      @expand="panelCollapsed = false; emit('panel-expand')"
+      @collapse="panelCollapsed = true; emit('panel-collapse')"
+      @refresh="emit('refresh')"
       @toggle-visible="pipeVisible = !pipeVisible"
       @toggle-facility="toggleFacility"
       @fit="fitNetwork"
-      @start-creation="creation.start"
     />
   </view>
 </template>
@@ -28,15 +28,16 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import LeakNetworkPanel from "./LeakNetworkPanel.vue";
-import PipeCreationPanel from "./PipeCreationPanel.vue";
-import type { FacilityType, LeakMonitorFacility, LeakMonitorPipe, MapDevicePoint } from "../types";
+import type { FacilityType, LeakMonitorFacility, LeakMonitorPipe, MapDevicePoint, MapRegion } from "../types";
 import type { RejectedTubeRecord, TubeNetworkRecord } from "@/services/leak-monitor/tube-network";
 import { useLeakMonitorI18n } from "../i18n";
 import { getDraftPointCoordinates, getFacilityCoordinate, type PipeCreationController } from "../pipeCreation";
+import { getNetworkViewportCoordinates } from "../networkViewport";
 
 const props = withDefaults(defineProps<{
   mapInstance?: google.maps.Map | null;
   points?: MapDevicePoint[];
+  regions?: MapRegion[];
   formalTubes?: TubeNetworkRecord[];
   formalTubeRejected?: RejectedTubeRecord[];
   formalTubeError?: string;
@@ -51,6 +52,7 @@ const props = withDefaults(defineProps<{
 }>(), {
   mapInstance: null,
   points: () => [],
+  regions: () => [],
   formalTubes: () => [],
   formalTubeRejected: () => [],
   formalTubeError: "",
@@ -63,7 +65,7 @@ const props = withDefaults(defineProps<{
   source: "api",
 });
 
-const emit = defineEmits<{ (event: "refresh"): void }>();
+const emit = defineEmits<{ (event: "refresh"): void; (event: "panel-expand"): void; (event: "panel-collapse"): void }>();
 const { language } = useLeakMonitorI18n();
 const pipeVisible = ref(true);
 const panelCollapsed = ref(true);
@@ -75,7 +77,6 @@ const draftMarkerById = new Map<string, google.maps.Marker>();
 let layersMap: google.maps.Map | null = null;
 let draftSyncFrame: number | null = null;
 let layerSyncFrame: number | null = null;
-let hasAutoFocusedFormalNetwork = false;
 const pipeLineByKey = new Map<string, google.maps.Polyline>();
 const facilityMarkerByKey = new Map<string, google.maps.Marker>();
 
@@ -89,6 +90,7 @@ const pipes = computed<LeakMonitorPipe[]>(() => props.formalTubes.map((tube) => 
   material: tube.material,
   diameterMm: tube.diameterMm,
   shapeLengthM: tube.shapeLengthM,
+  deptId: tube.deptId,
 })));
 const loaded = computed(() => !props.formalTubeError && !props.formalFacilityError && !props.formalTubeLoading && !props.formalFacilityLoading);
 const loading = computed(() => Boolean(props.formalTubeLoading || props.formalFacilityLoading));
@@ -150,7 +152,6 @@ function syncLayers() {
   if (mapChanged) {
     clearLayers();
     layersMap = props.mapInstance;
-    hasAutoFocusedFormalNetwork = false;
   }
 
   renderPipes();
@@ -195,10 +196,7 @@ function renderPipes() {
     }
   });
   pipeLines = nextLines;
-  if (nextLines.length && !hasAutoFocusedFormalNetwork) {
-    hasAutoFocusedFormalNetwork = true;
-    window.requestAnimationFrame(() => fitNetwork());
-  }
+  // Loading network data must not change the viewport; fit only on request.
 }
 
 function renderFacilities() {
@@ -321,20 +319,13 @@ function applyVisibility() {
   draftPipeLines.forEach((line) => line.setVisible(pipeVisible.value));
 }
 
-function fitNetwork() {
+function fitNetwork(regionKey = "all") {
   if (!props.mapInstance) return;
   const bounds = new google.maps.LatLngBounds();
-  let hasPoint = false;
-  props.formalTubes.forEach((tube) => (tube.lineCoords || []).forEach((part) => part.forEach(([lng, lat]) => {
-    bounds.extend({ lng, lat });
-    hasPoint = true;
-  })));
-  props.formalFacilities.forEach((facility) => {
-    if (props.facilityVisibility?.[facility.facilityType] === false) return;
-    bounds.extend({ lat: facility.latitude, lng: facility.longitude });
-    hasPoint = true;
-  });
-  if (hasPoint) props.mapInstance.fitBounds(bounds, 80);
+  const coordinates = getNetworkViewportCoordinates(props.formalTubes, props.formalFacilities, pipeVisible.value, props.facilityVisibility, regionKey);
+  if (!coordinates.length) { uni.showToast({ title: language.value === "zh-CN" ? "没有可定位的有效坐标" : "No visible coordinates to locate", icon: "none" }); return; }
+  coordinates.forEach(({ lng, lat }) => bounds.extend({ lng, lat }));
+  props.mapInstance.fitBounds(bounds, { left: 600, right: 80, top: 90, bottom: 80 });
 }
 
 function clearLayers() {
@@ -356,7 +347,6 @@ function clearLayers() {
   pipeLineByKey.clear();
   facilityMarkerByKey.clear();
   layersMap = null;
-  hasAutoFocusedFormalNetwork = false;
 }
 </script>
 

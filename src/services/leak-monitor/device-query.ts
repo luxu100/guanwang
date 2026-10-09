@@ -14,6 +14,7 @@ import type {
   NearbyAnalysisDevice,
   ManualAnalysisPayload,
   ManualAnalysisRecord,
+  ManualWorkOrderPayload,
   MaintenanceRecord,
   CorrelationAudioOption,
   LeakLocationAnalyzePayload,
@@ -339,18 +340,26 @@ export async function fetchLeakMonitorDevices(
   return { records: normalized.devices, total: normalized.total };
 }
 
-export function getLeakMonitorManualAnalysisPage(deviceNumber: string) {
-  return postRequest("/api/data-query/leakage/page", {
+export async function getLeakMonitorManualAnalysisPage(deviceNumber: string) {
+  const response = await postRequest("/api/manual-analysis/work-orders/page", {
     pageNum: 1,
-    pageSize: 20,
+    pageSize: 100,
     sortOrder: "desc",
-    sortField: "time",
-    deviceNumber,
+    sortField: "createdAt",
+    deviceNo: deviceNumber,
   });
+  assertManualWorkOrderResponse(response);
+  return response;
 }
 
 export function createLeakMonitorManualAnalysis(data: ManualAnalysisPayload) {
   return postRequest("/api/manual-analysis/work-orders", data);
+}
+
+export async function createLeakMonitorManualWorkOrder(data: ManualWorkOrderPayload) {
+  const response = await postRequest("/api/manual-analysis/work-orders", data);
+  assertManualWorkOrderResponse(response);
+  return response;
 }
 
 export async function fetchLeakMonitorMapData() {
@@ -621,11 +630,11 @@ export async function fetchLeakMonitorManualAnalysis(deviceNumber: string) {
       return {
         ...row,
         id: row.id as string | number | undefined,
-        manualAnalysis: toText(row.manualAnalysis),
-        troubleshootingFeedback: toText(row.troubleshootingFeedback),
-        reasonAnalysis: toText(row.reasonAnalysis),
-        resetDate: toText(row.resetDate),
-        createdAt: toText(row.time ?? row.createdAt ?? row.parseTime),
+        manualAnalysis: toText(row.leakageStatus ?? row.manualAnalysis),
+        troubleshootingFeedback: toText(row.handleMethod ?? row.processFlow ?? row.troubleshootingFeedback),
+        reasonAnalysis: toText(row.detail ?? row.remark ?? row.reasonAnalysis),
+        resetDate: toText(row.expectedTime ?? row.resetDate),
+        createdAt: toText(row.createdAt ?? row.time ?? row.parseTime),
       } satisfies ManualAnalysisRecord;
     })
     .filter((item) =>
@@ -636,6 +645,14 @@ export async function fetchLeakMonitorManualAnalysis(deviceNumber: string) {
 
 export async function submitLeakMonitorManualAnalysis(payload: ManualAnalysisPayload) {
   return createLeakMonitorManualAnalysis(payload);
+}
+
+function assertManualWorkOrderResponse(response: unknown) {
+  if (!response || typeof response !== "object") return;
+  const envelope = response as ApiEnvelope;
+  if (envelope.code !== undefined && envelope.code !== 0 && envelope.code !== 200) {
+    throw { code: envelope.code, msg: envelope.msg || "人工派单接口返回失败", data: response };
+  }
 }
 
 function normalizeVisibleDevices(response: unknown, domestic: boolean) {

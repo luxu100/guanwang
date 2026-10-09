@@ -731,6 +731,9 @@ function submitManual(dispatchRequested: boolean) {
     reasonAnalysis: manualForm.value.reasonAnalysis.trim(),
     resetDate: manualForm.value.resetDate,
     dispatchRequested,
+    deptId: props.device.regionId ?? (String(props.device.raw.deptId ?? props.device.raw.departmentId ?? "") || null),
+    installAddress: String(props.device.raw.installAddress ?? ""),
+    installImage: String(props.device.raw.installImage ?? ""),
   });
 }
 function selectTab(tab: TabKey) {

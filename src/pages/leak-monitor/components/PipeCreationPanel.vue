@@ -1,6 +1,7 @@
 <template>
-  <view v-if="creation.draft.active" class="pipe-editor" @click.stop>
+  <view v-if="creation.draft.active" class="pipe-editor" :class="{ 'pipe-editor--embedded': embedded }" @click.stop>
     <view class="pipe-editor__header">
+          <button v-if="embedded" class="pipe-editor__back" type="button" :aria-label="t('backToNetwork')" :title="t('backToNetwork')" @click="emit('back')"><image src="/static/icons/chevron-up.svg" mode="aspectFit" aria-hidden="true" /></button>
       <view class="pipe-editor__heading">
         <view class="pipe-editor__eyebrow">
           <text class="pipe-editor__eyebrow-dot"></text>
@@ -9,13 +10,17 @@
         <text class="pipe-editor__title">{{ creation.draft.mode === "pipe" ? t("createPipe") : t("createFacility") }}</text>
         <text class="pipe-editor__subtitle">{{ creation.draft.mode === "pipe" ? t("createPipeHint") : t("createFacilityHint") }}</text>
       </view>
-      <button class="pipe-editor__close" type="button" :aria-label="t('cancel')" @click="creation.cancel">×</button>
+      <button v-if="!embedded" class="pipe-editor__close" type="button" :aria-label="t('cancel')" @click="creation.cancel">×</button>
     </view>
 
     <view class="pipe-editor__steps">
       <view class="pipe-editor__step pipe-editor__step--active"><text>1</text><text>{{ t("pipeStepInfo") }}</text></view>
       <view class="pipe-editor__step" :class="{ 'pipe-editor__step--active': creation.validPointCount.value >= 2 }"><text>2</text><text>{{ t("pipeStepPreview") }}</text></view>
       <view class="pipe-editor__step" :class="{ 'pipe-editor__step--active': creation.draft.pipeSubmitted }"><text>3</text><text>{{ t("pipeStepSubmit") }}</text></view>
+    </view>
+    <view v-if="embedded" class="pipe-editor__mode-tools">
+      <button type="button" :class="{ 'pipe-editor__tool--active': creation.draft.mode === 'pipe' }" :disabled="creation.draft.pipeSubmitted || creation.draft.submitting || creation.validPointCount.value > 0" @click="creation.switchMode('pipe')">{{ t('createPipe') }}</button>
+      <button type="button" :class="{ 'pipe-editor__tool--active': creation.draft.mode === 'facility' }" :disabled="creation.draft.pipeSubmitted || creation.draft.submitting || creation.validPointCount.value > 0" @click="creation.switchMode('facility')">{{ t('createFacility') }}</button>
     </view>
 
     <scroll-view class="pipe-editor__scroll" scroll-y>
@@ -40,7 +45,10 @@
               <input :value="creation.draft.deptId" type="number" min="1" :disabled="creation.draft.pipeSubmitted || creation.draft.submitting" @input="creation.draft.deptId = readInput($event)" />
             </label>
           </view>
-          <button class="pipe-editor__secondary-action" type="button" @click="showAdvanced = !showAdvanced">{{ t('advancedFields') }} {{ showAdvanced ? '−' : '+' }}</button>
+          <button class="pipe-editor__secondary-action" type="button" :aria-expanded="showAdvanced" @click="showAdvanced = !showAdvanced">
+            <text>{{ t('advancedFields') }}</text>
+            <image class="pipe-editor__disclosure-icon" :class="{ 'pipe-editor__disclosure-icon--open': showAdvanced }" src="/static/icons/chevron-up.svg" mode="aspectFit" aria-hidden="true" />
+          </button>
           <view v-if="showAdvanced" class="pipe-editor__grid pipe-editor__grid--basic">
             <label class="pipe-editor__field"><text>{{ t('countryCodeCreate') }}</text><input :value="creation.draft.countryCode" maxlength="2" :disabled="creation.draft.pipeSubmitted || creation.draft.submitting" @input="creation.draft.countryCode = readInput($event).toUpperCase()" /></label>
             <label class="pipe-editor__field"><text>{{ t('tubeTypeCreate') }}</text><input type="number" min="0" :value="creation.draft.tubeType" :disabled="creation.draft.pipeSubmitted || creation.draft.submitting" @input="creation.draft.tubeType = Number(readInput($event))" /></label>
@@ -53,6 +61,16 @@
           <view class="pipe-editor__section-title">
             <view><text>{{ t("pipeCoordinates") }}</text><text class="pipe-editor__hint">{{ t("coordinateOrderHint") }}</text></view>
             <text class="pipe-editor__counter">{{ creation.validPointCount.value }} {{ t("coordinatePoints") }}</text>
+          </view>
+          <view v-if="embedded" class="pipe-editor__map-tools">
+            <button type="button" :class="{ 'pipe-editor__tool--active': creation.draft.drawingActive }" :disabled="creation.draft.pipeSubmitted || creation.draft.submitting" @click="creation.draft.drawingActive = true; creation.selectPlacementType('')">{{ creation.draft.drawingActive ? t('drawingPipe') : t('drawPipe') }}</button>
+            <button type="button" :disabled="creation.draft.pipeSubmitted || creation.draft.submitting" @click="creation.undoLastPoint">{{ t('undoPoint') }}</button>
+            <button type="button" :disabled="creation.draft.pipeSubmitted || creation.draft.submitting" @click="creation.clearPoints">{{ t('clearPoints') }}</button>
+            <button type="button" :disabled="creation.draft.pipeSubmitted || creation.draft.submitting || creation.validPointCount.value < 2" @click="creation.completeDrawing">{{ t('finishDrawing') }}</button>
+          </view>
+          <view v-if="embedded && !creation.draft.drawingActive && creation.validPointCount.value >= 2" class="pipe-editor__facility-tools">
+            <text>{{ t('placeFacilityOnMap') }}</text>
+            <button v-for="item in facilityTools" :key="item.type" type="button" :class="{ 'pipe-editor__tool--active': creation.draft.placementType === item.type }" @click="creation.selectPlacementType(creation.draft.placementType === item.type ? '' : item.type)"><image :src="item.icon" mode="aspectFit" />{{ item.label }}</button>
           </view>
           <view class="pipe-editor__coordinate-head"><text></text><text>{{ t("coordinateLng") }}</text><text>{{ t("coordinateLat") }}</text><text></text></view>
           <template v-for="(point, index) in creation.draft.points" :key="point.id">
@@ -84,6 +102,7 @@
           <view class="pipe-editor__standalone-note">{{ t("standaloneFacilityNote") }}</view>
           <label class="pipe-editor__field pipe-editor__standalone-dept"><text>{{ t('deptIdCreate') }}</text><input type="number" min="1" :value="creation.draft.deptId" :disabled="creation.draft.submitting" @input="creation.draft.deptId = readInput($event)" /></label>
           <button class="pipe-editor__secondary-action" type="button" @click="creation.addFacility()">＋ {{ t("addFacilityItem") }}</button>
+          <view v-if="embedded" class="pipe-editor__facility-tools"><button v-for="item in facilityTools" :key="item.type" type="button" :class="{ 'pipe-editor__tool--active': creation.draft.placementType === item.type }" @click="creation.selectPlacementType(creation.draft.placementType === item.type ? '' : item.type)"><image :src="item.icon" mode="aspectFit" />{{ item.label }}</button></view>
         </view>
         <view v-for="facility in creation.draft.facilities" :key="facility.id" class="pipe-editor__facility-card">
           <PipeFacilityCard :facility="facility" :creation="creation" />
@@ -119,7 +138,8 @@ import { coordinateError } from "../pipeCreation";
 import { useLeakMonitorI18n } from "../i18n";
 import PipeFacilityCard from "./PipeFacilityCard.vue";
 
-const props = defineProps<{ creation: PipeCreationController }>();
+const props = defineProps<{ creation: PipeCreationController; embedded?: boolean }>();
+const emit = defineEmits<{ (event: 'back'): void }>();
 const { t } = useLeakMonitorI18n();
 const showAdvanced = ref(false);
 
@@ -135,6 +155,12 @@ function readInput(event: Event) {
 }
 
 defineOptions({ name: "PipeCreationPanel" });
+
+const facilityTools = computed(() => [
+  { type: "VALVE" as const, label: t("facilityValve"), icon: "/static/icons/facility-valve.svg" },
+  { type: "HYDRANT" as const, label: t("facilityHydrant"), icon: "/static/icons/facility-hydrant.svg" },
+  { type: "PUMP" as const, label: t("facilityPump"), icon: "/static/icons/facility-pump.svg" },
+]);
 </script>
 
 
@@ -156,6 +182,7 @@ defineOptions({ name: "PipeCreationPanel" });
 .pipe-editor::before { background: #2683bb; }
 .pipe-editor__header { background: #f7fafc; }
 .pipe-editor__coordinate-head, .pipe-editor__point-row { grid-template-columns: 30px minmax(0, 1fr) minmax(0, 1fr) 24px; }
+.pipe-editor__map-tools, .pipe-editor__facility-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 10px; }.pipe-editor__map-tools button, .pipe-editor__facility-tools button { height: 28px; margin: 0; padding: 0 8px; color: #356b91; font-size: 10px; background: #f5faff; border: 1px solid #c4ddec; border-radius: 5px; }.pipe-editor__tool--active { color: #fff !important; background: #287fba !important; border-color: #287fba !important; }.pipe-editor__facility-tools { padding-top: 9px; border-top: 1px solid #edf2f6; }.pipe-editor__facility-tools > text { color: #6c8293; font-size: 10px; font-weight: 700; }.pipe-editor__facility-tools button { display: inline-flex; align-items: center; gap: 4px; }.pipe-editor__facility-tools image { width: 17px; height: 17px; }
 .pipe-editor__point-row { min-width: 0; }
 .pipe-editor__remove-point { width: 24px; height: 30px; margin: 0; padding: 0; color: #71879a; background: transparent; border: 0; font-size: 18px; line-height: 30px; }
 .pipe-editor__remove-point:hover, .pipe-editor__remove:hover { color: #be4c49; }
@@ -167,5 +194,54 @@ defineOptions({ name: "PipeCreationPanel" });
   .pipe-editor { top: auto; bottom: 0; left: 0; right: 0; width: 100%; max-height: min(78vh, 720px); border-radius: 8px 8px 0 0; }
   .pipe-editor__grid--facility { grid-template-columns: 1fr 1fr; }
   .pipe-editor__facility-position { grid-template-columns: 1fr; }
+}
+@media (min-width: 901px) {
+  .pipe-editor--embedded { position: static; box-sizing: border-box; width: 100%; height: 100%; max-height: none; border: 0; border-radius: 0; box-shadow: none; }
+  .pipe-editor--embedded .pipe-editor__scroll { max-height: none; }
+  .pipe-editor--embedded .pipe-editor__subtitle { display: none; }
+  .pipe-editor__back { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 36px; height: 36px; margin: 0; padding: 0; background: #fff; border: 1px solid #d8e4ee; border-radius: 6px; }
+  .pipe-editor__back image { display: block; width: 22px; height: 22px; transform: rotate(-90deg); }
+  .pipe-editor__mode-tools { display: flex; gap: 6px; padding: 10px 16px; border-bottom: 1px solid #edf2f6; }
+  .pipe-editor__mode-tools button { height: 30px; margin: 0; padding: 0 12px; color: #356b91; font-size: 12px; background: #f5faff; border: 1px solid #c4ddec; border-radius: 5px; }
+  .pipe-editor--embedded .pipe-editor__facility-card { border-radius: 8px; }
+  .pipe-editor--embedded .pipe-editor__eyebrow { letter-spacing: 0; }
+}
+@media (min-width: 901px) {
+  .pipe-editor--embedded { font-family: inherit; color: #26384d; }
+  .pipe-editor--embedded .pipe-editor__eyebrow { font-size: 12px; }
+  .pipe-editor--embedded .pipe-editor__title { font-size: 18px; line-height: 1.35; }
+  .pipe-editor--embedded .pipe-editor__steps { gap: 7px; padding-top: 12px; padding-bottom: 12px; }
+  .pipe-editor--embedded .pipe-editor__step { gap: 6px; font-size: 12px; }
+  .pipe-editor--embedded .pipe-editor__step > text:first-child { width: 20px; height: 20px; font-size: 11px; }
+  .pipe-editor--embedded .pipe-editor__mode-tools button { height: 34px; font-size: 13px; }
+  .pipe-editor--embedded .pipe-editor__section-title { font-size: 14px; }
+  .pipe-editor--embedded .pipe-editor__section-meta { font-size: 11px; }
+  .pipe-editor--embedded .pipe-editor__hint { font-size: 12px; line-height: 1.45; }
+  .pipe-editor--embedded .pipe-editor__counter { font-size: 12px; }
+  .pipe-editor--embedded .pipe-editor__field,
+  .pipe-editor--embedded .pipe-editor__coordinate-head,
+  .pipe-editor--embedded .pipe-editor__facility-tools > text { color: #64788c; font-size: 12px; }
+  .pipe-editor--embedded input,
+  .pipe-editor--embedded select { height: 36px; padding-right: 10px; padding-left: 10px; font-size: 14px; }
+  .pipe-editor--embedded .pipe-editor__coordinate-input { height: 38px; }
+  .pipe-editor--embedded .pipe-editor__point-index { width: 28px; height: 28px; font-size: 12px; }
+  .pipe-editor--embedded .pipe-editor__map-tools button,
+  .pipe-editor--embedded .pipe-editor__facility-tools button { height: 34px; padding-right: 10px; padding-left: 10px; font-size: 12px; }
+  .pipe-editor--embedded .pipe-editor__secondary-action { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; height: 36px; font-size: 13px; }
+  .pipe-editor__disclosure-icon { display: block; width: 16px; height: 16px; transform: rotate(180deg); transition: transform .18s ease; }
+  .pipe-editor__disclosure-icon--open { transform: rotate(0); }
+  .pipe-editor--embedded .pipe-editor__empty-tip { font-size: 12px; }
+  .pipe-editor--embedded .pipe-editor__facility-title { font-size: 13px; }
+  .pipe-editor--embedded .pipe-editor__facility-card .pipe-editor__field { font-size: 12px; }
+  .pipe-editor--embedded .pipe-editor__facility-card input,
+  .pipe-editor--embedded .pipe-editor__facility-card select { font-size: 13px; }
+  .pipe-editor--embedded .pipe-editor__range-value,
+  .pipe-editor--embedded .pipe-editor__coordinate-readout,
+  .pipe-editor--embedded .pipe-editor__facility-error { font-size: 12px; }
+  .pipe-editor--embedded .pipe-editor__summary,
+  .pipe-editor--embedded .pipe-editor__footer-status { font-size: 12px; }
+  .pipe-editor--embedded .pipe-editor__footer button { height: 36px; font-size: 13px; }
+  .pipe-editor--embedded .pipe-editor__remove,
+  .pipe-editor--embedded .pipe-editor__remove-point { width: 30px; height: 30px; font-size: 20px; }
 }
 </style>

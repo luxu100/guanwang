@@ -170,3 +170,22 @@ export function projectToSegment(point: Point, start: Point, end: Point) {
   if (lengthSquared <= COORDINATE_EPSILON) return 0;
   return Math.min(1, Math.max(0, ((point.lng - start.lng) * dx + (point.lat - start.lat) * dy) / lengthSquared));
 }
+
+export function findNearestPipeSegment(point: Point, paths: Point[][]) {
+  let nearest: { pathIndex: number; segmentIndex: number; ratio: number; distanceM: number; coordinate: Point } | null = null;
+  const scale = Math.cos(point.lat * Math.PI / 180);
+  paths.forEach((path, pathIndex) => {
+    path.slice(0, -1).forEach((start, segmentIndex) => {
+      const end = path[segmentIndex + 1];
+      const ratio = projectToSegment(
+        { lng: point.lng * scale, lat: point.lat },
+        { lng: start.lng * scale, lat: start.lat },
+        { lng: end.lng * scale, lat: end.lat },
+      );
+      const coordinate = { lng: start.lng + (end.lng - start.lng) * ratio, lat: start.lat + (end.lat - start.lat) * ratio };
+      const distanceM = Math.hypot((point.lng - coordinate.lng) * scale, point.lat - coordinate.lat) * 111320;
+      if (!nearest || distanceM < nearest.distanceM) nearest = { pathIndex, segmentIndex, ratio, distanceM, coordinate };
+    });
+  });
+  return nearest as { pathIndex: number; segmentIndex: number; ratio: number; distanceM: number; coordinate: Point } | null;
+}

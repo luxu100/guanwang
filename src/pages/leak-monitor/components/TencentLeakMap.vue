@@ -41,7 +41,7 @@ import { deviceBindingColor } from "./map-marker-style";
 const { t } = useLeakMonitorI18n();
 const TENCENT_MAP_KEY = MAP_CONFIG.tencentKey;
 const TENCENT_MAP_SCRIPT_ID = "tencent-map-gl-sdk";
-const TENCENT_MAP_SCRIPT_URL = `https://map.qq.com/api/gljs?v=1.exp&key=${TENCENT_MAP_KEY}&libraries=visualization`;
+const TENCENT_MAP_SCRIPT_URL = `https://map.qq.com/api/gljs?v=1.exp&key=${TENCENT_MAP_KEY}`;
 const MAP_RESIZE_DELAY = 180;
 
 /**
@@ -153,6 +153,7 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
   (e: "device-click", point: MapDevicePoint): void;
+  (e: "map-click", coordinate: { lng: number; lat: number }): void;
   (e: "ready"): void;
   (e: "error", message: string): void;
 }>();
@@ -266,6 +267,13 @@ function initMap() {
     rotation: 0,
   });
   mapInstance = map;
+  map.on?.("click", (event) => {
+    const lat = event?.latLng?.getLat?.();
+    const lng = event?.latLng?.getLng?.();
+    if (Number.isFinite(Number(lat)) && Number.isFinite(Number(lng))) {
+      emit("map-click", { lng: Number(lng), lat: Number(lat) });
+    }
+  });
 
   renderRegions();
   renderMarkers();

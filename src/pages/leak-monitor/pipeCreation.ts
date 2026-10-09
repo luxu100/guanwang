@@ -1,4 +1,4 @@
-import { computed, reactive, type Ref } from "vue";
+import { computed, reactive, ref, watch, type Ref } from "vue";
 import {
   createTubeNetwork,
   type TubeNetworkCreatePayload,
@@ -10,7 +10,7 @@ import {
 } from "@/services/leak-monitor/facility";
 import type { FacilityType } from "./types";
 import { useLeakMonitorI18n } from "./i18n";
-import { parseCoordinate, getDraftPointCoordinates, getFacilityCoordinate, findPipeCrossings, projectToSegment } from "./pipeGeometry";
+import { parseCoordinate, getDraftPointCoordinates, getFacilityCoordinate, findPipeCrossings, projectToSegment, findNearestPipeSegment } from "./pipeGeometry";
 
 export type PipeCreationMode = "pipe" | "facility";
 export type FacilityPositionMode = "line" | "manual";
@@ -38,6 +38,7 @@ export interface PipeCreationFacility {
   error: string;
   submitted: boolean;
   submitting: boolean;
+  outsidePipe: boolean;
 }
 
 export interface PipeCreationDraft {
@@ -60,6 +61,8 @@ export interface PipeCreationDraft {
   successMessage: string;
   pipeCreatedId: number | null;
   pipeSubmitted: boolean;
+  drawingActive: boolean;
+  placementType: FacilityType | "";
 }
 
 export interface PipeCreationController {
@@ -80,11 +83,22 @@ export interface PipeCreationController {
   ) => void;
   updateFacilityRatio: (facilityId: string, ratio: number) => void;
   moveFacilityFromMap: (facilityId: string, longitude: number, latitude: number) => void;
-  submit: () => Promise<void>;
+  submit: (options?: { confirmOutside?: boolean }) => Promise<boolean>;
   retryFacility: (facilityId: string) => Promise<void>;
+  hasUnsavedChanges: Readonly<Ref<boolean>>;
+  discard: () => void;
+  addMapPoint: (coordinate: Point) => void;
+  undoLastPoint: () => void;
+  clearPoints: () => void;
+  completeDrawing: () => void;
+  selectPlacementType: (type: FacilityType | "") => void;
+  placeFacilityAt: (coordinate: Point) => void;
+  switchMode: (mode: PipeCreationMode) => void;
+  confirming: Readonly<Ref<boolean>>;
 }
 
 const MAX_POINT_COUNT = 100;
+const NEAR_PIPE_METERS = 20;
 
 function createId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -111,6 +125,7 @@ function createFacility(segmentIndex = 0, mode: FacilityPositionMode = "line"): 
     error: "",
     submitted: false,
     submitting: false,
+    outsidePipe: false,
   };
 }
 
@@ -135,6 +150,8 @@ function createDraft(): PipeCreationDraft {
     successMessage: "",
     pipeCreatedId: null,
     pipeSubmitted: false,
+    drawingActive: false,
+    placementType: "",
   };
 }
 
@@ -149,6 +166,11 @@ export function usePipeCreation(
 ): PipeCreationController {
   const { language } = useLeakMonitorI18n();
   const draft = reactive(createDraft());
+  const confirming = ref(false);
+  function baseSignature() {
+    return JSON.stringify([draft.mode, draft.tubeName, draft.tubeType, draft.tubeShape, draft.status, draft.deptId, draft.countryCode, draft.material, draft.diameterMm]);
+  }
+  let initialBaseSignature = baseSignature();
   const validPointCount = computed(() => getDraftPointCoordinates(draft).length);
   const coordinateRowsValid = computed(() => {
     const lastFilled = draft.points.reduce((last, point, index) =>
@@ -168,15 +190,18 @@ export function usePipeCreation(
     return Boolean(facility.facilityNumber.trim()) && coordinate !== null &&
       facility.diameterMm.trim() !== "" && Number.isFinite(Number(facility.diameterMm)) && Number(facility.diameterMm) >= 0;
   }));
+  const hasUnsavedChanges = computed(() => draft.active && (
+    draft.pipeSubmitted || draft.facilities.length > 0 || draft.points.some((point) => point.lng.trim() || point.lat.trim()) || baseSignature() !== initialBaseSignature
+  ));
   const baseFieldsValid = computed(() => draft.tubeName.trim() !== "" && /^[A-Z]{2}$/.test(draft.countryCode.trim().toUpperCase()) &&
     Number.isInteger(Number(draft.deptId)) && Number(draft.deptId) > 0 && draft.deptId.trim() !== "" &&
     Number.isInteger(Number(draft.tubeType)) && Number(draft.tubeType) >= 0 &&
     Number.isInteger(Number(draft.tubeShape)) && Number(draft.tubeShape) >= 0 &&
     draft.diameterMm.trim() !== "" && Number.isFinite(Number(draft.diameterMm)) && Number(draft.diameterMm) >= 0);
   const canSubmit = computed(() => {
-    if (draft.submitting) return false;
+    if (draft.submitting || confirming.value) return false;
     if (draft.mode === "facility") return Number.isInteger(Number(draft.deptId)) && Number(draft.deptId) > 0 &&
-      draft.deptId.trim() !== "" && draft.facilities.length > 0 && facilitiesValid.value;
+      draft.deptId.trim() !== "" && /^[A-Z]{2}$/.test(draft.countryCode.trim().toUpperCase()) && draft.facilities.length > 0 && facilitiesValid.value;
     const pipeReady = draft.pipeSubmitted || (
       validPointCount.value >= 2 && coordinateRowsValid.value && crossingErrors.value.length === 0 && baseFieldsValid.value
     );
@@ -187,16 +212,26 @@ export function usePipeCreation(
     const next = createDraft();
     next.mode = mode;
     next.active = true;
+    next.drawingActive = mode === "pipe";
     if (mode === "facility") next.points = [];
     Object.assign(draft, next);
+    initialBaseSignature = baseSignature();
   }
 
   function start(mode: PipeCreationMode) {
-    if (!draft.submitting) reset(mode);
+    if (!draft.submitting && !draft.active) reset(mode);
+  }
+
+  function switchMode(mode: PipeCreationMode) {
+    if (draft.submitting || draft.pipeSubmitted || draft.points.some((point) => point.lng.trim() || point.lat.trim())) return;
+    draft.facilities.forEach((facility) => { facility.mode = "manual"; });
+    draft.mode = mode;
+    draft.drawingActive = mode === "pipe";
+    draft.placementType = "";
   }
 
   function cancel() {
-    if (draft.submitting) return;
+    if (draft.submitting || confirming.value) return;
     const discard = () => Object.assign(draft, createDraft());
     if (!draft.pipeSubmitted && !draft.facilities.length && !draft.points.some((point) => point.lng.trim() || point.lat.trim())) {
       discard();
@@ -209,6 +244,10 @@ export function usePipeCreation(
     });
   }
 
+  function discardDraft() {
+    if (!draft.submitting && !confirming.value) Object.assign(draft, createDraft());
+  }
+
   function syncFacilities() {
     const points = getDraftPointCoordinates(draft);
     draft.facilities.forEach((facility) => {
@@ -217,11 +256,33 @@ export function usePipeCreation(
       if (coordinate) {
         facility.longitude = coordinate.lng.toFixed(7);
         facility.latitude = coordinate.lat.toFixed(7);
+        facility.outsidePipe = false;
       } else {
         facility.longitude = "";
         facility.latitude = "";
       }
     });
+  }
+
+  function updateOutsidePipeState(facility: PipeCreationFacility) {
+    if (facility.mode !== "manual") {
+      facility.outsidePipe = false;
+      return;
+    }
+    const coordinate = getFacilityCoordinate(facility, getDraftPointCoordinates(draft));
+    const points = getDraftPointCoordinates(draft);
+    if (!coordinate) {
+      facility.outsidePipe = false;
+      return;
+    }
+    const paths = points.length >= 2 ? [points] : existingTubes.value.flatMap((tube) =>
+      (tube.lineCoords || []).map((path) => path.map(([lng, lat]) => ({ lng, lat }))));
+    const nearest = findNearestPipeSegment(coordinate, paths);
+    facility.outsidePipe = !nearest || nearest.distanceM > NEAR_PIPE_METERS;
+  }
+
+  function updateAllOutsidePipeStates() {
+    draft.facilities.forEach(updateOutsidePipeState);
   }
 
   function setPoint(index: number, field: "lng" | "lat", value: string) {
@@ -238,21 +299,24 @@ export function usePipeCreation(
       draft.points.push(createPoint());
     }
     syncFacilities();
+    updateAllOutsidePipeStates();
   }
 
   function removePoint(index: number) {
     if (draft.pipeSubmitted || draft.submitting || index < 0 || index >= draft.points.length) return;
     draft.points.splice(index, 1);
-    draft.facilities = draft.facilities.filter((facility) =>
+    draft.facilities = draft.facilities.filter((facility) => facility.mode === "manual" ||
       facility.segmentIndex !== index && facility.segmentIndex !== index - 1);
     draft.facilities.forEach((facility) => {
       if (facility.segmentIndex > index) facility.segmentIndex -= 1;
     });
     if (!draft.points.length || parseCoordinate(draft.points[draft.points.length - 1])) draft.points.push(createPoint());
     syncFacilities();
+    updateAllOutsidePipeStates();
   }
 
   function addFacility(segmentIndex = 0) {
+    if (draft.submitting || confirming.value) return;
     const facility = draft.mode === "facility"
       ? createFacility(0, "manual")
       : createFacility(Math.max(0, segmentIndex), "line");
@@ -265,6 +329,7 @@ export function usePipeCreation(
   }
 
   function removeFacility(facilityId: string) {
+    if (draft.submitting || confirming.value) return;
     const index = draft.facilities.findIndex((facility) => facility.id === facilityId);
     if (index >= 0) draft.facilities.splice(index, 1);
   }
@@ -275,18 +340,19 @@ export function usePipeCreation(
     value: PipeCreationFacility[K],
   ) {
     const facility = facilityById(facilityId);
-    if (!facility) return;
+    if (!facility || draft.submitting || confirming.value) return;
     const previousType = facility.facilityType;
     facility[field] = value;
     if (field === "mode") syncFacilities();
     if (field === "facilityType" && (facility.facilityNumber.startsWith("MANUAL_" + previousType + "_") || !facility.facilityNumber.trim())) {
       facility.facilityNumber = "MANUAL_" + String(value) + "_" + facility.id.slice("facility-".length).replace(/-/g, "_");
     }
+    updateOutsidePipeState(facility);
   }
 
   function updateFacilityRatio(facilityId: string, ratio: number) {
     const facility = facilityById(facilityId);
-    if (!facility) return;
+    if (!facility || draft.submitting || confirming.value) return;
     facility.mode = "line";
     facility.positionRatio = Math.min(1, Math.max(0, ratio));
     syncFacilities();
@@ -294,11 +360,12 @@ export function usePipeCreation(
 
   function moveFacilityFromMap(facilityId: string, longitude: number, latitude: number) {
     const facility = facilityById(facilityId);
-    if (!facility) return;
+    if (!facility || draft.submitting || confirming.value) return;
     if (facility.mode === "manual") {
       if (Math.abs(longitude) <= 180 && Math.abs(latitude) <= 90) {
         facility.longitude = longitude.toFixed(7);
         facility.latitude = latitude.toFixed(7);
+        updateOutsidePipeState(facility);
       }
       return;
     }
@@ -308,6 +375,69 @@ export function usePipeCreation(
     if (!start || !end) return;
     facility.mode = "line";
     facility.positionRatio = projectToSegment({ lng: longitude, lat: latitude }, start, end);
+    syncFacilities();
+  }
+
+  function addMapPoint(coordinate: Point) {
+    if (!draft.active || draft.mode !== "pipe" || draft.pipeSubmitted || draft.submitting || confirming.value || !draft.drawingActive) return;
+    const lastIndex = draft.points.length - 1;
+    const last = draft.points[lastIndex];
+    if (last && (last.lng.trim() || last.lat.trim()) && !parseCoordinate(last)) return;
+    if (last && !last.lng.trim() && !last.lat.trim()) {
+      setPoint(lastIndex, "lng", String(coordinate.lng));
+      setPoint(lastIndex, "lat", String(coordinate.lat));
+      return;
+    }
+    if (draft.points.length < MAX_POINT_COUNT) {
+      draft.points.push({ id: createId("point"), lng: String(coordinate.lng), lat: String(coordinate.lat) });
+      if (draft.points.length === 1) {
+        draft.firstPointFocused = true;
+        options.focusCoordinate(coordinate, draft.countryCode);
+      }
+      syncFacilities();
+    }
+  }
+
+  function undoLastPoint() {
+    if (draft.submitting || draft.pipeSubmitted) return;
+    const index = draft.points.reduce((last, point, i) => point.lng.trim() || point.lat.trim() ? i : last, -1);
+    if (index >= 0) removePoint(index);
+  }
+
+  function clearPoints() {
+    if (draft.pipeSubmitted || draft.submitting) return;
+    draft.points = [createPoint()];
+    draft.facilities.forEach((facility) => { facility.mode = "manual"; });
+    draft.drawingActive = true;
+    updateAllOutsidePipeStates();
+  }
+
+  function completeDrawing() {
+    draft.drawingActive = false;
+  }
+
+  function selectPlacementType(type: FacilityType | "") {
+    if (draft.submitting) return;
+    draft.placementType = type;
+    if (type) draft.drawingActive = false;
+  }
+
+  function placeFacilityAt(coordinate: Point) {
+    if (!draft.active || !draft.placementType || draft.submitting || confirming.value) return;
+    const facility = createFacility(0, "manual");
+    facility.facilityType = draft.placementType;
+    facility.facilityNumber = "MANUAL_" + draft.placementType + "_" + facility.id.slice("facility-".length).replace(/-/g, "_");
+    facility.longitude = coordinate.lng.toFixed(7);
+    facility.latitude = coordinate.lat.toFixed(7);
+    const points = getDraftPointCoordinates(draft);
+    const nearest = findNearestPipeSegment(coordinate, [points]);
+    if (nearest && nearest.distanceM <= NEAR_PIPE_METERS) {
+      facility.mode = "line";
+      facility.segmentIndex = nearest.segmentIndex;
+      facility.positionRatio = nearest.ratio;
+    }
+    updateOutsidePipeState(facility);
+    draft.facilities.push(facility);
     syncFacilities();
   }
 
@@ -336,6 +466,8 @@ export function usePipeCreation(
       facilityName: facility.facilityName.trim() || undefined,
       longitude: coordinate.lng,
       latitude: coordinate.lat,
+      coordinateSystem: "WGS84",
+      countryCode: draft.countryCode.trim().toUpperCase() || "MY",
       deptId: Number(draft.deptId),
       status: Number(facility.status),
       diameterMm: Number(facility.diameterMm) > 0 ? Number(facility.diameterMm) : undefined,
@@ -374,8 +506,26 @@ export function usePipeCreation(
     return successCount;
   }
 
-  async function submit() {
-    if (!canSubmit.value) return;
+  async function submit(submitOptions: { confirmOutside?: boolean } = {}) {
+    if (!canSubmit.value) {
+      if (!draft.submitting && !confirming.value) draft.submitError = language.value === "zh-CN" ? "请补齐必填项并修正坐标或交叉错误后保存" : "Complete required fields and fix coordinate or crossing errors before saving.";
+      return false;
+    }
+    if (submitOptions.confirmOutside !== false && draft.facilities.some((facility) => facility.outsidePipe)) {
+      confirming.value = true;
+      const confirmed = await new Promise<boolean>((resolve) => {
+        uni.showModal({
+          title: language.value === "zh-CN" ? "设施位于管线外" : "Facility outside pipe",
+          content: language.value === "zh-CN" ? "仍然提交这些设施吗？" : "Submit these facilities anyway?",
+          confirmText: language.value === "zh-CN" ? "确定提交" : "Submit",
+          cancelText: language.value === "zh-CN" ? "取消" : "Cancel",
+          success: (result) => resolve(Boolean(result.confirm)),
+          fail: () => resolve(false),
+        });
+      });
+      confirming.value = false;
+      if (!confirmed) return false;
+    }
     draft.submitting = true;
     draft.submitError = "";
     draft.successMessage = "";
@@ -402,11 +552,16 @@ export function usePipeCreation(
     } finally {
       draft.submitting = false;
     }
+    return !draft.active;
   }
 
   async function retryFacility(facilityId: string) {
     const facility = facilityById(facilityId);
-    if (!facility || draft.submitting || (draft.mode === "pipe" && !draft.pipeSubmitted)) return;
+    if (!facility || draft.submitting || confirming.value || (draft.mode === "pipe" && !draft.pipeSubmitted)) return;
+    if (facility.outsidePipe) {
+      await submit();
+      return;
+    }
     draft.submitting = true;
     try {
       if (await submitOneFacility(facility)) {
@@ -420,6 +575,8 @@ export function usePipeCreation(
       draft.submitting = false;
     }
   }
+
+  watch(() => existingTubes.value, updateAllOutsidePipeStates);
 
   return {
     draft,
@@ -437,5 +594,15 @@ export function usePipeCreation(
     moveFacilityFromMap,
     submit,
     retryFacility,
+    switchMode,
+    confirming,
+    hasUnsavedChanges,
+    discard: discardDraft,
+    addMapPoint,
+    undoLastPoint,
+    clearPoints,
+    completeDrawing,
+    selectPlacementType,
+    placeFacilityAt,
   };
 }

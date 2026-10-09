@@ -12,6 +12,7 @@ import {
   fetchLeakMonitorSidebar,
   fetchLeakMonitorTrend,
   fetchLeakMonitorWav,
+  createLeakMonitorManualWorkOrder,
   submitLeakMonitorManualAnalysis,
 } from "@/services/leak-monitor/device-query";
 import { analyzeWavArrayBuffer } from "../audioAnalysis";
@@ -34,6 +35,7 @@ import type {
   MapDevicePoint,
   MapRegion,
   ManualAnalysisPayload,
+  ManualWorkOrderPayload,
   PageState,
   FacilityType,
   LeakMonitorFacility,
@@ -439,16 +441,69 @@ export function useLeakMonitorWorkspace(localized?: Readonly<Ref<boolean>>) {
     detail.value.manualSubmitting = true;
     detail.value.manualError = "";
     try {
-      await submitLeakMonitorManualAnalysis(payload);
+      if (payload.dispatchRequested) {
+        await createLeakMonitorManualWorkOrder(buildManualWorkOrderPayload(payload));
+      } else {
+        await submitLeakMonitorManualAnalysis(payload);
+      }
       if (requestId !== detailRequestId) return;
       await loadManualAnalysis(selectedDevice.value);
     } catch (error: any) {
       if (requestId === detailRequestId) {
-        detail.value.manualError = error?.msg || error?.message || t("manualAnalysisSaveFailed");
+        detail.value.manualError = error?.msg || error?.message ||
+          (payload.dispatchRequested ? t("manualDispatchFailed") : t("manualAnalysisSaveFailed"));
       }
     } finally {
       if (requestId === detailRequestId) detail.value.manualSubmitting = false;
     }
+  }
+
+  function buildManualWorkOrderPayload(payload: ManualAnalysisPayload): ManualWorkOrderPayload {
+    const device = selectedDevice.value;
+    const raw = device?.raw || {};
+    const deviceId = Number(payload.deviceId);
+    const regionName = String(
+      raw.deptNames ??
+      raw.deptName ??
+      detail.value.info?.deptNames ??
+      detail.value.info?.deptName ??
+      "",
+    ).trim();
+    const matchedRegion = regionName
+      ? mapRegions.value.find((region) => region.name === regionName)
+      : undefined;
+    const deptId = Number(
+      payload.deptId ??
+      device?.regionId ??
+      raw.deptId ??
+      raw.departmentId ??
+      matchedRegion?.id,
+    );
+    const sourceId = Number(device?.id ?? payload.deviceId);
+    if (!Number.isFinite(deviceId) || !Number.isFinite(deptId) || !Number.isFinite(sourceId)) {
+      throw new Error("人工派单缺少有效的设备 ID 或分区 ID");
+    }
+
+    const expectedTime = new Date(`${payload.resetDate}T23:59:59`).toISOString();
+    return {
+      workOrderNo: `LEAK-${payload.deviceNumber}-${Date.now()}`,
+      expectedTime,
+      urgencyLevel: payload.manualAnalysisStatus === 0 ? "HIGH" : "NORMAL",
+      workOrderCategory: "LEAK_MONITOR",
+      flowType: "MANUAL_ANALYSIS",
+      processFlow: payload.troubleshootingFeedback,
+      handler: "",
+      remark: payload.reasonAnalysis,
+      deviceNo: payload.deviceNumber,
+      deviceId,
+      deptId,
+      leakageStatus: payload.manualAnalysis,
+      installImage: payload.installImage || String(raw.installImage ?? ""),
+      installAddress: payload.installAddress || String(raw.installAddress ?? ""),
+      detail: payload.reasonAnalysis,
+      sourceType: "LEAK_MONITOR_DEVICE",
+      sourceId,
+    };
   }
 
   async function openDevice(device: LeakMonitorDevice | MapDevicePoint) {
