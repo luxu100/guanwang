@@ -114,10 +114,9 @@ import { useLocaleText } from '@/i18n/localeText';
 import WorkOrderDatetimePicker from '@/pages/work-order/components/WorkOrderDatetimePicker.vue';
 const localeText = useLocaleText();
 type BatteryStatus = 'all' | 'healthy' | 'warning' | 'replace' | 'untested' | 'pending';
-interface Detection { id: string; date: string; operator: string; voltage: number; capacity: number; charge?: number; health?: number; days?: number; remark?: string }
-interface Battery { id: string; number: string; records: Detection[] }
-// 待接入电池检测接口。
-const batteries = ref<Battery[]>([]);
+import { createMockBatteries, type Battery, type Detection } from '@/pages/report/mock/battery-health';
+// 临时 mock 数据，与中文版共用；接口就绪后替换此初始化入口。
+const batteries = ref<Battery[]>(createMockBatteries(localeText));
 const statusCodes: BatteryStatus[] = ['all', 'healthy', 'warning', 'replace', 'untested', 'pending'];
 const statusOptions = computed(() => [
   { value: 'all' as BatteryStatus, label: localeText('全部', 'All') },
@@ -130,7 +129,7 @@ const statusOptions = computed(() => [
 const number = ref('');
 const statusIndex = ref(0);
 const query = reactive<{ number: string; status: BatteryStatus }>({ number: '', status: 'all' });
-const selectedId = ref('');
+const selectedId = ref(batteries.value[0]?.id || '');
 const batteryEditorVisible = ref(false);
 const batteryError = ref('');
 const batteryForm = reactive({ id: '', number: '' });

@@ -80,6 +80,7 @@ export interface LeakMonitorPipe {
   material: string | null;
   diameterMm: number | null;
   shapeLengthM: number | null;
+  deptId?: number | null;
 }
 
 export interface LeakMonitorFacility {
@@ -94,6 +95,7 @@ export interface LeakMonitorFacility {
   status: number | null;
   boundDeviceCount: number | null;
   diameterMm?: number | null;
+  deptId?: number | null;
 }
 
 export interface NearbyAnalysisDevice {
@@ -188,6 +190,29 @@ export interface ManualAnalysisPayload {
   reasonAnalysis: string;
   resetDate: string;
   dispatchRequested?: boolean;
+  deptId?: string | number | null;
+  installAddress?: string;
+  installImage?: string;
+}
+
+export interface ManualWorkOrderPayload {
+  workOrderNo: string;
+  expectedTime: string;
+  urgencyLevel: string;
+  workOrderCategory: string;
+  flowType: string;
+  processFlow: string;
+  handler: string;
+  remark: string;
+  deviceNo: string;
+  deviceId: number;
+  deptId: number;
+  leakageStatus: string;
+  installImage: string;
+  installAddress: string;
+  detail: string;
+  sourceType: string;
+  sourceId: number;
 }
 
 export interface ManualAnalysisRecord {

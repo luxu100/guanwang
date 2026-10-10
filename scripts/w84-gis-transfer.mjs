@@ -80,6 +80,16 @@ export function selectPipeOnlyPayloads(payloads) {
   return { pipes: [pipe], facilities: [] };
 }
 
+export function selectFacilitySamplePayloads(payloads) {
+  const valve = payloads.facilities.find((item) => item.facilityType === "VALVE");
+  const hydrant = payloads.facilities.find((item) => item.facilityType === "HYDRANT");
+  const pump = payloads.facilities.find((item) => item.facilityType === "PUMP");
+  if (!valve || !hydrant || !pump) {
+    throw new Error("W84 source is missing one of the required facility sample records");
+  }
+  return { pipes: [], facilities: [valve, hydrant, pump] };
+}
+
 export function validatePayloads(pipes, facilities, deptId = 2) {
   const forbidden = new Set([
     "id",
@@ -124,6 +134,9 @@ export function validatePayloads(pipes, facilities, deptId = 2) {
   }
 
   for (const payload of facilities) {
+    if (payload.coordinateSystem !== "WGS84" || payload.countryCode !== "MY") {
+      throw new Error(`Facility ${payload.facilityNumber} has invalid coordinate metadata`);
+    }
     validateCoordinate(
       [payload.longitude, payload.latitude],
       payload.facilityNumber,
@@ -166,6 +179,8 @@ async function main(argv = process.argv.slice(2)) {
   const payloads = buildImportPayloads(source, options.deptId);
   const selected = options.pipesOnly
     ? (options.all ? { pipes: payloads.pipes, facilities: [] } : selectPipeOnlyPayloads(payloads))
+    : options.facilitiesOnly
+      ? (options.all ? { pipes: [], facilities: payloads.facilities } : selectFacilitySamplePayloads(payloads))
     : options.sample
       ? selectSamplePayloads(payloads)
       : payloads;
@@ -175,8 +190,9 @@ async function main(argv = process.argv.slice(2)) {
     return;
   }
 
-  if (!options.pipesOnly || (!options.sample && !options.all)) {
-    throw new Error("--apply requires --pipes-only and either --sample or --all");
+  if ((!options.pipesOnly && !options.facilitiesOnly) || (options.pipesOnly && options.facilitiesOnly)
+    || (!options.sample && !options.all)) {
+    throw new Error("--apply requires exactly one of --pipes-only or --facilities-only and either --sample or --all");
   }
   if (options.sample && options.all) {
     throw new Error("--sample and --all cannot be used together");
@@ -191,20 +207,32 @@ async function main(argv = process.argv.slice(2)) {
   };
 
   await verifyDepartment(baseUrl, options.deptId, requestOptions);
-  const existing = await readExistingRecords(
-    baseUrl,
-    requestOptions,
-    selected.facilities.length > 0,
-  );
+  const existing = await readExistingRecords(baseUrl, requestOptions, {
+    includePipes: selected.pipes.length > 0,
+    includeFacilities: selected.facilities.length > 0,
+  });
   const existingNames = new Set(existing.pipes.map((item) => item?.tubeName).filter(Boolean));
+  const existingFacilityNumbers = new Set(existing.facilities.map((item) => item?.facilityNumber).filter(Boolean));
   const alreadyPresent = selected.pipes.filter((pipe) => existingNames.has(pipe.tubeName)).map((pipe) => pipe.tubeName);
+  const facilitiesAlreadyPresent = selected.facilities
+    .filter((facility) => existingFacilityNumbers.has(facility.facilityNumber))
+    .map((facility) => facility.facilityNumber);
   const toCreate = selected.pipes.filter((pipe) => !existingNames.has(pipe.tubeName));
-  if (!options.all && alreadyPresent.length > 0) {
-    throw new Error(`pipe already exists: ${alreadyPresent[0]}`);
+  const facilitiesToCreate = selected.facilities.filter((facility) => !existingFacilityNumbers.has(facility.facilityNumber));
+  if (!options.all && (alreadyPresent.length > 0 || facilitiesAlreadyPresent.length > 0)) {
+    throw new Error(`record already exists: ${alreadyPresent[0] || facilitiesAlreadyPresent[0]}`);
   }
-  printSummary(source, payloads, { pipes: toCreate, facilities: [] }, { ...options, existingPipeNames: alreadyPresent });
+  printSummary(source, payloads, { pipes: toCreate, facilities: facilitiesToCreate }, {
+    ...options,
+    existingPipeNames: alreadyPresent,
+    existingFacilityNumbers: facilitiesAlreadyPresent,
+  });
 
-  const report = { created: [], alreadyPresent, startedAt: new Date().toISOString() };
+  const report = {
+    created: [],
+    alreadyPresent: [...alreadyPresent, ...facilitiesAlreadyPresent],
+    startedAt: new Date().toISOString(),
+  };
   for (const pipe of toCreate) {
     try {
       const response = await requestJson(baseUrl, "/api/tube-network/create", {
@@ -223,17 +251,29 @@ async function main(argv = process.argv.slice(2)) {
       throw error;
     }
   }
-  for (const facility of selected.facilities) {
-    const response = await requestJson(baseUrl, "/api/facility/create", {
-      ...requestOptions,
-      method: "POST",
-      body: facility,
-    });
-    report.created.push({ resource: "facility", key: facility.facilityNumber, response: response.data ?? null });
-    console.log(`created facility ${facility.facilityNumber}`);
+  for (const facility of facilitiesToCreate) {
+    try {
+      const response = await requestJson(baseUrl, "/api/facility/create", {
+        ...requestOptions,
+        method: "POST",
+        body: facility,
+      });
+      report.created.push({ resource: "facility", key: facility.facilityNumber, response: response.data ?? null });
+      console.log(`created facility ${facility.facilityNumber}`);
+      writeReport(options.report, report);
+    } catch (error) {
+      report.failed = { resource: "facility", key: facility.facilityNumber, error: error?.message || String(error) };
+      report.finishedAt = new Date().toISOString();
+      writeReport(options.report, report);
+      console.error(JSON.stringify(report, null, 2));
+      throw error;
+    }
   }
 
-  const verified = await verifyCreatedRecords(baseUrl, { pipes: [...alreadyPresent.map((tubeName) => payloads.pipes.find((pipe) => pipe.tubeName === tubeName)), ...toCreate], facilities: [] }, requestOptions, { pipesOnly: options.pipesOnly });
+  const verified = await verifyCreatedRecords(baseUrl, {
+    pipes: [...alreadyPresent.map((tubeName) => payloads.pipes.find((pipe) => pipe.tubeName === tubeName)).filter(Boolean), ...toCreate],
+    facilities: [...facilitiesAlreadyPresent.map((facilityNumber) => payloads.facilities.find((facility) => facility.facilityNumber === facilityNumber)).filter(Boolean), ...facilitiesToCreate],
+  }, requestOptions);
   report.verified = verified;
   report.finishedAt = new Date().toISOString();
   writeReport(options.report, report);
@@ -246,6 +286,7 @@ export function parseArgs(argv) {
     deptId: 2,
     sample: false,
     pipesOnly: false,
+    facilitiesOnly: false,
     all: false,
     apply: false,
     report: "",
@@ -261,6 +302,7 @@ export function parseArgs(argv) {
     else if (arg === "--sample") options.sample = true;
     else if (arg === "--all") options.all = true;
     else if (arg === "--pipes-only") options.pipesOnly = true;
+    else if (arg === "--facilities-only") options.facilitiesOnly = true;
     else if (arg === "--apply") options.apply = true;
     else if (arg === "--dry-run") options.apply = false;
     else if (arg === "--help" || arg === "-h") {
@@ -274,8 +316,8 @@ export function parseArgs(argv) {
   if (options.all && options.sample) {
     throw new Error("--sample and --all cannot be used together");
   }
-  if (options.apply && (!options.pipesOnly || (!options.sample && !options.all))) {
-    throw new Error("--apply requires --pipes-only and either --sample or --all");
+  if (options.apply && ((options.pipesOnly === options.facilitiesOnly) || (!options.sample && !options.all))) {
+    throw new Error("--apply requires exactly one of --pipes-only or --facilities-only and either --sample or --all");
   }
   options.deptId = normalizeDeptId(options.deptId);
   return options;
@@ -340,6 +382,8 @@ function buildFacilityPayload(record, facilityType, deptId) {
     deptId,
     longitude: point[0],
     latitude: point[1],
+    coordinateSystem: "WGS84",
+    countryCode: "MY",
     status: mapFacilityStatus(attributes, `${facilityType} ${identifier}`),
   };
 
@@ -467,13 +511,17 @@ async function verifyDepartment(baseUrl, deptId, requestOptions) {
   }
 }
 
-async function readExistingRecords(baseUrl, requestOptions, includeFacilities = true) {
-  const pipes = await requestJson(baseUrl, "/api/tube-network/list", requestOptions);
+async function readExistingRecords(baseUrl, requestOptions, options = {}) {
+  const includePipes = options.includePipes !== false;
+  const includeFacilities = options.includeFacilities !== false;
+  const pipes = includePipes
+    ? await requestJson(baseUrl, "/api/tube-network/list", requestOptions)
+    : null;
   const facilities = includeFacilities
     ? await requestJson(baseUrl, "/api/facility/list", requestOptions)
     : null;
   return {
-    pipes: recordsFromResponse(pipes.data),
+    pipes: pipes ? recordsFromResponse(pipes.data) : [],
     facilities: facilities ? recordsFromResponse(facilities.data) : [],
   };
 }
@@ -490,11 +538,10 @@ function assertNoDuplicates(selected, existing) {
 }
 
 async function verifyCreatedRecords(baseUrl, selected, requestOptions, options = {}) {
-  const existing = await readExistingRecords(
-    baseUrl,
-    requestOptions,
-    !options.pipesOnly && selected.facilities.length > 0,
-  );
+  const existing = await readExistingRecords(baseUrl, requestOptions, {
+    includePipes: selected.pipes.length > 0,
+    includeFacilities: selected.facilities.length > 0,
+  });
   const pipeResults = selected.pipes.map((payload) => {
     const record = existing.pipes.find((item) => item?.tubeName === payload.tubeName);
     assertReadback(record, payload.tubeName, payload);
@@ -511,8 +558,26 @@ async function verifyCreatedRecords(baseUrl, selected, requestOptions, options =
 function assertReadback(record, key, payload) {
   if (!record) throw new Error(`created record was not returned by list: ${key}`);
   if (record.deptId !== payload.deptId) throw new Error(`readback deptId mismatch: ${key}`);
-  if (JSON.stringify(record.lineCoords) !== JSON.stringify(payload.lineCoords)) {
+  if (payload.lineCoords && JSON.stringify(record.lineCoords) !== JSON.stringify(payload.lineCoords)) {
     throw new Error(`readback lineCoords mismatch: ${key}`);
+  }
+  if (payload.facilityType && String(record.facilityType).toUpperCase() !== payload.facilityType) {
+    throw new Error(`readback facilityType mismatch: ${key}`);
+  }
+  if (payload.facilityNumber && record.facilityNumber !== payload.facilityNumber) {
+    throw new Error(`readback facilityNumber mismatch: ${key}`);
+  }
+  if (payload.longitude !== undefined && Math.abs(Number(record.longitude) - payload.longitude) > 1e-9) {
+    throw new Error(`readback longitude mismatch: ${key}`);
+  }
+  if (payload.latitude !== undefined && Math.abs(Number(record.latitude) - payload.latitude) > 1e-9) {
+    throw new Error(`readback latitude mismatch: ${key}`);
+  }
+  if (payload.coordinateSystem && record.coordinateSystem !== payload.coordinateSystem) {
+    throw new Error(`readback coordinateSystem mismatch: ${key}`);
+  }
+  if (payload.countryCode && String(record.countryCode || "").toUpperCase() !== payload.countryCode) {
+    throw new Error(`readback countryCode mismatch: ${key}`);
   }
 }
 
@@ -579,7 +644,7 @@ function printSummary(source, payloads, selected, options) {
   const existingNames = options.existingPipeNames || [];
   console.log(JSON.stringify({
     mode: options.apply ? "apply" : "dry-run",
-    transfer: options.pipesOnly ? "pipes-only" : "pipes-and-facilities",
+    transfer: options.pipesOnly ? "pipes-only" : options.facilitiesOnly ? "facilities-only" : "pipes-and-facilities",
     sourceDir: source.sourceDir,
     deptId: options.deptId,
     counts: {
@@ -591,8 +656,8 @@ function printSummary(source, payloads, selected, options) {
     selected: {
       pipes: selected.pipes.length,
       facilities: selected.facilities.length,
-      alreadyPresent: existingNames.length,
-      toCreate: selected.pipes.length,
+      alreadyPresent: existingNames.length + (options.existingFacilityNumbers || []).length,
+      toCreate: selected.pipes.length + selected.facilities.length,
     },
     samplePayloads: options.sample ? selected : undefined,
     payloadCount: {
@@ -617,7 +682,7 @@ function requireValue(argv, index, flag) {
 }
 
 function printHelp() {
-  console.log(`W84 GIS transfer\n\n  --dry-run                 Parse and validate without network writes\n  --pipes-only              Transfer only pipe data; never calls facility endpoints\n  --pipes-only --sample --apply  Send one sample pipe\n  --pipes-only --all --apply     Send all pipes not already present\n  --source-dir <path>       Shapefile directory\n  --dept-id <id>            Target partition, defaults to 2\n  --base-url <url>          API base URL, or W84_API_BASE_URL\n  --report <path>           Write a progress report without credentials\n`);
+  console.log(`W84 GIS transfer\n\n  --dry-run                 Parse and validate without network writes\n  --pipes-only              Transfer only pipe data; never calls facility endpoints\n  --facilities-only         Transfer only facility data; never calls pipe endpoints\n  --pipes-only --sample --apply       Send one sample pipe\n  --pipes-only --all --apply          Send all pipes not already present\n  --facilities-only --sample --apply  Send one valve, hydrant, and pump\n  --facilities-only --all --apply     Send all facilities not already present\n  --source-dir <path>       Shapefile directory\n  --dept-id <id>            Target partition, defaults to 2\n  --base-url <url>          API base URL, or W84_API_BASE_URL\n  --report <path>           Write a progress report without credentials\n`);
 }
 
 if (isMain) {

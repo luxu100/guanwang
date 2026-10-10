@@ -6,6 +6,7 @@ import {
   parseArgs,
   readW84Source,
   requestJson,
+  selectFacilitySamplePayloads,
   selectPipeOnlyPayloads,
   selectSamplePayloads,
 } from "./w84-gis-transfer.mjs";
@@ -47,8 +48,8 @@ test("builds the documented sample payloads without system fields", () => {
   assert.deepEqual(types, new Set(["VALVE", "HYDRANT", "PUMP"]));
   for (const item of sample.facilities) {
     assert.equal(item.deptId, 2);
-    assert.equal(item.countryCode, undefined);
-    assert.equal(item.coordinateSystem, undefined);
+    assert.equal(item.countryCode, "MY");
+    assert.equal(item.coordinateSystem, "WGS84");
     assert.equal(item.gisSource, undefined);
     assert.equal(item.riskScore, undefined);
   }
@@ -59,6 +60,16 @@ test("pipe-only selection never includes facility payloads", () => {
   const selected = selectPipeOnlyPayloads(payloads);
   assert.equal(selected.pipes.length, 1);
   assert.equal(selected.facilities.length, 0);
+});
+
+test("facility-only sample contains one record for each W84 facility type", () => {
+  const payloads = buildImportPayloads(readW84Source(sourceDir), 2);
+  const selected = selectFacilitySamplePayloads(payloads);
+  assert.equal(selected.pipes.length, 0);
+  assert.deepEqual(
+    selected.facilities.map((item) => item.facilityType).sort(),
+    ["HYDRANT", "PUMP", "VALVE"],
+  );
 });
 
 test("keeps duplicate OBJECTIDs as distinct, stable pipe names", () => {
@@ -84,10 +95,14 @@ test("keeps duplicate OBJECTIDs as distinct, stable pipe names", () => {
 test("bulk writes require explicit all and pipe-only flags", () => {
   assert.throws(() => parseArgs(["--apply"]), /--pipes-only/);
   assert.throws(() => parseArgs(["--pipes-only", "--all", "--sample", "--apply"]), /cannot be used together/);
+  assert.throws(() => parseArgs(["--pipes-only", "--facilities-only", "--all", "--apply"]), /exactly one/);
   const options = parseArgs(["--pipes-only", "--all", "--apply"]);
   assert.equal(options.all, true);
   assert.equal(options.pipesOnly, true);
   assert.equal(options.sample, false);
+  const facilityOptions = parseArgs(["--facilities-only", "--sample", "--apply"]);
+  assert.equal(facilityOptions.facilitiesOnly, true);
+  assert.equal(facilityOptions.pipesOnly, false);
 });
 
 test("requires both HTTP success and business code 200", async () => {

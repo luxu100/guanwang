@@ -69,6 +69,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (event: "device-click", point: MapDevicePoint): void;
+  (event: "map-click", coordinate: { lng: number; lat: number }): void;
   (event: "ready"): void;
   (event: "error", message: string): void;
 }>();
@@ -131,6 +132,9 @@ async function initMap() {
       window.setTimeout(() => focusDevice(props.selectedDeviceNumber), 0);
     }
     mapInstance.addListener("zoom_changed", renderRegions);
+    mapInstance.addListener("click", (event: google.maps.MapMouseEvent) => {
+      if (event.latLng) emit("map-click", { lng: event.latLng.lng(), lat: event.latLng.lat() });
+    });
     bindContainerResizeObserver();
     scheduleMapResize();
     emit("ready");

@@ -254,6 +254,7 @@ import { clearAuthStorage, createProtectedRouteDecision, LOGIN_PATH } from "@/ut
 import { filterMenuItemsByAccess, flattenMenuPaths, getMenuAccessSummary } from "@/utils/menuAccess";
 import { TOKEN_KEY } from "@/utils/request";
 import LocaleLeakMap from "@/pages/leak-monitor/components/LocaleLeakMap.vue";
+import OneMapDashboardView from "@/pages/one-map/components/OneMapDashboardView.vue";
 import { applyUserLocale, createScopedT, useI18n } from "@/i18n";
 import {
   BRAND_LOGO_UPDATED_EVENT,
@@ -261,6 +262,7 @@ import {
   resolveLogoUrl,
   updateCurrentUserLogoId,
 } from "@/utils/branding";
+import { runAppShellNavigationGuard } from "@/utils/appShellNavigation";
 interface MenuItem {
   labelKey: string;
   path: string;
@@ -321,6 +323,7 @@ const {
  */
 const menuItems: MenuItem[] = [
   { labelKey: "favorite", path: "/pages/index/index", icon: "star", keywords: ["首页", "收藏"] },
+  { labelKey: "oneMap", path: "/pages/one-map/one-map", icon: "trend", keywords: ["一张图", "在线监测", "总览"] },
   { labelKey: "leakMonitor", path: "/pages/leak-monitor/leak-monitor", icon: "monitor", keywords: ["渗漏", "监测"] },
   { labelKey: "partition", path: "/pages/partition/partition", icon: "partition", keywords: ["分区", "部门", "管理"] },
   {
@@ -450,6 +453,7 @@ const menuItems: MenuItem[] = [
 
 const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/index/index": createPlaceholderContent("/pages/index/index"),
+  "/pages/one-map/one-map": { component: OneMapDashboardView },
   "/pages/partition/partition": { component: PartitionManagementView },
   "/pages/device/info/info": { component: DeviceManagementView, props: { mode: "info" } },
   "/pages/device/maintenance/maintenance": { component: DeviceManagementView, props: { mode: "maintenance" } },
@@ -504,6 +508,7 @@ const routePath = computed(() => {
   return `/${route}`;
 });
 const currentPath = ref(getInitialPath());
+const navigationBusy = ref(false);
 const openedTabs = ref<PageTab[]>(getInitialOpenedTabs());
 const isFullscreen = ref(false);
 const isFallbackFullscreen = ref(false);
@@ -594,6 +599,7 @@ function getMenuTargetPath(item: MenuItem) {
 }
 
 function goMenuItem(item: MenuItem) {
+  if (navigationBusy.value) return;
   if (!item.children?.length) {
     expandedMenuPaths.value = [];
     collapsedSubmenuPath.value = "";
@@ -615,12 +621,13 @@ function goMenuItem(item: MenuItem) {
   goPage(getMenuTargetPath(item));
 }
 
-function goPage(path: string, options: { keepCollapsedSubmenu?: boolean } = {}) {
+async function goPage(path: string, options: { keepCollapsedSubmenu?: boolean } = {}) {
+  if (navigationBusy.value) return false;
   const targetPath = getAccessiblePathOrFallback(path);
   if (targetPath !== path) {
     uni.showToast({ title: "暂无访问权限", icon: "none" });
     if (targetPath) {
-      goPage(targetPath, options);
+      void goPage(targetPath, options);
     }
     return;
   }
@@ -632,7 +639,18 @@ function goPage(path: string, options: { keepCollapsedSubmenu?: boolean } = {}) 
   if (currentPath.value === path) {
     ensureTab(path);
     scrollActiveTabIntoView(path);
-    return;
+    return true;
+  }
+
+  if (navigationBusy.value) return;
+  navigationBusy.value = true;
+  try {
+    if (!await runAppShellNavigationGuard(path)) return false;
+  } catch (error) {
+    console.error("Navigation draft guard failed", error);
+    return false;
+  } finally {
+    navigationBusy.value = false;
   }
 
   currentPath.value = path;
@@ -647,7 +665,7 @@ function goPage(path: string, options: { keepCollapsedSubmenu?: boolean } = {}) 
     navigateInPlace(path);
     syncExpandedMenuByPath(path);
     updateDocumentTitle(path);
-    return;
+    return true;
   }
   // #endif
 
@@ -656,6 +674,7 @@ function goPage(path: string, options: { keepCollapsedSubmenu?: boolean } = {}) 
     animationType: "none",
     animationDuration: 0,
   });
+  return true;
 }
 
 function goChildPage(path: string) {
@@ -681,27 +700,21 @@ function scrollTabs(direction: -1 | 1) {
   // #endif
 }
 
-function closeTab(path: string) {
+async function closeTab(path: string) {
+  if (navigationBusy.value) return;
   const index = openedTabs.value.findIndex((tab) => tab.path === path);
   if (index < 0) {
     return;
   }
 
-  openedTabs.value.splice(index, 1);
+  if (currentPath.value === path) {
+    const nextTab = openedTabs.value[index + 1] || openedTabs.value[index - 1];
+    const target = nextTab?.path || firstAccessibleMenuPath.value;
+    if (!target || target === path || !await goPage(target)) return;
+  }
+  const currentIndex = openedTabs.value.findIndex((tab) => tab.path === path);
+  if (currentIndex >= 0) openedTabs.value.splice(currentIndex, 1);
   persistOpenedTabs();
-  if (openedTabs.value.length === 0) {
-    if (firstAccessibleMenuPath.value) {
-      goPage(firstAccessibleMenuPath.value);
-    }
-    return;
-  }
-
-  if (currentPath.value !== path) {
-    return;
-  }
-
-  const nextTab = openedTabs.value[index] || openedTabs.value[index - 1];
-  goPage(nextTab?.path || firstAccessibleMenuPath.value);
 }
 
 async function toggleFullscreen() {

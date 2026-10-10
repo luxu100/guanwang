@@ -100,7 +100,7 @@
           <view v-if="changes.length" class="timeline">
             <view v-for="change in changes" :key="change.time" class="event">
               <view class="dot" /><view class="event-top"><text class="time">{{ change.time }}</text><text class="muted">{{ change.operator }}</text></view>
-              <view class="event-card"><text class="muted">{{ change.field }}</text><view class="transition"><text class="before">{{ change.before }}</text><text class="muted">→</text><text class="after">{{ change.after }}</text></view><text class="tag">{{ change.type }}</text></view>
+              <view class="event-card"><text class="muted">{{ change.field }}</text><view class="transition"><text class="before">{{ change.before }}</text><text class="muted">→</text><text class="after">{{ change.after }}</text></view><text class="tag">{{ change.isMock ? '模拟数据 · ' : '' }}{{ change.type }}</text></view>
             </view>
           </view>
           <view v-else class="empty"><text>暂无变更记录</text></view>

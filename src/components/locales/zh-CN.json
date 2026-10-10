@@ -1,6 +1,7 @@
 {
   "appShellMenu": {
     "favorite": "我的收藏",
+    "oneMap": "一张图",
     "leakMonitor": "渗漏监测",
     "partition": "分区管理",
     "device": "设备管理",

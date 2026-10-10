@@ -100,7 +100,7 @@
           <view v-if="changes.length" class="timeline">
             <view v-for="change in changes" :key="change.time" class="event">
               <view class="dot" /><view class="event-top"><text class="time">{{ change.time }}</text><text class="muted">{{ change.operator }}</text></view>
-              <view class="event-card"><text class="muted">{{ change.field }}</text><view class="transition"><text class="before">{{ change.before }}</text><text class="muted">→</text><text class="after">{{ change.after }}</text></view><text class="tag">{{ change.type }}</text></view>
+              <view class="event-card"><text class="muted">{{ change.field }}</text><view class="transition"><text class="before">{{ change.before }}</text><text class="muted">→</text><text class="after">{{ change.after }}</text></view><text class="tag">{{ change.isMock ? `${localeText('模拟数据', 'Mock data')} · ` : '' }}{{ change.type }}</text></view>
             </view>
           </view>
           <view v-else class="empty"><text>{{ localeText("暂无变更记录", "No change records") }}</text></view>
@@ -200,7 +200,11 @@ const lifecycleFields = computed<{ key: keyof LedgerLifecycleRecord; label: stri
   { key: 'address', label: localeText('操作地址', 'Operation Address') },
   { key: 'description', label: localeText('详情描述', 'Description') },
 ]);
-const changes = computed(() => (selected.value?.changes || []).filter(change => !typeIndex.value || change.type === typeSources[typeIndex.value] || change.type === types.value[typeIndex.value]).slice().sort((a, b) => b.time.localeCompare(a.time)));
+const changes = computed(() => (selected.value?.changes || []).filter(change => !typeIndex.value
+  || change.type === typeSources[typeIndex.value]
+  || change.type === types.value[typeIndex.value]
+  || (typeSources[typeIndex.value] === '安装信息变更' && change.type === '拆装信息变更'))
+  .slice().sort((a, b) => b.time.localeCompare(a.time)));
 const activeTab = ref('overview');
 const detailTabs = computed(() => [
   { key: 'overview', title: localeText('基础、状态与安装信息', 'Basic, Status & Install Info') },

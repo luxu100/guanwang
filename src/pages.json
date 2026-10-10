@@ -15,6 +15,13 @@
       }
     },
     {
+      "path": "pages/one-map/one-map",
+      "style": {
+        "navigationBarTitleText": "一张图",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/leak-monitor/leak-monitor",
       "style": {
         "navigationBarTitleText": "渗漏监测",
