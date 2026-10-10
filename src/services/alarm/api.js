@@ -73,6 +73,14 @@ export function getAlarmDetail(id) {
   return alarmRecordApi.getDetail(id);
 }
 
+/**
+ * 按设备编号查设备压力快照（设备 VO 的 pressure 为字符串，可能是 "0.3"/""/null）。
+ * 详情面板展示用：POST /api/device/page 只取一条，不依赖设备模块前端代码。
+ */
+export function getDevicePressureByNumber(deviceNumber) {
+  return postRequest("/api/device/page", { deviceNumber, pageNum: 1, pageSize: 1 });
+}
+
 /** 确认报警（仅 ACTIVE 状态可操作；写 handleUserId/handleRemark）。 */
 export function confirmAlarm(id, data) {
   return postRequest(`/api/alarm-record/${id}/confirm`, data);
@@ -120,6 +128,7 @@ export default {
   getRuleFields,
   getAlarmPage,
   getAlarmDetail,
+  getDevicePressureByNumber,
   confirmAlarm,
   resolveAlarm,
   getLatestActiveAlarms,

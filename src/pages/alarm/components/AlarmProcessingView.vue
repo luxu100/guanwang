@@ -270,6 +270,7 @@
           <view class="detail-summary__meta">
             <view class="detail-summary__meta-item"><text class="detail-summary__meta-label">设备别名</text><text class="detail-summary__meta-value">{{ selectedRecord.deviceAlias || "-" }}</text></view>
             <view class="detail-summary__meta-item"><text class="detail-summary__meta-label">规则类型</text><text class="detail-summary__meta-value">{{ getRuleKindText(selectedRecord.ruleKind) }}</text></view>
+            <view class="detail-summary__meta-item"><text class="detail-summary__meta-label">最近有效压力</text><text class="detail-summary__meta-value">{{ devicePressureText }}</text></view>
           </view>
         </view>
 
@@ -384,6 +385,7 @@ import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDate
 import {
   getAlarmPage,
   getAlarmDetail,
+  getDevicePressureByNumber,
   getAlarmTrend,
   getAlarmOverview,
   getAlarmMap,
@@ -682,6 +684,32 @@ function handleFilterDeptChange(event: { detail: { value: number } }) {
 const selectedRecord = ref<AlarmRecord | null>(null);
 const selectedRecordKey = ref("");
 
+/* 设备压力快照：详情打开时按设备编号实时查（不缓存，避免快照过期），在途请求按序号丢弃 */
+const devicePressure = ref<string | number | null | undefined>(undefined);
+let devicePressureRequestId = 0;
+
+const devicePressureText = computed(() => {
+  if (devicePressure.value === undefined) return "…";
+  const text = devicePressure.value === null ? "" : String(devicePressure.value).trim();
+  return text ? `${text}MPa` : "-";
+});
+
+async function loadDevicePressure(deviceNumber?: string) {
+  const requestId = ++devicePressureRequestId;
+  if (!deviceNumber) {
+    devicePressure.value = null;
+    return;
+  }
+  devicePressure.value = undefined;
+  try {
+    const res = (await getDevicePressureByNumber(deviceNumber)) as { code?: number; data?: { records?: Array<{ pressure?: string | number | null }> } };
+    if (requestId !== devicePressureRequestId) return;
+    devicePressure.value = res.code === 200 ? res.data?.records?.[0]?.pressure ?? null : null;
+  } catch {
+    if (requestId === devicePressureRequestId) devicePressure.value = null;
+  }
+}
+
 const detailLoading = ref(false);
 let detailRequestId = 0;
 
@@ -697,6 +725,7 @@ async function toggleDetail(item: AlarmRecord) {
   detailRequestId++;
   selectedRecord.value = item;
   selectedRecordKey.value = key;
+  void loadDevicePressure(item.deviceNumber);
   const requestId = detailRequestId;
   detailLoading.value = true;
   try {
@@ -706,6 +735,9 @@ async function toggleDetail(item: AlarmRecord) {
     // 仍选中同一条才回写；期间面板已换行/关闭则丢弃
     if (res.data && selectedRecordKey.value === key) {
       selectedRecord.value = res.data;
+      if (res.data.deviceNumber && res.data.deviceNumber !== item.deviceNumber) {
+        void loadDevicePressure(res.data.deviceNumber);
+      }
     }
   } catch {
     // 静默：详情接口失败时保留列表行数据展示
