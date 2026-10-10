@@ -2,8 +2,8 @@ import type { LocaleCode } from "@/i18n/types";
 
 
 const tencentMapKey = "JCDBZ-Z2HLI-V26GX-UL7VO-LJFO2-TIFMZ";
-const googleMapKey  = "AIzaSyCFBSsQ8un1ugyT1yjGMwOBZijc6b3821g";
-
+// const googleMapKey  = "AIzaSyCFBSsQ8un1ugyT1yjGMwOBZijc6b3821g";
+const googleMapKey  = "AIzaSyCv9wkN9bLjnKOlxqdtDS-3X63T1nawGeY";
 export type MapProvider = "tencent" | "google";
 
 

@@ -208,6 +208,8 @@ export interface DeviceProduct {
 }
 
 export interface DeviceProtocol {
+    scene?: "CLOUD" | "APP_REALTIME_SINGLE";
+    expectedPayloadBytes?: number | null;
     id: number;
 
     createdAt?: string;
@@ -226,6 +228,7 @@ export interface DeviceProtocol {
 }
 
 export interface DeviceProtocolCreateFrom {
+    scene?: "CLOUD" | "APP_REALTIME_SINGLE" | "";
     createdAt?: string;
     updatedAt?: string;
     isDeleted?: boolean;
@@ -874,6 +877,8 @@ export interface ProtocolDefinition {
 }
 
 export interface DeviceProtocolRelationVO {
+    scene?: "CLOUD" | "APP_REALTIME_SINGLE";
+    expectedPayloadBytes?: number | null;
     id: number;
 
     deviceId: number;

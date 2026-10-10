@@ -280,7 +280,7 @@
                   <text class="select-arrow"></text>
                 </view>
               </picker>
-              <picker v-else-if="field.type === 'select'" :range="field.options || []" range-key="label" @change="handleFormSelectChange(field, $event)">
+              <picker v-else-if="field.type === 'select'" :disabled="bindingFieldLocked(field.key)" :range="field.options || []" range-key="label" @change="handleFormSelectChange(field, $event)">
                 <view class="form-select">
                   <text>{{ getFieldOptionLabel(field, formModel[field.key]) }}</text>
                   <text class="select-arrow"></text>
@@ -290,6 +290,7 @@
                 v-else
                 :value="getFormInputValue(field.key)"
                 class="form-input"
+                :disabled="bindingFieldLocked(field.key)"
                 :type="field.type === 'number' ? 'number' : 'text'"
                 :placeholder="field.placeholder || '请输入'"
                 placeholder-class="input-placeholder"
@@ -471,6 +472,7 @@ import {
   type RecordLike,
 } from "@/utils/adminData";
 import { confirmAction, confirmDangerAction } from "@/utils/confirmAction";
+import { bindingSceneOptions, bindingSceneLabel, REALTIME_BINDING_RULES, assertProtocolResponse } from "@/services/device/protocolBinding";
 
 type DataReceiveMode = "access" | "parse" | "record";
 type FieldType = "text" | "number" | "textarea" | "boolean" | "datetime" | "status" | "json" | "select" | "actions";
@@ -543,6 +545,10 @@ const leakStatusOptions: SelectOption[] = [
   { label: "正常", value: "0" },
   { label: "异常", value: "1" },
 ];
+const bindingSceneFilterOptions: SelectOption[] = bindingSceneOptions(false, true);
+const bindingSceneFormOptions: SelectOption[] = bindingSceneOptions(false);
+const bindingDeviceOptions = reactive<SelectOption[]>([]);
+const bindingProtocolOptions = reactive<SelectOption[]>([]);
 const inlineNumberFieldKeys = new Set(["protocolId", "startPosition", "fieldLength", "sortOrder"]);
 const inlineBooleanFieldKeys = new Set(["required", "enabled"]);
 
@@ -589,6 +595,8 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     columns: [
       { key: "deviceNumber", label: "设备编号", width: 140 },
       { key: "protocolName", label: "协议名称", width: 160 },
+      { key: "scene", label: "使用场景", width: 190 },
+      { key: "expectedPayloadBytes", label: "实采预期字节数", width: 150 },
       { key: "afn", label: "AFN", width: 100 },
       { key: "taskType", label: "任务类型", width: 120 },
       { key: "contentPrefix", label: "内容前缀", width: 140 },
@@ -599,11 +607,13 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     detailFields: [],
     filters: [
       { key: "deviceNumber", label: "设备编号" },
+      { key: "scene", label: "使用场景", type: "select", options: bindingSceneFilterOptions },
       ...baseTimeFilters,
     ],
     formFields: [
-      { key: "deviceNumber", label: "设备编号", required: true },
-      { key: "protocolId", label: "协议ID", type: "number", required: true },
+      { key: "deviceId", label: "设备", type: "select", options: bindingDeviceOptions, required: true },
+      { key: "protocolId", label: "协议", type: "select", options: bindingProtocolOptions, required: true },
+      { key: "scene", label: "使用场景", type: "select", options: bindingSceneFormOptions, required: true },
       { key: "afn", label: "AFN" },
       { key: "taskType", label: "任务类型" },
       { key: "contentPrefix", label: "内容前缀" },
@@ -1016,6 +1026,8 @@ async function fetchRecords() {
       await ensureDeviceNameMap();
     }
     if (activeConfig.value.key === "relation") {
+      assertProtocolResponse(response);
+      await loadBindingOptions().catch(error => toastError(error, "设备或协议选项加载失败"));
       await ensureProtocolNameMap();
     }
 
@@ -1309,7 +1321,30 @@ function startCreate() {
   fillForm(null);
 }
 
+async function loadBindingOptions() {
+  const [deviceResponse, protocolResponse] = await Promise.all([getDeviceList(), getProtocolDefinitionList()]);
+  assertProtocolResponse(deviceResponse);
+  assertProtocolResponse(protocolResponse);
+  const devices = parseListResponse(deviceResponse as ApiResponseLike).flatMap(item => {
+    const id = getId(item);
+    return id ? [{ value: String(id), label: `${getText(item, ["deviceNumber"], String(id))} · ${id}` }] : [];
+  });
+  const protocols = parseListResponse(protocolResponse as ApiResponseLike).flatMap(item => {
+    const id = getId(item);
+    return id && item.enabled === true ? [{ value: String(id), label: `${getText(item, ["protocolCode", "protocolName"], String(id))} · ${id}` }] : [];
+  });
+  bindingDeviceOptions.splice(0, bindingDeviceOptions.length, ...devices);
+  bindingProtocolOptions.splice(0, bindingProtocolOptions.length, ...protocols);
+}
+
+function bindingFieldLocked(key: string) {
+  if (activeConfig.value.key !== "relation") return false;
+  return submitting.value || (key === "scene" && ["CLOUD", "APP_REALTIME_SINGLE"].includes(String(selectedRecord.value?.scene)))
+    || (formModel.scene === "APP_REALTIME_SINGLE" && ["afn", "taskType", "contentPrefix"].includes(key));
+}
+
 async function saveRecord() {
+  if (submitting.value) return;
   const config = activeConfig.value;
   if (!config.createRecord || !config.formFields?.length) {
     return;
@@ -1324,8 +1359,15 @@ async function saveRecord() {
   try {
     const id = getId(selectedRecord.value);
     const payload = buildPayload(config.formFields);
+    if (config.key === "relation" && id && payload.scene === "CLOUD" && ["afn", "taskType", "contentPrefix"].some(key =>
+      Boolean(selectedRecord.value?.[key]) && payload[key] === ""
+    )) {
+      const confirmed = await confirmAction({ title: "确认扩大匹配范围", content: "清空匹配条件会扩大此云平台绑定的匹配范围，确定继续吗？" });
+      if (!confirmed) return;
+    }
     const response = id && config.updateRecord ? await config.updateRecord(id, payload) : await config.createRecord(payload);
     assertSuccessResponse(response);
+    if (config.key === "relation") assertProtocolResponse(response, Boolean(id));
     uni.showToast({ title: "保存成功", icon: "success" });
     await fetchRecords();
   } catch (error) {
@@ -1760,21 +1802,6 @@ function buildChangedFieldRecordPayload(item: RecordLike, protocolId: string | n
 
   if (changedKeys.length === 0) {
     return null;
-  }
-
-  if (changedKeys.length === 1 && changedKeys[0] === "sortOrder") {
-    return removeEmptyFields({
-      id,
-      protocolId: normalizeInlineNumberValue(getValue(normalized, ["protocolId"])),
-      afn: getValue(normalized, ["afn"]),
-      taskType: getValue(normalized, ["taskType"]),
-      fieldName: getValue(normalized, ["fieldName"]),
-      fieldCnName: getValue(normalized, ["fieldCnName"]),
-      startPosition: normalizeInlineNumberValue(getValue(normalized, ["startPosition"])),
-      fieldLength: normalizeInlineNumberValue(getValue(normalized, ["fieldLength"])),
-      format: getValue(normalized, ["format"]),
-      sortOrder: normalizeInlineNumberValue(getValue(item, ["sortOrder"])),
-    });
   }
 
   return normalized;
@@ -2302,11 +2329,15 @@ function buildPayload(fields: FieldConfig[]) {
 
   for (const field of fields) {
     const value = formModel[field.key];
+    if (value === "" && activeConfig.value.key === "relation" && ["afn", "taskType", "contentPrefix"].includes(field.key)) {
+      payload[field.key] = "";
+      continue;
+    }
     if (value === "" || value === undefined || value === null) {
       continue;
     }
 
-    if (field.type === "number") {
+    if (field.type === "number" || (activeConfig.value.key === "relation" && ["deviceId", "protocolId"].includes(field.key))) {
       payload[field.key] = Number(value);
     } else {
       payload[field.key] = value;
@@ -2318,14 +2349,22 @@ function buildPayload(fields: FieldConfig[]) {
     payload.id = id;
   }
 
+  if (activeConfig.value.key === "relation" && payload.scene === "APP_REALTIME_SINGLE") {
+    Object.assign(payload, REALTIME_BINDING_RULES);
+  }
+
   return payload;
 }
 
 function getFormInputValue(key: string) {
+  if (activeConfig.value.key === "relation" && formModel.scene === "APP_REALTIME_SINGLE" && key in REALTIME_BINDING_RULES) {
+    return REALTIME_BINDING_RULES[key as keyof typeof REALTIME_BINDING_RULES];
+  }
   return String(formModel[key] ?? "");
 }
 
 function handleFormInput(key: string, event: Event | { detail?: { value?: string | number } }) {
+  if (bindingFieldLocked(key)) return;
   if ("detail" in event && event.detail?.value !== undefined) {
     formModel[key] = event.detail.value;
     return;
@@ -2340,8 +2379,12 @@ function handleBooleanChange(key: string, event: { detail: { value: number } }) 
 }
 
 function handleFormSelectChange(field: FieldConfig, event: { detail: { value: number } }) {
+  if (bindingFieldLocked(field.key)) return;
   const option = field.options?.[event.detail.value];
   formModel[field.key] = option?.value || "";
+  if (activeConfig.value.key === "relation" && field.key === "scene") {
+    Object.assign(formModel, formModel.scene === "APP_REALTIME_SINGLE" ? REALTIME_BINDING_RULES : { afn: "", taskType: "", contentPrefix: "" });
+  }
 
   const outputType = (option as FieldFormatOption | undefined)?.outputType;
   if (field.key === "format" && outputType) {
@@ -2364,6 +2407,12 @@ function getBooleanLabel(value: unknown) {
 
 function getColumnText(item: RecordLike, field: FieldConfig) {
   let value = getValue(item, [field.key]);
+  if (activeConfig.value.key === "relation" && field.key === "scene") {
+    return bindingSceneLabel(value);
+  }
+  if (activeConfig.value.key === "relation" && field.key === "expectedPayloadBytes") {
+    return value === undefined || value === null || value === "" ? "-" : String(value);
+  }
   if (activeConfig.value.key === "protocol" && field.key === "id" && (value === undefined || value === null || value === "")) {
     value = getValue(item, ["port"]);
   }

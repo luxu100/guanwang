@@ -5,6 +5,13 @@
         <text>{{ t("deviceProtocol.table.title") }}</text>
         <text class="table-head__meta">  {{ t('common.pagination.totalRecords', { total: deviceProtocolList.length }) }}</text>
       </view>
+      <view class="scene-filter">
+        <text>{{ t('deviceProtocol.table.scene') }}</text>
+        <select v-model="sceneFilter" :aria-label="t('deviceProtocol.table.scene')">
+          <option v-for="option in sceneOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+        </select>
+        <image v-if="loading" src="/static/icons/loadin_minior.svg" mode="aspectFit" />
+      </view>
 
       <XDataTable
           :columns="columns"
@@ -22,7 +29,8 @@
       v-model="formData"
       :schema="addSchema"
       :title="isEditMode ? t('deviceProtocol.page.editProtocol') : t('deviceProtocol.page.addProtocol')"
-      @submit="handleSubmit"
+      :submit-handler="handleSubmit"
+      @field-change="handleBindingFieldChange"
       @cancel="dialogVisible = false"
   />
 
@@ -41,7 +49,7 @@ import type {
 } from '@/services/device/types';
 import type {FieldOption, FormSection, XDataColumn} from "@/pages/device/components/x/types";
 import XDynamicDialog from "@/pages/device/components/x/dialog/XDynamicDialog.vue";
-import {createScopedT} from "@/i18n";
+import {createScopedT, useI18n} from "@/i18n";
 import {
   deleteDeviceProtocolT,
   getDeviceProtocolDetailByDeviceId,
@@ -51,10 +59,15 @@ import {createDeviceProtocolT} from "@/services/device/info.typed";
 import {getProtocolDefinitionList} from "@/services/data-receive/access";
 import XEntityDetailDialog from "@/pages/device/components/x/dialog/XEntityDetailDialog.vue";
 import {formatDate} from "@/utils/time";
+import {confirmAction} from "@/utils/confirmAction";
 import XDataTable from "@/pages/device/components/x/table/XDataTable.vue";
 import {enableStateBooleanOptions} from "@/pages/device/components/common";
+import { bindingSceneOptions, bindingSceneLabel, REALTIME_BINDING_RULES, assertProtocolResponse, type BindingSceneQuery } from "@/services/device/protocolBinding";
 
 const t = createScopedT("devicePage");
+const { locale } = useI18n();
+const sceneOptions = computed(() => bindingSceneOptions(locale.value === 'en-US', true));
+const sceneFilter = ref<BindingSceneQuery>('ALL');
 
 defineExpose({
   handleAdd,
@@ -67,6 +80,8 @@ defineExpose({
 const loading = ref(false);
 const deviceProtocolList = ref<DeviceProtocolRelationVO[]>([]);
 const columns:XDataColumn[]=[
+  {key:'scene',labelKey:'deviceProtocol.table.scene',width:220,formatter:v=>bindingSceneLabel(v, locale.value === 'en-US')},
+  {key:'expectedPayloadBytes',labelKey:'deviceProtocol.table.expectedPayloadBytes',width:160,formatter:v=>v??'-'},
   {key:'protocolCode',labelKey:'deviceProtocol.table.protocolCode',width:240,className:'data-cell--remark',tooltip:true},
   {key:'protocolName',labelKey:'deviceProtocol.table.protocolName',width:240,className:'data-cell--remark',tooltip:true},
   {key:'protocolVersion',labelKey:'deviceProtocol.table.protocolVersion',width:160,className:'data-cell--text'},
@@ -107,6 +122,11 @@ const addSchema = computed<FormSection[]>(() => {
       title: t("deviceProtocol.addSchema.basicInfo.title"),
       fields: [
         {
+          key: "scene", label: t("deviceProtocol.table.scene"), type: "select", required: true,
+          options: bindingSceneOptions(locale.value === 'en-US'),
+          disabled: isEditMode.value && Boolean(selectedRecord.value?.scene),
+        },
+        {
           key: "protocolId",
           label: t("deviceProtocol.addSchema.basicInfo.protocolId"),
           type: "select",
@@ -117,18 +137,19 @@ const addSchema = computed<FormSection[]>(() => {
           key: "afn",
           label: t("deviceProtocol.addSchema.basicInfo.afn"),
           type: "input",
-          required: true
+          disabled: formData.value.scene === 'APP_REALTIME_SINGLE'
         },
         {
           key: "taskType",
           label: t("deviceProtocol.addSchema.basicInfo.taskType"),
           type: "input",
-          required: true
+          disabled: formData.value.scene === 'APP_REALTIME_SINGLE'
         },
         {
           key: "contentPrefix",
           label: t("deviceProtocol.addSchema.basicInfo.contentPrefix"),
-          type: "input"
+          type: "input",
+          disabled: formData.value.scene === 'APP_REALTIME_SINGLE'
         },
         {
           key: "priority",
@@ -160,6 +181,7 @@ watch(
       () => props.deviceData?.deviceNumber,
       () => props.query?.startTime,
       () => props.query?.endTime,
+      () => sceneFilter.value,
     ],
     async () => {
       if (!props.deviceData?.deviceNumber) return;
@@ -172,12 +194,16 @@ watch(
     }
 );
 
+function handleBindingFieldChange(key: string, value: unknown) {
+  if (key === 'scene') Object.assign(formData.value, value === 'APP_REALTIME_SINGLE' ? REALTIME_BINDING_RULES : { afn: '', taskType: '', contentPrefix: '' });
+}
+
 // ===== 选中行 =====
 const selectedRecord = ref<DeviceProtocolRelationVO | null>(null);
 const selectedId = ref<number | null>(null);
 
-function selectRow(record: DeviceProtocolRelationVO) {
-  if(!record) return;
+function selectRow(record: DeviceProtocolRelationVO | null) {
+  if(!record) { selectedRecord.value = null; selectedId.value = null; return; }
   selectedRecord.value = {
     ...record
   };
@@ -189,21 +215,28 @@ async function fetchDeviceProtocols(requestId?: number) {
   if (!props.deviceData?.id) return;
 
   loading.value = true;
+  const current = ++currentRequestId;
 
   try {
     const res = await getDeviceProtocolDetailByDeviceId(
-        props.deviceData.id
+        props.deviceData.id, sceneFilter.value
     );
 
     // 防止切换设备时旧请求覆盖新数据
-    if (requestId && requestId !== currentRequestId) {
+    if (current !== currentRequestId) {
       return;
     }
 
     deviceProtocolList.value = res.data ?? [];
     selectRow(deviceProtocolList.value[0] || null);
+  } catch (error: any) {
+    if (current !== currentRequestId) return;
+    deviceProtocolList.value = [];
+    selectedRecord.value = null;
+    selectedId.value = null;
+    uni.showToast({ title: error?.msg || error?.message || t('message.operationFailed'), icon: 'none' });
   } finally {
-    loading.value = false;
+    if (current === currentRequestId) loading.value = false;
   }
 }
 
@@ -211,24 +244,28 @@ const protocolOptions = ref<FieldOption[]>([]);
 
 async function fetchProtocolOptions() {
   const res = await getProtocolDefinitionList();
+  assertProtocolResponse(res);
 
   protocolOptions.value = (res.data ?? [])
-      .filter(item => item.id && item.protocolName)
+      .filter(item => item.id && item.enabled === true)
       .map(item => ({
-        label: item.protocolName!,
+        label: `${item.protocolCode || item.protocolName} · ${item.id}`,
         value: item.id!
       }));
 }
 
-function handleAdd() {
+async function handleAdd() {
   isEditMode.value = false;
   editingId.value = null;
 
-  fetchProtocolOptions();
+  try { await fetchProtocolOptions(); } catch (error: any) {
+    uni.showToast({ title: error?.message || t('message.operationFailed'), icon: 'none' }); return;
+  }
 
   formData.value = {
     deviceId: props.deviceData?.id,
     protocolId: undefined,
+    scene: '',
     afn: "",
     taskType: "",
     contentPrefix: "",
@@ -243,6 +280,15 @@ function handleAdd() {
 }
 
 async function handleSubmit(form: DeviceProtocolCreateFrom) {
+  if (isEditMode.value && form.scene === 'CLOUD' && ['afn', 'taskType', 'contentPrefix'].some(key =>
+    Boolean((selectedRecord.value as Record<string, any> | null)?.[key]) && (form as Record<string, any>)[key] === ''
+  )) {
+    const confirmed = await confirmAction({
+      title: locale.value === 'en-US' ? 'Confirm wildcard matching' : '确认扩大匹配范围',
+      content: locale.value === 'en-US' ? 'Clearing matching conditions broadens this cloud binding. Continue?' : '清空匹配条件会扩大此云平台绑定的匹配范围，确定继续吗？',
+    });
+    if (!confirmed) throw new Error(locale.value === 'en-US' ? 'Save cancelled' : '已取消保存');
+  }
   try {
     if (isEditMode.value) {
       await submitUpdate(form);
@@ -255,14 +301,15 @@ async function handleSubmit(form: DeviceProtocolCreateFrom) {
 
   } catch (e: any) {
     uni.showToast({
-      title: e?.message || t("message.operationFailed"),
+      title: e?.msg || e?.message || t("message.operationFailed"),
       icon: "error"
     });
+    throw e;
   }
 }
 
 async function submitCreate(form: DeviceProtocolCreateFrom) {
-  const res = await createDeviceProtocolT(form);
+  const res = await createDeviceProtocolT({ ...form, scene: form.scene || undefined });
 
   if (res.code !== 200) {
     uni.showToast({
@@ -283,7 +330,7 @@ async function submitUpdate(form: DeviceProtocolCreateFrom) {
 
   const res = await updateDeviceProtocolT(
       editingId.value,
-      {...form}
+      {...form, scene: form.scene || undefined}
   );
 
   if (res.code !== 200) {
@@ -340,6 +387,10 @@ async function handleEdit() {
 
   isEditMode.value = true;
   editingId.value = selectedRecord.value.id;
+
+  try { await fetchProtocolOptions(); } catch (error: any) {
+    uni.showToast({ title: error?.message || t('message.operationFailed'), icon: 'none' }); return;
+  }
 
   formData.value = { ...selectedRecord.value }
 
@@ -398,6 +449,8 @@ const deviceProtocolRelationDetailSchema: FormSection[] = [
   {
     titleKey:"deviceProtocol.table.bindingRule",
     fields:[
+      { key: "scene", labelKey: "deviceProtocol.table.scene", type: "text", formatter: value => bindingSceneLabel(value, locale.value === 'en-US') },
+      { key: "expectedPayloadBytes", labelKey: "deviceProtocol.table.expectedPayloadBytes", type: "text", formatter: value => value == null ? '-' : String(value) },
       {
         key:"afn",
         labelKey:"deviceProtocol.table.afn",
@@ -474,4 +527,7 @@ function handleShowDetail(){
 @import "@/pages/device/components/x/table/styles/table-cell.css";
 @import "@/pages/device/components/x/table/styles/table.css";
 @import "@/pages/device/components/x/table/styles/table-row.css";
+.scene-filter { display: flex; align-items: center; gap: 12px; padding: 12px 18px; font-size: 14px; }
+.scene-filter select { height: 34px; padding: 0 10px; border: 1px solid #d0d9e4; border-radius: 4px; font-family: inherit; background: #fff; }
+.scene-filter image { width: 24px; height: 24px; }
 </style>

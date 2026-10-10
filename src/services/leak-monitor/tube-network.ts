@@ -33,6 +33,12 @@ export interface TubeNetworkRecord {
   gisSource: string | null;
   gisSourceId: string | null;
   remark: string | null;
+  constructionYear?: number | null;
+  riskScore?: number | null;
+  riskLevel?: string | null;
+  riskColor?: string | null;
+  riskModelVersion?: string | null;
+  riskEvaluatedAt?: string | null;
 }
 
 export interface TubeNetworkCreatePayload {

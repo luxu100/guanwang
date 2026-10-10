@@ -1,0 +1,8 @@
+/* SDK-created DOM is outside Vue's scoped styles. */
+.monitor-alarm-pulse { position: absolute; width: 24px; height: 24px; display: grid; place-items: center; padding: 0; margin: 0; color: white; background: #2563eb; border: 2px solid white; border-radius: 50%; font: 700 15px Arial, sans-serif; transform: translate(-50%, -120%); cursor: pointer; pointer-events: auto; z-index: 10; box-shadow: 0 1px 4px #52677d; }
+.monitor-alarm-pulse::after { content: ''; position: absolute; inset: -5px; border: 2px solid currentColor; border-radius: 50%; animation: monitor-alarm-ring 1.5s ease-out infinite; pointer-events: none; }
+.monitor-alarm-pulse--critical { background: #dc2626; }.monitor-alarm-pulse--critical::after { color: #dc2626; }
+.monitor-alarm-pulse--warning { background: #f59e0b; }.monitor-alarm-pulse--warning::after { color: #f59e0b; }
+.monitor-alarm-pulse--info::after { color: #2563eb; }
+@keyframes monitor-alarm-ring { from { opacity: .85; scale: .8; } to { opacity: 0; scale: 1.8; } }
+@media (prefers-reduced-motion: reduce) { .monitor-alarm-pulse::after { animation: none; opacity: .6; } }

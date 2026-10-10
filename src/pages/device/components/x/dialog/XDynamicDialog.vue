@@ -56,7 +56,7 @@
                       v-if="field.type === 'input'"
                       v-model="formData[field.key]"
                       :class="{ 'form-input--disabled': field.disabled }"
-                      :disabled="field.disabled"
+                      :disabled="field.disabled || submitting"
                       class="form-input"
                       :placeholder="field.placeholder || t('form.inputPlaceholder', { label: field.label })"
                       placeholder-class="input-placeholder"
@@ -127,6 +127,7 @@
                       v-model="formData[field.key]"
                       class="form-textarea"
                       :class="{ 'form-textarea--large': field.large }"
+                      :disabled="field.disabled || submitting"
                       :placeholder="field.placeholder || t('form.inputPlaceholder', { label: field.label })"
                       placeholder-class="input-placeholder"
                       @input="clearError(field.key)"
@@ -248,6 +249,7 @@
             class="secondary-button"
             hover-class="secondary-button--hover"
             @click="handleCancel"
+            :disabled="submitting"
         >
           {{t('formDialog.cancel')}}
         </button>
@@ -256,6 +258,7 @@
             class="secondary-button"
             hover-class="secondary-button--hover"
             @click="resetForm"
+            :disabled="submitting"
         >
           {{t('formDialog.reset')}}
         </button>
@@ -290,9 +293,11 @@ interface Props {
   title?: string;
   subtitle?: string;
   visible: boolean;
+  submitHandler?: (value: Record<string, any>) => Promise<void>;
 }
 
 interface Emits {
+  (e: "field-change", key: string, value: any): void;
   (e: "update:modelValue", value: Record<string, any>): void;
   (e: "update:visible", value: boolean): void;
   (e: "submit", value: Record<string, any>): void;
@@ -357,6 +362,7 @@ function closeDialog() {
 /* ===================== select ===================== */
 
 function toggleSelect(key: string) {
+  if (submitting.value || props.schema.some(section => section.fields.some(field => field.key === key && field.disabled))) return;
   activeSelect.value = activeSelect.value === key ? "" : key;
 }
 
@@ -365,7 +371,10 @@ function closeSelect() {
 }
 
 function selectOption(key: string, value: any) {
+  if (submitting.value) return;
   formData.value[key] = value;
+  if (props.submitHandler) emit("update:modelValue", { ...formData.value });
+  if (props.submitHandler) emit("field-change", key, value);
   clearError(key);
   activeSelect.value = "";
 }
@@ -378,6 +387,12 @@ function resetFormState() {
 }
 
 function resetForm() {
+  if (submitting.value) return;
+  if (props.submitHandler) {
+    formData.value = { ...props.modelValue };
+    resetFormState();
+    return;
+  }
   Object.keys(formData.value).forEach((key) => {
     formData.value[key] = "";
   });
@@ -385,19 +400,30 @@ function resetForm() {
 }
 
 function handleCancel() {
+  if (submitting.value) return;
   emit("cancel");
   closeDialog();
 }
 
 async function handleSubmit() {
+  if (submitting.value) return;
   if (!validateForm()) return;
 
   submitting.value = true;
 
   try {
+    if (props.submitHandler) {
+      await props.submitHandler({ ...formData.value });
+      visible.value = false;
+      resetFormState();
+      return;
+    }
     emit("submit", removeEmptyFields(formData.value));
+    submitting.value = false;
     closeDialog();
     resetForm();
+  } catch (error: any) {
+    validationErrors.submit = error?.msg || error?.message || t('message.operationFailed');
   } finally {
     submitting.value = false;
   }

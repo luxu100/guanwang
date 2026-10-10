@@ -62,6 +62,7 @@ export interface MapDevicePoint {
   model?: string;
   regionId: string | number | null;
   coordinateSystem: CoordinateSystem;
+  countryCode?: string | null;
   lat: number;
   lng: number;
   facilityId?: string | number | null;

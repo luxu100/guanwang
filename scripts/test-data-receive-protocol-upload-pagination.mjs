@@ -38,7 +38,7 @@ test("protocol management follows the provided table actions and import aliases"
   assert.match(source, /isCorrectedField/);
 });
 
-test("protocol field editor recalculates moved rows and saves only changed sortOrder", () => {
+test("protocol field editor detects reordered rows and preserves full field payloads", () => {
   assert.match(source, /data-layout--field-editor/);
   assert.match(source, /isProtocolFieldEditor/);
   assert.match(source, /class="table-input"/);
@@ -54,11 +54,10 @@ test("protocol field editor recalculates moved rows and saves only changed sortO
   assert.match(source, /item\.sortOrder = \(index \+ 1\) \* 10/);
   assert.match(source, /buildChangedFieldRecordsPayload/);
   assert.match(source, /buildChangedFieldRecordPayload/);
-  assert.match(source, /sortOrder: normalizeInlineNumberValue\(getValue\(item, \["sortOrder"\]\)\)/);
-  assert.match(source, /protocolId: normalizeInlineNumberValue\(getValue\(normalized, \["protocolId"\]\)\)/);
-  assert.match(source, /afn: getValue\(normalized, \["afn"\]\)/);
-  assert.match(source, /fieldName: getValue\(normalized, \["fieldName"\]\)/);
-  assert.match(source, /format: getValue\(normalized, \["format"\]\)/);
+  assert.match(source, /payload.sortOrder = normalizeInlineNumberValue\(getValue\(item, \["sortOrder"\]\)\)/);
+  assert.match(source, /const payload: RecordLike = \{ ...item \}/);
+  assert.match(source, /return normalized/);
+  assert.doesNotMatch(source, /changedKeys.length === 1 && changedKeys\[0\] === "sortOrder"/);
 });
 
 test("pagination supports editable current page and blur jump", () => {

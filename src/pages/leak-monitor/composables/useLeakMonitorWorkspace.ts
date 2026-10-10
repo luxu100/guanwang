@@ -203,6 +203,7 @@ export function useLeakMonitorWorkspace(localized?: Readonly<Ref<boolean>>) {
           model: monitorDevice?.model ?? device.model,
           regionId: device.regionId,
           coordinateSystem: device.coordinateSystem,
+          countryCode: String(device.raw.installCountryCode ?? device.raw.countryCode ?? '').trim().toUpperCase() || null,
           lat: device.lat as number,
           lng: device.lng as number,
           facilityId: monitorDevice?.facilityId ?? device.facilityId ?? null,

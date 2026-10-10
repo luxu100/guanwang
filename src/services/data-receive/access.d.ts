@@ -1,3 +1,5 @@
+import type { BindingScene, BindingSceneQuery } from "@/services/device/protocolBinding";
+
 export interface ApiResponse<T = unknown> {
   code?: number;
   msg?: string;
@@ -29,6 +31,8 @@ export interface ProtocolDefinition {
 }
 
 export interface DeviceProtocolRelation {
+  scene?: BindingScene;
+  expectedPayloadBytes?: number | null;
   id?: ServiceId;
   createdAt?: string;
   updatedAt?: string;
@@ -47,11 +51,12 @@ export interface DeviceProtocolRelation {
   enabled?: boolean;
 }
 
-export type DeviceProtocolRelationPayload = Omit<DeviceProtocolRelation, "deviceId" | "deviceNumber"> & {
-  device_number: string;
+export type DeviceProtocolRelationPayload = Pick<DeviceProtocolRelation, "deviceId" | "protocolId" | "afn" | "taskType" | "contentPrefix" | "priority" | "enabled"> & {
+  scene: BindingScene;
 };
 
 export interface DeviceProtocolRelationQuery extends ServiceQuery {
+  scene?: BindingSceneQuery;
   pageNum?: number;
   pageSize?: number;
   startTime?: string;

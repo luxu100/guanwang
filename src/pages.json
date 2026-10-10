@@ -148,6 +148,13 @@
       }
     },
     {
+      "path": "pages/leak-burst/leak-location/leak-location",
+      "style": {
+        "navigationBarTitleText": "漏点定位",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/command/commandManage",
       "style": {
         "navigationBarTitleText": "指令管理",

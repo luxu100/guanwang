@@ -43,7 +43,7 @@ const deviceProtocolApi =
 const tubeNetworkApi = createCrudServiceTyped<TubeNetwork>("/api/tube-network");
 
 export const getDeviceProtocolPageT = deviceProtocolApi.getPage;
-export const createDeviceProtocolT = deviceProtocolApi.create;
+export { createDeviceProtocolT } from "./protocol.typed";
 
 export function getDeviceProtocolByDeviceT(
     deviceId: string | number,

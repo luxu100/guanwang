@@ -1,5 +1,6 @@
 import {createCrudServiceTyped, getRequestT} from "@/services/shared/crud.typed";
 import type {DeviceProtocol, DeviceProtocolRelationVO, ProtocolDefinition} from "@/services/device/types";
+import { buildBindingPayload, assertProtocolResponse, type BindingSceneQuery } from "./protocolBinding";
 
 const protocolDefinitionApi = createCrudServiceTyped<ProtocolDefinition>("/api/protocol-definition");
 
@@ -14,18 +15,30 @@ export const batchDeleteProtocolDefinitionT = protocolDefinitionApi.batchDelete;
 
 const deviceProtocolApi = createCrudServiceTyped<DeviceProtocol>("/api/device-protocol-relation");
 
-export const getDeviceProtocolPageT = deviceProtocolApi.getPage;
-export const getDeviceProtocolListT = deviceProtocolApi.getList;
-export const getDeviceProtocolDetailT = deviceProtocolApi.getDetail;
-export const createDeviceProtocolT = deviceProtocolApi.create;
-export const updateDeviceProtocolT = deviceProtocolApi.update;
-export const deleteDeviceProtocolT = deviceProtocolApi.delete;
+export async function getDeviceProtocolPageT(data: Record<string, any>) {
+    return assertProtocolResponse(await deviceProtocolApi.getPage(data));
+}
+export async function getDeviceProtocolListT(params?: Record<string, any>) {
+    return assertProtocolResponse(await deviceProtocolApi.getList(params));
+}
+export async function getDeviceProtocolDetailT(id: number | string) {
+    return assertProtocolResponse(await deviceProtocolApi.getDetail(id));
+}
+export async function createDeviceProtocolT(data: Partial<DeviceProtocol>) {
+    return assertProtocolResponse(await deviceProtocolApi.create(buildBindingPayload(data, true)));
+}
+export async function updateDeviceProtocolT(id: number, data: Partial<DeviceProtocol>) {
+    return assertProtocolResponse(await deviceProtocolApi.update(id, buildBindingPayload(data)), true);
+}
+export async function deleteDeviceProtocolT(id: number, isForce?: boolean) {
+    return assertProtocolResponse(await deviceProtocolApi.delete(id, isForce));
+}
 export const batchDeviceDeleteProtocolT = deviceProtocolApi.batchDelete;
 
-export function getDeviceProtocolByDeviceId(deviceId: number) {
-    return getRequestT<DeviceProtocol[]>(`/api/device-protocol-relation/by-device/${deviceId}`);
+export async function getDeviceProtocolByDeviceId(deviceId: number, scene?: BindingSceneQuery) {
+    return assertProtocolResponse(await getRequestT<DeviceProtocol[]>(`/api/device-protocol-relation/by-device/${deviceId}`, { scene }));
 }
 
-export function getDeviceProtocolDetailByDeviceId(deviceId: number) {
-    return getRequestT<DeviceProtocolRelationVO[]>(`/api/device-protocol-relation/detail/by-device/${deviceId}`);
+export async function getDeviceProtocolDetailByDeviceId(deviceId: number, scene?: BindingSceneQuery) {
+    return assertProtocolResponse(await getRequestT<DeviceProtocolRelationVO[]>(`/api/device-protocol-relation/detail/by-device/${deviceId}`, { scene }));
 }

@@ -815,6 +815,7 @@ const defaultMenuTree: RecordLike[] = [
     children: [
       { id: `${LOCAL_MENU_ID_PREFIX}leak-burst-identification`, permissionName: "爆管识别", permissionCode: "page:leak-burst:identification", path: "/pages/leak-burst/burst-identification/burst-identification", parentId: `${LOCAL_MENU_ID_PREFIX}leak-burst`, permissionType: 1, status: 1 },
       { id: `${LOCAL_MENU_ID_PREFIX}leak-burst-measurement-analysis`, permissionName: "测点分析", permissionCode: "page:leak-burst:measurement-analysis", path: "/pages/leak-burst/measurement-analysis/measurement-analysis", parentId: `${LOCAL_MENU_ID_PREFIX}leak-burst`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}leak-burst-leak-location`, permissionName: "漏点定位", permissionCode: "page:leak-burst:leak-location", path: "/pages/leak-burst/leak-location/leak-location", parentId: `${LOCAL_MENU_ID_PREFIX}leak-burst`, permissionType: 1, status: 1 },
       { id: `${LOCAL_MENU_ID_PREFIX}leak-burst-loss-report`, permissionName: "漏损报表", permissionCode: "page:leak-burst:loss-report", path: "/pages/leak-burst/loss-report/loss-report", parentId: `${LOCAL_MENU_ID_PREFIX}leak-burst`, permissionType: 1, status: 1 },
     ],
   },

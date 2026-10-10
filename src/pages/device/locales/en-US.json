@@ -585,6 +585,8 @@
     "deviceProtocol": {
       "table":{
         "title":"Protocol Binding List",
+        "scene":"Usage Scene",
+        "expectedPayloadBytes":"Expected Payload Bytes",
         "basicInfo":"Basic Information",
         "deviceId":"Device ID",
         "protocolId":"Protocol ID",

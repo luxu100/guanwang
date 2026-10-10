@@ -340,6 +340,24 @@ export async function fetchLeakMonitorDevices(
   return { records: normalized.devices, total: normalized.total };
 }
 
+export async function fetchLeakLocationDevices(deviceNumber: string, pageNum = 1) {
+  const response = await getDeviceQuerySidebar({
+    pageNum,
+    pageSize: 50,
+    deviceNumber: deviceNumber.trim() || undefined,
+  });
+  assertLeakLocationResponse(response);
+  const normalized = normalizeSidebar(response);
+  return { records: normalized.devices, total: normalized.total };
+}
+
+function assertLeakLocationResponse(response: unknown) {
+  const envelope = response as ApiEnvelope<unknown> | null;
+  if (!envelope || envelope.code !== 200) {
+    throw new Error(envelope?.msg || "漏点定位请求失败");
+  }
+}
+
 export async function getLeakMonitorManualAnalysisPage(deviceNumber: string) {
   const response = await postRequest("/api/manual-analysis/work-orders/page", {
     pageNum: 1,
@@ -439,6 +457,7 @@ export async function fetchLeakMonitorDailyLatestAudioOption(
   date: string,
 ): Promise<CorrelationAudioOption[]> {
   const response = await getLeakMonitorDailyLatestAudioByDate(deviceNumber, date);
+  assertLeakLocationResponse(response);
   const data = unwrapData<unknown>(response);
   const records = Array.isArray(data)
     ? data
@@ -453,7 +472,7 @@ export async function fetchLeakMonitorDailyLatestAudioOption(
       ? item as Record<string, unknown>
       : {};
     const audioId = Number(row.audioId ?? row.audioFileId ?? row.id);
-    if (!Number.isFinite(audioId)) return [];
+    if (!Number.isSafeInteger(audioId) || audioId <= 0) return [];
     return [{
       ...row,
       audioId,
@@ -495,19 +514,7 @@ export async function fetchLeakLocationAnalysis(
   payload: LeakLocationAnalyzePayload,
 ): Promise<LeakLocationResult> {
   const response = await analyzeLeakLocation(payload);
-  if (response && typeof response === "object") {
-    const envelope = response as ApiEnvelope<unknown>;
-    if (
-      envelope.code !== undefined &&
-      ![0, 200].includes(Number(envelope.code))
-    ) {
-      throw {
-        code: envelope.code,
-        msg: envelope.msg || "漏点定位分析失败",
-        data: envelope.data,
-      };
-    }
-  }
+  assertLeakLocationResponse(response);
 
   const data = unwrapData<unknown>(response);
   const row = data && typeof data === "object"

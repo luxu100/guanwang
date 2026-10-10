@@ -39,6 +39,7 @@
     "leakBurst": "Leak and Pipe Burst",
     "burstIdentification": "Burst Identification",
     "measurementAnalysis": "Measurement Analysis",
+    "leakLocation": "Leak Localization",
     "lossReport": "Loss Report",
     "system": "System",
     "systemUser": "Users",

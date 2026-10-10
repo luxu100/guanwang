@@ -820,6 +820,7 @@ const defaultMenuTree: RecordLike[] = [
     children: [
       { id: `${LOCAL_MENU_ID_PREFIX}leak-burst-identification`, permissionName: "爆管识别", permissionCode: "page:leak-burst:identification", path: "/pages/leak-burst/burst-identification/burst-identification", parentId: `${LOCAL_MENU_ID_PREFIX}leak-burst`, permissionType: 1, status: 1 },
       { id: `${LOCAL_MENU_ID_PREFIX}leak-burst-measurement-analysis`, permissionName: "测点分析", permissionCode: "page:leak-burst:measurement-analysis", path: "/pages/leak-burst/measurement-analysis/measurement-analysis", parentId: `${LOCAL_MENU_ID_PREFIX}leak-burst`, permissionType: 1, status: 1 },
+      { id: `${LOCAL_MENU_ID_PREFIX}leak-burst-leak-location`, permissionName: "漏点定位", permissionCode: "page:leak-burst:leak-location", path: "/pages/leak-burst/leak-location/leak-location", parentId: `${LOCAL_MENU_ID_PREFIX}leak-burst`, permissionType: 1, status: 1 },
       { id: `${LOCAL_MENU_ID_PREFIX}leak-burst-loss-report`, permissionName: "漏损报表", permissionCode: "page:leak-burst:loss-report", path: "/pages/leak-burst/loss-report/loss-report", parentId: `${LOCAL_MENU_ID_PREFIX}leak-burst`, permissionType: 1, status: 1 },
     ],
   },
@@ -2953,6 +2954,7 @@ function getPermissionName(item: RecordLike) {
     "module:leak-burst": ["渗漏爆管", "Leak and Pipe Burst"],
     "page:leak-burst:identification": ["爆管识别", "Burst Identification"],
     "page:leak-burst:measurement-analysis": ["测点分析", "Measurement Analysis"],
+    "page:leak-burst:leak-location": ["漏点定位", "Leak Localization"],
     "page:leak-burst:loss-report": ["漏损报表", "Loss Report"],
     "module:data-receive": ["数据接收和解析", "Data Intake"],
     "page:data-receive:protocol": ["协议管理", "Protocols"],
@@ -2998,6 +3000,7 @@ function getPermissionName(item: RecordLike) {
     "/pages/report/operation-analysis/operation-analysis": ["运行分析报告", "Operations Analysis"],
     "/pages/leak-burst/burst-identification/burst-identification": ["爆管识别", "Burst Identification"],
     "/pages/leak-burst/measurement-analysis/measurement-analysis": ["测点分析", "Measurement Analysis"],
+    "/pages/leak-burst/leak-location/leak-location": ["漏点定位", "Leak Localization"],
     "/pages/leak-burst/loss-report/loss-report": ["漏损报表", "Loss Report"],
     "/pages/data-receive/access/access": ["协议管理", "Protocols"],
     "/pages/data-receive/parse/parse": ["数据解析", "Parsing"],

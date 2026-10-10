@@ -1,10 +1,18 @@
 <template>
   <view class="one-map-view">
     <view class="one-map-header">
-      <view>
-        <text class="page-kicker">{{ tx("在线监测总览", "ONLINE MONITORING") }}</text>
+      <view class="page-heading">
+        <text class="page-kicker">{{ tx("在线监测", "ONLINE MONITORING") }}</text>
         <text class="page-title">{{ tx("一张图", "One Map") }}</text>
-        <text class="page-subtitle">{{ tx("把报警、设备状态和水锤监测放在同一个工作台中查看", "View alarms, device status, and water-hammer monitoring in one workspace") }}</text>
+        <text class="page-subtitle">{{ tx("多探头预警终端 · 水锤监测", "Multi-probe terminals · Water hammer") }}</text>
+      </view>
+      <view class="metric-grid" :aria-busy="loading">
+        <DashboardLoading :active="loading" :label="tx('加载中', 'Loading')" />
+        <view v-for="metric in metricCards" :key="metric.key" class="metric-card" :class="`metric-card--${metric.tone}`" :title="metric.hint">
+          <text class="metric-card__label">{{ metric.label }}</text>
+          <view class="metric-card__value">{{ metric.value }}<text class="metric-card__unit">{{ metric.unit }}</text></view>
+          <text class="metric-card__hint">{{ metric.hint }}</text>
+        </view>
       </view>
       <view class="header-actions">
         <view class="range-switch" role="group" :aria-label="tx('趋势时间范围', 'Trend range')">
@@ -13,16 +21,23 @@
             :key="option.value"
             class="range-button"
             :class="{ 'range-button--active': rangeKey === option.value }"
-            :disabled="loading"
+            :disabled="loading || historyLoading"
             @click="changeRange(option.value)"
           >{{ option.label }}</button>
         </view>
-        <button class="refresh-button" :disabled="loading" @click="loadDashboard">
-          <image v-if="loading" class="refresh-button__loading" src="/static/icons/loadin_minior.svg" mode="aspectFit" />
-          <text v-else class="refresh-button__icon">↻</text>
-          <text>{{ loading ? tx("加载中", "Loading") : tx("刷新", "Refresh") }}</text>
+        <button class="refresh-button" :disabled="loading || historyLoading" @click="refreshView">
+          <image v-if="loading || historyLoading" class="refresh-button__loading" src="/static/icons/loadin_minior.svg" mode="aspectFit" />
+          <image v-else class="refresh-button__loading" src="/static/icons/refresh-cw.svg" mode="aspectFit" />
+          <text>{{ loading || historyLoading ? tx("加载中", "Loading") : tx("刷新", "Refresh") }}</text>
         </button>
       </view>
+    <div class="history-query">
+      <div class="history-query__field">{{ tx('开始日期', 'Start date') }}<component :is="'input'" class="history-query__input" type="date" :aria-label="tx('开始日期', 'Start date')" :value="queryStart" :max="queryEnd" :disabled="loading" @input="queryStart = ($event.target as HTMLInputElement).value" /></div>
+      <div class="history-query__field">{{ tx('结束日期', 'End date') }}<component :is="'input'" class="history-query__input" type="date" :aria-label="tx('结束日期', 'End date')" :value="queryEnd" :min="queryStart" :max="today" :disabled="loading" @input="queryEnd = ($event.target as HTMLInputElement).value" /></div>
+      <select v-model="historyKind" :aria-label="tx('历史查询类型', 'History query type')"><option value="alarms">{{ tx('报警历史', 'Alarm history') }}</option><option value="risk">{{ tx('管线风险历史', 'Pipeline risk history') }}</option></select>
+      <button :disabled="loading || historyLoading" @click="queryHistory">{{ tx('查询历史', 'Query history') }}</button>
+      <text v-if="queryError" class="history-query__error" role="alert">{{ queryError }}</text>
+    </div>
     </view>
 
     <view v-if="globalError" class="global-error">
@@ -30,19 +45,13 @@
       <button class="error-retry" :disabled="loading" @click="loadDashboard">{{ tx("重新加载", "Retry") }}</button>
     </view>
 
-    <view class="metric-grid" :aria-busy="loading">
-      <DashboardLoading :active="loading" :label="tx('加载中', 'Loading')" />
-      <view v-for="metric in metricCards" :key="metric.key" class="metric-card" :class="`metric-card--${metric.tone}`">
-        <view class="metric-card__topline">
-          <text class="metric-card__label">{{ metric.label }}</text>
-          <text class="metric-card__mark"></text>
-        </view>
-        <view class="metric-card__value">{{ metric.value }}<text class="metric-card__unit">{{ metric.unit }}</text></view>
-        <text class="metric-card__hint">{{ metric.hint }}</text>
-      </view>
-    </view>
-
-    <view class="dashboard-grid dashboard-grid--top">
+    <OneMapHistoryResults v-if="historyMode" :start="appliedDates.start" :end="appliedDates.end" :kind="appliedKind" :revision="historyRevision" @busy="historyLoading = $event" @back="returnToLive" />
+    <section v-show="!historyMode" class="monitoring-board" :aria-label="tx('在线监测总览', 'Online monitoring overview')">
+    <ResizablePanels class="monitoring-board__outer" :initial-ratio="70" :min-ratio="60" :max-ratio="80" :label="tx('调整右侧状态与报警面板宽度', 'Resize status and alarm panels')" storage-key="one-map-right-split">
+      <template #left>
+    <ResizablePanels class="monitoring-board__main" :initial-ratio="40" :label="tx('调整趋势与波形面板宽度', 'Resize trend and waveform panels')" storage-key="one-map-overview-split">
+      <template #left>
+      <div class="monitoring-column">
       <view class="dashboard-block dashboard-block--trend" :aria-busy="loading">
         <DashboardLoading :active="loading" :label="tx('加载中', 'Loading')" />
         <view class="block-head">
@@ -54,61 +63,6 @@
         </view>
         <view class="trend-chart"><div ref="trendChartEl" class="trend-chart__canvas"></div></view>
         <view v-if="!trend.length && !loading" class="chart-empty">{{ errors.trend || tx("暂无报警趋势数据", "No alarm trend data") }}</view>
-      </view>
-
-      <view class="dashboard-block dashboard-block--waveform">
-        <view class="block-head">
-          <view>
-            <text class="block-title">{{ tx("水锤压力波形", "Water-hammer pressure waveform") }}</text>
-            <text class="block-hint">{{ tx("当前后端只提供水锤汇总，压力采样点接口待接入", "The backend currently provides summary data only; pressure samples are pending") }}</text>
-          </view>
-          <text class="block-status">{{ tx("接口状态", "API status") }}</text>
-        </view>
-        <view class="waveform-placeholder">
-          <view class="waveform-grid">
-            <view v-for="line in 5" :key="line" class="waveform-grid__line"></view>
-            <view class="waveform-baseline"></view>
-          </view>
-          <view class="waveform-message">
-            <text class="waveform-message__title">{{ tx("暂无真实压力波形", "No pressure waveform yet") }}</text>
-            <text class="waveform-message__text">{{ tx("收到高频压力采样点后，这里显示原始波形与异常区段。", "The raw waveform and abnormal sections will appear when high-frequency pressure samples are available.") }}</text>
-          </view>
-        </view>
-        <view class="data-loading-region" :aria-busy="loading">
-          <DashboardLoading :active="loading" :label="tx('加载中', 'Loading')" />
-          <view class="waveform-summary">
-            <view><text>{{ tx("监测终端", "Monitored terminals") }}</text><strong>{{ waterHammer.monitoredTerminalCount ?? "--" }}</strong></view>
-            <view><text>{{ tx("水锤报警", "Water-hammer alarms") }}</text><strong>{{ waterHammer.alarmCount ?? "--" }}</strong></view>
-            <view><text>{{ tx("报警率", "Alarm rate") }}</text><strong>{{ formatRate(waterHammer.alarmRate) }}</strong></view>
-          </view>
-        </view>
-      </view>
-    </view>
-
-    <view class="dashboard-grid dashboard-grid--middle">
-      <view class="dashboard-block dashboard-block--locations" :aria-busy="loading">
-        <DashboardLoading :active="loading" :label="tx('加载中', 'Loading')" />
-        <view class="block-head">
-          <view>
-            <text class="block-title">{{ tx("报警分布位置", "Alarm locations") }}</text>
-            <text class="block-hint">{{ tx("颜色表示该位置的最高报警级别，条形长度表示报警数量", "Color shows the highest alarm severity at each location; bar length shows alarm count") }}</text>
-          </view>
-          <text class="block-count">{{ locationRows.length }} {{ tx("个位置", "locations") }}</text>
-        </view>
-        <view class="location-legend" :aria-label="tx('报警级别图例', 'Alarm severity legend')">
-          <view><text class="location-dot location-dot--red"></text><text>{{ tx("严重", "Critical") }}</text></view>
-          <view><text class="location-dot location-dot--orange"></text><text>{{ tx("警告", "Warning") }}</text></view>
-          <view><text class="location-dot"></text><text>{{ tx("提示", "Info") }}</text></view>
-        </view>
-        <view v-if="errors.locations" class="block-error">{{ errors.locations }}</view>
-        <view v-else-if="!locationRows.length" class="block-empty">{{ tx("暂无带位置的报警", "No alarm locations") }}</view>
-        <view v-else class="location-list">
-          <view v-for="row in locationRows" :key="row.key" class="location-row">
-            <view class="location-row__name"><text class="location-dot" :class="`location-dot--${row.tone}`"></text><text :title="row.label">{{ row.label }}</text></view>
-            <view class="location-row__bar"><view class="location-row__bar-fill" :class="`location-row__bar-fill--${row.tone}`" :style="{ width: `${row.ratio}%` }"></view></view>
-            <text class="location-row__count">{{ row.count }}</text>
-          </view>
-        </view>
       </view>
 
       <view class="dashboard-block dashboard-block--devices" :aria-busy="loading">
@@ -134,7 +88,70 @@
           </view>
         </scroll-view>
       </view>
-    </view>
+      </div>
+
+      </template>
+      <template #right>
+      <div class="monitoring-column monitoring-column--center">
+      <view class="dashboard-block dashboard-block--waveform" :aria-label="tx('水锤压力波形：暂无压力采样数据', 'Water-hammer waveform: pressure samples unavailable')">
+        <view class="block-head">
+          <view>
+            <text class="block-title">{{ tx("水锤压力波形", "Water-hammer pressure waveform") }}</text>
+            <text class="block-hint">{{ tx("当前后端只提供水锤汇总，压力采样点接口待接入", "The backend currently provides summary data only; pressure samples are pending") }}</text>
+          </view>
+          <text class="block-status">{{ tx("接口状态", "API status") }}</text>
+        </view>
+        <view class="waveform-placeholder">
+          <view class="waveform-overlay data-loading-region" tabindex="0" :aria-label="tx('水锤监测汇总', 'Water-hammer summary')" :aria-busy="loading">
+            <DashboardLoading :active="loading" :label="tx('加载中', 'Loading')" />
+            <view class="waveform-summary">
+              <view><text>{{ tx("监测终端", "Monitored terminals") }}</text><strong>{{ waterHammer.monitoredTerminalCount ?? "--" }}</strong></view>
+              <view><text>{{ tx("水锤报警", "Water-hammer alarms") }}</text><strong>{{ waterHammer.alarmCount ?? "--" }}</strong></view>
+              <view><text>{{ tx("报警率", "Alarm rate") }}</text><strong>{{ formatRate(waterHammer.alarmRate) }}</strong></view>
+            </view>
+          </view>
+          <view class="waveform-grid">
+            <view v-for="line in 5" :key="line" class="waveform-grid__line"></view>
+            <view class="waveform-baseline"></view>
+          </view>
+          <view class="waveform-message">
+            <text class="waveform-message__title">{{ tx("暂无真实压力波形", "No pressure waveform yet") }}</text>
+            <text class="waveform-message__text">{{ tx("收到高频压力采样点后，这里显示原始波形与异常区段。", "The raw waveform and abnormal sections will appear when high-frequency pressure samples are available.") }}</text>
+          </view>
+        </view>
+      </view>
+
+    <OneMapRiskMap ref="riskMapRef" :tubes="networkTubes" :points="mapPoints" :alarms="locationRows" :loading="networkLoading" :error="networkError" :rejected-count="networkRejected" />
+      </div>
+      </template>
+    </ResizablePanels>
+      </template>
+      <template #right>
+    <aside class="monitoring-column monitoring-board__side">
+      <view class="dashboard-block dashboard-block--locations" :aria-busy="loading">
+        <DashboardLoading :active="loading" :label="tx('加载中', 'Loading')" />
+        <view class="block-head">
+          <view>
+            <text class="block-title">{{ tx("报警分布位置", "Alarm locations") }}</text>
+            <text class="block-hint">{{ selectedRange.start }} ~ {{ selectedRange.end }} · {{ tx("全部状态 · 按设备统计", "All statuses · By device") }}</text>
+          </view>
+          <text class="block-count">{{ locationRows.length }} {{ tx("台设备", "devices") }}</text>
+        </view>
+        <view class="location-legend" :aria-label="tx('报警级别图例', 'Alarm severity legend')">
+          <view><text class="location-dot location-dot--red"></text><text>{{ tx("严重", "Critical") }}</text></view>
+          <view><text class="location-dot location-dot--orange"></text><text>{{ tx("警告", "Warning") }}</text></view>
+          <view><text class="location-dot"></text><text>{{ tx("提示", "Info") }}</text></view>
+        </view>
+        <view v-if="errors.locations" class="block-error">{{ errors.locations }}</view>
+        <view v-else-if="!locationRows.length" class="block-empty">{{ tx("所选时段暂无报警", "No alarms in selected period") }}</view>
+        <scroll-view v-else class="location-list" scroll-y>
+          <view v-for="row in locationRows" :key="row.key" class="location-row" role="button" tabindex="0" :aria-label="tx(`定位报警设备 ${row.deviceNumber}`, `Locate alarm device ${row.deviceNumber}`)" @click="locateAlarm(row.deviceNumber)" @keydown.enter="locateAlarm(row.deviceNumber)" @keydown.space.prevent="locateAlarm(row.deviceNumber)">
+            <view class="location-row__name"><text class="location-dot" :class="`location-dot--${row.tone}`"></text><text :title="row.label">{{ row.label }}</text></view>
+            <view class="location-row__bar"><view class="location-row__bar-fill" :class="`location-row__bar-fill--${row.tone}`" :style="{ width: `${row.ratio}%` }"></view></view>
+            <text class="location-row__count">{{ row.count }}</text>
+          </view>
+        </scroll-view>
+      </view>
 
     <view class="dashboard-block dashboard-block--table" :aria-busy="loading">
       <DashboardLoading :active="loading" :label="tx('加载中', 'Loading')" />
@@ -147,7 +164,7 @@
       </view>
       <view v-if="errors.alarms" class="block-error">{{ errors.alarms }}</view>
       <view v-else-if="!alarmRows.length" class="block-empty">{{ tx("暂无报警明细", "No alarm details") }}</view>
-      <scroll-view v-else class="alarm-table" scroll-x>
+      <scroll-view v-else class="alarm-table" scroll-x scroll-y>
         <view class="alarm-table__row alarm-table__row--head">
           <text>{{ tx("设备", "Device") }}</text><text>{{ tx("报警类型", "Type") }}</text><text>{{ tx("级别", "Level") }}</text><text>{{ tx("状态", "Status") }}</text><text>{{ tx("触发时间", "Triggered") }}</text><text>{{ tx("位置", "Location") }}</text>
         </view>
@@ -156,11 +173,11 @@
         </view>
       </scroll-view>
     </view>
+    </aside>
+      </template>
+    </ResizablePanels>
+    </section>
 
-    <view class="data-footnote">
-      <text>{{ tx("数据来源：报警记录、可见设备列表和水锤汇总接口。压力波形接口尚未提供，当前不生成演示波形。", "Sources: alarm records, visible devices, and the water-hammer summary API. No demo waveform is generated before a pressure waveform API is available.") }}</text>
-      <text v-if="lastUpdated">{{ tx("最近刷新", "Last refreshed") }} {{ lastUpdated }}</text>
-    </view>
   </view>
 </template>
 
@@ -168,17 +185,22 @@
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import * as echarts from "echarts";
 import { useI18n } from "@/i18n";
-import { getAlarmMap, getAlarmOverview, getAlarmPage, getAlarmTrend } from "@/services/alarm/api";
+import { getAlarmOverview, getAlarmPage, getAlarmTrend } from "@/services/alarm/api";
 import { getWaterHammerSummaryT } from "@/services/leak-burst";
 import { fetchLeakMonitorSidebar } from "@/services/leak-monitor/device-query";
 import DashboardLoading from "./DashboardLoading.vue";
+import ResizablePanels from "./ResizablePanels.vue";
+import OneMapRiskMap from "./OneMapRiskMap.vue";
+import { fetchFormalTubeNetworks, type TubeNetworkRecord } from "@/services/leak-monitor/tube-network";
+import type { MapDevicePoint } from '@/pages/leak-monitor/types';
+import { alarmLocations, loadPeriodAlarms, type AlarmLocation } from '../locations';
+import OneMapHistoryResults from './OneMapHistoryResults.vue';
 
-type RangeKey = "7d" | "30d" | "1y";
+type RangeKey = "7d" | "30d" | "1y" | "custom";
 type Tone = "blue" | "green" | "orange" | "red" | "muted";
 type RawRecord = Record<string, any>;
 
 interface TrendRow { bucket: string; total: number; critical: number; warning: number; info: number }
-interface LocationRow { key: string; label: string; count: number; ratio: number; tone: Tone }
 interface DeviceRow { id: string | number; name: string; number: string; voltage: string; sampledAt: string; status: string; statusTone: Tone }
 interface AlarmRow { id: string | number; device: string; type: string; level: string; levelTone: Tone; status: string; time: string; location: string }
 
@@ -194,22 +216,40 @@ const emptyDeviceFilters = {
 };
 
 const { locale } = useI18n();
+const today = dateString(new Date());
+const queryStart = ref(dateString(new Date(Date.now() - 6 * 86400000)));
+const queryEnd = ref(today);
+const queryError = ref('');
+const appliedDates = ref({ start: queryStart.value, end: queryEnd.value });
+const selectedRange = ref({ ...appliedDates.value });
+const historyMode = ref(false);
+const historyLoading = ref(false);
+const historyKind = ref<'alarms' | 'risk'>('alarms');
+const appliedKind = ref<'alarms' | 'risk'>('alarms');
+const historyRevision = ref(0);
+const mapPoints = ref<MapDevicePoint[]>([]);
+const riskMapRef = ref<InstanceType<typeof OneMapRiskMap> | null>(null);
 const rangeKey = ref<RangeKey>("7d");
 const loading = ref(false);
 const globalError = ref("");
 const lastUpdated = ref("");
 const trend = ref<TrendRow[]>([]);
-const locationRows = ref<LocationRow[]>([]);
+const locationRows = ref<AlarmLocation[]>([]);
 const deviceRows = ref<DeviceRow[]>([]);
 const alarmRows = ref<AlarmRow[]>([]);
 const activeCount = ref<number | null>(null);
 const overview = ref<RawRecord | null>(null);
 const waterHammer = ref<RawRecord>({});
+const networkTubes = ref<TubeNetworkRecord[]>([]);
+const networkLoading = ref(false);
+const networkError = ref("");
+const networkRejected = ref(0);
 const trendChartEl = ref<HTMLElement | null>(null);
 const errors = reactive({ trend: "", locations: "", devices: "", alarms: "" });
 let trendChart: echarts.ECharts | null = null;
 let resizeObserver: ResizeObserver | null = null;
 let disposed = false;
+let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 const rangeOptions = computed(() => [
   { value: "7d" as const, label: tx("近 7 天", "7 days") },
@@ -218,7 +258,7 @@ const rangeOptions = computed(() => [
 ]);
 
 const metricCards = computed(() => [
-  { key: "total", label: tx("报警总数", "Total alarms"), value: overview.value?.todayTotal ?? "--", unit: tx("条", ""), hint: tx("当前统计口径的新增报警", "New alarms in the current scope"), tone: "blue" as Tone },
+  { key: "total", label: tx("所选时段报警总数", "Alarms in selected range"), value: errors.trend ? "--" : trend.value.reduce((total, row) => total + row.total, 0), unit: tx("条", ""), hint: `${selectedRange.value.start} – ${selectedRange.value.end}`, tone: "blue" as Tone },
   { key: "active", label: tx("活跃报警", "Active alarms"), value: overview.value?.activeTotal ?? activeCount.value ?? "--", unit: tx("条", ""), hint: tx("需要关注或处理的报警", "Alarms requiring attention"), tone: "red" as Tone },
   { key: "devices", label: tx("可见设备", "Visible devices"), value: deviceRows.value.length || "--", unit: tx("台", ""), hint: tx("当前账号可见的终端数量", "Visible terminals for this account"), tone: "green" as Tone },
   { key: "communication", label: tx("通信状态", "Communication"), value: onlineDeviceCount.value, unit: tx("台在线", "online"), hint: tx("按设备最新状态统计", "Based on latest device status"), tone: "orange" as Tone },
@@ -229,12 +269,14 @@ const trendStatus = computed(() => loading.value ? tx("加载中", "Loading") : 
 const trendTitle = computed(() => {
   if (rangeKey.value === "30d") return tx("近 30 天报警变化趋势", "30-day alarm trend");
   if (rangeKey.value === "1y") return tx("近一年报警变化趋势", "One-year alarm trend");
+  if (rangeKey.value === "custom") return tx("所选时段报警趋势", "Alarm trend for selected dates");
   return tx("近一周报警变化趋势", "Seven-day alarm trend");
 });
 
 function tx(zh: string, en: string) { return locale.value === "en-US" ? en : zh; }
 
 function rangeDates() {
+  if (rangeKey.value === 'custom') return appliedDates.value;
   const end = new Date();
   const start = new Date(end);
   const days = rangeKey.value === "7d" ? 6 : rangeKey.value === "30d" ? 29 : 364;
@@ -243,10 +285,25 @@ function rangeDates() {
   return { start: date(start), end: date(end) };
 }
 
+function dateString(value: Date) { return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`; }
+function queryHistory() {
+  if (loading.value || historyLoading.value) return;
+  const start = new Date(`${queryStart.value}T00:00:00`);
+  const end = new Date(`${queryEnd.value}T00:00:00`);
+  if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || start > end || queryEnd.value > today) { queryError.value = tx('请选择有效的日期范围', 'Choose a valid date range'); return; }
+  queryError.value = '';
+  appliedDates.value = { start: queryStart.value, end: queryEnd.value };
+  appliedKind.value = historyKind.value;
+  historyMode.value = true;
+  historyRevision.value++;
+}
+function refreshView() { if (historyMode.value) historyRevision.value++; else void loadDashboard(); }
+function returnToLive() { historyMode.value = false; void nextTick(() => { trendChart?.resize(); renderTrendChart(); riskMapRef.value?.resize(); }); }
+function locateAlarm(deviceNumber: string) { riskMapRef.value?.focusAlarm(deviceNumber); }
 function unwrap(response: unknown): unknown {
   if (!response || typeof response !== "object") return response;
   const record = response as RawRecord;
-  if (record.code !== undefined && Number(record.code) !== 200) {
+  if (record.code !== undefined && record.code !== 200) {
     throw new Error(String(record.msg || tx("接口返回失败", "API request failed")));
   }
   return record.data ?? response;
@@ -284,7 +341,13 @@ function formatTime(value: unknown) {
 
 async function getLeakMonitorSidebar() {
   const result = await fetchLeakMonitorSidebar(emptyDeviceFilters);
-  return { code: 200, data: result.devices };
+  if (disposed) return { code: 200, data: [] };
+  mapPoints.value = result.devices.filter((device) => typeof device.lat === 'number' && typeof device.lng === 'number' && Number.isFinite(device.lat) && Number.isFinite(device.lng) && Math.abs(device.lat) <= 90 && Math.abs(device.lng) <= 180).map((device) => ({
+    ...device, lat: device.lat!, lng: device.lng!, title: String(device.raw.deviceAlias || device.deviceNumber),
+    countryCode: device.raw.countryCode == null ? null : String(device.raw.countryCode),
+    installAddress: String(device.raw.installAddress || ''),
+  }));
+  return { code: 200, data: result.devices.map((device) => ({ ...device.raw, ...device })) };
 }
 
 function normalizeTrend(value: unknown): TrendRow[] {
@@ -292,34 +355,13 @@ function normalizeTrend(value: unknown): TrendRow[] {
   return source.map((row, index) => ({
     bucket: textValue(row.bucket ?? row.date ?? row.period, String(index + 1)),
     total: numberValue(row.total ?? row.totalCount ?? row.count),
-    critical: numberValue(row.critical ?? row.criticalCount),
-    warning: numberValue(row.warning ?? row.warningCount),
-    info: numberValue(row.info ?? row.infoCount),
+    critical: numberValue(row.CRITICAL ?? row.critical ?? row.criticalCount),
+    warning: numberValue(row.WARNING ?? row.warning ?? row.warningCount),
+    info: numberValue(row.INFO ?? row.info ?? row.infoCount),
   }));
 }
 
-function normalizeLocations(value: unknown): LocationRow[] {
-  const source = recordsFrom(value);
-  const groups = new Map<string, { label: string; count: number; level: string }>();
-  source.forEach((row) => {
-    const label = textValue(row.installAddress ?? row.address ?? row.deviceAlias ?? row.deviceName ?? row.deviceNumber, tx("未标注位置", "Unspecified location"));
-    const current = groups.get(label) || { label, count: 0, level: "INFO" };
-    current.count += 1;
-    if (String(row.alarmLevel || "").toUpperCase() === "CRITICAL") current.level = "CRITICAL";
-    else if (String(row.alarmLevel || "").toUpperCase() === "WARNING" && current.level !== "CRITICAL") current.level = "WARNING";
-    groups.set(label, current);
-  });
-  const rows = Array.from(groups.entries()).map(([key, row]) => ({
-    key,
-    label: row.label,
-    count: row.count,
-    ratio: 0,
-    tone: row.level === "CRITICAL" ? "red" as Tone : row.level === "WARNING" ? "orange" as Tone : "blue" as Tone,
-  }));
-  const max = Math.max(1, ...rows.map((row) => row.count));
-  rows.forEach((row) => { row.ratio = Math.max(12, Math.round(row.count / max * 100)); });
-  return rows.sort((left, right) => right.count - left.count).slice(0, 8);
-}
+function normalizeLocations(value: unknown) { return alarmLocations(recordsFrom(value)); }
 
 function normalizeDevices(value: unknown): DeviceRow[] {
   return recordsFrom(value).map((row, index) => {
@@ -357,30 +399,40 @@ function normalizeAlarms(value: unknown): AlarmRow[] {
 async function loadDashboard() {
   if (loading.value) return;
   loading.value = true;
+  networkLoading.value = true;
   globalError.value = "";
   Object.assign(errors, { trend: "", locations: "", devices: "", alarms: "" });
   try {
     const dates = rangeDates();
+    selectedRange.value = dates;
     const results = await Promise.allSettled([
-      getAlarmTrend({ startTime: dates.start, endTime: dates.end }),
-      getAlarmOverview({ startTime: dates.start, endTime: dates.end }),
-      getAlarmMap({ startTime: dates.start, endTime: dates.end }),
-      getAlarmPage({ startTime: `${dates.start}T00:00:00`, endTime: `${dates.end}T23:59:59`, pageNum: 1, pageSize: 10 }),
+      getAlarmTrend({ startTime: dates.start, endTime: dates.end, granularity: new Date(dates.end).getTime() - new Date(dates.start).getTime() > 90 * 86400000 ? 'MONTH' : 'DAY' }),
+      getAlarmOverview({}),
+      loadPeriodAlarms(getAlarmPage, dates, () => !disposed),
       getLeakMonitorSidebar(),
       getWaterHammerSummaryT({ startTime: dates.start, endTime: `${dates.end}T23:59:59` } as never),
+      fetchFormalTubeNetworks(),
     ]);
     if (disposed) return;
 
-    const [trendResult, overviewResult, locationsResult, alarmsResult, devicesResult, waterHammerResult] = results;
-    consumeResult(trendResult, (value) => { trend.value = normalizeTrend(value); }, (reason) => { errors.trend = errorText(reason); });
+    const [trendResult, overviewResult, alarmsResult, devicesResult, waterHammerResult, networkResult] = results;
+    consumeResult(trendResult, (value) => { trend.value = normalizeTrend(value); }, (reason) => { trend.value = []; errors.trend = errorText(reason); });
     consumeResult(overviewResult, (value) => {
       overview.value = (value || {}) as RawRecord;
       activeCount.value = numberValue(overview.value.activeTotal, 0);
-    }, (reason) => { globalError.value = errorText(reason); });
-    consumeResult(locationsResult, (value) => { locationRows.value = normalizeLocations(value); }, (reason) => { errors.locations = errorText(reason); });
-    consumeResult(alarmsResult, (value) => { alarmRows.value = normalizeAlarms(value); }, (reason) => { errors.alarms = errorText(reason); });
-    consumeResult(devicesResult, (value) => { deviceRows.value = normalizeDevices(value); }, (reason) => { errors.devices = errorText(reason); });
-    consumeResult(waterHammerResult, (value) => { waterHammer.value = (value || {}) as RawRecord; }, () => { /* 汇总缺失时保留波形接口占位状态。 */ });
+    }, (reason) => { overview.value = null; activeCount.value = null; globalError.value = errorText(reason); });
+    consumeResult(alarmsResult, (value) => {
+      locationRows.value = normalizeLocations(value); alarmRows.value = normalizeAlarms(value);
+    }, (reason) => {
+      locationRows.value = []; alarmRows.value = [];
+      errors.locations = errorText(reason); errors.alarms = errorText(reason);
+    });
+    consumeResult(devicesResult, (value) => { deviceRows.value = normalizeDevices(value); }, (reason) => { deviceRows.value = []; mapPoints.value = []; errors.devices = errorText(reason); });
+    consumeResult(waterHammerResult, (value) => { waterHammer.value = (value || {}) as RawRecord; }, () => { waterHammer.value = {}; });
+    consumeResult(networkResult, (value) => {
+      const result = value as { tubes: TubeNetworkRecord[]; rejected: unknown[] };
+      networkTubes.value = result.tubes; networkRejected.value = result.rejected.length; networkError.value = "";
+    }, (reason) => { networkTubes.value = []; networkRejected.value = 0; networkError.value = errorText(reason); });
     lastUpdated.value = new Date().toLocaleTimeString(locale.value === "en-US" ? "en-US" : "zh-CN", { hour12: false });
     await nextTick();
     renderTrendChart();
@@ -388,11 +440,12 @@ async function loadDashboard() {
     if (!disposed) globalError.value = errorText(reason);
   } finally {
     loading.value = false;
+    networkLoading.value = false;
   }
 }
 
 function errorText(reason: unknown) {
-  return reason instanceof Error ? reason.message : tx("接口加载失败", "API request failed");
+  return reason instanceof Error ? reason.message : String((reason as { msg?: string })?.msg || tx("接口加载失败", "API request failed"));
 }
 
 function consumeResult<T>(
@@ -412,13 +465,16 @@ function consumeResult<T>(
 }
 
 function changeRange(value: RangeKey) {
-  if (loading.value || rangeKey.value === value) return;
+  if (loading.value || (!historyMode.value && rangeKey.value === value)) return;
+  returnToLive();
   rangeKey.value = value;
+  const dates = rangeDates();
+  queryStart.value = dates.start; queryEnd.value = dates.end; queryError.value = '';
   void loadDashboard();
 }
 
 function renderTrendChart() {
-  if (disposed || !trendChartEl.value) return;
+  if (disposed || !trendChartEl.value || !trendChartEl.value.clientWidth || !trendChartEl.value.clientHeight) return;
   if (!trendChart) trendChart = echarts.init(trendChartEl.value);
   trendChart.setOption({
     animationDuration: 350,
@@ -447,14 +503,20 @@ watch([trend, locale], () => { void nextTick(renderTrendChart); });
 
 onMounted(() => {
   void loadDashboard();
+  pollTimer = setInterval(() => { if (!document.hidden && !historyMode.value) void loadDashboard(); }, 60000);
   if (typeof ResizeObserver !== "undefined") {
-    resizeObserver = new ResizeObserver(() => trendChart?.resize());
+    resizeObserver = new ResizeObserver(() => {
+      if (!trendChartEl.value?.clientWidth || !trendChartEl.value.clientHeight) return;
+      trendChart?.resize();
+      renderTrendChart();
+    });
     if (trendChartEl.value) resizeObserver.observe(trendChartEl.value);
   }
 });
 
 onUnmounted(() => {
   disposed = true;
+  if (pollTimer) clearInterval(pollTimer);
   resizeObserver?.disconnect();
   resizeObserver = null;
   trendChart?.dispose();
@@ -463,12 +525,14 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
+.history-query { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 0 2px 14px; font-size: 12px; color: #52677d; }.history-query label { display: flex; align-items: center; gap: 8px; }.history-query input { box-sizing: border-box; height: 32px; padding: 0 8px; background: #fff; border: 1px solid #cbd8e5; border-radius: 4px; color: #335b75; font-size: 12px; }.history-query button { height: 32px; margin: 0; padding: 0 12px; color: #fff; background: #2187cc; border: 0; border-radius: 4px; font-size: 12px; cursor: pointer; }.history-query__error { color: #b42318; }.risk-history { margin-bottom: 14px; padding: 14px 16px; border-top: 1px solid #d8e6f1; border-bottom: 1px solid #d8e6f1; font-size: 12px; }.risk-history strong { color: #21425e; font-size: 14px; }.risk-history span { margin-left: 12px; color: #64788c; }.risk-history p { color: #64788c; margin: 8px 0 0; line-height: 1.6; }
 .one-map-view { box-sizing: border-box; min-height: 100%; overflow-y: auto; padding: 18px 20px 24px; background: #eef4f8; color: #18344d; }
-.one-map-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; padding: 4px 2px 18px; }
-.page-kicker { display: block; color: #2c86c9; font-size: 11px; font-weight: 800; letter-spacing: 1.2px; }
+.one-map-header { display: grid; grid-template-columns: minmax(145px, .8fr) minmax(340px, 1.6fr) auto; align-items: center; gap: 18px; padding: 4px 2px 14px; }
+.page-heading { min-width: 0; }
+.page-kicker { display: block; color: #2c86c9; font-size: 11px; font-weight: 700; letter-spacing: 0; }
 .page-title { display: block; margin-top: 4px; color: #173b58; font-size: 24px; font-weight: 900; line-height: 1.2; }
-.page-subtitle { display: block; margin-top: 7px; color: #71869a; font-size: 13px; }
-.header-actions { display: flex; align-items: center; gap: 10px; }
+.page-subtitle { display: block; margin-top: 7px; color: #71869a; font-size: 12px; line-height: 1.6; }
+.header-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
 .range-switch { display: flex; gap: 2px; padding: 3px; background: #e4edf4; border-radius: 5px; }
 .range-button, .refresh-button, .error-retry { margin: 0; border: 1px solid transparent; border-radius: 4px; cursor: pointer; }
 .range-button { height: 30px; padding: 0 11px; color: #64788c; font-size: 12px; background: transparent; }
@@ -476,7 +540,13 @@ onUnmounted(() => {
 .refresh-button { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 13px; color: #fff; font-size: 13px; background: #2187cc; border-color: #2187cc; }
 .refresh-button[disabled] { opacity: .58; cursor: wait; }
 .refresh-button__icon { font-size: 17px; line-height: 1; }
-.refresh-button__loading { width: 17px; height: 17px; animation: minor-spin 1.05s linear infinite; }
+.refresh-button__loading { width: 17px; height: 17px; }
+.refresh-button[disabled] .refresh-button__loading { animation: minor-spin .85s linear infinite; }
+.history-query__field { display: flex; align-items: center; gap: 8px; }
+.history-query__input { box-sizing: border-box; width: 156px; height: 32px; padding: 0 8px; border: 1px solid #cbd8e5; border-radius: 4px; font: inherit; color: #335b75; background: #fff; }
+.history-query > button { flex: none; }
+.block-head > view { min-width: 0; }
+.block-status { max-width: 42%; overflow-wrap: anywhere; }
 .refresh-button { min-width: 84px; }
 .range-button[disabled], .error-retry[disabled] { cursor: wait; }
 .metric-grid, .dashboard-block, .data-loading-region { position: relative; }
@@ -488,14 +558,14 @@ onUnmounted(() => {
 .global-error, .block-error { color: #b42318; background: #fff5f3; border: 1px solid #ffc9c0; border-radius: 5px; }
 .global-error { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; padding: 9px 12px; font-size: 12px; }
 .error-retry { height: 28px; padding: 0 10px; color: #b42318; background: #fff; border-color: #f3aaa0; font-size: 12px; }
-.metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+.metric-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; }
 .metric-card, .dashboard-block { background: #fff; border: 1px solid #d8e6f1; border-radius: 6px; box-shadow: 0 5px 16px rgba(35, 72, 104, .045); }
-.metric-card { min-width: 0; padding: 15px 17px; border-top: 3px solid #4798d1; }
-.metric-card--green { border-top-color: #25a36f; }.metric-card--orange { border-top-color: #e7a23b; }.metric-card--red { border-top-color: #e76f69; }
+.metric-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 8px; min-width: 0; min-height: 62px; box-sizing: border-box; padding: 8px 11px; border-left: 3px solid #4798d1; box-shadow: none; }
+.metric-card--green { border-left-color: #25a36f; }.metric-card--orange { border-left-color: #e7a23b; }.metric-card--red { border-left-color: #e76f69; }
 .metric-card__topline { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.metric-card__label { color: #60788e; font-size: 12px; font-weight: 800; }.metric-card__mark { width: 7px; height: 7px; border-radius: 50%; background: #4798d1; }.metric-card--green .metric-card__mark { background: #25a36f; }.metric-card--orange .metric-card__mark { background: #e7a23b; }.metric-card--red .metric-card__mark { background: #e76f69; }
-.metric-card__value { margin-top: 10px; color: #1b6eaa; font-size: 28px; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }.metric-card--green .metric-card__value { color: #1e8d63; }.metric-card--orange .metric-card__value { color: #c4811e; }.metric-card--red .metric-card__value { color: #cc554e; }
-.metric-card__unit { margin-left: 5px; color: #8495a5; font-size: 12px; font-weight: 600; }.metric-card__hint { display: block; margin-top: 8px; color: #91a0ae; font-size: 11px; }
+.metric-card__label { color: #526d83; font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
+.metric-card__value { margin: 0; color: #1b6eaa; font-size: 21px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; white-space: nowrap; }.metric-card--green .metric-card__value { color: #1e8d63; }.metric-card--orange .metric-card__value { color: #c4811e; }.metric-card--red .metric-card__value { color: #cc554e; }
+.metric-card__unit { margin-left: 5px; color: #8495a5; font-size: 11px; font-weight: 500; }.metric-card__hint { grid-column: 1 / -1; display: block; margin: 0; color: #71869a; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dashboard-grid { display: grid; gap: 14px; margin-bottom: 14px; }.dashboard-grid--top { grid-template-columns: minmax(0, 1.12fr) minmax(360px, .88fr); }.dashboard-grid--middle { grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr); }
 .dashboard-block { min-width: 0; overflow: hidden; }.block-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 14px 16px 8px; border-bottom: 1px solid #edf3f7; }.block-title { display: block; color: #21425e; font-size: 15px; font-weight: 900; }.block-hint { display: block; margin-top: 4px; color: #8b9bab; font-size: 11px; line-height: 1.4; }.block-status, .block-count { flex: none; color: #7b8e9f; font-size: 11px; }.block-status--error { color: #c94c45; }.block-error { margin: 12px; padding: 9px 10px; font-size: 12px; }.block-empty, .chart-empty { padding: 32px 14px; color: #98a7b4; font-size: 12px; text-align: center; }
 .trend-chart { height: 258px; padding: 4px 8px 8px; }.trend-chart__canvas { width: 100%; height: 100%; }.chart-empty { margin-top: -170px; position: relative; pointer-events: none; }
@@ -505,6 +575,118 @@ onUnmounted(() => {
 .dashboard-block--table { margin-bottom: 12px; }.alarm-table { width: 100%; padding: 0 10px 8px; box-sizing: border-box; }.alarm-table__row { display: grid; grid-template-columns: 1.05fr .9fr .65fr .75fr 1fr 1.6fr; align-items: center; min-width: 720px; min-height: 39px; border-bottom: 1px solid #edf2f5; }.alarm-table__row > text { min-width: 0; padding: 0 7px; overflow: hidden; color: #526c82; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }.alarm-table__row--head { min-height: 34px; background: #f7fafc; border-bottom-color: #e5edf2; }.alarm-table__row--head > text { color: #7890a2; font-size: 10px; font-weight: 800; }.alarm-table__device { color: #246d9f !important; font-weight: 800; }.alarm-table__location { color: #71899a !important; }.level-tag { height: 20px; padding: 0 7px; }.level-tag--blue { color: #2f6fa5; background: #edf6fd; }.level-tag--orange { color: #b56f12; background: #fff6df; }.level-tag--red { color: #b42318; background: #fff0ed; }
 .data-footnote { display: flex; justify-content: space-between; gap: 10px; padding: 2px 3px 0; color: #8a9aa8; font-size: 11px; line-height: 1.5; }
 button::after { border: 0; }
-@media (max-width: 1050px) { .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.dashboard-grid--top, .dashboard-grid--middle { grid-template-columns: 1fr; }.one-map-header { align-items: flex-start; flex-direction: column; }.header-actions { width: 100%; justify-content: space-between; } }
+.monitoring-board {
+  display: block;
+  margin-bottom: 14px;
+  background: transparent;
+}
+.monitoring-board__outer { margin-bottom: 0; }
+.monitoring-board :deep(.resizable-panels__pane > .resizable-panels) { height: 100%; }
+.monitoring-board__main { min-width: 0; margin-bottom: 0; }
+.monitoring-column { display: flex; flex-direction: column; gap: 14px; min-width: 0; height: 100%; }
+.monitoring-column > .dashboard-block { flex: none; }
+.monitoring-board .dashboard-block--trend,
+.monitoring-board .dashboard-block--waveform,
+.monitoring-board .dashboard-block--devices { display: flex; flex-direction: column; height: 332px; min-height: 0; }
+.monitoring-board .block-head { gap: 8px; padding: 13px 14px 10px; }
+.monitoring-board .block-head > view { flex: 1; }
+.monitoring-board .block-title { font-weight: 700; }
+.monitoring-board .block-status { max-width: 30%; text-align: right; line-height: 1.5; }
+.monitoring-board .trend-chart { flex: 1; min-height: 0; height: auto; }
+.monitoring-board .chart-empty { position: absolute; inset: 50% 12px auto; margin: 0; padding: 0; }
+.monitoring-board .waveform-placeholder { flex: 1; min-height: 140px; }
+.monitoring-board .waveform-summary { padding: 10px 14px 12px; }
+.monitoring-board .dashboard-block--locations,
+.monitoring-board .dashboard-block--table { flex: 1; min-height: 320px; margin-bottom: 0; }
+.monitoring-board .location-list { max-height: 376px; box-sizing: border-box; }
+.monitoring-board .location-row { grid-template-columns: minmax(0, 1.2fr) minmax(35px, .8fr) 26px; gap: 8px; }
+.monitoring-board .location-row__name > text:last-child { overflow: hidden; text-overflow: ellipsis; }
+.monitoring-board .device-list { max-height: 256px; padding: 3px 14px 8px; }
+.monitoring-board .device-row { grid-template-columns: minmax(0, 1fr) 48px 48px; gap: 7px; min-height: 70px; }
+.monitoring-board .device-row__identity { grid-column: 1; grid-row: 1; }
+.monitoring-board .device-row__data:nth-child(2) { grid-column: 2; grid-row: 1; }
+.monitoring-board .device-row__data:nth-child(3) { grid-column: 1 / 3; grid-row: 2; display: flex; gap: 6px; align-items: baseline; padding-bottom: 7px; }
+.monitoring-board .device-row__data:nth-child(3) strong { margin: 0; }
+.monitoring-board .device-row > .status-tag { grid-column: 3; grid-row: 1; }
+.monitoring-board .alarm-table { max-height: 420px; padding: 0 14px 8px; }
+.monitoring-board .alarm-table__row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'device level' 'type status' 'time time' 'location location';
+  min-width: 0;
+  gap: 5px 8px;
+  padding: 11px 0;
+}
+.monitoring-board .alarm-table__row--head { display: none; }
+.monitoring-board .alarm-table__row > text { padding: 0; font-size: 12px; line-height: 1.5; }
+.monitoring-board .alarm-table__row > text:nth-child(1) { grid-area: device; }
+.monitoring-board .alarm-table__row > text:nth-child(2) { grid-area: type; }
+.monitoring-board .alarm-table__row > text:nth-child(3) { grid-area: level; text-align: right; }
+.monitoring-board .alarm-table__row > text:nth-child(4) { grid-area: status; text-align: right; }
+.monitoring-board .alarm-table__row > text:nth-child(5) { grid-area: time; color: #71899a; }
+.monitoring-board .alarm-table__row > text:nth-child(6) { grid-area: location; }
+.monitoring-column--center :deep(.risk-map-block:not(.risk-map-block--expanded)) { flex: none; margin-bottom: 0; }
+.monitoring-column--center .risk-history { margin: 0; padding: 12px 2px; }
+@media (max-width: 1250px) {
+  .monitoring-board .block-head { flex-wrap: wrap; }
+}
+@media (max-width: 1050px) {
+  .monitoring-column { height: auto; }
+}
+@media (max-width: 680px) {
+  .monitoring-board__side { display: flex; }
+}
+@media (min-width: 1051px) {
+  .one-map-view { display: flex; flex-direction: column; height: var(--shell-content-min-height); min-height: 0; }
+  .one-map-header { flex: none; grid-template-columns: minmax(0, 1fr) minmax(420px, 1fr); grid-template-rows: auto auto; align-items: end; gap: 12px 16px; padding-bottom: 16px; }
+  .global-error { flex: none; }
+  .one-map-view :deep(.history-results) { flex: none; }
+  .page-heading { grid-column: 1; grid-row: 1; align-self: center; }
+  .waveform-overlay { position: absolute; top: 12px; left: 12px; z-index: 2; width: 340px; max-width: calc(100% - 24px); opacity: .3; transition: opacity .18s ease; }
+  .waveform-overlay:hover, .waveform-overlay:focus-within { opacity: 1; }
+  .waveform-overlay .waveform-summary { padding: 0; gap: 8px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .waveform-overlay .waveform-summary view { min-width: 0; padding: 8px; gap: 6px; background: #fff; }
+  .waveform-overlay .waveform-summary text { font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
+  .waveform-overlay .waveform-summary strong { font-size: 18px; }
+  .history-query { grid-column: 1; grid-row: 2; flex-wrap: wrap; gap: 8px; padding: 0; position: relative; }
+  .history-query__field { gap: 5px; flex: none; }
+  .history-query__input { width: 122px; }
+  .history-query__error { width: 100%; }
+  .metric-grid { grid-column: 2; grid-row: 1; grid-template-columns: repeat(4, minmax(0, 1fr)); width: 100%; min-height: 126px; min-width: 0; gap: 8px; }
+  .metric-card { display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 6px; min-height: 126px; padding: 12px; }
+  .metric-card__label { line-height: 1.4; }
+  .metric-card__value { font-size: 24px; }
+  .metric-card__hint { font-size: 11px; line-height: 1.4; white-space: normal; overflow-wrap: anywhere; }
+  .header-actions { grid-column: 2; grid-row: 2; flex-direction: row; justify-content: flex-end; align-items: flex-end; gap: 10px; }
+  .header-actions .range-switch { height: 32px; padding-top: 0; padding-bottom: 0; align-items: center; box-sizing: border-box; }
+  .header-actions .refresh-button { height: 32px; }
+  .monitoring-board { flex: 1 0 734px; min-height: 734px; margin-bottom: 0; }
+  .monitoring-board__outer { height: 100%; min-height: 0; }
+  .monitoring-board :deep(.resizable-panels) { grid-template-rows: minmax(0, 1fr); min-height: 0; }
+  .monitoring-board :deep(.resizable-panels__pane) { min-height: 0; }
+  .monitoring-column { display: grid; grid-template-rows: minmax(400px, 56fr) minmax(320px, 44fr); height: 100%; min-height: 0; }
+  .monitoring-column--center .dashboard-block--waveform { grid-column: 1; grid-row: 2; }
+  .monitoring-column--center :deep(.risk-map-block) { grid-column: 1; grid-row: 1; }
+  .monitoring-board .dashboard-block--trend,
+  .monitoring-board .dashboard-block--waveform,
+  .monitoring-board .dashboard-block--devices,
+  .monitoring-board .dashboard-block--locations,
+  .monitoring-board .dashboard-block--table { display: flex; flex-direction: column; height: 100%; min-height: 0; box-sizing: border-box; }
+  .monitoring-board .block-head { min-height: 72px; box-sizing: border-box; flex: none; }
+  .monitoring-board .device-list,
+  .monitoring-board .location-list,
+  .monitoring-board .alarm-table { flex: 1; height: 0; min-height: 0; max-height: none; }
+  .monitoring-column--center :deep(.risk-map-block:not(.risk-map-block--expanded)) { height: 100%; min-height: 0; box-sizing: border-box; }
+  .monitoring-column--center :deep(.risk-map-block:not(.risk-map-block--expanded) .risk-map-block__canvas) { flex: 1; width: 100%; height: auto; min-height: 0; }
+  .device-row { grid-template-columns: minmax(0, 1.2fr) minmax(48px, .6fr) minmax(75px, 1fr) 48px; }
+  .monitoring-board .dashboard-block--waveform .block-head,
+  .monitoring-board .dashboard-block--waveform .waveform-message,
+  .monitoring-board .dashboard-block--waveform .waveform-baseline { display: none; }
+  .monitoring-board .waveform-placeholder { margin: 0; border: 0; border-radius: 0; }
+}
+.history-query select { height: 32px; min-width: 108px; border: 1px solid #cbd8e5; border-radius: 4px; color: #335b75; background: #fff; font: inherit; }
+.location-row[role="button"] { cursor: pointer; border-radius: 3px; }
+.location-row[role="button"]:hover { background: #f0f7fc; }
+.location-row[role="button"]:focus-visible { outline: 2px solid #2187cc; outline-offset: -2px; }
+@media (max-width: 1050px) { .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.dashboard-grid--top, .dashboard-grid--middle { grid-template-columns: 1fr; }.one-map-header { grid-template-columns: minmax(145px, 1fr) minmax(280px, 2fr); }.header-actions { grid-column: 1 / -1; width: 100%; flex-direction: row; justify-content: space-between; } }
 @media (max-width: 680px) { .one-map-view { padding: 12px; }.metric-grid { gap: 8px; }.metric-card { padding: 12px; }.metric-card__value { font-size: 23px; }.header-actions { align-items: flex-start; flex-direction: column; }.data-footnote { flex-direction: column; }.device-row { grid-template-columns: minmax(100px, 1fr) 62px 100px 44px; gap: 6px; } }
 </style>

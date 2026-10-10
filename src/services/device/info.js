@@ -4,6 +4,7 @@
  * 页面层应优先调用这里导出的语义化函数，避免在 .vue 文件中直接拼接接口地址。
  */
 import { createCrudService, getRequest, postRequest } from "@/services/shared/crud";
+import { createDeviceProtocolRelation } from "@/services/data-receive/access";
 
 const deviceApi = createCrudService("/api/device");
 const deviceProductApi = createCrudService("/api/device-product");
@@ -35,7 +36,7 @@ export const deleteDeviceProduct = deviceProductApi.delete;
 export const batchDeleteDeviceProduct = deviceProductApi.batchDelete;
 
 export const getDeviceProtocolPage = deviceProtocolApi.getPage;
-export const createDeviceProtocol = deviceProtocolApi.create;
+export const createDeviceProtocol = createDeviceProtocolRelation;
 
 export function getDeviceProtocolByDevice(deviceId, params) {
   return getRequest(`/api/device-protocol-relation/by-device/${deviceId}`, params);

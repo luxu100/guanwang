@@ -598,6 +598,8 @@
     "deviceProtocol":{
       "table":{
         "title":"协议绑定列表",
+        "scene":"使用场景",
+        "expectedPayloadBytes":"实采预期字节数",
         "basicInfo":"基础信息",
         "deviceId":"设备ID",
         "protocolId":"协议ID",

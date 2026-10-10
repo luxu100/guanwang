@@ -73,6 +73,13 @@
       @panel-collapse="closeNetworkPanel"
     />
 
+    <MapAlarmLayer :provider="provider" :map-instance="provider === 'tencent' ? tencentMapInstance : googleMapInstance"
+      :alarms="activeAlarms" :points="mapPoints" @select="selectAlarmDevice" />
+    <view v-if="activeAlarms.length || alarmError" class="map-alarm-summary" role="status">
+      <text v-if="alarmError">{{ locale === 'zh-CN' ? '实时报警加载失败：' : 'Live alarms unavailable: ' }}{{ alarmError }}</text>
+      <template v-else><text class="map-alarm-summary__mark">!</text>{{ locale === 'zh-CN' ? '活跃报警' : 'Active alarms' }} {{ activeAlarms.reduce((sum, alarm) => sum + alarm.count, 0) }}
+        <text>{{ locale === 'zh-CN' ? '红：严重 · 黄：警告 · 蓝：提示' : 'Red: critical · Amber: warning · Blue: info' }}</text></template>
+    </view>
     <LeakMonitorSidebar
       :filters="workspace.filters"
       :collapsed="sidebarCollapsed"
@@ -117,6 +124,8 @@ import { useI18n } from "@/i18n";
 import { getMapProvider } from "@/services/map/map";
 import TencentLeakMap from "./TencentLeakMap.vue";
 import GoogleLeakMap from "./GoogleLeakMap.vue";
+import MapAlarmLayer from "./MapAlarmLayer.vue";
+import { useActiveMapAlarms } from "../composables/useActiveMapAlarms";
 import LeakMonitorSidebar from "./LeakMonitorSidebar.vue";
 import DeviceDetailDialog from "./DeviceDetailDialog.vue";
 import TencentPipeDemoLayer from "./TencentPipeDemoLayer.vue";
@@ -137,6 +146,7 @@ const props = withDefaults(defineProps<{
 });
 
 const { locale } = useI18n();
+const { alarms: activeAlarms, error: alarmError } = useActiveMapAlarms();
 const desktop = useDesktopMapEditor();
 const provider = computed(() => getMapProvider(locale.value));
 const localized = computed(() => props.localized);
@@ -257,6 +267,11 @@ function handleSelectDevice(device: LeakMonitorDevice) {
 function handleMapDeviceClick(device: MapDevicePoint) {
   void workspace.openDevice(device);
 }
+function selectAlarmDevice(number: string) {
+  mapRef.value?.focusDevice?.(number);
+  const point = mapPoints.value.find((item) => item.deviceNumber === number);
+  if (point) handleMapDeviceClick(point);
+}
 function handleMapClick(coordinate: { lng: number; lat: number }) {
   if (!desktop.value || !pipeCreation.draft.active) return;
   if (pipeCreation.draft.mode === "pipe" && pipeCreation.draft.drawingActive) {
@@ -306,6 +321,8 @@ watch(provider, (nextProvider) => {
 </script>
 
 <style scoped lang="scss">
+.map-alarm-summary { position: absolute; z-index: 5; bottom: 28px; left: 16px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; max-width: calc(100% - 48px); padding: 8px 12px; color: #52677d; background: rgba(255,255,255,.96); border: 1px solid #d8e6f1; border-radius: 5px; font-size: 12px; }
+.map-alarm-summary__mark { display: grid; place-items: center; width: 18px; height: 18px; color: #fff; background: #dc2626; border-radius: 50%; font-weight: 700; }
 .leak-workspace {
   position: relative;
   width: 100%;

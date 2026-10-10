@@ -33,7 +33,7 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { MAP_CONFIG } from "@/services/map/map";
-import { convertMapCoordinate } from "../coordinateTransform";
+import { convertMapCoordinate, tencentDisplayCoordinate } from "../coordinateTransform";
 import { useLeakMonitorI18n } from "../i18n";
 import type { MapDevicePoint, MapRegion } from "../types";
 import { deviceBindingColor } from "./map-marker-style";
@@ -290,6 +290,12 @@ function initMap() {
   emit("ready");
 }
 
+function deviceDisplayCoordinate(point: MapDevicePoint) {
+  return point.coordinateSystem === 'WGS84' && point.countryCode
+    ? tencentDisplayCoordinate(point, point.countryCode)
+    : convertMapCoordinate(point, point.coordinateSystem, 'GCJ02');
+}
+
 function getMarkerGeometries() {
   const TMap = getTMap();
   if (!TMap) {
@@ -297,7 +303,7 @@ function getMarkerGeometries() {
   }
 
   return props.points.map((point) => {
-    const coordinate = convertMapCoordinate(point, point.coordinateSystem, "GCJ02");
+    const coordinate = deviceDisplayCoordinate(point);
     return {
     id: point.deviceNumber,
     styleId: "device-" + point.deviceNumber,
@@ -476,7 +482,7 @@ function focusDevice(deviceNumber: string) {
     return;
   }
 
-  const coordinate = convertMapCoordinate(point, point.coordinateSystem, "GCJ02");
+  const coordinate = deviceDisplayCoordinate(point);
   mapInstance.easeTo?.({
     center: new TMap.LatLng(coordinate.lat, coordinate.lng),
     zoom: props.compact ? COMPACT_DEVICE_FOCUS_ZOOM : DEVICE_FOCUS_ZOOM,
@@ -530,7 +536,7 @@ function fitDevices() {
 
   const bounds = new TMap.LatLngBounds();
   props.points.forEach((point) => {
-    const coordinate = convertMapCoordinate(point, point.coordinateSystem, "GCJ02");
+    const coordinate = deviceDisplayCoordinate(point);
     bounds.extend?.(new TMap.LatLng(coordinate.lat, coordinate.lng));
   });
   mapInstance.fitBounds(bounds, { padding: 80 });

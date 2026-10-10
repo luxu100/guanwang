@@ -255,6 +255,7 @@ import { filterMenuItemsByAccess, flattenMenuPaths, getMenuAccessSummary } from 
 import { TOKEN_KEY } from "@/utils/request";
 import LocaleLeakMap from "@/pages/leak-monitor/components/LocaleLeakMap.vue";
 import OneMapDashboardView from "@/pages/one-map/components/OneMapDashboardView.vue";
+import LeakLocationView from "@/pages/leak-burst/components/LeakLocationView.vue";
 import { applyUserLocale, createScopedT, useI18n } from "@/i18n";
 import {
   BRAND_LOGO_UPDATED_EVENT,
@@ -411,6 +412,7 @@ const menuItems: MenuItem[] = [
     children: [
       { labelKey: "burstIdentification", path: "/pages/leak-burst/burst-identification/burst-identification", icon: "report", keywords: ["爆管", "识别"] },
       { labelKey: "measurementAnalysis", path: "/pages/leak-burst/measurement-analysis/measurement-analysis", icon: "report", keywords: ["测点", "分析"] },
+      { labelKey: "leakLocation", path: "/pages/leak-burst/leak-location/leak-location", icon: "report", keywords: ["漏点", "定位", "双设备"] },
       { labelKey: "lossReport", path: "/pages/leak-burst/loss-report/loss-report", icon: "report", keywords: ["漏损", "报表"] },
     ],
   },
@@ -482,6 +484,7 @@ const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/report/operation-analysis/operation-analysis": { component: OperationAnalysisView },
   "/pages/leak-burst/burst-identification/burst-identification": { component: BurstIdentificationView },
   "/pages/leak-burst/measurement-analysis/measurement-analysis": { component: MeasurementAnalysisView },
+  "/pages/leak-burst/leak-location/leak-location": { component: LeakLocationView },
   "/pages/leak-burst/loss-report/loss-report": { component: LossReportView },
   "/pages/report/command/command": createPlaceholderContent("/pages/report/command/command"),
   "/pages/system/user/user": { component: SystemManagementView, props: { mode: "user" } },

@@ -1,5 +1,5 @@
 <template>
-  <view v-if="visible && primaryDevice && relatedDevice" class="correlation-mask" @click.self="$emit('close')">
+  <view v-if="visible && primaryDevice && relatedDevice" class="correlation-mask" :class="{ 'correlation-mask--embedded': embedded }" @click.self="!embedded && $emit('close')">
     <view class="correlation-dialog" @click.stop>
       <view class="correlation-dialog__header">
         <view class="correlation-dialog__heading">
@@ -13,7 +13,7 @@
             <text>{{ relatedDevice.deviceNumber }}</text>
             <text class="device-pair__distance">{{ formattedDistanceAB }} m</text>
           </view>
-          <button class="icon-button" type="button" :aria-label="t('close')" @click="$emit('close')">×</button>
+          <button v-if="!embedded" class="icon-button" type="button" :aria-label="t('close')" @click="$emit('close')">×</button>
         </view>
       </view>
 
@@ -56,6 +56,7 @@
                   mode="date"
                   :value="site.date"
                   :end="today"
+                  :aria-label="`${t('selectDate')} ${site.key === 'primary' ? 'A' : 'B'}`"
                   @change="setAudioDate(site.key, String($event.detail.value))"
                 >
                   <view class="form-picker">{{ site.date }}</view>
@@ -127,7 +128,7 @@
           <view class="parameter-grid">
             <label class="parameter-field">
               <text>{{ t("pipeDistance") }} (m)</text>
-              <input v-model.number="form.distanceAB" type="number" min="0.01" step="0.01" />
+              <input v-model.number="form.distanceAB" :aria-label="t('pipeDistance')" type="number" min="0.01" step="0.01" />
             </label>
             <label class="parameter-field">
               <text>{{ t("pipeDiameter") }} (mm)</text>
@@ -165,7 +166,7 @@
             </label>
           </view>
           <view class="parameter-actions">
-            <button class="analyze-button" type="button" :disabled="analyzing" @click="runAnalysis">
+            <button class="analyze-button" type="button" :disabled="analyzing || audioLoading.primary || audioLoading.related" @click="runAnalysis">
               {{ analyzing ? t("analyzing") : t("startAnalysis") }}
             </button>
           </view>
@@ -308,6 +309,7 @@ const props = defineProps<{
   primaryDevice: LeakMonitorDevice | null;
   relatedDevice: LeakMonitorDevice | null;
   distanceKm: number;
+  embedded?: boolean;
 }>();
 
 defineEmits<{ (event: "close"): void }>();
@@ -414,17 +416,14 @@ const resultDescription = computed(() => {
 watch(
   () => [props.visible, props.primaryDevice?.deviceNumber, props.relatedDevice?.deviceNumber],
   ([visible]) => {
-    if (!visible) {
-      requestId += 1;
-      analysisRequestId += 1;
-      analyzing.value = false;
-      revokeAudioUrls();
-      return;
-    }
-    if (!props.primaryDevice || !props.relatedDevice) return;
+    requestId += 1;
     analysisRequestId += 1;
     analyzing.value = false;
-    form.distanceAB = Math.max(0.01, Math.round((props.distanceKm || 0.1) * 1000));
+    result.value = null;
+    submittedPayload.value = null;
+    revokeAudioUrls();
+    if (!visible || !props.primaryDevice || !props.relatedDevice) return;
+    form.distanceAB = props.embedded ? 0 : Math.max(0.01, Math.round((props.distanceKm || 0.1) * 1000));
     form.diameterMm = 300;
     form.wallThicknessMm = 10;
     form.buriedDepthM = 1;
@@ -437,7 +436,15 @@ watch(
     validationError.value = "";
     void loadAudioOptions();
   },
+  { immediate: true },
 );
+
+watch(() => [form.distanceAB, form.diameterMm, form.wallThicknessMm, form.buriedDepthM, materialIndex.value, soilIndex.value], () => {
+  analysisRequestId += 1;
+  analyzing.value = false;
+  result.value = null;
+  submittedPayload.value = null;
+});
 
 onBeforeUnmount(() => {
   requestId += 1;
@@ -452,7 +459,10 @@ function buildSite(key: SiteKey, label: string, device: LeakMonitorDevice | null
     label,
     device,
     date: audioDates[key],
-    options: audioOptions[key],
+    options: audioOptions[key].map(item => ({ ...item, label: t("audioOptionLabel", {
+      time: formatAudioTime(item.audioTime) || "-",
+      id: item.audioId,
+    }) })),
     index: audioIndexes[key],
     analysis: audioAnalyses[key],
     audioUrl: audioUrls[key],
@@ -568,6 +578,7 @@ function isCurrentSiteRequest(
 }
 
 async function runAnalysis() {
+  if (analyzing.value || audioLoading.primary || audioLoading.related) return;
   const primaryAudio = selectedPrimaryAudio.value;
   const relatedAudio = selectedRelatedAudio.value;
   const numericValues = [
@@ -579,6 +590,9 @@ async function runAnalysis() {
   if (
     !primaryAudio ||
     !relatedAudio ||
+    !props.primaryDevice || !props.relatedDevice ||
+    props.primaryDevice.deviceNumber === props.relatedDevice.deviceNumber ||
+    primaryAudio.audioId === relatedAudio.audioId ||
     numericValues.some((value) => !Number.isFinite(value) || value <= 0)
   ) {
     validationError.value = t("correlationInputRequired");
@@ -740,6 +754,33 @@ function formatDate(date: Date) {
 .correlation-dialog__body :deep(.uni-scroll-view-content) {
   box-sizing: border-box;
   padding-bottom: 24px;
+}
+.correlation-mask--embedded {
+  position: relative;
+  inset: auto;
+  z-index: auto;
+  display: block;
+  padding: 0;
+  background: transparent;
+  backdrop-filter: none;
+
+  .correlation-dialog {
+    width: 100%;
+    height: auto;
+    max-height: none;
+    border-color: #dce3eb;
+    box-shadow: none;
+    background: #f6f8fa;
+  }
+  .correlation-dialog__header {
+    color: #25354a;
+    background: #fff;
+    border-color: #e1e7ef;
+  }
+  .device-pair { background: #eef6f3; border-color: #cde6db; }
+  .device-pair__line { background: #91b6a8; }
+  .device-pair__distance { color: #007d55; border-color: #cde6db; }
+  .correlation-dialog__body { flex: none; height: auto; }
 }
 .site-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 14px; }
 .site-panel {
