@@ -36,6 +36,13 @@
       }
     },
     {
+      "path": "pages/water-hammer/water-hammer",
+      "style": {
+        "navigationBarTitleText": "水锤分析",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/data-analysis/overview/overview",
       "style": {
         "navigationBarTitleText": "系统总览",

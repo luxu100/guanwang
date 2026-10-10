@@ -692,6 +692,7 @@ function isStaleDefaultMenu(item: RecordLike) {
 const defaultMenuTree: RecordLike[] = [
   { id: `${LOCAL_MENU_ID_PREFIX}favorite`, permissionName: "我的收藏", permissionCode: "page:favorite", path: "/pages/index/index", permissionType: 1, status: 1 },
   { id: `${LOCAL_MENU_ID_PREFIX}leak-monitor`, permissionName: "渗漏监测", permissionCode: "page:leak-monitor", path: "/pages/leak-monitor/leak-monitor", permissionType: 1, status: 1 },
+  { id: `${LOCAL_MENU_ID_PREFIX}water-hammer`, permissionName: "水锤分析", permissionCode: "page:water-hammer", path: "/pages/water-hammer/water-hammer", permissionType: 1, status: 1 },
   { id: `${LOCAL_MENU_ID_PREFIX}partition`, permissionName: "分区管理", permissionCode: "page:partition", path: "/pages/partition/partition", permissionType: 1, status: 1 },
   {
     id: `${LOCAL_MENU_ID_PREFIX}device`,
@@ -2914,6 +2915,7 @@ function getPermissionName(item: RecordLike) {
   const localizedNameMap: Record<string, [string, string]> = {
     "page:favorite": ["我的收藏", "Favorites"],
     "page:leak-monitor": ["渗漏监测", "Leak Monitor"],
+    "page:water-hammer": ["水锤分析", "Water Hammer"],
     "page:partition": ["分区管理", "Partitions"],
     "module:device": ["设备管理", "Devices"],
     "page:device:info": ["设备信息", "Device Info"],

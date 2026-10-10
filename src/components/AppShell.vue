@@ -255,6 +255,7 @@ import { filterMenuItemsByAccess, flattenMenuPaths, getMenuAccessSummary } from 
 import { TOKEN_KEY } from "@/utils/request";
 import LocaleLeakMap from "@/pages/leak-monitor/components/LocaleLeakMap.vue";
 import OneMapDashboardView from "@/pages/one-map/components/OneMapDashboardView.vue";
+import WaterHammerView from "@/pages/water-hammer/components/WaterHammerView.vue";
 import LeakLocationView from "@/pages/leak-burst/components/LeakLocationView.vue";
 import { applyUserLocale, createScopedT, useI18n } from "@/i18n";
 import {
@@ -326,6 +327,7 @@ const menuItems: MenuItem[] = [
   { labelKey: "favorite", path: "/pages/index/index", icon: "star", keywords: ["首页", "收藏"] },
   { labelKey: "oneMap", path: "/pages/one-map/one-map", icon: "trend", keywords: ["一张图", "在线监测", "总览"] },
   { labelKey: "leakMonitor", path: "/pages/leak-monitor/leak-monitor", icon: "monitor", keywords: ["渗漏", "监测"] },
+  { labelKey: "waterHammer", path: "/pages/water-hammer/water-hammer", icon: "chart", permissionCode: "page:water-hammer", keywords: ["水锤", "波形", "阀门", "模拟"] },
   { labelKey: "partition", path: "/pages/partition/partition", icon: "partition", keywords: ["分区", "部门", "管理"] },
   {
     labelKey: "device",
@@ -456,6 +458,7 @@ const menuItems: MenuItem[] = [
 const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/index/index": createPlaceholderContent("/pages/index/index"),
   "/pages/one-map/one-map": { component: OneMapDashboardView },
+  "/pages/water-hammer/water-hammer": { component: WaterHammerView },
   "/pages/partition/partition": { component: PartitionManagementView },
   "/pages/device/info/info": { component: DeviceManagementView, props: { mode: "info" } },
   "/pages/device/maintenance/maintenance": { component: DeviceManagementView, props: { mode: "maintenance" } },

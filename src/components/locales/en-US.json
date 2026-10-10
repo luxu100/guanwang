@@ -2,6 +2,7 @@
   "appShellMenu": {
     "favorite": "Favorites",
     "oneMap": "One Map",
+    "waterHammer": "Water Hammer",
     "leakMonitor": "Leak Monitor",
     "partition": "Partitions",
     "device": "Devices",
