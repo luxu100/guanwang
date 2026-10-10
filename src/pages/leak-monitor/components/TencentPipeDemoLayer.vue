@@ -1,5 +1,6 @@
 <template>
   <view class="network-layer">
+    <FacilityMapTooltip :hover="facilityHover" />
     <LeakNetworkPanel
       :provider-label="providerLabel"
       :source="source"
@@ -27,6 +28,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import LeakNetworkPanel from "./LeakNetworkPanel.vue";
+import FacilityMapTooltip from "./FacilityMapTooltip.vue";
+import { useFacilityHover } from "../facilityHover";
 import type { TencentMapInstanceHandle } from "./tencent-map.types";
 import { tencentDisplayCoordinate, tencentSourceCoordinate } from "../coordinateTransform";
 import type { FacilityType, LeakMonitorFacility, LeakMonitorPipe, MapDevicePoint, MapRegion } from "../types";
@@ -99,7 +102,10 @@ const props = withDefaults(defineProps<{
 });
 
 const emit = defineEmits<{ (event: "refresh"): void; (event: "panel-expand"): void; (event: "panel-collapse"): void }>();
-const { language } = useLeakMonitorI18n();
+const { language, t } = useLeakMonitorI18n();
+const { hover: facilityHover, show: showFacilityHover, hide: hideFacilityHover } = useFacilityHover(
+  (type) => t(type === "VALVE" ? "facilityValve" : type === "HYDRANT" ? "facilityHydrant" : "facilityPump"),
+);
 const pipeVisible = ref(true);
 const panelCollapsed = ref(true);
 let overviewLayer: TencentOverviewLayer | null = null;
@@ -152,6 +158,7 @@ watch(
     props.facilityVisibility?.VALVE,
     props.facilityVisibility?.HYDRANT,
     props.facilityVisibility?.PUMP,
+    language.value,
   ],
   scheduleLayerSync,
 );
@@ -168,6 +175,7 @@ watch(
 );
 watch(pipeVisible, applyVisibility);
 onBeforeUnmount(() => {
+  hideFacilityHover();
   if (draftSyncFrame !== null) window.cancelAnimationFrame(draftSyncFrame);
   if (layerSyncFrame !== null) window.cancelAnimationFrame(layerSyncFrame);
   destroyOverviewLayer(overviewLayer);
@@ -185,6 +193,7 @@ function scheduleLayerSync() {
 }
 
 function syncLayers() {
+  hideFacilityHover();
   const TMap = getTMap();
   if (!props.mapInstance || !TMap) {
     destroyOverviewLayer(overviewLayer);
@@ -235,6 +244,8 @@ function syncLayers() {
     if (TMap.MultiMarker && TMap.MarkerStyle) {
       facilityLayer = new TMap.MultiMarker({ map: props.mapInstance, styles: createFacilityStyles(TMap), geometries: [] });
       draftFacilityLayer = new TMap.MultiMarker({ map: props.mapInstance, styles: createFacilityStyles(TMap), geometries: [] });
+      bindFacilityHover(facilityLayer, false);
+      bindFacilityHover(draftFacilityLayer, true);
       draftFacilityLayer.on?.("dragend", handleDraftFacilityDrag);
     }
   }
@@ -340,6 +351,7 @@ function renderDraftPipe(TMap: TencentPipeApi) {
 }
 
 function renderFacilities(TMap: TencentPipeApi) {
+  hideFacilityHover();
   if (!facilityLayer?.setGeometries) return;
   const geometries = props.formalFacilities
     .filter((facility) => props.facilityVisibility?.[facility.facilityType] !== false)
@@ -362,6 +374,7 @@ function renderFacilities(TMap: TencentPipeApi) {
 }
 
 function renderDraftFacilities(TMap: TencentPipeApi) {
+  hideFacilityHover();
   if (!draftFacilityLayer?.setGeometries) return;
   if (!props.creation.draft.active) {
     hasDraftFacilityData = false;
@@ -391,6 +404,20 @@ function renderDraftFacilities(TMap: TencentPipeApi) {
   }
   draftFacilityLayer.setGeometries(geometries);
   hasDraftFacilityData = true;
+}
+function bindFacilityHover(layer: TencentMarkerLayer, draft: boolean) {
+  const show = (event: any) => {
+    const id = String(event?.geometry?.id || "").replace(draft ? /^draft-facility-/ : /^facility-/, "");
+    const facility = draft
+      ? props.creation.draft.facilities.find((item) => item.id === id)
+      : props.formalFacilities.find((item) => String(item.id) === id);
+    if (facility) showFacilityHover(facility, event.originalEvent);
+    else hideFacilityHover();
+  };
+  layer.on?.("mouseover", show);
+  layer.on?.("mousemove", show);
+  layer.on?.("mouseout", hideFacilityHover);
+  layer.on?.("dragstart", hideFacilityHover);
 }
 function handleDraftFacilityDrag(event: any) {
   const id = String(event?.geometry?.id || "").replace(/^draft-facility-/, "");

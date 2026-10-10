@@ -1,5 +1,6 @@
 <template>
   <view class="network-layer">
+    <FacilityMapTooltip :hover="facilityHover" />
     <LeakNetworkPanel
       provider="google"
       :provider-label="providerLabel"
@@ -28,6 +29,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import LeakNetworkPanel from "./LeakNetworkPanel.vue";
+import FacilityMapTooltip from "./FacilityMapTooltip.vue";
+import { useFacilityHover } from "../facilityHover";
 import type { FacilityType, LeakMonitorFacility, LeakMonitorPipe, MapDevicePoint, MapRegion } from "../types";
 import type { RejectedTubeRecord, TubeNetworkRecord } from "@/services/leak-monitor/tube-network";
 import { useLeakMonitorI18n } from "../i18n";
@@ -66,7 +69,10 @@ const props = withDefaults(defineProps<{
 });
 
 const emit = defineEmits<{ (event: "refresh"): void; (event: "panel-expand"): void; (event: "panel-collapse"): void }>();
-const { language } = useLeakMonitorI18n();
+const { language, t } = useLeakMonitorI18n();
+const { hover: facilityHover, label: facilityLabel, show: showFacilityHover, hide: hideFacilityHover } = useFacilityHover(
+  (type) => t(type === "VALVE" ? "facilityValve" : type === "HYDRANT" ? "facilityHydrant" : "facilityPump"),
+);
 const pipeVisible = ref(true);
 const panelCollapsed = ref(true);
 let pipeLines: google.maps.Polyline[] = [];
@@ -112,6 +118,7 @@ watch(
     props.facilityVisibility?.VALVE,
     props.facilityVisibility?.HYDRANT,
     props.facilityVisibility?.PUMP,
+    language.value,
   ],
   scheduleLayerSync,
 );
@@ -201,6 +208,7 @@ function renderPipes() {
 
 function renderFacilities() {
   if (!props.mapInstance) return;
+  hideFacilityHover();
   const nextKeys = new Set<string>();
   const nextMarkers: google.maps.Marker[] = [];
   props.formalFacilities
@@ -216,13 +224,14 @@ function renderFacilities() {
           : "/static/icons/facility-pump.svg";
       const options: google.maps.MarkerOptions = {
         position,
-        title: `${facility.facilityNumber || facility.facilityType}`,
+        title: facilityLabel(facility),
         icon: { url: icon, scaledSize: new google.maps.Size(36, 36), anchor: new google.maps.Point(18, 18) },
         zIndex: 4,
       };
       let marker = facilityMarkerByKey.get(key);
       if (!marker) {
         marker = new google.maps.Marker({ ...options, map: props.mapInstance });
+        bindFacilityHover(marker, () => props.formalFacilities.find((item) => String(item.id) === key));
         facilityMarkerByKey.set(key, marker);
       } else {
         marker.setOptions(options);
@@ -241,6 +250,7 @@ function renderFacilities() {
 }
 
 function renderDraftLayers() {
+  hideFacilityHover();
   if (!props.mapInstance || !props.creation.draft.active) {
     draftPipeLines.forEach((line) => line.setMap(null));
     draftPipeLines = [];
@@ -288,6 +298,7 @@ function renderDraftLayers() {
       let marker = draftMarkerById.get(facility.id);
       if (!marker) {
         marker = new google.maps.Marker({ map: props.mapInstance, draggable: true, zIndex: 8 });
+        bindFacilityHover(marker, () => props.creation.draft.facilities.find((item) => item.id === facility.id));
         marker.addListener("dragend", () => {
           const position = marker?.getPosition();
           if (position) props.creation.moveFacilityFromMap(facility.id, position.lng(), position.lat());
@@ -295,7 +306,7 @@ function renderDraftLayers() {
         draftMarkerById.set(facility.id, marker);
       }
       marker.setOptions({
-        position: coordinate, title: facility.facilityNumber || facility.facilityType,
+        position: coordinate, title: facilityLabel(facility),
         icon: { url: icon, scaledSize: new google.maps.Size(40, 40), anchor: new google.maps.Point(20, 20) },
       });
       marker.setMap(props.mapInstance);
@@ -307,6 +318,17 @@ function renderDraftLayers() {
     draftMarkerById.delete(id);
   });
   draftFacilityMarkers = [...draftMarkerById.values()];
+}
+function bindFacilityHover(marker: google.maps.Marker, resolve: () => LeakMonitorFacility | typeof props.creation.draft.facilities[number] | undefined) {
+  const show = (event: google.maps.MapMouseEvent) => {
+    const facility = resolve();
+    if (facility && event.domEvent instanceof MouseEvent) showFacilityHover(facility, event.domEvent);
+    else hideFacilityHover();
+  };
+  marker.addListener("mouseover", show);
+  marker.addListener("mousemove", show);
+  marker.addListener("mouseout", hideFacilityHover);
+  marker.addListener("dragstart", hideFacilityHover);
 }
 function toggleFacility(type: FacilityType) {
   if (props.facilityVisibility) props.facilityVisibility[type] = !props.facilityVisibility[type];
@@ -329,6 +351,7 @@ function fitNetwork(regionKey = "all") {
 }
 
 function clearLayers() {
+  hideFacilityHover();
   pipeLineByKey.forEach((line) => line.setMap(null));
   facilityMarkerByKey.forEach((marker) => {
     google.maps.event.clearInstanceListeners(marker);
