@@ -179,10 +179,10 @@
                   <text class="detail-item__label">天气</text>
                   <text class="detail-item__value">{{ translateWeather((selectedItem as AudioDataItem).weather) }}</text>
                 </view>
-                <!-- <view class="detail-item detail-item--base">
+                <view class="detail-item detail-item--base">
                   <text class="detail-item__label">拆/装</text>
                   <text class="detail-item__value">{{ translateStatus((selectedItem as AudioDataItem).status) }}</text>
-                </view> -->
+                </view>
                 <view class="detail-item detail-item--base">
                   <text class="detail-item__label">阀门编号</text>
                   <text class="detail-item__value">{{ (selectedItem as AudioDataItem).valveNumber }}</text>

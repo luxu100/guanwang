@@ -22,7 +22,7 @@ export const audioColumns: TableColumn[] = [
     { key: 'deptName', label: '所属分区', renderType: 'text', className: 'data-cell--dept' },
     { key: 'spectrum', label: '频谱', renderType: 'spectrum-btn', className: 'data-cell--spectrum' },
     { key: 'download', label: '下载', renderType: 'download-btn', className: 'data-cell--download' },
-    // { key: 'status', label: '拆/装', renderType: 'status-pill', className: 'data-cell--status', sortable: true, statusClassKey: 'install' },
+    { key: 'status', label: '拆/装', renderType: 'status-pill', className: 'data-cell--status', sortable: true, statusClassKey: 'install' },
     { key: 'location', label: '位置坐标', renderType: 'coordinate-btn', className: 'data-cell--location' },
 ];
 
