@@ -66,8 +66,12 @@ export const processingColumns: AlarmTableColumn[] = [
   { key: "triggerCount", label: "触发次数", labelEn: "Trigger Count", renderType: "text", width: "minmax(72px, 0.7fr)" },
   { key: "lastTriggeredAt", label: "最后触发", labelEn: "Last Triggered", renderType: "text", formatKey: "lastTriggeredAt", width: "minmax(140px, 1.3fr)", className: "col-alarm-time" },
   { key: "status", label: "状态", labelEn: "Status", renderType: "status-pill", width: "minmax(80px, 0.8fr)" },
-  { key: "action", label: "操作", labelEn: "Actions", renderType: "action", width: "minmax(250px, 1.1fr)" },
+  { key: "action", label: "操作", labelEn: "Actions", renderType: "action", width: "240px" },
 ];
+
+/** 数据区横向滚动；操作区在独立列中占据真实宽度，避免悬浮遮挡数据。 */
+export const processingDataColumns = processingColumns.filter((column) => column.renderType !== "action");
+export const processingActionColumn = processingColumns[processingColumns.length - 1];
 
 /** 处理页表格 grid 列宽（不含复选框列——后端无 batch-confirm，批量确认未提供） */
 export const processingGridColumnsNoCheck = processingColumns.map((column) => column.width).join(" ");

@@ -104,5 +104,13 @@
   "alarm.item133": "New alarms detected, list refreshed",
   "alarm.item134": "Enter alarm no.",
   "alarm.item135": "Enter device no.",
-  "alarm.item149": "Rule name is required"
+  "alarm.item149": "Rule name is required",
+  "alarm.panelState01": "Loading statistics",
+  "alarm.panelState02": "Statistics unavailable; previous results retained",
+  "alarm.panelState03": "Loading trend",
+  "alarm.panelState04": "Trend unavailable; previous results retained",
+  "alarm.panelState05": "No alarm records in the last 7 days",
+  "alarm.panelState06": "Map update failed; previous results retained",
+  "alarm.panelState07": "Retry",
+  "alarm.mapResultCurrent": "Current map results"
 }

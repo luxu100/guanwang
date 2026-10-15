@@ -104,5 +104,13 @@
   "alarm.item133": "检测到新报警，已自动刷新",
   "alarm.item134": "请输入报警编号",
   "alarm.item135": "请输入设备编号",
-  "alarm.item149": "规则名称必填"
+  "alarm.item149": "规则名称必填",
+  "alarm.panelState01": "统计加载中",
+  "alarm.panelState02": "统计加载失败，保留上次结果",
+  "alarm.panelState03": "趋势加载中",
+  "alarm.panelState04": "趋势加载失败，保留上次结果",
+  "alarm.panelState05": "近7天暂无报警",
+  "alarm.panelState06": "地图更新失败，保留上次结果",
+  "alarm.panelState07": "重试",
+  "alarm.mapResultCurrent": "当前地图结果"
 }

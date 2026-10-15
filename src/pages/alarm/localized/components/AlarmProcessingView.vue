@@ -69,7 +69,7 @@
     </view>
 
     <!-- 表格 + 右侧统计地图栏（同数据分析页左右网格）；行"详情"以覆盖层形式盖在右栏上 -->
-    <view class="main-layout" :style="layoutStyle">
+    <view ref="layoutContainer" class="main-layout" :class="{ 'main-layout--stacked': !wideLayout }" :style="layoutStyle">
       <view class="table-panel">
       <view class="table-head">
         <text>{{ localeText("报警处理", "Alarm Management") }}</text>
@@ -80,43 +80,26 @@
         </view>
       </view>
 
-      <scroll-view class="table-scroll" scroll-x scroll-y>
-        <view class="table">
-          <view class="table-row table-row--header record-table-row" :style="{ gridTemplateColumns: processingGridColumnsNoCheck }">
-            <view v-for="column in recordColumns" :key="column.key" class="table-cell table-header-cell">
-              <text>{{ localeText(column.label, column.labelEn) }}</text>
-            </view>
-          </view>
-
-          <view v-if="loading" class="table-state">{{ localeText("加载中...", "Loading...") }}</view>
-          <view v-else-if="alarmList.length === 0" class="table-state">{{ localeText("暂无报警数据", "No alarms") }}</view>
-
-          <view
-            v-for="(item, index) in alarmList"
-            v-else
-            :key="item.id"
-            class="table-row record-table-row"
-            :class="{ 'table-row--selected': selectedRecordKey === String(item.id) }"
-            :style="{ gridTemplateColumns: processingGridColumnsNoCheck }"
-          >
-            <template v-for="column in recordColumns" :key="column.key">
-              <text v-if="column.renderType === 'index'" class="table-cell" :class="column.className">{{ (pagination.current - 1) * pagination.size + index + 1 }}</text>
-              <view v-else-if="column.renderType === 'level-pill'" class="table-cell" :class="column.className">
-                <text class="level-pill" :class="getLevelClass(getCellValue(item, column.key) as string | null)">{{ getLevelText(getCellValue(item, column.key) as string | null) }}</text>
-              </view>
-              <view v-else-if="column.renderType === 'status-pill'" class="table-cell" :class="column.className">
-                <text class="status-pill" :class="getStatusClass(getCellValue(item, column.key) as string | null)">{{ getStatusText(getCellValue(item, column.key) as string | null) }}</text>
-              </view>
-              <view v-else-if="column.renderType === 'action'" class="table-cell col-action">
-                <button class="table-action-btn" :class="{ 'table-action-btn--active': selectedRecordKey === String(item.id) }" @click.stop="toggleDetail(item)">{{ localeText("详情", "Detail") }}</button>
-                <button v-if="item.status === 'ACTIVE'" class="table-action-btn" @click.stop="openHandleDialog(item)">{{ localeText("确认", "Acknowledge") }}</button>
-                <button v-if="item.status === 'ACTIVE' || item.status === 'CONFIRMED'" class="table-action-btn" @click.stop="openResolveDialog(item)">{{ localeText("关闭", "Close") }}</button>
-              </view>
-              <text v-else class="table-cell" :class="column.className" :title="cellText(item, column)">{{ cellText(item, column) }}</text>
-            </template>
-          </view>
-        </view>
-      </scroll-view>
+      <AlarmRecordTable
+        :columns="recordColumns" :records="alarmList" :selected-id="selectedRecordKey"
+        :loading="loading" :loading-text="localeText('加载中...', 'Loading...')"
+        :empty-text="localeText('暂无报警数据', 'No alarms')"
+        :action-width="processingActionColumn.width"
+      >
+        <template #heading="{ column }">{{ localeText(column.label, column.labelEn) }}</template>
+        <template #actions-heading>{{ localeText(processingActionColumn.label, processingActionColumn.labelEn) }}</template>
+        <template #cell="{ row: item, column, index }">
+          <text v-if="column.renderType === 'index'">{{ (pagination.current - 1) * pagination.size + index + 1 }}</text>
+          <text v-else-if="column.renderType === 'level-pill'" class="level-pill" :class="getLevelClass(getCellValue(item, column.key) as string | null)">{{ getLevelText(getCellValue(item, column.key) as string | null) }}</text>
+          <text v-else-if="column.renderType === 'status-pill'" class="status-pill" :class="getStatusClass(getCellValue(item, column.key) as string | null)">{{ getStatusText(getCellValue(item, column.key) as string | null) }}</text>
+          <text v-else class="record-cell-text" :title="cellText(item, column)">{{ cellText(item, column) }}</text>
+        </template>
+        <template #actions="{ row: item }">
+          <button class="table-action-btn" :class="{ 'table-action-btn--active': selectedRecordKey === String(item.id) }" @click.stop="toggleDetail(item)">{{ localeText("详情", "Detail") }}</button>
+          <button v-if="item.status === 'ACTIVE'" class="table-action-btn" @click.stop="openHandleDialog(item)">{{ localeText("确认", "Acknowledge") }}</button>
+          <button v-if="item.status === 'ACTIVE' || item.status === 'CONFIRMED'" class="table-action-btn" @click.stop="openResolveDialog(item)">{{ localeText("关闭", "Close") }}</button>
+        </template>
+      </AlarmRecordTable>
 
       <view class="pagination-bar">
         <button class="page-btn" :disabled="pagination.current <= 1" @click="handlePageChange(pagination.current - 1)">
@@ -142,12 +125,17 @@
       </view>
 
     <!-- 右侧常驻栏上半：报警概况（总览数字 + 分布 + 近 7 天趋势） -->
-    <view class="side-column" :class="{ 'side-column--hidden': isSideCollapsed }">
-      <view class="side-card side-card--stats">
+    <view class="side-column" :class="{ 'side-column--hidden': isSideCollapsed, 'side-column--detail': !!selectedRecord }">
+      <view v-show="!selectedRecord" class="side-card side-card--stats">
         <view class="side-card__head">
           <text class="side-card__title">{{ localeText("报警概况", "Alarm Overview") }}</text>
         </view>
         <scroll-view class="side-card__body" scroll-y>
+          <view v-if="overviewStatsLoading" class="panel-status">{{ localeText("统计加载中", "Loading statistics") }}</view>
+          <view v-else-if="overviewStatsError" class="panel-status panel-status--error">
+            <text>{{ localeText("统计加载失败，保留上次结果", "Statistics unavailable; previous results retained") }}</text>
+            <button class="panel-retry" @click="loadOverview(true)">{{ localeText("重试", "Retry") }}</button>
+          </view>
           <view class="side-stats">
             <view class="side-stat">
               <text class="side-stat__label">{{ localeText("今日新增", "New Today") }}</text>
@@ -181,12 +169,20 @@
             </view>
           </view>
           <text class="side-chart-caption">{{ localeText("近 7 天新增报警记录数", "New alarm records in the last 7 days") }}</text>
-          <div ref="overviewChartEl" class="side-chart side-chart--trend"></div>
+          <view class="overview-chart-stage">
+            <div ref="overviewChartEl" class="side-chart side-chart--trend"></div>
+            <view v-if="overviewTrendLoading" class="panel-status">{{ localeText("趋势加载中", "Loading trend") }}</view>
+            <view v-else-if="overviewTrendError" class="panel-status panel-status--error">
+              <text>{{ localeText("趋势加载失败，保留上次结果", "Trend unavailable; previous results retained") }}</text>
+              <button class="panel-retry" @click="loadOverview(true)">{{ localeText("重试", "Retry") }}</button>
+            </view>
+            <view v-else-if="!overviewHasData" class="panel-status">{{ localeText("近7天暂无报警", "No alarm records in the last 7 days") }}</view>
+          </view>
         </scroll-view>
       </view>
 
       <!-- 右侧常驻栏下半：报警分布地图（stats/map 散点，筛选后重查） -->
-      <view class="side-card side-card--map">
+      <view v-show="!selectedRecord" class="side-card side-card--map">
         <view class="side-card__head side-card__head--map">
           <text class="side-card__title">{{ localeText("报警分布地图", "Alarm Distribution Map") }}</text>
           <!-- 自定义下拉（uni picker 底部弹层在本布局里会被视口裁剪，改为按钮下方弹菜单） -->
@@ -233,7 +229,10 @@
           <div v-show="mapProvider === 'google'" ref="gMapContainer" class="side-chart side-chart--map"></div>
           <div v-show="mapProvider === 'chart'" ref="mapChartEl" class="side-chart side-chart--map"></div>
           <view v-if="mapLoading" class="map-foot">{{ localeText("加载中...", "Loading...") }}</view>
-          <view v-else-if="mapError" class="map-foot map-foot--error">{{ localeText("分布数据加载失败，切换筛选可重试", "Failed to load distribution, change filters to retry") }}</view>
+          <view v-else-if="mapError" class="map-foot map-foot--error">
+            <text>{{ localeText("地图更新失败，保留上次结果", "Map update failed; previous results retained") }}</text>
+            <button class="panel-retry" @click="loadAlarmMap(true)">{{ localeText("重试", "Retry") }}</button>
+          </view>
           <view v-else class="map-legend">
             <text class="map-legend__item" :class="{ 'map-legend__item--zero': mapLevelCounts.CRITICAL === 0 }"><text class="side-breakdown__dot side-breakdown__dot--CRITICAL"></text>{{ localeText("严重", "Critical") }} {{ mapLevelCounts.CRITICAL }}</text>
             <text class="map-legend__item" :class="{ 'map-legend__item--zero': mapLevelCounts.WARNING === 0 }"><text class="side-breakdown__dot side-breakdown__dot--WARNING"></text>{{ localeText("警告", "Warning") }} {{ mapLevelCounts.WARNING }}</text>
@@ -365,6 +364,69 @@
             <text class="close-icon"></text>
           </button>
         </view>
+        <view class="map-fullscreen__toolbar">
+          <view class="map-filters map-fullscreen__filters">
+            <view class="map-filter">
+              <view class="map-filter__select" @click.stop="toggleMapSelect('dialog-status')">
+                <text>{{ mapStatusLabels[mapFilters.statusIndex] }}</text>
+              </view>
+              <view v-if="activeMapSelect === 'dialog-status'" class="map-select-menu">
+                <view
+                  v-for="(option, index) in mapStatusOptions"
+                  :key="option.label"
+                  class="map-select-option"
+                  :class="{ 'map-select-option--active': mapFilters.statusIndex === index }"
+                  @click.stop="selectMapStatus(index)"
+                >
+                  {{ localeText(option.label, option.labelEn) }}
+                </view>
+              </view>
+            </view>
+            <view class="map-filter">
+              <view class="map-filter__select" @click.stop="toggleMapSelect('dialog-level')">
+                <text>{{ mapLevelLabels[mapFilters.levelIndex] }}</text>
+              </view>
+              <view v-if="activeMapSelect === 'dialog-level'" class="map-select-menu">
+                <view
+                  v-for="(option, index) in mapLevelOptions"
+                  :key="option.label"
+                  class="map-select-option"
+                  :class="{ 'map-select-option--active': mapFilters.levelIndex === index }"
+                  @click.stop="selectMapLevel(index)"
+                >
+                  {{ localeText(option.label, option.labelEn) }}
+                </view>
+              </view>
+            </view>
+          </view>
+          <text v-if="mapLoading" class="map-fullscreen__feedback">{{ localeText("加载中...", "Loading...") }}</text>
+          <view v-else-if="mapError" class="map-fullscreen__feedback map-fullscreen__feedback--error">
+            <text>{{ localeText("地图更新失败，保留上次结果", "Map update failed; previous results retained") }}</text>
+            <button class="panel-retry" @click="loadAlarmMap(true)">{{ localeText("重试", "Retry") }}</button>
+          </view>
+        </view>
+        <view class="map-result-summary">
+          <text class="map-result-summary__label">{{ localeText("当前地图结果", "Current map results") }}</text>
+          <view class="map-result-summary__item" data-level="CRITICAL">
+            <text class="side-breakdown__dot side-breakdown__dot--CRITICAL"></text>
+            <text>{{ getLevelText('CRITICAL') }}</text>
+            <text class="map-result-summary__value">{{ mapLoading || mapError ? '—' : mapLevelCounts.CRITICAL }}</text>
+          </view>
+          <view class="map-result-summary__item" data-level="WARNING">
+            <text class="side-breakdown__dot side-breakdown__dot--WARNING"></text>
+            <text>{{ getLevelText('WARNING') }}</text>
+            <text class="map-result-summary__value">{{ mapLoading || mapError ? '—' : mapLevelCounts.WARNING }}</text>
+          </view>
+          <view class="map-result-summary__item" data-level="INFO">
+            <text class="side-breakdown__dot side-breakdown__dot--INFO"></text>
+            <text>{{ getLevelText('INFO') }}</text>
+            <text class="map-result-summary__value">{{ mapLoading || mapError ? '—' : mapLevelCounts.INFO }}</text>
+          </view>
+          <view v-if="mapLevelCounts.other > 0" class="map-result-summary__item" data-level="other">
+            <text>{{ localeText("其他", "Other") }}</text>
+            <text class="map-result-summary__value">{{ mapLoading || mapError ? '—' : mapLevelCounts.other }}</text>
+          </view>
+        </view>
         <view class="map-fullscreen__body">
           <div v-show="mapProvider === 'tencent'" ref="mapDialogTContainer" class="map-fullscreen__canvas"></div>
           <div v-show="mapProvider === 'google'" ref="mapDialogGContainer" class="map-fullscreen__canvas"></div>
@@ -379,6 +441,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import * as echarts from "echarts";
+import AlarmRecordTable from "@/pages/alarm/components/AlarmRecordTable.vue";
 import { useI18n } from "@/i18n";
 import { MAP_CONFIG, getMapProvider } from "@/services/map/map";
 import { loadGoogleMaps } from "@/utils/googleMapsLoader";
@@ -397,9 +460,9 @@ import {
 } from "@/services/alarm/api";
 import type { AlarmRecord, AlarmMapItem } from "@/services/alarm/api";
 import {
-  processingColumns,
+  processingDataColumns,
   processingDetailFields,
-  processingGridColumnsNoCheck,
+  processingActionColumn,
   type AlarmDetailField,
   type AlarmTableColumn,
 } from "@/pages/alarm/components/alarmColumns";
@@ -462,7 +525,7 @@ const lastRefreshSuccessAt = ref<number | null>(null);
 const pollFailed = ref(false);
 const jumpPage = ref<number | null>(null);
 
-const recordColumns = processingColumns;
+const recordColumns = processingDataColumns;
 const detailFields = processingDetailFields;
 
 /* 文案映射（后端字符串枚举；类型优先取后端附带的中文名） */
@@ -793,7 +856,7 @@ async function submitHandle() {
     }
     uni.showToast({ title: localeText("确认成功", "Acknowledged"), icon: "success" });
     handleVisible.value = false;
-    loadAlarms(pagination.current);
+    await Promise.allSettled([loadAlarms(pagination.current), loadOverview(true), loadAlarmMap(true)]);
   } catch (error) {
     uni.showToast({ title: (error as { msg?: string })?.msg || "处理失败", icon: "none" });
   } finally {
@@ -826,7 +889,7 @@ async function submitResolve() {
     }
     uni.showToast({ title: localeText("已关闭", "Closed"), icon: "success" });
     resolveVisible.value = false;
-    loadAlarms(pagination.current);
+    await Promise.allSettled([loadAlarms(pagination.current), loadOverview(true), loadAlarmMap(true)]);
   } catch (error) {
     uni.showToast({ title: (error as { msg?: string })?.msg || "关闭失败", icon: "none" });
   } finally {
@@ -926,6 +989,12 @@ const overviewChartEl = ref<HTMLElement | null>(null);
 const overviewHasData = ref(false);
 let overviewChart: echarts.ECharts | null = null;
 let overviewLoading = false;
+let overviewRequestId = 0;
+let panelsDisposed = false;
+const overviewStatsLoading = ref(false);
+const overviewTrendLoading = ref(false);
+const overviewStatsError = ref(false);
+const overviewTrendError = ref(false);
 
 /** 按级别分布（固定 INFO/WARNING/CRITICAL 顺序；数据未加载时计数显示 "-"） */
 const levelBreakdownItems = computed(() => {
@@ -954,32 +1023,45 @@ function fmtDate(ts: number): string {
 }
 
 /** 展开时才加载：近 7 天趋势（stats/trend，按天）+ 总览数字与分布（stats/overview） */
-async function loadOverview() {
-  if (overviewLoading) return;
+async function loadOverview(force = false) {
+  if (panelsDisposed || (overviewLoading && !force)) return;
+  const requestId = ++overviewRequestId;
   overviewLoading = true;
-  try {
-    const end = fmtDate(Date.now());
-    const start = fmtDate(Date.now() - 6 * 24 * 3600 * 1000);
-    // 后端趋势接口时间只认 yyyy-MM-dd 或 ISO-T；granularity 缺省按跨度自动选（7 天=DAY）
-    const res = (await getAlarmTrend({ startTime: start, endTime: end })) as {
-      code?: number;
-      data?: { items?: Array<{ bucket: string; total: number }> };
-    };
-    if (res.code === 200 || res.code === undefined) {
-      const items = (res.data && res.data.items) || [];
-      overviewHasData.value = items.some((i) => i.total > 0);
+  overviewStatsLoading.value = true;
+  overviewTrendLoading.value = true;
+  overviewStatsError.value = false;
+  overviewTrendError.value = false;
+  const isCurrent = () => !panelsDisposed && requestId === overviewRequestId;
+  const statsTask = async () => {
+    try {
+      const res = await getAlarmOverview({}) as { code?: number; msg?: string; data?: AlarmOverviewStats };
+      if (!isCurrent()) return;
+      if (res.code !== undefined && res.code !== 200) throw new Error(res.msg || "overview failed");
+      overviewStats.value = res.data || {};
+    } catch {
+      if (isCurrent()) overviewStatsError.value = true;
+    } finally {
+      if (isCurrent()) overviewStatsLoading.value = false;
+    }
+  };
+  const trendTask = async () => {
+    try {
+      const end = fmtDate(Date.now());
+      const start = fmtDate(Date.now() - 6 * 24 * 3600 * 1000);
+      const res = await getAlarmTrend({ startTime: start, endTime: end, granularity: "DAY" }) as { code?: number; msg?: string; data?: { items?: Array<{ bucket: string; total: number }> } };
+      if (!isCurrent()) return;
+      if (res.code !== undefined && res.code !== 200) throw new Error(res.msg || "trend failed");
+      const items = res.data?.items || [];
+      overviewHasData.value = items.some((item) => item.total > 0);
       renderOverviewChart(items);
+    } catch {
+      if (isCurrent()) overviewTrendError.value = true;
+    } finally {
+      if (isCurrent()) overviewTrendLoading.value = false;
     }
-    // activeTotal 是后端真实活跃数，替代此前 latest-active 长度的近似
-    const overview = (await getAlarmOverview({})) as { code?: number; data?: AlarmOverviewStats };
-    if (overview.code === 200 || overview.code === undefined) {
-      overviewStats.value = overview.data || {};
-    }
-  } catch {
-    // 概况加载失败静默：图表区保持为空，不弹窗打扰
-  } finally {
-    overviewLoading = false;
-  }
+  };
+  await Promise.allSettled([statsTask(), trendTask()]);
+  if (isCurrent()) overviewLoading = false;
 }
 
 function renderOverviewChart(items: Array<{ bucket: string; total: number }>) {
@@ -1072,9 +1154,9 @@ interface MapPointGroup {
 }
 const mapGroups = ref<MapPointGroup[]>([]);
 
-/** 坐标有效性：真实 GPS 不会是整数经纬度，(120,30)/(0,0) 这类整数占位值视为无坐标 */
-function isValidCoord(value: number | null | undefined): value is number {
-  return typeof value === "number" && Number.isFinite(value) && !Number.isInteger(value);
+/** 经纬度分别按合法范围校验；整数坐标有效，已知占位值在点位过滤时排除。 */
+function isValidCoord(value: number | null | undefined, limit = 180): value is number {
+  return typeof value === "number" && Number.isFinite(value) && Math.abs(value) <= limit;
 }
 
 /** 同坐标报警聚合为一组（两台设备贴着装时 marker 会完全重叠） */
@@ -1115,13 +1197,15 @@ let mapChart: echarts.ECharts | null = null;
 let mapResizeObserver: ResizeObserver | null = null;
 /** 最近一次成功加载的筛选串：展开时若筛选已变则重新拉取 */
 let mapLoadedQuery = "";
+let mapPendingQuery = "";
+let mapRequestId = 0;
 
 function currentMapQuery(): string {
   return JSON.stringify([mapStatusOptions[mapFilters.statusIndex].value, mapLevelOptions[mapFilters.levelIndex].value]);
 }
 
 /** 自定义下拉开合（status/level 互斥）；点页面其他区域由 document mousedown 关闭 */
-const activeMapSelect = ref<"status" | "level" | null>(null);
+const activeMapSelect = ref<"status" | "level" | "dialog-status" | "dialog-level" | null>(null);
 
 function closeMapSelect(event?: Event) {
   // 点的还在筛选下拉区域内（触发器/菜单选项）时不关：交给各自的 click 逻辑处理，
@@ -1133,55 +1217,54 @@ function closeMapSelect(event?: Event) {
   activeMapSelect.value = null;
 }
 
-function toggleMapSelect(key: "status" | "level") {
+function toggleMapSelect(key: "status" | "level" | "dialog-status" | "dialog-level") {
   activeMapSelect.value = activeMapSelect.value === key ? null : key;
 }
 
 function selectMapStatus(index: number) {
   mapFilters.statusIndex = index;
   activeMapSelect.value = null;
-  if (mapChart) loadAlarmMap();
+  void loadAlarmMap();
 }
 
 function selectMapLevel(index: number) {
   mapFilters.levelIndex = index;
   activeMapSelect.value = null;
-  if (mapChart) loadAlarmMap();
+  void loadAlarmMap();
 }
 
-async function loadAlarmMap() {
-  if (mapLoading.value) return;
+async function loadAlarmMap(force = false) {
+  if (panelsDisposed) return;
+  const query = currentMapQuery();
+  if (mapLoading.value && mapPendingQuery === query && !force) return;
+  const requestId = ++mapRequestId;
+  mapPendingQuery = query;
   mapLoading.value = true;
   mapError.value = false;
   const body: Record<string, unknown> = {};
-  const status = mapStatusOptions[mapFilters.statusIndex].value;
+  const [status, level] = JSON.parse(query) as Array<string | null>;
   if (status !== null) body.status = status;
-  const level = mapLevelOptions[mapFilters.levelIndex].value;
   if (level !== null) body.alarmLevel = level;
   try {
-    const res = (await getAlarmMap(body)) as { code?: number; msg?: string; data?: { items?: AlarmMapItem[] } };
-    if (res.code !== undefined && res.code !== 200) {
-      throw new Error(res.msg || "load failed");
-    }
-    // 坐标非法的点位不下图：后端只滤 999 哨兵值，整数占位坐标（如 120,30）会把视野拉偏
-    const items = ((res.data && res.data.items) || []).filter(
-      (item) => isValidCoord(item.longitude) && isValidCoord(item.latitude),
+    const res = await getAlarmMap(body) as { code?: number; msg?: string; data?: { items?: AlarmMapItem[] } };
+    if (panelsDisposed || requestId !== mapRequestId) return;
+    if (res.code !== undefined && res.code !== 200) throw new Error(res.msg || "map failed");
+    const items = (res.data?.items || []).filter((item) =>
+      isValidCoord(item.longitude, 180) && isValidCoord(item.latitude, 90)
+      && !(item.longitude === 0 && item.latitude === 0),
     );
     mapPointCount.value = items.length;
     mapItems.value = items;
     mapGroups.value = groupMapItems(items);
-    mapLoadedQuery = currentMapQuery();
-    if (mapProvider.value === "tencent" && tMapInstance) {
-      drawTencentMarkers();
-    } else if (mapProvider.value === "google" && gMapInstance) {
-      drawGoogleMarkers();
-    } else {
-      renderMapChart(mapChart, mapGroups.value);
-    }
+    mapLoadedQuery = query;
+    if (mapProvider.value === "tencent" && tMapInstance) drawTencentMarkers();
+    else if (mapProvider.value === "google" && gMapInstance) drawGoogleMarkers();
+    else renderMapChart(mapChart, mapGroups.value);
+    refreshMapDialogMarkers();
   } catch {
-    mapError.value = true;
+    if (!panelsDisposed && requestId === mapRequestId) mapError.value = true;
   } finally {
-    mapLoading.value = false;
+    if (requestId === mapRequestId) mapLoading.value = false;
   }
 }
 
@@ -1691,7 +1774,23 @@ let mapDialogMarkers: TencentMultiMarkerLike | null = null;
 let mapDialogChart: echarts.ECharts | null = null;
 let mapDialogResizeObserver: ResizeObserver | null = null;
 
+function refreshMapDialogMarkers() {
+  if (!mapDialogVisible.value) return;
+  const groups = mapGroups.value;
+  if (mapProvider.value === "tencent" && mapDialogTMap) {
+    mapDialogMarkers?.setMap?.(null);
+    mapDialogMarkers = drawTencentMarkersTo(mapDialogTMap, groups);
+  } else if (mapProvider.value === "google" && mapDialogGMap) {
+    for (const marker of mapDialogGMarkers) marker.setMap(null);
+    mapDialogGMarkers = drawGoogleMarkersTo(mapDialogGMap, groups);
+    if (groups.length) fitGoogleBounds(mapDialogGMap, groups, 60);
+  } else if (mapDialogChart) {
+    renderMapChart(mapDialogChart, groups);
+  }
+}
+
 function openMapDialog() {
+  activeMapSelect.value = null;
   mapDialogVisible.value = true;
   nextTick(initMapDialog);
 }
@@ -1747,6 +1846,7 @@ function initMapDialog() {
 }
 
 function closeMapDialog() {
+  activeMapSelect.value = null;
   if (mapDialogResizeObserver) {
     mapDialogResizeObserver.disconnect();
     mapDialogResizeObserver = null;
@@ -1790,11 +1890,19 @@ const sideWidth = ref(
   typeof window !== "undefined" ? Math.min(430, Math.max(360, Math.round(window.innerWidth * 0.22))) : 420,
 );
 const isSideCollapsed = ref(false);
+const layoutContainer = ref<HTMLElement | { $el: HTMLElement } | null>(null);
+let layoutObserver: ResizeObserver | undefined;
+function layoutElement(): HTMLElement | null {
+  const element = layoutContainer.value;
+  return element ? ("$el" in element ? element.$el : element) : null;
+}
 /** 宽屏才启用左右分栏（窄屏交给媒体查询单列堆叠，不用手柄） */
 const wideLayout = ref(typeof window === "undefined" || window.innerWidth > 1024);
 
 function syncWideLayout() {
-  wideLayout.value = window.innerWidth > 1024;
+  const width = layoutElement()?.clientWidth || window.innerWidth;
+  wideLayout.value = width >= 1000;
+  sideWidth.value = Math.min(sideWidth.value, Math.max(300, Math.min(760, Math.floor(width * 0.45))));
 }
 
 const layoutStyle = computed<Record<string, string> | undefined>(() => {
@@ -1824,7 +1932,7 @@ function onSideResizeMove(event: MouseEvent) {
     resizeDragging = true;
   }
   // 下限 300 保证筛选可用，上限 55vw 不吞表格
-  const maxWidth = Math.min(760, Math.floor(window.innerWidth * 0.55));
+  const maxWidth = Math.max(300, Math.min(760, Math.floor((layoutElement()?.clientWidth || window.innerWidth) * 0.45)));
   sideWidth.value = Math.max(300, Math.min(maxWidth, resizeStartWidth + diff));
 }
 
@@ -1840,6 +1948,18 @@ function stopSideResize() {
     mapChart && mapChart.resize();
   });
 }
+
+/** 地图保持挂载；关闭详情后恢复尺寸，避免从隐藏状态回来时底图空白。 */
+function resizeSidePanels() {
+  if (panelsDisposed) return;
+  overviewChart?.resize();
+  mapChart?.resize();
+  tMapInstance?.resize?.();
+  if (gMapInstance) google.maps.event.trigger(gMapInstance, "resize");
+}
+watch(() => Boolean(selectedRecord.value), (detailOpen) => {
+  if (!detailOpen) nextTick(resizeSidePanels);
+}, { flush: "post" });
 
 /* ========================= 生命周期 ========================= */
 
@@ -1866,7 +1986,14 @@ async function loadDeptOptions() {
 onMounted(() => {
   loadAlarms(1, { applyFilters: true });
   loadDeptOptions();
-  nextTick(initSideCharts);
+  nextTick(() => {
+    syncWideLayout();
+    if (typeof ResizeObserver !== "undefined" && layoutElement()) {
+      layoutObserver = new ResizeObserver(syncWideLayout);
+      layoutObserver.observe(layoutElement()!);
+    }
+    initSideCharts();
+  });
   window.addEventListener("resize", syncWideLayout);
   // 下拉外部关闭用 mousedown：与触发器 click 不同事件，避免同一次点击"先开后关"
   document.addEventListener("mousedown", closeMapSelect);
@@ -1878,6 +2005,10 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  panelsDisposed = true;
+  overviewRequestId++;
+  mapRequestId++;
+  layoutObserver?.disconnect();
   // #ifdef H5
   stopPolling();
   document.removeEventListener("visibilitychange", onVisibilityChange);
@@ -1931,6 +2062,11 @@ onUnmounted(() => {
   gap: 12px;
   min-width: 0;
   min-height: 0;
+  --alarm-panel-title-size: 14px;
+  --alarm-panel-text-size: 12px;
+  --alarm-panel-title-weight: 700;
+  font-size: var(--alarm-panel-text-size);
+  line-height: 1.5;
 }
 
 .side-card {
@@ -1947,6 +2083,7 @@ onUnmounted(() => {
 
 /* 地图卡：占剩余空间，图表自适应填充；筛选菜单要向上弹出卡片外，故不裁溢出 */
 .side-card--map {
+  isolation: isolate;
   flex: 1;
   overflow: visible;
 }
@@ -1967,9 +2104,10 @@ onUnmounted(() => {
 
 .side-card__title {
   color: #172033;
-  font-size: 14px;
-  font-weight: 900;
+  font-size: var(--alarm-panel-title-size);
+  font-weight: var(--alarm-panel-title-weight);
   white-space: nowrap;
+  line-height: 1.5;
 }
 
 .side-card__body {
@@ -2006,8 +2144,9 @@ onUnmounted(() => {
 
 .side-stat__label {
   color: #52677b;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--alarm-panel-text-size);
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 .side-stat__num {
@@ -2039,8 +2178,9 @@ onUnmounted(() => {
 
 .side-breakdown__label {
   color: #52677b;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--alarm-panel-text-size);
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 .side-breakdown__item {
@@ -2048,8 +2188,9 @@ onUnmounted(() => {
   align-items: center;
   gap: 6px;
   color: #34495e;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--alarm-panel-text-size);
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 .side-breakdown__item--na {
@@ -2084,8 +2225,9 @@ onUnmounted(() => {
   display: block;
   margin-bottom: 6px;
   color: #52677b;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--alarm-panel-text-size);
+  font-weight: 700;
+  line-height: 1.5;
 }
 
 .side-chart--trend {
@@ -2279,8 +2421,8 @@ onUnmounted(() => {
 .main-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 24px minmax(0, clamp(360px, 22vw, 430px));
-  flex: 1 0 auto;
-  min-height: 420px;
+  flex: 1 0 720px;
+  min-height: 720px;
   gap: 12px;
   margin-top: 12px;
   min-width: 0;
@@ -2320,10 +2462,11 @@ onUnmounted(() => {
   border-color: #0d82ee;
 }
 
-/* 概况卡：按内容自适应（上限 52%），地图占剩余空间 */
+/* 概况保留完整趋势图空间，短窗口由页面滚动承接。 */
 .side-card--stats {
-  flex: 0 1 auto;
-  max-height: 52%;
+  flex: none;
+  height: 400px;
+  max-height: none;
 }
 
 /* 地图卡：占剩余空间，图表自适应填充；筛选菜单要向上弹出卡片外，故不裁溢出 */
@@ -2369,22 +2512,25 @@ onUnmounted(() => {
 
 .detail-panel__title {
   color: #172033;
-  font-size: 15px;
-  font-weight: 800;
+  font-size: var(--alarm-panel-title-size);
+  font-weight: var(--alarm-panel-title-weight);
+  line-height: 1.5;
 }
 
 .detail-panel__subtitle {
   color: #52677b;
-  font-size: 12px;
+  font-size: var(--alarm-panel-text-size);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 .detail-panel__body {
   flex: 1;
   min-height: 0;
-  padding: 14px 16px;
+  padding: 12px 14px;
   box-sizing: border-box;
 }
 
@@ -2411,23 +2557,25 @@ onUnmounted(() => {
 
 .detail-summary__label {
   color: #475569;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--alarm-panel-text-size);
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 .detail-summary__value {
   color: #0f4c81;
-  font-size: 16px;
-  font-weight: 900;
-  line-height: 1.25;
+  font-size: var(--alarm-panel-title-size);
+  font-weight: var(--alarm-panel-title-weight);
+  line-height: 1.5;
   overflow-wrap: anywhere;
 }
 
 .detail-summary__alias {
   margin-left: 8px;
   color: #52677b;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--alarm-panel-text-size);
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 .detail-summary__badges {
@@ -2467,14 +2615,16 @@ onUnmounted(() => {
 .detail-summary__meta-label {
   display: block;
   color: #475569;
-  font-size: 11px;
-  font-weight: 800;
+  font-size: var(--alarm-panel-text-size);
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 .detail-summary__meta-value {
   color: #172033;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--alarm-panel-text-size);
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 /* 分组标题 */
@@ -2482,8 +2632,9 @@ onUnmounted(() => {
   display: block;
   margin: 14px 0 10px;
   color: #183755;
-  font-size: 14px;
-  font-weight: 900;
+  font-size: var(--alarm-panel-text-size);
+  font-weight: 700;
+  line-height: 1.5;
 }
 
 .detail-grid--single {
@@ -2674,126 +2825,7 @@ onUnmounted(() => {
   border-radius: 999px;
 }
 
-.table-scroll {
-  flex: 1;
-  height: auto;
-  min-height: 0;
-  background: #ffffff;
-}
-
-.table-scroll :deep(.uni-scroll-view) {
-  scrollbar-color: #9fb4c8 #edf3f8;
-  scrollbar-width: thin;
-}
-
-.table {
-  width: 100%;
-  background: #ffffff;
-  font-size: 12px;
-}
-
-.table-row {
-  display: grid;
-  width: 100%;
-  min-height: 42px;
-  border-bottom: 1px solid #edf1f5;
-  transition: background 0.18s ease, box-shadow 0.18s ease;
-}
-
-.record-table-row {
-  /* 列宽模板由 alarmColumns.ts 的 processingGridColumns 内联绑定（字段配置化） */
-  min-width: 1180px;
-}
-
-.table-row--header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  color: #20384f;
-  min-height: 44px;
-  font-weight: 800;
-  background: #f6f9fc;
-  cursor: default;
-  box-shadow: 0 1px 0 #dbe7f0;
-}
-
-.table-row:not(.table-row--header):nth-child(odd) {
-  background: #ffffff;
-}
-
-.table-row:not(.table-row--header):nth-child(even) {
-  background: #fbfdff;
-}
-
-.table-row:not(.table-row--header):hover {
-  background: #edf7ff;
-  box-shadow: inset 0 0 0 1px #d7ebfb;
-}
-
-.table-cell {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  min-width: 0;
-  padding: 0 10px;
-  overflow: hidden;
-  color: #24384d;
-  font-size: 13px;
-  line-height: 1.35;
-  text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  border-right: 1px solid #edf1f5;
-}
-
-.table-row--header {
-  position: sticky;
-  top: 0;
-  z-index: 3;
-}
-
-.table-row--header .table-cell {
-  color: #415a73;
-  font-size: 12px;
-  background: #ffffff;
-}
-
-.table-cell:last-child {
-  border-right: 0;
-}
-
-.col-index {
-  justify-content: center;
-  color: #64748b;
-}
-
-.col-check {
-  justify-content: center;
-}
-
-.col-alarm-no,
-.col-alarm-time {
-  justify-content: center;
-}
-
-.col-action {
-  gap: 6px;
-  /* 操作列固定右侧：横向滚动时按钮始终可见，不再被裁切 */
-  position: sticky;
-  right: 0;
-  z-index: 2;
-  background: #ffffff;
-  border-left: 1px solid #e3edf5;
-}
-
-.table-row--header .col-action {
-  z-index: 3;
-}
-
-.table-row--selected .col-action {
-  background: #f2f9ff;
-}
+.record-cell-text { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .checkbox {
   display: flex;
@@ -3149,17 +3181,19 @@ onUnmounted(() => {
 
 .detail-item__label {
   color: #6a7f94;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--alarm-panel-text-size);
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 .detail-item__value {
   overflow: hidden;
   color: #24384d;
-  font-size: 13px;
+  font-size: var(--alarm-panel-text-size);
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.5;
 }
 
 /* ========================= 表单 ========================= */
@@ -3367,4 +3401,98 @@ onUnmounted(() => {
 .input-placeholder {
   color: #9aa9b8;
 }
+
+/* 按实际内容区宽度切换，侧边菜单折叠也会触发 ResizeObserver。 */
+.main-layout--stacked {
+  grid-template-columns: minmax(0, 1fr);
+  flex: none;
+  min-height: 0;
+}
+.main-layout--stacked .split-handle { display: none; }
+.main-layout--stacked .table-panel { height: 560px; }
+.main-layout--stacked .side-column,
+.main-layout--stacked .side-column--hidden { display: flex; min-height: 0; }
+.main-layout--stacked .side-column--detail { min-height: 560px; }
+.main-layout--stacked .side-card--stats { max-height: none; }
+.main-layout--stacked .side-card--map { height: 420px; flex: none; }
+.panel-status { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; color: #64748b; font-size: 12px; }
+.panel-status--error { color: #b45309; }
+.panel-retry { flex: none; height: 26px; margin: 0; padding: 0 8px; line-height: 24px; color: #0d82ee; font-size: 12px; background: #f6fbff; border: 1px solid #cbdced; border-radius: 4px; }
+.panel-retry::after { border: 0; }
+.overview-chart-stage { min-width: 0; }
+.map-foot--error { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; }
+.pagination-bar { flex-wrap: wrap; gap: 6px; padding: 8px 10px; }
+.pagination-bar .page-info { padding: 0 2px; }
+.table-head { gap: 8px; flex-wrap: wrap; min-height: 50px; height: auto; padding: 10px 14px; }
+.table-head__aux { flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.filter-group--date { flex: 0 1 440px; max-width: 100%; }
+.filter-datetime { flex: 1 1 0; min-width: 0; width: auto; }
+@media (max-width: 600px) {
+  .alarm-view { padding: 0 8px 8px; }
+  .toolbar-panel { padding: 10px; }
+  .filter-group { flex: 1 1 120px; }
+  .filter-group--date { flex: 1 1 100%; }
+  .date-range { flex-wrap: wrap; }
+  .filter-datetime { flex: 1 1 100%; }
+  .filter-separator { display: none; }
+  .table-head__aux { margin-left: 0; }
+  .side-stats { gap: 6px; }
+  .side-stat { padding: 8px 4px; }
+  .dialog-panel { width: calc(100vw - 24px); max-height: calc(100vh - 32px); }
+}
+
+
+/* 放大地图共用小地图筛选状态；菜单向下展开，并位于 SDK 控件之上。 */
+.map-fullscreen__toolbar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  flex: none;
+  padding: 10px 16px;
+  border-bottom: 1px solid #edf3f8;
+  background: #fff;
+}
+.map-fullscreen__filters { flex-wrap: wrap; }
+.map-fullscreen__filters .map-select-menu {
+  top: calc(100% + 4px);
+  bottom: auto;
+  left: 0;
+  right: auto;
+  min-width: max(100%, 110px);
+  max-width: min(240px, calc(100vw - 72px));
+  box-sizing: border-box;
+}
+.map-fullscreen__feedback { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; color: #64748b; font-size: 12px; }
+.map-fullscreen__feedback--error { color: #b45309; }
+.map-fullscreen__body { isolation: isolate; }
+@media (max-width: 600px) {
+  .map-fullscreen__head { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+  .map-fullscreen__title { font-size: 14px; }
+  .map-fullscreen__head .icon-button { margin-left: auto; }
+  .map-fullscreen__meta { order: 3; flex: 1 1 100%; }
+  .map-fullscreen__toolbar { padding: 10px 12px; }
+}
+
+
+.map-result-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  flex: none;
+  padding: 9px 16px;
+  color: #52677b;
+  font-size: 12px;
+  line-height: 1.5;
+  background: #f7fafc;
+  border-bottom: 1px solid #e3ebf2;
+}
+.map-result-summary__label { font-weight: 600; }
+.map-result-summary__item { display: inline-flex; align-items: center; gap: 6px; }
+.map-result-summary__value { color: #0f4c81; font-weight: 700; font-variant-numeric: tabular-nums; }
+@media (max-width: 600px) { .map-result-summary { padding: 9px 12px; gap: 6px 12px; } }
+
 </style>
