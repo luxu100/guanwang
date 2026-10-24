@@ -1,0 +1,194 @@
+- generic "绑定 Logo":
+- generic "预警信息":
+  - generic: "11"
+- generic: 简体中文
+- generic: string
+- generic: 退出登录
+- generic: 目录
+- generic "收起目录"
+- generic "我的收藏"
+- generic "一张图"
+- generic "渗漏监测"
+- generic "水锤分析"
+- generic "分区管理"
+- generic "设备管理"
+- generic "指令管理"
+- generic "统计分析"
+- generic "数据分析"
+- generic "疑漏点上报"
+- generic "工单管理"
+- generic "工单创建"
+- generic "工单处理"
+- generic "运维报表"
+- generic "渗漏爆管"
+- generic "实时报警"
+- generic "系统设置"
+- generic "数据接收和解析"
+- generic "向左滚动页签"
+- generic "向右滚动页签"
+- generic "渗漏监测"
+- generic "一张图"
+- generic "水锤分析"
+- generic "分区管理"
+- generic "设备信息"
+- generic "拆装维护"
+- generic "协议绑定"
+- generic "设备参数"
+- generic "阀门管理"
+- generic "工单创建"
+- generic "进入全屏"
+- generic: 工单编号
+- generic: 请输入编号
+- textbox
+- generic: 工单状态
+- generic: 不限
+- generic: 工单类型
+- generic: 不限
+- generic: 发起人
+- generic: 请输入发起人账号
+- textbox
+- generic: 执行人
+- generic: 请输入执行人账号
+- textbox
+- generic: 创建时间
+- generic: 请选择开始时间
+- generic: 至
+- generic: 请选择结束时间
+- generic: 查询
+- generic: 重置
+- generic "刷新"
+- generic: 新增工单
+- generic: 工单创建记录
+- generic: 共 3 条
+- generic: 序号
+- generic: 工单编号
+- generic: 工单类型
+- generic: 工单状态
+- generic: 发起人
+- generic: 执行人
+- generic: 关联设备
+- generic: 紧急程度
+- generic: "1"
+- generic: WO20260908020212
+- generic: 巡检
+- generic: 处理中
+- generic: "1"
+- generic: "1"
+- generic: "-"
+- generic: 一般
+- generic: "2"
+- generic: WO20260907152955
+- generic: 巡检
+- generic: 待处理
+- generic: string
+- generic: string
+- generic: "-"
+- generic: 一般
+- generic: "3"
+- generic: WO20260717161621
+- generic: 巡检
+- generic: 待处理
+- generic: test
+- generic: test
+- generic: "-"
+- generic: 紧急
+- text: 每页
+- generic: "10"
+- text: 条
+- generic: 上一页
+- generic: 第 1 / 1 页
+- generic: 下一页
+- text: 到第
+- spinbutton
+- text: 页
+- generic: 确定
+- generic: 工单详情
+- generic: 反馈说明
+- generic: 工单编号
+- generic: WO20260908020212
+- generic: 处理中
+- generic: 类型
+- generic: 巡检
+- generic: 执行人
+- generic: "1"
+- generic: 发起人
+- generic: "1"
+- generic: 关联设备
+- generic: "-"
+- generic: 关联渗漏ID
+- generic: "-"
+- generic: 时间信息
+- generic: 发起时间
+- generic: 2026-09-08 02:01:51
+- generic: 截止时间
+- generic: "-"
+- generic: 完成时间
+- generic: "-"
+- generic: 创建时间
+- generic: 2026-09-08 02:02:15
+- generic: 更新时间
+- generic: "-"
+- generic: 地点信息
+- generic: 地址
+- generic: "-"
+- generic: 坐标
+- generic: "-"
+- generic: 工
+- generic: 新增工单
+- generic: 按工单接口字段填写派单信息与现场凭证
+- generic "关闭"
+- generic: 基础信息
+- generic: 工单标识与时间安排
+- generic: 工单编号
+- generic: 留空将自动生成
+- textbox
+- generic: 工单类型*
+- generic: 请选择工单类型
+- generic: 紧急程度*
+- generic: 一般
+- generic: 工单状态*
+- generic: 待处理
+- generic: 发起时间*
+- generic: 2026-10-21 21:51:35
+- generic: 截止时间
+- generic: 请选择截止时间
+- generic: 处理安排
+- generic: 指派人员与处理流程
+- generic: 工单发起人*
+- generic: 请输入发起人账号
+- textbox
+- generic: 工单执行人*
+- generic: 请输入执行人账号
+- textbox
+- generic: 关联设备
+- generic: 多个设备编号用逗号分隔
+- textbox
+- generic: 关联渗漏记录ID
+- generic: 请输入渗漏记录ID
+- spinbutton
+- generic: 工单说明*
+- generic: 请输入工单说明
+- textbox
+- generic: 工单反馈
+- generic: 未处理时可不填
+- textbox
+- generic: 备注
+- generic: 补充说明工单要求或注意事项
+- textbox
+- generic: 现场信息
+- generic: 位置与图片凭证
+- generic: 工单地址
+- generic: 请输入工单地址
+- textbox
+- generic: 工单坐标
+- generic: 经度,纬度
+- textbox
+- generic: 工单照片
+- generic: +
+- generic: 选择本地图片
+- generic: 支持 JPG、PNG、WEBP，最多 1 张
+- generic: 图片将在创建工单时自动上传
+- generic: 取消
+- generic: 清空表单
+- generic: 确认创建
+- button "Choose File"

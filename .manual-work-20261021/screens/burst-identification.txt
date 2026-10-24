@@ -1,0 +1,122 @@
+- generic "绑定 Logo":
+- generic "预警信息":
+  - generic: "11"
+- generic: 简体中文
+- generic: string
+- generic: 退出登录
+- generic: 目录
+- generic "收起目录"
+- generic "我的收藏"
+- generic "一张图"
+- generic "渗漏监测"
+- generic "水锤分析"
+- generic "分区管理"
+- generic "设备管理"
+- generic "指令管理"
+- generic "统计分析"
+- generic "数据分析"
+- generic "疑漏点上报"
+- generic "工单管理"
+- generic "运维报表"
+- generic "渗漏爆管"
+- generic "爆管识别"
+- generic "测点分析"
+- generic "漏点定位"
+- generic "漏损报表"
+- generic "实时报警"
+- generic "系统设置"
+- generic "数据接收和解析"
+- generic "向左滚动页签"
+- generic "向右滚动页签"
+- generic "渗漏监测"
+- generic "一张图"
+- generic "水锤分析"
+- generic "分区管理"
+- generic "设备信息"
+- generic "拆装维护"
+- generic "协议绑定"
+- generic "设备参数"
+- generic "阀门管理"
+- generic "工单创建"
+- generic "工单处理"
+- generic "报警策略"
+- generic "报警处理"
+- generic "爆管识别"
+- generic "漏点定位"
+- generic "协议管理"
+- generic "用户配置"
+- generic "权限管理"
+- generic "菜单管理"
+- generic "数据字典"
+- generic "查询模板"
+- generic "疑漏模块总览"
+- generic "数据系统总览"
+- generic "音频数据"
+- generic "渗漏数据"
+- generic "疑点管理"
+- generic "疑点处理"
+- generic "漏点管理"
+- generic "漏点分析"
+- generic "设备履历"
+- generic "设备台账"
+- generic "电池健康度"
+- generic "运行分析报告"
+- generic "进入全屏"
+- generic: 爆管识别
+- generic: 查看高频压力识别窗口，通过 μ ± 3σ 正常区间追踪疑似爆管。
+- generic: 分区
+- generic: 全部分区
+- generic: 设备编号
+- generic: 请输入
+- textbox
+- generic: 开始时间
+- generic: 开始时间
+- generic: 结束时间
+- generic: 结束时间
+- generic: 识别状态
+- generic: 全部状态
+- generic: 查询
+- generic: 重置
+- generic "t('refresh')"
+- generic: 识别概览统计各测点最新窗口；下方列表按筛选条件展示历史窗口。状态：正常绿色、疑似黄色、已确认爆管红色。曲线红点仅表示越界，不能据此确认爆管。
+- generic: 已确认爆管测点数
+- generic: "-"
+- generic: 参与识别测点数
+- generic: "-"
+- generic: 疑似爆管测点数
+- generic: "-"
+- generic: 异常点总数
+- generic: "-"
+- generic: 最近识别时间
+- generic: "-"
+- generic: 爆管识别结果
+- generic: 共 0 条
+- generic: 序号
+- generic: 采样率 Hz
+- generic: 设备编号
+- generic: 测点别名
+- generic: 窗口开始
+- generic: 窗口结束
+- generic: 均值 μ (MPa)
+- generic: 上限 μ+3σ
+- generic: 下限 μ-3σ
+- generic: 异常点数
+- generic: 异常比例
+- generic: 管材
+- generic: 管龄
+- generic: 资产评分
+- generic: 识别状态
+- generic: 加载中...
+- text: 每页
+- generic: "10"
+- text: 条
+- generic: 上一页
+- generic: 第 1 / 1 页
+- generic: 下一页
+- text: 到第
+- spinbutton
+- text: 页
+- generic: 确定
+- generic: ⟩
+- generic: 压力曲线（μ±3σ）
+- generic: 点击左侧列表查看 ±3σ 压力曲线

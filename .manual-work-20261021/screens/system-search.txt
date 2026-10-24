@@ -1,0 +1,117 @@
+- generic "绑定 Logo":
+- generic "预警信息":
+  - generic: "11"
+- generic: 简体中文
+- generic: string
+- generic: 退出登录
+- generic: 目录
+- generic "收起目录"
+- generic "我的收藏"
+- generic "一张图"
+- generic "渗漏监测"
+- generic "水锤分析"
+- generic "分区管理"
+- generic "设备管理"
+- generic "指令管理"
+- generic "统计分析"
+- generic "数据分析"
+- generic "疑漏点上报"
+- generic "工单管理"
+- generic "运维报表"
+- generic "渗漏爆管"
+- generic "实时报警"
+- generic "系统设置"
+- generic "用户配置"
+- generic "权限管理"
+- generic "菜单管理"
+- generic "数据字典"
+- generic "查询模板"
+- generic "数据接收和解析"
+- generic "向左滚动页签"
+- generic "向右滚动页签"
+- generic "渗漏监测"
+- generic "一张图"
+- generic "水锤分析"
+- generic "分区管理"
+- generic "设备信息"
+- generic "拆装维护"
+- generic "协议绑定"
+- generic "设备参数"
+- generic "阀门管理"
+- generic "工单创建"
+- generic "工单处理"
+- generic "报警策略"
+- generic "报警处理"
+- generic "爆管识别"
+- generic "漏点定位"
+- generic "协议管理"
+- generic "用户配置"
+- generic "权限管理"
+- generic "菜单管理"
+- generic "数据字典"
+- generic "查询模板"
+- generic "进入全屏"
+- generic: 模板名称
+- generic: 请输入模板名称
+- textbox
+- generic: 模板编码
+- generic: 请输入模板编码
+- textbox
+- generic: 适用范围
+- generic: 全部
+- generic: 协议名称
+- generic: 请输入协议名称
+- textbox
+- generic: 启用状态
+- generic: 全部
+- generic: 查询
+- generic: 重置
+- generic "刷新":
+- generic: 新增模板
+- generic: 删除
+- generic: 动态协议解析字段查询模板
+- generic: 一个模板只能从一个协议下选择部分字段
+- generic: 共 0 条
+- generic: 模板名称
+- generic: 模板编码
+- generic: 范围
+- generic: 协议名称
+- generic: 字段数
+- generic: 状态
+- generic: 备注
+- generic: 更新时间
+- generic: 加载中...
+- generic: 每页
+- spinbutton: "20"
+- generic: 条
+- generic: 上一页
+- generic: 第
+- spinbutton: "1"
+- generic: / 1 页
+- generic: 下一页
+- generic: 查询模板配置
+- generic: 先选择协议，再从该协议的字段里挑选模板字段
+- generic: 协议 *
+- generic: 请选择协议
+- generic: 模板编码 *
+- generic: 例如 protocol_default
+- textbox
+- generic: 模板名称 *
+- generic: 请输入模板名称
+- textbox
+- generic: 适用范围
+- generic: 协议
+- generic: 设备 ID
+- generic: 设备范围时填写
+- spinbutton
+- generic: 启用状态
+- generic: 启用
+- generic: 模板字段 *
+- generic: 已选 0 / 0
+- generic: 更换模板字段
+- generic: 请先选择协议
+- generic: 备注
+- generic: 补充说明
+- textbox
+- generic: 清空
+- generic: 保存模板

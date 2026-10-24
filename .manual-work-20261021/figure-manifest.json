@@ -1,0 +1,77 @@
+[
+  {
+    "key": "overview",
+    "caption": "一张图的时间筛选 地图与报警分布",
+    "width_in": 6.85
+  },
+  {
+    "key": "manual",
+    "caption": "人工分析表单与派单入口",
+    "width_in": 6.85
+  },
+  {
+    "key": "network",
+    "caption": "管线图层主页与统一新增入口",
+    "width_in": 4.814634146341463
+  },
+  {
+    "key": "pipe",
+    "caption": "坐标区与线段设施编辑",
+    "width_in": 6.85
+  },
+  {
+    "key": "hammer-form",
+    "caption": "水锤模拟操作配置",
+    "width_in": 6.85
+  },
+  {
+    "key": "hammer-result",
+    "caption": "模拟曲线与正常曲线对比",
+    "width_in": 6.85
+  },
+  {
+    "key": "scene",
+    "caption": "协议绑定中的使用场景选择与只读适配字段",
+    "width_in": 3.3474820143884894
+  },
+  {
+    "key": "order-create",
+    "caption": "工单创建表单的必填区和提交区",
+    "width_in": 6.85
+  },
+  {
+    "key": "order-process",
+    "caption": "工单处理弹窗的状态和保存操作",
+    "width_in": 6.85
+  },
+  {
+    "key": "location",
+    "caption": "漏点定位的设备A与设备B选择区",
+    "width_in": 6.85
+  },
+  {
+    "key": "alarm",
+    "caption": "报警策略表单的字段和启用设置",
+    "width_in": 6.85
+  },
+  {
+    "key": "user",
+    "caption": "新增用户表单的账号和角色区域",
+    "width_in": 6.85
+  },
+  {
+    "key": "permissions",
+    "caption": "权限管理中角色与权限树",
+    "width_in": 6.85
+  },
+  {
+    "key": "protocol-meta",
+    "caption": "协议元数据与字段编辑入口",
+    "width_in": 6.85
+  },
+  {
+    "key": "protocol-fields",
+    "caption": "协议字段配置的字段列表和保存区域",
+    "width_in": 6.85
+  }
+]

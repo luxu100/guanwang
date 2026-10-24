@@ -7,6 +7,9 @@
         <view class="toolbar-actions"><button class="primary-button" @click="search">{{ localeText("查询", "Search") }}</button><button class="secondary-button" @click="reset">{{ localeText("重置", "Reset") }}</button></view>
       </view>
     </view>
+    <view class="demo-notice">
+      {{ localeText("演示数据：本页使用内置示例数据；新增、编辑和删除仅在当前页面生效，刷新后恢复。尚未接入电池健康预测服务。", "Demo data: this page uses built-in sample records. Add, edit, and delete changes apply only to the current page and are lost on refresh. Battery health prediction is not connected yet.") }}
+    </view>
     <view class="statistics">
       <view v-for="card in statistics" :key="card.label" class="stat-card" :class="card.tone">
         <text class="stat-label">{{ card.label }}</text>
@@ -46,7 +49,7 @@
               <view class="prediction-item"><text class="muted">{{ localeText("预计更换日期", "Estimated Replacement Date") }}</text><text class="replacement-date">{{ replacementDate }}</text></view>
             </view>
             <view class="advice" :class="tone(selected)">{{ advice }}</view>
-            <text class="note">{{ localeText("健康度与剩余寿命由后端预测，未返回结果时显示待预测。", "Health and remaining life are predicted by the backend. Pending is shown when no result is returned.") }}</text>
+            <text class="note">{{ localeText("健康度与剩余寿命为演示数据中的预设示例；新录入的检测记录显示待预测，尚未接入预测服务。", "Health and remaining life are preset sample values. Newly entered detection records remain pending; the prediction service is not connected yet.") }}</text>
           </view>
           <view v-else class="empty">{{ localeText("请选择电池", "Select a battery") }}</view>
         </view>
@@ -157,7 +160,7 @@ function saveBattery() {
   reset();
   selectedId.value = id;
   batteryEditorVisible.value = false;
-  uni.showToast({ title: localeText('新增成功', 'Added'), icon: 'success' });
+  uni.showToast({ title: localeText('已添加到当前页面，刷新后恢复', 'Added to this page only; lost on refresh'), icon: 'none' });
 }
 
 function removeBattery() {
@@ -169,7 +172,7 @@ function removeBattery() {
     success: result => {
       if (!result.confirm) return;
       batteries.value = batteries.value.filter(item => item.id !== battery.id);
-      uni.showToast({ title: localeText('删除成功', 'Deleted'), icon: 'success' });
+      uni.showToast({ title: localeText('已从当前页面移除，刷新后恢复', 'Removed from this page only; restored on refresh'), icon: 'none' });
     },
   });
 }
@@ -209,7 +212,7 @@ const replacementDate = computed(() => {
 const advice = computed(() => {
   if (!selected.value || !current.value) return localeText('请录入检测数据后评估', 'Enter detection data to evaluate');
   const code = statusCode(selected.value);
-  if (code === 'pending') return localeText('检测数据已录入，等待后端预测结果', 'Detection data entered, waiting for backend prediction');
+  if (code === 'pending') return localeText('检测数据已录入，健康度与剩余寿命待预测', 'Detection data entered; health and remaining life are pending');
   if (code === 'replace') return localeText('建议尽快更换电池，安排维护检查', 'Replace the battery soon and schedule maintenance');
   if (code === 'warning') return localeText('建议增加检测频次，提前安排更换', 'Increase detection frequency and plan replacement early');
   return localeText('暂无需更换，建议定期检测', 'No replacement needed. Keep regular detection.');
@@ -254,7 +257,7 @@ function saveRecord() {
   if (index >= 0) selected.value.records.splice(index, 1, record);
   else selected.value.records.unshift(record);
   editorVisible.value = false;
-  uni.showToast({ title: localeText('保存成功', 'Saved'), icon: 'success' });
+  uni.showToast({ title: localeText('已保存到当前页面，刷新后恢复', 'Saved to this page only; lost on refresh'), icon: 'none' });
 }
 function removeRecord(record: Detection) {
   const battery = selected.value;
@@ -964,6 +967,17 @@ button.danger-text {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
   flex-shrink: 0;
+}
+
+.demo-notice {
+  flex-shrink: 0;
+  padding: 9px 12px;
+  color: #8a5a12;
+  font-size: 12px;
+  line-height: 1.6;
+  background: #fff8e8;
+  border: 1px solid #f2dca9;
+  border-radius: 6px;
 }
 
 .stat-card {

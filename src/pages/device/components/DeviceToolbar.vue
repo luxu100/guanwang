@@ -59,8 +59,8 @@
       <template #left>
         <button v-if="buttons.bindDept" class = "toolbar-button" hover-class="toolbar-button--hover" @click="emit('bindDept')">{{t("toolbar.bindDept")}}</button>
         <button v-if="buttons.bindValve" class= "toolbar-button" hover-class="toolbar-button--hover" @click="emit('bindValve')">{{t("toolbar.bindValve")}}</button>
-        <button v-if="buttons.import" class = "toolbar-button toolbar-button--green" hover-class="toolbar-button--hover" @click="emit('onImport')">{{t("toolbar.import")}}</button>
-        <button v-if="buttons.export" class = "toolbar-button toolbar-button--green" hover-class="toolbar-button--hover" @click="emit('onExport')">{{t("toolbar.export")}}</button>
+        <button v-if="buttons.import" class="toolbar-button" :disabled="true" :title="t('message.importNotReady')" :aria-label="`${t('toolbar.import')} - ${t('message.importNotReady')}`">{{t("toolbar.import")}}</button>
+        <button v-if="buttons.export" class="toolbar-button" :disabled="true" :title="t('message.exportNotReady')" :aria-label="`${t('toolbar.export')} - ${t('message.exportNotReady')}`">{{t("toolbar.export")}}</button>
       </template>
       <template #right>
         <button v-if="buttons.detail" class = "toolbar-button" @click="emit('showDetail')">{{t("toolbar.showDetail")}}</button>
@@ -434,6 +434,7 @@ function getLabel(item: Field) {
   color: #9aa9b8;
   background: #eef2f6;
   border-color: #d7e0e8;
+  cursor: not-allowed;
 }
 
 .toolbar-icon-button {

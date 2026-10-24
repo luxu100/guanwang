@@ -1,0 +1,117 @@
+- generic "绑定 Logo":
+- generic "预警信息":
+  - generic: "11"
+- generic: 简体中文
+- generic: string
+- generic: 退出登录
+- generic: 目录
+- generic "收起目录"
+- generic "我的收藏"
+- generic "一张图"
+- generic "渗漏监测"
+- generic "水锤分析"
+- generic "分区管理"
+- generic "设备管理"
+- generic "指令管理"
+- generic "统计分析"
+- generic "数据分析"
+- generic "疑漏点上报"
+- generic "疑点管理"
+- generic "疑点处理"
+- generic "漏点管理"
+- generic "漏点分析"
+- generic "工单管理"
+- generic "运维报表"
+- generic "渗漏爆管"
+- generic "实时报警"
+- generic "系统设置"
+- generic "数据接收和解析"
+- generic "向左滚动页签"
+- generic "向右滚动页签"
+- generic "渗漏监测"
+- generic "一张图"
+- generic "水锤分析"
+- generic "分区管理"
+- generic "设备信息"
+- generic "拆装维护"
+- generic "协议绑定"
+- generic "设备参数"
+- generic "阀门管理"
+- generic "工单创建"
+- generic "工单处理"
+- generic "报警策略"
+- generic "报警处理"
+- generic "爆管识别"
+- generic "漏点定位"
+- generic "协议管理"
+- generic "用户配置"
+- generic "权限管理"
+- generic "菜单管理"
+- generic "数据字典"
+- generic "查询模板"
+- generic "疑漏模块总览"
+- generic "数据系统总览"
+- generic "音频数据"
+- generic "渗漏数据"
+- generic "疑点管理"
+- generic "疑点处理"
+- generic "漏点管理"
+- generic "进入全屏"
+- generic: 检出时间
+- generic: 请选择开始时间
+- generic: 至
+- generic: 请选择结束时间
+- generic: 设备编号
+- generic: 请输入关联设备编号
+- textbox
+- generic: 漏点类型
+- generic: 请输入漏点类型
+- textbox
+- generic: 漏点区域
+- generic: 请输入漏点区域
+- textbox
+- generic: 巡检人员
+- generic: 请输入巡检人员
+- textbox
+- generic: 定漏人员
+- generic: 请输入定漏人员
+- textbox
+- generic: 渗漏状态
+- generic: 全部
+- generic: 查询
+- generic: 重置
+- generic "刷新"
+- generic: 导出
+- generic: 导入
+- generic: 新增漏点
+- generic: 编辑
+- generic: 删除
+- generic: 批量删除
+- generic: 漏点列表
+- generic: 共 0 条
+- generic: _select
+- generic: 序号
+- generic: 检出时间
+- generic: ▼
+- generic: 渗漏状态
+- generic: 漏点类型
+- generic: 泄漏部位
+- generic: 漏点位置
+- generic: 巡检人员
+- generic: 定漏人员
+- generic: 音频
+- generic: 视频
+- generic: 关联工单
+- generic: 关联设备
+- generic: 加载中...
+- generic: 每页
+- generic: "10"
+- generic: 条
+- generic: 上一页
+- generic: 第 1 / 1 页
+- generic: 下一页
+- generic: 到第
+- spinbutton
+- generic: 页
+- generic: 跳转
+- generic: 请选择左侧漏点查看详情

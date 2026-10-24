@@ -51,7 +51,7 @@
               <view class="export-menu__item" @click="handleExport('all')">{{ t('common.exportAll') }}</view>
             </view>
           </view>
-          <button class="toolbar-button" hover-class="toolbar-button--hover" @click="handleImport">{{ t('common.import') }}</button>
+          <button class="toolbar-button" :disabled="true" :title="t('leakManagement.importDeveloping')" :aria-label="`${t('common.import')} - ${t('leakManagement.importDeveloping')}`">{{ t('common.import') }}</button>
           <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" @click="openCreateDialog">{{ t('leakManagement.addLeakPoint') }}</button>
           <button class="toolbar-button toolbar-button--primary" hover-class="toolbar-button--hover" :disabled="!selectedRecord" @click="openEditDialog">{{ t('common.edit') }}</button>
           <button class="toolbar-button toolbar-button--danger" hover-class="toolbar-button--hover" :disabled="!selectedRecord" @click="handleDelete">{{ t('common.delete') }}</button>

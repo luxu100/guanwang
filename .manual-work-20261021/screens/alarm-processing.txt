@@ -1,0 +1,213 @@
+- generic "绑定 Logo":
+- generic "预警信息":
+  - generic: "11"
+- generic: 简体中文
+- generic: string
+- generic: 退出登录
+- generic: 目录
+- generic "收起目录"
+- generic "我的收藏"
+- generic "一张图"
+- generic "渗漏监测"
+- generic "水锤分析"
+- generic "分区管理"
+- generic "设备管理"
+- generic "指令管理"
+- generic "统计分析"
+- generic "数据分析"
+- generic "疑漏点上报"
+- generic "工单管理"
+- generic "运维报表"
+- generic "渗漏爆管"
+- generic "实时报警"
+- generic "报警策略"
+- generic "报警处理"
+- generic "系统设置"
+- generic "数据接收和解析"
+- generic "向左滚动页签"
+- generic "向右滚动页签"
+- generic "渗漏监测"
+- generic "一张图"
+- generic "水锤分析"
+- generic "分区管理"
+- generic "设备信息"
+- generic "拆装维护"
+- generic "协议绑定"
+- generic "设备参数"
+- generic "阀门管理"
+- generic "工单创建"
+- generic "工单处理"
+- generic "报警策略"
+- generic "报警处理"
+- generic "进入全屏"
+- generic: 报警类型
+- generic: 不限
+- generic: 报警级别
+- generic: 不限
+- generic: 状态
+- generic: 不限
+- generic: 设备编号
+- generic: 请输入设备编号
+- textbox
+- generic: 部门
+- generic: 不限
+- generic: 时间段
+- generic: 请选择开始时间
+- generic: 至
+- generic: 请选择结束时间
+- generic: 查询
+- generic: 重置
+- generic: 报警处理
+- generic: 已更新 21:51:56
+- generic: 共 2525 条
+- generic: 序号
+- generic: 命中规则
+- generic: 报警类型
+- generic: 报警级别
+- generic: 设备编号
+- generic: 触发值
+- generic: 触发次数
+- generic: 最后触发
+- generic: 状态
+- generic: 操作
+- generic: "1"
+- generic "设备离线"
+- generic "设备离线"
+- generic: 警告
+- generic "2607075003"
+- generic "-"
+- generic "792"
+- generic "2026-10-21 21:51:00"
+- generic: 活跃
+- generic: "2"
+- generic "设备离线"
+- generic "设备离线"
+- generic: 警告
+- generic "2607075003"
+- generic "-"
+- generic "1433"
+- generic "2026-10-21 08:34:00"
+- generic: 已关闭
+- generic: "3"
+- generic "渗漏疑似"
+- generic "渗漏疑似"
+- generic: 警告
+- generic "2607075003"
+- generic "2"
+- generic "1438"
+- generic "2026-10-21 08:35:00"
+- generic: 已关闭
+- generic: "4"
+- generic "设备离线"
+- generic "设备离线"
+- generic: 警告
+- generic "2607075003"
+- generic "-"
+- generic "1482"
+- generic "2026-10-20 08:34:00"
+- generic: 已关闭
+- generic: "5"
+- generic "设备离线"
+- generic "设备离线"
+- generic: 警告
+- generic "2607075003"
+- generic "-"
+- generic "235"
+- generic "2026-10-19 08:34:00"
+- generic: 已关闭
+- generic: "6"
+- generic "设备离线"
+- generic "设备离线"
+- generic: 警告
+- generic "2607075003"
+- generic "-"
+- generic "2875"
+- generic "2026-10-19 04:34:00"
+- generic: 已关闭
+- generic: "7"
+- generic "设备离线"
+- generic "设备离线"
+- generic: 警告
+- generic "2607075003"
+- generic "-"
+- generic "1435"
+- generic "2026-10-17 04:34:00"
+- generic: 已关闭
+- generic: "8"
+- generic "设备离线"
+- generic "设备离线"
+- generic: 警告
+- generic "2607075003"
+- generic "-"
+- generic "1435"
+- generic "2026-10-16 04:34:00"
+- generic: 已关闭
+- generic: "9"
+- generic "设备离线"
+- generic "设备离线"
+- generic: 警告
+- generic "2607075001"
+- generic "-"
+- generic "10379"
+- generic "2026-10-21 21:51:00"
+- generic: 活跃
+- generic: "10"
+- generic "设备离线"
+- generic "设备离线"
+- generic: 警告
+- generic "2607075001"
+- generic "-"
+- generic "5"
+- generic "2026-10-14 17:27:00"
+- generic: 已关闭
+- generic: 详情
+- generic: 确认
+- generic: 关闭
+- generic: 详情
+- generic: 详情
+- generic: 详情
+- generic: 详情
+- generic: 详情
+- generic: 详情
+- generic: 详情
+- generic: 详情
+- generic: 确认
+- generic: 关闭
+- generic: 详情
+- generic: 上一页
+- generic: 第 1 / 253 页
+- generic: 下一页
+- generic: 到第
+- spinbutton
+- generic: 页
+- generic: 跳转
+- generic: ⟩
+- generic: 报警概况
+- generic: 统计加载中
+- generic: 今日新增
+- generic: "-"
+- generic: 当前活跃
+- generic: "-"
+- generic: 今日已处理
+- generic: "-"
+- generic: 按级别
+- generic: 提示
+- generic: "-"
+- generic: 警告
+- generic: "-"
+- generic: 严重
+- generic: "-"
+- generic: 按类型
+- generic: 暂无数据
+- generic: 近 7 天新增报警记录数
+- generic: 趋势加载中
+- generic: 报警分布地图
+- generic: 活跃
+- generic: 全部级别
+- generic: 放大
+- generic: 2 公里
+- generic: 2 英里
+- link:
+  - /url: http://map.qq.com?ref=jsapi_v3
+- generic: ©2026 Tencent - GS(2026)1190号
+- generic: 加载中...

@@ -7,6 +7,9 @@
         <view class="toolbar-actions"><button class="primary-button" @click="search">查询</button><button class="secondary-button" @click="reset">重置</button></view>
       </view>
     </view>
+    <view class="demo-notice">
+      演示数据：本页使用内置示例数据；新增、编辑和删除仅在当前页面生效，刷新后恢复。尚未接入电池健康预测服务。
+    </view>
     <view class="statistics">
       <view v-for="card in statistics" :key="card.label" class="stat-card" :class="card.tone">
         <text class="stat-label">{{ card.label }}</text>
@@ -46,7 +49,7 @@
               <view class="prediction-item"><text class="muted">预计更换日期</text><text class="replacement-date">{{ replacementDate }}</text></view>
             </view>
             <view class="advice" :class="tone(selected)">{{ advice }}</view>
-            <text class="note">健康度与剩余寿命由后端预测，未返回结果时显示待预测。</text>
+            <text class="note">健康度与剩余寿命为演示数据中的预设示例；新录入的检测记录显示待预测，尚未接入预测服务。</text>
           </view>
           <view v-else class="empty">请选择电池</view>
         </view>
@@ -145,7 +148,7 @@ function saveBattery() {
   reset();
   selectedId.value = id;
   batteryEditorVisible.value = false;
-  uni.showToast({ title: '新增成功', icon: 'success' });
+  uni.showToast({ title: '已添加到当前页面，刷新后恢复', icon: 'none' });
 }
 
 function removeBattery() {
@@ -157,7 +160,7 @@ function removeBattery() {
     success: result => {
       if (!result.confirm) return;
       batteries.value = batteries.value.filter(item => item.id !== battery.id);
-      uni.showToast({ title: '删除成功', icon: 'success' });
+      uni.showToast({ title: '已从当前页面移除，刷新后恢复', icon: 'none' });
     },
   });
 }
@@ -190,7 +193,7 @@ const replacementDate = computed(() => {
   date.setDate(date.getDate() + current.value.days);
   return formatDate(date);
 });
-const advice = computed(() => !selected.value || !current.value ? '请录入检测数据后评估' : status(selected.value) === '待预测' ? '检测数据已录入，等待后端预测结果' : status(selected.value) === '建议更换' ? '建议尽快更换电池，安排维护检查' : status(selected.value) === '预警' ? '建议增加检测频次，提前安排更换' : '暂无需更换，建议定期检测');
+const advice = computed(() => !selected.value || !current.value ? '请录入检测数据后评估' : status(selected.value) === '待预测' ? '检测数据已录入，健康度与剩余寿命待预测' : status(selected.value) === '建议更换' ? '建议尽快更换电池，安排维护检查' : status(selected.value) === '预警' ? '建议增加检测频次，提前安排更换' : '暂无需更换，建议定期检测');
 function search() { query.number = number.value.trim(); query.status = statuses[statusIndex.value]; }
 function reset() { number.value = ''; statusIndex.value = 0; search(); }
 function formatDate(date: Date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; }
@@ -224,13 +227,13 @@ function saveRecord() {
       error.value = '请填写有效的' + field.label; return;
     }
   }
-  // 检测数据变更后等待后端重新预测，不提交或沿用旧的健康度、寿命结果。
+  // 演示页不伪造预测结果，新录入或编辑的检测记录保持待预测。
   const record: Detection = { id: editingId.value || 'r-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8), date: form.date, operator: form.operator.trim(), voltage: Number(form.voltage), capacity: Number(form.capacity), charge: form.charge.trim() ? Number(form.charge) : undefined, remark: form.remark.trim() };
   const index = selected.value.records.findIndex(r => r.id === editingId.value);
   if (index >= 0) selected.value.records.splice(index, 1, record);
   else selected.value.records.unshift(record);
   editorVisible.value = false;
-  uni.showToast({ title: '保存成功', icon: 'success' });
+  uni.showToast({ title: '已保存到当前页面，刷新后恢复', icon: 'none' });
 }
 function removeRecord(record: Detection) {
   const battery = selected.value;
@@ -940,6 +943,17 @@ button.danger-text {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
   flex-shrink: 0;
+}
+
+.demo-notice {
+  flex-shrink: 0;
+  padding: 9px 12px;
+  color: #8a5a12;
+  font-size: 12px;
+  line-height: 1.6;
+  background: #fff8e8;
+  border: 1px solid #f2dca9;
+  border-radius: 6px;
 }
 
 .stat-card {

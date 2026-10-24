@@ -151,7 +151,7 @@ const comparisonCards = computed(() => metricOptions.map((option) => ({
   ...option,
   ...(comparisons.value.find((item) => item.metric === option.metric) ?? {}),
 })));
-const rankingRows = computed(() => rankings.value.slice(0, 5));
+const rankingRows = computed(() => rankings.value.slice(0, 10));
 const causeRows = computed(() => causes.value.map((item) => ({ ...item, rowKey: `${item.eventType}_${item.cause}` })));
 const workOrderSummary = computed(() => {
   const active = workOrders.value.filter((item) => Number(item.worksheetStatus) !== 3);

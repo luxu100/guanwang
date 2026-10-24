@@ -1,0 +1,157 @@
+- generic "绑定 Logo":
+- generic "预警信息":
+  - generic: "11"
+- generic: 简体中文
+- generic: string
+- generic: 退出登录
+- generic: 目录
+- generic "收起目录"
+- generic "我的收藏"
+- generic "一张图"
+- generic "渗漏监测"
+- generic "水锤分析"
+- generic "分区管理"
+- generic "设备管理"
+- generic "指令管理"
+- generic "统计分析"
+- generic "数据分析"
+- generic "疑漏点上报"
+- generic "工单管理"
+- generic "运维报表"
+- generic "渗漏爆管"
+- generic "实时报警"
+- generic "报警策略"
+- generic "报警处理"
+- generic "系统设置"
+- generic "数据接收和解析"
+- generic "向左滚动页签"
+- generic "向右滚动页签"
+- generic "渗漏监测"
+- generic "一张图"
+- generic "水锤分析"
+- generic "分区管理"
+- generic "设备信息"
+- generic "拆装维护"
+- generic "协议绑定"
+- generic "设备参数"
+- generic "阀门管理"
+- generic "工单创建"
+- generic "工单处理"
+- generic "报警策略"
+- generic "进入全屏"
+- generic: 规则名称
+- generic: 请输入规则名称
+- textbox
+- generic: 报警类型
+- generic: 不限
+- generic: 启用状态
+- generic: 不限
+- generic: 查询
+- generic: 重置
+- generic: 新增
+- generic: 报警策略
+- generic: 共 3 条
+- generic: 序号
+- generic: 规则名称
+- generic: 规则类型
+- generic: 报警类型
+- generic: 报警级别
+- generic: 判定条件
+- generic: 生效范围
+- generic: 状态
+- generic: 邮件通知
+- generic: 操作
+- generic: "1"
+- generic "渗漏疑似":
+  - generic: 渗漏疑似
+- generic "固定":
+  - generic: 固定
+- generic "渗漏疑似":
+  - generic: 渗漏疑似
+- generic: 警告
+- generic "渗漏状态命中 2,0":
+  - generic: 渗漏状态命中 2,0
+- generic "全局":
+  - generic: 全局
+- generic "启用":
+  - generic: 启用
+- generic "开启":
+  - generic: 开启
+- generic: 编辑
+- generic: 停用
+- generic: "2"
+- generic "数据超时":
+  - generic: 数据超时
+- generic "固定":
+  - generic: 固定
+- generic "数据超时":
+  - generic: 数据超时
+- generic: 警告
+- generic "无上报超过 12 小时":
+  - generic: 无上报超过 12 小时
+- generic "全局":
+  - generic: 全局
+- generic "启用":
+  - generic: 启用
+- generic "开启":
+  - generic: 开启
+- generic: 编辑
+- generic: 停用
+- generic: "3"
+- generic "设备离线":
+  - generic: 设备离线
+- generic "固定":
+  - generic: 固定
+- generic "设备离线":
+  - generic: 设备离线
+- generic: 警告
+- generic "离线超过 5 分钟":
+  - generic: 离线超过 5 分钟
+- generic "全局":
+  - generic: 全局
+- generic "启用":
+  - generic: 启用
+- generic "开启":
+  - generic: 开启
+- generic: 编辑
+- generic: 停用
+- generic: 上一页
+- generic: 第 1 / 1 页
+- generic: 下一页
+- generic: 到第
+- spinbutton
+- generic: 页
+- generic: 跳转
+- generic: 新增规则
+- generic: 新建自定义规则
+- generic "关闭"
+- generic: 基本信息
+- generic: 规则名称*
+- generic: 请输入规则名称
+- textbox
+- generic: 判定条件
+- generic: 监测字段*
+- generic: 输入关键字筛选字段
+- textbox
+- generic: 生效设置
+- generic: 报警级别*
+- generic: 请选择报警级别
+- generic: 区间下限
+- generic: 留空表示不限制
+- spinbutton
+- generic: 区间上限
+- generic: 留空表示不限制
+- spinbutton
+- generic: 实测值落在区间外触发；只填下限=低于触发，只填上限=高于触发
+- generic: 生效范围
+- generic: 全局
+- generic: 启用状态
+- generic: 启用
+- generic: 邮件通知
+- generic: 关闭
+- generic: 开启后新报警按系统配置发送邮件（默认 WARNING 及以上级别，收件人由系统统一配置）
+- generic: 备注
+- generic: 请输入备注
+- textbox
+- generic: 取消
+- generic: 保存

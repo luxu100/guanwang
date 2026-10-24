@@ -1,0 +1,200 @@
+- generic "绑定 Logo":
+- generic "预警信息":
+  - generic: "11"
+- generic: 简体中文
+- generic: string
+- generic: 退出登录
+- generic: 目录
+- generic "收起目录"
+- generic "我的收藏"
+- generic "一张图"
+- generic "渗漏监测"
+- generic "水锤分析"
+- generic "分区管理"
+- generic "设备管理"
+- generic "指令管理"
+- generic "统计分析"
+- generic "数据分析"
+- generic "疑漏点上报"
+- generic "工单管理"
+- generic "运维报表"
+- generic "设备履历"
+- generic "设备台账"
+- generic "电池健康度"
+- generic "运行分析报告"
+- generic "渗漏爆管"
+- generic "实时报警"
+- generic "系统设置"
+- generic "数据接收和解析"
+- generic "向左滚动页签"
+- generic "向右滚动页签"
+- generic "渗漏监测"
+- generic "一张图"
+- generic "水锤分析"
+- generic "分区管理"
+- generic "设备信息"
+- generic "拆装维护"
+- generic "协议绑定"
+- generic "设备参数"
+- generic "阀门管理"
+- generic "工单创建"
+- generic "工单处理"
+- generic "报警策略"
+- generic "报警处理"
+- generic "爆管识别"
+- generic "漏点定位"
+- generic "协议管理"
+- generic "用户配置"
+- generic "权限管理"
+- generic "菜单管理"
+- generic "数据字典"
+- generic "查询模板"
+- generic "疑漏模块总览"
+- generic "数据系统总览"
+- generic "音频数据"
+- generic "渗漏数据"
+- generic "疑点管理"
+- generic "疑点处理"
+- generic "漏点管理"
+- generic "漏点分析"
+- generic "设备履历"
+- generic "设备台账"
+- generic "电池健康度"
+- generic "进入全屏"
+- generic: 设备编号
+- generic: 请输入设备编号
+- searchbox
+- generic: 健康状态
+- generic: 全部
+- generic: 查询
+- generic: 重置
+- generic: 电池总数
+- generic: "8"
+- generic: 健康
+- generic: "2"
+- generic: 预警
+- generic: "2"
+- generic: 建议更换
+- generic: "2"
+- text: 电池列表
+- generic: 共 8 块
+- generic: 删除电池
+- generic: ＋ 新增电池
+- generic: 序号
+- generic: 电池编号
+- generic: 设备编号
+- generic: 电压 / V
+- generic: 容量 / mAh
+- generic: 健康度
+- generic: 剩余寿命
+- generic: 状态
+- generic: "1"
+- generic: BAT001
+- generic: "260001"
+- generic: "11.8"
+- generic: "8200"
+- generic: 86%
+- generic: 182 天
+- generic: 健康
+- generic: "2"
+- generic: BAT002
+- generic: "260002"
+- generic: "10.6"
+- generic: "6100"
+- generic: 65%
+- generic: 72 天
+- generic: 预警
+- generic: "3"
+- generic: BAT003
+- generic: "260003"
+- generic: "9.4"
+- generic: "4300"
+- generic: 35%
+- generic: 18 天
+- generic: 建议更换
+- generic: "4"
+- generic: BAT004
+- generic: "260004"
+- generic: "11.7"
+- generic: "8100"
+- generic: 84%
+- generic: 176 天
+- generic: 健康
+- generic: "5"
+- generic: BAT005
+- generic: "260005"
+- generic: "11.2"
+- generic: "7200"
+- generic: 78%
+- generic: 88 天
+- generic: 预警
+- generic: "6"
+- generic: BAT006
+- generic: "260006"
+- generic: "9.8"
+- generic: "4900"
+- generic: 52%
+- generic: 25 天
+- generic: 建议更换
+- generic: "7"
+- generic: BAT007
+- generic: "260007"
+- generic: "11.9"
+- generic: "8300"
+- generic: —
+- generic: —
+- generic: 待预测
+- generic: "8"
+- generic: BAT008
+- generic: "260008"
+- generic: —
+- generic: —
+- generic: —
+- generic: —
+- generic: 待检测
+- text: 当前电池
+- generic: 健康
+- text: BAT001
+- generic: / 设备 260001
+- generic: 健康度
+- generic: 86%
+- generic: 剩余寿命
+- generic: "182"
+- text: 天
+- generic: 预计更换日期
+- generic: 2027-04-08
+- generic: 暂无需更换，建议定期检测
+- generic: 健康度与剩余寿命由后端预测，未返回结果时显示待预测。
+- text: 检测记录
+- generic: 2 条
+- generic: ＋ 新增检测
+- generic: 2026-10-08 09:30:00
+- generic: 张三
+- text: 电压
+- generic: 11.8 V
+- text: 容量
+- generic: 8200 mAh
+- text: 电量
+- generic: 82%
+- text: 健康度
+- generic: 86%
+- text: 预测剩余寿命
+- generic: 182 天
+- generic: 备注：例行巡检，电池外观及接线正常。
+- generic: 编辑
+- generic: 删除
+- generic: 2026-09-15 10:20:00
+- generic: 李四
+- text: 电压
+- generic: 12 V
+- text: 容量
+- generic: 8400 mAh
+- text: 电量
+- generic: 90%
+- text: 健康度
+- generic: 89%
+- text: 预测剩余寿命
+- generic: 205 天
+- generic: 备注：首次检测，运行正常。
+- generic: 编辑
+- generic: 删除
