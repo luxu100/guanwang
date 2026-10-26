@@ -371,7 +371,8 @@ export async function getLeakMonitorManualAnalysisPage(deviceNumber: string) {
 }
 
 export function createLeakMonitorManualAnalysis(data: ManualAnalysisPayload) {
-  return postRequest("/api/manual-analysis/work-orders", data);
+  // The deployed contract only creates work orders; never silently dispatch on save.
+  return Promise.reject(new Error("暂未提供独立的人工分析保存接口，请使用派单或联系管理员"));
 }
 
 export async function createLeakMonitorManualWorkOrder(data: ManualWorkOrderPayload) {
@@ -655,10 +656,9 @@ export async function submitLeakMonitorManualAnalysis(payload: ManualAnalysisPay
 }
 
 function assertManualWorkOrderResponse(response: unknown) {
-  if (!response || typeof response !== "object") return;
-  const envelope = response as ApiEnvelope;
-  if (envelope.code !== undefined && envelope.code !== 0 && envelope.code !== 200) {
-    throw { code: envelope.code, msg: envelope.msg || "人工派单接口返回失败", data: response };
+  const envelope = response as ApiEnvelope | null;
+  if (!envelope || typeof envelope !== "object" || envelope.code !== 200) {
+    throw new Error(envelope?.msg || "人工分析接口未返回成功状态，请稍后重试");
   }
 }
 

@@ -1,0 +1,238 @@
+- generic [ref=f47e7]:
+  - generic [ref=f47e10]:
+    - generic "绑定 Logo" [ref=f47e13] [cursor=pointer]
+    - generic "预警信息" [ref=f47e17] [cursor=pointer]: "10"
+    - generic [ref=f47e22] [cursor=pointer]: 简体中文
+    - generic [ref=f47e27]: string
+    - generic [ref=f47e29] [cursor=pointer]: 退出登录
+  - generic [ref=f47e30]:
+    - generic [ref=f47e31]:
+      - generic [ref=f47e32]:
+        - generic [ref=f47e33]: 目录
+        - generic "收起目录" [ref=f47e34] [cursor=pointer]
+      - generic [ref=f47e36]:
+        - generic "我的收藏" [ref=f47e40] [cursor=pointer]
+        - generic "一张图" [ref=f47e44] [cursor=pointer]
+        - generic "渗漏监测" [ref=f47e48] [cursor=pointer]
+        - generic "水锤分析" [ref=f47e52] [cursor=pointer]
+        - generic "分区管理" [ref=f47e56] [cursor=pointer]
+        - generic "设备管理" [ref=f47e60] [cursor=pointer]
+        - generic [ref=f47e61]:
+          - generic "指令管理" [ref=f47e64] [cursor=pointer]
+          - generic [ref=f47e65]:
+            - generic "指令管理" [ref=f47e68] [cursor=pointer]
+            - generic "固件管理" [ref=f47e71] [cursor=pointer]
+        - generic "统计分析" [ref=f47e75] [cursor=pointer]
+        - generic "数据分析" [ref=f47e79] [cursor=pointer]
+        - generic "疑漏点上报" [ref=f47e83] [cursor=pointer]
+        - generic "工单管理" [ref=f47e87] [cursor=pointer]
+        - generic "运维报表" [ref=f47e91] [cursor=pointer]
+        - generic "渗漏爆管" [ref=f47e95] [cursor=pointer]
+        - generic "实时报警" [ref=f47e99] [cursor=pointer]
+        - generic "系统设置" [ref=f47e103] [cursor=pointer]
+        - generic "数据接收和解析" [ref=f47e107] [cursor=pointer]
+    - generic [ref=f47e108]:
+      - generic [ref=f47e109]:
+        - generic "向左滚动页签" [ref=f47e110] [cursor=pointer]
+        - generic "向右滚动页签" [ref=f47e112] [cursor=pointer]
+        - generic [ref=f47e114]:
+          - generic "渗漏监测" [ref=f47e117] [cursor=pointer]
+          - generic "一张图" [ref=f47e122] [cursor=pointer]
+          - generic "设备信息" [ref=f47e127] [cursor=pointer]
+          - generic "水锤分析" [ref=f47e132] [cursor=pointer]
+          - generic "分区管理" [ref=f47e137] [cursor=pointer]
+          - generic "拆装维护" [ref=f47e142] [cursor=pointer]
+          - generic "协议绑定" [ref=f47e147] [cursor=pointer]
+          - generic "设备参数" [ref=f47e152] [cursor=pointer]
+          - generic "阀门管理" [ref=f47e157] [cursor=pointer]
+          - generic "指令管理" [ref=f47e162] [cursor=pointer]
+          - generic "固件管理" [ref=f47e167] [cursor=pointer]
+          - generic "我的收藏" [ref=f47e172] [cursor=pointer]
+          - generic "疑漏模块总览" [ref=f47e177] [cursor=pointer]
+          - generic "数据系统总览" [ref=f47e182] [cursor=pointer]
+          - generic "音频数据" [ref=f47e187] [cursor=pointer]
+          - generic "渗漏数据" [ref=f47e192] [cursor=pointer]
+          - generic "疑点管理" [ref=f47e197] [cursor=pointer]
+          - generic "疑点处理" [ref=f47e202] [cursor=pointer]
+          - generic "漏点管理" [ref=f47e207] [cursor=pointer]
+          - generic "漏点分析" [ref=f47e212] [cursor=pointer]
+          - generic "工单创建" [ref=f47e217] [cursor=pointer]
+          - generic "工单处理" [ref=f47e222] [cursor=pointer]
+          - generic "设备履历" [ref=f47e227] [cursor=pointer]
+          - generic "设备台账" [ref=f47e232] [cursor=pointer]
+          - generic "电池健康度" [ref=f47e237] [cursor=pointer]
+          - generic "运行分析报告" [ref=f47e242] [cursor=pointer]
+          - generic "爆管识别" [ref=f47e247] [cursor=pointer]
+          - generic "测点分析" [ref=f47e252] [cursor=pointer]
+          - generic "漏点定位" [ref=f47e257] [cursor=pointer]
+          - generic "漏损报表" [ref=f47e262] [cursor=pointer]
+          - generic "报警策略" [ref=f47e267] [cursor=pointer]
+          - generic "报警处理" [ref=f47e272] [cursor=pointer]
+          - generic "用户配置" [ref=f47e277] [cursor=pointer]
+          - generic "权限管理" [ref=f47e282] [cursor=pointer]
+          - generic "菜单管理" [ref=f47e287] [cursor=pointer]
+          - generic "查询模板" [ref=f47e292] [cursor=pointer]
+          - generic "数据字典" [ref=f47e297] [cursor=pointer]
+          - generic "协议管理" [ref=f47e302] [cursor=pointer]
+          - generic "数据解析" [ref=f47e307] [cursor=pointer]
+          - generic "数据记录" [ref=f47e312] [cursor=pointer]
+        - generic "进入全屏" [ref=f47e315] [cursor=pointer]
+      - generic [ref=f47e322]:
+        - generic [ref=f47e334]:
+          - generic:
+            - button "2607075003 · WARNING (1)" [ref=f47e590] [cursor=pointer]: "!"
+            - button "2607085005 · WARNING (1)" [ref=f47e591] [cursor=pointer]: "!"
+            - button "2607085004 · WARNING (1)" [ref=f47e592] [cursor=pointer]: "!"
+            - button "2607075002 · WARNING (2)" [ref=f47e593] [cursor=pointer]: "!"
+            - button "2607075005 · WARNING (1)" [ref=f47e594] [cursor=pointer]: "!"
+            - button "2607085003 · CRITICAL (1)" [ref=f47e595] [cursor=pointer]: "!"
+          - generic [ref=f47e341]:
+            - generic [ref=f47e344]:
+              - generic [ref=f47e345]: 10 公里
+              - generic [ref=f47e350]: 10 英里
+            - generic [ref=f47e356]:
+              - link [ref=f47e357] [cursor=pointer]:
+                - /url: http://map.qq.com?ref=jsapi_v3
+              - generic [ref=f47e359]: ©2026 Tencent - GS(2026)1190号
+        - generic [ref=f47e383]:
+          - generic [aria-hidden] [ref=f47e384]:
+            - generic [ref=f47e385]:
+              - generic [ref=f47e386]:
+                - generic [ref=f47e387]: 管线
+                - generic [ref=f47e388]: 腾讯地图
+              - generic [ref=f47e389] [cursor=pointer]
+            - generic [ref=f47e393]:
+              - generic [ref=f47e394]:
+                - generic [ref=f47e395]: "99"
+                - generic [ref=f47e396]: 管线
+              - generic [ref=f47e397]:
+                - generic [ref=f47e398]: "74"
+                - generic [ref=f47e399]: 设施显示
+              - generic [ref=f47e400]: 接口数据已连接
+            - generic [ref=f47e403]:
+              - generic [ref=f47e404]:
+                - generic [ref=f47e405]:
+                  - generic [ref=f47e406]: 草稿进行中
+                  - generic [ref=f47e407]: 切换面板不会清除当前草稿
+                - generic [ref=f47e408] [cursor=pointer]: 继续编辑
+              - generic [ref=f47e409]:
+                - generic [ref=f47e410]:
+                  - generic [ref=f47e411]: 管线显示
+                  - generic [ref=f47e412] [cursor=pointer]
+                - generic [ref=f47e416] [cursor=pointer]:
+                  - generic [ref=f47e418]: 管线
+                  - generic [ref=f47e419]: "99"
+              - generic [ref=f47e421]:
+                - generic [ref=f47e422]:
+                  - generic [ref=f47e423]: 设施显示
+                  - generic [ref=f47e424]: "74"
+                - generic [ref=f47e425] [cursor=pointer]:
+                  - generic [ref=f47e427]: 阀门
+                  - generic [ref=f47e428]: "26"
+                - generic [ref=f47e430] [cursor=pointer]:
+                  - generic [ref=f47e432]: 消防栓
+                  - generic [ref=f47e433]: "28"
+                - generic [ref=f47e435] [cursor=pointer]:
+                  - generic [ref=f47e437]: 泵
+                  - generic [ref=f47e438]: "20"
+              - generic [ref=f47e440]:
+                - generic [ref=f47e441]:
+                  - generic [ref=f47e442]: 设备绑定
+                  - generic [ref=f47e443]: "7"
+                - generic [ref=f47e444]:
+                  - generic [ref=f47e446]: 绑定阀门的设备
+                  - generic [ref=f47e447]: "0"
+                - generic [ref=f47e448]:
+                  - generic [ref=f47e450]: 绑定消防栓的设备
+                  - generic [ref=f47e451]: "0"
+                - generic [ref=f47e452]:
+                  - generic [ref=f47e454]: 绑定泵的设备
+                  - generic [ref=f47e455]: "0"
+                - generic [ref=f47e456]:
+                  - generic [ref=f47e458]: 未绑定设施的设备
+                  - generic [ref=f47e459]: "7"
+              - generic [ref=f47e460]:
+                - generic [ref=f47e461]: 8 条管线因元数据不完整未显示；3 个设施因数据不完整未显示
+                - generic [ref=f47e462] [cursor=pointer]: 重试
+              - generic [ref=f47e463]:
+                - generic [ref=f47e464]: 管线图例
+                - generic [ref=f47e465]: 启用管线
+                - generic [ref=f47e468]: 停用管线
+                - generic [ref=f47e471]: 风险未评估
+            - generic [ref=f47e474]:
+              - generic [ref=f47e475]:
+                - generic [ref=f47e476]: 管线 99 条 · 设施 74 个
+                - generic [ref=f47e477]: 草稿进行中
+              - generic [ref=f47e478]:
+                - generic [ref=f47e479] [cursor=pointer]
+                - generic [ref=f47e483] [cursor=pointer]: ＋ 新增
+          - generic [ref=f47e485]:
+            - generic [ref=f47e486]:
+              - generic "返回管网主页" [ref=f47e487] [cursor=pointer]
+              - generic [ref=f47e491]:
+                - generic [ref=f47e492]: 设施编辑器
+                - generic [ref=f47e495]: 新增设施
+            - generic [ref=f47e496]:
+              - generic [ref=f47e497]:
+                - generic [ref=f47e498]: "1"
+                - generic [ref=f47e500]: 基础信息
+              - generic [ref=f47e501]:
+                - generic [ref=f47e502]: "2"
+                - generic [ref=f47e504]: 地图预览
+              - generic [ref=f47e505]:
+                - generic [ref=f47e506]: "3"
+                - generic [ref=f47e508]: 提交
+            - generic [ref=f47e509]:
+              - generic [ref=f47e510] [cursor=pointer]: 新增管线
+              - generic [ref=f47e511] [cursor=pointer]: 新增设施
+            - generic [ref=f47e516]:
+              - generic [ref=f47e517]:
+                - generic [ref=f47e518]:
+                  - generic [ref=f47e519]: 独立设施
+                  - generic [ref=f47e520]: WGS84
+                - generic [ref=f47e521]: 设施可以独立提交，不会自动与管线建立后端关联。
+                - generic [ref=f47e522] [cursor=pointer]:
+                  - generic [ref=f47e523]: 分区 ID
+                  - spinbutton [ref=f47e526]: "2"
+                - generic [ref=f47e527] [cursor=pointer]: ＋ 添加设施
+                - generic [ref=f47e528]:
+                  - generic [ref=f47e529] [cursor=pointer]: 阀门
+                  - generic [ref=f47e533] [cursor=pointer]: 消防栓
+                  - generic [ref=f47e537] [cursor=pointer]: 泵
+              - generic [ref=f47e542]:
+                - generic [ref=f47e543]:
+                  - generic [ref=f47e544]: 阀门
+                  - generic "删除设施" [ref=f47e549] [cursor=pointer]: ×
+                - generic [ref=f47e550]:
+                  - generic [ref=f47e551] [cursor=pointer]:
+                    - generic [ref=f47e552]: 设施类型
+                    - combobox [ref=f47e553]:
+                      - option "阀门" [selected]
+                      - option "消防栓"
+                      - option "泵"
+                  - generic [ref=f47e554] [cursor=pointer]:
+                    - generic [ref=f47e555]: 设施编号
+                    - textbox [ref=f47e558]: MANUAL_VALVE_1792829922375_94j965
+                  - generic [ref=f47e559] [cursor=pointer]:
+                    - generic [ref=f47e560]: 设施名称
+                    - textbox [ref=f47e563]
+                  - generic [ref=f47e564] [cursor=pointer]:
+                    - generic [ref=f47e565]: 管径（mm）
+                    - spinbutton [ref=f47e568]: "0"
+                - generic [ref=f47e569]:
+                  - generic [ref=f47e571]:
+                    - generic: 经度
+                    - spinbutton [ref=f47e572]
+                  - generic [ref=f47e574]:
+                    - generic: 纬度
+                    - spinbutton [ref=f47e575]
+            - generic [ref=f47e576]:
+              - generic [ref=f47e577]: 请补齐必填项
+              - generic [ref=f47e580]:
+                - generic [ref=f47e581] [cursor=pointer]: 取消
+                - generic [ref=f47e582]: 提交设施
+        - status [ref=f47e583]:
+          - generic [ref=f47e584]: "!"
+          - text: 活跃报警 7
+          - generic [ref=f47e586]: 红：严重 · 黄：警告 · 蓝：提示
+        - generic "展开监测面板" [ref=f47e589] [cursor=pointer]: ‹

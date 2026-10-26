@@ -75,8 +75,8 @@ const emit = defineEmits<{
 }>();
 
 let mapInstance: google.maps.Map | null = null;
-let markers: google.maps.Marker[] = [];
-let regionPolygons: google.maps.Polygon[] = [];
+const markers = new globalThis.Map<string, google.maps.Marker>();
+const regionPolygons = new globalThis.Map<string, { polygon: google.maps.Polygon; region: MapRegion; visible: boolean }>();
 let resizeObserver: ResizeObserver | null = null;
 let resizeTimer: ReturnType<typeof window.setTimeout> | null = null;
 
@@ -131,7 +131,7 @@ async function initMap() {
     if (props.compact && props.selectedDeviceNumber) {
       window.setTimeout(() => focusDevice(props.selectedDeviceNumber), 0);
     }
-    mapInstance.addListener("zoom_changed", renderRegions);
+    mapInstance.addListener("idle", renderRegions);
     mapInstance.addListener("click", (event: google.maps.MapMouseEvent) => {
       if (event.latLng) emit("map-click", { lng: event.latLng.lng(), lat: event.latLng.lat() });
     });
@@ -154,15 +154,15 @@ function clearMarkers() {
     google.maps.event.clearInstanceListeners(marker);
     marker.setMap(null);
   });
-  markers = [];
+  markers.clear();
 }
 
 function clearRegions() {
-  regionPolygons.forEach((polygon) => {
+  regionPolygons.forEach(({ polygon }) => {
     google.maps.event.clearInstanceListeners(polygon);
     polygon.setMap(null);
   });
-  regionPolygons = [];
+  regionPolygons.clear();
 }
 
 function pointPosition(point: MapDevicePoint) {
@@ -197,11 +197,12 @@ function renderMarkers() {
     return;
   }
 
-  clearMarkers();
-  markers = props.points.map((point) => {
+  const nextKeys = new Set<string>();
+  props.points.forEach((point) => {
+    const key = point.deviceNumber;
+    nextKeys.add(key);
     const position = pointPosition(point);
-    const marker = new google.maps.Marker({
-      map: mapInstance,
+    const options: google.maps.MarkerOptions = {
       position,
       title: point.deviceNumber + " · " + point.title,
       icon: markerIcon(point),
@@ -211,28 +212,47 @@ function renderMarkers() {
         fontSize: "11px",
         fontWeight: "800",
       },
-    });
-
-    marker.addListener("click", () => emit("device-click", point));
-    marker.addListener("mouseover", () => {
-      hoveredPoint.value = point;
-      updateHoverPosition(position);
-    });
-    marker.addListener("mouseout", () => {
-      hoveredPoint.value = null;
-    });
-    return marker;
+    };
+    let marker = markers.get(key);
+    if (marker) {
+      marker.setOptions(options);
+    } else {
+      marker = new google.maps.Marker({ ...options, map: mapInstance });
+      markers.set(key, marker);
+      // Event handlers read the current record rather than a stale API response.
+      marker.addListener("click", () => {
+        const current = props.points.find((item) => item.deviceNumber === key);
+        if (current) emit("device-click", current);
+      });
+      marker.addListener("mouseover", () => {
+        const current = props.points.find((item) => item.deviceNumber === key);
+        if (!current) return;
+        hoveredPoint.value = current;
+        updateHoverPosition(pointPosition(current));
+      });
+      marker.addListener("mouseout", () => { hoveredPoint.value = null; });
+    }
   });
+  markers.forEach((marker, key) => {
+    if (nextKeys.has(key)) return;
+    google.maps.event.clearInstanceListeners(marker);
+    marker.setMap(null);
+    markers.delete(key);
+  });
+  hoveredPoint.value = null;
 }
 
 function renderRegions() {
   if (!mapInstance || typeof google === "undefined") return;
-  clearRegions();
   const zoom = mapInstance.getZoom() ?? 15;
-
-  regionPolygons = props.regions
-    .filter((region) => shouldShowRegion(region, zoom))
-    .map((region) => {
+  const nextKeys = new Set<string>();
+  props.regions.forEach((region) => {
+    const key = String(region.id);
+    nextKeys.add(key);
+    const visible = shouldShowRegion(region, zoom);
+    const current = regionPolygons.get(key);
+    if (!current && !visible) return;
+    if (!current) {
       const polygon = new google.maps.Polygon({
         map: mapInstance,
         paths: regionPath(region),
@@ -244,9 +264,28 @@ function renderRegions() {
         strokeWeight: 2,
         zIndex: 1,
       });
-      polygon.addListener("click", () => focusRegion(region));
-      return polygon;
-    });
+      polygon.addListener("click", () => {
+        const currentRegion = regionPolygons.get(key)?.region;
+        if (currentRegion) focusRegion(currentRegion);
+      });
+      regionPolygons.set(key, { polygon, region, visible });
+    } else {
+      if (current.region !== region) {
+        current.polygon.setOptions({ paths: regionPath(region), fillColor: region.color, strokeColor: region.color });
+        current.region = region;
+      }
+      if (current.visible !== visible) {
+        current.polygon.setMap(visible ? mapInstance : null);
+        current.visible = visible;
+      }
+    }
+  });
+  regionPolygons.forEach(({ polygon }, key) => {
+    if (nextKeys.has(key)) return;
+    google.maps.event.clearInstanceListeners(polygon);
+    polygon.setMap(null);
+    regionPolygons.delete(key);
+  });
 }
 
 function shouldShowRegion(region: MapRegion, zoom: number) {

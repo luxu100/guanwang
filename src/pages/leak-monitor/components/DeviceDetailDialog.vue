@@ -11,7 +11,7 @@
           <text class="detail-header__meta">{{ t("deviceId") }}: {{ device.id }}</text>
           <text class="detail-header__status">{{ translatedStatus }}</text>
         </view>
-        <button class="detail-header__close" type="button" :aria-label="t('closeDetail')" @click="$emit('close')">×</button>
+        <button class="detail-header__close" type="button" :disabled="detail.manualSubmitting" :aria-label="t('closeDetail')" @click="$emit('close')">×</button>
       </view>
 
       <view class="tab-row">
@@ -201,6 +201,7 @@
           </view>
 
           <view v-else-if="activeTab === 'manual'" class="tab-content">
+            <view class="manual-notice" role="note">{{ t("manualSaveUnavailable") }}</view>
             <view class="section-title section-title--accent">{{ t("manualResult") }}</view>
             <view class="manual-layout">
               <view class="manual-form">
@@ -263,15 +264,17 @@
             </view>
 
             <view class="form-actions">
-              <button class="small-button small-button--ghost" type="button" @click="resetManualForm">{{ t("reset") }}</button>
-              <button class="small-button small-button--ghost" type="button" @click="activeTab = 'noise'">{{ t("cancel") }}</button>
-              <button class="small-button" type="button" :disabled="detail.manualSubmitting" @click="submitManual(true)">{{ t("dispatch") }}</button>
-              <button class="small-button" type="button" :disabled="detail.manualSubmitting" @click="submitManual(false)">
-                {{ detail.manualSubmitting ? t("saving") : t("confirm") }}
-              </button>
+              <button class="small-button small-button--ghost" type="button" :disabled="detail.manualSubmitting" @click="resetManualForm">{{ t("reset") }}</button>
+              <button class="small-button small-button--ghost" type="button" :disabled="detail.manualSubmitting" @click="activeTab = 'noise'">{{ t("cancel") }}</button>
+              <button class="small-button" type="button" :disabled="detail.manualSubmitting" @click="submitManual(true)">{{ detail.manualSubmitting ? t("saving") : t("dispatch") }}</button>
+              <button class="small-button" type="button" disabled :title="t('manualSaveUnavailable')">{{ t("confirm") }}</button>
             </view>
+            <view v-if="detail.manualSubmitting" class="inline-state" role="status"><image class="minor-loading-icon" src="/static/icons/loadin_minior.svg" mode="aspectFit" />{{ t("saving") }}</view>
 
-            <view class="section-title section-title--records">{{ t("analysisRecords") }}</view>
+            <view class="section-title section-title--records manual-records-title">
+              <text>{{ t("analysisRecords") }}</text>
+              <button class="manual-records-refresh" type="button" :disabled="detail.manualLoading || detail.manualSubmitting" :title="t('manualRefreshRecords')" :aria-label="t('manualRefreshRecords')" @click="$emit('load-manual')"><image src="/static/icons/refresh-cw.svg" mode="aspectFit" /></button>
+            </view>
             <view class="manual-records">
               <view class="manual-records__row manual-records__head">
                 <text>{{ t("manualJudgement") }}</text>
@@ -285,7 +288,7 @@
                 <text :title="displayValue(record.reasonAnalysis)">{{ displayValue(record.reasonAnalysis) }}</text>
                 <text>{{ displayValue(record.createdAt) }}</text>
               </view>
-              <view v-if="detail.manualLoading" class="inline-state">{{ t("loading") }}</view>
+              <view v-if="detail.manualLoading" class="inline-state"><image class="minor-loading-icon" src="/static/icons/loadin_minior.svg" mode="aspectFit" />{{ t("loading") }}</view>
               <view v-else-if="!detail.manualRecords.length" class="dialog-state dialog-state--compact">{{ t("noAnalysisRecords") }}</view>
             </view>
             <view v-if="detail.manualError" class="detail-error">{{ detail.manualError }}</view>
@@ -718,16 +721,15 @@ function resetManualForm() {
   manualForm.value = { reasonAnalysis: "", resetDate: formatDate(new Date()) };
 }
 function submitManual(dispatchRequested: boolean) {
-  if (!props.device) return;
+  if (!props.device || props.detail.manualSubmitting) return;
   const judgement = manualJudgementOptions.value[manualJudgementIndex.value];
-  const feedback = feedbackOptions.value[feedbackIndex.value];
   emit("submit-manual", {
     deviceId: props.device.id,
     deviceNumber: props.device.deviceNumber,
     audioId: props.detail.latestAudio?.audioId,
-    manualAnalysis: judgement.label,
+    manualAnalysis: ["正常", "疑似", "渗漏", "阀门漏"][manualJudgementIndex.value],
     manualAnalysisStatus: judgement.value,
-    troubleshootingFeedback: feedback.label,
+    troubleshootingFeedback: ["待排查", "已确认", "已排除", "已修复"][feedbackIndex.value],
     reasonAnalysis: manualForm.value.reasonAnalysis.trim(),
     resetDate: manualForm.value.resetDate,
     dispatchRequested,
@@ -737,6 +739,7 @@ function submitManual(dispatchRequested: boolean) {
   });
 }
 function selectTab(tab: TabKey) {
+  if (props.detail.manualSubmitting) return;
   activeTab.value = tab;
   if (tab === "history" && !props.detail.dailyAudio.length && !props.detail.historyLoading) loadHistory();
   if (tab === "manual" && !props.detail.manualLoaded && !props.detail.manualLoading) {
@@ -902,6 +905,12 @@ onBeforeUnmount(() => {
 .manual-audio__title { display: block; margin-bottom: 8px; color: #334155; font-size: 12px; font-weight: 800; }
 .manual-spectrum { height: 250px; margin-top: 8px; overflow: hidden; }
 .form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.manual-notice { margin-bottom: 12px; padding: 9px 12px; color: #8a5a12; background: #fff8e8; border: 1px solid #f2dca9; border-radius: 5px; font-size: 13px; line-height: 1.6; }
+.manual-records-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.manual-records-refresh { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; margin: 0; padding: 6px; background: #e0f2fe; border: 0; border-radius: 4px; }
+.manual-records-refresh image { width: 18px; height: 18px; }
+.manual-records-refresh[disabled] { opacity: .55; cursor: not-allowed; }
+.manual-records-refresh::after { border: 0; }
 .manual-records,
 .correlation-table { overflow-x: auto; overflow-y: hidden; background: #fff; border: 1px solid #d8e5ef; border-radius: 5px; -webkit-overflow-scrolling: touch; }
 .manual-records__row { display: grid; grid-template-columns: 130px 150px minmax(220px, 1fr) 180px; min-width: 680px; min-height: 40px; border-bottom: 1px solid #edf2f7; }

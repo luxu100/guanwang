@@ -13,7 +13,6 @@ import {
   fetchLeakMonitorTrend,
   fetchLeakMonitorWav,
   createLeakMonitorManualWorkOrder,
-  submitLeakMonitorManualAnalysis,
 } from "@/services/leak-monitor/device-query";
 import { analyzeWavArrayBuffer } from "../audioAnalysis";
 import {
@@ -437,18 +436,23 @@ export function useLeakMonitorWorkspace(localized?: Readonly<Ref<boolean>>) {
   }
 
   async function submitManualAnalysis(payload: ManualAnalysisPayload) {
-    if (!selectedDevice.value) return;
+    if (!selectedDevice.value || detail.value.manualSubmitting) return;
+    if (payload.deviceNumber !== selectedDevice.value.deviceNumber) return;
+    if (!payload.dispatchRequested) {
+      detail.value.manualError = t("manualSaveUnavailable");
+      return;
+    }
     const requestId = detailRequestId;
     detail.value.manualSubmitting = true;
     detail.value.manualError = "";
     try {
-      if (payload.dispatchRequested) {
-        await createLeakMonitorManualWorkOrder(buildManualWorkOrderPayload(payload));
-      } else {
-        await submitLeakMonitorManualAnalysis(payload);
-      }
+      await createLeakMonitorManualWorkOrder(buildManualWorkOrderPayload(payload));
       if (requestId !== detailRequestId) return;
+      uni.showToast({ title: t("manualDispatchSucceeded"), icon: "success" });
       await loadManualAnalysis(selectedDevice.value);
+      if (requestId === detailRequestId && detail.value.manualError) {
+        detail.value.manualError = `${t("manualDispatchRefreshFailed")} ${detail.value.manualError}`;
+      }
     } catch (error: any) {
       if (requestId === detailRequestId) {
         detail.value.manualError = error?.msg || error?.message ||
@@ -481,11 +485,16 @@ export function useLeakMonitorWorkspace(localized?: Readonly<Ref<boolean>>) {
       matchedRegion?.id,
     );
     const sourceId = Number(device?.id ?? payload.deviceId);
-    if (!Number.isFinite(deviceId) || !Number.isFinite(deptId) || !Number.isFinite(sourceId)) {
+    if (![deviceId, deptId, sourceId].every((id) => Number.isSafeInteger(id) && id > 0)) {
       throw new Error("人工派单缺少有效的设备 ID 或分区 ID");
     }
 
-    const expectedTime = new Date(`${payload.resetDate}T23:59:59`).toISOString();
+    const expectedDate = new Date(`${payload.resetDate}T23:59:59`);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(payload.resetDate) || !Number.isFinite(expectedDate.getTime()) ||
+      `${expectedDate.getFullYear()}-${String(expectedDate.getMonth() + 1).padStart(2, "0")}-${String(expectedDate.getDate()).padStart(2, "0")}` !== payload.resetDate) {
+      throw new Error(t("manualInvalidDate"));
+    }
+    const expectedTime = expectedDate.toISOString();
     return {
       workOrderNo: `LEAK-${payload.deviceNumber}-${Date.now()}`,
       expectedTime,
@@ -508,6 +517,7 @@ export function useLeakMonitorWorkspace(localized?: Readonly<Ref<boolean>>) {
   }
 
   async function openDevice(device: LeakMonitorDevice | MapDevicePoint) {
+    if (detail.value.manualSubmitting) return;
     const sourceDevice = "raw" in device
       ? device
       : [...mapDevices.value, ...devices.value].find(
@@ -554,6 +564,7 @@ export function useLeakMonitorWorkspace(localized?: Readonly<Ref<boolean>>) {
   }
 
   function closeDetail() {
+    if (detail.value.manualSubmitting) return;
     detailRequestId += 1;
     detailVisible.value = false;
     revokeAudioUrl(detail.value);

@@ -168,6 +168,9 @@ let polygonLayer: InstanceType<TencentMultiPolygonConstructor> | null = null;
 let sdkLoadingPromise: Promise<void> | null = null;
 let resizeTimer: ReturnType<typeof window.setTimeout> | null = null;
 let resizeObserver: ResizeObserver | null = null;
+let renderedRegionSource: MapRegion[] | null = null;
+let renderedVisibleRegions: MapRegion[] = [];
+const markerStyleCache = new Map<string, { signature: string; style: unknown }>();
 
 const HANGZHOU_CENTER = {
   lat: 30.2741,
@@ -197,12 +200,13 @@ onBeforeUnmount(() => {
   }
 
   unbindResizeEvents();
-  mapInstance?.destroy?.();
-  mapInstance = null;
   markerLayer?.setMap?.(null);
   polygonLayer?.setMap?.(null);
+  mapInstance?.destroy?.();
+  mapInstance = null;
   markerLayer = null;
   polygonLayer = null;
+  markerStyleCache.clear();
 });
 
 /**
@@ -277,7 +281,7 @@ function initMap() {
 
   renderRegions();
   renderMarkers();
-  map.on?.("zoom", renderRegions);
+  map.on?.("zoomend", renderRegions);
   if (props.compact && props.selectedDeviceNumber) {
     window.setTimeout(() => focusDevice(props.selectedDeviceNumber), 0);
   }
@@ -328,9 +332,15 @@ function createMarkerStyles() {
     unknown: "#64748b",
   };
 
+  const activeKeys = new Set(props.points.map((point) => point.deviceNumber));
+  markerStyleCache.forEach((_, key) => { if (!activeKeys.has(key)) markerStyleCache.delete(key); });
   return Object.fromEntries(props.points.map((point) => {
     const selected = props.selectedDeviceNumber === point.deviceNumber;
     const size = selected ? 52 : 44;
+    const color = deviceBindingColor(point) || statusColors[point.status] || statusColors.unknown;
+    const signature = JSON.stringify([size, color, point.leakProperty]);
+    const cached = markerStyleCache.get(point.deviceNumber);
+    if (cached?.signature === signature) return ["device-" + point.deviceNumber, cached.style];
     const canvas = document.createElement("canvas");
     canvas.width = size * 2;
     canvas.height = size * 2;
@@ -339,7 +349,7 @@ function createMarkerStyles() {
       context.scale(2, 2);
       context.beginPath();
       context.arc(size / 2, size / 2, size / 2 - 3, 0, Math.PI * 2);
-      context.fillStyle = deviceBindingColor(point) || statusColors[point.status] || statusColors.unknown;
+      context.fillStyle = color;
       context.fill();
       context.lineWidth = selected ? 4 : 3;
       context.strokeStyle = "#ffffff";
@@ -351,15 +361,14 @@ function createMarkerStyles() {
       context.fillText(point.leakProperty === null ? "-" : String(point.leakProperty), size / 2, size / 2);
     }
 
-    return [
-      "device-" + point.deviceNumber,
-      new TMap.MarkerStyle({
+    const style = new TMap.MarkerStyle({
         width: size,
         height: size,
         anchor: { x: size / 2, y: size / 2 },
         src: canvas.toDataURL("image/png"),
-      }),
-    ];
+      });
+    markerStyleCache.set(point.deviceNumber, { signature, style });
+    return ["device-" + point.deviceNumber, style];
   }));
 }
 function renderMarkers() {
@@ -401,6 +410,10 @@ function renderRegions() {
   if (!mapInstance || !TMap?.MultiPolygon || !TMap.PolygonStyle) return;
   const zoom = mapInstance.getZoom?.() ?? 15;
   const visibleRegions = props.regions.filter((region) => shouldShowRegion(region, zoom));
+  // Panning and zooming must not upload unchanged polygon coordinates again.
+  if (renderedRegionSource === props.regions &&
+    visibleRegions.length === renderedVisibleRegions.length &&
+    visibleRegions.every((region, index) => region === renderedVisibleRegions[index])) return;
   const styles = Object.fromEntries(visibleRegions.map((region) => [
     "region-" + region.id,
     new TMap.PolygonStyle({
@@ -438,6 +451,8 @@ function renderRegions() {
     polygonLayer.setStyles?.(styles);
     polygonLayer.setGeometries?.(geometries);
   }
+  renderedRegionSource = props.regions;
+  renderedVisibleRegions = visibleRegions;
 }
 
 function shouldShowRegion(region: MapRegion, zoom: number) {

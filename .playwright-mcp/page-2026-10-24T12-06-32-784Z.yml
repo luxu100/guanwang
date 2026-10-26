@@ -1,0 +1,22 @@
+- generic [ref=f55e7]:
+  - generic "选择界面语言" [ref=f55e8]:
+    - generic [ref=f55e9] [cursor=pointer]: 中文
+    - generic [ref=f55e10] [cursor=pointer]: EN
+  - generic [ref=f55e11]:
+    - generic [ref=f55e13]: URBAN PIPELINE INTELLIGENCE
+    - generic [ref=f55e14]: 智慧管网 · 实时监测 · 风险预警
+  - generic [ref=f55e15]:
+    - generic [ref=f55e16]:
+      - generic [ref=f55e17]: 欢迎登录
+      - generic [ref=f55e18]: Welcome
+    - generic [ref=f55e20]:
+      - generic [ref=f55e25]:
+        - generic: 请输入账号
+        - textbox [ref=f55e26]
+      - generic [ref=f55e28]:
+        - generic [ref=f55e31]:
+          - generic: 请输入密码
+          - textbox [ref=f55e32]
+        - generic "显示密码" [ref=f55e33] [cursor=pointer]
+    - generic [ref=f55e35]: 记住密码
+    - generic [ref=f55e40] [cursor=pointer]: 登 录

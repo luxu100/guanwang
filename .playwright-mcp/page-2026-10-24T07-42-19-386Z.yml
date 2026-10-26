@@ -1,0 +1,159 @@
+- generic [ref=f3e7]:
+  - generic [ref=f3e10]:
+    - generic "绑定 Logo" [ref=f3e13] [cursor=pointer]
+    - generic "预警信息" [ref=f3e17] [cursor=pointer]: "10"
+    - generic [ref=f3e22] [cursor=pointer]: 简体中文
+    - generic [ref=f3e27]: string
+    - generic [ref=f3e29] [cursor=pointer]: 退出登录
+  - generic [ref=f3e30]:
+    - generic [ref=f3e31]:
+      - generic [ref=f3e32]:
+        - generic [ref=f3e33]: 目录
+        - generic "收起目录" [ref=f3e34] [cursor=pointer]
+      - generic [ref=f3e36]:
+        - generic "我的收藏" [ref=f3e40] [cursor=pointer]
+        - generic "一张图" [ref=f3e44] [cursor=pointer]
+        - generic "渗漏监测" [ref=f3e48] [cursor=pointer]
+        - generic "水锤分析" [ref=f3e52] [cursor=pointer]
+        - generic "分区管理" [ref=f3e56] [cursor=pointer]
+        - generic "设备管理" [ref=f3e60] [cursor=pointer]
+        - generic "指令管理" [ref=f3e64] [cursor=pointer]
+        - generic "统计分析" [ref=f3e68] [cursor=pointer]
+        - generic "数据分析" [ref=f3e72] [cursor=pointer]
+        - generic "疑漏点上报" [ref=f3e76] [cursor=pointer]
+        - generic "工单管理" [ref=f3e80] [cursor=pointer]
+        - generic "运维报表" [ref=f3e84] [cursor=pointer]
+        - generic "渗漏爆管" [ref=f3e88] [cursor=pointer]
+        - generic "实时报警" [ref=f3e92] [cursor=pointer]
+        - generic "系统设置" [ref=f3e96] [cursor=pointer]
+        - generic "数据接收和解析" [ref=f3e100] [cursor=pointer]
+    - generic [ref=f3e101]:
+      - generic [ref=f3e102]:
+        - generic "向左滚动页签" [ref=f3e103] [cursor=pointer]
+        - generic "向右滚动页签" [ref=f3e105] [cursor=pointer]
+        - generic [ref=f3e107]:
+          - generic "渗漏监测" [ref=f3e110] [cursor=pointer]
+          - generic "一张图" [ref=f3e115] [cursor=pointer]
+        - generic "进入全屏" [ref=f3e118] [cursor=pointer]
+      - generic [ref=f3e126]:
+        - generic [ref=f3e127]:
+          - generic [ref=f3e128]:
+            - generic [ref=f3e129]: 在线监测
+            - generic [ref=f3e130]: 一张图
+            - generic [ref=f3e131]: 多探头预警终端 · 水锤监测
+          - generic [ref=f3e132]:
+            - status [ref=f3e133]:
+              - generic [ref=f3e136]: 加载中
+            - generic "2026-10-18 – 2026-10-24" [ref=f3e137]:
+              - generic [ref=f3e138]: 所选时段报警总数
+              - generic [ref=f3e139]:
+                - text: "0"
+                - generic [ref=f3e140]: 条
+            - generic "需要关注或处理的报警" [ref=f3e142]:
+              - generic [ref=f3e143]: 活跃报警
+              - generic [ref=f3e144]:
+                - text: "--"
+                - generic [ref=f3e145]: 条
+            - generic "当前账号可见的终端数量" [ref=f3e147]:
+              - generic [ref=f3e148]: 可见设备
+              - generic [ref=f3e149]:
+                - text: "--"
+                - generic [ref=f3e150]: 台
+            - generic "按设备最新状态统计" [ref=f3e152]:
+              - generic [ref=f3e153]: 通信状态
+              - generic [ref=f3e154]:
+                - text: "0"
+                - generic [ref=f3e155]: 台在线
+          - generic [ref=f3e157]:
+            - group "趋势时间范围" [ref=f3e158]:
+              - generic [ref=f3e159]: 近 7 天
+              - generic [ref=f3e160]: 近 30 天
+              - generic [ref=f3e161]: 近 1 年
+            - generic [ref=f3e162]: 加载中
+          - generic [ref=f3e166]:
+            - generic [ref=f3e167]:
+              - text: 开始日期
+              - textbox "开始日期" [disabled] [ref=f3e168]: 2026-10-18
+            - generic [ref=f3e169]:
+              - text: 结束日期
+              - textbox "结束日期" [disabled] [ref=f3e170]: 2026-10-24
+            - combobox "历史查询类型" [ref=f3e171]:
+              - option "报警历史" [selected]
+              - option "管线风险历史"
+            - generic [ref=f3e172] [cursor=pointer]: 查询历史
+        - region "在线监测总览" [ref=f3e173]:
+          - generic [ref=f3e174]:
+            - generic [ref=f3e176]:
+              - generic [ref=f3e178]:
+                - generic [ref=f3e179]:
+                  - status [ref=f3e180]:
+                    - generic [ref=f3e183]: 加载中
+                  - generic [ref=f3e184]:
+                    - generic [ref=f3e185]:
+                      - generic [ref=f3e186]: 近一周报警变化趋势
+                      - generic [ref=f3e187]: 按报警记录统计，支持切换到更长时间范围
+                    - generic [ref=f3e188]: 加载中
+                - generic [ref=f3e193]:
+                  - status [ref=f3e194]:
+                    - generic [ref=f3e197]: 加载中
+                  - generic [ref=f3e198]:
+                    - generic [ref=f3e199]:
+                      - generic [ref=f3e200]: 实时状态
+                      - generic [ref=f3e201]: 展示当前可见的多探头预警终端
+                    - generic [ref=f3e202]: 0 台
+                  - generic [ref=f3e203]: 暂无设备状态数据
+              - separator "调整趋势与波形面板宽度" [ref=f3e204]
+              - generic [ref=f3e207]:
+                - generic "水锤压力波形：暂无压力采样数据" [ref=f3e208]:
+                  - generic "水锤监测汇总" [ref=f3e210]:
+                    - status [ref=f3e211]:
+                      - generic [ref=f3e214]: 加载中
+                    - generic [ref=f3e215]:
+                      - generic [ref=f3e216]:
+                        - generic [ref=f3e217]: 监测终端
+                        - strong [ref=f3e218]: "--"
+                      - generic [ref=f3e219]:
+                        - generic [ref=f3e220]: 水锤报警
+                        - strong [ref=f3e221]: "--"
+                      - generic [ref=f3e222]:
+                        - generic [ref=f3e223]: 报警率
+                        - strong [ref=f3e224]: "--"
+                - generic [ref=f3e231]:
+                  - generic:
+                    - generic: 0 条管线
+                    - generic [ref=f3e233]:
+                      - combobox "管网分区" [ref=f3e234]:
+                        - option "全部管网" [selected]
+                      - generic "定位管线" [ref=f3e235] [cursor=pointer]
+                      - generic "放大地图" [ref=f3e239] [cursor=pointer]
+                  - status [ref=f3e245]:
+                    - generic [ref=f3e248]: 加载中
+                  - generic:
+                    - generic: 高风险
+                    - generic: 中风险
+                    - generic: 低风险
+                    - generic: 未评估
+            - separator "调整右侧状态与报警面板宽度" [ref=f3e249]
+            - complementary [ref=f3e252]:
+              - generic [ref=f3e253]:
+                - status [ref=f3e254]:
+                  - generic [ref=f3e257]: 加载中
+                - generic [ref=f3e258]:
+                  - generic [ref=f3e259]:
+                    - generic [ref=f3e260]: 报警分布位置
+                    - generic [ref=f3e261]: 2026-10-18 ~ 2026-10-24 · 全部状态 · 按设备统计
+                  - generic [ref=f3e262]: 0 台设备
+                - generic "报警级别图例" [ref=f3e263]:
+                  - generic [ref=f3e264]: 严重
+                  - generic [ref=f3e267]: 警告
+                  - generic [ref=f3e270]: 提示
+                - generic [ref=f3e273]: 所选时段暂无报警
+              - generic [ref=f3e274]:
+                - status [ref=f3e275]:
+                  - generic [ref=f3e278]: 加载中
+                - generic [ref=f3e279]:
+                  - generic [ref=f3e280]:
+                    - generic [ref=f3e281]: 报警明细
+                    - generic [ref=f3e282]: 最近报警记录，点击报警菜单查看完整处理流程
+                  - generic [ref=f3e283]: 0 条
+                - generic [ref=f3e284]: 暂无报警明细
