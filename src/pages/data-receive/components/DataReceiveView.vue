@@ -259,6 +259,7 @@
         </view>
 
         <scroll-view class="detail-body" scroll-y>
+          <ParseRecordQuality v-if="activeConfig.key === 'parseRecord' && selectedRecord" :record="selectedRecord" />
           <view
             v-if="activeConfig.formFields?.length"
             class="form-grid"
@@ -421,6 +422,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import WorkOrderDatetimePicker from "@/pages/work-order/components/WorkOrderDatetimePicker.vue";
+import ParseRecordQuality from "@/pages/data-receive/components/ParseRecordQuality.vue";
 import {
   createDeviceProtocolRelation,
   createProtocolDefinition,

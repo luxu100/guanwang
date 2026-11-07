@@ -26,7 +26,7 @@
           <view class="section-head">
             <view>
               <text class="section-title">{{ localeText("选择设备", "Select devices") }}</text>
-              <text class="section-hint">{{ localeText("仅选择配置完整、已启用且当前离线的设备；单次最多 200 台", "Select configured, enabled, offline devices; up to 200 per request") }}</text>
+              <text class="section-hint">{{ localeText("选择配置完整且已启用的设备，云设备需等待下线；单次最多 200 台", "Select configured, enabled devices. Cloud devices must be offline. Up to 200 per request") }}</text>
             </view>
             <text class="selected-count">{{ localeText(`已选择 ${selectedDevices.length} 台`, `${selectedDevices.length} selected`) }}</text>
           </view>
@@ -249,7 +249,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { useLocaleText } from "@/i18n/localeText";
 import { getDevicePage } from "@/services/device/info";
 import { applyDeviceParameters, getDeviceSettingPage, getDeviceSettingResult } from "@/services/deviceSetting/manage";
-import { getDeviceChannel, getDeviceChannelText, getDeviceOnline } from "@/utils/device-channel";
+import { getDeviceChannel, getDeviceChannelText, getDeviceOnline, getDeviceConfigurationIssue } from "@/utils/device-channel";
 import type { DeviceParameterTask } from "@/services/deviceSetting/manage";
 
 type ApiRecord = Record<string, any>;
@@ -288,6 +288,10 @@ const taskResults = ref<ApiRecord[]>([]);
 const resultBatchId = ref("");
 const openOptionKey = ref("");
 let taskPollTimer: ReturnType<typeof setTimeout> | undefined;
+let taskRefreshVersion = 0;
+let disposed = false;
+let lastRequestSignature = "";
+let lastRequestId = "";
 
 const parameterValues = reactive<Record<string, string | number>>({
   measureGainMode: 0,
@@ -378,9 +382,14 @@ const enabledParameterPreview = computed(() =>
   })),
 );
 
-onMounted(loadDevices);
+onMounted(() => {
+  void loadDevices();
+  if (typeof document !== "undefined") document.addEventListener("visibilitychange", handleTaskVisibilityChange);
+});
 onBeforeUnmount(() => {
-  if (taskPollTimer) clearTimeout(taskPollTimer);
+  disposed = true;
+  stopTaskRefresh();
+  if (typeof document !== "undefined") document.removeEventListener("visibilitychange", handleTaskVisibilityChange);
 });
 
 function numberDefinition(key: string, label: string, hint: string, min: number, max: number): ParameterDefinition {
@@ -453,17 +462,16 @@ function isDeviceOnline(device: ApiRecord): boolean | null {
 
 function isDeviceSelectable(device: ApiRecord) {
   const channel = getDeviceChannel(device);
-  if (channel === "INVALID" || Number(device.enableState) === 0) return false;
-  if (channel !== "DIRECT_TCP" && (!device.productId || !String(device.nbNumber ?? "").trim() || !device.downlinkProtocolVersion)) return false;
-  if (isDeviceOnline(device) === true) return false;
+  if (getDeviceConfigurationIssue(device, localeText) || Number(device.enableState) === 0) return false;
+  if (channel !== "DIRECT_TCP" && isDeviceOnline(device) === true) return false;
   return true;
 }
 
 function getDeviceAvailability(device: ApiRecord) {
-  if (getDeviceChannel(device) === "INVALID") return localeText("协议配置异常", "Invalid protocol");
+  const issue = getDeviceConfigurationIssue(device, localeText);
+  if (issue) return issue;
   if (Number(device.enableState) === 0) return localeText("设备已停用", "Disabled");
-  if (getDeviceChannel(device) !== "DIRECT_TCP" && (!device.productId || !String(device.nbNumber ?? "").trim() || !device.downlinkProtocolVersion)) return localeText("云配置不完整", "Cloud profile incomplete");
-  if (isDeviceOnline(device) === true) return localeText("在线，暂不可设置", "Online; unavailable");
+  if (getDeviceChannel(device) !== "DIRECT_TCP" && isDeviceOnline(device) === true) return localeText("请等待设备下线后设置参数", "Wait until the device goes offline to set parameters");
   return localeText("可设置", "Available");
 }
 
@@ -540,16 +548,29 @@ function nextStep() {
 }
 
 async function submitTasks() {
+  if (submitting.value || disposed) return;
   const validation = validateForm();
   if (validation) return showToast(validation);
+  const deviceNumbers = selectedDevices.value.map(device => String(device.deviceNumber));
+  const parameters = buildParameters();
+  const expiry = expiresAt.value.trim() || undefined;
+  const signature = JSON.stringify({ deviceNumbers: [...deviceNumbers].sort(), parameters, expiresAt: expiry });
+  const requestedId = clientRequestId.value.trim();
+  if (!requestedId || (lastRequestSignature && signature !== lastRequestSignature && requestedId === lastRequestId)) {
+    clientRequestId.value = createClientRequestId();
+  }
+  lastRequestSignature = signature;
+  lastRequestId = clientRequestId.value.trim();
+  stopTaskRefresh();
   submitting.value = true;
   try {
     const result = unwrapResponse(await applyDeviceParameters({
-      deviceNumbers: selectedDevices.value.map(device => String(device.deviceNumber)),
-      parameters: buildParameters(),
-      clientRequestId: clientRequestId.value.trim() || undefined,
-      expiresAt: expiresAt.value.trim() || undefined,
+      deviceNumbers,
+      parameters,
+      clientRequestId: lastRequestId,
+      expiresAt: expiry,
     }));
+    if (disposed) return;
     resultBatchId.value = String(result?.batchId || clientRequestId.value || "");
     taskResults.value = Array.isArray(result?.tasks) ? result.tasks : [];
     step.value = 4;
@@ -557,23 +578,26 @@ async function submitTasks() {
     emit("submitted", resultBatchId.value || undefined);
     scheduleTaskRefresh();
   } catch (error) {
-    showError(error, localeText("创建参数下发任务失败", "Failed to create parameter tasks"));
+    if (!disposed) showError(error, localeText("创建参数下发任务失败", "Failed to create parameter tasks"));
   } finally {
     submitting.value = false;
   }
 }
 
 async function refreshTaskResults() {
-  if (!resultBatchId.value) return;
+  if (!resultBatchId.value || refreshingResults.value || disposed) return;
+  const version = taskRefreshVersion;
+  const batchId = resultBatchId.value;
   refreshingResults.value = true;
   try {
     const page = unwrapResponse(await getDeviceSettingPage({
       pageNum: 1,
       pageSize: 200,
       recordSource: "COMMAND",
-      batchId: resultBatchId.value,
+      batchId,
       sortOrder: "asc",
     }));
+    if (disposed || version !== taskRefreshVersion || batchId !== resultBatchId.value) return;
     const historyRows = getPageRecords(page).map(normalizeTask);
     const merged = new Map<string, ApiRecord>();
     for (const task of taskResults.value) merged.set(String(task.settingId ?? task.id ?? task.deviceNumber), task);
@@ -586,23 +610,40 @@ async function refreshTaskResults() {
       if (!task.settingId) return;
       try {
         const result = normalizeTask(unwrapResponse(await getDeviceSettingResult(task.settingId)));
+        if (disposed || version !== taskRefreshVersion || batchId !== resultBatchId.value) return;
         const index = taskResults.value.findIndex(item => String(item.settingId ?? item.id) === String(task.settingId));
         if (index >= 0) taskResults.value.splice(index, 1, { ...taskResults.value[index], ...result });
       } catch { /* Keep the last known task state when a result refresh fails. */ }
     }));
-    showToast(localeText("任务状态已刷新", "Task status refreshed"));
+    if (!disposed && version === taskRefreshVersion) showToast(localeText("任务状态已刷新", "Task status refreshed"));
   } catch (error) {
-    showError(error, localeText("任务状态刷新失败", "Failed to refresh task status"));
+    if (!disposed && version === taskRefreshVersion) showError(error, localeText("任务状态刷新失败", "Failed to refresh task status"));
   } finally {
-    refreshingResults.value = false;
-    scheduleTaskRefresh();
+    if (!disposed && version === taskRefreshVersion) {
+      refreshingResults.value = false;
+      scheduleTaskRefresh();
+    }
   }
 }
 
 function scheduleTaskRefresh() {
   if (taskPollTimer) clearTimeout(taskPollTimer);
+  taskPollTimer = undefined;
+  if (disposed || (typeof document !== "undefined" && document.visibilityState === "hidden")) return;
   if (step.value !== 4 || !taskResults.value.some(isTaskPending)) return;
   taskPollTimer = setTimeout(() => { void refreshTaskResults(); }, 5000);
+}
+
+function stopTaskRefresh() {
+  taskRefreshVersion += 1;
+  if (taskPollTimer) clearTimeout(taskPollTimer);
+  taskPollTimer = undefined;
+  refreshingResults.value = false;
+}
+
+function handleTaskVisibilityChange() {
+  stopTaskRefresh();
+  scheduleTaskRefresh();
 }
 
 function isTaskPending(task: ApiRecord) {
@@ -614,7 +655,7 @@ function isTaskPending(task: ApiRecord) {
 }
 
 function normalizeTask(source: ApiRecord): ApiRecord {
-  return {
+  return Object.fromEntries(Object.entries({
     ...source,
     settingId: source.settingId ?? source.id,
     commandId: source.commandId ?? source.commandSendLogId,
@@ -623,7 +664,7 @@ function normalizeTask(source: ApiRecord): ApiRecord {
     feedback: source.feedback ?? source.commandFeedback,
     sentAt: source.sentAt ?? source.commandSentAt ?? source.sendTime,
     expiresAt: source.expiresAt ?? source.commandExpiresAt,
-  };
+  }).filter(([, value]) => value !== undefined));
 }
 
 function validateForm() {
@@ -732,7 +773,10 @@ function getTaskTransportStatus(task: ApiRecord) {
 }
 
 function createClientRequestId() {
-  return `device-setting-${Date.now()}`.slice(0, 48);
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `device-setting-${crypto.randomUUID().replace(/-/g, "")}`;
+  }
+  return `device-setting-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 function unwrapResponse(response: any) {
@@ -764,7 +808,9 @@ function showError(error: any, fallback: string) {
 }
 
 function closeDialog() {
-  if (!submitting.value) emit("close");
+  if (submitting.value) return;
+  stopTaskRefresh();
+  emit("close");
 }
 </script>
 

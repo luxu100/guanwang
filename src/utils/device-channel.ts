@@ -5,6 +5,19 @@ export interface DeviceChannelFields {
   nbNumber?: string | null;
   onlineStatus?: number | null;
   tcpOnlineStatus?: number | null;
+  productId?: string | number | null;
+  downlinkProtocolVersion?: string | null;
+}
+
+export function getDeviceConfigurationIssue(device: DeviceChannelFields, localeText: (zh: string, en: string) => string): string {
+  const channel = getDeviceChannel(device);
+  if (channel === "INVALID") return localeText("云通道协议缺失或无效", "Missing or invalid cloud protocol");
+  if (channel === "DIRECT_TCP") return "";
+  if (!String(device.nbNumber ?? "").trim()) return localeText("缺少电信平台设备 ID", "Missing CTWing device ID");
+  if (!device.productId) return localeText("缺少云产品关联", "Missing cloud product");
+  if (!device.downlinkProtocolVersion) return localeText("缺少下发协议版本，等待识别", "Missing downlink protocol version; awaiting detection");
+  if (!["NEW", "LEGACY"].includes(device.downlinkProtocolVersion)) return localeText("下发协议版本无效", "Invalid downlink protocol version");
+  return "";
 }
 
 export function getDeviceChannel(device: DeviceChannelFields): DeviceTransportChannel {

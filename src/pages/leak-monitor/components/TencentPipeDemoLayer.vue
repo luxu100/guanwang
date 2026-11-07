@@ -41,6 +41,7 @@ import { getNetworkViewportCoordinates } from "../networkViewport";
 interface TencentMarkerLayer {
   setMap?: (map: TencentMapInstanceHandle | null) => void;
   setGeometries?: (geometries: unknown[]) => void;
+  setStyles?: (styles: Record<string, unknown>) => void;
   on?: (event: string, handler: (event: any) => void) => void;
 }
 
@@ -112,11 +113,14 @@ let overviewLayer: TencentOverviewLayer | null = null;
 let facilityLayer: TencentMarkerLayer | null = null;
 let draftFacilityLayer: TencentMarkerLayer | null = null;
 let draftPipeLayer: TencentOverviewLayer | null = null;
+let draftPointLayer: TencentMarkerLayer | null = null;
+const draftPointStyles = new Map<number, unknown>();
 let layersMap: TencentMapInstanceHandle | null = null;
 let draftSyncFrame: number | null = null;
 let layerSyncFrame: number | null = null;
 let hasOverviewPipeData = false;
 let hasDraftPipeData = false;
+let hasDraftPointData = false;
 let hasFacilityData = false;
 let hasDraftFacilityData = false;
 const ACTIVE_PIPE_COLOR = "#16A34A";
@@ -180,6 +184,7 @@ onBeforeUnmount(() => {
   if (layerSyncFrame !== null) window.cancelAnimationFrame(layerSyncFrame);
   destroyOverviewLayer(overviewLayer);
   destroyOverviewLayer(draftPipeLayer);
+  destroyMarkerLayer(draftPointLayer);
   destroyMarkerLayer(facilityLayer);
   destroyMarkerLayer(draftFacilityLayer);
 });
@@ -198,15 +203,19 @@ function syncLayers() {
   if (!props.mapInstance || !TMap) {
     destroyOverviewLayer(overviewLayer);
     destroyOverviewLayer(draftPipeLayer);
+    destroyMarkerLayer(draftPointLayer);
     destroyMarkerLayer(facilityLayer);
     destroyMarkerLayer(draftFacilityLayer);
     overviewLayer = null;
     draftPipeLayer = null;
+    draftPointLayer = null;
+    draftPointStyles.clear();
     facilityLayer = null;
     draftFacilityLayer = null;
     layersMap = null;
     hasOverviewPipeData = false;
     hasDraftPipeData = false;
+    hasDraftPointData = false;
     hasFacilityData = false;
     hasDraftFacilityData = false;
     return;
@@ -217,14 +226,18 @@ function syncLayers() {
   if (layersMap !== props.mapInstance) {
     destroyOverviewLayer(overviewLayer);
     destroyOverviewLayer(draftPipeLayer);
+    destroyMarkerLayer(draftPointLayer);
     destroyMarkerLayer(facilityLayer);
     destroyMarkerLayer(draftFacilityLayer);
     draftPipeLayer = null;
+    draftPointLayer = null;
+    draftPointStyles.clear();
     facilityLayer = null;
     draftFacilityLayer = null;
     layersMap = props.mapInstance;
     hasOverviewPipeData = false;
     hasDraftPipeData = false;
+    hasDraftPointData = false;
     hasFacilityData = false;
     hasDraftFacilityData = false;
 
@@ -242,6 +255,7 @@ function syncLayers() {
     }
 
     if (TMap.MultiMarker && TMap.MarkerStyle) {
+      draftPointLayer = new TMap.MultiMarker({ map: props.mapInstance, styles: {}, geometries: [] });
       facilityLayer = new TMap.MultiMarker({ map: props.mapInstance, styles: createFacilityStyles(TMap), geometries: [] });
       draftFacilityLayer = new TMap.MultiMarker({ map: props.mapInstance, styles: createFacilityStyles(TMap), geometries: [] });
       bindFacilityHover(facilityLayer, false);
@@ -253,6 +267,7 @@ function syncLayers() {
   renderPipes(TMap);
   renderFacilities(TMap);
   renderDraftPipe(TMap);
+  renderDraftPoints(TMap);
   renderDraftFacilities(TMap);
   applyVisibility();
 }
@@ -261,6 +276,7 @@ function syncDraftLayers() {
   const TMap = getTMap();
   if (!props.mapInstance || !TMap) return;
   renderDraftPipe(TMap);
+  renderDraftPoints(TMap);
   renderDraftFacilities(TMap);
   applyVisibility();
 }
@@ -348,6 +364,47 @@ function renderDraftPipe(TMap: TencentPipeApi) {
     draftPipeLayer.setMap?.(null);
     console.error("腾讯地图草稿管线图层更新失败", error);
   }
+}
+
+function renderDraftPoints(TMap: TencentPipeApi) {
+  const MarkerStyle = TMap.MarkerStyle;
+  if (!draftPointLayer?.setGeometries || !MarkerStyle) return;
+  const points = props.creation.draft.active ? getDraftPointCoordinates(props.creation.draft) : [];
+  const styles: Record<string, unknown> = {};
+  const geometries = points.map((point, index) => {
+    if (!draftPointStyles.has(index)) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 48;
+      canvas.height = 48;
+      const context = canvas.getContext("2d");
+      if (context) {
+        context.scale(2, 2);
+        context.beginPath();
+        context.arc(12, 12, 10, 0, Math.PI * 2);
+        context.fillStyle = "#0284C7";
+        context.fill();
+        context.lineWidth = 2;
+        context.strokeStyle = "#FFFFFF";
+        context.stroke();
+        context.fillStyle = "#FFFFFF";
+        context.font = "700 11px sans-serif";
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.fillText(String(index + 1), 12, 12);
+      }
+      draftPointStyles.set(index, new MarkerStyle({
+        width: 24, height: 24, anchor: { x: 12, y: 12 },
+        src: context ? canvas.toDataURL("image/png") : "/static/icons/crosshair.svg",
+      }));
+    }
+    const styleId = "draft-point-" + index;
+    styles[styleId] = draftPointStyles.get(index);
+    const display = tencentDisplayCoordinate(point, props.creation.draft.countryCode);
+    return { id: styleId, styleId, position: new TMap.LatLng(display.lat, display.lng) };
+  });
+  draftPointLayer.setStyles?.(styles);
+  draftPointLayer.setGeometries(geometries);
+  hasDraftPointData = geometries.length > 0;
 }
 
 function renderFacilities(TMap: TencentPipeApi) {
@@ -448,6 +505,7 @@ function createFacilityStyle(TMap: TencentPipeApi, src: string) {
 
 function applyVisibility() {
   draftPipeLayer?.setMap?.(props.creation.draft.active && hasDraftPipeData ? (props.mapInstance || null) : null);
+  draftPointLayer?.setMap?.(props.creation.draft.active && hasDraftPointData ? (props.mapInstance || null) : null);
   facilityLayer?.setMap?.(hasFacilityData ? (props.mapInstance || null) : null);
   draftFacilityLayer?.setMap?.(hasDraftFacilityData ? (props.mapInstance || null) : null);
   applyOverviewVisibility();

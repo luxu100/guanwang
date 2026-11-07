@@ -8,7 +8,7 @@
             :placeholder="localeText('输入设备编号', 'Enter device number')" @confirm="handleSearch" />
         </view>
 
-        <view class="filter-field">
+        <view v-if="activeView !== 'SETTING'" class="filter-field">
           <text class="filter-label">{{ localeText("执行状态", "Status") }}</text>
           <picker :range="activeStatusOptions" range-key="label" :value="activeStatusIndex"
             @change="handleStatusChange">
@@ -25,7 +25,7 @@
             :placeholder="localeText('如 V1.1', 'e.g. V1.1')" @confirm="handleSearch" />
         </view>
 
-        <view class="filter-field filter-field--date">
+        <view v-if="activeView !== 'SETTING'" class="filter-field filter-field--date">
           <text class="filter-label">{{ localeText("开始日期", "Start date") }}</text>
           <picker mode="date" :value="activeFilters.startDate" @change="handleStartDateChange">
             <view class="filter-select">{{ activeFilters.startDate || localeText("不限", "Any") }}<text
@@ -33,7 +33,7 @@
           </picker>
         </view>
 
-        <view class="filter-field filter-field--date">
+        <view v-if="activeView !== 'SETTING'" class="filter-field filter-field--date">
           <text class="filter-label">{{ localeText("结束日期", "End date") }}</text>
           <picker mode="date" :value="activeFilters.endDate" @change="handleEndDateChange">
             <view class="filter-select">{{ activeFilters.endDate || localeText("不限", "Any") }}<text
@@ -74,7 +74,11 @@
           </button>
         </view>
 
-        <CommandDataTable :columns="activeColumns" :data="activeRows" :loading="activeLoading" :selected="selectedId"
+        <view v-if="activeView === 'SETTING' && settingLoadError" class="error-card" role="alert">
+          <text data-i18n-raw>{{ settingLoadError }}</text>
+          <button class="mini-button" :disabled="settingLoading" @click="loadSettingPage(true)">{{ localeText("重试", "Retry") }}</button>
+        </view>
+        <CommandDataTable v-else :columns="activeColumns" :data="activeRows" :loading="activeLoading" :selected="selectedId"
           :page-current="activePage.current" :page-size="activePage.size"
           :loading-text="localeText('正在加载…', 'Loading…')" :empty-text="getActiveEmptyText()" @row-click="selectRow">
           <template #cell-executeStatus="{ row }">
@@ -804,7 +808,7 @@ import {
 } from "@/services/firmware/upgrade";
 import { getFirmwareUpgradeLogDetail, getFirmwareUpgradeLogPage } from "@/services/firmware/upgrade-log";
 import { getDeviceSettingDetail, getDeviceSettingPage, getDeviceSettingResult } from "@/services/deviceSetting/manage";
-import { getDeviceChannel, getDeviceChannelText, getDeviceOnline } from "@/utils/device-channel";
+import { getDeviceChannel, getDeviceChannelText, getDeviceOnline, getDeviceConfigurationIssue } from "@/utils/device-channel";
 import {
   getAudioRepairCommands,
   getAudioRepairDetail,
@@ -987,6 +991,8 @@ const audioRepairRows = ref<ApiRecord[]>([]);
 const commandLoading = ref(false);
 const upgradeLoading = ref(false);
 const settingLoading = ref(false);
+const settingLoadError = ref("");
+let settingLoadVersion = 0;
 const audioRepairLoading = ref(false);
 const selectedCommandId = ref<string | number | null>(null);
 const selectedUpgradeId = ref<string | number | null>(null);
@@ -1025,6 +1031,8 @@ const updatableResults = ref<ApiRecord[]>([]);
 const lastCreatedUpgradeIds = ref<Array<string | number>>([]);
 let upgradePollTimer: ReturnType<typeof setTimeout> | undefined;
 let upgradePollRequest = 0;
+let disposed = false;
+const uncertainUpgradeRequest = ref("");
 
 const activeFilters = computed(() => {
   if (activeView.value === "COMMAND") return commandFilters;
@@ -1125,7 +1133,7 @@ const currentSelectableSelected = computed(() => {
   return selectable.length > 0 && selectable.every(isDeviceSelected);
 });
 const hasBlockedDevice = computed(() => selectedDevices.value.some(device => !getCheckResult(device.deviceNumber).updatable));
-const canSubmitUpgrade = computed(() => selectedDevices.value.length > 0 && updatableResults.value.length === selectedDevices.value.length && !hasBlockedDevice.value);
+const canSubmitUpgrade = computed(() => !submittingUpgrade.value && uncertainUpgradeRequest.value !== getUpgradeRequestKey() && selectedDevices.value.length > 0 && updatableResults.value.length === selectedDevices.value.length && !hasBlockedDevice.value);
 const frameDetailColumns = computed(() => {
   const fieldOrder = [
     "id",
@@ -1194,9 +1202,14 @@ const eventDetailTableWidth = computed(() => eventDetailColumns.value.reduce((to
 
 onMounted(() => {
   loadCommandPage(true);
+  if (typeof document !== "undefined") document.addEventListener("visibilitychange", handleUpgradeVisibilityChange);
 });
 
-onBeforeUnmount(stopUpgradePolling);
+onBeforeUnmount(() => {
+  disposed = true;
+  stopUpgradePolling();
+  if (typeof document !== "undefined") document.removeEventListener("visibilitychange", handleUpgradeVisibilityChange);
+});
 
 async function switchRecordView(view: RecordView) {
   if (activeView.value === view) return;
@@ -1269,7 +1282,9 @@ async function loadUpgradePage(selectFirst = false) {
 }
 
 async function loadSettingPage(selectFirst = false) {
+  const version = ++settingLoadVersion;
   settingLoading.value = true;
+  settingLoadError.value = "";
   try {
     const response = await getDeviceSettingPage({
       pageNum: settingPage.current,
@@ -1278,17 +1293,22 @@ async function loadSettingPage(selectFirst = false) {
       recordSource: "COMMAND",
       sortOrder: "desc",
     });
+    if (disposed || version !== settingLoadVersion) return;
     const pageData = unwrapResponse(response);
     settingRows.value = getPageRecords(pageData).map(normalizeDeviceSetting);
     settingPage.total = getPageTotal(pageData, settingRows.value.length);
+    if (activeView.value !== "SETTING") return;
     if (selectFirst || !settingRows.value.some(item => item.id === selectedSettingId.value)) {
       if (settingRows.value[0]) await selectSettingRow(settingRows.value[0]);
       else clearSelection("SETTING");
     }
   } catch (error) {
+    if (disposed || version !== settingLoadVersion) return;
+    const cause = error as { msg?: string; message?: string };
+    settingLoadError.value = cause?.msg || cause?.message || localeText("设备参数设置记录加载失败", "Failed to load device parameter tasks");
     showError(error, localeText("设备参数设置记录加载失败", "Failed to load device parameter tasks"));
   } finally {
-    settingLoading.value = false;
+    if (!disposed && version === settingLoadVersion) settingLoading.value = false;
   }
 }
 
@@ -1342,6 +1362,7 @@ async function selectCommandRow(row: ApiRecord) {
 
 async function selectUpgradeRow(row: ApiRecord) {
   stopUpgradePolling();
+  const version = upgradePollRequest;
   selectedUpgradeId.value = row.id;
   detailTab.value = "OVERVIEW";
   frames.value = [];
@@ -1351,7 +1372,7 @@ async function selectUpgradeRow(row: ApiRecord) {
   selectedEvent.value = null;
   eventDetailVisible.value = false;
   await loadSelectedUpgradeDetail(false);
-  scheduleUpgradePolling();
+  if (isCurrentUpgradeRequest(row.id, version)) scheduleUpgradePolling();
 }
 
 async function selectSettingRow(row: ApiRecord) {
@@ -1442,37 +1463,52 @@ async function loadAudioCommands(showMessage: boolean) {
 }
 
 async function loadSelectedUpgradeDetail(silent = false) {
-  if (selectedUpgradeId.value === null) return;
+  const id = selectedUpgradeId.value;
+  const version = upgradePollRequest;
+  if (id === null || !isCurrentUpgradeRequest(id, version)) return;
   if (!silent) detailLoading.value = true;
   try {
-    const detail = normalizeUpgradeLog(unwrapResponse(await getFirmwareUpgradeLogDetail(selectedUpgradeId.value)));
-    if (detail.id !== selectedUpgradeId.value) return;
+    const detail = normalizeUpgradeLog(unwrapResponse(await getFirmwareUpgradeLogDetail(id)));
+    if (!isCurrentUpgradeRequest(id, version) || String(detail.id) !== String(id)) return;
     selectedDetail.value = detail;
     const index = upgradeRows.value.findIndex(item => item.id === detail.id);
     if (index >= 0) upgradeRows.value.splice(index, 1, detail);
   } catch (error) {
-    if (!silent) showError(error, localeText("升级详情加载失败", "Failed to load upgrade details"));
+    if (!silent && isCurrentUpgradeRequest(id, version)) showError(error, localeText("升级详情加载失败", "Failed to load upgrade details"));
   } finally {
-    if (!silent) detailLoading.value = false;
+    if (!silent && isCurrentUpgradeRequest(id, version)) detailLoading.value = false;
   }
+}
+
+function isCurrentUpgradeRequest(id: string | number, version: number) {
+  return !disposed && activeView.value === "UPGRADE" && selectedUpgradeId.value === id && upgradePollRequest === version;
+}
+
+function handleUpgradeVisibilityChange() {
+  if (document.visibilityState === "hidden") stopUpgradePolling();
+  else scheduleUpgradePolling();
 }
 
 function stopUpgradePolling() {
   upgradePollRequest += 1;
   if (upgradePollTimer) clearTimeout(upgradePollTimer);
   upgradePollTimer = undefined;
+  if (activeView.value === "UPGRADE") {
+    detailLoading.value = false;
+    subResourceLoading.value = false;
+  }
 }
 
 function scheduleUpgradePolling() {
   stopUpgradePolling();
   const task = selectedDetail.value;
   const id = selectedUpgradeId.value;
-  if (activeView.value !== "UPGRADE" || id === null || !task || [3, 4, 5, 6].includes(Number(task.executeStatus))) return;
+  if (disposed || (typeof document !== "undefined" && document.visibilityState === "hidden") || activeView.value !== "UPGRADE" || id === null || !task || [3, 4, 5, 6].includes(Number(task.executeStatus))) return;
   const requestId = upgradePollRequest;
   upgradePollTimer = setTimeout(async () => {
     if (requestId !== upgradePollRequest || activeView.value !== "UPGRADE" || selectedUpgradeId.value !== id) return;
     if (typeof document !== "undefined" && document.visibilityState === "hidden") {
-      scheduleUpgradePolling();
+      stopUpgradePolling();
       return;
     }
     await loadSelectedUpgradeDetail(true);
@@ -1490,12 +1526,16 @@ async function switchDetailTab(tab: DetailTab) {
 }
 
 async function loadFrames(showMessage: boolean) {
-  if (selectedUpgradeId.value === null) return;
+  const id = selectedUpgradeId.value;
+  const version = upgradePollRequest;
+  if (id === null || !isCurrentUpgradeRequest(id, version)) return;
   subResourceLoading.value = true;
   try {
     const previousId = selectedFrame.value?.id;
     const previousFrameIndex = selectedFrame.value?.frameIndex;
-    frames.value = asArray(unwrapResponse(await getFirmwareUpgradeFrames(selectedUpgradeId.value)));
+    const records = asArray(unwrapResponse(await getFirmwareUpgradeFrames(id)));
+    if (!isCurrentUpgradeRequest(id, version)) return;
+    frames.value = records;
     selectedFrame.value = frames.value.find(frame =>
       previousId !== undefined
         ? frame.id === previousId
@@ -1503,9 +1543,9 @@ async function loadFrames(showMessage: boolean) {
     ) || frames.value[0] || null;
     if (showMessage) showToast(localeText("帧记录已刷新", "Frame records refreshed"));
   } catch (error) {
-    showError(error, localeText("帧记录加载失败", "Failed to load frame records"));
+    if (isCurrentUpgradeRequest(id, version)) showError(error, localeText("帧记录加载失败", "Failed to load frame records"));
   } finally {
-    subResourceLoading.value = false;
+    if (isCurrentUpgradeRequest(id, version)) subResourceLoading.value = false;
   }
 }
 
@@ -1518,17 +1558,21 @@ function closeFrameDetail() {
 }
 
 async function loadEvents(showMessage: boolean) {
-  if (selectedUpgradeId.value === null) return;
+  const id = selectedUpgradeId.value;
+  const version = upgradePollRequest;
+  if (id === null || !isCurrentUpgradeRequest(id, version)) return;
   subResourceLoading.value = true;
   try {
     const previousId = selectedEvent.value?.id;
-    events.value = asArray(unwrapResponse(await getFirmwareUpgradeEvents(selectedUpgradeId.value))).map(normalizeUpgradeEvent);
+    const records = asArray(unwrapResponse(await getFirmwareUpgradeEvents(id))).map(normalizeUpgradeEvent);
+    if (!isCurrentUpgradeRequest(id, version)) return;
+    events.value = records;
     selectedEvent.value = events.value.find(event => previousId !== undefined && event.id === previousId) || events.value[0] || null;
     if (showMessage) showToast(localeText("事件记录已刷新", "Event records refreshed"));
   } catch (error) {
-    showError(error, localeText("事件记录加载失败", "Failed to load event records"));
+    if (isCurrentUpgradeRequest(id, version)) showError(error, localeText("事件记录加载失败", "Failed to load event records"));
   } finally {
-    subResourceLoading.value = false;
+    if (isCurrentUpgradeRequest(id, version)) subResourceLoading.value = false;
   }
 }
 
@@ -1541,18 +1585,24 @@ function closeEventDetail() {
 }
 
 async function confirmCancelUpgrade() {
-  if (!selectedDetail.value || !canCancelUpgrade(selectedDetail.value)) return;
+  if (canceling.value || !selectedDetail.value || !canCancelUpgrade(selectedDetail.value)) return;
+  const id = selectedDetail.value.id;
   const deviceNumber = selectedDetail.value.deviceNumber || "--";
   const confirmed = await showConfirm(
     localeText("取消固件升级", "Cancel firmware upgrade"),
     localeText(`确认取消设备 ${deviceNumber} 的升级任务吗？`, `Cancel the upgrade task for device ${deviceNumber}?`),
   );
-  if (!confirmed) return;
+  if (!confirmed || disposed || canceling.value) return;
   canceling.value = true;
   try {
-    unwrapResponse(await cancelFirmwareUpgrade({ upgradeLogIds: [selectedDetail.value.id] }));
+    unwrapResponse(await cancelFirmwareUpgrade({ upgradeLogIds: [id] }));
+    if (disposed) return;
     showToast(localeText("取消请求已提交", "Cancellation request submitted"));
-    await loadSelectedUpgradeDetail(false);
+    if (activeView.value === "UPGRADE" && selectedUpgradeId.value === id) {
+      const version = upgradePollRequest;
+      await loadSelectedUpgradeDetail(false);
+      if (isCurrentUpgradeRequest(id, version)) scheduleUpgradePolling();
+    }
   } catch (error) {
     showError(error, localeText("取消升级失败", "Failed to cancel upgrade"));
   } finally {
@@ -1636,6 +1686,7 @@ async function runUpdatableCheck() {
       deviceNumbers: selectedDevices.value.map(item => item.deviceNumber),
     }));
     updatableResults.value = asArray(result);
+    if (updatableResults.value.length === selectedDevices.value.length && !hasBlockedDevice.value) uncertainUpgradeRequest.value = "";
   } catch (error) {
     updatableResults.value = [];
     showError(error, localeText("设备升级检查失败", "Failed to check device eligibility"));
@@ -1646,6 +1697,7 @@ async function runUpdatableCheck() {
 
 async function submitUpgrade() {
   if (!canSubmitUpgrade.value || !selectedFirmware.value) return;
+  const requestKey = getUpgradeRequestKey();
   submittingUpgrade.value = true;
   try {
     const userInfo = uni.getStorageSync("userInfo") || {};
@@ -1669,9 +1721,21 @@ async function submitUpgrade() {
     }
   } catch (error) {
     showError(error, localeText("发起固件升级失败", "Failed to start firmware upgrade"));
+    const code = Number((error as { code?: unknown })?.code);
+    if (!Number.isFinite(code) || code <= 0 || code >= 500) {
+      uncertainUpgradeRequest.value = requestKey;
+      upgradeDialogVisible.value = false;
+      activeView.value = "UPGRADE";
+      showToast(localeText("升级请求结果待核实，请核对最近任务并重新预检", "Upgrade submission needs verification; check recent tasks and run precheck again"));
+      await loadUpgradePage(true);
+    }
   } finally {
     submittingUpgrade.value = false;
   }
+}
+
+function getUpgradeRequestKey() {
+  return JSON.stringify([upgradeDraft.firmwareId, selectedDevices.value.map(device => String(device.deviceNumber)).sort()]);
 }
 
 async function showCreatedUpgradeTasks() {
@@ -1710,8 +1774,8 @@ function isDeviceSelected(device: ApiRecord) {
 
 function isDeviceUpgradeSelectable(device: ApiRecord) {
   const channel = getDeviceChannel(device);
-  if (channel === "INVALID") return false;
-  if (channel !== "DIRECT_TCP" && (!String(device.nbNumber ?? "").trim() || !device.productId || !device.downlinkProtocolVersion || Number(device.enableState) === 0)) return false;
+  if (getDeviceConfigurationIssue(device, localeText)) return false;
+  if (channel !== "DIRECT_TCP" && Number(device.enableState) === 0) return false;
   return true;
 }
 
@@ -1720,8 +1784,9 @@ function isDeviceOnline(device: ApiRecord): boolean | null {
 }
 
 function getDeviceAvailability(device: ApiRecord) {
-  if (!isDeviceUpgradeSelectable(device)) return localeText("云配置缺少设备 ID 或协议异常", "Missing cloud identity or invalid protocol");
-  if (getDeviceChannel(device) !== "DIRECT_TCP" && !device.downlinkProtocolVersion) return localeText("等待识别下发协议版本", "Waiting for downlink version detection");
+  const issue = getDeviceConfigurationIssue(device, localeText);
+  if (issue) return issue;
+  if (getDeviceChannel(device) !== "DIRECT_TCP" && Number(device.enableState) === 0) return localeText("设备已停用", "Device disabled");
   return localeText("可参加后端预检", "Eligible for server precheck");
 }
 
@@ -1828,7 +1893,8 @@ function normalizeUpgradeEvent(source: ApiRecord = {}) {
 }
 
 function normalizeDeviceSetting(source: ApiRecord = {}) {
-  const commandStatus = source.commandStatus ?? source.status;
+  const executeStatus = source.commandExecuteStatus ?? source.executeStatus;
+  const commandStatus = Number(executeStatus) === 4 ? "FAILED" : Number(executeStatus) === 5 ? "CANCELED" : source.commandStatus ?? source.status;
   return {
     ...source,
     id: source.id ?? source.settingId,
@@ -2115,7 +2181,7 @@ function getStageText(stage: unknown, round?: unknown) {
     CANCELED: localeText("已取消", "Canceled"),
   };
   const text = labels[String(stage)] || displayValue(stage, localeText("等待任务状态", "Waiting for task status"));
-  if (Number(round) <= 0 || !["SENDING_REPAIR", "WAITING_SEND", "WAITING_PLATFORM_CALLBACK"].includes(String(stage))) return text;
+  if (!Number.isFinite(Number(round)) || Number(round) <= 0 || !["SENDING_REPAIR", "WAITING_SEND", "WAITING_PLATFORM_CALLBACK"].includes(String(stage))) return text;
   return localeText(`${text}（第 ${round} 轮）`, `${text} (round ${round})`);
 }
 

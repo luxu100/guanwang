@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
 import { parse } from '@vue/compiler-sfc';
+import * as pipeGeometry from '../src/pages/leak-monitor/pipeGeometry.ts';
+import * as coordinates from '../src/pages/leak-monitor/coordinateTransform.ts';
 
 const ref = (value) => ({ value });
 const vue = { ref, reactive: (value) => value, computed: (get) => ({ get value() { return get(); } }), watch() {}, onMounted() {}, onBeforeUnmount() {} };
@@ -12,7 +14,7 @@ function load(path, modules = {}, globals = {}) {
   if (path.endsWith('.vue')) source = parse(source).descriptor.scriptSetup.content;
   const context = vm.createContext({
     exports: {}, console, URL, Blob, setTimeout, clearTimeout,
-    require: (id) => id === 'vue' ? vue : modules[id] || {}, ...globals,
+    require: (id) => modules[id] || (id === 'vue' ? vue : {}), ...globals,
   });
   vm.runInContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText, context);
   return { context, run: (code) => vm.runInContext(code, context) };
@@ -136,6 +138,115 @@ test('manual service rejects missing/non-200 codes and never dispatches on save'
   await assert.rejects(app.context.exports.submitLeakMonitorManualAnalysis({}), /独立/);
   assert.equal(calls.length, count);
 });
+
+function draftLayerHarness(provider, countryCode = 'MY') {
+  let cleanup;
+  const labels = [];
+  class Overlay {
+    constructor(options) { this.options = options; this.map = options.map; }
+    setOptions(options) { Object.assign(this.options, options); }
+    setGeometries(geometries) { this.options.geometries = geometries; }
+    setStyles(styles) { this.options.styles = styles; }
+    setMap(map) { this.map = map; }
+    setVisible(visible) { this.visible = visible; }
+    on() {}
+  }
+  const i18n = { useLeakMonitorI18n: () => ({ language: ref('zh-CN'), t: (key) => key }) };
+  const controller = load('../src/pages/leak-monitor/pipeCreation.ts', {
+    './pipeGeometry': pipeGeometry, './i18n': i18n,
+  }).context.exports.usePipeCreation(ref([]), { focusCoordinate() {}, onSaved() {} });
+  controller.start('pipe');
+  controller.draft.countryCode = countryCode;
+  const props = {
+    mapInstance: {}, formalTubes: [], formalFacilities: [],
+    formalTubeRejected: [], formalFacilityRejected: [], creation: controller,
+    facilityVisibility: { VALVE: true, HYDRANT: true, PUMP: true },
+  };
+  const context = {
+    scale() {}, beginPath() {}, arc() {}, fill() {}, stroke() {},
+    fillText(text) { labels.push(text); },
+  };
+  const app = load(`../src/pages/leak-monitor/components/${provider === 'google' ? 'Google' : 'Tencent'}PipeDemoLayer.vue`, {
+    vue: { ...vue, onBeforeUnmount(fn) { cleanup = fn; } },
+    '../i18n': i18n,
+    '../pipeCreation': pipeGeometry,
+    '../coordinateTransform': coordinates,
+    '../facilityHover': { useFacilityHover: () => ({ hover: ref(null), show() {}, hide() {} }) },
+  }, {
+    defineProps: () => props, withDefaults: (value) => value, defineEmits: () => () => {},
+    window: { TMap: {
+      LatLng: class { constructor(lat, lng) { Object.assign(this, { lat, lng }); } },
+      MultiMarker: Overlay, MultiPolyline: Overlay,
+      MarkerStyle: class { constructor(options) { Object.assign(this, options); } },
+      PolylineStyle: class { constructor(options) { Object.assign(this, options); } },
+    } },
+    document: { createElement: () => ({ getContext: () => context, toDataURL: () => 'data:image/png;base64,test' }) },
+    google: { maps: { Marker: Overlay, Polyline: Overlay, SymbolPath: { CIRCLE: 1 }, event: { clearInstanceListeners() {} } } },
+  });
+  app.run('syncLayers()');
+  return {
+    ...app, controller, props, labels,
+    refresh: () => app.run(provider === 'google' ? 'renderDraftLayers()' : 'syncDraftLayers()'),
+    markers: () => app.run(provider === 'google' ? 'draftPointMarkers' : 'draftPointLayer.options.geometries'),
+    unmount: () => cleanup(),
+  };
+}
+
+for (const provider of ['google', 'tencent']) {
+  test(`${provider}: first pipe click shows a node, undo, clear and discard remove nodes`, () => {
+    const app = draftLayerHarness(provider);
+    assert.equal(app.markers().length, 0);
+    app.controller.addMapPoint({ lng: 101.5, lat: 3.1 });
+    app.refresh();
+    assert.equal(app.markers().length, 1);
+    const position = provider === 'google' ? app.markers()[0].options.position : app.markers()[0].position;
+    assert.equal(position.lng, 101.5);
+    assert.equal(position.lat, 3.1);
+    const firstMarker = app.markers()[0];
+    app.controller.addMapPoint({ lng: 101.6, lat: 3.2 });
+    app.refresh();
+    assert.equal(app.markers().length, 2);
+    if (provider === 'google') {
+      assert.equal(app.markers()[0], firstMarker);
+      assert.equal(app.markers()[1].options.label.text, '2');
+      assert.equal(app.markers()[0].options.clickable, false);
+    } else {
+      assert.deepEqual(app.labels, ['1', '2']);
+    }
+    app.controller.undoLastPoint();
+    app.refresh();
+    assert.equal(app.markers().length, 1);
+    app.controller.clearPoints();
+    app.refresh();
+    assert.equal(app.markers().length, 0);
+    app.controller.addMapPoint({ lng: 101.5, lat: 3.1 });
+    app.refresh();
+    assert.equal(app.markers().length, 1);
+    app.controller.discard();
+    app.refresh();
+    assert.equal(app.markers().length, 0);
+    app.unmount();
+  });
+
+  test(`${provider}: draft nodes keep country coordinates and detach when maps change or unmount`, () => {
+    const app = draftLayerHarness(provider, 'CN');
+    const coordinate = { lng: 116.3975, lat: 39.9087 };
+    app.controller.addMapPoint(coordinate);
+    app.refresh();
+    const expected = provider === 'google' ? coordinate : coordinates.tencentDisplayCoordinate(coordinate, 'CN');
+    const position = provider === 'google' ? app.markers()[0].options.position : app.markers()[0].position;
+    assert.equal(position.lng, expected.lng);
+    assert.equal(position.lat, expected.lat);
+    const oldOverlay = app.run(provider === 'google' ? 'draftPointMarkers[0]' : 'draftPointLayer');
+    app.props.mapInstance = {};
+    app.run('syncLayers()');
+    assert.equal(oldOverlay.map, null);
+    assert.equal(app.markers().length, 1);
+    const overlay = app.run(provider === 'google' ? 'draftPointMarkers[0]' : 'draftPointLayer');
+    app.unmount();
+    assert.equal(overlay.map, null);
+  });
+}
 
 function workspaceHarness(overrides = {}) {
   const calls = [];

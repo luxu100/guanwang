@@ -78,6 +78,7 @@ const panelCollapsed = ref(true);
 let pipeLines: google.maps.Polyline[] = [];
 let facilityMarkers: google.maps.Marker[] = [];
 let draftPipeLines: google.maps.Polyline[] = [];
+let draftPointMarkers: google.maps.Marker[] = [];
 let draftFacilityMarkers: google.maps.Marker[] = [];
 const draftMarkerById = new Map<string, google.maps.Marker>();
 let layersMap: google.maps.Map | null = null;
@@ -254,6 +255,8 @@ function renderDraftLayers() {
   if (!props.mapInstance || !props.creation.draft.active) {
     draftPipeLines.forEach((line) => line.setMap(null));
     draftPipeLines = [];
+    draftPointMarkers.forEach((marker) => marker.setMap(null));
+    draftPointMarkers = [];
     draftMarkerById.forEach((marker) => {
       google.maps.event.clearInstanceListeners(marker);
       marker.setMap(null);
@@ -264,6 +267,27 @@ function renderDraftLayers() {
   }
 
   const points = getDraftPointCoordinates(props.creation.draft);
+  const nextPointMarkers = points.map((position, index) => {
+    const marker = draftPointMarkers[index] || new google.maps.Marker({
+      map: props.mapInstance, clickable: false, zIndex: 10,
+    });
+    marker.setOptions({
+      position,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 10,
+        fillColor: "#0284C7",
+        fillOpacity: 1,
+        strokeColor: "#FFFFFF",
+        strokeWeight: 2,
+      },
+      label: { text: String(index + 1), color: "#FFFFFF", fontSize: "11px", fontWeight: "700" },
+    });
+    marker.setMap(props.mapInstance);
+    return marker;
+  });
+  draftPointMarkers.slice(points.length).forEach((marker) => marker.setMap(null));
+  draftPointMarkers = nextPointMarkers;
   if (points.length >= 2) {
     let line = draftPipeLines[0];
     if (!line) {
@@ -358,6 +382,7 @@ function clearLayers() {
     marker.setMap(null);
   });
   draftPipeLines.forEach((line) => line.setMap(null));
+  draftPointMarkers.forEach((marker) => marker.setMap(null));
   draftMarkerById.forEach((marker) => {
     google.maps.event.clearInstanceListeners(marker);
     marker.setMap(null);
@@ -365,6 +390,7 @@ function clearLayers() {
   pipeLines = [];
   facilityMarkers = [];
   draftPipeLines = [];
+  draftPointMarkers = [];
   draftFacilityMarkers = [];
   draftMarkerById.clear();
   pipeLineByKey.clear();
