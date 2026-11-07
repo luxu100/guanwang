@@ -196,7 +196,7 @@
           >
             <text class="upload-box__icon">{{ uploadForm.file || uploadForm.filePath ? "TXT" : "＋" }}</text>
             <text class="upload-box__title">{{ uploadForm.fileName || localeText("点击从文件夹选择 TXT 固件文件", "Choose a TXT firmware file") }}</text>
-            <text class="upload-box__hint">{{ localeText("仅支持 .txt 文件，不限制文件帧数", "TXT files only; no frame limit") }}</text>
+            <text class="upload-box__hint">{{ localeText("仅支持 .txt 文件；后端按目标通道分帧，升级最多 512 帧", "TXT files only; the server frames by channel, with a 512-frame upgrade limit") }}</text>
           </view>
           <view v-if="uploading" class="upload-progress">
             <view class="upload-progress__track"><view :style="{ width: `${uploadPercent}%` }"></view></view>

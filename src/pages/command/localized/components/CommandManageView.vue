@@ -69,6 +69,9 @@
             </button>
           </view>
           <text class="panel-head__meta">{{ localizedTotal(activePage.total) }}</text>
+          <button v-if="activeView === 'UPGRADE' && lastCreatedUpgradeIds.length" class="mini-button" @click="showCreatedUpgradeTasks">
+            {{ localeText(`本次创建 ${lastCreatedUpgradeIds.length} 个任务`, `${lastCreatedUpgradeIds.length} newly created`) }}
+          </button>
         </view>
 
         <CommandDataTable :columns="activeColumns" :data="activeRows" :loading="activeLoading" :selected="selectedId"
@@ -149,6 +152,12 @@
               <view class="info-list">
                 <view class="info-row"><text>{{ localeText("设备编号", "Device number") }}</text><text>{{
                   displayValue(selectedDetail.deviceNumber) }}</text></view>
+                <view class="info-row"><text>{{ localeText("传输通道", "Transport") }}</text><text>{{ getTransportText(selectedDetail.transportChannel) }}</text></view>
+                <view class="info-row"><text>{{ localeText("下发协议版本", "Protocol version") }}</text><text>{{ displayProtocolVersion(selectedDetail.protocolVersion) }}</text></view>
+                <view class="info-row"><text>{{ localeText("平台状态", "Platform status") }}</text><text>{{ displayValue(selectedDetail.platformStatus) }}</text></view>
+                <view class="info-row"><text>{{ localeText("设备确认", "Device confirmation") }}</text><text>{{ getConfirmationText(selectedDetail) }}</text></view>
+                <view class="info-row"><text>{{ localeText("确认来源", "Confirmation source") }}</text><text>{{ displayValue(selectedDetail.confirmationSource) }}</text></view>
+                <view class="info-row"><text>{{ localeText("电信命令 ID", "CTWing command ID") }}</text><text>{{ displayValue(selectedDetail.nbCommandId) }}</text></view>
                 <view class="info-row"><text>{{ localeText("指令名称", "Command name") }}</text><text>{{
                   displayValue(selectedDetail.commandName) }}</text></view>
                 <view class="info-row"><text>{{ localeText("指令类型", "Command type") }}</text><text>{{
@@ -340,6 +349,12 @@
                   displayValue(selectedDetail.commandSendLogId) }}</text></view>
                 <view class="info-row"><text>{{ localeText("指令执行状态", "Command status") }}</text><text>{{
                   getCommandStatusText(selectedDetail.commandExecuteStatus) }}</text></view>
+                <view class="info-row"><text>{{ localeText("实际通道", "Transport") }}</text><text>{{ getTransportText(selectedDetail.transportChannel) }}</text></view>
+                <view class="info-row"><text>{{ localeText("下发协议版本", "Protocol version") }}</text><text>{{ displayProtocolVersion(selectedDetail.protocolVersion) }}</text></view>
+                <view class="info-row"><text>{{ localeText("平台状态", "Platform status") }}</text><text>{{ displayValue(selectedDetail.platformStatus) }}</text></view>
+                <view class="info-row"><text>{{ localeText("设备确认", "Device confirmation") }}</text><text>{{ getConfirmationText(selectedDetail) }}</text></view>
+                <view class="info-row"><text>{{ localeText("确认来源", "Confirmation source") }}</text><text>{{ displayValue(selectedDetail.confirmationSource) }}</text></view>
+                <view class="info-row"><text>{{ localeText("云在线", "Cloud online") }}</text><text>{{ getBooleanText(selectedDetail.cloudOnline) }}</text></view>
                 <view class="info-row"><text>{{ localeText("记录来源", "Record source") }}</text><text>{{
                   displayValue(selectedDetail.recordSource) }}</text></view>
                 <view class="info-row"><text>{{ localeText("操作账号", "Command account") }}</text><text>{{
@@ -675,13 +690,14 @@
             <view class="wizard-head">
               <view><text class="wizard-title">{{ localeText("选择设备", "Select devices") }}</text><text
                   class="wizard-hint">{{
-                    localeText("仅允许选择直连设备；离线设备创建后将等待连接", "Only direct TCP devices are supported; offline devices will wait for connection") }}</text></view><text class="selected-count">{{ localeText(`已选择 ${selectedDevices.length}
+                    localeText("设备通道按档案识别，升级资格以服务端预检结果为准", "Channels come from device profiles; server precheck decides eligibility") }}</text></view><text class="selected-count">{{ localeText(`已选择 ${selectedDevices.length}
                 台`,
                     `${selectedDevices.length} selected`) }}</text>
             </view>
             <view class="device-filter">
               <input v-model="deviceKeyword" class="filter-input"
-                :placeholder="localeText('筛选当前列表中的设备编号或别名', 'Filter by device number or alias')" />
+                :placeholder="localeText('输入设备编号搜索', 'Search device number')" @confirm="searchDeviceCandidates" />
+              <button class="mini-button" @click="searchDeviceCandidates">{{ localeText("搜索", "Search") }}</button>
               <button class="mini-button" @click="toggleSelectableDevices">{{ currentSelectableSelected ?
                 localeText("取消可选设备", "Clear selectable") : localeText("选择全部可用设备", "Select all available") }}</button>
             </view>
@@ -691,25 +707,29 @@
                 <view class="device-check-cell"></view>
                 <text>{{ localeText("设备编号", "Device number") }}</text>
                 <text>{{ localeText("设备别名", "Device alias") }}</text>
-                <text>{{ localeText("下发方式", "Dispatch method") }}</text>
-                <text>{{ localeText("TCP 状态", "TCP status") }}</text>
+                <text>{{ localeText("接入通道", "Transport") }}</text>
+                <text>{{ localeText("在线状态", "Online status") }}</text>
                 <text>{{ localeText("当前固件", "Current firmware") }}</text>
               </view>
               <view v-for="device in filteredDeviceCandidates" :key="device.id" class="device-row"
-                :class="{ 'device-row--selected': isDeviceSelected(device), 'device-row--disabled': !isDirectDevice(device) }"
+                :class="{ 'device-row--selected': isDeviceSelected(device), 'device-row--disabled': !isDeviceUpgradeSelectable(device) }"
                 @click="toggleDevice(device)">
                 <view class="device-check-cell">
                   <text class="checkbox">{{ isDeviceSelected(device) ? "✓" : "" }}</text>
                 </view>
                 <text>{{ displayValue(device.deviceNumber) }}</text>
                 <text>{{ displayValue(device.deviceAlias || device.deviceName) }}</text>
-                <text>{{ getCommandSendwayText(device.commandSendway) }}</text>
+                <text>{{ getDeviceChannelLabel(device) }}</text>
                 <text><text class="online-pill"
-                    :class="isDeviceOnline(device) ? 'online-pill--online' : 'online-pill--offline'">{{
-                      isDeviceOnline(device) ? localeText("在线", "Online") : localeText("离线", "Offline") }}</text></text>
+                    :class="isDeviceOnline(device) === null ? 'online-pill--unknown' : isDeviceOnline(device) ? 'online-pill--online' : 'online-pill--offline'">{{ getOnlineText(device) }}</text></text>
                 <text>{{ displayValue(device.firmwareVersion) }}</text>
               </view>
               <view v-if="!filteredDeviceCandidates.length" class="resource-state">{{ localeText("暂无符合条件的设备", "No matching devices") }}</view>
+            </view>
+            <view class="device-candidate-pagination">
+              <button class="mini-button" :disabled="deviceCandidatePage.current <= 1 || candidateLoading" @click="changeDeviceCandidatePage(-1)">{{ localeText("上一页", "Previous") }}</button>
+              <text>{{ deviceCandidatePage.current }} / {{ Math.max(1, Math.ceil(deviceCandidatePage.total / deviceCandidatePage.size)) }} · {{ deviceCandidatePage.total }}</text>
+              <button class="mini-button" :disabled="deviceCandidatePage.current * deviceCandidatePage.size >= deviceCandidatePage.total || candidateLoading" @click="changeDeviceCandidatePage(1)">{{ localeText("下一页", "Next") }}</button>
             </view>
           </view>
 
@@ -732,8 +752,7 @@
 
             <view class="check-list">
               <view v-for="device in selectedDevices" :key="device.id" class="check-item">
-                <view><text class="check-item__number">{{ device.deviceNumber }}</text><text>{{ isDeviceOnline(device) ?
-                  localeText("TCP 在线", "TCP online") : localeText("TCP 离线，任务将等待连接", "TCP offline; task will wait for connection") }}</text></view>
+                <view><text class="check-item__number">{{ device.deviceNumber }}</text><text>{{ getDeviceChannelLabel(device) }} · {{ getOnlineText(device) }}</text></view>
                 <text class="check-result"
                   :class="getCheckResult(device.deviceNumber).updatable ? 'check-result--success' : 'check-result--danger'">
                   {{ getCheckResult(device.deviceNumber).label }}
@@ -767,7 +786,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { useLocaleText, useLocalizedCount, useLocalizedTotal } from "@/i18n/localeText";
 import CommandDataTable from "@/pages/command/components/t/CommandDataTable.vue";
 import CommandPaginationBar from "@/pages/command/components/t/CommandPaginationBar.vue";
@@ -784,7 +803,8 @@ import {
   startFirmwareUpgrade,
 } from "@/services/firmware/upgrade";
 import { getFirmwareUpgradeLogDetail, getFirmwareUpgradeLogPage } from "@/services/firmware/upgrade-log";
-import { getDeviceSettingDetail, getDeviceSettingPage } from "@/services/deviceSetting/manage";
+import { getDeviceSettingDetail, getDeviceSettingPage, getDeviceSettingResult } from "@/services/deviceSetting/manage";
+import { getDeviceChannel, getDeviceChannelText, getDeviceOnline } from "@/utils/device-channel";
 import {
   getAudioRepairCommands,
   getAudioRepairDetail,
@@ -838,6 +858,7 @@ const upgradeStatusMap: Record<number, { tone: string; terminal: boolean }> = {
   3: { tone: "danger", terminal: true },
   4: { tone: "success", terminal: true },
   5: { tone: "muted", terminal: true },
+  6: { tone: "danger", terminal: true },
 };
 
 const commandStatusMap: Record<number, { tone: string; terminal: boolean }> = {
@@ -998,8 +1019,12 @@ const submittingUpgrade = ref(false);
 const firmwareCandidates = ref<ApiRecord[]>([]);
 const deviceCandidates = ref<ApiRecord[]>([]);
 const deviceKeyword = ref("");
+const deviceCandidatePage = reactive({ current: 1, size: 200, total: 0 });
 const upgradeDraft = reactive<{ firmwareId: string | number | null; devices: ApiRecord[] }>({ firmwareId: null, devices: [] });
 const updatableResults = ref<ApiRecord[]>([]);
+const lastCreatedUpgradeIds = ref<Array<string | number>>([]);
+let upgradePollTimer: ReturnType<typeof setTimeout> | undefined;
+let upgradePollRequest = 0;
 
 const activeFilters = computed(() => {
   if (activeView.value === "COMMAND") return commandFilters;
@@ -1096,7 +1121,7 @@ const filteredDeviceCandidates = computed(() => {
   return deviceCandidates.value.filter(item => [item.deviceNumber, item.deviceAlias, item.deviceName].some(value => String(value || "").toLowerCase().includes(keyword)));
 });
 const currentSelectableSelected = computed(() => {
-  const selectable = filteredDeviceCandidates.value.filter(isDirectDevice);
+  const selectable = filteredDeviceCandidates.value.filter(isDeviceUpgradeSelectable);
   return selectable.length > 0 && selectable.every(isDeviceSelected);
 });
 const hasBlockedDevice = computed(() => selectedDevices.value.some(device => !getCheckResult(device.deviceNumber).updatable));
@@ -1171,8 +1196,11 @@ onMounted(() => {
   loadCommandPage(true);
 });
 
+onBeforeUnmount(stopUpgradePolling);
+
 async function switchRecordView(view: RecordView) {
   if (activeView.value === view) return;
+  stopUpgradePolling();
   activeView.value = view;
   selectedDetail.value = null;
   detailTab.value = "OVERVIEW";
@@ -1247,9 +1275,7 @@ async function loadSettingPage(selectFirst = false) {
       pageNum: settingPage.current,
       pageSize: settingPage.size,
       deviceNumber: settingFilters.keyword.trim() || undefined,
-      commandStatus: settingFilters.status || undefined,
-      startTime: toStartTime(settingFilters.startDate),
-      endTime: toEndTime(settingFilters.endDate),
+      recordSource: "COMMAND",
       sortOrder: "desc",
     });
     const pageData = unwrapResponse(response);
@@ -1315,6 +1341,7 @@ async function selectCommandRow(row: ApiRecord) {
 }
 
 async function selectUpgradeRow(row: ApiRecord) {
+  stopUpgradePolling();
   selectedUpgradeId.value = row.id;
   detailTab.value = "OVERVIEW";
   frames.value = [];
@@ -1324,14 +1351,21 @@ async function selectUpgradeRow(row: ApiRecord) {
   selectedEvent.value = null;
   eventDetailVisible.value = false;
   await loadSelectedUpgradeDetail(false);
+  scheduleUpgradePolling();
 }
 
 async function selectSettingRow(row: ApiRecord) {
+  if (row.id === undefined || row.id === null) return;
   selectedSettingId.value = row.id;
   detailLoading.value = true;
   try {
     const detail = unwrapResponse(await getDeviceSettingDetail(row.id));
-    selectedDetail.value = normalizeDeviceSetting({ ...row, ...(detail || {}) });
+    let result: ApiRecord = {};
+    if (String(row.recordSource || detail?.recordSource || "COMMAND").toUpperCase() === "COMMAND") {
+      try { result = unwrapResponse(await getDeviceSettingResult(row.id)) || {}; }
+      catch (error) { showError(error, localeText("任务回执暂时无法刷新", "Task receipt could not be refreshed")); }
+    }
+    selectedDetail.value = normalizeDeviceSetting({ ...row, ...(detail || {}), ...result });
   } catch (error) {
     selectedDetail.value = row;
     showError(error, localeText("设备参数设置详情加载失败", "Failed to load device parameter task details"));
@@ -1342,6 +1376,7 @@ async function selectSettingRow(row: ApiRecord) {
 
 async function selectAudioRepairRow(row: ApiRecord) {
   selectedAudioRepairId.value = row.transferId ?? row.id;
+  if (selectedAudioRepairId.value === null || selectedAudioRepairId.value === undefined) return;
   audioDetailTab.value = "OVERVIEW";
   audioFrames.value = [];
   audioCommands.value = [];
@@ -1411,6 +1446,7 @@ async function loadSelectedUpgradeDetail(silent = false) {
   if (!silent) detailLoading.value = true;
   try {
     const detail = normalizeUpgradeLog(unwrapResponse(await getFirmwareUpgradeLogDetail(selectedUpgradeId.value)));
+    if (detail.id !== selectedUpgradeId.value) return;
     selectedDetail.value = detail;
     const index = upgradeRows.value.findIndex(item => item.id === detail.id);
     if (index >= 0) upgradeRows.value.splice(index, 1, detail);
@@ -1419,6 +1455,32 @@ async function loadSelectedUpgradeDetail(silent = false) {
   } finally {
     if (!silent) detailLoading.value = false;
   }
+}
+
+function stopUpgradePolling() {
+  upgradePollRequest += 1;
+  if (upgradePollTimer) clearTimeout(upgradePollTimer);
+  upgradePollTimer = undefined;
+}
+
+function scheduleUpgradePolling() {
+  stopUpgradePolling();
+  const task = selectedDetail.value;
+  const id = selectedUpgradeId.value;
+  if (activeView.value !== "UPGRADE" || id === null || !task || [3, 4, 5, 6].includes(Number(task.executeStatus))) return;
+  const requestId = upgradePollRequest;
+  upgradePollTimer = setTimeout(async () => {
+    if (requestId !== upgradePollRequest || activeView.value !== "UPGRADE" || selectedUpgradeId.value !== id) return;
+    if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+      scheduleUpgradePolling();
+      return;
+    }
+    await loadSelectedUpgradeDetail(true);
+    if (requestId !== upgradePollRequest || selectedUpgradeId.value !== id) return;
+    if (detailTab.value === "FRAMES") await loadFrames(false);
+    if (detailTab.value === "EVENTS") await loadEvents(false);
+    scheduleUpgradePolling();
+  }, 5000);
 }
 
 async function switchDetailTab(tab: DetailTab) {
@@ -1505,6 +1567,7 @@ async function openUpgradeDialog() {
   upgradeDraft.devices = [];
   updatableResults.value = [];
   deviceKeyword.value = "";
+  deviceCandidatePage.current = 1;
   candidateLoading.value = true;
   try {
     await Promise.all([loadFirmwareCandidates(), loadDeviceCandidates()]);
@@ -1530,13 +1593,28 @@ async function loadFirmwareCandidates() {
 }
 
 async function loadDeviceCandidates() {
+  candidateLoading.value = true;
   try {
-    const page = unwrapResponse(await getDevicePage({ pageNum: 1, pageSize: 200 }));
+    const page = unwrapResponse(await getDevicePage({ pageNum: deviceCandidatePage.current, pageSize: deviceCandidatePage.size, deviceNumber: deviceKeyword.value.trim() || undefined }));
     deviceCandidates.value = getPageRecords(page);
+    deviceCandidatePage.total = getPageTotal(page, deviceCandidates.value.length);
   } catch (error) {
     deviceCandidates.value = [];
+    deviceCandidatePage.total = 0;
     showError(error, localeText("设备列表加载失败", "Failed to load devices"));
+  } finally {
+    candidateLoading.value = false;
   }
+}
+
+async function searchDeviceCandidates() {
+  deviceCandidatePage.current = 1;
+  await loadDeviceCandidates();
+}
+
+async function changeDeviceCandidatePage(delta: number) {
+  deviceCandidatePage.current = Math.max(1, deviceCandidatePage.current + delta);
+  await loadDeviceCandidates();
 }
 
 async function nextUpgradeStep() {
@@ -1576,12 +1654,19 @@ async function submitUpgrade() {
       deviceNumbers: selectedDevices.value.map(item => item.deviceNumber),
       createUser: userInfo.username || userInfo.userName || userInfo.realName || undefined,
     }));
-    const taskCount = Array.isArray(result?.upgradeLogIds) ? result.upgradeLogIds.length : selectedDevices.value.length;
+    const taskIds = Array.isArray(result?.upgradeLogIds) ? result.upgradeLogIds : [];
+    lastCreatedUpgradeIds.value = taskIds;
+    const taskCount = taskIds.length || selectedDevices.value.length;
     upgradeDialogVisible.value = false;
     activeView.value = "UPGRADE";
     upgradePage.current = 1;
+    upgradePage.size = 200;
     showToast(localeText(`已创建 ${taskCount} 个升级任务`, `${taskCount} upgrade task(s) created`));
     await loadUpgradePage(true);
+    if (taskIds.length === 1) {
+      const created = upgradeRows.value.find(item => String(item.id) === String(taskIds[0]));
+      if (created) await selectUpgradeRow(created);
+    }
   } catch (error) {
     showError(error, localeText("发起固件升级失败", "Failed to start firmware upgrade"));
   } finally {
@@ -1589,8 +1674,18 @@ async function submitUpgrade() {
   }
 }
 
+async function showCreatedUpgradeTasks() {
+  activeView.value = "UPGRADE";
+  upgradePage.current = 1;
+  upgradePage.size = 200;
+  await loadUpgradePage(false);
+  const created = upgradeRows.value.find(row => lastCreatedUpgradeIds.value.some(id => String(id) === String(row.id)));
+  if (created) await selectUpgradeRow(created);
+  else showToast(localeText("本次任务已创建，但当前分页未返回其记录，请刷新列表", "Tasks were created; refresh the list to locate them"));
+}
+
 function toggleDevice(device: ApiRecord) {
-  if (!isDirectDevice(device)) return showToast(localeText("该设备不是 TCP 直连下发方式", "This device does not use direct TCP dispatch"));
+  if (!isDeviceUpgradeSelectable(device)) return showToast(getDeviceAvailability(device));
   const index = upgradeDraft.devices.findIndex(item => item.id === device.id);
   if (index >= 0) upgradeDraft.devices.splice(index, 1);
   else upgradeDraft.devices.push(device);
@@ -1598,7 +1693,7 @@ function toggleDevice(device: ApiRecord) {
 }
 
 function toggleSelectableDevices() {
-  const selectable = filteredDeviceCandidates.value.filter(isDirectDevice);
+  const selectable = filteredDeviceCandidates.value.filter(isDeviceUpgradeSelectable);
   if (currentSelectableSelected.value) {
     const ids = new Set(selectable.map(item => item.id));
     upgradeDraft.devices = upgradeDraft.devices.filter(item => !ids.has(item.id));
@@ -1613,12 +1708,26 @@ function isDeviceSelected(device: ApiRecord) {
   return upgradeDraft.devices.some(item => item.id === device.id);
 }
 
-function isDirectDevice(device: ApiRecord) {
-  return Number(device.commandSendway) === 0;
+function isDeviceUpgradeSelectable(device: ApiRecord) {
+  const channel = getDeviceChannel(device);
+  if (channel === "INVALID") return false;
+  if (channel !== "DIRECT_TCP" && (!String(device.nbNumber ?? "").trim() || !device.productId || !device.downlinkProtocolVersion || Number(device.enableState) === 0)) return false;
+  return true;
 }
 
-function isDeviceOnline(device: ApiRecord) {
-  return Number(device.tcpOnlineStatus ?? device.onlineStatus ?? device.isOnline) === 1;
+function isDeviceOnline(device: ApiRecord): boolean | null {
+  return getDeviceOnline(device);
+}
+
+function getDeviceAvailability(device: ApiRecord) {
+  if (!isDeviceUpgradeSelectable(device)) return localeText("云配置缺少设备 ID 或协议异常", "Missing cloud identity or invalid protocol");
+  if (getDeviceChannel(device) !== "DIRECT_TCP" && !device.downlinkProtocolVersion) return localeText("等待识别下发协议版本", "Waiting for downlink version detection");
+  return localeText("可参加后端预检", "Eligible for server precheck");
+}
+
+function getOnlineText(device: ApiRecord) {
+  const online = isDeviceOnline(device);
+  return online === null ? localeText("未知", "Unknown") : online ? localeText("在线", "Online") : localeText("离线", "Offline");
 }
 
 function getCheckResult(deviceNumber: string) {
@@ -1731,7 +1840,27 @@ function normalizeDeviceSetting(source: ApiRecord = {}) {
     commandSentAt: source.commandSentAt ?? source.sentAt ?? source.sendTime,
     commandExpiresAt: source.commandExpiresAt ?? source.expiresAt,
     commandFeedback: source.commandFeedback ?? source.feedback ?? source.result ?? source.message,
+    sentAt: source.sentAt ?? source.commandSentAt ?? source.sendTime,
+    expiresAt: source.expiresAt ?? source.commandExpiresAt,
   };
+}
+
+function displayProtocolVersion(value: unknown) {
+  if (Number(value) === 1) return "NEW";
+  if (Number(value) === 0) return "LEGACY";
+  return displayValue(value, localeText("未知", "Unknown"));
+}
+
+function getBooleanText(value: unknown) {
+  return value === true ? localeText("在线", "Online") : value === false ? localeText("离线", "Offline") : localeText("未知", "Unknown");
+}
+
+function getConfirmationText(task: ApiRecord) {
+  if (task.deviceConfirmed === true && String(task.confirmationSource).toUpperCase() === "DEVICE") return localeText("设备已确认执行完成", "Confirmed by device");
+  if (Number(task.executeStatus) === 6 && String(task.confirmationSource).toUpperCase() === "PLATFORM") return localeText("平台返回成功，尚无设备级确认", "Platform succeeded; no device confirmation");
+  if (Number(task.executeStatus) === 4) return displayValue(task.feedback ?? task.commandFeedback, localeText("下发失败", "Dispatch failed"));
+  if (Number(task.executeStatus) === 5) return displayValue(task.feedback ?? task.commandFeedback, localeText("已取消或过期", "Canceled or expired"));
+  return task.deviceConfirmed === false ? localeText("尚未确认", "Not confirmed") : localeText("未知", "Unknown");
 }
 
 function normalizeAudioRepairTask(source: ApiRecord = {}) {
@@ -1804,7 +1933,7 @@ function getStatusText(status: unknown) {
     3: localeText("升级失败", "Upgrade failed"),
     4: localeText("升级完成", "Completed"),
     5: localeText("已取消", "Cancelled"),
-    6: localeText("未知故障", "Unknown status"),
+    6: localeText("设备或网络异常", "Device or network error"),
   };
   return labels[Number(status)] || localeText("未知状态", "Unknown status");
 }
@@ -1967,17 +2096,26 @@ function getStageText(stage: unknown, round?: unknown) {
   const labels: Record<string, string> = {
     PREPARING: localeText("正在准备任务", "Preparing task"),
     WAITING_CONNECTION: localeText("等待设备连接", "Waiting for device connection"),
+    WAITING_SEND: localeText("等待发送固件帧", "Waiting to send firmware frames"),
+    WAITING_PLATFORM_CALLBACK: localeText("等待电信平台回执", "Waiting for CTWing callback"),
+    SUBMISSION_UNKNOWN: localeText("平台受理结果待核实", "Platform submission needs verification"),
     SENDING_INITIAL: localeText("正在发送固件", "Sending firmware"),
     WAITING_DEVICE_REPORT: localeText("等待设备收帧报告", "Waiting for device frame report"),
+    QUERY_PENDING: localeText("等待查询设备接收情况", "Waiting to query device reception"),
     WAITING_RECONNECT: localeText("存在丢帧，等待设备重连", "Frames lost; waiting for device reconnection"),
     SENDING_REPAIR: localeText("正在补发缺失帧", "Resending missing frames"),
     DEVICE_UPGRADING: localeText("设备正在升级", "Device is upgrading"),
     CANCEL_PENDING: localeText("等待发送取消指令", "Waiting to send cancellation"),
+    CANCEL_WAIT_SUBMISSION: localeText("等待当前提交结果后取消", "Waiting for submission result before canceling"),
+    CANCEL_PLATFORM_PENDING: localeText("正在取消平台指令", "Canceling platform command"),
     CANCEL_SENT: localeText("取消指令已发送", "Cancellation sent"),
     TERMINAL: localeText("任务已结束", "Task finished"),
+    DONE: localeText("升级完成", "Upgrade complete"),
+    FAILED: localeText("升级失败", "Upgrade failed"),
+    CANCELED: localeText("已取消", "Canceled"),
   };
   const text = labels[String(stage)] || displayValue(stage, localeText("等待任务状态", "Waiting for task status"));
-  if (String(stage) !== "SENDING_REPAIR" || Number(round) <= 0) return text;
+  if (Number(round) <= 0 || !["SENDING_REPAIR", "WAITING_SEND", "WAITING_PLATFORM_CALLBACK"].includes(String(stage))) return text;
   return localeText(`${text}（第 ${round} 轮）`, `${text} (round ${round})`);
 }
 
@@ -2090,6 +2228,7 @@ function getDirectionText(direction: unknown) {
     DOWN: localeText("服务端下行", "Server downlink"),
     UP: localeText("设备上行", "Device uplink"),
     SYSTEM: localeText("系统事件", "System event"),
+    PLATFORM: localeText("电信平台事件", "CTWing platform event"),
   } as Record<string, string>)[String(direction)] || displayValue(direction);
 }
 
@@ -2100,14 +2239,8 @@ function getEventLevelClass(level: unknown) {
   return "event-level--info";
 }
 
-function getCommandSendwayText(value: unknown) {
-  return ({
-    0: localeText("4G/TCP 直连", "4G/Direct TCP"),
-    1: "NB",
-    2: localeText("光纤", "Fiber"),
-    3: localeText("串口", "Serial"),
-    4: localeText("网口", "Ethernet"),
-  } as Record<number, string>)[Number(value)] || displayValue(value);
+function getDeviceChannelLabel(device: ApiRecord) {
+  return getDeviceChannelText(getDeviceChannel(device), localeText);
 }
 
 function canCancelUpgrade(task: ApiRecord) {
@@ -3474,6 +3607,8 @@ button::after {
   line-height: 40px;
 }
 
+.device-candidate-pagination { display: flex; align-items: center; justify-content: center; margin-top: 10px; gap: 12px; color: #718698; font-size: 12px; }
+
 .device-table {
   width: 100%;
   overflow: hidden;
@@ -3580,6 +3715,8 @@ button::after {
   background: #f0f3f6;
   border: 1px solid #d5dfe7;
 }
+
+.online-pill--unknown { color: #8a5c0a; background: #fff5df; border: 1px solid #f0d89c; }
 
 .confirm-summary {
   display: grid;

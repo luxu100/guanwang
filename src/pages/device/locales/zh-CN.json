@@ -369,7 +369,15 @@
           "tcpSessionId":"TCP会话ID",
           "tcpLastSeenAt":"最后通信时间",
 
-          "aepProtocol":"AEP协议"
+          "aepProtocol":"AEP协议",
+          "cloud4G":"电信云 4G",
+          "cloudNB":"电信云 NB",
+          "directTCP":"TCP直连",
+          "awaitingProtocol":"待上报识别",
+          "configurationNeedsReview":"配置待核对",
+          "downlinkProtocolVersion":"下发协议版本",
+          "nbNumber":"电信平台设备 ID",
+          "tcpOnlineStatus":"TCP连接状态"
         },
 
 

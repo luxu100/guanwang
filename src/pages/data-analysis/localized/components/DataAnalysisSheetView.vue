@@ -707,8 +707,8 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function getFirstArray(source: Record<string, unknown> | undefined, keys: string[]): unknown[] {
-  if (!source) return [];
+function getFirstArray(source: unknown, keys: string[]): unknown[] {
+  if (!isObject(source)) return [];
   for (const key of keys) {
     const value = source[key];
     if (Array.isArray(value)) return value;
@@ -716,8 +716,8 @@ function getFirstArray(source: Record<string, unknown> | undefined, keys: string
   return [];
 }
 
-function getFirstNumber(source: Record<string, unknown> | undefined, keys: string[]): number | undefined {
-  if (!source) return undefined;
+function getFirstNumber(source: unknown, keys: string[]): number | undefined {
+  if (!isObject(source)) return undefined;
   for (const key of keys) {
     const value = source[key];
     if (typeof value === "number") return value;
@@ -729,13 +729,13 @@ function getFirstNumber(source: Record<string, unknown> | undefined, keys: strin
   return undefined;
 }
 
-function findPageContainer(value: Record<string, unknown> | null | undefined): Record<string, unknown> | null {
+function findPageContainer(value: unknown): Record<string, unknown> | null {
   if (!isObject(value)) return null;
   const hasRecords = getFirstArray(value, ["records", "rows", "list", "items"]).length > 0;
   const hasTotal = getFirstNumber(value, ["total", "count", "totalCount", "totalRow", "totalRows", "totalElements"]) !== undefined;
   if (hasRecords || hasTotal) return value;
   for (const key of ["data", "result", "page", "pageData"]) {
-    const matched = findPageContainer(value[key] as Record<string, unknown>);
+    const matched = findPageContainer(value[key]);
     if (matched) return matched;
   }
   return null;
@@ -925,7 +925,7 @@ function assertSuccessResponse(response: ApiResponseLike | undefined) {
 
 function parsePageResponse(response: ApiResponseLike) {
   const data = response?.data ?? response;
-  const pageData = findPageContainer(data as Record<string, unknown>) || findPageContainer(response) || {};
+  const pageData = findPageContainer(data) || findPageContainer(response) || {};
   const records = getFirstArray(pageData, ["records", "rows", "list", "items"]);
   const topLevelRecords = getFirstArray(response, ["records", "rows", "list", "items"]);
   const finalRecords = records.length > 0 ? records : topLevelRecords;
@@ -962,7 +962,7 @@ async function onDownload(item: DataItem) {
   }
   try {
     const res = await getAudioWav(audioItem.audioId, true);
-    if (res.statusCode === 200) {
+    if (isObject(res) && res.statusCode === 200) {
       uni.showToast({ title: "下载成功", icon: "success" });
     } else {
       uni.showToast({ title: "下载失败", icon: "none" });
@@ -1269,7 +1269,7 @@ function logColumnWidths() {
       gridColumns.value = finalWidths.join("px ") + "px";
 
       console.log(
-        `[ColumnWidth] ${props.mode} | row=${Math.round(row.width)}px index=${indexWidth}px available=${availableWidth}px share=${share}px rows=${rowCount} | ` +
+        `[ColumnWidth] ${props.mode} | row=${Math.round(row.width || 0)}px index=${indexWidth}px available=${availableWidth}px share=${share}px rows=${rowCount} | ` +
         `formula: width=max_content+remaining/${colCount} | ` +
         parts.join(" | ") +
         ` → final: ${finalWidths.map((w: number) => w + "px").join(" | ")}`
@@ -1277,7 +1277,7 @@ function logColumnWidths() {
     } else {
 
       console.log(
-        `[ColumnWidth] ${props.mode} | row=${Math.round(row.width)}px index=${indexWidth}px available=${availableWidth}px rows=${rowCount} | ` +
+        `[ColumnWidth] ${props.mode} | row=${Math.round(row.width || 0)}px index=${indexWidth}px available=${availableWidth}px rows=${rowCount} | ` +
         `total=${totalDataWidth}px overflow=${gap}px (scrollbar) | ` +
         `formula: width=max_content | ` +
         parts.join(" | ")

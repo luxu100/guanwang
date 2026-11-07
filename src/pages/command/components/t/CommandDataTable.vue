@@ -56,6 +56,7 @@
 </template>
 
 <script setup lang="ts">
+import type { CSSProperties } from "vue";
 import { useLocaleText } from "@/i18n/localeText";
 import type { CommandTableColumn } from "./types";
 
@@ -86,7 +87,7 @@ const emit = defineEmits<{
   (event: "row-click", row: any): void;
 }>();
 
-function cellStyle(column: CommandTableColumn) {
+function cellStyle(column: CommandTableColumn): CSSProperties {
   return {
     width: `${column.width || 120}px`,
     textAlign: "center",

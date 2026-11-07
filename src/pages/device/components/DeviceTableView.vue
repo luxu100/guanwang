@@ -39,6 +39,7 @@ import {
   installModeOptions,
   installStateOptions, leakStatusOptions, onlineStatusOptions
 } from "@/pages/device/components/common";
+import { getDeviceChannel } from "@/utils/device-channel";
 const t = createScopedT("devicePage");
 
 const props = defineProps<{
@@ -113,6 +114,17 @@ const columns = computed<XDataColumn[]>(()=>{
   if(columnVisible.value.leakStatus) list.push({ key:'leakStatus', labelKey:'deviceTable.leakStatus', width:120, className:'data-cell--status', options:leakStatusOptions });
   if(columnVisible.value.lastSamplingTime) list.push({ key:'lastSamplingTime', labelKey:'deviceTable.lastSamplingTime', width:180, className:'data-cell--time', formatter:value=>formatDate(value) });
   if(columnVisible.value.onlineStatus) list.push({ key:'onlineStatus', labelKey:'deviceTable.onlineStatus', width:120, className:'data-cell--status', options:onlineStatusOptions });
+  if(props.mode === 'protocol') {
+    list.push({ key:'aepProtocol', labelKey:'fields.communication.aepProtocol', width:130, className:'data-cell--text', formatter:(value, row)=>{
+      const channel = getDeviceChannel(row);
+      if (channel === 'DIRECT_TCP') return t('fields.communication.directTCP');
+      if (channel === 'AEP_NB') return t('fields.communication.cloudNB');
+      if (channel === 'AEP_TCP') return t('fields.communication.cloud4G');
+      return t('fields.communication.configurationNeedsReview');
+    } });
+    list.push({ key:'downlinkProtocolVersion', labelKey:'fields.communication.downlinkProtocolVersion', width:160, className:'data-cell--text', formatter:value=>value || t('fields.communication.awaitingProtocol') });
+    list.push({ key:'tcpOnlineStatus', labelKey:'fields.communication.tcpOnlineStatus', width:130, className:'data-cell--status', options:onlineStatusOptions });
+  }
   if(columnVisible.value.factoryTime) list.push({ key:'factoryTime', labelKey:'deviceTable.factoryTime', width:180, className:'data-cell--time', formatter:value=>formatDate(value) || '-' });
   return list;
 });

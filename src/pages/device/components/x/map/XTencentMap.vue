@@ -81,10 +81,8 @@ let resizeTimer: ReturnType<typeof window.setTimeout> | null = null;
 let resizeFrame: number | null = null;
 let resizeObserver: ResizeObserver | null = null;
 
-declare global {
-  interface Window {
-    TMap?: TencentMapApi;
-  }
+function getTMap(): TencentMapApi | undefined {
+  return (window as unknown as { TMap?: TencentMapApi }).TMap;
 }
 
 onMounted(() => {
@@ -120,7 +118,7 @@ onBeforeUnmount(() => {
  * 地图 SDK 通过 script 懒加载，避免登录页和非地图页面也加载地图资源。
  */
 function loadTencentMap() {
-  if (window.TMap) {
+  if (getTMap()) {
     return Promise.resolve();
   }
 
@@ -136,7 +134,7 @@ function loadTencentMap() {
     script.charset = "utf-8";
     script.src = TENCENT_MAP_SCRIPT_URL;
     script.onload = () => {
-      if (window.TMap) {
+      if (getTMap()) {
         resolve();
       } else {
         reject(new Error(t('map.sdkUnavailable')));
@@ -160,13 +158,14 @@ function loadTencentMap() {
 function initMap() {
   mapError.value = "";
 
-  if (!mapContainer.value || !window.TMap) {
+  const TMap = getTMap();
+  if (!mapContainer.value || !TMap) {
     mapError.value = t('map.containerInitFailed');
     return;
   }
 
-  const center = new window.TMap.LatLng(props.lat, props.lng);
-  const map = new window.TMap.Map(mapContainer.value, {
+  const center = new TMap.LatLng(props.lat, props.lng);
+  const map = new TMap.Map(mapContainer.value, {
     center,
     zoom: 15,
     pitch: 45,
@@ -174,7 +173,7 @@ function initMap() {
   });
   mapInstance = map;
 
-  new window.TMap.MultiMarker({
+  new TMap.MultiMarker({
     map,
     geometries: [
       {

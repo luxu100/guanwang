@@ -103,6 +103,7 @@ import {
 import { createScopedT } from '@/i18n';
 import { formatDate } from '@/utils/time';
 import {leakStatusOptions} from "@/pages/device/components/common";
+import { getDeviceOnline } from "@/utils/device-channel";
 
 const ti=createScopedT('devicePage.info');
 const ts=createScopedT('devicePage.status');
@@ -379,6 +380,16 @@ const detailTabConfig = computed<Record<string,SectionConfig[]>>(()=>({
           key:'aepProtocol',
           label:ti('fields.communication.aepProtocol'),
           type:'text'
+        },
+        {
+          key:'downlinkProtocolVersion',
+          label:ti('fields.communication.downlinkProtocolVersion'),
+          type:'text'
+        },
+        {
+          key:'nbNumber',
+          label:ti('fields.communication.nbNumber'),
+          type:'text'
         }
       ]
     }
@@ -512,14 +523,14 @@ const currentSections = computed(() => {
 });
 
 const getDeviceStatusLabel=computed(()=>{
-  const s=props.deviceData.onlineStatus;
-  return s===1?ts('online.online'):s===0?ts('online.offline'):ts('online.unknown');
+  const s=getDeviceOnline(props.deviceData);
+  return s===true?ts('online.online'):s===false?ts('online.offline'):ts('online.unknown');
 });
 
 
 const statusClass=computed(()=>{
-  const s=props.deviceData.onlineStatus;
-  return s===1?'detail-panel__tag--online':s===0?'detail-panel__tag--offline':'detail-panel__tag--unknown';
+  const s=getDeviceOnline(props.deviceData);
+  return s===true?'detail-panel__tag--online':s===false?'detail-panel__tag--offline':'detail-panel__tag--unknown';
 });
 
 

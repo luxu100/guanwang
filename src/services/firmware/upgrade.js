@@ -21,7 +21,7 @@ export function cancelFirmwareUpgrade(data) {
   return postRequest("/api/firmware-upgrade/cancel", data);
 }
 
-/** 根据升级记录 ID 查询 TCP 直连固件升级帧。 */
+/** 根据升级记录 ID 查询不同传输通道的固件升级帧。 */
 export function getFirmwareUpgradeFrames(upgradeLogId) {
   return getRequest(`/api/firmware-upgrade/${encodeURIComponent(upgradeLogId)}/frames`);
 }

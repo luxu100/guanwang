@@ -367,7 +367,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useI18n } from "@/i18n";
-import { getWorksheetCreatePage } from "@/services/work-order/create";
+import { getWorksheetCreatePage, type WorksheetQuery } from "@/services/work-order/create";
 import {
   deleteWorksheet,
   getWorksheetProcessDetail,
@@ -384,6 +384,7 @@ type WorkOrderMode = "create" | "processing" | "statistics";
 type DetailTab = "base" | "content" | "time";
 type WorksheetRecord = Record<string, unknown>;
 type OptionValue = number | "";
+type WorksheetFilterValue = NonNullable<WorksheetQuery["worksheetType"]> | "";
 type SortOrder = "asc" | "desc";
 type SortField =
   | "index"
@@ -473,8 +474,8 @@ const filters = reactive({
   startTime: "",
   endTime: "",
   worksheetNumber: "",
-  worksheetType: "" as number | "",
-  worksheetStatus: "" as number | "",
+  worksheetType: "" as WorksheetFilterValue,
+  worksheetStatus: "" as WorksheetFilterValue,
   riseAccount: "",
   executeAccount: "",
 });
@@ -750,7 +751,7 @@ function buildQueryParams() {
     worksheetStatus: filters.worksheetStatus === "" ? undefined : filters.worksheetStatus,
     riseAccount: filters.riseAccount.trim() || undefined,
     executeAccount: filters.executeAccount.trim() || undefined,
-  };
+  } satisfies WorksheetQuery;
 }
 
 function validateDateTimeRange() {

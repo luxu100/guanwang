@@ -12,12 +12,12 @@ export interface UploadFileData {
 export function uploadFile(
   filePath: unknown,
   fileName?: string,
-  onProgress?: (...args: unknown[]) => void,
+  onProgress?: (progress: number) => void,
 ): Promise<ApiResponse<UploadFileData>>;
 
 export function uploadImages(
   files: Array<{ name?: string } | unknown>,
-  onProgress?: (...args: unknown[]) => void,
+  onProgress?: (index: number, progress: number) => void,
 ): Promise<ApiResponse[]>;
 
 declare const service: {

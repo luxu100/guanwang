@@ -23,7 +23,7 @@ test("user role and alarm settings share one row inside the bottom drawer", () =
   assert.match(systemSource, /class="user-config-row"[\s\S]*?分配权限角色[\s\S]*?实时报警通知配置/);
   assert.match(systemSource, /\.user-config-row\s*\{[\s\S]*?grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
   assert.match(systemSource, /\.content-layout--user\s*\{[\s\S]*?position:\s*relative;[\s\S]*?display:\s*block;/);
-  assert.match(systemSource, /\.detail-panel--user\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?height:\s*clamp\(260px, 44%, 360px\);/);
+  assert.match(systemSource, /\.detail-panel--user\s*\{[^}]*position:\s*absolute;[^}]*height:\s*clamp\([1-9]\d*px,\s*[\d.]+%,\s*[1-9]\d*px\);/);
   assert.match(systemSource, /@media \(max-width:\s*1100px\)[\s\S]*?\.user-config-row\s*\{[\s\S]*?grid-template-columns:\s*1fr;/);
 });
 

@@ -10,6 +10,8 @@ const accessSource = readFileSync(new URL("../src/services/data-receive/access.j
 const accessTypeSource = readFileSync(new URL("../src/services/data-receive/access.d.ts", import.meta.url), "utf8");
 const dataReceiveViewSource = readFileSync(new URL("../src/pages/data-receive/components/DataReceiveView.vue", import.meta.url), "utf8");
 const deviceProtocolViewSource = readFileSync(new URL("../src/pages/device/protocol/components/DeviceProtocolTableView.vue", import.meta.url), "utf8");
+const sharedTableSource = readFileSync(new URL("../src/pages/device/components/x/table/XDataTable.vue", import.meta.url), "utf8");
+const sharedTableStyles = readFileSync(new URL("../src/pages/device/components/x/table/styles/table.css", import.meta.url), "utf8");
 
 test("partition semantic exports use region endpoints", () => {
   assert.match(source, /const regionApi = createCrudService\("\/api\/region"\)/);
@@ -57,25 +59,27 @@ test("protocol field format metadata endpoint is wrapped and used", () => {
   assert.match(dataReceiveViewSource, /startPosition: normalizeImportNumber\(getFirstImportValue\(field, \["startPosition", "startBit", "offset", "start"\]\)\)/);
 });
 
-test("device protocol creation binds by device_number instead of deviceId", () => {
-  assert.match(accessSource, /device_number: deviceNumberSnakeCase \?\? deviceNumber/);
-  assert.match(accessSource, /deviceId: _deviceId/);
-  assert.match(accessTypeSource, /device_number: string/);
-  assert.match(dataReceiveViewSource, /\{ key: "deviceNumber", label: "设备编号", required: true \}/);
+test("device protocol creation validates selected environment IDs and scene", () => {
+  assert.match(accessSource, /deviceProtocolRelationApi\.create\(buildBindingPayload\(data, true\)\)/);
+  assert.match(accessSource, /deviceProtocolRelationApi\.update\(id, buildBindingPayload\(data\)\)/);
+  assert.match(accessTypeSource, /DeviceProtocolRelationPayload = Pick<DeviceProtocolRelation, "deviceId" \| "protocolId"/);
+  assert.match(accessTypeSource, /scene: BindingScene/);
+  assert.match(dataReceiveViewSource, /\{ key: "deviceId", label: "设备", type: "select", options: bindingDeviceOptions, required: true \}/);
+  assert.match(dataReceiveViewSource, /\{ key: "protocolId", label: "协议", type: "select", options: bindingProtocolOptions, required: true \}/);
   assert.doesNotMatch(dataReceiveViewSource, /\{ key: "deviceId", label: "设备ID", type: "number", required: true \}/);
-  assert.match(dataReceiveViewSource, /const detailRecord = mergeSelectedRecord\(item, response\.data\)/);
-  assert.match(dataReceiveViewSource, /getValue\(listRecord \|\| \{\}, \["deviceNumber", "device_number"\]\)/);
+  assert.match(dataReceiveViewSource, /deviceNumber: getText\(item, \["deviceNumber", "device_number"\], "-"\)/);
 });
 
 test("device protocol loading states are centered in both module views", () => {
   assert.match(dataReceiveViewSource, /\.table-state \{[\s\S]*display: flex;[\s\S]*align-items: center;[\s\S]*justify-content: center;/);
-  assert.match(deviceProtocolViewSource, /v-if="loading" class="table-state table-state--loading"/);
-  assert.match(deviceProtocolViewSource, /\.data-table \{[\s\S]*min-width: 100%;[\s\S]*min-height: 100%;/);
+  assert.match(deviceProtocolViewSource, /<XDataTable\s[^>]*:loading="loading"/);
+  assert.match(sharedTableSource, /v-if="loading" class="loading-mask"/);
+  assert.match(sharedTableStyles, /\.loading-mask\s*\{[^}]*display:\s*flex;[^}]*align-items:\s*center;[^}]*justify-content:\s*center;/);
 });
 
 test("updated protocol parse service wraps list detail and parsed-json endpoints", () => {
   assert.match(parseSource, /export const getProtocolFieldList = protocolFieldDefinitionApi\.getList/);
-  assert.match(parseSource, /export const batchDeleteProtocolField = protocolFieldDefinitionApi\.batchDelete/);
+  assert.match(parseSource, /export async function batchDeleteProtocolField\(ids, isForce\)\s*\{\s*return assertProtocolResponse\(await protocolFieldDefinitionApi\.batchDelete\(ids, isForce\)\)/);
   assert.match(parseSource, /export const getProtocolParseRecordList = protocolParseRecordApi\.getList/);
   assert.match(parseSource, /export const getProtocolParseRecordDetail = protocolParseRecordApi\.getDetail/);
   assert.match(parseSource, /postRequest\("\/api\/protocol-parse-record\/parsed-json\/page", data\)/);

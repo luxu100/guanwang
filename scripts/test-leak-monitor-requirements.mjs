@@ -10,6 +10,7 @@ const chart = readFileSync(new URL("../src/pages/leak-monitor/components/DeviceS
 const localeMap = readFileSync(new URL("../src/pages/leak-monitor/components/LocaleLeakMap.vue", import.meta.url), "utf8");
 const tencentMap = readFileSync(new URL("../src/pages/leak-monitor/components/TencentLeakMap.vue", import.meta.url), "utf8");
 const googleMap = readFileSync(new URL("../src/pages/leak-monitor/components/GoogleLeakMap.vue", import.meta.url), "utf8");
+const translations = readFileSync(new URL("../src/pages/leak-monitor/i18n.ts", import.meta.url), "utf8");
 
 test("sidebar uses the required statistics and paginated device endpoint", () => {
   assert.match(service, /postRequest\("\/api\/device-query\/sidebar", data\)/);
@@ -35,8 +36,16 @@ test("sidebar renders required rates counts filters columns and backend paginati
   for (const label of ["通讯成功率", "设备上线率", "正常", "疑似", "渗漏", "未知"]) {
     assert.match(workspace, new RegExp(label));
   }
-  for (const label of ["设备编号", "设备类型", "在线状态", "设备状态", "当日新增", "最新安装", "人工分析", "蓝鲸分析"]) {
-    assert.match(sidebar, new RegExp(label));
+  for (const [key, label] of Object.entries({
+    deviceNumber: "设备编号",
+    deviceStatus: "设备状态",
+    todayNew: "当日新增",
+    latestInstalled: "最新安装",
+    manualAnalysis: "人工分析",
+    algorithmAnalysis: "蓝鲸分析",
+  })) {
+    assert.match(sidebar, new RegExp(`t\\("${key}"\\)`));
+    assert.match(translations, new RegExp(`${key}: "${label}"`));
   }
   assert.match(sidebar, /page\.current \+ 1/);
   assert.match(sidebar, /page\.current - 1/);
@@ -82,7 +91,9 @@ test("noise charts support numeric coordinates hover values and zoom", () => {
   assert.match(chart, /axisPointer: \{ type: "cross"/);
   assert.match(chart, /dataZoom: zoomControls/);
   assert.match(chart, /zoomOnMouseWheel: true/);
-  assert.match(chart, /feature: \{[\s\S]*dataZoom:[\s\S]*restore:[\s\S]*saveAsImage:/);
+  assert.match(chart, /feature: \{[\s\S]*myZoomIn:[\s\S]*myZoomOut:[\s\S]*restore:[\s\S]*saveAsImage:/);
+  assert.match(chart, /onclick: \(\) => zoomChart\(0\.65\)/);
+  assert.match(chart, /onclick: \(\) => zoomChart\(1\.55\)/);
   assert.match(chart, /type: "heatmap"/);
   assert.match(chart, /const timeLabels = props\.matrix\.map/);
   assert.match(chart, /type: "category"[\s\S]*data: timeLabels/);
@@ -105,8 +116,13 @@ test("daily spectrum uses an interactive line3D waterfall", () => {
   assert.match(chart, /rotateSensitivity: 1/);
   assert.match(chart, /boxWidth: 210/);
   assert.match(chart, /boxHeight: 112/);
-  assert.match(chart, /distance: 200/);
-  assert.match(chart, /height: clamp\(520px, calc\(100vh - 560px\), 680px\)/);
+  const camera = chart.match(/viewControl:\s*\{([^}]+)\}/)?.[1] || "";
+  const distance = Number(camera.match(/\bdistance:\s*(\d+)/)?.[1]);
+  const minimum = Number(camera.match(/\bminDistance:\s*(\d+)/)?.[1]);
+  const maximum = Number(camera.match(/\bmaxDistance:\s*(\d+)/)?.[1]);
+  assert.ok(minimum > 0 && distance >= minimum && distance <= maximum);
+  assert.match(camera, /zoomSensitivity: 1/);
+  assert.match(chart, /\.chart-panel--large\s*\{[^}]*height:\s*clamp\([1-9]\d*px,\s*[\d.]+vh,\s*[1-9]\d*px\);[^}]*max-height:/);
   assert.match(chart, /maxFrequency/);
   assert.doesNotMatch(chart, /value \+ seriesIndex \* 22/);
   assert.doesNotMatch(chart, /type: "custom"/);
@@ -117,9 +133,11 @@ test("manual correlation and finder tabs reuse visible user devices", () => {
   for (const key of ['"manual"', '"correlation"', '"finder"']) {
     assert.ok(dialog.includes(key), key);
   }
-  assert.match(service, /getLeakMonitorManualAnalysisPage[\s\S]*\/api\/data-query\/leakage\/page/);
+  assert.match(service, /getLeakMonitorManualAnalysisPage\(deviceNumber: string\)\s*\{\s*const response = await postRequest\("\/api\/manual-analysis\/work-orders\/page"/);
   assert.match(service, /postRequest\("\/api\/manual-analysis\/work-orders", data\)/);
-  assert.match(dialog, /haversineDistance/);
+  assert.match(dialog, /fetchLeakMonitorNearbyAnalysis\(/);
+  assert.match(dialog, /distance: item\.distanceKm \* 1000/);
+  assert.match(dialog, /\.sort\(\(left, right\) => left\.distance - right\.distance\)/);
   assert.match(dialog, /props\.visibleDevices/);
   assert.match(localeMap, /:visible-devices="mapDevices"/);
   assert.match(service, /getRequest\("\/api\/device\/visible-list", params\)/);

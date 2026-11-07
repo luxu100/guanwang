@@ -2,7 +2,24 @@ import type { ApiResponse, ServiceId } from "./manage";
 
 /** 固件升级记录，具体业务字段与后端 FirmwareUpgradeLogVO 保持一致。 */
 export interface FirmwareUpgradeLog {
-  id?: number;
+  id?: number | string;
+  deviceNumber?: string;
+  firmwareId?: number;
+  firmwareVersion?: string;
+  executeStatus?: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  transportChannel?: "DIRECT_TCP" | "AEP_NB" | "AEP_TCP" | string | null;
+  upgradeStage?: string | null;
+  finishPercent?: number | null;
+  frameCount?: number | null;
+  receivedFrameCount?: number | null;
+  repairRound?: number | null;
+  frameStatus?: string | null;
+  failureReason?: string | null;
+  startTime?: string | null;
+  finishTime?: string | null;
+  lastFrameSentAt?: string | null;
+  lastReportAt?: string | null;
+  firmwareMd5?: string | null;
   [key: string]: unknown;
 }
 

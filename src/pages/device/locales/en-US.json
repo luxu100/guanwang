@@ -365,7 +365,15 @@
           "tcpSessionId": "TCP Session ID",
           "tcpLastSeenAt": "Last Communication Time",
 
-          "aepProtocol": "AEP Protocol"
+          "aepProtocol": "AEP Protocol",
+          "cloud4G": "CTWing 4G",
+          "cloudNB": "CTWing NB",
+          "directTCP": "Direct TCP",
+          "awaitingProtocol": "Awaiting protocol detection",
+          "configurationNeedsReview": "Configuration needs review",
+          "downlinkProtocolVersion": "Downlink Protocol Version",
+          "nbNumber": "CTWing Device ID",
+          "tcpOnlineStatus": "TCP Connection Status"
         },
 
         "product": {

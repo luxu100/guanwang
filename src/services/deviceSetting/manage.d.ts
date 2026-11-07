@@ -10,6 +10,16 @@ export interface ApiResponse<T = unknown> {
 export interface DeviceSetting {
   id?: number;
   deviceNumber?: string;
+  recordSource?: "COMMAND" | "DEVICE_REPORT" | string;
+  batchId?: string | null;
+  commandSendLogId?: number | null;
+  commandId?: number | null;
+  commandExecuteStatus?: number | null;
+  commandStatus?: string | null;
+  commandFeedback?: string | null;
+  commandSentAt?: string | null;
+  commandExpiresAt?: string | null;
+  createdAt?: string | null;
   [key: string]: unknown;
 }
 
@@ -22,16 +32,35 @@ export interface DeviceSettingPageParams {
 
 /** 按需设置设备参数的请求参数，与后端 DeviceParameterApplyDTO 保持一致。 */
 export interface DeviceParameterApplyParams {
-  [key: string]: unknown;
+  deviceNumbers: string[];
+  parameters: Record<string, number | string>;
+  clientRequestId?: string;
+  expiresAt?: string;
 }
 
 /** 设备参数设置申请结果，与后端 DeviceParameterApplyVO 保持一致。 */
 export interface DeviceParameterApplyResult {
-  [key: string]: unknown;
+  batchId: string;
+  tasks: DeviceParameterTask[];
 }
 
 /** 单台设备参数设置任务状态，与后端 DeviceParameterTaskVO 保持一致。 */
 export interface DeviceParameterTask {
+  settingId?: number | null;
+  commandId?: number | null;
+  deviceNumber?: string;
+  transportChannel?: "DIRECT_TCP" | "AEP_NB" | "AEP_TCP" | string | null;
+  protocolVersion?: 0 | 1 | null;
+  executeStatus?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | null;
+  status?: string | null;
+  feedback?: string | null;
+  platformStatus?: string | null;
+  deviceConfirmed?: boolean | null;
+  confirmationSource?: "PLATFORM" | "DEVICE" | string | null;
+  cloudOnline?: boolean | null;
+  tcpOnline?: boolean | null;
+  sentAt?: string | null;
+  expiresAt?: string | null;
   [key: string]: unknown;
 }
 

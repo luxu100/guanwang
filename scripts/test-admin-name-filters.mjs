@@ -45,7 +45,7 @@ test("name-based table cells resolve ids only as display fallbacks", () => {
   assert.match(dataReceiveSource, /normalizeDeviceProtocolRelations/);
   assert.doesNotMatch(dataReceiveSource, /getDeviceDetail/);
   assert.doesNotMatch(dataReceiveSource, /ensureRelationDeviceDetails/);
-  assert.match(dataReceiveSource, /deviceNumber:\s*getText\(item, \["deviceNumber"\], "-"\)/);
+  assert.match(dataReceiveSource, /deviceNumber:\s*getText\(item, \["deviceNumber", "device_number"\], "-"\)/);
   assert.match(dataReceiveSource, /\{ key: "deviceNumber", label: "设备编号"/);
   assert.match(dataReceiveSource, /\{ key: "deviceName", label: "设备名称"/);
   assert.doesNotMatch(dataReceiveSource, /deviceName:\s*[\s\S]{0,220}getValue\(item, \["deviceId"\]\)/);

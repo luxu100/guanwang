@@ -319,7 +319,7 @@
 			</view>
 		</view> 
 
-		<view v-if="deviceDialogVisible" class="dialog-mask" @click="closeDeviceDialog">
+		<view v-if="deviceDialogVisible && deviceDetail" class="dialog-mask" @click="closeDeviceDialog">
 			<view class="dialog-panel" @click.stop>
 			    <view class="dialog-head">
 			      <view>
@@ -1153,7 +1153,11 @@ const getDeptName = () => {
 	return dept ? dept.deptName : "-";
 };
 
-const handlePageChange = async (pagination: any, page:number) => {
+const handlePageChange = async (pagination: any, page: number | null) => {
+	const totalPages = Math.max(1, Math.ceil(pagination.total / pagination.size));
+	if (page === null || !Number.isInteger(page) || page < 1 || page > totalPages) {
+		return;
+	}
 	pagination.current = page;
 	console.log("current", deptPagination.current);
 	if(pagination == deptPagination){
@@ -3541,7 +3545,7 @@ const handleCheckDevice = (item: DeptDeviceItem) => {
   console.log("查看设备", item);
 };
 
-const getEnableStateText = (status: number): string => {
+const getEnableStateText = (status?: number | null): string => {
   switch(status) {
     case 0:
       return localeText("停用", "Disabled");
@@ -3552,7 +3556,7 @@ const getEnableStateText = (status: number): string => {
   }
 };
 
-const getInstallStateText = (status: number): string => {
+const getInstallStateText = (status?: number | null): string => {
   switch(status) {
     case 0:
       return localeText("未安装", "Not installed");
@@ -3564,7 +3568,7 @@ const getInstallStateText = (status: number): string => {
 };
 
 
-const getInstallMode = (status: number): string => {
+const getInstallMode = (status?: number | null): string => {
   switch(status) {
     case 0:
       return localeText("固定点", "Fixed");
@@ -3575,7 +3579,7 @@ const getInstallMode = (status: number): string => {
   }
 };
 
-const getOnlineStatusText = (status: number): string => {
+const getOnlineStatusText = (status?: number | null): string => {
   switch(status) {
     case 0:
       return localeText("离线", "Offline");

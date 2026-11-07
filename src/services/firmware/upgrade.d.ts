@@ -1,38 +1,21 @@
 import type { ApiResponse, ServiceId } from "./manage";
 
-/** 发起固件升级参数，具体业务字段与后端 FirmwareUpgradeStartDTO 保持一致。 */
-export interface FirmwareUpgradeStartParams {
-  [key: string]: unknown;
-}
-
-/** 检查设备是否可升级参数。 */
-export interface FirmwareUpgradeCheckParams {
-  [key: string]: unknown;
-}
-
-/** 取消固件升级参数。 */
-export interface FirmwareUpgradeCancelParams {
-  [key: string]: unknown;
-}
-
-/** 发起升级后返回的信息。 */
-export interface FirmwareUpgradeStartResult {
-  [key: string]: unknown;
-}
-
-/** 设备可升级检查结果。 */
-export interface FirmwareDeviceUpdatable {
-  [key: string]: unknown;
-}
-
-/** TCP 直连固件升级帧。 */
+/** Request and response DTOs for firmware upgrade operations. */
+export interface FirmwareUpgradeStartParams { firmwareId: number | string; deviceNumbers: string[]; createUser?: string }
+export interface FirmwareUpgradeCheckParams { deviceNumbers: string[] }
+export interface FirmwareUpgradeCancelParams { upgradeLogIds: Array<number | string> }
+export interface FirmwareUpgradeStartResult { upgradeLogIds: Array<number | string> }
+export interface FirmwareDeviceUpdatable { deviceNumber: string; updatable: boolean; reason?: string | null }
 export interface FirmwareUpgradeFrame {
-  [key: string]: unknown;
+  id: number; frameIndex: number; payloadHex?: string; dataLength?: number;
+  sendStatus?: number; sendRound?: number; sendAttempts?: number;
+  lastSessionId?: string | null; lastSentAt?: string | null;
 }
-
-/** 固件升级上下行事件。 */
 export interface FirmwareUpgradeEvent {
-  [key: string]: unknown;
+  id: number; upgradeLogId?: number; deviceNumber?: string; direction?: string;
+  directionName?: string; eventType?: string; eventTypeName?: string; eventLevel?: string;
+  summary?: string; frameIndex?: number | null; sessionId?: string | null; rawHex?: string | null;
+  rawHexBytes?: number | null; detail?: string | null; createdAt?: string; updatedAt?: string;
 }
 
 /** 发起固件升级。 */
@@ -50,7 +33,7 @@ export function cancelFirmwareUpgrade(
   data: FirmwareUpgradeCancelParams,
 ): Promise<ApiResponse<void>>;
 
-/** 查询 TCP 直连固件升级帧。 */
+/** 查询不同传输通道的固件升级帧。 */
 export function getFirmwareUpgradeFrames(
   upgradeLogId: ServiceId,
 ): Promise<ApiResponse<FirmwareUpgradeFrame[]>>;

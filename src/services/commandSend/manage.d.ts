@@ -9,6 +9,20 @@ export interface ApiResponse<T = unknown> {
 /** 指令下发记录，额外字段由后端 VO 决定。 */
 export interface CommandSendLog {
   id?: number;
+  deviceNumber?: string;
+  executeStatus?: number | null;
+  executeFeedback?: string | null;
+  protocolVersion?: 0 | 1 | null;
+  transportChannel?: string | null;
+  platformStatus?: string | null;
+  deviceConfirmed?: boolean | null;
+  confirmationSource?: string | null;
+  nbCommandId?: string | null;
+  nbDeviceNumber?: string | null;
+  commandGroup?: string | null;
+  sentAt?: string | null;
+  deliveredAt?: string | null;
+  expiresAt?: string | null;
   [key: string]: unknown;
 }
 

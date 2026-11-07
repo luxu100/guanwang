@@ -373,13 +373,18 @@ async function handleDeleteDevice(deviceId: number) {
 }
 
 
-const deviceProductOptions = ref<{ label: string; value: number }[]>([]);
+const deviceProductOptions = ref<{ label: string; value: number; aepProtocol?: string | null }[]>([]);
+const compatibleProductOptions = computed(() => {
+  const protocol = String(formData.value.aepProtocol || "").trim().toLowerCase();
+  return protocol ? deviceProductOptions.value.filter(item => String(item.aepProtocol || "").trim().toLowerCase() === protocol) : deviceProductOptions.value;
+});
 
 async function fetchProductOptions() {
   const res = await getDeviceProductListT();
   deviceProductOptions.value = (res.data || []).map((item: any) => ({
     label: item.productName,   // 或 name，看你后端字段
-    value: item.id
+    value: item.id,
+    aepProtocol: item.aepProtocol,
   }));
 }
 
@@ -523,7 +528,7 @@ const addSchema = computed<FormSection[]>(() => [
         key: "productId",
         label: t("addSchema.basicInfo.productModel"),
         type: "select",
-        options: deviceProductOptions.value
+        options: compatibleProductOptions.value
       },
       {
         key: "deviceType",
@@ -567,6 +572,26 @@ const addSchema = computed<FormSection[]>(() => [
   {
     title: t("addSchema.communication.title"),
     fields: [
+      {
+        key: "aepProtocol",
+        label: t("fields.communication.aepProtocol"),
+        type: "select",
+        options: [
+          { label: t("fields.communication.cloud4G"), value: "tcp" },
+          { label: t("fields.communication.cloudNB"), value: "lwm2m" },
+          { label: t("fields.communication.directTCP"), value: "" },
+        ]
+      },
+      {
+        key: "downlinkProtocolVersion",
+        label: t("fields.communication.downlinkProtocolVersion"),
+        type: "select",
+        options: [
+          { label: "NEW", value: "NEW" },
+          { label: "LEGACY", value: "LEGACY" },
+          { label: t("fields.communication.awaitingProtocol"), value: null },
+        ]
+      },
       {
         key: "commandSendway",
         label: t("addSchema.communication.commandSendway"),
@@ -681,6 +706,8 @@ function handleAdd() {
     deviceNumber: "",
     deviceType: "",
     productId: undefined,
+    aepProtocol: "",
+    downlinkProtocolVersion: null,
     deviceAlias: "",
 
     // 设备识别
@@ -752,9 +779,18 @@ async function submitCreate(form: DeviceCreateForm) {
 async function submitUpdate(form: DeviceCreateForm) {
   if (!editingId.value) return;
 
+  const original = selectedDevice.value || {};
+  const changes = Object.fromEntries(Object.entries(form).filter(([key, value]) =>
+    JSON.stringify(value) !== JSON.stringify((original as any)[key]),
+  ));
+  if (!Object.keys(changes).length) {
+    dialogVisible.value = false;
+    return;
+  }
+
   const res = await updateDeviceT(
       editingId.value,
-      {...form}
+      changes
   );
 
   if (res.code !== 200) {

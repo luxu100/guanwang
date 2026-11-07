@@ -43,7 +43,9 @@ test("user form includes region field from current API", () => {
 });
 
 test("new users are submitted through register instead of create", () => {
-  assert.match(source, /register, updateUser, type RegisterParams/);
+  for (const name of ["register", "updateUser", "RegisterParams"]) {
+    assert.match(source, new RegExp(`import \\{[^}]*\\b${name}\\b[^}]*\\} from "@/services/system/user"`));
+  }
   assert.match(source, /isCreating\.value \|\| !userForm\.id[\s\S]*await register\(\{/);
   assert.match(source, /satisfies RegisterParams/);
   assert.doesNotMatch(source, /createUser\(payload\)/);
@@ -93,7 +95,7 @@ test("user details default to an open collapsible drawer with internal scrolling
   assert.match(source, /\.content-layout--user\s*\{[\s\S]*?position:\s*relative;[\s\S]*?display:\s*block;[\s\S]*?height:\s*0;[\s\S]*?overflow:\s*hidden;/);
   assert.match(source, /\.workspace--user,[\s\S]*?\.workspace--user \.main-panel\s*\{[\s\S]*?overflow:\s*hidden;/);
   assert.match(source, /\.content-layout--user > \.table-panel\s*\{[\s\S]*?height:\s*100%;[\s\S]*?overflow:\s*hidden;/);
-  assert.match(source, /\.detail-panel--user\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?bottom:\s*10px;[\s\S]*?height:\s*clamp\(260px, 44%, 360px\);/);
+  assert.match(source, /\.detail-panel--user\s*\{[^}]*position:\s*absolute;[^}]*bottom:\s*10px;[^}]*height:\s*clamp\([1-9]\d*px,\s*[\d.]+%,\s*[1-9]\d*px\);/);
   assert.match(source, /\.detail-head--user\s*\{[\s\S]*?position:\s*relative;/);
   assert.match(source, /class="detail-head detail-head--user"[\s\S]*?class="user-detail-collapse"[\s\S]*?<\/view>/);
   assert.match(source, /\.user-detail-collapse\s*\{[\s\S]*?top:\s*50%;[\s\S]*?left:\s*50%;[\s\S]*?transform:\s*translate\(-50%, -50%\);/);

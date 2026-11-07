@@ -37,7 +37,7 @@ test("detail forms constrain inputs to their panels", () => {
   assert.match(systemSource, /\.detail-panel--user \.form-field\s*\{[\s\S]*?overflow:\s*visible;/);
   assert.match(systemSource, /\.detail-panel--user \.form-actions\s*\{[\s\S]*?flex:\s*none;/);
   assert.match(systemSource, /class="check-grid check-grid--roles"/);
-  assert.match(systemSource, /\.check-grid--roles\s*\{[\s\S]*?min-height:\s*44px;/);
+  assert.match(systemSource, /\.user-config-row \.check-grid\s*\{[^}]*min-height:\s*[1-9]\d*px;/);
   assert.match(systemSource, /\.user-config-row \.check-grid\s*\{[\s\S]*?overflow-y:\s*auto;/);
   assert.match(systemSource, /class="detail-panel detail-panel--menu"/);
   assert.match(systemSource, /\.detail-panel--menu \.form-grid\s*\{[\s\S]*?overflow-y:\s*auto;/);

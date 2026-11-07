@@ -62,7 +62,8 @@ export interface Device {
     tcpLastSeenAt?: string;
 
     // 协议
-    aepProtocol?: string;
+    aepProtocol?: string | null;
+    downlinkProtocolVersion?: "NEW" | "LEGACY" | null;
 
     // 算法配置
     algorithmType?: string;
@@ -106,6 +107,8 @@ export interface DeviceInfoVO {
 export interface DeviceCreateDTO {
     deviceNumber: string;
     productId: number;
+    aepProtocol?: string | null;
+    downlinkProtocolVersion?: "NEW" | "LEGACY" | null;
 
     nbNumber: string;
     deviceType: string;
@@ -155,6 +158,9 @@ export interface DeviceListItem {
     deviceNumber: string;
     productId: number;
     productName: string;
+    aepProtocol?: string | null;
+    downlinkProtocolVersion?: "NEW" | "LEGACY" | null;
+    tcpOnlineStatus?: number | null;
 
     nbNumber: string;
     deviceType: string;
@@ -169,7 +175,7 @@ export interface DeviceListItem {
     enableState: number;
     installState: number;
 
-    onlineStatus: number;
+    onlineStatus?: number | null;
 
     createdAt: string;
 }
@@ -471,6 +477,8 @@ export interface DeviceCreateForm {
     deviceNumber?: string;
     deviceType?: string;
     productId?: number;
+    aepProtocol?: string | null;
+    downlinkProtocolVersion?: "NEW" | "LEGACY" | null;
     deviceAlias?: string;
 
     // 设备识别

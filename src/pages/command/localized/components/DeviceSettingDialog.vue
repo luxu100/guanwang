@@ -26,12 +26,13 @@
           <view class="section-head">
             <view>
               <text class="section-title">{{ localeText("选择设备", "Select devices") }}</text>
-              <text class="section-hint">{{ localeText("所有设备均可选择，单次最多选择 200 台", "All devices are selectable; select up to 200 devices") }}</text>
+              <text class="section-hint">{{ localeText("仅选择配置完整、已启用且当前离线的设备；单次最多 200 台", "Select configured, enabled, offline devices; up to 200 per request") }}</text>
             </view>
             <text class="selected-count">{{ localeText(`已选择 ${selectedDevices.length} 台`, `${selectedDevices.length} selected`) }}</text>
           </view>
           <view class="device-filter">
-            <input v-model="deviceKeyword" class="control" :placeholder="localeText('输入设备编号或别名', 'Device number or alias')" />
+            <input v-model="deviceKeyword" class="control" :placeholder="localeText('输入设备编号搜索', 'Search device number')" @confirm="searchDevices" />
+            <button class="small-button" @click="searchDevices">{{ localeText("搜索", "Search") }}</button>
             <button class="small-button" @click="toggleAllDevices">
               {{ allVisibleSelected ? localeText("取消全选", "Clear all") : localeText("选择全部设备", "Select all devices") }}
             </button>
@@ -42,27 +43,32 @@
               <text></text>
               <text>{{ localeText("设备编号", "Device number") }}</text>
               <text>{{ localeText("设备别名", "Device alias") }}</text>
-              <text>{{ localeText("TCP 状态", "TCP status") }}</text>
+              <text>{{ localeText("通道与状态", "Channel and status") }}</text>
               <text>{{ localeText("可选状态", "Availability") }}</text>
             </view>
             <view
               v-for="device in filteredDevices"
               :key="device.id || device.deviceNumber"
               class="device-row"
-              :class="{ 'device-row--selected': isDeviceSelected(device) }"
+              :class="{ 'device-row--selected': isDeviceSelected(device), 'device-row--unavailable': !isDeviceSelectable(device) }"
               @click="toggleDevice(device)"
             >
               <text><text class="checkbox">{{ isDeviceSelected(device) ? "✓" : "" }}</text></text>
               <text>{{ displayValue(device.deviceNumber) }}</text>
               <text>{{ displayValue(device.deviceAlias || device.deviceName) }}</text>
               <text>
-                <text class="online-tag" :class="isDeviceOnline(device) ? 'online-tag--online' : 'online-tag--offline'">
-                  {{ isDeviceOnline(device) ? localeText("在线", "Online") : localeText("离线", "Offline") }}
+                <text class="online-tag" :class="isDeviceOnline(device) === null ? 'online-tag--unknown' : isDeviceOnline(device) ? 'online-tag--online' : 'online-tag--offline'">
+                  {{ getOnlineText(device) }}
                 </text>
               </text>
-              <text>{{ getDeviceAvailability(device) }}</text>
+              <text>{{ getDeviceChannelText(getDeviceChannel(device), localeText) }} · {{ getDeviceAvailability(device) }}</text>
             </view>
             <view v-if="!filteredDevices.length" class="empty-state">{{ localeText("暂无符合条件的设备", "No matching devices") }}</view>
+          </view>
+          <view class="device-pager">
+            <button class="small-button" :disabled="devicePage.current <= 1 || deviceLoading" @click="changeDevicePage(-1)">{{ localeText("上一页", "Previous") }}</button>
+            <text>{{ devicePage.current }} / {{ Math.max(1, Math.ceil(devicePage.total / devicePage.size)) }} · {{ devicePage.total }}</text>
+            <button class="small-button" :disabled="devicePage.current * devicePage.size >= devicePage.total || deviceLoading" @click="changeDevicePage(1)">{{ localeText("下一页", "Next") }}</button>
           </view>
         </view>
 
@@ -84,12 +90,12 @@
             <view class="form-field">
               <text class="form-label">{{ localeText("任务过期时间（可选）", "Expires at (optional)") }}</text>
               <input v-model="expiresAt" class="control" :placeholder="localeText('例如 2026-07-28T10:00:00', 'e.g. 2026-07-28T10:00:00')" />
-              <text class="form-hint">{{ localeText("不填写时后端默认 24 小时", "Defaults to 24 hours when omitted") }}</text>
+              <text class="form-hint">{{ localeText("省略时由后端按通道和协议版本确定期限", "The server selects the expiry by channel and protocol when omitted") }}</text>
             </view>
           </view>
 
           <view class="parameter-grid">
-            <view class="parameter-card" :class="{ 'parameter-card--enabled': isParameterEnabled('gainGroup') }">
+            <view class="parameter-card" :class="{ 'parameter-card--enabled': isParameterEnabled('gainGroup'), 'parameter-card--unsupported': !gainSupported }">
               <view class="parameter-card__head" @click="toggleParameter('gainGroup')">
                 <text class="checkbox">{{ isParameterEnabled("gainGroup") ? "✓" : "" }}</text>
                 <view><text>{{ localeText("测量增益设置", "Measurement gain") }}</text><text>{{ localeText("增益模式和增益值必须一起提交", "Mode and value are submitted together") }}</text></view>
@@ -123,7 +129,7 @@
             </view>
 
             <view
-              v-for="definition in parameterDefinitions"
+              v-for="definition in effectiveParameterDefinitions"
               :key="definition.key"
               class="parameter-card"
               :class="{ 'parameter-card--enabled': isParameterEnabled(definition.key) }"
@@ -197,7 +203,7 @@
           <view class="section-head">
             <view>
               <text class="section-title">{{ localeText("下发任务已创建", "Tasks created") }}</text>
-              <text class="section-hint">{{ localeText("TCP_SENT 仅表示已写入 TCP 连接，不能表示参数已经生效", "TCP_SENT only means the command was written to TCP; parameters are not confirmed effective") }}</text>
+              <text class="section-hint">{{ localeText("平台受理、平台成功和设备确认分开展示", "Platform acceptance, platform success and device confirmation are shown separately") }}</text>
             </view>
             <text class="selected-count">{{ localeText(`共 ${taskResults.length} 台`, `${taskResults.length} devices`) }}</text>
           </view>
@@ -206,15 +212,15 @@
               <text>{{ localeText("设备编号", "Device number") }}</text>
               <text>{{ localeText("任务 ID", "Task ID") }}</text>
               <text>{{ localeText("状态", "Status") }}</text>
-              <text>{{ localeText("TCP", "TCP") }}</text>
+              <text>{{ localeText("通道状态", "Channel state") }}</text>
               <text>{{ localeText("发送时间", "Sent at") }}</text>
               <text>{{ localeText("过期时间", "Expires at") }}</text>
             </view>
             <view v-for="task in taskResults" :key="task.settingId || task.id || task.deviceNumber" class="result-row">
               <text>{{ displayValue(task.deviceNumber) }}</text>
               <text>{{ displayValue(task.settingId || task.id) }}</text>
-              <text><text class="task-status" :class="getTaskStatusClass(task.commandStatus || task.status)">{{ getTaskStatusText(task.commandStatus || task.status) }}</text></text>
-              <text>{{ task.tcpOnline ? localeText("在线", "Online") : localeText("离线", "Offline") }}</text>
+              <text><text class="task-status" :class="getTaskStatusClass(task)">{{ getTaskStatusText(task) }}</text></text>
+              <text>{{ getTaskTransportStatus(task) }}</text>
               <text>{{ formatDateTime(task.sentAt) }}</text>
               <text>{{ formatDateTime(task.expiresAt) }}</text>
             </view>
@@ -239,10 +245,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { useLocaleText } from "@/i18n/localeText";
 import { getDevicePage } from "@/services/device/info";
-import { applyDeviceParameters, getDeviceSettingPage } from "@/services/deviceSetting/manage";
+import { applyDeviceParameters, getDeviceSettingPage, getDeviceSettingResult } from "@/services/deviceSetting/manage";
+import { getDeviceChannel, getDeviceChannelText, getDeviceOnline } from "@/utils/device-channel";
+import type { DeviceParameterTask } from "@/services/deviceSetting/manage";
 
 type ApiRecord = Record<string, any>;
 interface ParameterOption { label: string; value: string | number }
@@ -270,6 +278,7 @@ const deviceLoading = ref(false);
 const submitting = ref(false);
 const refreshingResults = ref(false);
 const devices = ref<ApiRecord[]>([]);
+const devicePage = reactive({ current: 1, size: 200, total: 0 });
 const selectedDevices = ref<ApiRecord[]>([]);
 const deviceKeyword = ref("");
 const enabledParameters = ref<string[]>([]);
@@ -278,6 +287,7 @@ const expiresAt = ref("");
 const taskResults = ref<ApiRecord[]>([]);
 const resultBatchId = ref("");
 const openOptionKey = ref("");
+let taskPollTimer: ReturnType<typeof setTimeout> | undefined;
 
 const parameterValues = reactive<Record<string, string | number>>({
   measureGainMode: 0,
@@ -339,6 +349,11 @@ const parameterDefinitions = computed<ParameterDefinition[]>(() => [
   numberDefinition("rtcUploadInterval", localeText("RTC 上传间隔", "RTC upload interval"), "0～255", 0, 255),
   numberDefinition("pressureSettings", localeText("压力设置", "Pressure setting"), "0～255", 0, 255),
 ]);
+const legacyParameterKeys = new Set(["signalLevel", "samplingWeekday", "samplingTime", "samplingPeriodTime", "audioRule", "reportInterval", "leakThreshold", "workMode"]);
+const effectiveParameterDefinitions = computed(() => parameterDefinitions.value.filter(definition =>
+  selectedDevices.value.every(device => getDeviceChannel(device) === "DIRECT_TCP" || device.downlinkProtocolVersion !== "LEGACY" || legacyParameterKeys.has(definition.key)),
+));
+const gainSupported = computed(() => selectedDevices.value.every(device => getDeviceChannel(device) === "DIRECT_TCP" || device.downlinkProtocolVersion !== "LEGACY"));
 
 const filteredDevices = computed(() => {
   const keyword = deviceKeyword.value.trim().toLowerCase();
@@ -348,7 +363,7 @@ const filteredDevices = computed(() => {
   );
 });
 const allVisibleSelected = computed(() => {
-  const visibleDevices = filteredDevices.value.slice(0, 200);
+  const visibleDevices = filteredDevices.value.filter(isDeviceSelectable).slice(0, 200);
   return visibleDevices.length > 0 && visibleDevices.every(isDeviceSelected);
 });
 const enabledParameterCount = computed(() =>
@@ -364,6 +379,9 @@ const enabledParameterPreview = computed(() =>
 );
 
 onMounted(loadDevices);
+onBeforeUnmount(() => {
+  if (taskPollTimer) clearTimeout(taskPollTimer);
+});
 
 function numberDefinition(key: string, label: string, hint: string, min: number, max: number): ParameterDefinition {
   return { key, label, hint, min, max, integer: true, inputType: "number" };
@@ -384,16 +402,30 @@ function optionDefinition(key: string, label: string, options: ParameterOption[]
 async function loadDevices() {
   deviceLoading.value = true;
   try {
-    const page = unwrapResponse(await getDevicePage({ pageNum: 1, pageSize: 200 }));
+    const page = unwrapResponse(await getDevicePage({ pageNum: devicePage.current, pageSize: devicePage.size, deviceNumber: deviceKeyword.value.trim() || undefined }));
     devices.value = getPageRecords(page);
+    devicePage.total = Number(page?.total ?? devices.value.length) || 0;
   } catch (error) {
     showError(error, localeText("设备列表加载失败", "Failed to load devices"));
+    devices.value = [];
+    devicePage.total = 0;
   } finally {
     deviceLoading.value = false;
   }
 }
 
+async function searchDevices() {
+  devicePage.current = 1;
+  await loadDevices();
+}
+
+async function changeDevicePage(delta: number) {
+  devicePage.current = Math.max(1, devicePage.current + delta);
+  await loadDevices();
+}
+
 function toggleDevice(device: ApiRecord) {
+  if (!isDeviceSelectable(device)) return showToast(getDeviceAvailability(device));
   const index = selectedDevices.value.findIndex(item => item.deviceNumber === device.deviceNumber);
   if (index >= 0) selectedDevices.value.splice(index, 1);
   else if (selectedDevices.value.length < 200) selectedDevices.value.push(device);
@@ -401,7 +433,7 @@ function toggleDevice(device: ApiRecord) {
 }
 
 function toggleAllDevices() {
-  const selectable = filteredDevices.value.slice(0, 200);
+  const selectable = filteredDevices.value.slice(0, 200).filter(isDeviceSelectable);
   if (allVisibleSelected.value) {
     const numbers = new Set(selectable.map(device => device.deviceNumber));
     selectedDevices.value = selectedDevices.value.filter(device => !numbers.has(device.deviceNumber));
@@ -415,16 +447,36 @@ function isDeviceSelected(device: ApiRecord) {
   return selectedDevices.value.some(item => item.deviceNumber === device.deviceNumber);
 }
 
-function isDeviceOnline(device: ApiRecord) {
-  return Number(device.tcpOnlineStatus ?? device.onlineStatus ?? device.isOnline) === 1;
+function isDeviceOnline(device: ApiRecord): boolean | null {
+  return getDeviceOnline(device);
 }
 
-function getDeviceAvailability() {
-  return localeText("可选择", "Available");
+function isDeviceSelectable(device: ApiRecord) {
+  const channel = getDeviceChannel(device);
+  if (channel === "INVALID" || Number(device.enableState) === 0) return false;
+  if (channel !== "DIRECT_TCP" && (!device.productId || !String(device.nbNumber ?? "").trim() || !device.downlinkProtocolVersion)) return false;
+  if (isDeviceOnline(device) === true) return false;
+  return true;
+}
+
+function getDeviceAvailability(device: ApiRecord) {
+  if (getDeviceChannel(device) === "INVALID") return localeText("协议配置异常", "Invalid protocol");
+  if (Number(device.enableState) === 0) return localeText("设备已停用", "Disabled");
+  if (getDeviceChannel(device) !== "DIRECT_TCP" && (!device.productId || !String(device.nbNumber ?? "").trim() || !device.downlinkProtocolVersion)) return localeText("云配置不完整", "Cloud profile incomplete");
+  if (isDeviceOnline(device) === true) return localeText("在线，暂不可设置", "Online; unavailable");
+  return localeText("可设置", "Available");
+}
+
+function getOnlineText(device: ApiRecord) {
+  const status = isDeviceOnline(device);
+  return status === null ? localeText("未知", "Unknown") : status ? localeText("在线", "Online") : localeText("离线", "Offline");
 }
 
 function toggleParameter(key: string) {
   closeOptionMenu();
+  if ((key === "gainGroup" && !gainSupported.value) || (key !== "gainGroup" && !effectiveParameterDefinitions.value.some(definition => definition.key === key))) {
+    return showToast(localeText("所选旧协议设备不支持该参数", "Selected legacy devices do not support this parameter"));
+  }
   const index = enabledParameters.value.indexOf(key);
   if (index >= 0) enabledParameters.value.splice(index, 1);
   else {
@@ -503,6 +555,7 @@ async function submitTasks() {
     step.value = 4;
     showToast(localeText("下发任务已创建", "Tasks created"));
     emit("submitted", resultBatchId.value || undefined);
+    scheduleTaskRefresh();
   } catch (error) {
     showError(error, localeText("创建参数下发任务失败", "Failed to create parameter tasks"));
   } finally {
@@ -521,17 +574,62 @@ async function refreshTaskResults() {
       batchId: resultBatchId.value,
       sortOrder: "asc",
     }));
-    taskResults.value = getPageRecords(page);
+    const historyRows = getPageRecords(page).map(normalizeTask);
+    const merged = new Map<string, ApiRecord>();
+    for (const task of taskResults.value) merged.set(String(task.settingId ?? task.id ?? task.deviceNumber), task);
+    for (const row of historyRows) {
+      const key = String(row.settingId ?? row.id ?? row.deviceNumber);
+      merged.set(key, { ...merged.get(key), ...row });
+    }
+    taskResults.value = [...merged.values()];
+    await Promise.all(taskResults.value.slice(0, 20).map(async task => {
+      if (!task.settingId) return;
+      try {
+        const result = normalizeTask(unwrapResponse(await getDeviceSettingResult(task.settingId)));
+        const index = taskResults.value.findIndex(item => String(item.settingId ?? item.id) === String(task.settingId));
+        if (index >= 0) taskResults.value.splice(index, 1, { ...taskResults.value[index], ...result });
+      } catch { /* Keep the last known task state when a result refresh fails. */ }
+    }));
     showToast(localeText("任务状态已刷新", "Task status refreshed"));
   } catch (error) {
     showError(error, localeText("任务状态刷新失败", "Failed to refresh task status"));
   } finally {
     refreshingResults.value = false;
+    scheduleTaskRefresh();
   }
+}
+
+function scheduleTaskRefresh() {
+  if (taskPollTimer) clearTimeout(taskPollTimer);
+  if (step.value !== 4 || !taskResults.value.some(isTaskPending)) return;
+  taskPollTimer = setTimeout(() => { void refreshTaskResults(); }, 5000);
+}
+
+function isTaskPending(task: ApiRecord) {
+  const status = Number(task.executeStatus ?? task.commandExecuteStatus);
+  if ([4, 5].includes(status)) return false;
+  if (status === 6 && (task.deviceConfirmed === true || String(task.confirmationSource).toUpperCase() === "PLATFORM")) return false;
+  if (status >= 0 && status <= 3) return true;
+  return !["FAILED", "EXPIRED", "CANCELED", "SUCCESS"].includes(String(task.status || task.commandStatus || "").toUpperCase());
+}
+
+function normalizeTask(source: ApiRecord): ApiRecord {
+  return {
+    ...source,
+    settingId: source.settingId ?? source.id,
+    commandId: source.commandId ?? source.commandSendLogId,
+    executeStatus: source.executeStatus ?? source.commandExecuteStatus,
+    status: source.status ?? source.commandStatus,
+    feedback: source.feedback ?? source.commandFeedback,
+    sentAt: source.sentAt ?? source.commandSentAt ?? source.sendTime,
+    expiresAt: source.expiresAt ?? source.commandExpiresAt,
+  };
 }
 
 function validateForm() {
   if (!enabledParameters.value.length) return localeText("请至少启用一个参数", "Enable at least one parameter");
+  if (!gainSupported.value && isParameterEnabled("gainGroup")) return localeText("LEGACY 协议不支持测量增益设置", "LEGACY does not support measurement gain");
+  if (enabledParameters.value.some(key => key !== "gainGroup" && !effectiveParameterDefinitions.value.some(definition => definition.key === key))) return localeText("所选 LEGACY 设备不支持部分已选参数", "Some selected parameters are unsupported by LEGACY devices");
   if (clientRequestId.value && !/^[A-Za-z0-9._-]{1,48}$/.test(clientRequestId.value)) {
     return localeText("请求幂等号只能包含字母、数字、点、下划线和短横线", "Invalid client request ID");
   }
@@ -539,13 +637,13 @@ function validateForm() {
     const timestamp = new Date(expiresAt.value).getTime();
     if (!Number.isFinite(timestamp) || timestamp <= Date.now()) return localeText("任务过期时间必须晚于当前时间", "Expiry must be in the future");
   }
-  if (isParameterEnabled("gainGroup")) {
+  if (isParameterEnabled("gainGroup") && gainSupported.value) {
     const gain = Number(parameterValues.gainValue);
     if (parameterValues.gainValue === "" || !Number.isFinite(gain) || gain < 0 || gain > 999.9 || !/^\d{1,3}(\.\d)?$/.test(String(parameterValues.gainValue))) {
       return localeText("增益值必须为 0.0～999.9，且最多一位小数", "Gain must be 0.0–999.9 with at most one decimal");
     }
   }
-  for (const definition of parameterDefinitions.value) {
+  for (const definition of effectiveParameterDefinitions.value) {
     if (!isParameterEnabled(definition.key)) continue;
     const value = parameterValues[definition.key];
     if (value === "" || value === undefined || value === null) return localeText(`请填写${definition.label}`, `Enter ${definition.label}`);
@@ -585,7 +683,19 @@ function formatParameterPreview(key: string, value: string | number) {
   return definition?.options?.find(option => String(option.value) === String(value))?.label || String(value);
 }
 
-function getTaskStatusText(status: unknown) {
+function getTaskStatusText(task: ApiRecord) {
+  const status = task.status ?? task.commandStatus;
+  const executeStatus = Number(task.executeStatus);
+  if ([4, 5].includes(executeStatus)) return displayValue(task.feedback, executeStatus === 4 ? localeText("下发失败", "Dispatch failed") : localeText("已取消或过期", "Canceled or expired"));
+  if (task.deviceConfirmed === true && String(task.confirmationSource).toUpperCase() === "DEVICE") return localeText("设备已确认执行完成", "Confirmed by device");
+  if (executeStatus === 6 && String(task.confirmationSource).toUpperCase() === "PLATFORM") return localeText("平台返回成功，尚无设备级确认", "Platform succeeded; no device confirmation");
+  const executeLabels: Record<number, string> = {
+    0: localeText("排队中", "Queued"), 1: localeText("处理中或待发送", "Processing or pending"),
+    2: localeText("已提交或已发送", "Submitted or sent"), 3: localeText("已送达", "Delivered"),
+    4: localeText("下发失败", "Dispatch failed"), 5: localeText("已取消或过期", "Canceled or expired"),
+    6: localeText("成功结果已返回", "Success result returned"),
+  };
+  if (executeLabels[executeStatus]) return executeLabels[executeStatus];
   const value = String(status || "").toUpperCase();
   const labels: Record<string, string> = {
     QUEUED: localeText("等待设备连接", "Waiting for device"),
@@ -595,19 +705,30 @@ function getTaskStatusText(status: unknown) {
     EXPIRED: localeText("等待下发已过期", "Dispatch expired"),
     CANCELED: localeText("已取消", "Cancelled"),
     NOT_QUEUED: localeText("指令创建异常", "Command creation failed"),
-    DEVICE_DELIVERED: localeText("设备已送达（预留）", "Delivered (reserved)"),
-    SUCCESS: localeText("成功（预留）", "Success (reserved)"),
+    DEVICE_DELIVERED: localeText("设备已送达", "Delivered"),
+    SUCCESS: localeText("成功结果已返回", "Success result returned"),
+    PLATFORM_ACCEPTED: localeText("平台已受理", "Accepted by platform"),
   };
   return labels[value] || displayValue(status, localeText("未知状态", "Unknown"));
 }
 
-function getTaskStatusClass(status: unknown) {
+function getTaskStatusClass(task: ApiRecord) {
+  const status = task.status ?? task.commandStatus;
   const value = String(status || "").toUpperCase();
-  if (["FAILED", "EXPIRED", "NOT_QUEUED"].includes(value)) return "task-status--danger";
-  if (["DEVICE_DELIVERED", "SUCCESS"].includes(value)) return "task-status--success";
+  if ([4, 5].includes(Number(task.executeStatus)) || ["FAILED", "EXPIRED", "NOT_QUEUED"].includes(value)) return "task-status--danger";
+  if (task.deviceConfirmed === true || ["DEVICE_DELIVERED", "SUCCESS"].includes(value)) return "task-status--success";
+  if (task.platformStatus) return "task-status--warning";
   if (value === "TCP_SENT") return "task-status--primary";
   if (value === "CLAIMED") return "task-status--warning";
   return "task-status--default";
+}
+
+function getTaskTransportStatus(task: ApiRecord) {
+  const channel = String(task.transportChannel || "");
+  const online = channel === "DIRECT_TCP" ? task.tcpOnline : task.cloudOnline;
+  const onlineText = online === true ? localeText("在线", "Online") : online === false ? localeText("离线", "Offline") : localeText("未知", "Unknown");
+  const channelText = channel || localeText("历史通道未知", "Historical channel unknown");
+  return `${channelText} · ${onlineText}${task.platformStatus ? ` · ${task.platformStatus}` : ""}${task.deviceConfirmed === true ? ` · ${localeText("设备已确认", "Device confirmed")}` : ""}`;
 }
 
 function createClientRequestId() {
@@ -661,5 +782,6 @@ function closeDialog() {
 .confirm-summary { display: grid; grid-template-columns: 150px 150px minmax(0, 1fr); margin-bottom: 14px; gap: 10px; }.confirm-summary > view { display: flex; flex-direction: column; padding: 12px; gap: 5px; background: #eef7ff; border: 1px solid #d2e8f8; border-radius: 5px; }.confirm-summary text:first-child { color: #778c9e; font-size: 12px; }.confirm-summary text:last-child { overflow: hidden; color: #285773; font-size: 15px; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; }.confirm-block { margin-top: 12px; padding: 13px; background: #fff; border: 1px solid #dce6ed; border-radius: 5px; }.confirm-block__title { display: block; margin-bottom: 9px; color: #35556d; font-size: 14px; font-weight: 900; }.device-chips { display: flex; flex-wrap: wrap; gap: 6px; }.device-chips text { padding: 4px 8px; color: #315e7c; font-size: 12px; background: #edf6fc; border-radius: 4px; }.parameter-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: #e3ebf1; border: 1px solid #e3ebf1; }.parameter-summary > view { display: flex; justify-content: space-between; padding: 9px 10px; gap: 12px; background: #fff; }.parameter-summary text:first-child { color: #718598; font-size: 12px; }.parameter-summary text:last-child { color: #31516c; font-size: 12px; font-weight: 800; }.warning-card { margin-top: 12px; padding: 11px 12px; color: #9a5a13; font-size: 13px; line-height: 1.5; background: #fff8eb; border: 1px solid #f0d39e; border-radius: 5px; }
 .result-row { display: grid; grid-template-columns: 150px 100px minmax(260px, 1.5fr) 80px 170px 170px; min-height: 50px; border-bottom: 1px solid #edf2f6; }.task-status--primary { color: #0875cc; background: #eaf5ff; }.task-status--warning { color: #a35b0b; background: #fff5e5; }.task-status--success { color: #177245; background: #eaf8ef; }.task-status--danger { color: #b33f3f; background: #fff0f0; }.task-status--default { color: #617589; background: #f0f3f6; }
 .empty-state { padding: 42px 12px; color: #7a8d9f; font-size: 13px; text-align: center; }.setting-actions { flex: none; display: flex; align-items: center; justify-content: flex-end; min-height: 70px; padding: 13px 18px; background: #fff; border-top: 1px solid #e2eaf1; box-sizing: border-box; }.setting-actions > view { display: flex; gap: 10px; }.action-button { display: inline-flex; align-items: center; justify-content: center; min-width: 88px; height: 40px; padding: 0 17px; color: #31516d; font-size: 14px; font-weight: 800; line-height: 40px; background: #fff; border: 1px solid #c9d9e7; border-radius: 4px; }.action-button--primary { color: #fff; background: #0d82ee; border-color: #0d82ee; }.action-button[disabled] { opacity: 0.55; }
+.online-tag--unknown { color: #8a5c0a; background: #fff5df; }.device-row--unavailable { opacity: .65; }.parameter-card--unsupported { opacity: .72; }.device-pager { display: flex; align-items: center; justify-content: center; margin-top: 10px; gap: 12px; color: #718698; font-size: 12px; }
 @media (max-width: 980px) { .parameter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.request-meta { grid-template-columns: 1fr; }.setting-step { font-size: 12px; } }
 </style>

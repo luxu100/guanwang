@@ -30,7 +30,9 @@ export type LocalizedModuleKey =
   | "alarm"
   | "report";
 
-type LocaleDictionary = Record<string, string>;
+interface LocaleDictionary {
+  [key: string]: string | LocaleDictionary;
+}
 
 export interface ModuleLocaleMessages {
   "zh-CN": LocaleDictionary;
@@ -71,14 +73,13 @@ function createSourceMap(moduleKey: LocalizedModuleKey, locale: LocaleCode) {
   const messages = moduleLocaleMessages[moduleKey];
   const sourceByKey = messages["zh-CN"];
   const targetByKey = messages[locale];
-  return Object.fromEntries(
-    Object.entries(sourceByKey)
-      .filter(([, source]) => typeof source === "string")
-      .map(([key, source]) => [
-        source,
-        normalizeTranslatedTemplate(targetByKey[key] || source),
-      ]),
-  );
+  const sourceMap: Record<string, string> = {};
+  for (const [key, source] of Object.entries(sourceByKey)) {
+    if (typeof source !== "string") continue;
+    const target = targetByKey[key];
+    sourceMap[source] = normalizeTranslatedTemplate(typeof target === "string" && target ? target : source);
+  }
+  return sourceMap;
 }
 
 const sourceMapCache = new Map<string, Record<string, string>>();

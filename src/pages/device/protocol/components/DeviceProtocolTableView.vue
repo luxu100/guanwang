@@ -16,6 +16,7 @@
       <XDataTable
           :columns="columns"
           :data="deviceProtocolList"
+          :loading="loading"
           :show-index="true"
           id-key="id"
           v-model:selected="selectedId"
