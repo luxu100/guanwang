@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import test, { after, before } from "node:test";
+import { writeW84Fixture } from "./fixtures/w84-source.mjs";
 import {
   buildImportPayloads,
   buildPipePayloads,
@@ -11,14 +15,30 @@ import {
   selectSamplePayloads,
 } from "./w84-gis-transfer.mjs";
 
-const sourceDir = "E:/w84 (shared)/w84 (shared)";
+const fixtureRoot = resolve(tmpdir());
+let sourceDir;
 
-test("reads the W84 source layer counts and WGS84 multiline geometry", () => {
+before(() => {
+  sourceDir = mkdtempSync(join(fixtureRoot, "guanwang-w84-test-"));
+  writeW84Fixture(sourceDir);
+});
+
+after(() => {
+  if (!sourceDir) return;
+  assert.equal(dirname(sourceDir), fixtureRoot);
+  rmSync(sourceDir, { recursive: true, force: true });
+});
+
+test("reads fixture layer counts and WGS84 multipart geometry from disk", () => {
   const source = readW84Source(sourceDir);
-  assert.equal(source.pipes.length, 99);
-  assert.equal(source.facilities.hydrants.length, 28);
-  assert.equal(source.facilities.pumps.length, 20);
-  assert.equal(source.facilities.valves.length, 26);
+  assert.equal(source.sourceDir, sourceDir);
+  assert.equal(source.pipes.length, 3);
+  assert.equal(source.facilities.hydrants.length, 1);
+  assert.equal(source.facilities.pumps.length, 1);
+  assert.equal(source.facilities.valves.length, 1);
+  assert.equal(source.pipes[0].geometry.parts.length, 2);
+  assert.deepEqual(source.pipes[0].geometry.parts[0][0], [101.1, 3.1]);
+  assert.equal(source.pipes[0].attributes.MATERIAL, "PVC");
 
   for (const pipe of source.pipes) {
     assert.equal(pipe.geometry.type, "Polyline");
@@ -43,9 +63,12 @@ test("builds the documented sample payloads without system fields", () => {
   assert.equal(sample.pipes[0].lineCoords[0][0].length, 2);
   assert.equal(sample.pipes[0].tubeName, "POC_KG556_p-4");
   assert.equal(sample.pipes[0].status, 1);
+  assert.equal(sample.pipes[0].diameterMm, 100);
 
   const types = new Set(sample.facilities.map((item) => item.facilityType));
   assert.deepEqual(types, new Set(["VALVE", "HYDRANT", "PUMP"]));
+  assert.equal(sample.facilities.find((item) => item.facilityType === "HYDRANT").status, 0);
+  assert.equal(sample.facilities.find((item) => item.facilityType === "PUMP").status, 1);
   for (const item of sample.facilities) {
     assert.equal(item.deptId, 2);
     assert.equal(item.countryCode, "MY");
@@ -80,10 +103,12 @@ test("keeps duplicate OBJECTIDs as distinct, stable pipe names", () => {
     duplicates.set(id, (duplicates.get(id) || 0) + 1);
   }
   const repeatedIds = [...duplicates].filter(([, count]) => count > 1).map(([id]) => id);
-  assert.equal(repeatedIds.length, 8);
+  assert.deepEqual(repeatedIds, [8]);
 
   const payloads = buildImportPayloads(source, 2).pipes;
-  assert.equal(new Set(payloads.map((item) => item.tubeName)).size, 99);
+  assert.equal(new Set(payloads.map((item) => item.tubeName)).size, 3);
+  assert.deepEqual(payloads.map((item) => item.tubeName), ["POC_KG556_p-4", "POC_KG556_p-8-seg1", "POC_KG556_p-8-seg2"]);
+  assert.deepEqual(buildPipePayloads(source.pipes, 2), payloads);
   for (const id of repeatedIds) {
     const group = payloads.filter((item) => item.tubeName.startsWith(`POC_KG556_p-${id}-seg`));
     assert.equal(group.length, 2);
