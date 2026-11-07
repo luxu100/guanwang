@@ -23,6 +23,7 @@
     "build:mp-weixin": "uni build -p mp-weixin",
     "build:mp-xhs": "uni build -p mp-xhs",
     "type-check": "vue-tsc --noEmit",
+    "test": "node --test \"scripts/*.test.mjs\" \"scripts/test-*.mjs\"",
     "check": "npm run type-check && npm run build:h5"
   },
   "repository": {

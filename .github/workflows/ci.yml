@@ -1,0 +1,86 @@
+name: Frontend CI
+
+on:
+  push:
+    branches:
+      - dev
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Type check
+            script: type-check
+            artifact: type-check
+          - name: Tests
+            script: test
+            artifact: tests
+          - name: H5 build
+            script: build:h5
+            artifact: h5-build
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Show runtime versions
+        run: |
+          node --version
+          npm --version
+
+      - name: Install dependencies
+        shell: bash
+        run: npm ci --include=dev 2>&1 | tee "$RUNNER_TEMP/install.log"
+
+      - name: Run ${{ matrix.name }}
+        id: check
+        shell: bash
+        env:
+          CHECK_SCRIPT: ${{ matrix.script }}
+        run: npm run "$CHECK_SCRIPT" 2>&1 | tee "$RUNNER_TEMP/check.log"
+
+      - name: Verify H5 entry point
+        if: matrix.script == 'build:h5'
+        shell: bash
+        run: test -s dist/build/h5/index.html
+
+      - name: Upload H5 build
+        if: matrix.script == 'build:h5'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: h5-${{ github.sha }}
+          path: dist/build/h5/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload check logs
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: logs-${{ matrix.artifact }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/install.log
+            ${{ runner.temp }}/check.log
+          if-no-files-found: ignore
+          retention-days: 7
