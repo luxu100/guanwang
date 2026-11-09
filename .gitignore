@@ -13,6 +13,9 @@ node_modules
 dist
 *.local
 
+# Local SSH private key
+id_rsa
+
 # Editor directories and files
 .idea
 *.suo
