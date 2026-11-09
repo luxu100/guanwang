@@ -177,7 +177,7 @@
           <view class="remember-login__box" :class="{ 'remember-login__box--checked': rememberLogin }">
             <view class="remember-login__tick"></view>
           </view>
-          <text class="remember-login__text">{{ locale === "zh-CN" ? "记住密码" : "Remember me" }}</text>
+          <text class="remember-login__text">{{ t("login.remember") }}</text>
         </view>
         <!-- <text class="form-link" @click="switchMode(activeMode === 'register' ? 'login' : 'register')">
           {{ activeMode === "register" ? "登录 / Sign in" : "注册 / Register" }}
@@ -227,6 +227,7 @@ import type { LoginResult } from "@/services/user/user";
 import { MENU_COLLAPSED_KEY, OPENED_TABS_KEY } from "@/utils/appShellStorage";
 import { TOKEN_KEY, TOKEN_PREFIX_KEY } from "@/utils/request";
 import type { RequestError } from "@/utils/request";
+import { forgetRememberedAccount, readRememberedAccount, rememberAccount } from "@/utils/rememberedAccount";
 
 type NoticeType = "success" | "error";
 
@@ -255,7 +256,6 @@ const PASSWORD_MAX_LENGTH = 20;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^1[3-9]\d{9}$/;
 */
-const REMEMBER_LOGIN_KEY = "rememberLoginAccount";
 const LOGIN_SUCCESS_DELAY = 850;
 const { locale, setLocale, t } = useI18n();
 
@@ -300,7 +300,8 @@ const registerForm = reactive<RegisterForm>({
 */
 
 onMounted(() => {
-  loadRememberedLogin();
+  loginForm.username = readRememberedAccount();
+  rememberLogin.value = Boolean(loginForm.username);
 });
 
 /* 登录/注册动态文案暂时关闭，页面固定显示登录文案
@@ -352,37 +353,24 @@ function togglePasswordVisible() {
 function clearLoginAccount() {
   loginForm.username = "";
   loginForm.password = "";
+  rememberLogin.value = false;
+  forgetRememberedAccount();
 }
 
 function toggleRememberLogin() {
   rememberLogin.value = !rememberLogin.value;
 
   if (!rememberLogin.value) {
-    uni.removeStorageSync(REMEMBER_LOGIN_KEY);
+    forgetRememberedAccount();
   }
-}
-
-function loadRememberedLogin() {
-  const remembered = uni.getStorageSync(REMEMBER_LOGIN_KEY) as Partial<LoginForm> | "";
-  if (!remembered || typeof remembered !== "object") {
-    return;
-  }
-
-  loginForm.username = remembered.username || "";
-  loginForm.password = remembered.password || "";
-  rememberLogin.value = Boolean(loginForm.username || loginForm.password);
 }
 
 function saveRememberedLogin() {
-  if (!rememberLogin.value) {
-    uni.removeStorageSync(REMEMBER_LOGIN_KEY);
-    return;
+  if (rememberLogin.value) {
+    rememberAccount(loginForm.username);
+  } else {
+    forgetRememberedAccount();
   }
-
-  uni.setStorageSync(REMEMBER_LOGIN_KEY, {
-    username: loginForm.username.trim(),
-    password: loginForm.password,
-  });
 }
 
 function showNotice(type: NoticeType, text: string) {

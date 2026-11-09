@@ -141,7 +141,7 @@ const enUS = {
       phone: "Phone (optional)",
       email: "Email (optional)",
     },
-    remember: "Remember account and password",
+    remember: "Remember account",
     clearAccount: "Clear account and password",
     linkToRegister: "No account? Register",
     linkToLogin: "Already have an account? Back to login",

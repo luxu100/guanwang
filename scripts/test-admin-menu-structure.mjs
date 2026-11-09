@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { frontendMenuItems, createDefaultMenuTree } from "../src/utils/frontendMenu.ts";
 
 const appShellSource = readFileSync(new URL("../src/components/AppShell.vue", import.meta.url), "utf8");
 const systemSource = readFileSync(new URL("../src/pages/system/components/SystemManagementView.vue", import.meta.url), "utf8");
 const pagesJsonSource = readFileSync(new URL("../src/pages.json", import.meta.url), "utf8");
+const labels = JSON.parse(readFileSync(new URL("../src/components/locales/zh-CN.json", import.meta.url), "utf8")).appShellMenu;
+const defaultMenuTree = createDefaultMenuTree(labels);
 
 test("AppShell translates its logout and menu heading controls", () => {
   assert.match(appShellSource, /const shellT = createScopedT\("appShell"\)/);
@@ -15,16 +18,15 @@ test("AppShell translates its logout and menu heading controls", () => {
 });
 
 test("partition management replaces station management in visible menu labels", () => {
-  assert.match(appShellSource, /labelKey: "partition"/);
+  assert.ok(frontendMenuItems.some(item => item.labelKey === "partition"));
   assert.match(appShellSource, /placeholder="分区搜索"/);
   assert.match(pagesJsonSource, /"navigationBarTitleText": "分区管理"/);
   assert.doesNotMatch(appShellSource, /label: "站点管理"/);
 });
 
 test("default permission resources include partition management", () => {
-  assert.match(systemSource, /permissionName: "分区管理"/);
-  assert.match(systemSource, /permissionCode: "page:partition"/);
-  assert.doesNotMatch(systemSource, /permissionName: "站点管理"/);
+  assert.ok(defaultMenuTree.some(item => item.permissionName === "分区管理" && item.permissionCode === "page:partition"));
+  assert.ok(!defaultMenuTree.some(item => item.permissionName === "站点管理"));
 });
 
 test("system settings binds users to partitions from region service", () => {
@@ -36,33 +38,18 @@ test("system settings binds users to partitions from region service", () => {
 });
 
 test("protocol management is a child of the data receiving menu in AppShell", () => {
-  const dataReceiveIndex = appShellSource.indexOf('labelKey: "dataReceive"');
-  const protocolIndex = appShellSource.indexOf('labelKey: "dataReceiveProtocol"');
-  const systemIndex = appShellSource.indexOf('labelKey: "system"');
-
-  assert.ok(dataReceiveIndex >= 0, "data receiving menu should exist");
-  assert.ok(protocolIndex > dataReceiveIndex, "protocol management should be after data receiving menu start");
-  assert.ok(protocolIndex > systemIndex, "protocol management should not stay under system settings");
-
-  const menuEndIndex = appShellSource.indexOf("const shellContentDefinitions", dataReceiveIndex);
-  const dataReceiveSource = appShellSource.slice(dataReceiveIndex, menuEndIndex);
-  assert.match(dataReceiveSource, /labelKey: "dataReceiveProtocol"/);
-  assert.match(dataReceiveSource, /path: "\/pages\/data-receive\/access\/access"/);
-  assert.doesNotMatch(dataReceiveSource, /label: "数据接入"/);
+  assert.match(appShellSource, /const menuItems: MenuItem\[\] = frontendMenuItems/);
+  const dataReceive = frontendMenuItems.find(item => item.labelKey === "dataReceive");
+  assert.ok(dataReceive.children.some(item => item.labelKey === "dataReceiveProtocol" && item.path === "/pages/data-receive/access/access"));
+  const system = frontendMenuItems.find(item => item.labelKey === "system");
+  assert.ok(!system.children.some(item => item.labelKey === "dataReceiveProtocol"));
 });
 
 test("default permission resources include protocol management under data receiving", () => {
-  const dataReceiveIndex = systemSource.indexOf('permissionCode: "module:data-receive"');
-  const protocolIndex = systemSource.indexOf('permissionCode: "page:data-receive:protocol"');
-
-  assert.ok(dataReceiveIndex >= 0, "default data receiving permission module should exist");
-  assert.ok(protocolIndex > dataReceiveIndex, "protocol permission should be nested after data receiving module");
-
-  const dataReceivePermissionSource = systemSource.slice(dataReceiveIndex, systemSource.indexOf("],", dataReceiveIndex));
-  assert.match(dataReceivePermissionSource, /permissionName: "协议管理"/);
-  assert.match(dataReceivePermissionSource, /permissionCode: "page:data-receive:protocol"/);
-  assert.match(dataReceivePermissionSource, /permissionCode: "page:data-receive:parse"/);
-  assert.match(dataReceivePermissionSource, /permissionCode: "page:data-receive:record"/);
+  const group = defaultMenuTree.find(item => item.permissionCode === "module:data-receive");
+  assert.deepEqual(group.children.map(item => item.permissionCode), ["page:data-receive:protocol", "page:data-receive:parse", "page:data-receive:record"]);
+  assert.equal(group.children[0].permissionName, "协议管理");
+  assert.match(systemSource, /createDefaultMenuTree\(appShellZhCN.appShellMenu\)/);
 });
 
 test("default menu sync uses backend permission types and removes retired report pages", () => {

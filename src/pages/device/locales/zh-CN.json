@@ -151,6 +151,8 @@
       "updateFail": "更新失败",
       "deleteSuccess": "删除成功",
       "deleteFail": "删除失败",
+      "deleteRefreshFail": "设备已删除，列表刷新失败",
+      "deviceListLoadFail": "设备列表加载失败",
       "selectRecord": "请选择记录",
       "selectDevice": "请先选择设备",
       "exportNotReady": "导出功能暂未开放",

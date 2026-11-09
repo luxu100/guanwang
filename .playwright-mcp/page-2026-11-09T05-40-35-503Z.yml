@@ -1,0 +1,256 @@
+- generic [ref=e7]:
+  - generic [ref=e10]:
+    - generic "绑定 Logo" [ref=e13] [cursor=pointer]
+    - generic "预警信息" [ref=e17] [cursor=pointer]: 99+
+    - generic [ref=e22] [cursor=pointer]: 简体中文
+    - generic [ref=e27]: string
+    - generic [ref=e29] [cursor=pointer]: 退出登录
+  - generic [ref=e30]:
+    - generic [ref=e31]:
+      - generic [ref=e32]:
+        - generic [ref=e33]: 目录
+        - generic "收起目录" [ref=e34] [cursor=pointer]
+      - generic [ref=e36]:
+        - generic "我的收藏" [ref=e40] [cursor=pointer]
+        - generic "一张图" [ref=e44] [cursor=pointer]
+        - generic "渗漏监测" [ref=e48] [cursor=pointer]
+        - generic "水锤分析" [ref=e52] [cursor=pointer]
+        - generic "分区管理" [ref=e56] [cursor=pointer]
+        - generic "设备管理" [ref=e60] [cursor=pointer]
+        - generic "指令管理" [ref=e64] [cursor=pointer]
+        - generic "统计分析" [ref=e68] [cursor=pointer]
+        - generic "数据分析" [ref=e72] [cursor=pointer]
+        - generic "疑漏点上报" [ref=e76] [cursor=pointer]
+        - generic "工单管理" [ref=e80] [cursor=pointer]
+        - generic "运维报表" [ref=e84] [cursor=pointer]
+        - generic "渗漏爆管" [ref=e88] [cursor=pointer]
+        - generic "实时报警" [ref=e92] [cursor=pointer]
+        - generic [ref=e93]:
+          - generic "系统设置" [ref=e96] [cursor=pointer]
+          - generic [ref=e97]:
+            - generic "用户配置" [ref=e100] [cursor=pointer]
+            - generic "权限管理" [ref=e103] [cursor=pointer]
+            - generic "菜单管理" [ref=e106] [cursor=pointer]
+            - generic "数据字典" [ref=e109] [cursor=pointer]
+            - generic "查询模板" [ref=e112] [cursor=pointer]
+        - generic "数据接收和解析" [ref=e116] [cursor=pointer]
+    - generic [ref=e117]:
+      - generic [ref=e118]:
+        - generic "向左滚动页签" [ref=e119] [cursor=pointer]
+        - generic "向右滚动页签" [ref=e121] [cursor=pointer]
+        - generic [ref=e123]:
+          - generic "渗漏监测" [ref=e126] [cursor=pointer]
+          - generic "菜单管理" [ref=e131] [cursor=pointer]
+          - generic "权限管理" [ref=e136] [cursor=pointer]
+          - generic "我的收藏" [ref=e141] [cursor=pointer]
+        - generic "进入全屏" [ref=e144] [cursor=pointer]
+      - generic [ref=e153]:
+        - generic [ref=e154]:
+          - generic [ref=e155]:
+            - generic [ref=e156]: 角色列表
+            - generic "刷新" [ref=e157] [cursor=pointer]
+          - generic [ref=e166]:
+            - generic [ref=e167] [cursor=pointer]:
+              - generic [ref=e168]:
+                - generic [ref=e169]: 超级管理员
+                - generic "超级管理员可访问全部前端页面，勾选项展示显式授权记录。" [ref=e170]: 全部页面
+              - generic [ref=e171]: ADMIN
+            - generic [ref=e172] [cursor=pointer]:
+              - generic [ref=e173]: 一般人员
+              - generic [ref=e175]: COMMON
+        - generic [ref=e176]:
+          - generic [ref=e177]:
+            - generic [ref=e179]:
+              - generic [ref=e180]: 关键字
+              - generic [ref=e182]:
+                - generic: 角色名称或编码
+                - textbox [ref=e183]
+            - generic [ref=e184]:
+              - generic [ref=e185] [cursor=pointer]: 查询
+              - generic [ref=e186] [cursor=pointer]: 重置
+              - generic [ref=e187] [cursor=pointer]: 新增角色
+              - generic [ref=e188] [cursor=pointer]: 删除
+          - generic [ref=e189]:
+            - generic [ref=e190]:
+              - generic [ref=e191]:
+                - generic [ref=e192]: 角色基础信息
+                - generic [ref=e193]: 维护角色编码、排序和说明
+              - generic [ref=e194]:
+                - generic [ref=e195]:
+                  - generic [ref=e196]: 角色名称*
+                  - textbox [ref=e199]: 超级管理员
+                - generic [ref=e200]:
+                  - generic [ref=e201]: 角色编码*
+                  - textbox [ref=e204]: ADMIN
+                - generic [ref=e205]:
+                  - generic [ref=e206]: 排序
+                  - spinbutton [ref=e209]: "1"
+                - generic [ref=e210]:
+                  - generic [ref=e211]: 说明
+                  - textbox [ref=e214]: 系统超级管理员,拥有所有权限
+              - generic [ref=e215]:
+                - generic [ref=e216] [cursor=pointer]: 复制
+                - generic [ref=e217] [cursor=pointer]: 设为默认
+                - generic [ref=e218] [cursor=pointer]: 保存角色
+            - generic [ref=e219]:
+              - generic [ref=e220]:
+                - generic [ref=e221]: 权限树配置
+                - generic [ref=e222]: 基于菜单结构为当前角色分配权限
+              - generic [ref=e226]:
+                - generic [ref=e227] [cursor=pointer]:
+                  - generic [ref=e229]: 我的收藏
+                  - generic [ref=e230]: page:favorite
+                - generic [ref=e231] [cursor=pointer]:
+                  - generic [ref=e233]: 一张图
+                  - generic [ref=e234]: page:one-map
+                - generic [ref=e235] [cursor=pointer]:
+                  - generic [ref=e237]: 渗漏监测
+                  - generic [ref=e238]: page:leak-monitor
+                - generic [ref=e239] [cursor=pointer]:
+                  - generic [ref=e241]: 水锤分析
+                  - generic [ref=e242]: page:water-hammer
+                - generic [ref=e243] [cursor=pointer]:
+                  - generic [ref=e245]: 分区管理
+                  - generic [ref=e246]: page:partition
+                - generic [ref=e247] [cursor=pointer]:
+                  - generic [ref=e249]: 设备管理
+                  - generic [ref=e250]: module:device
+                - generic [ref=e251] [cursor=pointer]:
+                  - generic [ref=e253]: 设备信息
+                  - generic [ref=e254]: page:device:info
+                - generic [ref=e255] [cursor=pointer]:
+                  - generic [ref=e257]: 拆装维护
+                  - generic [ref=e258]: page:device:maintenance
+                - generic [ref=e259] [cursor=pointer]:
+                  - generic [ref=e261]: 协议绑定
+                  - generic [ref=e262]: page:device:protocol
+                - generic [ref=e263] [cursor=pointer]:
+                  - generic [ref=e265]: 设备参数
+                  - generic [ref=e266]: page:device:settings
+                - generic [ref=e267] [cursor=pointer]:
+                  - generic [ref=e269]: 阀门管理
+                  - generic [ref=e270]: page:device:valve
+                - generic [ref=e271] [cursor=pointer]:
+                  - generic [ref=e273]: 指令管理
+                  - generic [ref=e274]: module:command
+                - generic [ref=e275] [cursor=pointer]:
+                  - generic [ref=e277]: 指令管理
+                  - generic [ref=e278]: page:command:manage
+                - generic [ref=e279] [cursor=pointer]:
+                  - generic [ref=e281]: 固件管理
+                  - generic [ref=e282]: page:command:configuration
+                - generic [ref=e283] [cursor=pointer]:
+                  - generic [ref=e285]: 统计分析
+                  - generic [ref=e286]: page:statistics
+                - generic [ref=e287] [cursor=pointer]:
+                  - generic [ref=e289]: 疑漏模块总览
+                  - generic [ref=e290]: page:leak-report:history-overview
+                - generic [ref=e291] [cursor=pointer]:
+                  - generic [ref=e293]: 数据系统总览
+                  - generic [ref=e294]: page:data-analysis:overview
+                - generic [ref=e295] [cursor=pointer]:
+                  - generic [ref=e297]: 数据分析
+                  - generic [ref=e298]: module:data-analysis
+                - generic [ref=e299] [cursor=pointer]:
+                  - generic [ref=e301]: 音频数据
+                  - generic [ref=e302]: page:data-analysis:audio
+                - generic [ref=e303] [cursor=pointer]:
+                  - generic [ref=e305]: 渗漏数据
+                  - generic [ref=e306]: page:data-analysis:leakage
+                - generic [ref=e307] [cursor=pointer]:
+                  - generic [ref=e309]: 疑漏点上报
+                  - generic [ref=e310]: module:leak-report
+                - generic [ref=e311] [cursor=pointer]:
+                  - generic [ref=e313]: 疑点管理
+                  - generic [ref=e314]: page:leak-report:suspect-management
+                - generic [ref=e315] [cursor=pointer]:
+                  - generic [ref=e317]: 疑点处理
+                  - generic [ref=e318]: page:leak-report:suspect-processing
+                - generic [ref=e319] [cursor=pointer]:
+                  - generic [ref=e321]: 漏点管理
+                  - generic [ref=e322]: page:leak-report:leak-management
+                - generic [ref=e323] [cursor=pointer]:
+                  - generic [ref=e325]: 漏点分析
+                  - generic [ref=e326]: page:leak-report:leak-analysis
+                - generic [ref=e327] [cursor=pointer]:
+                  - generic [ref=e329]: 工单管理
+                  - generic [ref=e330]: module:work-order
+                - generic [ref=e331] [cursor=pointer]:
+                  - generic [ref=e333]: 工单创建
+                  - generic [ref=e334]: page:work-order:create
+                - generic [ref=e335] [cursor=pointer]:
+                  - generic [ref=e337]: 工单处理
+                  - generic [ref=e338]: page:work-order:processing
+                - generic [ref=e339] [cursor=pointer]:
+                  - generic [ref=e341]: 运维报表
+                  - generic [ref=e342]: module:report
+                - generic [ref=e343] [cursor=pointer]:
+                  - generic [ref=e345]: 设备履历
+                  - generic [ref=e346]: page:report:device-resume
+                - generic [ref=e347] [cursor=pointer]:
+                  - generic [ref=e349]: 设备台账
+                  - generic [ref=e350]: page:report:device-ledger
+                - generic [ref=e351] [cursor=pointer]:
+                  - generic [ref=e353]: 电池健康度
+                  - generic [ref=e354]: page:report:battery-health
+                - generic [ref=e355] [cursor=pointer]:
+                  - generic [ref=e357]: 运行分析报告
+                  - generic [ref=e358]: page:report:operation-analysis
+                - generic [ref=e359] [cursor=pointer]:
+                  - generic [ref=e361]: 渗漏爆管
+                  - generic [ref=e362]: module:leak-burst
+                - generic [ref=e363] [cursor=pointer]:
+                  - generic [ref=e365]: 爆管识别
+                  - generic [ref=e366]: page:leak-burst:identification
+                - generic [ref=e367] [cursor=pointer]:
+                  - generic [ref=e369]: 测点分析
+                  - generic [ref=e370]: page:leak-burst:measurement-analysis
+                - generic [ref=e371] [cursor=pointer]:
+                  - generic [ref=e373]: 漏点定位
+                  - generic [ref=e374]: page:leak-burst:leak-location
+                - generic [ref=e375] [cursor=pointer]:
+                  - generic [ref=e377]: 漏损报表
+                  - generic [ref=e378]: page:leak-burst:loss-report
+                - generic [ref=e379] [cursor=pointer]:
+                  - generic [ref=e381]: 实时报警
+                  - generic [ref=e382]: module:alarm
+                - generic [ref=e383] [cursor=pointer]:
+                  - generic [ref=e385]: 报警策略
+                  - generic [ref=e386]: page:alarm:strategy
+                - generic [ref=e387] [cursor=pointer]:
+                  - generic [ref=e389]: 报警处理
+                  - generic [ref=e390]: page:alarm:processing
+                - generic [ref=e391] [cursor=pointer]:
+                  - generic [ref=e393]: 系统设置
+                  - generic [ref=e394]: module:system
+                - generic [ref=e395] [cursor=pointer]:
+                  - generic [ref=e397]: 用户配置
+                  - generic [ref=e398]: page:system:user
+                - generic [ref=e399] [cursor=pointer]:
+                  - generic [ref=e401]: 权限管理
+                  - generic [ref=e402]: page:system:auth
+                - generic [ref=e403] [cursor=pointer]:
+                  - generic [ref=e405]: 菜单管理
+                  - generic [ref=e406]: page:system:menu
+                - generic [ref=e407] [cursor=pointer]:
+                  - generic [ref=e409]: 数据字典
+                  - generic [ref=e410]: page:system:dict
+                - generic [ref=e411] [cursor=pointer]:
+                  - generic [ref=e413]: 查询模板
+                  - generic [ref=e414]: page:system:search
+                - generic [ref=e415] [cursor=pointer]:
+                  - generic [ref=e417]: 数据接收和解析
+                  - generic [ref=e418]: module:data-receive
+                - generic [ref=e419] [cursor=pointer]:
+                  - generic [ref=e421]: 协议管理
+                  - generic [ref=e422]: page:data-receive:protocol
+                - generic [ref=e423] [cursor=pointer]:
+                  - generic [ref=e425]: 数据解析
+                  - generic [ref=e426]: page:data-receive:parse
+                - generic [ref=e427] [cursor=pointer]:
+                  - generic [ref=e429]: 数据记录
+                  - generic [ref=e430]: page:data-receive:record
+              - generic [ref=e431]:
+                - generic [ref=e432] [cursor=pointer]: 全选
+                - generic [ref=e433] [cursor=pointer]: 清空选择
+                - generic [ref=e434] [cursor=pointer]: 保存权限

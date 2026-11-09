@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { frontendMenuItems } from '../src/utils/frontendMenu.ts';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
@@ -72,11 +73,11 @@ test('analysis passes selected audio IDs and all required parameters to the real
 test('page is registered in routes, shell and both permission fixtures', () => {
   const path = '/pages/leak-burst/leak-location/leak-location';
   const shell = read('src/components/AppShell.vue');
-  assert.ok(shell.includes(`labelKey: "leakLocation", path: "${path}"`));
+  assert.ok(frontendMenuItems.flatMap(item => item.children || [item]).some(item => item.labelKey === "leakLocation" && item.path === path));
   assert.ok(shell.includes(`"${path}": { component: LeakLocationView }`));
   assert.ok(JSON.parse(read('src/pages.json')).pages.some(page => page.path === path.slice(1)));
   for (const file of ['src/pages/system/components/SystemManagementView.vue', 'src/pages/system/localized/components/SystemManagementView.vue']) {
-    assert.ok(read(file).includes('permissionCode: "page:leak-burst:leak-location"'));
+    assert.ok(read(file).includes('createDefaultMenuTree'));
   }
   for (const locale of ['zh-CN', 'en-US']) assert.ok(JSON.parse(read(`src/components/locales/${locale}.json`)).appShellMenu.leakLocation);
 });

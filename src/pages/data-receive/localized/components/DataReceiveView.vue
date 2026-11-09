@@ -169,6 +169,10 @@
             </view>
 
             <view v-if="loading" class="table-state">加载中...</view>
+            <view v-else-if="loadError" class="table-state" role="alert">
+              <text data-i18n-raw>{{ loadError }}</text>
+              <button class="toolbar-button" @click="handleRefresh">{{ localeText("重试", "Retry") }}</button>
+            </view>
             <view v-else-if="records.length === 0" class="table-state">暂无数据</view>
 
             <view
@@ -259,7 +263,12 @@
         </view>
 
         <scroll-view class="detail-body" scroll-y>
-          <ParseRecordQuality v-if="activeConfig.key === 'parseRecord' && selectedRecord" :record="selectedRecord" />
+          <view v-if="recordDetailLoading" class="table-state">{{ localeText("详情加载中…", "Loading details…") }}</view>
+          <view v-else-if="recordDetailError" class="table-state" role="alert">
+            <text data-i18n-raw>{{ recordDetailError }}</text>
+            <button class="toolbar-button" @click="selectRecord(selectedRecord, 0)">{{ localeText("重试", "Retry") }}</button>
+          </view>
+          <ParseRecordQuality v-else-if="activeConfig.key === 'parseRecord' && selectedRecord" :record="selectedRecord" />
           <view
             v-if="activeConfig.formFields?.length"
             class="form-grid"
@@ -420,7 +429,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import WorkOrderDatetimePicker from "@/pages/work-order/localized/components/WorkOrderDatetimePicker.vue";
 import ParseRecordQuality from "@/pages/data-receive/components/ParseRecordQuality.vue";
 import { useLocaleText, useLocalizedTotal } from "@/i18n/localeText";
@@ -447,6 +456,7 @@ import {
   getProtocolFieldDetail,
   getProtocolFieldPage,
   getProtocolParseRecordPage,
+  getProtocolParseRecordDetail,
   type ProtocolFieldDefinition,
   updateProtocolField,
 } from "@/services/data-receive/parse";
@@ -695,12 +705,13 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
       { key: "deviceNumber", label: "设备编号", width: 130 },
       { key: "parseStatus", label: "状态", type: "status", width: 100 },
       { key: "parseTime", label: "解析时间", type: "datetime", width: 170 },
-      { key: "protocolName", label: "协议名称", width: 140 },
-      { key: "taskTypeName", label: "任务名称", width: 130 },
+      { key: "channel", label: "通道", width: 150 },
+      { key: "id", label: "记录ID", width: 100 },
     ],
     detailFields: [
+      { key: "protocolName", label: "协议名称" },
+      { key: "taskTypeName", label: "任务名称" },
       { key: "traceId", label: "追踪ID" },
-      { key: "channel", label: "通道" },
       { key: "protocolCode", label: "协议编码" },
       { key: "protocolVersion", label: "协议版本" },
       { key: "afn", label: "AFN" },
@@ -714,7 +725,8 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
     ],
     filters: [
       { key: "deviceNumber", label: "设备编号" },
-      { key: "protocolName", label: "协议名称" },
+      { key: "protocolId", label: "协议ID", type: "number" },
+      { key: "channel", label: "通道" },
       { key: "afn", label: "AFN" },
       { key: "taskType", label: "任务类型" },
       { key: "contentPrefix", label: "内容前缀" },
@@ -722,6 +734,7 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
       ...baseTimeFilters,
     ],
     loadRecords: (query) => getProtocolParseRecordPage(query),
+    getDetail: (id) => getProtocolParseRecordDetail(id),
   },
   algorithmResult: {
     key: "algorithmResult",
@@ -827,6 +840,12 @@ const selectedRecord = ref<RecordLike | null>(null);
 const selectedKey = ref("");
 const total = ref(0);
 const loading = ref(false);
+const loadError = ref("");
+const recordDetailLoading = ref(false);
+const recordDetailError = ref("");
+let recordListVersion = 0;
+let recordDetailVersion = 0;
+onBeforeUnmount(() => { recordListVersion += 1; recordDetailVersion += 1; });
 const refreshing = ref(false);
 const submitting = ref(false);
 const importingProtocolJson = ref(false);
@@ -1021,11 +1040,15 @@ function switchSection(key: SectionKey) {
 }
 
 async function fetchRecords() {
+  const version = ++recordListVersion;
+  const section = activeSectionKey.value;
   loading.value = true;
+  loadError.value = "";
 
   try {
     const query = buildQuery();
     const response = await activeConfig.value.loadRecords(query, filterModel.value);
+    if (version !== recordListVersion || section !== activeSectionKey.value) return;
     assertSuccessResponse(response);
     const parsed = parseResponseRecords(response);
     if (props.mode === "record" || activeConfig.value.key === "algorithmResult") {
@@ -1037,6 +1060,7 @@ async function fetchRecords() {
       await ensureProtocolNameMap();
     }
 
+    if (version !== recordListVersion || section !== activeSectionKey.value) return;
     records.value = isProtocolFieldEditor.value
       ? paginateProtocolFieldRecords(parsed.records)
       : activeConfig.value.key === "relation"
@@ -1053,12 +1077,15 @@ async function fetchRecords() {
     }
     selectRecord(records.value[0] || null, 0);
   } catch (error) {
+    if (version !== recordListVersion || section !== activeSectionKey.value) return;
+    const cause = error as { msg?: string; message?: string };
+    loadError.value = cause?.msg || cause?.message || localeText("数据加载失败", "Failed to load records");
     records.value = [];
     total.value = 0;
     selectRecord(null, 0);
     toastError(error, "数据加载失败");
   } finally {
-    loading.value = false;
+    if (version === recordListVersion) loading.value = false;
   }
 }
 
@@ -1250,6 +1277,9 @@ function jumpToPage(page: number) {
 }
 
 async function selectRecord(item: RecordLike | null, index: number) {
+  const version = ++recordDetailVersion;
+  recordDetailError.value = "";
+  recordDetailLoading.value = false;
   selectedRecord.value = item;
   const rowKey = item ? getRowKey(item, index) : "";
   selectedKey.value = rowKey;
@@ -1268,16 +1298,22 @@ async function selectRecord(item: RecordLike | null, index: number) {
     return;
   }
 
+  recordDetailLoading.value = true;
   try {
     const response = await activeConfig.value.getDetail(id);
+    if (version !== recordDetailVersion) return;
     assertSuccessResponse(response);
     if (isObject(response.data) && selectedKey.value === rowKey) {
       const detailRecord = mergeSelectedRecord(item, response.data);
       selectedRecord.value = detailRecord;
       fillForm(detailRecord);
     }
-  } catch {
-    // 详情接口失败时保留列表行，避免影响主表查看。
+  } catch (error) {
+    if (version !== recordDetailVersion) return;
+    const cause = error as { msg?: string; message?: string };
+    recordDetailError.value = cause?.msg || cause?.message || localeText("详情加载失败", "Failed to load record details");
+  } finally {
+    if (version === recordDetailVersion) recordDetailLoading.value = false;
   }
 }
 
@@ -2436,6 +2472,9 @@ function getBooleanLabel(value: unknown) {
 
 function getColumnText(item: RecordLike, field: FieldConfig) {
   let value = getValue(item, [field.key]);
+  if (activeConfig.value.key === "parseRecord" && field.key === "values" && isObject(value) && !Object.keys(value).length) {
+    return localeText("当前未指定字段投影，请查看上方完整解析结果", "No field projection requested. See the full parsing result above.");
+  }
   if (activeConfig.value.key === "relation" && field.key === "scene") {
     return bindingSceneLabel(value, localeText('zh', 'en') === 'en');
   }

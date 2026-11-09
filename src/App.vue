@@ -1,11 +1,17 @@
 <script lang="ts">
+import { readRememberedAccount } from "@/utils/rememberedAccount";
+
 /**
  * 应用根组件。
  *
- * 当前根组件只承载全局样式，后台通用布局由各业务页引入 AppShell。
+ * 启动时清理旧版登录记忆，后台通用布局由各业务页引入 AppShell。
  * 这样登录页可以保持独立视觉，不受后台顶部栏和侧边栏影响。
  */
-export default {};
+export default {
+  onLaunch() {
+    readRememberedAccount();
+  },
+};
 </script>
 
 <style lang="scss">

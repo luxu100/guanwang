@@ -79,13 +79,16 @@ async function loadQuality(record: RecordLike) {
   loading.value = true;
   try {
     let pageNum = 1;
-    const pageSize = 100;
+    const pageSize = 10;
+    // Preserve the backend's wall time while limiting the lookup to this record's second.
+    const second = String(record.parseTime ?? "").match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)?.[0];
     while (!disposed && version === requestVersion) {
       const response = await getProtocolParsedJsonPage({
         deviceNumber: String(record.deviceNumber),
         protocolId: protocolId as string | number,
         pageNum,
         pageSize,
+        ...(second ? { startTime: second, endTime: second + ".999999999" } : {}),
         channel: record.channel,
         afn: getText(record, ["afn"]) || undefined,
         taskType: getText(record, ["taskType"]) || undefined,

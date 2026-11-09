@@ -1,0 +1,191 @@
+- generic [ref=f2e7]:
+  - generic [ref=f2e10]:
+    - generic "绑定 Logo" [ref=f2e13] [cursor=pointer]
+    - generic "预警信息" [ref=f2e17] [cursor=pointer]: 99+
+    - generic [ref=f2e22] [cursor=pointer]: 简体中文
+    - generic [ref=f2e27]: string
+    - generic [ref=f2e29] [cursor=pointer]: 退出登录
+  - generic [ref=f2e30]:
+    - generic [ref=f2e31]:
+      - generic [ref=f2e32]:
+        - generic [ref=f2e33]: 目录
+        - generic "收起目录" [ref=f2e34] [cursor=pointer]
+      - generic [ref=f2e36]:
+        - generic "我的收藏" [ref=f2e40] [cursor=pointer]
+        - generic "一张图" [ref=f2e44] [cursor=pointer]
+        - generic "渗漏监测" [ref=f2e48] [cursor=pointer]
+        - generic "水锤分析" [ref=f2e52] [cursor=pointer]
+        - generic "分区管理" [ref=f2e56] [cursor=pointer]
+        - generic "设备管理" [ref=f2e60] [cursor=pointer]
+        - generic "指令管理" [ref=f2e64] [cursor=pointer]
+        - generic "统计分析" [ref=f2e68] [cursor=pointer]
+        - generic "数据分析" [ref=f2e72] [cursor=pointer]
+        - generic "疑漏点上报" [ref=f2e76] [cursor=pointer]
+        - generic "工单管理" [ref=f2e80] [cursor=pointer]
+        - generic "运维报表" [ref=f2e84] [cursor=pointer]
+        - generic "渗漏爆管" [ref=f2e88] [cursor=pointer]
+        - generic "实时报警" [ref=f2e92] [cursor=pointer]
+        - generic "系统设置" [ref=f2e96] [cursor=pointer]
+        - generic "数据接收和解析" [ref=f2e100] [cursor=pointer]
+    - generic [ref=f2e101]:
+      - generic [ref=f2e102]:
+        - generic "向左滚动页签" [ref=f2e103] [cursor=pointer]
+        - generic "向右滚动页签" [ref=f2e105] [cursor=pointer]
+        - generic [ref=f2e107]:
+          - generic "渗漏监测" [ref=f2e110] [cursor=pointer]
+          - generic "菜单管理" [ref=f2e115] [cursor=pointer]
+          - generic "权限管理" [ref=f2e120] [cursor=pointer]
+          - generic "我的收藏" [ref=f2e125] [cursor=pointer]
+        - generic "进入全屏" [ref=f2e128] [cursor=pointer]
+      - generic [ref=f2e135]:
+        - generic [ref=f2e140]:
+          - generic [ref=f2e143]:
+            - generic [ref=f2e144]: 10 公里
+            - generic [ref=f2e149]: 10 英里
+          - generic [ref=f2e155]:
+            - link [ref=f2e156] [cursor=pointer]:
+              - /url: http://map.qq.com?ref=jsapi_v3
+            - generic [ref=f2e158]: ©2026 Tencent - GS(2026)1190号
+        - generic "管网图层" [ref=f2e182] [cursor=pointer]
+        - status [ref=f2e187]:
+          - generic [ref=f2e188]: "!"
+          - text: 活跃报警 317
+          - generic [ref=f2e190]: 红：严重 · 黄：警告 · 蓝：提示
+        - generic [ref=f2e191]:
+          - generic [ref=f2e192]:
+            - generic [ref=f2e193]:
+              - generic [ref=f2e194]: 噪声监测仪
+              - generic [ref=f2e195]: 486 台
+            - generic "收起监测面板" [ref=f2e196] [cursor=pointer]: ›
+          - generic [ref=f2e197]:
+            - generic [ref=f2e198]:
+              - generic [ref=f2e199]: "--"
+              - generic [ref=f2e200]: 通讯成功率
+            - generic [ref=f2e201]:
+              - generic [ref=f2e202]: "--"
+              - generic [ref=f2e203]: 设备上线率
+            - generic [ref=f2e204]:
+              - generic [ref=f2e205]: "0"
+              - generic [ref=f2e206]: 正常
+            - generic [ref=f2e207]:
+              - generic [ref=f2e208]: "0"
+              - generic [ref=f2e209]: 疑似
+            - generic [ref=f2e210]:
+              - generic [ref=f2e211]: "0"
+              - generic [ref=f2e212]: 渗漏
+            - generic [ref=f2e213]:
+              - generic [ref=f2e214]: "0"
+              - generic [ref=f2e215]: 未知
+          - generic [ref=f2e216]:
+            - generic [ref=f2e217] [cursor=pointer]:
+              - generic [ref=f2e218]: 设备编号
+              - generic [ref=f2e220]:
+                - generic: 请输入设备编号
+                - searchbox [ref=f2e222]
+            - generic [ref=f2e223] [cursor=pointer]:
+              - generic [ref=f2e224]: 人工分析
+              - generic [ref=f2e225]: 全部
+            - generic [ref=f2e228] [cursor=pointer]:
+              - generic [ref=f2e229]: 蓝鲸分析
+              - generic [ref=f2e230]: 全部
+            - generic [ref=f2e233] [cursor=pointer]:
+              - generic [ref=f2e234]: 渗漏状态
+              - generic [ref=f2e235]: 全部
+            - generic [ref=f2e238] [cursor=pointer]:
+              - generic [ref=f2e239]: 设备状态
+              - generic [ref=f2e240]: 全部
+            - generic [ref=f2e243] [cursor=pointer]:
+              - generic [ref=f2e244]: 分区
+              - generic [ref=f2e245]: 全部
+            - generic [ref=f2e248] [cursor=pointer]:
+              - generic [ref=f2e249]: 当日新增
+              - generic [ref=f2e250]: 全部
+            - generic [ref=f2e253] [cursor=pointer]:
+              - generic [ref=f2e254]: 最新安装
+              - generic [ref=f2e255]: 全部
+          - generic [ref=f2e258]:
+            - generic [ref=f2e259]:
+              - generic [ref=f2e261]:
+                - generic [ref=f2e262]: 渗漏状态
+                - text: 0–10 正常，10–20 疑似，≥20 渗漏
+              - generic [ref=f2e264]:
+                - generic [ref=f2e265]: 蓝鲸分析
+                - text: 0–20 正常，20–30 疑似，≥30 渗漏
+            - generic [ref=f2e266] [cursor=pointer]: 重置
+            - generic [ref=f2e267]: 查询中
+          - generic [ref=f2e268]:
+            - generic [ref=f2e269]:
+              - generic [ref=f2e270]: 设备编号
+              - generic [ref=f2e271]: 设备状态
+              - generic [ref=f2e272]: 人工分析
+              - generic [ref=f2e273]: 蓝鲸分析
+              - generic [ref=f2e274]: 渗漏状态
+            - generic [ref=f2e275]:
+              - generic [ref=f2e276] [cursor=pointer]:
+                - generic [ref=f2e277]: "2607085003"
+                - generic [ref=f2e278]: 正常
+                - generic [ref=f2e281]: 未知
+                - generic [ref=f2e283]: 渗漏
+                - 'generic "特征值: 0" [ref=f2e285]': 渗漏
+              - generic [ref=f2e287] [cursor=pointer]:
+                - generic [ref=f2e288]: "2607075004"
+                - generic [ref=f2e289]: 离线
+                - generic [ref=f2e292]: 未知
+                - generic [ref=f2e294]: 疑似
+                - 'generic "特征值: 2" [ref=f2e296]': 正常
+              - generic [ref=f2e298] [cursor=pointer]:
+                - generic [ref=f2e299]: "2602071011"
+                - generic [ref=f2e300]: 离线
+                - generic [ref=f2e303]: 未知
+                - generic [ref=f2e305]: 未知
+                - 'generic "特征值: 0" [ref=f2e307]': 正常
+              - generic [ref=f2e309] [cursor=pointer]:
+                - generic [ref=f2e310]: "2610070024"
+                - generic [ref=f2e311]: 离线
+                - generic [ref=f2e314]: 未知
+                - generic [ref=f2e316]: 疑似
+                - 'generic "特征值: 0" [ref=f2e318]': 正常
+              - generic [ref=f2e320] [cursor=pointer]:
+                - generic [ref=f2e321]: "2602071128"
+                - generic [ref=f2e322]: 离线
+                - generic [ref=f2e325]: 未知
+                - generic [ref=f2e327]: 未知
+                - 'generic "特征值: 0" [ref=f2e329]': 正常
+              - generic [ref=f2e331] [cursor=pointer]:
+                - generic [ref=f2e332]: "2610070050"
+                - generic [ref=f2e333]: 离线
+                - generic [ref=f2e336]: 未知
+                - generic [ref=f2e338]: 疑似
+                - 'generic "特征值: 0" [ref=f2e340]': 正常
+              - generic [ref=f2e342] [cursor=pointer]:
+                - generic [ref=f2e343]: "2610070066"
+                - generic [ref=f2e344]: 正常
+                - generic [ref=f2e347]: 未知
+                - generic [ref=f2e349]: 疑似
+                - 'generic "特征值: 0" [ref=f2e351]': 正常
+              - generic [ref=f2e353] [cursor=pointer]:
+                - generic [ref=f2e354]: "2610070023"
+                - generic [ref=f2e355]: 离线
+                - generic [ref=f2e358]: 未知
+                - generic [ref=f2e360]: 疑似
+                - 'generic "特征值: 0" [ref=f2e362]': 正常
+              - generic [ref=f2e364] [cursor=pointer]:
+                - generic [ref=f2e365]: "2610070046"
+                - generic [ref=f2e366]: 离线
+                - generic [ref=f2e369]: 未知
+                - generic [ref=f2e371]: 疑似
+                - 'generic "特征值: 0" [ref=f2e373]': 正常
+              - generic [ref=f2e375] [cursor=pointer]:
+                - generic [ref=f2e376]: "2610070012"
+                - generic [ref=f2e377]: 离线
+                - generic [ref=f2e380]: 未知
+                - generic [ref=f2e382]: 疑似
+                - 'generic "特征值: 0" [ref=f2e384]': 正常
+              - generic [ref=f2e386]: 加载中...
+          - generic [ref=f2e387]:
+            - generic [ref=f2e388]: 共 486 条
+            - generic [ref=f2e389]: 首页
+            - generic [ref=f2e390]: 上一页
+            - generic [ref=f2e391]: 第 1 / 49 页
+            - generic [ref=f2e392]: 下一页
+            - generic [ref=f2e393]: 末页

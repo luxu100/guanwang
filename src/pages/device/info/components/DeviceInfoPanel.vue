@@ -93,13 +93,8 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import type {Device, DeviceProduct, Dept, TubeNetwork, DeptVO} from '@/services/device/types';
-import {
-  getDeviceProductByIdT,
-  getDeptByIdT,
-  getTubeNetworkListT,
-  getDeviceRelationInfoT
-} from '@/services/device/info.typed';
+import type {Device, DeviceProductVO, Dept, TubeNetwork, DeptVO} from '@/services/device/types';
+import { getDeviceRelationInfoT } from '@/services/device/info.typed';
 import { createScopedT } from '@/i18n';
 import { formatDate } from '@/utils/time';
 import {leakStatusOptions} from "@/pages/device/components/common";
@@ -483,7 +478,7 @@ const currentSections = computed(() => {
         fields: section.fields.map(field => ({
           key: field.key,
           label: field.label,
-          value: product.value?.[field.key as keyof DeviceProduct] ?? '--',
+          value: product.value?.[field.key as keyof DeviceProductVO] ?? '--',
           span: 'full'
         }))
       });
@@ -549,7 +544,7 @@ watch(()=>props.deviceData.id,async id=>{
   await loadRelationData(props.deviceData);
 },{immediate:true});
 
-const product=ref<DeviceProduct>();
+const product = ref<DeviceProductVO>();
 const tube=ref<TubeNetwork>();
 const depts = ref<DeptVO[]>([]);
 
@@ -558,7 +553,14 @@ async function loadRelationData(device: Partial<Device>) {
 
   const res = await getDeviceRelationInfoT(device.id);
 
-  product.value = res.data?.product;
+  const relatedProduct = res.data?.product;
+  product.value = relatedProduct ? {
+    id: relatedProduct.id,
+    productName: relatedProduct.productName,
+    productCode: relatedProduct.productCode,
+    protocolVersion: relatedProduct.protocolVersion,
+    aepProtocol: relatedProduct.aepProtocol,
+  } : undefined;
   tube.value = res.data?.tube;
   depts.value = res.data?.depts ?? [];
 }

@@ -78,7 +78,7 @@ test("data parse tables retain only critical fields", () => {
 
   assert.deepEqual(
     getConfiguredKeys(parseRecordSource, "columns", "detailFields"),
-    ["deviceNumber", "parseStatus", "parseTime", "protocolName", "taskTypeName"],
+    ["deviceNumber", "parseStatus", "parseTime", "channel", "id"],
   );
   assert.deepEqual(
     getConfiguredKeys(algorithmResultSource, "columns", "detailFields"),

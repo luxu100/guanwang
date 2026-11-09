@@ -471,7 +471,7 @@ function getDeviceAvailability(device: ApiRecord) {
   const issue = getDeviceConfigurationIssue(device, localeText);
   if (issue) return issue;
   if (Number(device.enableState) === 0) return localeText("设备已停用", "Disabled");
-  if (getDeviceChannel(device) !== "DIRECT_TCP" && isDeviceOnline(device) === true) return localeText("请等待设备下线后设置参数", "Wait until the device goes offline to set parameters");
+  if (getDeviceChannel(device) !== "DIRECT_TCP" && isDeviceOnline(device) === true) return localeText("下线后设置", "Wait until the device goes offline to set parameters");
   return localeText("可设置", "Available");
 }
 

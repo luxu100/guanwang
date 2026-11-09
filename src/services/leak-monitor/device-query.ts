@@ -1,5 +1,7 @@
 import { getRequest, postRequest } from "@/services/shared/crud";
 import { getAudioWav } from "@/services/data-analysis/audio";
+import { getDeviceDetail } from "@/services/device/info";
+import { assertSuccessResponse, isObject } from "@/utils/adminData";
 import { getLocale } from "@/i18n";
 import type {
   AudioRecord,
@@ -395,9 +397,19 @@ export async function fetchLeakMonitorMapData() {
 }
 
 export async function fetchLeakMonitorDeviceInfo(device: LeakMonitorDevice) {
-  const response = await getLeakMonitorDeviceDetail(device.id);
-  const data = unwrapData<Record<string, unknown>>(response);
-  return data && typeof data === "object" ? data : device.raw;
+  const [baseResponse, detailResponse] = await Promise.all([
+    getDeviceDetail(device.id),
+    getLeakMonitorDeviceDetail(device.id),
+  ]);
+  assertSuccessResponse(baseResponse);
+  assertSuccessResponse(detailResponse as ApiEnvelope);
+  const base = unwrapData<unknown>(baseResponse);
+  const extended = unwrapData<unknown>(detailResponse);
+  if (!isObject(base) || !isObject(extended)) {
+    throw new Error(getLocale() === "en-US" ? "Invalid device details response" : "设备详情响应格式异常");
+  }
+  const extendedFields = Object.fromEntries(Object.entries(extended).filter(([key, value]) => value != null || !(key in base)));
+  return { ...device.raw, ...base, ...extendedFields };
 }
 
 export async function fetchLeakMonitorLatestAudio(

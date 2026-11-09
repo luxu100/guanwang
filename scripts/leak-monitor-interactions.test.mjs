@@ -6,6 +6,8 @@ import ts from 'typescript';
 import { parse } from '@vue/compiler-sfc';
 import * as pipeGeometry from '../src/pages/leak-monitor/pipeGeometry.ts';
 import * as coordinates from '../src/pages/leak-monitor/coordinateTransform.ts';
+import * as adminData from '../src/utils/adminData.ts';
+import * as deviceChannels from '../src/utils/device-channel.ts';
 
 const ref = (value) => ({ value });
 const vue = { ref, reactive: (value) => value, computed: (get) => ({ get value() { return get(); } }), watch() {}, onMounted() {}, onBeforeUnmount() {} };
@@ -309,4 +311,108 @@ test('dispatch rejection preserves the analysis form payload and releases submis
   assert.equal(app.workspace.detail.value.manualError, 'backend rejected');
   assert.equal(app.workspace.detail.value.manualSubmitting, false);
   assert.equal(app.messages.length, 0);
+});
+
+function deviceInfoHarness(base, extended) {
+  const calls = [];
+  const app = load('../src/services/leak-monitor/device-query.ts', {
+    '@/services/device/info': { getDeviceDetail: async (id) => { calls.push(['base', id]); return base; } },
+    '@/services/shared/crud': { getRequest: async (url) => { calls.push(['extended', url]); return extended; } },
+    '@/utils/adminData': adminData,
+    '@/i18n': { getLocale: () => 'zh-CN' },
+  });
+  return { ...app, calls };
+}
+
+test('monitor details combine device archive and extended fields without losing zero or known values', async () => {
+  const app = deviceInfoHarness(
+    { code: 0, data: { aepProtocol: 'tcp', nbNumber: 'cloud', downlinkProtocolVersion: 'LEGACY', tcpOnlineStatus: 0, hardwareVersion: 'archive' } },
+    { code: 200, data: { hardwareVersion: null, batteryVoltage: 0, firmwareVersion: 'reported' } },
+  );
+  const info = await app.context.exports.fetchLeakMonitorDeviceInfo({ id: 7, raw: { hardwareVersion: 'stale', installAddress: 'site' } });
+  assert.equal(app.calls.length, 2);
+  assert.deepEqual(app.calls, [['base', 7], ['extended', '/api/device/7/detail']]);
+  assert.equal(info.aepProtocol, 'tcp');
+  assert.equal(info.downlinkProtocolVersion, 'LEGACY');
+  assert.equal(info.hardwareVersion, 'archive');
+  assert.equal(info.batteryVoltage, 0);
+  assert.equal(info.installAddress, 'site');
+});
+
+test('device detail business failures are surfaced instead of becoming an apparently complete archive', async () => {
+  const app = deviceInfoHarness({ code: 403, msg: 'archive denied' }, { code: 200, data: {} });
+  await assert.rejects(app.context.exports.fetchLeakMonitorDeviceInfo({ id: 7, raw: {} }), error => error.msg === 'archive denied');
+});
+
+test('monitor detail online status follows its channel and unknown values remain unknown', () => {
+  const props = { detail: { info: { aepProtocol: 'tcp', nbNumber: 'cloud', onlineStatus: 1, tcpOnlineStatus: 0 }, trend: [], dailyAudio: [], maintenance: [] } };
+  const app = load('../src/pages/leak-monitor/components/DeviceDetailDialog.vue', {
+    '@/i18n': { useI18n: () => ({ locale: ref('zh-CN') }) },
+    '../i18n': { useLeakMonitorI18n: () => ({ language: ref('zh-CN'), t: key => key }) },
+    '@/utils/device-channel': deviceChannels,
+  }, { defineProps: () => props, withDefaults: value => value, defineEmits: () => () => {} });
+  assert.equal(app.run("detailFields.value.find(item => item.label === 'deviceStatus').value"), 'online');
+  assert.equal(app.run("detailFields.value.find(item => item.label === 'tcpOnline').value"), 'offline');
+  props.detail.info = { aepProtocol: null, nbNumber: null, onlineStatus: 1, tcpOnlineStatus: 0 };
+  assert.equal(app.run("detailFields.value.find(item => item.label === 'deviceStatus').value"), 'offline');
+  assert.equal(app.run("statusLabel(null, 'online', 'offline')"), '-');
+});
+
+function focusHarness(nextTick = async () => {}) {
+  const focusCalls = [];
+  const toasts = [];
+  const workspace = {
+    selectedDevice: ref({ id: 1, deviceNumber: 'A' }), detailVisible: ref(true), sidebarCollapsed: ref(false),
+    mapPoints: ref([{ id: 2, deviceNumber: 'B', lat: 30, lng: 120 }]),
+    formalTubes: ref([]), openDevice: async () => {},
+  };
+  const app = load('../src/pages/leak-monitor/components/LocaleLeakMap.vue', {
+    vue: { ...vue, shallowRef: ref, provide() {}, nextTick },
+    '@/i18n': { useI18n: () => ({ locale: ref('zh-CN') }) },
+    '../i18n': { useLeakMonitorI18n: () => ({ t: key => key }) },
+    '../composables/useActiveMapAlarms': { useActiveMapAlarms: () => ({ alarms: ref([]), error: ref('') }) },
+    '../composables/useDesktopMapEditor': { useDesktopMapEditor: () => ref(true) },
+    '../composables/useLeakMonitorWorkspace': { useLeakMonitorWorkspace: () => workspace },
+    '../pipeCreation': { usePipeCreation: () => ({ draft: {}, hasUnsavedChanges: ref(false) }) },
+    '@/utils/appShellNavigation': { registerAppShellNavigationGuard: () => () => {} },
+  }, {
+    defineProps: () => ({ localized: true }), withDefaults: value => value,
+    window: { requestAnimationFrame: fn => fn() }, uni: { showToast: message => toasts.push(message) },
+    testMap: { focusDevice: number => focusCalls.push(number), resize() {} },
+  });
+  app.run('mapRef.value = testMap');
+  return { ...app, workspace, focusCalls, toasts };
+}
+
+test('related map focus can return to the same selected device and prior panel layout', async () => {
+  const app = focusHarness();
+  await app.run("focusRelatedDevice('B')");
+  assert.equal(app.run('mapFocusDeviceNumber.value'), 'B');
+  assert.deepEqual(app.focusCalls, ['B']);
+  assert.equal(app.workspace.selectedDevice.value.deviceNumber, 'A');
+  app.run('returnFromMapFocus()');
+  assert.equal(app.run('mapFocusDeviceNumber.value'), '');
+  assert.equal(app.workspace.sidebarCollapsed.value, false);
+  const source = readFileSync(new URL('../src/pages/leak-monitor/components/LocaleLeakMap.vue', import.meta.url), 'utf8');
+  assert.match(source, /v-show="!mapFocusDeviceNumber"/);
+  assert.match(source, /:collapsed="!!mapFocusDeviceNumber \|\| sidebarCollapsed"/);
+});
+
+test('missing related coordinates preserve the current panels and provide feedback', async () => {
+  const app = focusHarness();
+  await app.run("focusRelatedDevice('missing')");
+  assert.equal(app.run('mapFocusDeviceNumber.value'), '');
+  assert.equal(app.focusCalls.length, 0);
+  assert.equal(app.toasts[0].title, 'noRelatedDeviceCoordinate');
+});
+
+test('returning before map layout completes cancels a stale related focus', async () => {
+  let resolve;
+  const nextFrame = new Promise(accept => { resolve = accept; });
+  const app = focusHarness(() => nextFrame);
+  const focus = app.run("focusRelatedDevice('B')");
+  app.run('returnFromMapFocus()');
+  resolve();
+  await focus;
+  assert.equal(app.focusCalls.length, 0);
 });

@@ -28,16 +28,27 @@ const menuItems = [
   },
 ];
 
-test("keeps all menus when login has no permission or role data", () => {
-  const filtered = filterMenuItemsByAccess(menuItems, { permissions: [], roles: [], userInfo: {} });
+test("denies pages when authorization is absent, empty or malformed", () => {
+  const accessStates = [
+    {},
+    { permissions: [], roles: [], userInfo: {} },
+    { permissions: "*", roles: { roleCode: "admin" } },
+    { roles: [null, ["admin"], { roleName: "超级管理员" }] },
+    { userInfo: { name: "admin", username: "admin", realName: "超级管理员" } },
+  ];
 
-  assert.deepEqual(flattenMenuPaths(filtered), [
-    "/pages/leak-monitor/leak-monitor",
-    "/pages/system/user/user",
-    "/pages/system/menu/menu",
-    "/pages/data-receive/access/access",
-    "/pages/data-receive/record/record",
-  ]);
+  for (const accessState of accessStates) {
+    assert.deepEqual(filterMenuItemsByAccess(menuItems, accessState), []);
+  }
+});
+
+test("a module grant alone cannot open its default child page", () => {
+  const filtered = filterMenuItemsByAccess(menuItems, {
+    roles: [{ roleCode: "COMMON", code: "admin" }],
+    permissions: ["module:system", "page:leak-monitor"],
+  });
+
+  assert.deepEqual(flattenMenuPaths(filtered), ["/pages/leak-monitor/leak-monitor"]);
 });
 
 test("keeps only menu items matching granted permission codes", () => {
@@ -76,6 +87,23 @@ test("admin roles can see every configured menu", () => {
   });
 
   assert.deepEqual(flattenMenuPaths(filtered), flattenMenuPaths(menuItems));
+});
+
+test("roles and grants returned inside the login user info are recognized", () => {
+  const filtered = filterMenuItemsByAccess(menuItems, {
+    userInfo: {
+      roles: [{
+        roleCode: "COMMON",
+        permissions: [{ permissionCode: "page:data-receive:record" }],
+      }],
+    },
+  });
+  assert.deepEqual(flattenMenuPaths(filtered), ["/pages/data-receive/record/record"]);
+
+  const admin = filterMenuItemsByAccess(menuItems, {
+    userInfo: { roles: [{ roleCode: "ADMIN" }] },
+  });
+  assert.deepEqual(flattenMenuPaths(admin), flattenMenuPaths(menuItems));
 });
 
 test("returns the first visible leaf path for redirects", () => {

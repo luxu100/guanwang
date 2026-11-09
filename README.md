@@ -147,7 +147,7 @@ VITE_DEV_PROXY_TARGET=http://127.0.0.1:28082 npm run dev:h5
 | `userInfo` | 登录接口返回 | 顶部用户信息展示 |
 | `permissions` | 登录接口返回 | 权限数据缓存 |
 | `roles` | 登录接口返回 | 角色数据缓存 |
-| `rememberLoginAccount` | 登录页记住账号功能 | 回填登录账号和密码 |
+| `rememberLoginAccount` | 登录页记住账号功能 | 仅回填登录账号 |
 | `sideMenuCollapsed` | 后台外壳 | 记忆侧边栏折叠状态 |
 
 ## 目录结构
@@ -409,7 +409,7 @@ VITE_DEV_PROXY_TARGET=http://127.0.0.1:28082 npm run dev:h5
 - `loginForm` 保存登录表单，`registerForm` 保存注册表单。
 - 登录成功后保存 token、用户、权限、角色信息。
 - 登录成功后跳转 `/pages/leak-monitor/leak-monitor`。
-- 支持记住账号与密码，缓存 key 为 `rememberLoginAccount`。
+- 支持记住账号，缓存 key 为 `rememberLoginAccount`。
 - 注册字段中真实姓名、手机号、邮箱为选填项。
 
 ### 后台外壳 `AppShell`

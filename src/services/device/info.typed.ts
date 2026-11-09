@@ -6,6 +6,7 @@ import type {
   DeptTreeVO,
   Device,
   DeviceProduct,
+  DeviceProductWriteDTO,
   DeviceProtocol,
   DeviceRelationInfoVO,
   TubeNetwork,
@@ -26,7 +27,7 @@ export const batchDeleteDeviceT = deviceApi.batchDelete;
 
 // ================= device product =================
 const deviceProductApi =
-    createCrudServiceTyped<DeviceProduct>("/api/device-product");
+    createCrudServiceTyped<DeviceProduct, DeviceProduct, DeviceProductWriteDTO, DeviceProductWriteDTO>("/api/device-product");
 
 export const getDeviceProductPageT = deviceProductApi.getPage;
 export const getDeviceProductListT = deviceProductApi.getList;
@@ -66,7 +67,7 @@ export function getDeviceProtocolByProtocolT(
 }
 
 export function getDeviceProductByIdT(id: string | number) {
-  return getRequestT<ApiResponse<DeviceProduct>>(`/api/device-product/${id}`);
+  return getDeviceProductDetailT(id);
 }
 
 export const getTubeNetworkListT = tubeNetworkApi.getList;

@@ -394,6 +394,7 @@ import type {
   NearbyAnalysisDevice,
 } from "../types";
 import { useLeakMonitorI18n } from "../i18n";
+import { getDeviceChannel, getDeviceChannelText, getDeviceOnline } from "@/utils/device-channel";
 import DeviceSpectrumChart from "./DeviceSpectrumChart.vue";
 import GoogleLeakMap from "./GoogleLeakMap.vue";
 import TencentLeakMap from "./TencentLeakMap.vue";
@@ -555,10 +556,16 @@ const dailySeries = computed(() => props.detail.dailyAudio.map((item) => ({
 const detailFields = computed(() => {
   const info = props.detail.info || {};
   return [
+    field(t("transportChannel"), getDeviceChannelText(getDeviceChannel(info), (zh, en) => language.value === "en-US" ? en : zh)),
+    field(t("downlinkProtocolVersion"), info.downlinkProtocolVersion || (getDeviceChannel(info).startsWith("AEP_") ? t("awaitingProtocolVersion") : null)),
+    field(t("cloudProduct"), info.productName ?? info.productId),
+    field(t("cloudDeviceId"), info.nbNumber),
     field(t("algorithmVersion"), info.algorithmVersion),
     field(t("coordinate"), info.coordinate),
     field(t("region"), info.deptNames),
-    field(t("deviceStatus"), statusLabel(info.deviceStatus, t("online"), t("offline"))),
+    field(t("deviceStatus"), statusLabel(getDeviceOnline(info), t("online"), t("offline"))),
+    field(t("cloudOnline"), statusLabel(info.onlineStatus, t("online"), t("offline"))),
+    field(t("tcpOnline"), statusLabel(info.tcpOnlineStatus, t("online"), t("offline"))),
     field(t("installAddress"), info.installAddress),
     field(t("installStatus"), statusLabel(info.installState, t("installed"), t("notInstalled"))),
     field(t("tubeBore"), info.tubeBore),
@@ -566,13 +573,13 @@ const detailFields = computed(() => {
     field(t("tubeNumber"), info.tubeNumber),
     field(t("valveNumber"), info.valveNumber),
     field(t("receiveTime"), info.lastSamplingTime),
-    field(t("measureDays"), info.measureDays),
+    field(t("measureDays"), info.measureDays ?? info.observeDay),
     field(t("signalIntensity"), info.signalIntensity),
     field(t("hardwareVersion"), info.hardwareVersion),
     field(t("batteryVoltage"), info.batteryVoltage),
-    field(t("firmwareVersion"), info.firmwareVersion),
-    field("IMEI", info.nbgsm4gimei),
-    field("IMSI", info.nbgsm4gimsi),
+    field(t("firmwareVersion"), info.firmwareVersion ?? info.softwareVersion),
+    field("IMEI", info.nbgsm4gimei ?? info.deviceImei),
+    field("IMSI", info.nbgsm4gimsi ?? info.deviceImsi),
   ];
 });
 const uninstallCount = computed(() => props.detail.maintenance.filter((item) => item.maintainType === 0).length);
@@ -647,6 +654,7 @@ function displayValue(value: unknown) {
   return value === undefined || value === null || value === "" ? "-" : String(value);
 }
 function statusLabel(value: unknown, enabled: string, disabled: string) {
+  if (value === null || value === undefined || value === "") return "-";
   if (Number(value) === 1) return enabled;
   if (Number(value) === 0) return disabled;
   return "-";

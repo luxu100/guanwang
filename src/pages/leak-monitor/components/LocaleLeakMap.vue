@@ -17,7 +17,7 @@
       ref="mapRef"
       :points="mapPoints"
       :regions="mapRegions"
-      :selected-device-number="selectedDevice?.deviceNumber"
+      :selected-device-number="mapFocusDeviceNumber || selectedDevice?.deviceNumber"
       @device-click="handleMapDeviceClick"
       @map-click="handleMapClick"
       @ready="handleTencentMapReady"
@@ -47,7 +47,7 @@
       ref="mapRef"
       :points="mapPoints"
       :regions="mapRegions"
-      :selected-device-number="selectedDevice?.deviceNumber"
+      :selected-device-number="mapFocusDeviceNumber || selectedDevice?.deviceNumber"
       @device-click="handleMapDeviceClick"
       @map-click="handleMapClick"
       @ready="handleGoogleMapReady"
@@ -82,7 +82,7 @@
     </view>
     <LeakMonitorSidebar
       :filters="workspace.filters"
-      :collapsed="sidebarCollapsed"
+      :collapsed="!!mapFocusDeviceNumber || sidebarCollapsed"
       :loading="loading || sidebarLoading"
       :metrics="metrics"
       :devices="devices"
@@ -98,7 +98,12 @@
       @change-page="workspace.updatePage"
     />
 
+    <view v-if="mapFocusDeviceNumber" class="map-focus-bar" role="status">
+      <text>{{ t("locatingDevice", { value: mapFocusDeviceNumber }) }}</text>
+      <button type="button" @click="returnFromMapFocus">{{ t("returnToCorrelation") }}</button>
+    </view>
     <DeviceDetailDialog
+      v-show="!mapFocusDeviceNumber"
       :visible="detailVisible"
       :sidebar-collapsed="sidebarCollapsed"
       :loading="detailLoading"
@@ -113,13 +118,13 @@
       @download-audio="workspace.downloadLatestAudio"
       @submit-manual="workspace.submitManualAnalysis"
       @select-device="handleSelectDevice"
-      @focus-device="mapRef?.focusDevice?.($event)"
+      @focus-device="focusRelatedDevice"
     />
   </view>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, provide, ref, shallowRef, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, provide, ref, shallowRef, watch } from "vue";
 import { useI18n } from "@/i18n";
 import { getMapProvider } from "@/services/map/map";
 import TencentLeakMap from "./TencentLeakMap.vue";
@@ -132,7 +137,7 @@ import TencentPipeDemoLayer from "./TencentPipeDemoLayer.vue";
 import GooglePipeDemoLayer from "./GooglePipeDemoLayer.vue";
 import type { TencentMapInstanceHandle } from "./tencent-map.types";
 import { useLeakMonitorWorkspace } from "../composables/useLeakMonitorWorkspace";
-import { LEAK_MONITOR_LOCALIZED_KEY } from "../i18n";
+import { LEAK_MONITOR_LOCALIZED_KEY, useLeakMonitorI18n } from "../i18n";
 import type { LeakMonitorDevice, MapDevicePoint } from "../types";
 import { usePipeCreation } from "../pipeCreation";
 import { tencentDisplayCoordinate, tencentSourceCoordinate } from "../coordinateTransform";
@@ -150,6 +155,8 @@ const { alarms: activeAlarms, error: alarmError } = useActiveMapAlarms();
 const desktop = useDesktopMapEditor();
 const provider = computed(() => getMapProvider(locale.value));
 const localized = computed(() => props.localized);
+const { t } = useLeakMonitorI18n(localized);
+const mapFocusDeviceNumber = ref("");
 provide(LEAK_MONITOR_LOCALIZED_KEY, localized);
 const workspace = useLeakMonitorWorkspace(localized);
 const {
@@ -261,10 +268,12 @@ function keepEditingAfterNavigationPrompt() {
 }
 
 function handleSelectDevice(device: LeakMonitorDevice) {
+  mapFocusDeviceNumber.value = "";
   void workspace.openDevice(device);
   mapRef.value?.focusDevice?.(device.deviceNumber);
 }
 function handleMapDeviceClick(device: MapDevicePoint) {
+  mapFocusDeviceNumber.value = "";
   void workspace.openDevice(device);
 }
 function selectAlarmDevice(number: string) {
@@ -295,9 +304,36 @@ function handleGoogleMapReady() {
     (mapRef.value?.getMapInstance?.() as google.maps.Map | null) ?? null;
 }
 function toggleSidebar() {
+  if (mapFocusDeviceNumber.value) {
+    mapFocusDeviceNumber.value = "";
+    sidebarCollapsed.value = false;
+    requestMapLayoutRefresh();
+    return;
+  }
   sidebarCollapsed.value = !sidebarCollapsed.value;
   requestMapLayoutRefresh();
 }
+
+async function focusRelatedDevice(deviceNumber: string) {
+  if (!mapPoints.value.some(point => point.deviceNumber === deviceNumber)) {
+    uni.showToast({ title: t("noRelatedDeviceCoordinate"), icon: "none" });
+    return;
+  }
+  mapFocusDeviceNumber.value = deviceNumber;
+  await nextTick();
+  if (mapFocusDeviceNumber.value !== deviceNumber) return;
+  requestMapLayoutRefresh();
+  mapRef.value?.focusDevice?.(deviceNumber);
+}
+
+function returnFromMapFocus() {
+  mapFocusDeviceNumber.value = "";
+  requestMapLayoutRefresh();
+}
+
+watch(detailVisible, (visible) => {
+  if (!visible) mapFocusDeviceNumber.value = "";
+});
 
 function requestMapLayoutRefresh() {
   window.requestAnimationFrame(() => {
@@ -321,7 +357,36 @@ watch(provider, (nextProvider) => {
 </script>
 
 <style scoped lang="scss">
-.map-alarm-summary { position: absolute; z-index: 5; bottom: 28px; left: 16px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; max-width: calc(100% - 48px); padding: 8px 12px; color: #52677d; background: rgba(255,255,255,.96); border: 1px solid #d8e6f1; border-radius: 5px; font-size: 12px; }
+.map-focus-bar {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100% - 100px);
+  padding: 8px 12px;
+  color: #27455f;
+  background: #fff;
+  border: 1px solid #caddec;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, .12);
+  transform: translateX(-50%);
+  font-size: 13px;
+}
+.map-focus-bar button {
+  flex: none;
+  margin: 0;
+  padding: 0 10px;
+  color: #1769a7;
+  background: #edf6ff;
+  border: 1px solid #c7def0;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 30px;
+}
+.map-alarm-summary { position: absolute; z-index: 5; bottom: 26px; left: 140px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; max-width: calc(100% - 48px); padding: 8px 12px; color: #52677d; background: rgba(255,255,255,.96); border: 1px solid #d8e6f1; border-radius: 5px; font-size: 12px; }
 .map-alarm-summary__mark { display: grid; place-items: center; width: 18px; height: 18px; color: #fff; background: #dc2626; border-radius: 50%; font-weight: 700; }
 .leak-workspace {
   position: relative;

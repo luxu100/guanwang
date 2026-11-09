@@ -187,9 +187,6 @@ export interface DeviceProduct {
     productCode?: string;
     productName?: string;
 
-    // 主密钥
-    masterKey?: string;
-
     // 协议
     protocolVersion?: string;
 
@@ -197,9 +194,7 @@ export interface DeviceProduct {
     // AEP配置
     aepProductId?: number;
     aepProtocol?: string;
-    aepMasterKey?: string;
     aepTransparent?: number;
-    aepAuthorization?: string;
     aepAddress?: string;
     aepPort?: number;
 
@@ -212,6 +207,12 @@ export interface DeviceProduct {
     // 删除标识
     isDeleted?: boolean;
 }
+
+export type DeviceProductWriteDTO = Partial<DeviceProduct> & {
+    masterKey?: string;
+    aepMasterKey?: string;
+    aepAuthorization?: string;
+};
 
 export interface DeviceProtocol {
     scene?: "CLOUD" | "APP_REALTIME_SINGLE";

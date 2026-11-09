@@ -157,6 +157,9 @@ import type {FormSection} from "@/pages/device/components/x/types";
 import type {PartitionNode} from "@/pages/device/components/x/tree/XTreeNode.vue";
 
 import {createScopedT} from "@/i18n";
+import type { ApiResponse } from "@/types/api";
+import { toastError } from "@/utils/adminData";
+import { confirmDangerAction } from "@/utils/confirmAction";
 import {
   bindValveDevices,
   getDeptIdByDeviceId,
@@ -185,6 +188,8 @@ const deviceList = ref<Device[]>([]);
 const currentDevice = ref<Device | null>(null);
 const selectedDeviceId = ref<number | null>(null);
 const selectedDevice = ref<Device | null>(null);
+const deletingDevice = ref(false);
+let deviceListRequest = 0;
 const pagination = ref({
   current: 1,
   size: 10,
@@ -338,23 +343,39 @@ watch(
  * api
  * =========================
  */
-async function fetchDevices() {
-  const res = await getDevicePageT({
-    ...searchForm.value,
-    pageNum: pagination.value.current,
-    pageSize: pagination.value.size,
-  });
-  const pageData = res.data;
+async function fetchDevices({ afterDeletion = false } = {}) {
+  const requestId = ++deviceListRequest;
+  try {
+    const res = await getDevicePageT({
+      ...searchForm.value,
+      pageNum: pagination.value.current,
+      pageSize: pagination.value.size,
+    });
+    if (requestId !== deviceListRequest) return true;
 
-  deviceList.value = pageData?.records ?? [];
-  pagination.value.total = pageData?.total ?? 0;
-  pagination.value.current = pageData?.current ?? 1;
-  pagination.value.size = pageData?.size ?? 10;
+    const pageData = res?.data;
+    if ((res?.code !== 0 && res?.code !== 200) || !pageData || !Array.isArray(pageData.records)) {
+      throw res;
+    }
 
-  const firstDevice = deviceList.value[0] || null;
-  currentDevice.value = firstDevice;
-  selectedDeviceId.value = firstDevice?.id || null;
-  selectedDevice.value = firstDevice;
+    const { records, total, current, size } = pageData;
+    const previousSelection = afterDeletion ? records.find(item => item.id === selectedDeviceId.value) : undefined;
+    const previousDetail = afterDeletion ? records.find(item => item.id === currentDevice.value?.id) : undefined;
+    const selection = previousSelection ?? records[0] ?? null;
+
+    deviceList.value = records;
+    pagination.value.total = total ?? 0;
+    pagination.value.current = current ?? 1;
+    pagination.value.size = size ?? 10;
+    selectedDevice.value = selection;
+    selectedDeviceId.value = selection?.id ?? null;
+    currentDevice.value = previousDetail ?? selection;
+    return true;
+  } catch (error) {
+    if (requestId !== deviceListRequest) return true;
+    if (!afterDeletion) toastError(error, t("message.deviceListLoadFail"));
+    return false;
+  }
 }
 
 async function handleUpdateDevice(deviceId: number) {
@@ -367,12 +388,6 @@ async function handleUpdateDevice(deviceId: number) {
   currentDevice.value = deviceList.value[index];
 }
 
-async function handleDeleteDevice(deviceId: number) {
-  await deleteDeviceT(deviceId);
-  fetchDevices();
-}
-
-
 const deviceProductOptions = ref<{ label: string; value: number; aepProtocol?: string | null }[]>([]);
 const compatibleProductOptions = computed(() => {
   const protocol = String(formData.value.aepProtocol || "").trim().toLowerCase();
@@ -381,8 +396,9 @@ const compatibleProductOptions = computed(() => {
 
 async function fetchProductOptions() {
   const res = await getDeviceProductListT();
-  deviceProductOptions.value = (res.data || []).map((item: any) => ({
-    label: item.productName,   // 或 name，看你后端字段
+  if (!Array.isArray(res.data)) return;
+  deviceProductOptions.value = res.data.map(item => ({
+    label: item.productName || item.productCode || String(item.id),
     value: item.id,
     aepProtocol: item.aepProtocol,
   }));
@@ -574,22 +590,22 @@ const addSchema = computed<FormSection[]>(() => [
     fields: [
       {
         key: "aepProtocol",
-        label: t("fields.communication.aepProtocol"),
+        label: t("info.fields.communication.aepProtocol"),
         type: "select",
         options: [
-          { label: t("fields.communication.cloud4G"), value: "tcp" },
-          { label: t("fields.communication.cloudNB"), value: "lwm2m" },
-          { label: t("fields.communication.directTCP"), value: "" },
+          { label: t("info.fields.communication.cloud4G"), value: "tcp" },
+          { label: t("info.fields.communication.cloudNB"), value: "lwm2m" },
+          { label: t("info.fields.communication.directTCP"), value: "" },
         ]
       },
       {
         key: "downlinkProtocolVersion",
-        label: t("fields.communication.downlinkProtocolVersion"),
+        label: t("info.fields.communication.downlinkProtocolVersion"),
         type: "select",
         options: [
           { label: "NEW", value: "NEW" },
           { label: "LEGACY", value: "LEGACY" },
-          { label: t("fields.communication.awaitingProtocol"), value: null },
+          { label: t("info.fields.communication.awaitingProtocol"), value: null },
         ]
       },
       {
@@ -827,53 +843,58 @@ function handleEdit() {
 }
 
 async function handleDelete() {
-  if(props.mode !== "info"){
+  if (props.mode !== "info") {
     currentPanelRef.value?.handleDelete();
     return;
   }
+  if (deletingDevice.value) return;
 
+  const device = selectedDevice.value;
+  if (!device) {
+    uni.showToast({ title: t("message.selectDevice"), icon: "none" });
+    return;
+  }
+
+  deletingDevice.value = true;
   try {
-    if (!selectedDevice.value) {
-      uni.showToast({
-        title: t('message.selectDevice'),
-        icon: 'none'
-      });
-      return;
-    }
-
-    const device = selectedDevice.value;
-
-    uni.showModal({
+    const confirmed = await confirmDangerAction({
       title: t('message.confirmDeleteTitle'),
       content: t('message.confirmDeleteContent', {
-        deviceNumber: device.deviceNumber
+        deviceNumber: device.deviceNumber,
       }),
       cancelText: t('common.cancel'),
       confirmText: t('common.confirm'),
-      success: async (res) => {
-        if (!res.confirm) return;
-
-        await deleteDeviceT(device.id);
-
-        await fetchDevices();
-
-        uni.showToast({
-          title: t('message.deleteSuccess'),
-          icon: 'success'
-        });
-
-        selectedDevice.value = null;
-
-        // 可选：同步清理右侧详情
-        currentDevice.value = null;
-      }
     });
+    if (!confirmed) return;
 
-  } catch (e: any) {
+    const response: ApiResponse<unknown> = await deleteDeviceT(device.id);
+    const code = response?.code;
+    const accepted = code === 0 || code === 200;
+    if (!accepted || response.data === false) {
+      toastError(!accepted && typeof code === "number" ? response : undefined, t("message.deleteFail"));
+      return;
+    }
+
+    const remaining = deviceList.value.filter(item => item.id !== device.id);
+    if (remaining.length !== deviceList.value.length) {
+      deviceList.value = remaining;
+      pagination.value.total = Math.max(0, pagination.value.total - 1);
+    }
+    if (selectedDeviceId.value === device.id) {
+      selectedDeviceId.value = null;
+      selectedDevice.value = null;
+    }
+    if (currentDevice.value?.id === device.id) currentDevice.value = null;
+
+    const refreshed = await fetchDevices({ afterDeletion: true });
     uni.showToast({
-      title: e?.message || t('message.deleteFail'),
-      icon: 'error'
+      title: t(refreshed ? "message.deleteSuccess" : "message.deleteRefreshFail"),
+      icon: refreshed ? "success" : "none",
     });
+  } catch (error) {
+    toastError(error, t("message.deleteFail"));
+  } finally {
+    deletingDevice.value = false;
   }
 }
 
@@ -1135,7 +1156,7 @@ function stopResize() {
 
 onMounted(() => {
   fetchDevices();
-  fetchProductOptions();
+  if (props.mode === "info") fetchProductOptions();
 });
 </script>
 <style scoped lang="scss">

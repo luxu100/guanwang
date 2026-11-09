@@ -141,7 +141,7 @@ const zhCN = {
       phone: "手机号（选填）",
       email: "邮箱（选填）",
     },
-    remember: "记住账号与密码",
+    remember: "记住账号",
     clearAccount: "清除账号和密码",
     linkToRegister: "没有账号？用户注册",
     linkToLogin: "已有账号？返回登录",

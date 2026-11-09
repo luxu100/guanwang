@@ -151,6 +151,8 @@
       "updateFail": "Update failed",
       "deleteSuccess": "Deleted successfully",
       "deleteFail": "Delete failed",
+      "deleteRefreshFail": "Device deleted. Could not refresh the list.",
+      "deviceListLoadFail": "Failed to load the device list",
       "selectRecord": "Please select a record",
       "selectDevice": "Please select a device first",
       "exportNotReady": "Export not available yet",

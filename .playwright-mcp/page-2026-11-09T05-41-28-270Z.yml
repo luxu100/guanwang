@@ -1,0 +1,597 @@
+- generic [ref=f2e7]:
+  - generic [ref=f2e10]:
+    - generic "绑定 Logo" [ref=f2e13] [cursor=pointer]
+    - generic "预警信息" [ref=f2e17] [cursor=pointer]: 99+
+    - generic [ref=f2e22] [cursor=pointer]: 简体中文
+    - generic [ref=f2e27]: string
+    - generic [ref=f2e29] [cursor=pointer]: 退出登录
+  - generic [ref=f2e30]:
+    - generic [ref=f2e31]:
+      - generic [ref=f2e32]:
+        - generic [ref=f2e33]: 目录
+        - generic "收起目录" [ref=f2e34] [cursor=pointer]
+      - generic [ref=f2e36]:
+        - generic "我的收藏" [ref=f2e40] [cursor=pointer]
+        - generic "一张图" [ref=f2e44] [cursor=pointer]
+        - generic "渗漏监测" [ref=f2e48] [cursor=pointer]
+        - generic "水锤分析" [ref=f2e52] [cursor=pointer]
+        - generic "分区管理" [ref=f2e56] [cursor=pointer]
+        - generic "设备管理" [ref=f2e60] [cursor=pointer]
+        - generic "指令管理" [ref=f2e64] [cursor=pointer]
+        - generic "统计分析" [ref=f2e68] [cursor=pointer]
+        - generic "数据分析" [ref=f2e72] [cursor=pointer]
+        - generic "疑漏点上报" [ref=f2e76] [cursor=pointer]
+        - generic "工单管理" [ref=f2e80] [cursor=pointer]
+        - generic "运维报表" [ref=f2e84] [cursor=pointer]
+        - generic "渗漏爆管" [ref=f2e88] [cursor=pointer]
+        - generic "实时报警" [ref=f2e92] [cursor=pointer]
+        - generic "系统设置" [ref=f2e96] [cursor=pointer]
+        - generic "数据接收和解析" [ref=f2e100] [cursor=pointer]
+    - generic [ref=f2e101]:
+      - generic [ref=f2e102]:
+        - generic "向左滚动页签" [ref=f2e103] [cursor=pointer]
+        - generic "向右滚动页签" [ref=f2e105] [cursor=pointer]
+        - generic [ref=f2e107]:
+          - generic "渗漏监测" [ref=f2e110] [cursor=pointer]
+          - generic "菜单管理" [ref=f2e115] [cursor=pointer]
+          - generic "权限管理" [ref=f2e120] [cursor=pointer]
+          - generic "我的收藏" [ref=f2e125] [cursor=pointer]
+        - generic "进入全屏" [ref=f2e128] [cursor=pointer]
+      - generic [ref=f2e135]:
+        - generic [ref=f2e139]:
+          - generic:
+            - button "2602071115 · WARNING (1)" [ref=f2e394] [cursor=pointer]: "!"
+            - button "2603071022 · WARNING (1)" [ref=f2e395] [cursor=pointer]: "!"
+            - button "2607075002 · WARNING (2)" [ref=f2e396] [cursor=pointer]: "!"
+            - button "2602081008 · WARNING (1)" [ref=f2e397] [cursor=pointer]: "!"
+            - button "2610070031 · WARNING (1)" [ref=f2e398] [cursor=pointer]: "!"
+            - button "2602071009 · WARNING (1)" [ref=f2e399] [cursor=pointer]: "!"
+            - button "2602071029 · WARNING (1)" [ref=f2e400] [cursor=pointer]: "!"
+            - button "2610070085 · WARNING (1)" [ref=f2e401] [cursor=pointer]: "!"
+            - button "2610070063 · WARNING (1)" [ref=f2e402] [cursor=pointer]: "!"
+            - button "2610070094 · WARNING (1)" [ref=f2e403] [cursor=pointer]: "!"
+            - button "2610070013 · WARNING (1)" [ref=f2e404] [cursor=pointer]: "!"
+            - button "2610070076 · WARNING (1)" [ref=f2e405] [cursor=pointer]: "!"
+            - button "2610070096 · WARNING (1)" [ref=f2e406] [cursor=pointer]: "!"
+            - button "2610070077 · WARNING (1)" [ref=f2e407] [cursor=pointer]: "!"
+            - button "2610070005 · WARNING (1)" [ref=f2e408] [cursor=pointer]: "!"
+            - button "2602071017 · WARNING (1)" [ref=f2e409] [cursor=pointer]: "!"
+            - button "2603071055 · WARNING (1)" [ref=f2e410] [cursor=pointer]: "!"
+            - button "2602071129 · WARNING (1)" [ref=f2e411] [cursor=pointer]: "!"
+            - button "2602071106 · WARNING (1)" [ref=f2e412] [cursor=pointer]: "!"
+            - button "2602081009 · WARNING (1)" [ref=f2e413] [cursor=pointer]: "!"
+            - button "2603081079 · WARNING (1)" [ref=f2e414] [cursor=pointer]: "!"
+            - button "2602071019 · WARNING (1)" [ref=f2e415] [cursor=pointer]: "!"
+            - button "2603071019 · WARNING (1)" [ref=f2e416] [cursor=pointer]: "!"
+            - button "2603071029 · WARNING (1)" [ref=f2e417] [cursor=pointer]: "!"
+            - button "2603071009 · WARNING (1)" [ref=f2e418] [cursor=pointer]: "!"
+            - button "2603071079 · WARNING (1)" [ref=f2e419] [cursor=pointer]: "!"
+            - button "2603081089 · WARNING (1)" [ref=f2e420] [cursor=pointer]: "!"
+            - button "2603071059 · WARNING (1)" [ref=f2e421] [cursor=pointer]: "!"
+            - button "2603071049 · WARNING (1)" [ref=f2e422] [cursor=pointer]: "!"
+            - button "2602071109 · WARNING (1)" [ref=f2e423] [cursor=pointer]: "!"
+            - button "2602081007 · WARNING (1)" [ref=f2e424] [cursor=pointer]: "!"
+            - button "2603071008 · WARNING (1)" [ref=f2e425] [cursor=pointer]: "!"
+            - button "2603071038 · WARNING (1)" [ref=f2e426] [cursor=pointer]: "!"
+            - button "2603071048 · WARNING (1)" [ref=f2e427] [cursor=pointer]: "!"
+            - button "2603071028 · WARNING (1)" [ref=f2e428] [cursor=pointer]: "!"
+            - button "2603071068 · WARNING (1)" [ref=f2e429] [cursor=pointer]: "!"
+            - button "2602071018 · WARNING (1)" [ref=f2e430] [cursor=pointer]: "!"
+            - button "2603071058 · WARNING (1)" [ref=f2e431] [cursor=pointer]: "!"
+            - button "2602071117 · WARNING (1)" [ref=f2e432] [cursor=pointer]: "!"
+            - button "2602071127 · WARNING (1)" [ref=f2e433] [cursor=pointer]: "!"
+            - button "2602071007 · WARNING (1)" [ref=f2e434] [cursor=pointer]: "!"
+            - button "2603071027 · WARNING (1)" [ref=f2e435] [cursor=pointer]: "!"
+            - button "2603081087 · WARNING (1)" [ref=f2e436] [cursor=pointer]: "!"
+            - button "2603071117 · WARNING (1)" [ref=f2e437] [cursor=pointer]: "!"
+            - button "2603071087 · WARNING (1)" [ref=f2e438] [cursor=pointer]: "!"
+            - button "2603081036 · WARNING (1)" [ref=f2e439] [cursor=pointer]: "!"
+            - button "2603071116 · WARNING (1)" [ref=f2e440] [cursor=pointer]: "!"
+            - button "2603071106 · WARNING (1)" [ref=f2e441] [cursor=pointer]: "!"
+            - button "2603071056 · WARNING (1)" [ref=f2e442] [cursor=pointer]: "!"
+            - button "2603071026 · WARNING (1)" [ref=f2e443] [cursor=pointer]: "!"
+            - button "2603071016 · WARNING (1)" [ref=f2e444] [cursor=pointer]: "!"
+            - button "2603071036 · WARNING (1)" [ref=f2e445] [cursor=pointer]: "!"
+            - button "2602071016 · WARNING (1)" [ref=f2e446] [cursor=pointer]: "!"
+            - button "2602071125 · WARNING (1)" [ref=f2e447] [cursor=pointer]: "!"
+            - button "2603071005 · WARNING (1)" [ref=f2e448] [cursor=pointer]: "!"
+            - button "2603071035 · WARNING (1)" [ref=f2e449] [cursor=pointer]: "!"
+            - button "2602071105 · WARNING (1)" [ref=f2e450] [cursor=pointer]: "!"
+            - button "2610070035 · WARNING (1)" [ref=f2e451] [cursor=pointer]: "!"
+            - button "2603071085 · WARNING (1)" [ref=f2e452] [cursor=pointer]: "!"
+            - button "2602071004 · WARNING (1)" [ref=f2e453] [cursor=pointer]: "!"
+            - button "2602071024 · WARNING (1)" [ref=f2e454] [cursor=pointer]: "!"
+            - button "2603071104 · WARNING (1)" [ref=f2e455] [cursor=pointer]: "!"
+            - button "2610070064 · WARNING (1)" [ref=f2e456] [cursor=pointer]: "!"
+            - button "2602081004 · WARNING (1)" [ref=f2e457] [cursor=pointer]: "!"
+            - button "2602071124 · WARNING (1)" [ref=f2e458] [cursor=pointer]: "!"
+            - button "2603071034 · WARNING (1)" [ref=f2e459] [cursor=pointer]: "!"
+            - button "2603071074 · WARNING (1)" [ref=f2e460] [cursor=pointer]: "!"
+            - button "2603071014 · WARNING (1)" [ref=f2e461] [cursor=pointer]: "!"
+            - button "2603081074 · WARNING (1)" [ref=f2e462] [cursor=pointer]: "!"
+            - button "2610070024 · WARNING (1)" [ref=f2e463] [cursor=pointer]: "!"
+            - button "2602071001 · WARNING (1)" [ref=f2e464] [cursor=pointer]: "!"
+            - button "2610070061 · WARNING (1)" [ref=f2e465] [cursor=pointer]: "!"
+            - button "2602071003 · WARNING (1)" [ref=f2e466] [cursor=pointer]: "!"
+            - button "2506082009 · WARNING (1)" [ref=f2e467] [cursor=pointer]: "!"
+            - button "2610070039 · WARNING (1)" [ref=f2e468] [cursor=pointer]: "!"
+            - button "2603071033 · WARNING (1)" [ref=f2e469] [cursor=pointer]: "!"
+            - button "2603071063 · WARNING (1)" [ref=f2e470] [cursor=pointer]: "!"
+            - button "2603071103 · WARNING (1)" [ref=f2e471] [cursor=pointer]: "!"
+            - button "2602081003 · WARNING (1)" [ref=f2e472] [cursor=pointer]: "!"
+            - button "2602071113 · WARNING (1)" [ref=f2e473] [cursor=pointer]: "!"
+            - button "2603071013 · WARNING (1)" [ref=f2e474] [cursor=pointer]: "!"
+            - button "2610070023 · WARNING (1)" [ref=f2e475] [cursor=pointer]: "!"
+            - button "2603071043 · WARNING (1)" [ref=f2e476] [cursor=pointer]: "!"
+            - button "2603071003 · WARNING (1)" [ref=f2e477] [cursor=pointer]: "!"
+            - button "2610070049 · WARNING (1)" [ref=f2e478] [cursor=pointer]: "!"
+            - button "2610070042 · WARNING (1)" [ref=f2e479] [cursor=pointer]: "!"
+            - button "2603071002 · WARNING (1)" [ref=f2e480] [cursor=pointer]: "!"
+            - button "2610070018 · WARNING (1)" [ref=f2e481] [cursor=pointer]: "!"
+            - button "2603071112 · WARNING (1)" [ref=f2e482] [cursor=pointer]: "!"
+            - button "2602071122 · WARNING (1)" [ref=f2e483] [cursor=pointer]: "!"
+            - button "2602071012 · WARNING (1)" [ref=f2e484] [cursor=pointer]: "!"
+            - button "2610070012 · WARNING (1)" [ref=f2e485] [cursor=pointer]: "!"
+            - button "2411082008 · WARNING (1)" [ref=f2e486] [cursor=pointer]: "!"
+            - button "2602071102 · WARNING (1)" [ref=f2e487] [cursor=pointer]: "!"
+            - button "2603071032 · WARNING (1)" [ref=f2e488] [cursor=pointer]: "!"
+            - button "2603081082 · WARNING (1)" [ref=f2e489] [cursor=pointer]: "!"
+            - button "2610070098 · WARNING (1)" [ref=f2e490] [cursor=pointer]: "!"
+            - button "2610070038 · WARNING (1)" [ref=f2e491] [cursor=pointer]: "!"
+            - button "2610070002 · WARNING (1)" [ref=f2e492] [cursor=pointer]: "!"
+            - button "2610070062 · WARNING (1)" [ref=f2e493] [cursor=pointer]: "!"
+            - button "2610070032 · WARNING (1)" [ref=f2e494] [cursor=pointer]: "!"
+            - button "2603071042 · WARNING (1)" [ref=f2e495] [cursor=pointer]: "!"
+            - button "2506082008 · WARNING (1)" [ref=f2e496] [cursor=pointer]: "!"
+            - button "2603071052 · WARNING (1)" [ref=f2e497] [cursor=pointer]: "!"
+            - button "2411072007 · WARNING (1)" [ref=f2e498] [cursor=pointer]: "!"
+            - button "2506082007 · WARNING (1)" [ref=f2e499] [cursor=pointer]: "!"
+            - button "2610070057 · WARNING (1)" [ref=f2e500] [cursor=pointer]: "!"
+            - button "2603071021 · WARNING (1)" [ref=f2e501] [cursor=pointer]: "!"
+            - button "2603071011 · WARNING (1)" [ref=f2e502] [cursor=pointer]: "!"
+            - button "2602071121 · WARNING (1)" [ref=f2e503] [cursor=pointer]: "!"
+            - button "2603071061 · WARNING (1)" [ref=f2e504] [cursor=pointer]: "!"
+            - button "2602071101 · WARNING (1)" [ref=f2e505] [cursor=pointer]: "!"
+            - button "2602081001 · WARNING (1)" [ref=f2e506] [cursor=pointer]: "!"
+            - button "2610070041 · WARNING (1)" [ref=f2e507] [cursor=pointer]: "!"
+            - button "2610070040 · WARNING (1)" [ref=f2e508] [cursor=pointer]: "!"
+            - button "2610070080 · WARNING (1)" [ref=f2e509] [cursor=pointer]: "!"
+            - button "2610070030 · WARNING (1)" [ref=f2e510] [cursor=pointer]: "!"
+            - button "2610070010 · WARNING (1)" [ref=f2e511] [cursor=pointer]: "!"
+            - button "2603071100 · WARNING (1)" [ref=f2e512] [cursor=pointer]: "!"
+            - button "2506082006 · WARNING (1)" [ref=f2e513] [cursor=pointer]: "!"
+            - button "2603071120 · WARNING (1)" [ref=f2e514] [cursor=pointer]: "!"
+            - button "2603081080 · WARNING (1)" [ref=f2e515] [cursor=pointer]: "!"
+            - button "FFFFFFFFFF · WARNING (1)" [ref=f2e516] [cursor=pointer]: "!"
+            - button "2603071040 · WARNING (1)" [ref=f2e517] [cursor=pointer]: "!"
+            - button "2610070046 · WARNING (1)" [ref=f2e518] [cursor=pointer]: "!"
+            - button "2603071050 · WARNING (1)" [ref=f2e519] [cursor=pointer]: "!"
+            - button "2602081005 · WARNING (1)" [ref=f2e520] [cursor=pointer]: "!"
+            - button "2603071020 · WARNING (1)" [ref=f2e521] [cursor=pointer]: "!"
+            - button "2603081090 · WARNING (1)" [ref=f2e522] [cursor=pointer]: "!"
+            - button "2603071060 · WARNING (1)" [ref=f2e523] [cursor=pointer]: "!"
+            - button "2603081060 · WARNING (1)" [ref=f2e524] [cursor=pointer]: "!"
+            - button "2405070015 · WARNING (1)" [ref=f2e525] [cursor=pointer]: "!"
+            - button "2506082014 · WARNING (1)" [ref=f2e526] [cursor=pointer]: "!"
+            - button "2405070043 · WARNING (1)" [ref=f2e527] [cursor=pointer]: "!"
+            - button "2506082013 · WARNING (1)" [ref=f2e528] [cursor=pointer]: "!"
+            - button "2506082003 · WARNING (1)" [ref=f2e529] [cursor=pointer]: "!"
+            - button "2411082003 · WARNING (1)" [ref=f2e530] [cursor=pointer]: "!"
+            - button "2506072003 · WARNING (1)" [ref=f2e531] [cursor=pointer]: "!"
+            - button "2506082011 · WARNING (1)" [ref=f2e532] [cursor=pointer]: "!"
+            - button "2506082001 · WARNING (1)" [ref=f2e533] [cursor=pointer]: "!"
+            - button "2411082001 · WARNING (1)" [ref=f2e534] [cursor=pointer]: "!"
+            - button "2411072001 · WARNING (1)" [ref=f2e535] [cursor=pointer]: "!"
+            - button "2610070050 · WARNING (1)" [ref=f2e536] [cursor=pointer]: "!"
+            - button "2506082010 · WARNING (1)" [ref=f2e537] [cursor=pointer]: "!"
+            - button "2603071070 · WARNING (1)" [ref=f2e538] [cursor=pointer]: "!"
+            - button "2610070099 · WARNING (1)" [ref=f2e539] [cursor=pointer]: "!"
+            - button "2610070069 · WARNING (1)" [ref=f2e540] [cursor=pointer]: "!"
+            - button "2610070089 · WARNING (1)" [ref=f2e541] [cursor=pointer]: "!"
+            - button "2610070059 · WARNING (1)" [ref=f2e542] [cursor=pointer]: "!"
+            - button "2610070019 · WARNING (1)" [ref=f2e543] [cursor=pointer]: "!"
+            - button "2610070079 · WARNING (1)" [ref=f2e544] [cursor=pointer]: "!"
+            - button "2610070009 · WARNING (1)" [ref=f2e545] [cursor=pointer]: "!"
+            - button "2610070029 · WARNING (1)" [ref=f2e546] [cursor=pointer]: "!"
+            - button "2603081059 · WARNING (1)" [ref=f2e547] [cursor=pointer]: "!"
+            - button "2603081069 · WARNING (1)" [ref=f2e548] [cursor=pointer]: "!"
+            - button "2603081019 · WARNING (1)" [ref=f2e549] [cursor=pointer]: "!"
+            - button "2603081049 · WARNING (1)" [ref=f2e550] [cursor=pointer]: "!"
+            - button "2603081009 · WARNING (1)" [ref=f2e551] [cursor=pointer]: "!"
+            - button "2603081039 · WARNING (1)" [ref=f2e552] [cursor=pointer]: "!"
+            - button "2610070028 · WARNING (1)" [ref=f2e553] [cursor=pointer]: "!"
+            - button "2610070088 · WARNING (1)" [ref=f2e554] [cursor=pointer]: "!"
+            - button "2610070008 · WARNING (1)" [ref=f2e555] [cursor=pointer]: "!"
+            - button "2610070048 · WARNING (1)" [ref=f2e556] [cursor=pointer]: "!"
+            - button "2610070068 · WARNING (1)" [ref=f2e557] [cursor=pointer]: "!"
+            - button "2610070078 · WARNING (1)" [ref=f2e558] [cursor=pointer]: "!"
+            - button "2610070058 · WARNING (1)" [ref=f2e559] [cursor=pointer]: "!"
+            - button "2610070017 · WARNING (1)" [ref=f2e560] [cursor=pointer]: "!"
+            - button "2603081078 · WARNING (1)" [ref=f2e561] [cursor=pointer]: "!"
+            - button "2603081008 · WARNING (1)" [ref=f2e562] [cursor=pointer]: "!"
+            - button "2603081088 · WARNING (1)" [ref=f2e563] [cursor=pointer]: "!"
+            - button "2603081068 · WARNING (1)" [ref=f2e564] [cursor=pointer]: "!"
+            - button "2603081048 · WARNING (1)" [ref=f2e565] [cursor=pointer]: "!"
+            - button "2603081058 · WARNING (1)" [ref=f2e566] [cursor=pointer]: "!"
+            - button "2603081018 · WARNING (1)" [ref=f2e567] [cursor=pointer]: "!"
+            - button "2603071018 · WARNING (1)" [ref=f2e568] [cursor=pointer]: "!"
+            - button "2603071108 · WARNING (1)" [ref=f2e569] [cursor=pointer]: "!"
+            - button "2603081038 · WARNING (1)" [ref=f2e570] [cursor=pointer]: "!"
+            - button "2603071088 · WARNING (1)" [ref=f2e571] [cursor=pointer]: "!"
+            - button "2603081028 · WARNING (1)" [ref=f2e572] [cursor=pointer]: "!"
+            - button "2610070037 · WARNING (1)" [ref=f2e573] [cursor=pointer]: "!"
+            - button "2610070027 · WARNING (1)" [ref=f2e574] [cursor=pointer]: "!"
+            - button "2610070097 · WARNING (1)" [ref=f2e575] [cursor=pointer]: "!"
+            - button "2610070047 · WARNING (1)" [ref=f2e576] [cursor=pointer]: "!"
+            - button "2610070067 · WARNING (1)" [ref=f2e577] [cursor=pointer]: "!"
+            - button "2610070007 · WARNING (1)" [ref=f2e578] [cursor=pointer]: "!"
+            - button "2610070087 · WARNING (1)" [ref=f2e579] [cursor=pointer]: "!"
+            - button "2603081057 · WARNING (1)" [ref=f2e580] [cursor=pointer]: "!"
+            - button "2603071047 · WARNING (1)" [ref=f2e581] [cursor=pointer]: "!"
+            - button "2603081067 · WARNING (1)" [ref=f2e582] [cursor=pointer]: "!"
+            - button "2603081047 · WARNING (1)" [ref=f2e583] [cursor=pointer]: "!"
+            - button "2603081077 · WARNING (1)" [ref=f2e584] [cursor=pointer]: "!"
+            - button "2603081007 · WARNING (1)" [ref=f2e585] [cursor=pointer]: "!"
+            - button "2603081017 · WARNING (1)" [ref=f2e586] [cursor=pointer]: "!"
+            - button "2603081037 · WARNING (1)" [ref=f2e587] [cursor=pointer]: "!"
+            - button "2610070056 · WARNING (1)" [ref=f2e588] [cursor=pointer]: "!"
+            - button "2610070026 · WARNING (1)" [ref=f2e589] [cursor=pointer]: "!"
+            - button "2603081016 · WARNING (1)" [ref=f2e590] [cursor=pointer]: "!"
+            - button "2603081066 · WARNING (1)" [ref=f2e591] [cursor=pointer]: "!"
+            - button "2603081086 · WARNING (1)" [ref=f2e592] [cursor=pointer]: "!"
+            - button "2603071046 · WARNING (1)" [ref=f2e593] [cursor=pointer]: "!"
+            - button "2603081056 · WARNING (1)" [ref=f2e594] [cursor=pointer]: "!"
+            - button "2603081046 · WARNING (1)" [ref=f2e595] [cursor=pointer]: "!"
+            - button "2603081026 · WARNING (1)" [ref=f2e596] [cursor=pointer]: "!"
+            - button "2603071086 · WARNING (1)" [ref=f2e597] [cursor=pointer]: "!"
+            - button "2603081076 · WARNING (1)" [ref=f2e598] [cursor=pointer]: "!"
+            - button "2603081006 · WARNING (1)" [ref=f2e599] [cursor=pointer]: "!"
+            - button "2603071096 · WARNING (1)" [ref=f2e600] [cursor=pointer]: "!"
+            - button "2610070065 · WARNING (1)" [ref=f2e601] [cursor=pointer]: "!"
+            - button "2610070025 · WARNING (1)" [ref=f2e602] [cursor=pointer]: "!"
+            - button "2610070055 · WARNING (1)" [ref=f2e603] [cursor=pointer]: "!"
+            - button "2610070095 · WARNING (1)" [ref=f2e604] [cursor=pointer]: "!"
+            - button "2610070045 · WARNING (1)" [ref=f2e605] [cursor=pointer]: "!"
+            - button "2610070015 · WARNING (1)" [ref=f2e606] [cursor=pointer]: "!"
+            - button "2610070075 · WARNING (1)" [ref=f2e607] [cursor=pointer]: "!"
+            - button "2603081045 · WARNING (1)" [ref=f2e608] [cursor=pointer]: "!"
+            - button "2405070019 · WARNING (1)" [ref=f2e609] [cursor=pointer]: "!"
+            - button "2603081025 · WARNING (1)" [ref=f2e610] [cursor=pointer]: "!"
+            - button "2603081055 · WARNING (1)" [ref=f2e611] [cursor=pointer]: "!"
+            - button "2603081035 · WARNING (1)" [ref=f2e612] [cursor=pointer]: "!"
+            - button "2603081085 · WARNING (1)" [ref=f2e613] [cursor=pointer]: "!"
+            - button "2603081065 · WARNING (1)" [ref=f2e614] [cursor=pointer]: "!"
+            - button "2603081005 · WARNING (1)" [ref=f2e615] [cursor=pointer]: "!"
+            - button "2603081075 · WARNING (1)" [ref=f2e616] [cursor=pointer]: "!"
+            - button "2603081015 · WARNING (1)" [ref=f2e617] [cursor=pointer]: "!"
+            - button "2610070034 · WARNING (1)" [ref=f2e618] [cursor=pointer]: "!"
+            - button "2610070014 · WARNING (1)" [ref=f2e619] [cursor=pointer]: "!"
+            - button "2610070044 · WARNING (1)" [ref=f2e620] [cursor=pointer]: "!"
+            - button "2405070018 · WARNING (1)" [ref=f2e621] [cursor=pointer]: "!"
+            - button "2610070054 · WARNING (1)" [ref=f2e622] [cursor=pointer]: "!"
+            - button "2610070074 · WARNING (1)" [ref=f2e623] [cursor=pointer]: "!"
+            - button "2610070084 · WARNING (1)" [ref=f2e624] [cursor=pointer]: "!"
+            - button "2405070028 · WARNING (1)" [ref=f2e625] [cursor=pointer]: "!"
+            - button "2405070017 · WARNING (1)" [ref=f2e626] [cursor=pointer]: "!"
+            - button "2603081014 · WARNING (1)" [ref=f2e627] [cursor=pointer]: "!"
+            - button "2603081044 · WARNING (1)" [ref=f2e628] [cursor=pointer]: "!"
+            - button "2603081064 · WARNING (1)" [ref=f2e629] [cursor=pointer]: "!"
+            - button "2603081024 · WARNING (1)" [ref=f2e630] [cursor=pointer]: "!"
+            - button "2603071054 · WARNING (1)" [ref=f2e631] [cursor=pointer]: "!"
+            - button "2603071064 · WARNING (1)" [ref=f2e632] [cursor=pointer]: "!"
+            - button "2603071084 · WARNING (1)" [ref=f2e633] [cursor=pointer]: "!"
+            - button "2603081054 · WARNING (1)" [ref=f2e634] [cursor=pointer]: "!"
+            - button "2603081084 · WARNING (1)" [ref=f2e635] [cursor=pointer]: "!"
+            - button "2603081034 · WARNING (1)" [ref=f2e636] [cursor=pointer]: "!"
+            - button "2607075003 · WARNING (1)" [ref=f2e637] [cursor=pointer]: "!"
+            - button "2610070053 · WARNING (1)" [ref=f2e638] [cursor=pointer]: "!"
+            - button "2610070033 · WARNING (1)" [ref=f2e639] [cursor=pointer]: "!"
+            - button "2610070073 · WARNING (1)" [ref=f2e640] [cursor=pointer]: "!"
+            - button "2610070093 · WARNING (1)" [ref=f2e641] [cursor=pointer]: "!"
+            - button "2610070003 · WARNING (1)" [ref=f2e642] [cursor=pointer]: "!"
+            - button "2603081043 · WARNING (1)" [ref=f2e643] [cursor=pointer]: "!"
+            - button "2405070035 · WARNING (1)" [ref=f2e644] [cursor=pointer]: "!"
+            - button "2603081063 · WARNING (1)" [ref=f2e645] [cursor=pointer]: "!"
+            - button "2603081033 · WARNING (1)" [ref=f2e646] [cursor=pointer]: "!"
+            - button "2603071073 · WARNING (1)" [ref=f2e647] [cursor=pointer]: "!"
+            - button "2603081053 · WARNING (1)" [ref=f2e648] [cursor=pointer]: "!"
+            - button "2603081013 · WARNING (1)" [ref=f2e649] [cursor=pointer]: "!"
+            - button "2603081003 · WARNING (1)" [ref=f2e650] [cursor=pointer]: "!"
+            - button "2603071093 · WARNING (1)" [ref=f2e651] [cursor=pointer]: "!"
+            - button "2603081023 · WARNING (1)" [ref=f2e652] [cursor=pointer]: "!"
+            - button "2603081083 · WARNING (1)" [ref=f2e653] [cursor=pointer]: "!"
+            - button "2610070052 · WARNING (1)" [ref=f2e654] [cursor=pointer]: "!"
+            - button "2610070072 · WARNING (1)" [ref=f2e655] [cursor=pointer]: "!"
+            - button "2610070022 · WARNING (1)" [ref=f2e656] [cursor=pointer]: "!"
+            - button "2610070082 · WARNING (1)" [ref=f2e657] [cursor=pointer]: "!"
+            - button "2610070092 · WARNING (1)" [ref=f2e658] [cursor=pointer]: "!"
+            - button "2405070013 · WARNING (1)" [ref=f2e659] [cursor=pointer]: "!"
+            - button "2603081032 · WARNING (1)" [ref=f2e660] [cursor=pointer]: "!"
+            - button "2603081002 · WARNING (1)" [ref=f2e661] [cursor=pointer]: "!"
+            - button "2603081062 · WARNING (1)" [ref=f2e662] [cursor=pointer]: "!"
+            - button "2603081072 · WARNING (1)" [ref=f2e663] [cursor=pointer]: "!"
+            - button "2603081012 · WARNING (1)" [ref=f2e664] [cursor=pointer]: "!"
+            - button "2603081022 · WARNING (1)" [ref=f2e665] [cursor=pointer]: "!"
+            - button "2603081052 · WARNING (1)" [ref=f2e666] [cursor=pointer]: "!"
+            - button "2603071072 · WARNING (1)" [ref=f2e667] [cursor=pointer]: "!"
+            - button "2603071092 · WARNING (1)" [ref=f2e668] [cursor=pointer]: "!"
+            - button "2603081042 · WARNING (1)" [ref=f2e669] [cursor=pointer]: "!"
+            - button "2405070022 · WARNING (1)" [ref=f2e670] [cursor=pointer]: "!"
+            - button "2610070051 · WARNING (1)" [ref=f2e671] [cursor=pointer]: "!"
+            - button "2610070011 · WARNING (1)" [ref=f2e672] [cursor=pointer]: "!"
+            - button "2405070002 · WARNING (1)" [ref=f2e673] [cursor=pointer]: "!"
+            - button "2610070021 · WARNING (1)" [ref=f2e674] [cursor=pointer]: "!"
+            - button "2610070001 · WARNING (1)" [ref=f2e675] [cursor=pointer]: "!"
+            - button "2610070081 · WARNING (1)" [ref=f2e676] [cursor=pointer]: "!"
+            - button "2610070091 · WARNING (1)" [ref=f2e677] [cursor=pointer]: "!"
+            - button "2610070071 · WARNING (1)" [ref=f2e678] [cursor=pointer]: "!"
+            - button "2610070020 · WARNING (1)" [ref=f2e679] [cursor=pointer]: "!"
+            - button "2610070100 · WARNING (1)" [ref=f2e680] [cursor=pointer]: "!"
+            - button "2610070090 · WARNING (1)" [ref=f2e681] [cursor=pointer]: "!"
+            - button "2610070060 · WARNING (1)" [ref=f2e682] [cursor=pointer]: "!"
+            - button "2405070021 · WARNING (1)" [ref=f2e683] [cursor=pointer]: "!"
+            - button "2603081051 · WARNING (1)" [ref=f2e684] [cursor=pointer]: "!"
+            - button "2603081071 · WARNING (1)" [ref=f2e685] [cursor=pointer]: "!"
+            - button "2603081031 · WARNING (1)" [ref=f2e686] [cursor=pointer]: "!"
+            - button "2603081081 · WARNING (1)" [ref=f2e687] [cursor=pointer]: "!"
+            - button "2603081021 · WARNING (1)" [ref=f2e688] [cursor=pointer]: "!"
+            - button "2603071041 · WARNING (1)" [ref=f2e689] [cursor=pointer]: "!"
+            - button "2603081001 · WARNING (1)" [ref=f2e690] [cursor=pointer]: "!"
+            - button "2603081011 · WARNING (1)" [ref=f2e691] [cursor=pointer]: "!"
+            - button "2603081061 · WARNING (1)" [ref=f2e692] [cursor=pointer]: "!"
+            - button "2405070010 · WARNING (1)" [ref=f2e693] [cursor=pointer]: "!"
+            - button "2603081050 · WARNING (1)" [ref=f2e694] [cursor=pointer]: "!"
+            - button "2603081030 · WARNING (1)" [ref=f2e695] [cursor=pointer]: "!"
+            - button "2603081010 · WARNING (1)" [ref=f2e696] [cursor=pointer]: "!"
+            - button "2603081070 · WARNING (1)" [ref=f2e697] [cursor=pointer]: "!"
+            - button "2603071080 · WARNING (1)" [ref=f2e698] [cursor=pointer]: "!"
+            - button "2603081040 · WARNING (1)" [ref=f2e699] [cursor=pointer]: "!"
+            - button "2603081020 · WARNING (1)" [ref=f2e700] [cursor=pointer]: "!"
+            - button "2607075005 · WARNING (1)" [ref=f2e701] [cursor=pointer]: "!"
+            - button "2602071128 · WARNING (1)" [ref=f2e702] [cursor=pointer]: "!"
+            - button "2506072004 · WARNING (1)" [ref=f2e703] [cursor=pointer]: "!"
+            - button "2604110002 · WARNING (1)" [ref=f2e704] [cursor=pointer]: "!"
+            - button "2607085003 · CRITICAL (2)" [ref=f2e705] [cursor=pointer]: "!"
+            - button "2607075004 · WARNING (1)" [ref=f2e706] [cursor=pointer]: "!"
+            - button "2607085005 · WARNING (1)" [ref=f2e707] [cursor=pointer]: "!"
+            - button "2607085004 · WARNING (1)" [ref=f2e708] [cursor=pointer]: "!"
+          - generic [ref=f2e140]:
+            - generic [ref=f2e143]:
+              - generic [ref=f2e144]: 10 公里
+              - generic [ref=f2e149]: 10 英里
+            - generic [ref=f2e155]:
+              - link [ref=f2e156] [cursor=pointer]:
+                - /url: http://map.qq.com?ref=jsapi_v3
+              - generic [ref=f2e158]: ©2026 Tencent - GS(2026)1190号
+        - generic "管网图层" [ref=f2e182] [cursor=pointer]
+        - status [ref=f2e187]:
+          - generic [ref=f2e188]: "!"
+          - text: 活跃报警 317
+          - generic [ref=f2e190]: 红：严重 · 黄：警告 · 蓝：提示
+        - generic [ref=f2e191]:
+          - generic [ref=f2e192]:
+            - generic [ref=f2e193]:
+              - generic [ref=f2e194]: 噪声监测仪
+              - generic [ref=f2e195]: 486 台
+            - generic "收起监测面板" [ref=f2e196] [cursor=pointer]: ›
+          - generic [ref=f2e197]:
+            - generic [ref=f2e198]:
+              - generic [ref=f2e199]: 94.03%
+              - generic [ref=f2e200]: 通讯成功率
+            - generic [ref=f2e201]:
+              - generic [ref=f2e202]: 96.30%
+              - generic [ref=f2e203]: 设备上线率
+            - generic [ref=f2e204]:
+              - generic [ref=f2e205]: "450"
+              - generic [ref=f2e206]: 正常
+            - generic [ref=f2e207]:
+              - generic [ref=f2e208]: "8"
+              - generic [ref=f2e209]: 疑似
+            - generic [ref=f2e210]:
+              - generic [ref=f2e211]: "13"
+              - generic [ref=f2e212]: 渗漏
+            - generic [ref=f2e213]:
+              - generic [ref=f2e214]: "15"
+              - generic [ref=f2e215]: 未知
+          - generic [ref=f2e216]:
+            - generic [ref=f2e217] [cursor=pointer]:
+              - generic [ref=f2e218]: 设备编号
+              - generic [ref=f2e220]:
+                - generic: 请输入设备编号
+                - searchbox [ref=f2e222]
+            - generic [ref=f2e223] [cursor=pointer]:
+              - generic [ref=f2e224]: 人工分析
+              - generic [ref=f2e225]: 全部
+            - generic [ref=f2e228] [cursor=pointer]:
+              - generic [ref=f2e229]: 蓝鲸分析
+              - generic [ref=f2e230]: 全部
+            - generic [ref=f2e233] [cursor=pointer]:
+              - generic [ref=f2e234]: 渗漏状态
+              - generic [ref=f2e235]: 全部
+            - generic [ref=f2e238] [cursor=pointer]:
+              - generic [ref=f2e239]: 设备状态
+              - generic [ref=f2e240]: 全部
+            - generic [ref=f2e243] [cursor=pointer]:
+              - generic [ref=f2e244]: 分区
+              - generic [ref=f2e245]: 全部
+            - generic [ref=f2e248] [cursor=pointer]:
+              - generic [ref=f2e249]: 当日新增
+              - generic [ref=f2e250]: 全部
+            - generic [ref=f2e253] [cursor=pointer]:
+              - generic [ref=f2e254]: 最新安装
+              - generic [ref=f2e255]: 全部
+          - generic [ref=f2e258]:
+            - generic [ref=f2e259]:
+              - generic [ref=f2e261]:
+                - generic [ref=f2e262]: 渗漏状态
+                - text: 0–10 正常，10–20 疑似，≥20 渗漏
+              - generic [ref=f2e264]:
+                - generic [ref=f2e265]: 蓝鲸分析
+                - text: 0–20 正常，20–30 疑似，≥30 渗漏
+            - generic [ref=f2e266] [cursor=pointer]: 重置
+            - generic [ref=f2e267] [cursor=pointer]: 查询
+          - generic [ref=f2e268]:
+            - generic [ref=f2e269]:
+              - generic [ref=f2e270]: 设备编号
+              - generic [ref=f2e271]: 设备状态
+              - generic [ref=f2e272]: 人工分析
+              - generic [ref=f2e273]: 蓝鲸分析
+              - generic [ref=f2e274]: 渗漏状态
+            - generic [ref=f2e275]:
+              - generic [ref=f2e276] [cursor=pointer]:
+                - generic [ref=f2e277]: "2607085003"
+                - generic [ref=f2e278]: 正常
+                - generic [ref=f2e281]: 未知
+                - generic [ref=f2e283]: 渗漏
+                - 'generic "特征值: 0" [ref=f2e285]': 渗漏
+              - generic [ref=f2e287] [cursor=pointer]:
+                - generic [ref=f2e288]: "2607075004"
+                - generic [ref=f2e289]: 离线
+                - generic [ref=f2e292]: 未知
+                - generic [ref=f2e294]: 疑似
+                - 'generic "特征值: 2" [ref=f2e296]': 正常
+              - generic [ref=f2e298] [cursor=pointer]:
+                - generic [ref=f2e299]: "2602071011"
+                - generic [ref=f2e300]: 离线
+                - generic [ref=f2e303]: 未知
+                - generic [ref=f2e305]: 未知
+                - 'generic "特征值: 0" [ref=f2e307]': 正常
+              - generic [ref=f2e309] [cursor=pointer]:
+                - generic [ref=f2e310]: "2610070024"
+                - generic [ref=f2e311]: 离线
+                - generic [ref=f2e314]: 未知
+                - generic [ref=f2e316]: 疑似
+                - 'generic "特征值: 0" [ref=f2e318]': 正常
+              - generic [ref=f2e320] [cursor=pointer]:
+                - generic [ref=f2e321]: "2602071128"
+                - generic [ref=f2e322]: 离线
+                - generic [ref=f2e325]: 未知
+                - generic [ref=f2e327]: 未知
+                - 'generic "特征值: 0" [ref=f2e329]': 正常
+              - generic [ref=f2e331] [cursor=pointer]:
+                - generic [ref=f2e332]: "2610070050"
+                - generic [ref=f2e333]: 离线
+                - generic [ref=f2e336]: 未知
+                - generic [ref=f2e338]: 疑似
+                - 'generic "特征值: 0" [ref=f2e340]': 正常
+              - generic [ref=f2e342] [cursor=pointer]:
+                - generic [ref=f2e343]: "2610070066"
+                - generic [ref=f2e344]: 正常
+                - generic [ref=f2e347]: 未知
+                - generic [ref=f2e349]: 疑似
+                - 'generic "特征值: 0" [ref=f2e351]': 正常
+              - generic [ref=f2e353] [cursor=pointer]:
+                - generic [ref=f2e354]: "2610070023"
+                - generic [ref=f2e355]: 离线
+                - generic [ref=f2e358]: 未知
+                - generic [ref=f2e360]: 疑似
+                - 'generic "特征值: 0" [ref=f2e362]': 正常
+              - generic [ref=f2e364] [cursor=pointer]:
+                - generic [ref=f2e365]: "2610070046"
+                - generic [ref=f2e366]: 离线
+                - generic [ref=f2e369]: 未知
+                - generic [ref=f2e371]: 疑似
+                - 'generic "特征值: 0" [ref=f2e373]': 正常
+              - generic [ref=f2e375] [cursor=pointer]:
+                - generic [ref=f2e376]: "2610070012"
+                - generic [ref=f2e377]: 离线
+                - generic [ref=f2e380]: 未知
+                - generic [ref=f2e382]: 疑似
+                - 'generic "特征值: 0" [ref=f2e384]': 正常
+          - generic [ref=f2e387]:
+            - generic [ref=f2e388]: 共 486 条
+            - generic [ref=f2e389]: 首页
+            - generic [ref=f2e390]: 上一页
+            - generic [ref=f2e391]: 第 1 / 49 页
+            - generic [ref=f2e392] [cursor=pointer]: 下一页
+            - generic [ref=f2e393] [cursor=pointer]: 末页
+        - generic [ref=f2e709]:
+          - generic [ref=f2e710]:
+            - generic [ref=f2e711]:
+              - generic [ref=f2e712]: "2607085003"
+              - generic [ref=f2e713]: "设备 ID: 3"
+              - generic [ref=f2e714]: 渗漏
+            - generic "关闭设备详情" [ref=f2e715] [cursor=pointer]: ×
+          - generic [ref=f2e716]:
+            - generic [ref=f2e717] [cursor=pointer]: 噪声分析
+            - generic [ref=f2e718] [cursor=pointer]: 历史数据
+            - generic [ref=f2e719] [cursor=pointer]: 设备详情
+            - generic [ref=f2e720] [cursor=pointer]: 维护记录
+            - generic [ref=f2e721] [cursor=pointer]: 人工分析
+            - generic [ref=f2e722] [cursor=pointer]: 关联分析
+            - generic [ref=f2e723] [cursor=pointer]: 设备查找
+          - generic [ref=f2e728]:
+            - generic [ref=f2e729]: 设备信息
+            - generic [ref=f2e730]:
+              - generic [ref=f2e731]:
+                - generic [ref=f2e732]: 传输通道
+                - generic [ref=f2e733]: TCP 直连
+              - generic [ref=f2e734]:
+                - generic [ref=f2e735]: 下发协议版本
+                - generic [ref=f2e736]: "-"
+              - generic [ref=f2e737]:
+                - generic [ref=f2e738]: 云产品
+                - generic [ref=f2e739]: "-"
+              - generic [ref=f2e740]:
+                - generic [ref=f2e741]: 电信平台设备 ID
+                - generic [ref=f2e742]: "-"
+              - generic [ref=f2e743]:
+                - generic [ref=f2e744]: 算法版本
+                - generic [ref=f2e745]: "-"
+              - generic [ref=f2e746]:
+                - generic [ref=f2e747]: 位置坐标
+                - generic [ref=f2e748]: 120.0,30.0
+              - generic [ref=f2e749]:
+                - generic [ref=f2e750]: 所属分区
+                - generic [ref=f2e751]: 测试分区
+              - generic [ref=f2e752]:
+                - generic [ref=f2e753]: 设备状态
+                - generic [ref=f2e754]: 离线
+              - generic [ref=f2e755]:
+                - generic [ref=f2e756]: 云在线状态
+                - generic [ref=f2e757]: 在线
+              - generic [ref=f2e758]:
+                - generic [ref=f2e759]: TCP 在线状态
+                - generic [ref=f2e760]: 离线
+              - generic [ref=f2e761]:
+                - generic [ref=f2e762]: 安装地址
+                - generic [ref=f2e763]: 北京
+              - generic [ref=f2e764]:
+                - generic [ref=f2e765]: 安装状态
+                - generic [ref=f2e766]: 已安装
+              - generic [ref=f2e767]:
+                - generic [ref=f2e768]: 管道口径
+                - generic [ref=f2e769]: "-"
+              - generic [ref=f2e770]:
+                - generic [ref=f2e771]: 管道材质
+                - generic [ref=f2e772]: "-"
+              - generic [ref=f2e773]:
+                - generic [ref=f2e774]: 管道编号
+                - generic [ref=f2e775]: "-"
+              - generic [ref=f2e776]:
+                - generic [ref=f2e777]: 阀门编号
+                - generic [ref=f2e778]: "-"
+              - generic [ref=f2e779]:
+                - generic [ref=f2e780]: 接收时间
+                - generic [ref=f2e781]: 2026-09-06T01:11:13
+              - generic [ref=f2e782]:
+                - generic [ref=f2e783]: 观测天数
+                - generic [ref=f2e784]: "14"
+              - generic [ref=f2e785]:
+                - generic [ref=f2e786]: 信号强度
+                - generic [ref=f2e787]: "53"
+              - generic [ref=f2e788]:
+                - generic [ref=f2e789]: 硬件版本
+                - generic [ref=f2e790]: V1.1
+              - generic [ref=f2e791]:
+                - generic [ref=f2e792]: 电池电压
+                - generic [ref=f2e793]: "3.195"
+              - generic [ref=f2e794]:
+                - generic [ref=f2e795]: 固件版本
+                - generic [ref=f2e796]: V1.1
+              - generic [ref=f2e797]:
+                - generic [ref=f2e798]: IMEI
+                - generic [ref=f2e799]: "863235087903629"
+              - generic [ref=f2e800]:
+                - generic [ref=f2e801]: IMSI
+                - generic [ref=f2e802]: "454031073861490"

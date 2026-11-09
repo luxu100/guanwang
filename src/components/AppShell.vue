@@ -51,7 +51,7 @@
           compact
           class="top-actions__logo-binding"
         />
-        <view class="warning-entry" aria-label="预警信息">
+        <view v-if="accessibleMenuPathSet.size > 0" class="warning-entry" aria-label="预警信息">
           <view class="warning-entry__trigger" @click="toggleAlarmPanel">
             <view class="warning-entry__icon-wrap">
               <text class="warning-entry__icon"></text>
@@ -212,8 +212,8 @@
           <!-- AppShell 内部切换目录时真实页面不会立即卸载，内容必须跟随 currentPath 控制。 -->
           <AdminPlaceholderView
             v-if="showNoAccessState"
-            title="暂无页面权限"
-            path="请联系管理员为当前账号分配菜单权限"
+            :title="locale === 'en-US' ? 'No page access' : '暂无页面权限'"
+            :path="locale === 'en-US' ? 'Ask an administrator to grant menu access and sign in again.' : '请联系管理员分配菜单权限后重新登录'"
           />
           <LocaleLeakMap
             v-else-if="isLeakMonitorActive"
@@ -251,7 +251,8 @@ import appShellModules from "@/components/app-shell/appShellModules.localized";
 
 import { MENU_COLLAPSED_KEY, OPENED_TABS_KEY } from "@/utils/appShellStorage";
 import { clearAuthStorage, createProtectedRouteDecision, LOGIN_PATH } from "@/utils/authGuard";
-import { filterMenuItemsByAccess, flattenMenuPaths, getMenuAccessSummary } from "@/utils/menuAccess";
+import { frontendMenuItems } from "@/utils/frontendMenu";
+import { filterMenuItemsByAccess, flattenMenuPaths } from "@/utils/menuAccess";
 import { TOKEN_KEY } from "@/utils/request";
 import LocaleLeakMap from "@/pages/leak-monitor/components/LocaleLeakMap.vue";
 import OneMapDashboardView from "@/pages/one-map/components/OneMapDashboardView.vue";
@@ -323,137 +324,7 @@ const {
  * path 必须和 src/pages.json 中注册的页面路径一致；icon 对应下方样式中
  * side-menu__icon--xxx / page-tab__icon--xxx 的掩码图标。
  */
-const menuItems: MenuItem[] = [
-  { labelKey: "favorite", path: "/pages/index/index", icon: "star", keywords: ["首页", "收藏"] },
-  { labelKey: "oneMap", path: "/pages/one-map/one-map", icon: "trend", keywords: ["一张图", "在线监测", "总览"] },
-  { labelKey: "leakMonitor", path: "/pages/leak-monitor/leak-monitor", icon: "monitor", keywords: ["渗漏", "监测"] },
-  { labelKey: "waterHammer", path: "/pages/water-hammer/water-hammer", icon: "chart", permissionCode: "page:water-hammer", keywords: ["水锤", "波形", "阀门", "模拟"] },
-  { labelKey: "partition", path: "/pages/partition/partition", icon: "partition", keywords: ["分区", "部门", "管理"] },
-  {
-    labelKey: "device",
-    path: "/pages/device/info/info",
-    icon: "device",
-    keywords: ["设备"],
-    children: [
-      { labelKey: "deviceInfo", path: "/pages/device/info/info", icon: "device", keywords: ["设备", "信息"] },
-      { labelKey: "deviceMaintenance", path: "/pages/device/maintenance/maintenance", icon: "device", keywords: ["拆装", "维护"] },
-      { labelKey: "deviceProtocol", path: "/pages/device/protocol/protocol", icon: "device", keywords: ["协议"] },
-      { labelKey: "deviceParameter", path: "/pages/device/parameter/parameter", icon: "device", keywords: ["参数"] },
-      { labelKey: "deviceValve", path: "/pages/device/valve/valve", icon: "device", keywords: ["阀门"] },
-    ],
-  },
-  {
-    labelKey: "command",
-    path: "/pages/command/commandManage",
-    icon: "device",
-    permissionCode: "module:command",
-    keywords: ["指令"],
-    children: [
-      { labelKey: "commandManage", path: "/pages/command/commandManage", icon: "device", permissionCode: "page:command:manage", keywords: ["指令", "管理"] },
-      { labelKey: "commandConfiguration", path: "/pages/command/commandConfiguration", icon: "device", permissionCode: "page:command:configuration", keywords: ["指令", "配置"] },
-    ],
-  },
-  {
-    labelKey: "statistics",
-    path: "/pages/statistics/statistics", icon: "trend",
-    keywords: ["统计"],
-    children: [
-      { labelKey: "statisticsLeakOverview", path: "/pages/leak-report/history-overview/history-overview", icon: "report", keywords: ["历史"] },
-      { labelKey: "statisticsDataOverview", path: "/pages/data-analysis/overview/overview", icon: "chart", keywords: ["系统", "总览"] },
-    ],
-  },
-  {
-    labelKey: "dataAnalysis",
-    path: "/pages/data-analysis/overview/overview",
-    icon: "chart",
-    keywords: ["分析", "数据"],
-    children: [
-      { labelKey: "dataAnalysisAudio", path: "/pages/data-analysis/audio/audio", icon: "chart", keywords: ["音频"] },
-      { labelKey: "dataAnalysisLeakage", path: "/pages/data-analysis/leakage/leakage", icon: "chart", keywords: ["渗漏"] },
-    ],
-  },
-  {
-    labelKey: "leakReport",
-    path: "/pages/leak-report/suspect-management/suspect-management",
-    icon: "report",
-    keywords: ["疑漏点", "上报", "疑点", "漏点"],
-    children: [
-      { labelKey: "suspectManagement", path: "/pages/leak-report/suspect-management/suspect-management", icon: "report", keywords: ["疑点"] },
-      { labelKey: "suspectProcessing", path: "/pages/leak-report/suspect-processing/suspect-processing", icon: "report", keywords: ["处理"] },
-      { labelKey: "leakManagement", path: "/pages/leak-report/leak-management/leak-management", icon: "report", keywords: ["漏点"] },
-      { labelKey: "leakAnalysis", path: "/pages/leak-report/leak-analysis/leak-analysis", icon: "report", keywords: ["分析"] },
-    ],
-  },
-  {
-    labelKey: "workOrder",
-    path: "/pages/work-order/create/create",
-    icon: "order",
-    keywords: ["工单"],
-    children: [
-      { labelKey: "workOrderCreate", path: "/pages/work-order/create/create", icon: "order", keywords: ["创建"] },
-      { labelKey: "workOrderProcessing", path: "/pages/work-order/processing/processing", icon: "order", keywords: ["处理"] },
-    ],
-  },
-  {
-    labelKey: "report",
-    path: "/pages/report/device-resume/device-resume",
-    icon: "report",
-    keywords: ["运维", "报表"],
-    children: [
-      { labelKey: "reportDeviceResume", path: "/pages/report/device-resume/device-resume", icon: "report", keywords: ["设备", "履历"] },
-      { labelKey: "reportDeviceLedger", path: "/pages/report/device-ledger/device-ledger", icon: "report", keywords: ["设备", "台账"] },
-      { labelKey: "reportBatteryHealth", path: "/pages/report/battery-health/battery-health", icon: "report", keywords: ["电池", "健康"] },
-      { labelKey: "reportOperationAnalysis", path: "/pages/report/operation-analysis/operation-analysis", icon: "report", keywords: ["运行", "分析"] },
-    ],
-  },
-  {
-    labelKey: "leakBurst",
-    path: "/pages/leak-burst/burst-identification/burst-identification",
-    icon: "report",
-    keywords: ["渗漏", "爆管"],
-    children: [
-      { labelKey: "burstIdentification", path: "/pages/leak-burst/burst-identification/burst-identification", icon: "report", keywords: ["爆管", "识别"] },
-      { labelKey: "measurementAnalysis", path: "/pages/leak-burst/measurement-analysis/measurement-analysis", icon: "report", keywords: ["测点", "分析"] },
-      { labelKey: "leakLocation", path: "/pages/leak-burst/leak-location/leak-location", icon: "report", keywords: ["漏点", "定位", "双设备"] },
-      { labelKey: "lossReport", path: "/pages/leak-burst/loss-report/loss-report", icon: "report", keywords: ["漏损", "报表"] },
-    ],
-  },
-  {
-    labelKey: "alarm",
-    path: "/pages/alarm/strategy/strategy",
-    icon: "alarm",
-    keywords: ["告警", "报警"],
-    children: [
-      { labelKey: "alarmStrategy", path: "/pages/alarm/strategy/strategy", icon: "alarm", keywords: ["策略"] },
-      { labelKey: "alarmProcessing", path: "/pages/alarm/processing/processing", icon: "alarm", keywords: ["处理"] },
-    ],
-  },
-  {
-    labelKey: "system",
-    path: "/pages/system/user/user",
-    icon: "setting",
-    keywords: ["设置", "用户"],
-    children: [
-      { labelKey: "systemUser", path: "/pages/system/user/user", icon: "setting", keywords: ["用户"] },
-      { labelKey: "systemAuth", path: "/pages/system/auth/auth", icon: "setting", keywords: ["权限"] },
-      { labelKey: "systemMenu", path: "/pages/system/menu/menu", icon: "setting", keywords: ["菜单"] },
-      { labelKey: "systemDict", path: "/pages/system/dict/dict", icon: "setting", keywords: ["字典"] },
-      { labelKey: "systemSearch", path: "/pages/system/search/search", icon: "setting", keywords: ["模板"] },
-    ],
-  },
-  {
-    labelKey: "dataReceive",
-    path: "/pages/data-receive/access/access",
-    icon: "command",
-    keywords: ["数据接收", "解析", "接入"],
-    permissionCode: "module:data-receive",
-    children: [
-      { labelKey: "dataReceiveProtocol", path: "/pages/data-receive/access/access", icon: "command", permissionCode: "page:data-receive:protocol", keywords: ["协议", "接入", "定义", "绑定"] },
-      { labelKey: "dataReceiveParse", path: "/pages/data-receive/parse/parse", icon: "command", permissionCode: "page:data-receive:parse", keywords: ["解析"] },
-      { labelKey: "dataReceiveRecord", path: "/pages/data-receive/record/record", icon: "command", permissionCode: "page:data-receive:record", keywords: ["记录"] },
-    ],
-  },
-];
+const menuItems: MenuItem[] = frontendMenuItems;
 
 const shellContentDefinitions: Record<string, ShellContentDefinition> = {
   "/pages/index/index": createPlaceholderContent("/pages/index/index"),
@@ -535,13 +406,13 @@ const menuAccessState = computed(() => ({
   roles: uni.getStorageSync("roles") || [],
   userInfo: uni.getStorageSync("userInfo") || {},
 }));
-const menuAccessSummary = computed(() => getMenuAccessSummary(menuAccessState.value));
 const filteredMenuItems = computed(() => {
   return filterMenuItemsByAccess(menuItems, menuAccessState.value);
 });
-const accessibleMenuPathSet = computed(() => new Set(flattenMenuPaths(filteredMenuItems.value)));
-const firstAccessibleMenuPath = computed(() => flattenMenuPaths(filteredMenuItems.value)[0] || "");
-const showNoAccessState = computed(() => menuAccessSummary.value.hasAccessData && accessibleMenuPathSet.value.size === 0);
+const accessibleMenuPaths = computed(() => flattenMenuPaths(filteredMenuItems.value));
+const accessibleMenuPathSet = computed(() => new Set(accessibleMenuPaths.value));
+const firstAccessibleMenuPath = computed(() => accessibleMenuPaths.value[0] || "");
+const showNoAccessState = computed(() => !isMenuPathAccessible(currentPath.value));
 
 const userName = computed(() => {
   const userInfo = uni.getStorageSync("userInfo");
@@ -963,8 +834,7 @@ function getBrowserPath() {
 }
 
 function isMenuPathAccessible(path: string) {
-  const paths = accessibleMenuPathSet.value;
-  return paths.size === 0 ? !menuAccessSummary.value.hasAccessData : paths.has(path);
+  return accessibleMenuPathSet.value.has(path);
 }
 
 function getAccessiblePathOrFallback(path: string) {
@@ -982,7 +852,9 @@ function ensureCurrentPathAccessible() {
   }
 
   currentPath.value = nextPath;
+  // #ifdef H5
   replaceBrowserPath(nextPath);
+  // #endif
 }
 
 function pruneOpenedTabsByAccess() {
@@ -1275,9 +1147,11 @@ onMounted(() => {
   window.addEventListener("keydown", handleFullscreenKeydown);
   window.addEventListener(BRAND_LOGO_UPDATED_EVENT, refreshNavigationLogo);
   syncFullscreenState();
-  void refreshWarningCount();
-  startWarningPolling();
-  document.addEventListener("mousedown", onDocMouseDownCloseAlarmPanel);
+  if (accessibleMenuPathSet.value.size > 0) {
+    void refreshWarningCount();
+    startWarningPolling();
+    document.addEventListener("mousedown", onDocMouseDownCloseAlarmPanel);
+  }
 });
 
 onUnmounted(() => {
@@ -1296,6 +1170,8 @@ onUnmounted(() => {
 onMounted(() => {
   if (ensureAuthenticatedRoute()) {
     applyUserLocale();
+    ensureCurrentPathAccessible();
+    pruneOpenedTabsByAccess();
     void refreshNavigationLogo();
   }
 });

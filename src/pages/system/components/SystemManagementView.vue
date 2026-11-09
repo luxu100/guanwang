@@ -36,7 +36,14 @@
             :class="{ 'side-list__item--active': getId(item) === getId(selectedRole) }"
             @click="selectRole(item)"
           >
-            <text class="side-list__title">{{ getRoleName(item) }}</text>
+            <view class="role-title-row">
+              <text class="side-list__title">{{ getRoleName(item) }}</text>
+              <text
+                v-if="isSuperAdminRole(item)"
+                class="role-admin-note"
+                :title="localeText('超级管理员可访问全部前端页面，勾选项展示显式授权记录。', 'Super administrators can access all frontend pages. Checkboxes show explicit grants.')"
+              >{{ localeText("全部页面", "All pages") }}</text>
+            </view>
             <text class="side-list__sub">{{ getText(item, ['roleCode'], '未配置编码') }}</text>
           </view>
           <view v-if="!roles.length && !loading" class="empty-tip">暂无角色数据</view>
@@ -346,6 +353,9 @@
               <text>权限树配置</text>
               <text class="detail-head__sub">基于菜单结构为当前角色分配权限</text>
             </view>
+            <view v-if="permissionLoadError || rolePermissionError" class="permission-load-error" role="alert" data-i18n-raw>
+              {{ permissionLoadError || rolePermissionError }}
+            </view>
             <scroll-view class="permission-tree" scroll-y>
               <view
                 v-for="item in permissions"
@@ -373,7 +383,7 @@
                 {{ areAllPermissionsChecked ? "取消全选" : "全选" }}
               </button>
               <button class="toolbar-button" hover-class="toolbar-button--hover" @click="clearPermissionSelection">清空选择</button>
-              <button class="toolbar-button toolbar-button--primary" :disabled="saving || !getId(selectedRole)" hover-class="toolbar-button--hover" @click="saveRolePermissions">
+              <button class="toolbar-button toolbar-button--primary" :disabled="saving || rolePermissionLoading || !!rolePermissionError || permissionSource === 'local' || !getId(selectedRole)" hover-class="toolbar-button--hover" @click="saveRolePermissions">
                 {{ saving ? "保存中..." : "保存权限" }}
               </button>
             </view>
@@ -382,6 +392,7 @@
         </view>
 
         <view v-else-if="mode === 'menu'" class="content-layout content-layout--vertical">
+          <view v-if="menuLoadError" class="permission-load-error" role="alert" data-i18n-raw>{{ menuLoadError }}</view>
           <view class="table-panel">
             <view class="table-head">
               <text>菜单资源列表</text>
@@ -623,9 +634,12 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
+import { useLocaleText } from "@/i18n/localeText";
+const localeText = useLocaleText();
 import UserLogoBindingField from "@/pages/system/components/UserLogoBindingField.vue";
 import { assignUserDepts, getUserDepts,getUserList, assignUserRoles, deleteUser, getUserPage, register, updateAdminUserLogo, updateUser, type RegisterParams } from "@/services/system/user";
-import { applyUserLocale } from "@/i18n";
+import { applyUserLocale, createScopedT } from "@/i18n";
+const frontendMenuT = createScopedT("appShellMenu");
 import { updateCurrentUserLogoId } from "@/utils/branding";
 import { getRolePermissions,assignRolePermissions, createRole, deleteRole, getPermissionList, getPermissionTree, getRoleDetail, getRoleList, getRolePage, updateRole } from "@/services/system/auth";
 import { batchDeleteMenu, createMenu, deleteMenu, getMenuList, getMenuPage, getMenuTree, updateMenu } from "@/services/system/menu";
@@ -647,6 +661,8 @@ import {
   removeEmptyFields,
   toastError,
 } from "@/utils/adminData";
+import appShellZhCN from "@/components/locales/zh-CN.json";
+import { createDefaultMenuTree, getFrontendMenuByCode, sortFrontendMenuResources } from "@/utils/frontendMenu";
 import { buildUserRoleAssignment } from "@/utils/adminUserBinding";
 import { confirmAction, confirmDangerAction } from "@/utils/confirmAction";
 
@@ -664,6 +680,7 @@ type DefaultMenuSyncResult = {
 
 const LOCAL_MENU_ID_PREFIX = "local-menu:";
 const STALE_DEFAULT_MENU_CODES = new Set([
+  "page:data-analysis:device-params",
   "page:device:status",
   "page:work-order:statistics",
   "page:alarm:analysis",
@@ -672,6 +689,7 @@ const STALE_DEFAULT_MENU_CODES = new Set([
   "page:report:command",
 ]);
 const STALE_DEFAULT_MENU_PATHS = new Set([
+  "/pages/data-analysis/device-params/device-params",
   "/pages/alarm/analysis/analysis",
   "/pages/report/generate/generate",
   "/pages/report/operation/operation",
@@ -684,156 +702,7 @@ function isStaleDefaultMenu(item: RecordLike) {
   return STALE_DEFAULT_MENU_CODES.has(code) || STALE_DEFAULT_MENU_PATHS.has(path);
 }
 
-const defaultMenuTree: RecordLike[] = [
-  { id: `${LOCAL_MENU_ID_PREFIX}favorite`, permissionName: "我的收藏", permissionCode: "page:favorite", path: "/pages/index/index", permissionType: 1, status: 1 },
-  { id: `${LOCAL_MENU_ID_PREFIX}leak-monitor`, permissionName: "渗漏监测", permissionCode: "page:leak-monitor", path: "/pages/leak-monitor/leak-monitor", permissionType: 1, status: 1 },
-  { id: `${LOCAL_MENU_ID_PREFIX}water-hammer`, permissionName: "水锤分析", permissionCode: "page:water-hammer", path: "/pages/water-hammer/water-hammer", permissionType: 1, status: 1 },
-  { id: `${LOCAL_MENU_ID_PREFIX}partition`, permissionName: "分区管理", permissionCode: "page:partition", path: "/pages/partition/partition", permissionType: 1, status: 1 },
-  {
-    id: `${LOCAL_MENU_ID_PREFIX}device`,
-    permissionName: "设备管理",
-    permissionCode: "module:device",
-    path: "/pages/device/info/info",
-    permissionType: 0,
-    status: 1,
-    children: [
-      { id: `${LOCAL_MENU_ID_PREFIX}device-info`, permissionName: "设备信息", permissionCode: "page:device:info", path: "/pages/device/info/info", parentId: `${LOCAL_MENU_ID_PREFIX}device`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}device-maintenance`, permissionName: "拆装维护", permissionCode: "page:device:maintenance", path: "/pages/device/maintenance/maintenance", parentId: `${LOCAL_MENU_ID_PREFIX}device`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}device-settings`, permissionName: "设备参数", permissionCode: "page:device:settings", path: "/pages/device/settings/settings", parentId: `${LOCAL_MENU_ID_PREFIX}device`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}device-valve`, permissionName: "阀门管理", permissionCode: "page:device:valve", path: "/pages/device/valve/valve", parentId: `${LOCAL_MENU_ID_PREFIX}device`, permissionType: 1, status: 1 },
-    ],
-  },
-  {
-    id: `${LOCAL_MENU_ID_PREFIX}system`,
-    permissionName: "系统设置",
-    permissionCode: "module:system",
-    path: "/pages/system/user/user",
-    permissionType: 0,
-    status: 1,
-    children: [
-      { id: `${LOCAL_MENU_ID_PREFIX}system-user`, permissionName: "用户配置", permissionCode: "page:system:user", path: "/pages/system/user/user", parentId: `${LOCAL_MENU_ID_PREFIX}system`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}system-auth`, permissionName: "权限管理", permissionCode: "page:system:auth", path: "/pages/system/auth/auth", parentId: `${LOCAL_MENU_ID_PREFIX}system`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}system-menu`, permissionName: "菜单管理", permissionCode: "page:system:menu", path: "/pages/system/menu/menu", parentId: `${LOCAL_MENU_ID_PREFIX}system`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}system-search`, permissionName: "查询模板", permissionCode: "page:system:search", path: "/pages/system/search/search", parentId: `${LOCAL_MENU_ID_PREFIX}system`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}system-dict`, permissionName: "数据字典", permissionCode: "page:system:dict", path: "/pages/system/dict/dict", parentId: `${LOCAL_MENU_ID_PREFIX}system`, permissionType: 1, status: 1 },
-    ],
-  },
-  {
-    id: `${LOCAL_MENU_ID_PREFIX}command`,
-    permissionName: "指令管理",
-    permissionCode: "module:command",
-    path: "/pages/command/commandManage",
-    permissionType: 0,
-    status: 1,
-    children: [
-      { id: `${LOCAL_MENU_ID_PREFIX}command-manage`, permissionName: "指令管理", permissionCode: "page:command:manage", path: "/pages/command/commandManage", parentId: `${LOCAL_MENU_ID_PREFIX}command`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}command-configuration`, permissionName: "固件管理", permissionCode: "page:command:configuration", path: "/pages/command/commandConfiguration", parentId: `${LOCAL_MENU_ID_PREFIX}command`, permissionType: 1, status: 1 },
-    ],
-  },
-  {
-    id: `${LOCAL_MENU_ID_PREFIX}data-analysis`,
-    permissionName: "数据分析",
-    permissionCode: "module:data-analysis",
-    path: "/pages/data-analysis/overview/overview",
-    permissionType: 0,
-    status: 1,
-    children: [
-      { id: `${LOCAL_MENU_ID_PREFIX}data-analysis-audio`, permissionName: "音频数据", permissionCode: "page:data-analysis:audio", path: "/pages/data-analysis/audio/audio", parentId: `${LOCAL_MENU_ID_PREFIX}data-analysis`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}data-analysis-leakage`, permissionName: "渗漏数据", permissionCode: "page:data-analysis:leakage", path: "/pages/data-analysis/leakage/leakage", parentId: `${LOCAL_MENU_ID_PREFIX}data-analysis`, permissionType: 1, status: 1 },
-    ],
-  },
-  {
-    id: `${LOCAL_MENU_ID_PREFIX}leak-report`,
-    permissionName: "疑漏点上报",
-    permissionCode: "module:leak-report",
-    path: "/pages/leak-report/suspect-management/suspect-management",
-    permissionType: 0,
-    status: 1,
-    children: [
-      { id: `${LOCAL_MENU_ID_PREFIX}leak-report-suspect-management`, permissionName: "疑点管理", permissionCode: "page:leak-report:suspect-management", path: "/pages/leak-report/suspect-management/suspect-management", parentId: `${LOCAL_MENU_ID_PREFIX}leak-report`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}leak-report-suspect-processing`, permissionName: "疑点处理", permissionCode: "page:leak-report:suspect-processing", path: "/pages/leak-report/suspect-processing/suspect-processing", parentId: `${LOCAL_MENU_ID_PREFIX}leak-report`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}leak-report-leak-management`, permissionName: "漏点管理", permissionCode: "page:leak-report:leak-management", path: "/pages/leak-report/leak-management/leak-management", parentId: `${LOCAL_MENU_ID_PREFIX}leak-report`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}leak-report-leak-analysis`, permissionName: "漏点分析", permissionCode: "page:leak-report:leak-analysis", path: "/pages/leak-report/leak-analysis/leak-analysis", parentId: `${LOCAL_MENU_ID_PREFIX}leak-report`, permissionType: 1, status: 1 },
-    ],
-  },
-  {
-    id: `${LOCAL_MENU_ID_PREFIX}statistics`,
-    permissionName: "统计分析",
-    permissionCode: "page:statistics",
-    path: "/pages/statistics/statistics",
-    permissionType: 0,
-    status: 1,
-    children: [
-      { id: `${LOCAL_MENU_ID_PREFIX}statistics-leak-report-overview`, permissionName: "疑漏模块总览", permissionCode: "page:leak-report:history-overview", path: "/pages/leak-report/history-overview/history-overview", parentId: `${LOCAL_MENU_ID_PREFIX}statistics`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}statistics-data-analysis-overview`, permissionName: "数据系统总览", permissionCode: "page:data-analysis:overview", path: "/pages/data-analysis/overview/overview", parentId: `${LOCAL_MENU_ID_PREFIX}statistics`, permissionType: 1, status: 1 },
-    ],
-  },
-  {
-    id: `${LOCAL_MENU_ID_PREFIX}work-order`,
-    permissionName: "工单管理",
-    permissionCode: "module:work-order",
-    path: "/pages/work-order/create/create",
-    permissionType: 0,
-    status: 1,
-    children: [
-      { id: `${LOCAL_MENU_ID_PREFIX}work-order-create`, permissionName: "工单创建", permissionCode: "page:work-order:create", path: "/pages/work-order/create/create", parentId: `${LOCAL_MENU_ID_PREFIX}work-order`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}work-order-processing`, permissionName: "工单处理", permissionCode: "page:work-order:processing", path: "/pages/work-order/processing/processing", parentId: `${LOCAL_MENU_ID_PREFIX}work-order`, permissionType: 1, status: 1 },
-    ],
-  },
-  {
-    id: `${LOCAL_MENU_ID_PREFIX}alarm`,
-    permissionName: "实时报警",
-    permissionCode: "module:alarm",
-    path: "/pages/alarm/strategy/strategy",
-    permissionType: 0,
-    status: 1,
-    children: [
-      { id: `${LOCAL_MENU_ID_PREFIX}alarm-strategy`, permissionName: "报警策略", permissionCode: "page:alarm:strategy", path: "/pages/alarm/strategy/strategy", parentId: `${LOCAL_MENU_ID_PREFIX}alarm`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}alarm-processing`, permissionName: "报警处理", permissionCode: "page:alarm:processing", path: "/pages/alarm/processing/processing", parentId: `${LOCAL_MENU_ID_PREFIX}alarm`, permissionType: 1, status: 1 },
-    ],
-  },
-  {
-    id: `${LOCAL_MENU_ID_PREFIX}report`,
-    permissionName: "运维报表",
-    permissionCode: "module:report",
-    path: "/pages/report/device-resume/device-resume",
-    permissionType: 0,
-    status: 1,
-    children: [
-      { id: `${LOCAL_MENU_ID_PREFIX}report-device-resume`, permissionName: "设备履历", permissionCode: "page:report:device-resume", path: "/pages/report/device-resume/device-resume", parentId: `${LOCAL_MENU_ID_PREFIX}report`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}report-device-ledger`, permissionName: "设备台账", permissionCode: "page:report:device-ledger", path: "/pages/report/device-ledger/device-ledger", parentId: `${LOCAL_MENU_ID_PREFIX}report`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}report-battery-health`, permissionName: "电池健康度", permissionCode: "page:report:battery-health", path: "/pages/report/battery-health/battery-health", parentId: `${LOCAL_MENU_ID_PREFIX}report`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}report-operation-analysis`, permissionName: "运行分析报告", permissionCode: "page:report:operation-analysis", path: "/pages/report/operation-analysis/operation-analysis", parentId: `${LOCAL_MENU_ID_PREFIX}report`, permissionType: 1, status: 1 },
-    ],
-  },
-  {
-    id: `${LOCAL_MENU_ID_PREFIX}leak-burst`,
-    permissionName: "渗漏爆管",
-    permissionCode: "module:leak-burst",
-    path: "/pages/leak-burst/burst-identification/burst-identification",
-    permissionType: 0,
-    status: 1,
-    children: [
-      { id: `${LOCAL_MENU_ID_PREFIX}leak-burst-identification`, permissionName: "爆管识别", permissionCode: "page:leak-burst:identification", path: "/pages/leak-burst/burst-identification/burst-identification", parentId: `${LOCAL_MENU_ID_PREFIX}leak-burst`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}leak-burst-measurement-analysis`, permissionName: "测点分析", permissionCode: "page:leak-burst:measurement-analysis", path: "/pages/leak-burst/measurement-analysis/measurement-analysis", parentId: `${LOCAL_MENU_ID_PREFIX}leak-burst`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}leak-burst-leak-location`, permissionName: "漏点定位", permissionCode: "page:leak-burst:leak-location", path: "/pages/leak-burst/leak-location/leak-location", parentId: `${LOCAL_MENU_ID_PREFIX}leak-burst`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}leak-burst-loss-report`, permissionName: "漏损报表", permissionCode: "page:leak-burst:loss-report", path: "/pages/leak-burst/loss-report/loss-report", parentId: `${LOCAL_MENU_ID_PREFIX}leak-burst`, permissionType: 1, status: 1 },
-    ],
-  },
-  {
-    id: `${LOCAL_MENU_ID_PREFIX}data-receive`,
-    permissionName: "数据接收和解析",
-    permissionCode: "module:data-receive",
-    path: "/pages/data-receive/access/access",
-    permissionType: 0,
-    status: 1,
-    children: [
-      { id: `${LOCAL_MENU_ID_PREFIX}data-receive-protocol`, permissionName: "协议管理", permissionCode: "page:data-receive:protocol", path: "/pages/data-receive/access/access", parentId: `${LOCAL_MENU_ID_PREFIX}data-receive`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}data-receive-parse`, permissionName: "数据解析", permissionCode: "page:data-receive:parse", path: "/pages/data-receive/parse/parse", parentId: `${LOCAL_MENU_ID_PREFIX}data-receive`, permissionType: 1, status: 1 },
-      { id: `${LOCAL_MENU_ID_PREFIX}data-receive-record`, permissionName: "数据记录", permissionCode: "page:data-receive:record", path: "/pages/data-receive/record/record", parentId: `${LOCAL_MENU_ID_PREFIX}data-receive`, permissionType: 1, status: 1 },
-    ],
-  },
-];
+const defaultMenuTree: RecordLike[] = createDefaultMenuTree(appShellZhCN.appShellMenu);
 
 const props = defineProps<{
   mode: AdminMode;
@@ -957,6 +826,10 @@ const selectedAlarmOptions = ref(["enabled", "web", "app"]);
 const activeOrg = ref("all");
 const permissionSource = ref<"api" | "local">("api");
 const menuSource = ref<"api" | "local">("api");
+const permissionLoadError = ref("");
+const menuLoadError = ref("");
+const rolePermissionLoading = ref(false);
+const rolePermissionError = ref("");
 const total = ref(0);
 const loading = ref(false);
 const saving = ref(false);
@@ -1484,6 +1357,7 @@ async function loadRolesPage() {
 }
 
 async function loadPermissions() {
+  permissionLoadError.value = "";
   try {
     let records = [] as RecordLike[];
 
@@ -1501,6 +1375,7 @@ async function loadPermissions() {
       records = toTreeRows(parseListResponse(listResponse));
     }
 
+    records = records.filter(item => !(isStaleDefaultMenu(item) && Number(item.status) === 0));
     if (records.length) {
       permissions.value = records;
       permissionSource.value = "api";
@@ -1511,19 +1386,22 @@ async function loadPermissions() {
       permissions.value = getDefaultMenuResources();
       permissionSource.value = "local";
     }
-  } catch {
+  } catch (error) {
     permissions.value = getDefaultMenuResources();
     permissionSource.value = "local";
+    const cause = error as { msg?: string; message?: string };
+    permissionLoadError.value = cause?.msg || cause?.message || localeText("权限资源加载失败", "Failed to load permission resources");
   }
 }
 
 async function loadMenus() {
   loading.value = true;
+  menuLoadError.value = "";
   try {
     const keyword = filters.keyword.trim();
     const treeResponse = await getMenuTree({ keyword }) as ApiResponseLike;
     assertSuccessResponse(treeResponse);
-    const treeRecords = toTreeRows(parseListResponse(treeResponse)).filter((item) => !isStaleDefaultMenu(item));
+    const treeRecords = toTreeRows(parseListResponse(treeResponse));
 
     if (treeRecords.length) {
       menus.value = treeRecords;
@@ -1538,7 +1416,7 @@ async function loadMenus() {
       assertSuccessResponse(pageResponse);
       const parsed = parsePageResponse(pageResponse);
       if (parsed.records.length) {
-        menus.value = toTreeRows(parsed.records).filter((item) => !isStaleDefaultMenu(item));
+        menus.value = toTreeRows(parsed.records);
         total.value = menus.value.length;
         menuSource.value = "api";
       } else {
@@ -1552,6 +1430,8 @@ async function loadMenus() {
     selectMenu(menus.value[0] || null);
     syncSelectedMenuIds();
   } catch (error) {
+    const cause = error as { msg?: string; message?: string };
+    menuLoadError.value = cause?.msg || cause?.message || localeText("菜单数据加载失败", "Failed to load menus");
     const keyword = filters.keyword.trim();
     menus.value = getDefaultMenuResources(keyword);
     total.value = menus.value.length;
@@ -1728,7 +1608,7 @@ function extractRolePermissionIds(item: RecordLike | null) {
 
 function extractRolePermissionCodes(item: RecordLike | null) {
   return getArrayValue(item || {}, ["permissions"])
-    .map((value) => (isObject(value) ? getText(value, ["permissionCode", "code"], "") : ""))
+    .map((value) => (isObject(value) ? getText(value, ["permissionCode", "code"], "") : typeof value === "string" ? value : ""))
     .filter(Boolean);
 }
 
@@ -1779,6 +1659,8 @@ function applyRolePermissionSelection(
 
 async function hydrateSelectedRolePermissions(roleId: string | number): Promise<void> {
   const requestToken = ++rolePermissionRequestToken;
+  rolePermissionLoading.value = true;
+  rolePermissionError.value = "";
 
   try {
     const response = await getRolePermissions(roleId) as ApiResponseLike;
@@ -1788,7 +1670,7 @@ async function hydrateSelectedRolePermissions(roleId: string | number): Promise<
       return;
     }
 
-    const rolePermissions = parseListResponse(response);
+    const rolePermissions = Array.isArray(response.data) ? response.data : parseListResponse(response);
     const roleWithPermissions: RecordLike = {
       ...(selectedRole.value || {}),
       permissions: rolePermissions,
@@ -1799,8 +1681,11 @@ async function hydrateSelectedRolePermissions(roleId: string | number): Promise<
   } catch (error){
     if (requestToken === rolePermissionRequestToken &&String(getId(selectedRole.value)) === String(roleId)) {
       selectedPermissionIds.value =[];
+      rolePermissionError.value = localeText("角色权限读取失败，请刷新后再保存", "Failed to read role permissions. Refresh before saving.");
       toastError(error, "加载角色权限失败");
     }
+  } finally {
+    if (requestToken === rolePermissionRequestToken) rolePermissionLoading.value = false;
   }
 }
 
@@ -2065,6 +1950,10 @@ async function saveRole() {
 }
 
 async function saveRolePermissions() {
+  if (saving.value || rolePermissionLoading.value || rolePermissionError.value) {
+    uni.showToast({ title: rolePermissionError.value || localeText("正在读取角色权限", "Loading role permissions"), icon: "none" });
+    return;
+  }
   if (!getId(selectedRole.value)) {
     uni.showToast({ title: "请先选择角色", icon: "none" });
     return;
@@ -2084,7 +1973,8 @@ async function saveRolePermissions() {
 
   saving.value = true;
   try {
-    await assignRolePermissions(getId(selectedRole.value), selectedPermissionIds.value);
+    const response = await assignRolePermissions(getId(selectedRole.value), selectedPermissionIds.value);
+    assertSuccessResponse(response as ApiResponseLike);
     uni.showToast({ title: "角色权限已保存，请相关账号重新登录", icon: "none" });
     await loadRolesPage();
   } catch (error) {
@@ -2161,6 +2051,7 @@ async function syncDefaultMenusToBackend() {
       duration: 3000,
     });
   } catch (error) {
+    await loadMenus();
     toastError(error, "默认菜单同步失败");
   } finally {
     uni.hideLoading();
@@ -2238,6 +2129,7 @@ async function pruneStaleDefaultMenus(
   const idsToDelete = new Set<string | number>();
 
   backendRecords.forEach((item) => {
+    if (isStaleDefaultMenu(item) && Number(item.status) === 0) return;
     const code = getText(item, ["permissionCode"], "");
     const path = getText(item, ["path", "url", "routePath"], "");
     if (isStaleDefaultMenu(item)) {
@@ -2392,7 +2284,7 @@ async function loadBackendMenuRecords() {
 }
 
 async function assertStaleDefaultMenusRemoved() {
-  const remaining = (await loadBackendMenuRecords()).filter(isStaleDefaultMenu);
+  const remaining = (await loadBackendMenuRecords()).filter(item => isStaleDefaultMenu(item) && Number(item.status) !== 0);
   if (!remaining.length) {
     return;
   }
@@ -2659,6 +2551,10 @@ function toggleAllPermissions() :void{
   const ids = getPermissionCascadeIds(permissions.value);
   if (!ids.length) return;
 
+  if (areAllPermissionsChecked.value) {
+    selectedPermissionIds.value = [];
+    return;
+  }
   const nextIds = new Set<string>(ids.map((id) => String(id)));
   syncParentPermissionSelection(nextIds);
 
@@ -2681,7 +2577,8 @@ function syncPermissionNodeSelection(item: RecordLike, idSet: Set<string>): bool
     return isValidId(id) && idSet.has(String(id));
   }
 
-  const allChildrenChecked = children.every((child) => syncPermissionNodeSelection(child, idSet));
+  const childStates = children.map((child) => syncPermissionNodeSelection(child, idSet));
+  const allChildrenChecked = childStates.every(Boolean);
 
   if (isValidId(id)) {
     if (allChildrenChecked) {
@@ -2776,14 +2673,16 @@ function toggleMenuExpanded(item: RecordLike) {
 }
 
 function flattenTree(records: RecordLike[], level = 1): RecordLike[] {
-  return records.flatMap((item) => {
+  return sortFrontendMenuResources(records).flatMap((item) => {
     const children = getFirstArray(item, ["children", "childList", "nodes"]).map((child) => (isObject(child) ? child : { value: child }));
-    return [{ ...item, __level: level }, ...flattenTree(children, level + 1)];
+    const descendants = flattenTree(children, level + 1);
+    const directChildren = descendants.filter((child) => getTreeLevel(child) === level + 1);
+    return [{ ...item, children: directChildren, __level: level }, ...descendants];
   });
 }
 
 function toTreeRows(records: RecordLike[]) {
-  const source = records.filter(isObject);
+  const source = sortFrontendMenuResources(records.filter(isObject));
   if (source.some(hasTreeChildren)) {
     return flattenTree(source);
   }
@@ -2820,7 +2719,9 @@ function flattenByParentId(records: RecordLike[]) {
         visited.add(key);
       }
       const children = key ? childrenMap.get(key) || [] : [];
-      return [{ ...item, __level: level, children }, ...walk(children, level + 1)];
+      const descendants = walk(children, level + 1);
+      const directChildren = descendants.filter((child) => getTreeLevel(child) === level + 1);
+      return [{ ...item, __level: level, children: directChildren }, ...descendants];
     });
 
   const rootRows = walk(roots, 1);
@@ -2904,6 +2805,8 @@ function userMatchesPartition(user: RecordLike, partitionId: string, partitionNa
 }
 
 function getPermissionName(item: RecordLike) {
+  const frontendMenu = getFrontendMenuByCode(getText(item, ["permissionCode", "code"], "").trim().toLowerCase());
+  if (frontendMenu) return frontendMenuT(frontendMenu.labelKey);
   return getText(item, ["permissionName", "menuName", "name"], "未命名资源");
 }
 
@@ -2941,6 +2844,30 @@ function isValidId(value: unknown): value is string | number {
 </script>
 
 <style scoped lang="scss">
+.role-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 100%;
+}
+.role-admin-note {
+  padding: 1px 5px;
+  border: 1px solid #b9d9fa;
+  border-radius: 4px;
+  color: #236bb1;
+  background: #edf6ff;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 16px;
+  white-space: nowrap;
+  cursor: help;
+}
+.permission-load-error {
+  padding: 8px 12px;
+  color: #b42318;
+  font-size: 12px;
+}
 .system-view {
   --system-panel-bg: #ffffff;
   --system-panel-border: #cfe0ed;

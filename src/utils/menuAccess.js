@@ -10,28 +10,19 @@ const ADMIN_ROLE_CODES = new Set([
 ]);
 
 const PERMISSION_KEYS = ["permissionCode", "code", "permission", "perms", "auth", "authority", "value"];
-const ROLE_KEYS = ["roleCode", "code", "roleKey", "key", "roleName", "name", "value"];
+const ROLE_KEYS = ["roleCode", "code", "roleKey", "key"];
 const NESTED_PERMISSION_KEYS = ["permissions", "permissionList", "authorities", "menus", "children"];
 
 export function filterMenuItemsByAccess(menuItems, accessState = {}) {
   const context = createAccessContext(accessState);
 
-  if (!context.hasAccessData || context.isAdmin) {
+  if (context.isAdmin) {
     return cloneMenuItems(menuItems);
   }
 
   return menuItems
     .map((item) => filterMenuItem(item, context))
     .filter(Boolean);
-}
-
-export function getMenuAccessSummary(accessState = {}) {
-  const context = createAccessContext(accessState);
-
-  return {
-    hasAccessData: context.hasAccessData,
-    isAdmin: context.isAdmin,
-  };
 }
 
 export function flattenMenuPaths(menuItems) {
@@ -96,80 +87,47 @@ function filterMenuItem(item, context) {
 
 function canAccessItem(item, context) {
   const permissionCode = normalizeCode(item.permissionCode || getPathPermissionCode(item.path));
-  return !permissionCode || context.permissionCodes.has(permissionCode) || context.permissionCodes.has("*");
+  if (!item.path || !permissionCode || permissionCode.startsWith("module:")) return false;
+  return context.permissionCodes.has(permissionCode) || context.permissionCodes.has("*");
 }
 
 function createAccessContext(accessState) {
-  const permissionCodes = collectPermissionCodes(accessState.permissions);
-  collectNestedPermissionCodes(accessState.roles, permissionCodes);
-  collectNestedPermissionCodes(accessState.userInfo, permissionCodes);
+  const permissionCodes = new Set();
+  const roleCodes = new Set();
+  collectCodes(accessState?.permissions, PERMISSION_KEYS, permissionCodes);
+  collectNestedPermissionCodes(accessState?.userInfo, permissionCodes);
 
-  const roleCodes = collectRoleCodes(accessState.roles);
-  collectRoleCodes(accessState.userInfo).forEach((code) => roleCodes.add(code));
+  for (const roles of [accessState?.roles, accessState?.userInfo?.roles]) {
+    if (!Array.isArray(roles)) continue;
+    collectCodes(roles, ROLE_KEYS, roleCodes);
+    roles.forEach((role) => collectNestedPermissionCodes(role, permissionCodes));
+  }
 
   return {
-    hasAccessData: permissionCodes.size > 0 || roleCodes.size > 0,
     isAdmin: Array.from(roleCodes).some((code) => ADMIN_ROLE_CODES.has(code)),
     permissionCodes,
   };
 }
 
-function collectPermissionCodes(value, result = new Set()) {
-  collectCodes(value, PERMISSION_KEYS, result);
-  return result;
-}
-
 function collectNestedPermissionCodes(value, result) {
-  if (Array.isArray(value)) {
-    value.forEach((item) => collectNestedPermissionCodes(item, result));
-    return result;
-  }
-
-  if (!isObject(value)) {
-    return result;
-  }
-
+  if (!isObject(value)) return;
   for (const key of NESTED_PERMISSION_KEYS) {
-    collectPermissionCodes(value[key], result);
-  }
-
-  return result;
-}
-
-function collectRoleCodes(value, result = new Set()) {
-  collectCodes(value, ROLE_KEYS, result);
-  return result;
-}
-
-function collectCodes(value, keys, result) {
-  if (Array.isArray(value)) {
-    value.forEach((item) => collectCodes(item, keys, result));
-    return;
-  }
-
-  if (typeof value === "string" || typeof value === "number") {
-    addCode(result, value);
-    return;
-  }
-
-  if (!isObject(value)) {
-    return;
-  }
-
-  for (const key of keys) {
-    addCode(result, value[key]);
+    collectCodes(value[key], PERMISSION_KEYS, result);
   }
 }
 
-function addCode(result, value) {
-  const code = normalizeCode(value);
-  if (code) {
-    result.add(code);
+function collectCodes(values, keys, result) {
+  if (!Array.isArray(values)) return;
+  for (const value of values) {
+    const code = isObject(value)
+      ? keys.map((key) => normalizeCode(value[key])).find(Boolean)
+      : normalizeCode(value);
+    if (code) result.add(code);
   }
 }
 
 function normalizeCode(value) {
-  return typeof value === "string" || typeof value === "number" ? String(value).trim().toLowerCase() : "";
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
 
 function cloneMenuItems(menuItems) {

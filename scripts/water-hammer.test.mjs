@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
+import { frontendMenuItems } from '../src/utils/frontendMenu.ts';
 import { baselineWaveform, generateMockSimulation, MOCK_DEVICES, validateOperations } from '../src/pages/water-hammer/mock.ts';
 
 const device = MOCK_DEVICES[0];
@@ -52,11 +53,11 @@ test('invalid values, ranges, no-op and same-valve overlaps are rejected', () =>
 
 test('page, first-level menu, content, translations and permission fixtures are registered', () => {
   const shell = read('src/components/AppShell.vue');
-  assert.match(shell, /permissionCode: "page:water-hammer"/);
+  assert.ok(frontendMenuItems.some(item => item.permissionCode === "page:water-hammer"));
   assert.match(shell, /component: WaterHammerView/);
   assert.ok(JSON.parse(read('src/pages.json')).pages.some((page) => page.path === 'pages/water-hammer/water-hammer'));
   for (const locale of ['zh-CN', 'en-US']) assert.ok(JSON.parse(read(`src/components/locales/${locale}.json`)).appShellMenu.waterHammer);
-  for (const path of ['src/pages/system/components/SystemManagementView.vue', 'src/pages/system/localized/components/SystemManagementView.vue']) assert.match(read(path), /page:water-hammer/);
+  for (const path of ['src/pages/system/components/SystemManagementView.vue', 'src/pages/system/localized/components/SystemManagementView.vue']) assert.match(read(path), /createDefaultMenuTree/);
 });
 
 test('simulation is isolated from backend and real valve controls', () => {

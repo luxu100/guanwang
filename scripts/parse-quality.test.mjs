@@ -50,7 +50,8 @@ test("12.3 actual localized and fallback parsing views mount field quality detai
   for (const directory of ["components", "localized/components"]) {
     const view = read(`src/pages/data-receive/${directory}/DataReceiveView.vue`);
     assert.match(view, /import ParseRecordQuality from "@\/pages\/data-receive\/components\/ParseRecordQuality.vue"/);
-    assert.match(view, /<ParseRecordQuality v-if="activeConfig.key === 'parseRecord' && selectedRecord" :record="selectedRecord"/);
+    assert.match(view, /<ParseRecordQuality v-else-if="activeConfig.key === 'parseRecord' && selectedRecord" :record="selectedRecord"/);
+    assert.match(view, /getDetail: \(id\) => getProtocolParseRecordDetail\(id\)/);
   }
   assert.match(read("src/components/app-shell/appShellModules.localized.ts"), /data-receive\/localized\/components\/DataReceiveView.vue/);
 });
@@ -63,13 +64,21 @@ test("12.3 SUCCESS with inner PARTIAL exposes fallback fields and preserves raw 
   assert.equal(app.run("parsed.value.fallbackFields[0]"), "pressure");
   assert.equal(app.run("rawJson.value"), partial);
   assert.equal(app.run("parsed.value.values.pressure.raw"), "FFFF");
-  assert.deepEqual(app.calls[0], { deviceNumber: "quality-test", protocolId: 12, pageNum: 1, pageSize: 100, channel: "AEP_NB", afn: "01", taskType: "TASK_1", parseStatus: "SUCCESS" });
+  assert.deepEqual(app.calls[0], { deviceNumber: "quality-test", protocolId: 12, pageNum: 1, pageSize: 10, channel: "AEP_NB", afn: "01", taskType: "TASK_1", parseStatus: "SUCCESS" });
 });
 
 test("12.3 field quality has an English summary", async () => {
   const app = harness(() => page([{ id: 7, parsedJson: partial }]), "en-US");
   await app.load(record());
   assert.equal(app.run("qualityText.value"), "Partially parsed");
+});
+
+test("quality lookup uses the record's own second without timezone conversion", async () => {
+  const app = harness(() => page([{ id: 7, parsedJson: partial }]));
+  await app.load(record({ parseTime: "2026-11-08T13:27:40.123456" }));
+  assert.equal(app.calls[0].startTime, "2026-11-08T13:27:40");
+  assert.equal(app.calls[0].endTime, "2026-11-08T13:27:40.999999999");
+  assert.equal(app.calls[0].pageSize, 10);
 });
 
 test("12.3 field failure stays a failure even when partial values exist", async () => {
@@ -103,8 +112,8 @@ test("12.3 failed records without a protocol keep their original error and make 
 
 test("12.3 complete JSON lookup matches the selected ID across pages", async () => {
   const app = harness((query) => query.pageNum === 1
-    ? page([{ id: 6, parsedJson: '{"qualityStatus":"COMPLETE"}' }], 101)
-    : page([{ id: "7", parsedJson: partial }], 101));
+    ? page([{ id: 6, parsedJson: '{"qualityStatus":"COMPLETE"}' }], 11)
+    : page([{ id: "7", parsedJson: partial }], 11));
   await app.load(record());
   assert.deepEqual(app.calls.map((query) => query.pageNum), [1, 2]);
   assert.equal(app.run("isPartial.value"), true);

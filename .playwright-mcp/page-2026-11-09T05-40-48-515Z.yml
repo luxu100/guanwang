@@ -1,0 +1,245 @@
+- generic [ref=f1e7]:
+  - generic [ref=f1e10]:
+    - generic "绑定 Logo" [ref=f1e13] [cursor=pointer]
+    - generic "预警信息" [ref=f1e17] [cursor=pointer]: 99+
+    - generic [ref=f1e22] [cursor=pointer]: 简体中文
+    - generic [ref=f1e27]: string
+    - generic [ref=f1e29] [cursor=pointer]: 退出登录
+  - generic [ref=f1e30]:
+    - generic [ref=f1e31]:
+      - generic [ref=f1e32]:
+        - generic [ref=f1e33]: 目录
+        - generic "收起目录" [ref=f1e34] [cursor=pointer]
+      - generic [ref=f1e36]:
+        - generic "我的收藏" [ref=f1e40] [cursor=pointer]
+        - generic "一张图" [ref=f1e44] [cursor=pointer]
+        - generic "渗漏监测" [ref=f1e48] [cursor=pointer]
+        - generic "水锤分析" [ref=f1e52] [cursor=pointer]
+        - generic "分区管理" [ref=f1e56] [cursor=pointer]
+        - generic "设备管理" [ref=f1e60] [cursor=pointer]
+        - generic "指令管理" [ref=f1e64] [cursor=pointer]
+        - generic "统计分析" [ref=f1e68] [cursor=pointer]
+        - generic "数据分析" [ref=f1e72] [cursor=pointer]
+        - generic "疑漏点上报" [ref=f1e76] [cursor=pointer]
+        - generic "工单管理" [ref=f1e80] [cursor=pointer]
+        - generic "运维报表" [ref=f1e84] [cursor=pointer]
+        - generic "渗漏爆管" [ref=f1e88] [cursor=pointer]
+        - generic "实时报警" [ref=f1e92] [cursor=pointer]
+        - generic [ref=f1e93]:
+          - generic "系统设置" [ref=f1e96] [cursor=pointer]
+          - generic [ref=f1e97]:
+            - generic "用户配置" [ref=f1e100] [cursor=pointer]
+            - generic "权限管理" [ref=f1e103] [cursor=pointer]
+            - generic "菜单管理" [ref=f1e106] [cursor=pointer]
+            - generic "数据字典" [ref=f1e109] [cursor=pointer]
+            - generic "查询模板" [ref=f1e112] [cursor=pointer]
+        - generic "数据接收和解析" [ref=f1e116] [cursor=pointer]
+    - generic [ref=f1e117]:
+      - generic [ref=f1e118]:
+        - generic "向左滚动页签" [ref=f1e119] [cursor=pointer]
+        - generic "向右滚动页签" [ref=f1e121] [cursor=pointer]
+        - generic [ref=f1e123]:
+          - generic "渗漏监测" [ref=f1e126] [cursor=pointer]
+          - generic "菜单管理" [ref=f1e131] [cursor=pointer]
+          - generic "权限管理" [ref=f1e136] [cursor=pointer]
+          - generic "我的收藏" [ref=f1e141] [cursor=pointer]
+        - generic "进入全屏" [ref=f1e144] [cursor=pointer]
+      - generic [ref=f1e153]:
+        - generic [ref=f1e154]:
+          - generic [ref=f1e155]:
+            - generic [ref=f1e156]: 菜单资源
+            - generic "刷新" [ref=f1e157] [cursor=pointer]
+          - generic [ref=f1e166]:
+            - generic [ref=f1e167] [cursor=pointer]: 我的收藏
+            - generic [ref=f1e170] [cursor=pointer]: 一张图
+            - generic [ref=f1e173] [cursor=pointer]: 渗漏监测
+            - generic [ref=f1e176] [cursor=pointer]: 水锤分析
+            - generic [ref=f1e179] [cursor=pointer]: 分区管理
+            - generic [ref=f1e183] [cursor=pointer]:
+              - generic "展开子菜单" [ref=f1e184]
+              - generic [ref=f1e186]: 设备管理
+            - generic [ref=f1e188] [cursor=pointer]:
+              - generic "展开子菜单" [ref=f1e189]
+              - generic [ref=f1e191]: 指令管理
+            - generic [ref=f1e193] [cursor=pointer]:
+              - generic "展开子菜单" [ref=f1e194]
+              - generic [ref=f1e196]: 统计分析
+            - generic [ref=f1e198] [cursor=pointer]:
+              - generic "展开子菜单" [ref=f1e199]
+              - generic [ref=f1e201]: 数据分析
+            - generic [ref=f1e203] [cursor=pointer]:
+              - generic "展开子菜单" [ref=f1e204]
+              - generic [ref=f1e206]: 疑漏点上报
+            - generic [ref=f1e208] [cursor=pointer]:
+              - generic "展开子菜单" [ref=f1e209]
+              - generic [ref=f1e211]: 工单管理
+            - generic [ref=f1e213] [cursor=pointer]:
+              - generic "展开子菜单" [ref=f1e214]
+              - generic [ref=f1e216]: 运维报表
+            - generic [ref=f1e218] [cursor=pointer]:
+              - generic "展开子菜单" [ref=f1e219]
+              - generic [ref=f1e221]: 渗漏爆管
+            - generic [ref=f1e223] [cursor=pointer]:
+              - generic "展开子菜单" [ref=f1e224]
+              - generic [ref=f1e226]: 实时报警
+            - generic [ref=f1e228] [cursor=pointer]:
+              - generic "展开子菜单" [ref=f1e229]
+              - generic [ref=f1e231]: 系统设置
+            - generic [ref=f1e233] [cursor=pointer]:
+              - generic "展开子菜单" [ref=f1e234]
+              - generic [ref=f1e236]: 数据接收和解析
+        - generic [ref=f1e237]:
+          - generic [ref=f1e238]:
+            - generic [ref=f1e240]:
+              - generic [ref=f1e241]: 关键字
+              - generic [ref=f1e243]:
+                - generic: 菜单名称、编码或路径
+                - textbox [ref=f1e244]
+            - generic [ref=f1e245]:
+              - generic [ref=f1e246] [cursor=pointer]: 查询
+              - generic [ref=f1e247] [cursor=pointer]: 重置
+              - generic [ref=f1e248] [cursor=pointer]: 新增菜单
+              - generic [ref=f1e249] [cursor=pointer]: 删除
+          - generic [ref=f1e250]:
+            - generic [ref=f1e251]:
+              - generic [ref=f1e252]:
+                - generic [ref=f1e253]: 菜单资源列表
+                - generic [ref=f1e254]:
+                  - generic [ref=f1e255]: 共 53 条
+                  - generic [ref=f1e256]: 批量删除
+              - generic [ref=f1e261]:
+                - generic [ref=f1e262]:
+                  - generic [ref=f1e265] [cursor=pointer]
+                  - generic [ref=f1e266]: 菜单名称
+                  - generic [ref=f1e267]: 权限编码
+                  - generic [ref=f1e268]: 页面路径
+                  - generic [ref=f1e269]: 状态
+                - generic [ref=f1e270] [cursor=pointer]:
+                  - generic [ref=f1e274]: 我的收藏
+                  - generic [ref=f1e277]: page:favorite
+                  - generic [ref=f1e278]: /pages/index/index
+                  - generic [ref=f1e279]: 启用
+                - generic [ref=f1e283] [cursor=pointer]:
+                  - generic [ref=f1e287]: 一张图
+                  - generic [ref=f1e290]: page:one-map
+                  - generic [ref=f1e291]: /pages/one-map/one-map
+                  - generic [ref=f1e292]: 启用
+                - generic [ref=f1e296] [cursor=pointer]:
+                  - generic [ref=f1e300]: 渗漏监测
+                  - generic [ref=f1e303]: page:leak-monitor
+                  - generic [ref=f1e304]: /pages/leak-monitor/leak-monitor
+                  - generic [ref=f1e305]: 启用
+                - generic [ref=f1e309] [cursor=pointer]:
+                  - generic [ref=f1e313]: 水锤分析
+                  - generic [ref=f1e316]: page:water-hammer
+                  - generic [ref=f1e317]: /pages/water-hammer/water-hammer
+                  - generic [ref=f1e318]: 启用
+                - generic [ref=f1e322] [cursor=pointer]:
+                  - generic [ref=f1e326]: 分区管理
+                  - generic [ref=f1e329]: page:partition
+                  - generic [ref=f1e330]: /pages/partition/partition
+                  - generic [ref=f1e331]: 启用
+                - generic [ref=f1e335] [cursor=pointer]:
+                  - generic [ref=f1e340]:
+                    - generic "展开子菜单" [ref=f1e341]
+                    - generic [ref=f1e343]: 设备管理
+                  - generic [ref=f1e344]: module:device
+                  - generic [ref=f1e345]: /pages/device/info/info
+                  - generic [ref=f1e346]: 启用
+                - generic [ref=f1e350] [cursor=pointer]:
+                  - generic [ref=f1e355]:
+                    - generic "展开子菜单" [ref=f1e356]
+                    - generic [ref=f1e358]: 指令管理
+                  - generic [ref=f1e359]: module:command
+                  - generic [ref=f1e360]: /pages/command/commandManage
+                  - generic [ref=f1e361]: 启用
+                - generic [ref=f1e365] [cursor=pointer]:
+                  - generic [ref=f1e370]:
+                    - generic "展开子菜单" [ref=f1e371]
+                    - generic [ref=f1e373]: 统计分析
+                  - generic [ref=f1e374]: page:statistics
+                  - generic [ref=f1e375]: /pages/statistics/statistics
+                  - generic [ref=f1e376]: 启用
+                - generic [ref=f1e380] [cursor=pointer]:
+                  - generic [ref=f1e385]:
+                    - generic "展开子菜单" [ref=f1e386]
+                    - generic [ref=f1e388]: 数据分析
+                  - generic [ref=f1e389]: module:data-analysis
+                  - generic [ref=f1e390]: /pages/data-analysis/overview/overview
+                  - generic [ref=f1e391]: 启用
+                - generic [ref=f1e395] [cursor=pointer]:
+                  - generic [ref=f1e400]:
+                    - generic "展开子菜单" [ref=f1e401]
+                    - generic [ref=f1e403]: 疑漏点上报
+                  - generic [ref=f1e404]: module:leak-report
+                  - generic [ref=f1e405]: /pages/leak-report/suspect-management/suspect-management
+                  - generic [ref=f1e406]: 启用
+                - generic [ref=f1e410] [cursor=pointer]:
+                  - generic [ref=f1e415]:
+                    - generic "展开子菜单" [ref=f1e416]
+                    - generic [ref=f1e418]: 工单管理
+                  - generic [ref=f1e419]: module:work-order
+                  - generic [ref=f1e420]: /pages/work-order/create/create
+                  - generic [ref=f1e421]: 启用
+                - generic [ref=f1e425] [cursor=pointer]:
+                  - generic [ref=f1e430]:
+                    - generic "展开子菜单" [ref=f1e431]
+                    - generic [ref=f1e433]: 运维报表
+                  - generic [ref=f1e434]: module:report
+                  - generic [ref=f1e435]: /pages/report/device-resume/device-resume
+                  - generic [ref=f1e436]: 启用
+                - generic [ref=f1e440] [cursor=pointer]:
+                  - generic [ref=f1e445]:
+                    - generic "展开子菜单" [ref=f1e446]
+                    - generic [ref=f1e448]: 渗漏爆管
+                  - generic [ref=f1e449]: module:leak-burst
+                  - generic [ref=f1e450]: /pages/leak-burst/burst-identification/burst-identification
+                  - generic [ref=f1e451]: 启用
+                - generic [ref=f1e455] [cursor=pointer]:
+                  - generic [ref=f1e460]:
+                    - generic "展开子菜单" [ref=f1e461]
+                    - generic [ref=f1e463]: 实时报警
+                  - generic [ref=f1e464]: module:alarm
+                  - generic [ref=f1e465]: /pages/alarm/strategy/strategy
+                  - generic [ref=f1e466]: 启用
+                - generic [ref=f1e470] [cursor=pointer]:
+                  - generic [ref=f1e475]:
+                    - generic "展开子菜单" [ref=f1e476]
+                    - generic [ref=f1e478]: 系统设置
+                  - generic [ref=f1e479]: module:system
+                  - generic [ref=f1e480]: /pages/system/user/user
+                  - generic [ref=f1e481]: 启用
+                - generic [ref=f1e485] [cursor=pointer]:
+                  - generic [ref=f1e490]:
+                    - generic "展开子菜单" [ref=f1e491]
+                    - generic [ref=f1e493]: 数据接收和解析
+                  - generic [ref=f1e494]: module:data-receive
+                  - generic [ref=f1e495]: /pages/data-receive/access/access
+                  - generic [ref=f1e496]: 启用
+            - generic [ref=f1e500]:
+              - generic [ref=f1e501]:
+                - generic [ref=f1e502]: 菜单配置
+                - generic [ref=f1e503]: 维护页面入口、权限编码和父级关系
+              - generic [ref=f1e504]:
+                - generic [ref=f1e505]:
+                  - generic [ref=f1e506]: 菜单名称*
+                  - textbox [ref=f1e509]: 我的收藏
+                - generic [ref=f1e510]:
+                  - generic [ref=f1e511]: 权限编码*
+                  - textbox [ref=f1e514]: page:favorite
+                - generic [ref=f1e515]:
+                  - generic [ref=f1e516]: 页面路径
+                  - textbox [ref=f1e519]: /pages/index/index
+                - generic [ref=f1e520]:
+                  - generic [ref=f1e521]: 父级菜单
+                  - generic [ref=f1e522] [cursor=pointer]: 根节点
+                - generic [ref=f1e525]:
+                  - generic [ref=f1e526]: 资源类型
+                  - generic [ref=f1e527] [cursor=pointer]: 菜单
+                - generic [ref=f1e530]:
+                  - generic [ref=f1e531]: 状态
+                  - generic [ref=f1e532] [cursor=pointer]: 启用
+              - generic [ref=f1e535]:
+                - generic [ref=f1e536] [cursor=pointer]: 取消
+                - generic [ref=f1e537] [cursor=pointer]: 同步默认菜单
+                - generic [ref=f1e538] [cursor=pointer]: 保存菜单
